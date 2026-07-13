@@ -1,0 +1,23 @@
+{
+  "name": "@schoolmitra/dpdp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DPDP Act 2023 Consent Engine for SchoolMitra ERP",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@schoolmitra/validators": "workspace:*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
+  }
+}

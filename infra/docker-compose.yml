@@ -1,0 +1,102 @@
+version: "3.9"
+
+# =============================================================================
+# SchoolMitra ERP — Local Development Stack
+# Usage: docker compose up -d
+# =============================================================================
+
+services:
+  # ── PostgreSQL 16 ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: schoolmitra_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: schoolmitra_erp
+      POSTGRES_USER: schoolmitra
+      POSTGRES_PASSWORD: schoolmitra_dev
+      # Enable pgcrypto for AES-256 encryption
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=en_IN.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schoolmitra -d schoolmitra_erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - schoolmitra_net
+
+  # ── Redis 7 ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: schoolmitra_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - schoolmitra_net
+
+  # ── MinIO (S3-compatible storage) ──────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: schoolmitra_minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - schoolmitra_net
+
+  # ── MinIO bucket initialisation ────────────────────────────────────────────
+  minio_init:
+    image: minio/mc:latest
+    container_name: schoolmitra_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set minio http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing minio/schoolmitra-documents &&
+        mc mb --ignore-existing minio/schoolmitra-photos &&
+        mc anonymous set private minio/schoolmitra-documents &&
+        mc anonymous set private minio/schoolmitra-photos &&
+        echo 'MinIO buckets initialised.'
+      "
+    networks:
+      - schoolmitra_net
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  schoolmitra_net:
+    driver: bridge
