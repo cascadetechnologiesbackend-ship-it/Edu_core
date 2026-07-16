@@ -63,16 +63,18 @@ export default function SubjectMappingTab({
 
   // Set default values when opening modal
   const handleOpenForm = () => {
-    if (classrooms.length > 0 && classrooms[0]) {
+    const firstClassId = classrooms[0]?.id;
+    if (firstClassId) {
       setFormData((prev) => ({
         ...prev,
-        classId: classrooms[0].id,
+        classId: firstClassId,
       }));
     }
-    if (subjects.length > 0 && subjects[0]) {
+    const firstSubjectId = subjects[0]?.id;
+    if (firstSubjectId) {
       setFormData((prev) => ({
         ...prev,
-        subjectId: subjects[0].id,
+        subjectId: firstSubjectId,
       }));
     }
     setShowForm(true);

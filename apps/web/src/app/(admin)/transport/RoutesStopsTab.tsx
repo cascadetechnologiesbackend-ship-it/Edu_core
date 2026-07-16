@@ -65,7 +65,7 @@ export default function RoutesStopsTab({
       await saveRoute({
         routeName: routeData.routeName,
         routeCode: routeData.routeCode,
-        vehicleId: routeData.vehicleId || undefined,
+        ...(routeData.vehicleId ? { vehicleId: routeData.vehicleId } : {}),
       });
       setShowRouteForm(false);
       setRouteData({ routeName: "", routeCode: "", vehicleId: "" });
@@ -80,9 +80,9 @@ export default function RoutesStopsTab({
         routeId: selectedRouteId,
         stopName: stopData.stopName,
         stopOrder: stopData.stopOrder,
-        gpsLatitude: stopData.gpsLatitude || undefined,
-        gpsLongitude: stopData.gpsLongitude || undefined,
         estimatedArrivalTime: stopData.estimatedArrivalTime,
+        ...(stopData.gpsLatitude ? { gpsLatitude: stopData.gpsLatitude } : {}),
+        ...(stopData.gpsLongitude ? { gpsLongitude: stopData.gpsLongitude } : {}),
       });
       setShowStopForm(false);
       setStopData({

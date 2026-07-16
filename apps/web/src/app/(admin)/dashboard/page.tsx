@@ -27,6 +27,7 @@ import {
   UserCheck,
   CheckCircle,
   Info,
+  Navigation,
 } from "lucide-react";
 
 export const metadata: Metadata = {

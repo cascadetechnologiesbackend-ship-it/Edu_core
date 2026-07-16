@@ -349,8 +349,8 @@ async function main() {
 
     // Create Sections A and B (assign teacher1 to Section A, teacher2 to Section B)
     const createdSections = await db.insert(sections).values([
-      { classId: cls.id, schoolId: school.id, name: "A", capacity: 30, isActive: true, classTeacherId: teacherIds[0] },
-      { classId: cls.id, schoolId: school.id, name: "B", capacity: 30, isActive: true, classTeacherId: teacherIds[1] },
+      { classId: cls.id, schoolId: school.id, name: "A", capacity: 30, isActive: true, classTeacherId: teacherIds[0] || null },
+      { classId: cls.id, schoolId: school.id, name: "B", capacity: 30, isActive: true, classTeacherId: teacherIds[1] || null },
     ]).returning({ id: sections.id });
 
     console.log(`   -> Generating 30 students for ${grade}...`);
@@ -484,9 +484,9 @@ async function main() {
   if (createdClasses.length > 0) {
     const firstClass = createdClasses[0];
     await db.insert(classSubjects).values([
-      { classId: firstClass.id, subjectId: mathSub.id, schoolId: school.id, assignedTeacherId: teacherIds[0], periodsPerWeek: 5 },
-      { classId: firstClass.id, subjectId: sciSub.id, schoolId: school.id, assignedTeacherId: teacherIds[0], periodsPerWeek: 5 },
-      { classId: firstClass.id, subjectId: engSub.id, schoolId: school.id, assignedTeacherId: teacherIds[1], periodsPerWeek: 5 },
+      { classId: firstClass.id, subjectId: mathSub.id, schoolId: school.id, assignedTeacherId: teacherIds[0] || null, periodsPerWeek: 5 },
+      { classId: firstClass.id, subjectId: sciSub.id, schoolId: school.id, assignedTeacherId: teacherIds[0] || null, periodsPerWeek: 5 },
+      { classId: firstClass.id, subjectId: engSub.id, schoolId: school.id, assignedTeacherId: teacherIds[1] || null, periodsPerWeek: 5 },
     ]);
   }
 

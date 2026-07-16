@@ -91,8 +91,9 @@ export default function AssignmentsTab({
 
   // Setup default values for dropdowns
   useEffect(() => {
-    if (classrooms.length > 0 && classrooms[0]?.sections.length > 0) {
-      setSelectedSection(classrooms[0].sections[0].id);
+    const defaultSectionId = classrooms[0]?.sections?.[0]?.id;
+    if (defaultSectionId) {
+      setSelectedSection(defaultSectionId);
     }
   }, [classrooms]);
 

@@ -22,11 +22,11 @@ interface BookCatalog {
   id: string;
   title: string;
   author: string;
-  publisher?: string;
-  edition?: string;
-  subject?: string;
-  category?: string;
-  rackLocation?: string;
+  publisher?: string | null;
+  edition?: string | null;
+  subject?: string | null;
+  category?: string | null;
+  rackLocation?: string | null;
   totalCopies: number;
   availableCopies: number;
   copies: { id: string; barcodeNumber: string; isAvailable: boolean; condition: string }[];

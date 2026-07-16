@@ -58,8 +58,8 @@ export default function BusPassesTab({
     studentId: "",
     routeId: "",
     routeStopId: "",
-    validFrom: new Date().toISOString().split("T")[0],
-    validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    validFrom: new Date().toISOString().split("T")[0] || "",
+    validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] || "",
   });
 
   const selectedStudent = students.find((s) => s.id === formData.studentId);
@@ -71,8 +71,8 @@ export default function BusPassesTab({
       studentId: students[0]?.id || "",
       routeId: routes[0]?.id || "",
       routeStopId: routes[0]?.stops[0]?.id || "",
-      validFrom: new Date().toISOString().split("T")[0],
-      validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      validFrom: new Date().toISOString().split("T")[0] || "",
+      validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] || "",
     });
     setErrorMsg("");
     setSuccessMsg("");

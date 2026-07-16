@@ -15,10 +15,10 @@ export async function getActiveTenant() {
 
   if (host.includes("localhost") || host.includes("127.0.0.1")) {
     if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-      tenant = parts[0];
+      tenant = parts[0] || "";
     }
   } else if (parts.length > 2) {
-    tenant = parts[0];
+    tenant = parts[0] || "";
   }
 
   // If no subdomain is present, return null (global fallback or master view)

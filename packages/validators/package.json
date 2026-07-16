@@ -10,7 +10,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint --ext .ts src"
   },
   "dependencies": {
     "zod": "^3.22.4"

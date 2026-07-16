@@ -448,10 +448,10 @@ export async function submitAssignment(data: { assignmentId: string; studentId: 
 
 export async function getLessonPlans(classSubjectId: string) {
   await checkAuth();
-  return await db.query.lessonPlans({
+  return await db.query.lessonPlans.findMany({
     where: eq(lessonPlans.classSubjectId, classSubjectId),
     orderBy: [lessonPlans.plannedDate],
-  } as any); // cast since query types match relations
+  });
 }
 
 export async function saveLessonPlan(data: {
