@@ -99,7 +99,9 @@ export const students = pgTable(
     currentSectionId: uuid("current_section_id"),
     rollNumber: text("roll_number"),
     // Admission
-    admissionDate: timestamp("admission_date", { withTimezone: true }).notNull(),
+    admissionDate: timestamp("admission_date", {
+      withTimezone: true,
+    }).notNull(),
     admissionApplicationId: uuid("admission_application_id"),
     previousSchool: text("previous_school"),
     rteApplicant: boolean("rte_applicant").notNull().default(false),
@@ -113,20 +115,33 @@ export const students = pgTable(
     leavingDate: timestamp("leaving_date", { withTimezone: true }),
     leavingReason: text("leaving_reason"),
     // Timestamps
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     admissionNumberUnique: unique("students_admission_number_unique").on(
       t.schoolId,
-      t.admissionNumber
+      t.admissionNumber,
     ),
-    schoolYearIdx: index("students_school_year_idx").on(t.schoolId, t.academicYearId),
+    schoolYearIdx: index("students_school_year_idx").on(
+      t.schoolId,
+      t.academicYearId,
+    ),
     schoolIdx: index("students_school_idx").on(t.schoolId),
-    classIdx: index("students_class_idx").on(t.currentClassId, t.currentSectionId),
-    searchIdx: index("students_search_idx").on(t.firstNameSearchHash, t.lastNameSearchHash),
-  })
+    classIdx: index("students_class_idx").on(
+      t.currentClassId,
+      t.currentSectionId,
+    ),
+    searchIdx: index("students_search_idx").on(
+      t.firstNameSearchHash,
+      t.lastNameSearchHash,
+    ),
+  }),
 );
 
 // ─── student_family_members ───────────────────────────────────────────────────
@@ -151,18 +166,26 @@ export const studentFamilyMembers = pgTable(
     // Linked user account
     userId: uuid("user_id"),
     // Emergency contact
-    isEmergencyContact: boolean("is_emergency_contact").notNull().default(false),
+    isEmergencyContact: boolean("is_emergency_contact")
+      .notNull()
+      .default(false),
     isPrimaryContact: boolean("is_primary_contact").notNull().default(false),
     // Consent authority
-    hasConsentAuthority: boolean("has_consent_authority").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    hasConsentAuthority: boolean("has_consent_authority")
+      .notNull()
+      .default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     studentIdx: index("student_family_members_student_idx").on(t.studentId),
     schoolIdx: index("student_family_members_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── student_medical_records ──────────────────────────────────────────────────
@@ -188,14 +211,20 @@ export const studentMedicalRecords = pgTable(
     doctorContactEncrypted: text("doctor_contact_encrypted"),
     emergencyNotes: text("emergency_notes_encrypted"),
     lastUpdatedById: uuid("last_updated_by_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
-    studentUnique: unique("student_medical_records_student_unique").on(t.studentId),
+    studentUnique: unique("student_medical_records_student_unique").on(
+      t.studentId,
+    ),
     schoolIdx: index("student_medical_records_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── student_class_history ────────────────────────────────────────────────────
@@ -217,20 +246,24 @@ export const studentClassHistory = pgTable(
     sectionId: uuid("section_id").notNull(),
     rollNumber: text("roll_number"),
     promotionStatus: text("promotion_status"), // "PROMOTED", "DETAINED", "TRANSFERRED"
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     studentYearUnique: unique("student_class_history_unique").on(
       t.studentId,
-      t.academicYearId
+      t.academicYearId,
     ),
     studentIdx: index("student_class_history_student_idx").on(t.studentId),
     schoolYearIdx: index("student_class_history_school_year_idx").on(
       t.schoolId,
-      t.academicYearId
+      t.academicYearId,
     ),
-  })
+  }),
 );
 
 // ─── student_documents ────────────────────────────────────────────────────────
@@ -254,14 +287,18 @@ export const studentDocuments = pgTable(
     isVerified: boolean("is_verified").notNull().default(false),
     verifiedById: uuid("verified_by_id"),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     studentIdx: index("student_documents_student_idx").on(t.studentId),
     schoolIdx: index("student_documents_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── alumni ───────────────────────────────────────────────────────────────────
@@ -283,20 +320,27 @@ export const alumni = pgTable(
     currentInstitution: text("current_institution"),
     notes: text("notes"),
     consentGiven: boolean("consent_given").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     studentUnique: unique("alumni_student_unique").on(t.studentId),
     schoolIdx: index("alumni_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const studentsRelations = relations(students, ({ one, many }) => ({
-  school: one(schools, { fields: [students.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [students.schoolId],
+    references: [schools.id],
+  }),
   academicYear: one(academicYears, {
     fields: [students.academicYearId],
     references: [academicYears.id],
@@ -319,26 +363,59 @@ export const studentFamilyMembersRelations = relations(
       fields: [studentFamilyMembers.schoolId],
       references: [schools.id],
     }),
-  })
+  }),
 );
 
-export const studentMedicalRecordsRelations = relations(studentMedicalRecords, ({ one }) => ({
-  student: one(students, { fields: [studentMedicalRecords.studentId], references: [students.id] }),
-  school: one(schools, { fields: [studentMedicalRecords.schoolId], references: [schools.id] }),
-}));
+export const studentMedicalRecordsRelations = relations(
+  studentMedicalRecords,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [studentMedicalRecords.studentId],
+      references: [students.id],
+    }),
+    school: one(schools, {
+      fields: [studentMedicalRecords.schoolId],
+      references: [schools.id],
+    }),
+  }),
+);
 
-export const studentClassHistoryRelations = relations(studentClassHistory, ({ one }) => ({
-  student: one(students, { fields: [studentClassHistory.studentId], references: [students.id] }),
-  school: one(schools, { fields: [studentClassHistory.schoolId], references: [schools.id] }),
-  academicYear: one(academicYears, { fields: [studentClassHistory.academicYearId], references: [academicYears.id] }),
-}));
+export const studentClassHistoryRelations = relations(
+  studentClassHistory,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [studentClassHistory.studentId],
+      references: [students.id],
+    }),
+    school: one(schools, {
+      fields: [studentClassHistory.schoolId],
+      references: [schools.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [studentClassHistory.academicYearId],
+      references: [academicYears.id],
+    }),
+  }),
+);
 
-export const studentDocumentsRelations = relations(studentDocuments, ({ one }) => ({
-  student: one(students, { fields: [studentDocuments.studentId], references: [students.id] }),
-  school: one(schools, { fields: [studentDocuments.schoolId], references: [schools.id] }),
-}));
+export const studentDocumentsRelations = relations(
+  studentDocuments,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [studentDocuments.studentId],
+      references: [students.id],
+    }),
+    school: one(schools, {
+      fields: [studentDocuments.schoolId],
+      references: [schools.id],
+    }),
+  }),
+);
 
 export const alumniRelations = relations(alumni, ({ one }) => ({
-  student: one(students, { fields: [alumni.studentId], references: [students.id] }),
+  student: one(students, {
+    fields: [alumni.studentId],
+    references: [students.id],
+  }),
   school: one(schools, { fields: [alumni.schoolId], references: [schools.id] }),
 }));

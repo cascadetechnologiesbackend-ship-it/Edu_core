@@ -42,7 +42,7 @@ const SLIDING_WINDOW_SCRIPT = `
 export async function checkRateLimit(
   key: string,
   maxRequests: number,
-  windowMs: number
+  windowMs: number,
 ): Promise<boolean> {
   const now = Date.now();
   const result = await redis.eval(
@@ -51,7 +51,7 @@ export async function checkRateLimit(
     key,
     windowMs,
     maxRequests,
-    now
+    now,
   );
   return result === 1;
 }

@@ -53,10 +53,14 @@ export default function HRDashboardClient({
   salaryTemplates,
   payrollRuns,
 }: HRDashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<"staff" | "templates" | "leaves" | "payroll">("staff");
+  const [activeTab, setActiveTab] = useState<
+    "staff" | "templates" | "leaves" | "payroll"
+  >("staff");
 
   // State management for PII reveal
-  const [revealedPii, setRevealedPii] = useState<Record<string, { pan?: string; bank?: string }>>({});
+  const [revealedPii, setRevealedPii] = useState<
+    Record<string, { pan?: string; bank?: string }>
+  >({});
 
   // Loading/error states
   const [loading, setLoading] = useState(false);
@@ -135,8 +139,12 @@ export default function HRDashboardClient({
   const [payrollMonth, setPayrollMonth] = useState("2025-06");
 
   // Authorization checks
-  const isAuthorizedHR = session?.user?.role === "HR_MANAGER" || session?.user?.role === "SUPER_ADMIN";
-  const isAuthorizedLock = session?.user?.role === "PRINCIPAL" || session?.user?.role === "SUPER_ADMIN";
+  const isAuthorizedHR =
+    session?.user?.role === "HR_MANAGER" ||
+    session?.user?.role === "SUPER_ADMIN";
+  const isAuthorizedLock =
+    session?.user?.role === "PRINCIPAL" ||
+    session?.user?.role === "SUPER_ADMIN";
 
   const handleReveal = async (staffId: string, field: "pan" | "bank") => {
     const res = await revealStaffPii(staffId, field);
@@ -189,7 +197,7 @@ export default function HRDashboardClient({
       associationForm.staffId,
       associationForm.templateId,
       associationForm.baseGrossSalary,
-      associationForm.monthlyTds
+      associationForm.monthlyTds,
     );
     setLoading(false);
     if (res.success) {
@@ -255,7 +263,12 @@ export default function HRDashboardClient({
   };
 
   const handleLockPayroll = async (runId: string) => {
-    if (!confirm("Are you sure you want to approve and lock this payroll? This updates staff remaining loan balances and generates statutory ECR records.")) return;
+    if (
+      !confirm(
+        "Are you sure you want to approve and lock this payroll? This updates staff remaining loan balances and generates statutory ECR records.",
+      )
+    )
+      return;
     setLoading(true);
     setErrorMsg("");
     const res = await approveAndLockPayroll(runId);
@@ -277,7 +290,10 @@ export default function HRDashboardClient({
             Human Resources & Payroll Portal
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            {school?.name || "SchoolMitra ERP"} — {activeYear?.label ? `Academic Year ${activeYear.label}` : "Configuration Portal"}
+            {school?.name || "SchoolMitra ERP"} —{" "}
+            {activeYear?.label
+              ? `Academic Year ${activeYear.label}`
+              : "Configuration Portal"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -301,13 +317,23 @@ export default function HRDashboardClient({
       {successMsg && (
         <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 rounded-xl text-sm flex items-center justify-between">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg("")} className="font-bold text-xs hover:underline">Dismiss</button>
+          <button
+            onClick={() => setSuccessMsg("")}
+            className="font-bold text-xs hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
       {errorMsg && (
         <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 rounded-xl text-sm flex items-center justify-between">
           <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg("")} className="font-bold text-xs hover:underline">Dismiss</button>
+          <button
+            onClick={() => setErrorMsg("")}
+            className="font-bold text-xs hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -364,17 +390,25 @@ export default function HRDashboardClient({
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-slate-900 dark:to-indigo-950/20 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-400 uppercase">Total Employees</span>
-              <p className="text-3xl font-extrabold mt-1 text-slate-850 dark:text-white">{staffList.length}</p>
+              <span className="text-xs font-semibold text-slate-400 uppercase">
+                Total Employees
+              </span>
+              <p className="text-3xl font-extrabold mt-1 text-slate-850 dark:text-white">
+                {staffList.length}
+              </p>
             </div>
             <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-slate-900 dark:to-amber-950/20 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-400 uppercase">On Probation</span>
+              <span className="text-xs font-semibold text-slate-400 uppercase">
+                On Probation
+              </span>
               <p className="text-3xl font-extrabold mt-1 text-slate-850 dark:text-white">
                 {staffList.filter((s) => s.contractType === "PROBATION").length}
               </p>
             </div>
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-slate-900 dark:to-emerald-950/20 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-400 uppercase">Configured Salaries</span>
+              <span className="text-xs font-semibold text-slate-400 uppercase">
+                Configured Salaries
+              </span>
               <p className="text-3xl font-extrabold mt-1 text-slate-850 dark:text-white">
                 {staffList.filter((s) => s.salaryComponents.length > 0).length}
               </p>
@@ -392,39 +426,53 @@ export default function HRDashboardClient({
                 Probation Confirmation Reminders
               </span>
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                The following staff members have completed their 90-day probation period and are due for confirmation:
+                The following staff members have completed their 90-day
+                probation period and are due for confirmation:
               </p>
               <div className="flex flex-col gap-2">
-                {staffList.filter((s) => {
-                  if (s.contractType !== "PROBATION") return false;
-                  const elapsed = Date.now() - new Date(s.joiningDate).getTime();
-                  return elapsed >= 90 * 24 * 60 * 60 * 1000;
-                }).map((s) => (
-                  <div key={s.id} className="flex justify-between items-center bg-white/40 dark:bg-slate-900/40 p-3 rounded-xl border border-amber-200/50">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {s.employeeCode} — {s.firstName} {s.lastName} (Joined: {new Date(s.joiningDate).toLocaleDateString()})
-                    </span>
-                    {isAuthorizedHR && (
-                      <button
-                        onClick={async () => {
-                          if (confirm(`Confirm probation completion for ${s.firstName} ${s.lastName}?`)) {
-                            await confirmStaffProbation(s.id);
-                          }
-                        }}
-                        className="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
-                      >
-                        Confirm Staff
-                      </button>
-                    )}
-                  </div>
-                ))}
+                {staffList
+                  .filter((s) => {
+                    if (s.contractType !== "PROBATION") return false;
+                    const elapsed =
+                      Date.now() - new Date(s.joiningDate).getTime();
+                    return elapsed >= 90 * 24 * 60 * 60 * 1000;
+                  })
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex justify-between items-center bg-white/40 dark:bg-slate-900/40 p-3 rounded-xl border border-amber-200/50"
+                    >
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {s.employeeCode} — {s.firstName} {s.lastName} (Joined:{" "}
+                        {new Date(s.joiningDate).toLocaleDateString()})
+                      </span>
+                      {isAuthorizedHR && (
+                        <button
+                          onClick={async () => {
+                            if (
+                              confirm(
+                                `Confirm probation completion for ${s.firstName} ${s.lastName}?`,
+                              )
+                            ) {
+                              await confirmStaffProbation(s.id);
+                            }
+                          }}
+                          className="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                        >
+                          Confirm Staff
+                        </button>
+                      )}
+                    </div>
+                  ))}
               </div>
             </div>
           )}
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/40">
-              <h3 className="font-semibold text-slate-800 dark:text-white">Active Staff Directory</h3>
+              <h3 className="font-semibold text-slate-800 dark:text-white">
+                Active Staff Directory
+              </h3>
               <div className="flex gap-2">
                 {isAuthorizedHR && (
                   <>
@@ -453,7 +501,9 @@ export default function HRDashboardClient({
             </div>
 
             {staffList.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">No staff members created yet.</div>
+              <div className="p-12 text-center text-slate-500">
+                No staff members created yet.
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-sm">
@@ -475,7 +525,10 @@ export default function HRDashboardClient({
                       const designationName = s.designation?.name || "—";
 
                       return (
-                        <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <tr
+                          key={s.id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                        >
                           <td className="p-4 font-mono font-medium text-indigo-600 dark:text-indigo-400">
                             {s.employeeCode}
                           </td>
@@ -483,11 +536,15 @@ export default function HRDashboardClient({
                             <div className="font-semibold text-slate-800 dark:text-white">
                               {s.firstName} {s.lastName}
                             </div>
-                            <div className="text-xs text-slate-400">{s.email}</div>
+                            <div className="text-xs text-slate-400">
+                              {s.email}
+                            </div>
                           </td>
                           <td className="p-4">
                             <div>{departmentName}</div>
-                            <div className="text-xs text-slate-400">{designationName}</div>
+                            <div className="text-xs text-slate-400">
+                              {designationName}
+                            </div>
                           </td>
                           <td className="p-4">
                             <span
@@ -499,18 +556,23 @@ export default function HRDashboardClient({
                             >
                               {s.contractType}
                             </span>
-                            {s.contractType === "PROBATION" && isAuthorizedHR && (
-                              <button
-                                onClick={async () => {
-                                  if (confirm("Confirm probation completion? This will update staff to PERMANENT contract status.")) {
-                                    await confirmStaffProbation(s.id);
-                                  }
-                                }}
-                                className="block mt-1 text-xs text-indigo-600 hover:underline"
-                              >
-                                Confirm Permanent
-                              </button>
-                            )}
+                            {s.contractType === "PROBATION" &&
+                              isAuthorizedHR && (
+                                <button
+                                  onClick={async () => {
+                                    if (
+                                      confirm(
+                                        "Confirm probation completion? This will update staff to PERMANENT contract status.",
+                                      )
+                                    ) {
+                                      await confirmStaffProbation(s.id);
+                                    }
+                                  }}
+                                  className="block mt-1 text-xs text-indigo-600 hover:underline"
+                                >
+                                  Confirm Permanent
+                                </button>
+                              )}
                           </td>
                           <td className="p-4 text-slate-400">
                             ********{s.aadhaarLast4}
@@ -518,9 +580,13 @@ export default function HRDashboardClient({
                           <td className="p-4 space-y-1.5">
                             {/* PAN Detail */}
                             <div className="flex items-center gap-2 text-xs">
-                              <span className="font-semibold text-slate-400">PAN:</span>
+                              <span className="font-semibold text-slate-400">
+                                PAN:
+                              </span>
                               {revealed.pan ? (
-                                <span className="font-mono text-slate-700 dark:text-slate-300">{revealed.pan}</span>
+                                <span className="font-mono text-slate-700 dark:text-slate-300">
+                                  {revealed.pan}
+                                </span>
                               ) : (
                                 <button
                                   onClick={() => handleReveal(s.id, "pan")}
@@ -534,9 +600,13 @@ export default function HRDashboardClient({
 
                             {/* Bank Details */}
                             <div className="flex items-center gap-2 text-xs">
-                              <span className="font-semibold text-slate-400">Bank:</span>
+                              <span className="font-semibold text-slate-400">
+                                Bank:
+                              </span>
                               {revealed.bank ? (
-                                <span className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">{revealed.bank}</span>
+                                <span className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                                  {revealed.bank}
+                                </span>
                               ) : (
                                 <button
                                   onClick={() => handleReveal(s.id, "bank")}
@@ -550,13 +620,26 @@ export default function HRDashboardClient({
                           </td>
                           <td className="p-4">
                             {s.documents.length === 0 ? (
-                              <span className="text-xs text-slate-400 italic">Empty Vault</span>
+                              <span className="text-xs text-slate-400 italic">
+                                Empty Vault
+                              </span>
                             ) : (
                               <div className="flex flex-col gap-1">
                                 {s.documents.map((doc: any) => (
-                                  <div key={doc.id} className="text-xs flex items-center gap-1 text-indigo-600 hover:underline">
+                                  <div
+                                    key={doc.id}
+                                    className="text-xs flex items-center gap-1 text-indigo-600 hover:underline"
+                                  >
                                     <FileText className="w-3.5 h-3.5" />
-                                    <a href="#" onClick={(e) => { e.preventDefault(); alert("Direct S3 URL expiry download stub initiated"); }}>
+                                    <a
+                                      href="#"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        alert(
+                                          "Direct S3 URL expiry download stub initiated",
+                                        );
+                                      }}
+                                    >
                                       {doc.fileName}
                                     </a>
                                   </div>
@@ -579,7 +662,9 @@ export default function HRDashboardClient({
       {activeTab === "templates" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg text-slate-800 dark:text-white">Wage & Salary Templates</h3>
+            <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+              Wage & Salary Templates
+            </h3>
             {isAuthorizedHR && (
               <button
                 onClick={() => setOpenModal("createTemplate")}
@@ -597,18 +682,50 @@ export default function HRDashboardClient({
                 className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4"
               >
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-800 dark:text-white">{t.name}</h4>
+                  <h4 className="font-bold text-slate-800 dark:text-white">
+                    {t.name}
+                  </h4>
                   <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-mono">
                     PT: {t.professionalTaxState}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                  <div>Basic Salary: <span className="font-semibold text-slate-800 dark:text-white">{t.basicPercent}%</span></div>
-                  <div>DA Component: <span className="font-semibold text-slate-800 dark:text-white">{t.daPercent}%</span></div>
-                  <div>HRA Component: <span className="font-semibold text-slate-800 dark:text-white">{t.hraPercent}%</span></div>
-                  <div>ESI Eligible: <span className="font-semibold text-slate-800 dark:text-white">{t.esiApplicable ? "Yes" : "No"}</span></div>
-                  <div>PF Employee: <span className="font-semibold text-slate-800 dark:text-white">{t.pfEmployeePercent}%</span></div>
-                  <div>PF Employer: <span className="font-semibold text-slate-800 dark:text-white">{t.pfEmployerPercent}%</span></div>
+                  <div>
+                    Basic Salary:{" "}
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {t.basicPercent}%
+                    </span>
+                  </div>
+                  <div>
+                    DA Component:{" "}
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {t.daPercent}%
+                    </span>
+                  </div>
+                  <div>
+                    HRA Component:{" "}
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {t.hraPercent}%
+                    </span>
+                  </div>
+                  <div>
+                    ESI Eligible:{" "}
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {t.esiApplicable ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div>
+                    PF Employee:{" "}
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {t.pfEmployeePercent}%
+                    </span>
+                  </div>
+                  <div>
+                    PF Employer:{" "}
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {t.pfEmployerPercent}%
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -620,7 +737,9 @@ export default function HRDashboardClient({
       {activeTab === "leaves" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg text-slate-800 dark:text-white">Leave Approvals & Workflow</h3>
+            <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+              Leave Approvals & Workflow
+            </h3>
             <button
               onClick={() => setOpenModal("createLeave")}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl"
@@ -631,27 +750,45 @@ export default function HRDashboardClient({
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-              <h4 className="font-bold text-sm text-slate-800 dark:text-white">Pending Leave Requests Queue</h4>
+              <h4 className="font-bold text-sm text-slate-800 dark:text-white">
+                Pending Leave Requests Queue
+              </h4>
             </div>
 
-            {leaveRequests.filter((r) => r.status === "PENDING" || r.status === "HOD_APPROVED").length === 0 ? (
-              <div className="p-12 text-center text-slate-500">No pending leave requests to review.</div>
+            {leaveRequests.filter(
+              (r) => r.status === "PENDING" || r.status === "HOD_APPROVED",
+            ).length === 0 ? (
+              <div className="p-12 text-center text-slate-500">
+                No pending leave requests to review.
+              </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {leaveRequests
-                  .filter((r) => r.status === "PENDING" || r.status === "HOD_APPROVED")
+                  .filter(
+                    (r) =>
+                      r.status === "PENDING" || r.status === "HOD_APPROVED",
+                  )
                   .map((r) => (
-                    <div key={r.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div
+                      key={r.id}
+                      className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    >
                       <div className="space-y-1">
                         <div className="font-semibold text-slate-800 dark:text-white">
-                          {r.staff?.employeeCode} — Leave Type: {r.leaveType?.name || r.leaveType?.code}
+                          {r.staff?.employeeCode} — Leave Type:{" "}
+                          {r.leaveType?.name || r.leaveType?.code}
                         </div>
                         <div className="text-xs text-slate-400">
-                          Dates: {new Date(r.startDate).toLocaleDateString()} to {new Date(r.endDate).toLocaleDateString()} ({r.totalDays} Days)
+                          Dates: {new Date(r.startDate).toLocaleDateString()} to{" "}
+                          {new Date(r.endDate).toLocaleDateString()} (
+                          {r.totalDays} Days)
                         </div>
-                        <div className="text-xs text-slate-500 italic">"Reason: {r.reason}"</div>
+                        <div className="text-xs text-slate-500 italic">
+                          "Reason: {r.reason}"
+                        </div>
                         <div className="text-xs font-semibold text-amber-600 flex items-center gap-1">
-                          Current Status: <span className="underline">{r.status}</span>
+                          Current Status:{" "}
+                          <span className="underline">{r.status}</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -665,21 +802,28 @@ export default function HRDashboardClient({
                             HOD Approve
                           </button>
                         )}
-                        {(r.status === "HOD_APPROVED" || r.status === "PENDING") && isAuthorizedHR && (
-                          <button
-                            onClick={async () => {
-                              await approveLeaveRequest(r.id, "HR", true);
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow"
-                          >
-                            HR Final Approve
-                          </button>
-                        )}
+                        {(r.status === "HOD_APPROVED" ||
+                          r.status === "PENDING") &&
+                          isAuthorizedHR && (
+                            <button
+                              onClick={async () => {
+                                await approveLeaveRequest(r.id, "HR", true);
+                              }}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow"
+                            >
+                              HR Final Approve
+                            </button>
+                          )}
                         <button
                           onClick={async () => {
                             const reason = prompt("Enter rejection reason:");
                             if (reason !== null) {
-                              await approveLeaveRequest(r.id, "HR", false, reason);
+                              await approveLeaveRequest(
+                                r.id,
+                                "HR",
+                                false,
+                                reason,
+                              );
                             }
                           }}
                           className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200"
@@ -705,7 +849,9 @@ export default function HRDashboardClient({
                 Process Monthly Payroll Run
               </h3>
               <p className="text-xs text-indigo-200 max-w-xl">
-                Calculates Basic, DA, HRA, statutory employee/employer PF, state-wise PT, ESI, loan EMI repayments, LWP attendance deductions, and generates ECR exports.
+                Calculates Basic, DA, HRA, statutory employee/employer PF,
+                state-wise PT, ESI, loan EMI repayments, LWP attendance
+                deductions, and generates ECR exports.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -727,15 +873,22 @@ export default function HRDashboardClient({
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-              <h4 className="font-bold text-sm text-slate-800 dark:text-white">Previous Payroll Runs</h4>
+              <h4 className="font-bold text-sm text-slate-800 dark:text-white">
+                Previous Payroll Runs
+              </h4>
             </div>
 
             {payrollRuns.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">No payroll runs executed yet.</div>
+              <div className="p-12 text-center text-slate-500">
+                No payroll runs executed yet.
+              </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {payrollRuns.map((pr) => (
-                  <div key={pr.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div
+                    key={pr.id}
+                    className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
                     <div className="space-y-1">
                       <div className="font-bold text-base text-slate-800 dark:text-white font-mono flex items-center gap-2">
                         {pr.month}
@@ -750,9 +903,24 @@ export default function HRDashboardClient({
                         </span>
                       </div>
                       <div className="text-xs text-slate-500 space-x-4">
-                        <span>Gross: <strong className="text-slate-700 dark:text-slate-300">₹{pr.totalGross}</strong></span>
-                        <span>Deductions: <strong className="text-slate-700 dark:text-slate-300">₹{pr.totalDeductions}</strong></span>
-                        <span>Net Paid: <strong className="text-emerald-600 font-bold">₹{pr.totalNetPay}</strong></span>
+                        <span>
+                          Gross:{" "}
+                          <strong className="text-slate-700 dark:text-slate-300">
+                            ₹{pr.totalGross}
+                          </strong>
+                        </span>
+                        <span>
+                          Deductions:{" "}
+                          <strong className="text-slate-700 dark:text-slate-300">
+                            ₹{pr.totalDeductions}
+                          </strong>
+                        </span>
+                        <span>
+                          Net Paid:{" "}
+                          <strong className="text-emerald-600 font-bold">
+                            ₹{pr.totalNetPay}
+                          </strong>
+                        </span>
                       </div>
                     </div>
 
@@ -788,133 +956,198 @@ export default function HRDashboardClient({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Add New Staff Profile</h3>
-              <button onClick={() => setOpenModal(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Add New Staff Profile
+              </h3>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleCreateStaff} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <form
+              onSubmit={handleCreateStaff}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"
+            >
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">First Name</label>
+                <label className="font-semibold text-slate-500">
+                  First Name
+                </label>
                 <input
                   type="text"
                   required
                   value={staffForm.firstName}
-                  onChange={(e) => setStaffForm({ ...staffForm, firstName: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, firstName: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Last Name</label>
+                <label className="font-semibold text-slate-500">
+                  Last Name
+                </label>
                 <input
                   type="text"
                   required
                   value={staffForm.lastName}
-                  onChange={(e) => setStaffForm({ ...staffForm, lastName: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, lastName: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Employee Code</label>
+                <label className="font-semibold text-slate-500">
+                  Employee Code
+                </label>
                 <input
                   type="text"
                   required
                   value={staffForm.employeeCode}
-                  onChange={(e) => setStaffForm({ ...staffForm, employeeCode: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, employeeCode: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Email Address</label>
+                <label className="font-semibold text-slate-500">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   required
                   value={staffForm.email}
-                  onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, email: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Mobile Number</label>
+                <label className="font-semibold text-slate-500">
+                  Mobile Number
+                </label>
                 <input
                   type="text"
                   required
                   value={staffForm.mobile}
-                  onChange={(e) => setStaffForm({ ...staffForm, mobile: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, mobile: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Aadhaar (Last 4 digits only)</label>
+                <label className="font-semibold text-slate-500">
+                  Aadhaar (Last 4 digits only)
+                </label>
                 <input
                   type="text"
                   required
                   maxLength={4}
                   value={staffForm.aadhaarLast4}
-                  onChange={(e) => setStaffForm({ ...staffForm, aadhaarLast4: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, aadhaarLast4: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">PAN Number (Encrypted)</label>
+                <label className="font-semibold text-slate-500">
+                  PAN Number (Encrypted)
+                </label>
                 <input
                   type="text"
                   value={staffForm.pan}
-                  onChange={(e) => setStaffForm({ ...staffForm, pan: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, pan: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Department</label>
+                <label className="font-semibold text-slate-500">
+                  Department
+                </label>
                 <select
                   required
                   value={staffForm.departmentId}
-                  onChange={(e) => setStaffForm({ ...staffForm, departmentId: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, departmentId: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 >
                   <option value="">Select Department</option>
                   {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Designation</label>
+                <label className="font-semibold text-slate-500">
+                  Designation
+                </label>
                 <select
                   required
                   value={staffForm.designationId}
-                  onChange={(e) => setStaffForm({ ...staffForm, designationId: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({
+                      ...staffForm,
+                      designationId: e.target.value,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 >
                   <option value="">Select Designation</option>
                   {designations.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Bank Name</label>
+                <label className="font-semibold text-slate-500">
+                  Bank Name
+                </label>
                 <input
                   type="text"
                   value={staffForm.bankName}
-                  onChange={(e) => setStaffForm({ ...staffForm, bankName: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, bankName: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Bank Account Number</label>
+                <label className="font-semibold text-slate-500">
+                  Bank Account Number
+                </label>
                 <input
                   type="text"
                   value={staffForm.bankAccount}
-                  onChange={(e) => setStaffForm({ ...staffForm, bankAccount: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, bankAccount: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Bank IFSC Code</label>
+                <label className="font-semibold text-slate-500">
+                  Bank IFSC Code
+                </label>
                 <input
                   type="text"
                   value={staffForm.bankIfsc}
-                  onChange={(e) => setStaffForm({ ...staffForm, bankIfsc: e.target.value })}
+                  onChange={(e) =>
+                    setStaffForm({ ...staffForm, bankIfsc: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl focus:outline-none focus:border-indigo-600 text-sm"
                 />
               </div>
@@ -937,55 +1170,94 @@ export default function HRDashboardClient({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-lg space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Create Salary Template</h3>
-              <button onClick={() => setOpenModal(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Create Salary Template
+              </h3>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreateTemplate} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Template Name</label>
+                <label className="font-semibold text-slate-500">
+                  Template Name
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Teaching Staff Preset"
                   value={templateForm.name}
-                  onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setTemplateForm({ ...templateForm, name: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-500">Basic Wage (%)</label>
+                  <label className="font-semibold text-slate-500">
+                    Basic Wage (%)
+                  </label>
                   <input
                     type="number"
                     value={templateForm.basicPercent}
-                    onChange={(e) => setTemplateForm({ ...templateForm, basicPercent: parseInt(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        basicPercent: parseInt(e.target.value) || 0,
+                      })
+                    }
                     className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-500">DA allowance (%)</label>
+                  <label className="font-semibold text-slate-500">
+                    DA allowance (%)
+                  </label>
                   <input
                     type="number"
                     value={templateForm.daPercent}
-                    onChange={(e) => setTemplateForm({ ...templateForm, daPercent: parseInt(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        daPercent: parseInt(e.target.value) || 0,
+                      })
+                    }
                     className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-500">HRA house rent (%)</label>
+                  <label className="font-semibold text-slate-500">
+                    HRA house rent (%)
+                  </label>
                   <input
                     type="number"
                     value={templateForm.hraPercent}
-                    onChange={(e) => setTemplateForm({ ...templateForm, hraPercent: parseInt(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        hraPercent: parseInt(e.target.value) || 0,
+                      })
+                    }
                     className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-500">PT State</label>
+                  <label className="font-semibold text-slate-500">
+                    PT State
+                  </label>
                   <select
                     value={templateForm.professionalTaxState}
-                    onChange={(e) => setTemplateForm({ ...templateForm, professionalTaxState: e.target.value })}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        professionalTaxState: e.target.value,
+                      })
+                    }
                     className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                   >
                     <option value="DL">Delhi (0 PT)</option>
@@ -1000,10 +1272,18 @@ export default function HRDashboardClient({
                   type="checkbox"
                   id="esiCheck"
                   checked={templateForm.esiApplicable}
-                  onChange={(e) => setTemplateForm({ ...templateForm, esiApplicable: e.target.checked })}
+                  onChange={(e) =>
+                    setTemplateForm({
+                      ...templateForm,
+                      esiApplicable: e.target.checked,
+                    })
+                  }
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <label htmlFor="esiCheck" className="font-semibold text-slate-600 dark:text-slate-350">
+                <label
+                  htmlFor="esiCheck"
+                  className="font-semibold text-slate-600 dark:text-slate-350"
+                >
                   Enable ESI contributions (if wages &lt;= 21,000)
                 </label>
               </div>
@@ -1024,17 +1304,34 @@ export default function HRDashboardClient({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Associate Salary Structure</h3>
-              <button onClick={() => setOpenModal(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Associate Salary Structure
+              </h3>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleAssociateTemplate} className="space-y-4 text-xs">
+            <form
+              onSubmit={handleAssociateTemplate}
+              className="space-y-4 text-xs"
+            >
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Staff Member</label>
+                <label className="font-semibold text-slate-500">
+                  Staff Member
+                </label>
                 <select
                   required
                   value={associationForm.staffId}
-                  onChange={(e) => setAssociationForm({ ...associationForm, staffId: e.target.value })}
+                  onChange={(e) =>
+                    setAssociationForm({
+                      ...associationForm,
+                      staffId: e.target.value,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="">Select Staff</option>
@@ -1047,37 +1344,60 @@ export default function HRDashboardClient({
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Salary Template</label>
+                <label className="font-semibold text-slate-500">
+                  Salary Template
+                </label>
                 <select
                   required
                   value={associationForm.templateId}
-                  onChange={(e) => setAssociationForm({ ...associationForm, templateId: e.target.value })}
+                  onChange={(e) =>
+                    setAssociationForm({
+                      ...associationForm,
+                      templateId: e.target.value,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="">Select Template</option>
                   {salaryTemplates.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Base Monthly Gross Salary (₹)</label>
+                <label className="font-semibold text-slate-500">
+                  Base Monthly Gross Salary (₹)
+                </label>
                 <input
                   type="number"
                   required
                   value={associationForm.baseGrossSalary || ""}
-                  onChange={(e) => setAssociationForm({ ...associationForm, baseGrossSalary: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setAssociationForm({
+                      ...associationForm,
+                      baseGrossSalary: parseFloat(e.target.value) || 0,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Monthly TDS Amount (₹, Section 192B)</label>
+                <label className="font-semibold text-slate-500">
+                  Monthly TDS Amount (₹, Section 192B)
+                </label>
                 <input
                   type="number"
                   value={associationForm.monthlyTds || ""}
-                  onChange={(e) => setAssociationForm({ ...associationForm, monthlyTds: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setAssociationForm({
+                      ...associationForm,
+                      monthlyTds: parseFloat(e.target.value) || 0,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                 />
               </div>
@@ -1098,17 +1418,28 @@ export default function HRDashboardClient({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Record Staff Loan</h3>
-              <button onClick={() => setOpenModal(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Record Staff Loan
+              </h3>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreateLoan} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Staff Member</label>
+                <label className="font-semibold text-slate-500">
+                  Staff Member
+                </label>
                 <select
                   required
                   value={loanForm.staffId}
-                  onChange={(e) => setLoanForm({ ...loanForm, staffId: e.target.value })}
+                  onChange={(e) =>
+                    setLoanForm({ ...loanForm, staffId: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="">Select Staff</option>
@@ -1121,23 +1452,37 @@ export default function HRDashboardClient({
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Principal Loan Amount (₹)</label>
+                <label className="font-semibold text-slate-500">
+                  Principal Loan Amount (₹)
+                </label>
                 <input
                   type="number"
                   required
                   value={loanForm.principalAmount || ""}
-                  onChange={(e) => setLoanForm({ ...loanForm, principalAmount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setLoanForm({
+                      ...loanForm,
+                      principalAmount: parseFloat(e.target.value) || 0,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Monthly EMI Deduction (₹)</label>
+                <label className="font-semibold text-slate-500">
+                  Monthly EMI Deduction (₹)
+                </label>
                 <input
                   type="number"
                   required
                   value={loanForm.emiAmount || ""}
-                  onChange={(e) => setLoanForm({ ...loanForm, emiAmount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setLoanForm({
+                      ...loanForm,
+                      emiAmount: parseFloat(e.target.value) || 0,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                 />
               </div>
@@ -1158,17 +1503,28 @@ export default function HRDashboardClient({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Apply For Leave</h3>
-              <button onClick={() => setOpenModal(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Apply For Leave
+              </h3>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreateLeave} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Applicant Staff Profile</label>
+                <label className="font-semibold text-slate-500">
+                  Applicant Staff Profile
+                </label>
                 <select
                   required
                   value={leaveForm.staffId}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, staffId: e.target.value })}
+                  onChange={(e) =>
+                    setLeaveForm({ ...leaveForm, staffId: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="">Select Staff</option>
@@ -1181,51 +1537,72 @@ export default function HRDashboardClient({
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Leave Type</label>
+                <label className="font-semibold text-slate-500">
+                  Leave Type
+                </label>
                 <select
                   required
                   value={leaveForm.leaveTypeId}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, leaveTypeId: e.target.value })}
+                  onChange={(e) =>
+                    setLeaveForm({ ...leaveForm, leaveTypeId: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="">Select Leave Type</option>
                   {leaveTypes.map((lt) => (
-                    <option key={lt.id} value={lt.id}>{lt.name} ({lt.code})</option>
+                    <option key={lt.id} value={lt.id}>
+                      {lt.name} ({lt.code})
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-500">Start Date</label>
+                  <label className="font-semibold text-slate-500">
+                    Start Date
+                  </label>
                   <input
                     type="date"
                     required
                     value={leaveForm.startDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
+                    onChange={(e) =>
+                      setLeaveForm({ ...leaveForm, startDate: e.target.value })
+                    }
                     className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-500">End Date</label>
+                  <label className="font-semibold text-slate-500">
+                    End Date
+                  </label>
                   <input
                     type="date"
                     required
                     value={leaveForm.endDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
+                    onChange={(e) =>
+                      setLeaveForm({ ...leaveForm, endDate: e.target.value })
+                    }
                     className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Total Leave Days</label>
+                <label className="font-semibold text-slate-500">
+                  Total Leave Days
+                </label>
                 <input
                   type="number"
                   step="0.5"
                   required
                   value={leaveForm.totalDays}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, totalDays: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setLeaveForm({
+                      ...leaveForm,
+                      totalDays: parseFloat(e.target.value) || 0,
+                    })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                 />
               </div>
@@ -1236,7 +1613,9 @@ export default function HRDashboardClient({
                   required
                   rows={3}
                   value={leaveForm.reason}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                  onChange={(e) =>
+                    setLeaveForm({ ...leaveForm, reason: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 />
               </div>
@@ -1257,17 +1636,28 @@ export default function HRDashboardClient({
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Upload to Vault</h3>
-              <button onClick={() => setOpenModal(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Upload to Vault
+              </h3>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleUploadDoc} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Select Staff</label>
+                <label className="font-semibold text-slate-500">
+                  Select Staff
+                </label>
                 <select
                   required
                   value={docForm.staffId}
-                  onChange={(e) => setDocForm({ ...docForm, staffId: e.target.value })}
+                  onChange={(e) =>
+                    setDocForm({ ...docForm, staffId: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="">Select Staff</option>
@@ -1280,10 +1670,14 @@ export default function HRDashboardClient({
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Document Type</label>
+                <label className="font-semibold text-slate-500">
+                  Document Type
+                </label>
                 <select
                   value={docForm.documentType}
-                  onChange={(e) => setDocForm({ ...docForm, documentType: e.target.value })}
+                  onChange={(e) =>
+                    setDocForm({ ...docForm, documentType: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 >
                   <option value="APPOINTMENT_LETTER">Appointment Letter</option>
@@ -1294,25 +1688,33 @@ export default function HRDashboardClient({
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">File Name</label>
+                <label className="font-semibold text-slate-500">
+                  File Name
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Appointment Letter 2025.pdf"
                   value={docForm.fileName}
-                  onChange={(e) => setDocForm({ ...docForm, fileName: e.target.value })}
+                  onChange={(e) =>
+                    setDocForm({ ...docForm, fileName: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-500">Mock S3 Key / Path</label>
+                <label className="font-semibold text-slate-500">
+                  Mock S3 Key / Path
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. contracts/doc_49202_appointment.pdf"
                   value={docForm.fileS3Key}
-                  onChange={(e) => setDocForm({ ...docForm, fileS3Key: e.target.value })}
+                  onChange={(e) =>
+                    setDocForm({ ...docForm, fileS3Key: e.target.value })
+                  }
                   className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-sm font-mono"
                 />
               </div>

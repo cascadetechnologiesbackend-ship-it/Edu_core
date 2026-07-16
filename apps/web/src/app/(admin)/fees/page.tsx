@@ -45,13 +45,21 @@ export default function FeesDashboardPage() {
   return (
     <div className="p-6 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Fees Management</h1>
-        <p className="text-gray-500 mt-1">Overview and quick actions for fee administration.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Fees Management
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Overview and quick actions for fee administration.
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {actions.map((action) => (
-          <Link key={action.href} href={action.href as any} className="block group">
+          <Link
+            key={action.href}
+            href={action.href as any}
+            className="block group"
+          >
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:border-blue-500/50 hover:shadow-md transition-all h-full flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">

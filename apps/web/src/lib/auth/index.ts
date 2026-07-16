@@ -24,10 +24,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const password = String(credentials.password);
 
         // Check for lockout before hitting DB
-        const { isAccountLocked, recordFailedAttempt, clearLockout } = await import("@/lib/accountLockout");
-        
+        const { isAccountLocked, recordFailedAttempt, clearLockout } =
+          await import("@/lib/accountLockout");
+
         if (await isAccountLocked(email)) {
-          throw new Error("Account is temporarily locked due to too many failed attempts. Please try again in 15 minutes.");
+          throw new Error(
+            "Account is temporarily locked due to too many failed attempts. Please try again in 15 minutes.",
+          );
         }
 
         // Fetch user

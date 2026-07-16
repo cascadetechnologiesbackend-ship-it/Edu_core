@@ -1,12 +1,15 @@
 # AGENTS.md — SchoolMitra ERP
+
 # Antigravity IDE Agent Standing Instructions
 
 ## Project Identity
+
 - Product: SchoolMitra ERP (School Management for Nursery–Class 10)
 - Stack: Next.js 14 + TypeScript 5 + Drizzle ORM + PostgreSQL 16 + Redis 7
 - Compliance: DPDP Act 2023 (India) — treat ALL students as minors requiring parental consent
 
 ## Code Style
+
 - TypeScript strict mode — zero `any` types; use `unknown` + type guards
 - exactOptionalPropertyTypes compliance: Do not explicitly assign `undefined` to optional properties. Instead, omit them using conditional spread operators (e.g., `...(condition ? { propName: value } : {})`).
 - Zod validation on every API endpoint (request and response)
@@ -15,10 +18,12 @@
 - Tailwind CSS + shadcn/ui for all UI — no inline styles except dynamic values
 
 ## Tooling & Command Guidelines
+
 - PowerShell File Commands: When operating on paths containing square brackets (like Next.js `[id]` routes), always use `-LiteralPath` instead of `-Path` with PowerShell cmdlets (e.g., `Remove-Item -LiteralPath ...`).
 - Non-Interactive DB Migrations: Avoid stuck prompts with `drizzle-kit push:pg` by using manual SQL execution scripts or temporarily setting `strict: false` in `drizzle.config.ts`.
 
 ## Architecture Rules
+
 - All business logic in `src/server/` (tRPC routers or server actions)
 - All DB schemas in `src/db/schema.ts` using Drizzle pg-core
 - Next.js Server Actions: Never call server actions (`"use server"`) directly inside React Server Components during Server-Side Rendering (SSR). Instead, query data directly using Drizzle ORM (`db.query`) in Server Components, and restrict server actions to clientside mutations.
@@ -28,6 +33,7 @@
 - Environment variables: secrets only in `.env` (server-side); `NEXT_PUBLIC_` prefix only for non-sensitive config
 
 ## DPDP Compliance (Non-Negotiable)
+
 - NEVER process student data without checking consent first (use `assertConsent(studentId, purposeId)` middleware)
 - NEVER store full Aadhaar numbers — last 4 digits only, masked in UI
 - ALWAYS write to audit_log for every PII read/write/delete
@@ -36,6 +42,7 @@
 - Consent withdrawal must halt processing within 24 hours
 
 ## Security
+
 - bcrypt cost factor 12 for passwords
 - JWT: 15-min access token + 7-day refresh token with rotation
 - Rate limit: 100 req/min unauthenticated, 500 req/min authenticated
@@ -43,17 +50,20 @@
 - File uploads: validate MIME type, enforce 10MB limit, virus scan stub
 
 ## Testing
+
 - Vitest for unit tests — cover fee calculation, grade engine, payroll engine
 - React Testing Library for component tests
 - Playwright for E2E — cover: login, admission flow, fee payment, report card generation
 - Minimum 80% coverage on `src/server/` business logic
 
 ## Git Conventions
+
 - Commits: Conventional Commits format (`feat:`, `fix:`, `chore:`, `docs:`, `test:`)
 - Branch: `feature/module-name`, `fix/issue-description`
 - No secrets in commits — pre-commit hook with gitleaks
 
 ## Do Not Change
+
 - `packages/dpdp/` consent engine interfaces without updating all callers
 - Database migration files once applied — create new migration for changes
 - Audit log table — append-only, no update/delete operations

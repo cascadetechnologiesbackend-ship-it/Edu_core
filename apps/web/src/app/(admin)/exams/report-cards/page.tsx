@@ -1,5 +1,12 @@
 import { db } from "@/db";
-import { exams, classes, reportCards, reportCardJobs, academicYears, certificates } from "@/db/schema";
+import {
+  exams,
+  classes,
+  reportCards,
+  reportCardJobs,
+  academicYears,
+  certificates,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -46,7 +53,7 @@ export default async function ReportCardsPage({
         name: `${decryptData(s.firstNameEncrypted)} ${decryptData(s.lastNameEncrypted)}`,
         admissionNumber: s.admissionNumber,
       },
-    ])
+    ]),
   );
 
   const managerStudents = rawStudents.map((s) => ({
@@ -75,7 +82,10 @@ export default async function ReportCardsPage({
   // Certificates
   const issuedCertificates = selectedExamId
     ? await db.query.certificates.findMany({
-        where: eq(certificates.schoolId, allExams.find((e) => e.id === selectedExamId)?.schoolId ?? ""),
+        where: eq(
+          certificates.schoolId,
+          allExams.find((e) => e.id === selectedExamId)?.schoolId ?? "",
+        ),
       })
     : [];
 
@@ -120,9 +130,10 @@ export default async function ReportCardsPage({
               Generate Report Cards — {selectedExam.name}
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              Click a class below to queue report card PDF generation for all students in that class.
-              Jobs are processed asynchronously — the PDFs will be available in the parent portal
-              once generation is complete.
+              Click a class below to queue report card PDF generation for all
+              students in that class. Jobs are processed asynchronously — the
+              PDFs will be available in the parent portal once generation is
+              complete.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {allClasses.map((cls) => (
@@ -151,13 +162,18 @@ export default async function ReportCardsPage({
               </div>
               <div className="divide-y divide-gray-100 dark:divide-slate-800">
                 {recentJobs.map((job) => (
-                  <div key={job.id} className="p-4 flex justify-between items-center">
+                  <div
+                    key={job.id}
+                    className="p-4 flex justify-between items-center"
+                  >
                     <div>
                       <p className="font-medium">{job.class?.displayName}</p>
                       <p className="text-xs text-gray-500">
                         {job.processedCount}/{job.totalStudents} processed
                         {job.failedCount > 0 && (
-                          <span className="ml-2 text-red-500">{job.failedCount} failed</span>
+                          <span className="ml-2 text-red-500">
+                            {job.failedCount} failed
+                          </span>
                         )}
                       </p>
                       <p className="text-xs text-gray-400">
@@ -169,10 +185,10 @@ export default async function ReportCardsPage({
                         job.status === "DONE"
                           ? "bg-green-100 text-green-800"
                           : job.status === "FAILED"
-                          ? "bg-red-100 text-red-800"
-                          : job.status === "PROCESSING"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-gray-100 text-gray-600"
+                            ? "bg-red-100 text-red-800"
+                            : job.status === "PROCESSING"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {job.status}
@@ -193,13 +209,22 @@ export default async function ReportCardsPage({
               </div>
               <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-96 overflow-y-auto">
                 {recentCards.map((card) => {
-                  const sInfo = studentMap.get(card.studentId) || { name: card.studentId, admissionNumber: "—" };
+                  const sInfo = studentMap.get(card.studentId) || {
+                    name: card.studentId,
+                    admissionNumber: "—",
+                  };
                   return (
-                    <div key={card.id} className="p-3 flex justify-between items-center">
+                    <div
+                      key={card.id}
+                      className="p-3 flex justify-between items-center"
+                    >
                       <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">{sInfo.name}</p>
+                        <p className="font-medium text-sm text-gray-900 dark:text-white">
+                          {sInfo.name}
+                        </p>
                         <p className="text-xs text-gray-500">
-                          Admission No: {sInfo.admissionNumber} | Grade: {card.overallGrade ?? "—"}{" "}
+                          Admission No: {sInfo.admissionNumber} | Grade:{" "}
+                          {card.overallGrade ?? "—"}{" "}
                           {card.rank && `| Rank: ${card.rank}`}
                         </p>
                       </div>
@@ -220,7 +245,10 @@ export default async function ReportCardsPage({
           {/* Merit List Manager */}
           <MeritListManager
             examId={selectedExamId!}
-            classes={allClasses.map((c) => ({ id: c.id, displayName: c.displayName }))}
+            classes={allClasses.map((c) => ({
+              id: c.id,
+              displayName: c.displayName,
+            }))}
             students={managerStudents}
             reportCards={recentCards.map((rc) => ({
               id: rc.id,

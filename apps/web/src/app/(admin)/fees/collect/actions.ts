@@ -21,14 +21,14 @@ export async function processManualPayment(formData: FormData) {
     }
 
     const invoice = await db.query.feeInvoices.findFirst({
-      where: eq(feeInvoices.id, invoiceId)
+      where: eq(feeInvoices.id, invoiceId),
     });
 
     if (!invoice) return { success: false, message: "Invoice not found" };
 
     const newPaidAmount = parseFloat(invoice.paidAmount) + amountPaid;
     const newBalanceAmount = parseFloat(invoice.netAmount) - newPaidAmount;
-    
+
     let newStatus = invoice.status;
     if (newBalanceAmount <= 0) {
       newStatus = "PAID";
@@ -53,11 +53,12 @@ export async function processManualPayment(formData: FormData) {
         paymentDate: new Date(),
         remarks: remarks || null,
         // Mock collector ID for MVP
-        collectedById: invoice.schoolId, 
+        collectedById: invoice.schoolId,
       });
 
       // Update invoice
-      await tx.update(feeInvoices)
+      await tx
+        .update(feeInvoices)
         .set({
           paidAmount: newPaidAmount.toFixed(2),
           balanceAmount: newBalanceAmount.toFixed(2),

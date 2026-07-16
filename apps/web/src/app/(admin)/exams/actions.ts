@@ -1,7 +1,15 @@
 "use server";
 
 import { db } from "@/db";
-import { exams, academicYears, students, reportCards, certificates, examSchedules, users } from "@/db/schema";
+import {
+  exams,
+  academicYears,
+  students,
+  reportCards,
+  certificates,
+  examSchedules,
+  users,
+} from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -37,7 +45,8 @@ export async function createExam(formData: FormData) {
     where: eq(academicYears.isActive, true),
   });
 
-  if (!activeYear) return { success: false, errors: { _: ["No active academic year"] } };
+  if (!activeYear)
+    return { success: false, errors: { _: ["No active academic year"] } };
 
   const school = await db.query.schools.findFirst();
   if (!school) return { success: false, errors: { _: ["No school found"] } };
@@ -64,15 +73,24 @@ export async function lockExam(examId: string) {
     where: eq(users.id, session.user.id),
   });
   if (!dbUser) {
-    throw new Error("Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.");
+    throw new Error(
+      "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
+    );
   }
 
-  const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role as string);
+  const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
+    session.user.role as string,
+  );
   if (!allowed) throw new Error("Only Principal or Admin can lock exams");
 
   await db
     .update(exams)
-    .set({ isLocked: true, lockedById: session.user.id, lockedAt: new Date(), updatedAt: new Date() })
+    .set({
+      isLocked: true,
+      lockedById: session.user.id,
+      lockedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(exams.id, examId));
 
   revalidatePath(`/exams/${examId}`);
@@ -87,15 +105,24 @@ export async function unlockExam(examId: string) {
     where: eq(users.id, session.user.id),
   });
   if (!dbUser) {
-    throw new Error("Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.");
+    throw new Error(
+      "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
+    );
   }
 
-  const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(session.user.role as string);
+  const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(
+    session.user.role as string,
+  );
   if (!allowed) throw new Error("Only Admin can unlock exams");
 
   await db
     .update(exams)
-    .set({ isLocked: false, lockedById: null, lockedAt: null, updatedAt: new Date() })
+    .set({
+      isLocked: false,
+      lockedById: null,
+      lockedAt: null,
+      updatedAt: new Date(),
+    })
     .where(eq(exams.id, examId));
 
   revalidatePath(`/exams/${examId}`);
@@ -121,12 +148,15 @@ export async function generateMeritList(examId: string, classId: string) {
     const cards = await db.query.reportCards.findMany({
       where: and(
         eq(reportCards.examId, examId),
-        inArray(reportCards.studentId, studentIds)
+        inArray(reportCards.studentId, studentIds),
       ),
     });
 
     if (cards.length === 0) {
-      return { success: false, message: "No report cards generated yet for this class" };
+      return {
+        success: false,
+        message: "No report cards generated yet for this class",
+      };
     }
 
     // Prepare ranking inputs
@@ -154,13 +184,20 @@ export async function generateMeritList(examId: string, classId: string) {
     }
 
     revalidatePath(`/exams/report-cards`);
-    return { success: true, message: `Successfully ranked ${ranked.length} students` };
+    return {
+      success: true,
+      message: `Successfully ranked ${ranked.length} students`,
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
-export async function issueTopperCertificate(studentId: string, examId: string, rank: number) {
+export async function issueTopperCertificate(
+  studentId: string,
+  examId: string,
+  rank: number,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
@@ -171,7 +208,8 @@ export async function issueTopperCertificate(studentId: string, examId: string, 
     if (!dbUser) {
       return {
         success: false,
-        message: "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
+        message:
+          "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
       };
     }
 
@@ -203,7 +241,11 @@ export async function issueTopperCertificate(studentId: string, examId: string, 
       })
       .returning();
 
-    return { success: true, certificate: cert, message: `Successfully issued certificate ${certNum}` };
+    return {
+      success: true,
+      certificate: cert,
+      message: `Successfully issued certificate ${certNum}`,
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -221,7 +263,9 @@ const CreateScheduleSchema = z.object({
   passingMarks: z.number().positive(),
 });
 
-export async function createExamSchedule(input: z.infer<typeof CreateScheduleSchema>) {
+export async function createExamSchedule(
+  input: z.infer<typeof CreateScheduleSchema>,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
@@ -264,10 +308,11 @@ export async function deleteExamSchedule(id: string, examId: string) {
     await db.delete(examSchedules).where(eq(examSchedules.id, id));
 
     revalidatePath(`/exams/${examId}`);
-    return { success: true, message: "Exam schedule entry deleted successfully!" };
+    return {
+      success: true,
+      message: "Exam schedule entry deleted successfully!",
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
-
-

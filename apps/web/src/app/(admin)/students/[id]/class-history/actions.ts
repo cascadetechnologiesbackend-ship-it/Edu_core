@@ -10,7 +10,7 @@ export async function promoteStudent(studentId: string, formData: FormData) {
     const academicYearId = formData.get("academicYearId") as string;
     const classId = formData.get("classId") as string;
     const sectionId = formData.get("sectionId") as string;
-    
+
     if (!schoolId || !academicYearId || !classId || !sectionId) {
       return { success: false, message: "Missing required fields" };
     }
@@ -30,6 +30,9 @@ export async function promoteStudent(studentId: string, formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error("Promotion error:", error);
-    return { success: false, message: error?.message || "Failed to promote student" };
+    return {
+      success: false,
+      message: error?.message || "Failed to promote student",
+    };
   }
 }

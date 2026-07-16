@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { raiseRightsRequest, raiseGrievanceTicket, fetchStudentCompleteData } from "../actions";
+import {
+  raiseRightsRequest,
+  raiseGrievanceTicket,
+  fetchStudentCompleteData,
+} from "../actions";
 import { Shield, FileText, Copy } from "lucide-react";
 import { decryptData } from "@/lib/encryption";
 
@@ -103,7 +107,9 @@ export default function RightsPortalClient({
     setLoading(null);
 
     if (res.success) {
-      setSuccessMsg(`Correction request submitted! Ticket: ${res.ticketNumber}`);
+      setSuccessMsg(
+        `Correction request submitted! Ticket: ${res.ticketNumber}`,
+      );
       setCorrectionDesc("");
       // Add to local requests listing
       const newReq: RightsRequest = {
@@ -134,7 +140,9 @@ export default function RightsPortalClient({
     setLoading(null);
 
     if (res.success) {
-      setSuccessMsg(`Erasure request submitted! Deletion sequence has started. Ticket: ${res.ticketNumber}`);
+      setSuccessMsg(
+        `Erasure request submitted! Deletion sequence has started. Ticket: ${res.ticketNumber}`,
+      );
       setErasureDesc("");
       const newReq: RightsRequest = {
         id: Math.random().toString(),
@@ -187,13 +195,23 @@ export default function RightsPortalClient({
       {successMsg && (
         <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 text-green-800 dark:text-green-300 rounded-2xl text-sm flex justify-between items-center">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg("")} className="font-bold text-xs hover:underline">Dismiss</button>
+          <button
+            onClick={() => setSuccessMsg("")}
+            className="font-bold text-xs hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
       {errorMsg && (
         <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300 rounded-2xl text-sm flex justify-between items-center">
           <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg("")} className="font-bold text-xs hover:underline">Dismiss</button>
+          <button
+            onClick={() => setErrorMsg("")}
+            className="font-bold text-xs hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -233,14 +251,18 @@ export default function RightsPortalClient({
             <h3 className="font-bold text-base">Right to Access Data</h3>
           </div>
           <p className="text-xs text-slate-500">
-            You have the legal right under Section 11 of the DPDP Act to obtain a summary of {activeStudentName}&apos;s personal data processed by the school.
+            You have the legal right under Section 11 of the DPDP Act to obtain
+            a summary of {activeStudentName}&apos;s personal data processed by
+            the school.
           </p>
           <button
             onClick={handleFetchData}
             disabled={loading === "FETCH_DATA"}
             className="w-full bg-indigo-650 hover:bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider"
           >
-            {loading === "FETCH_DATA" ? "Retrieving Ledger..." : "View My Child's Data"}
+            {loading === "FETCH_DATA"
+              ? "Retrieving Ledger..."
+              : "View My Child's Data"}
           </button>
         </div>
 
@@ -254,7 +276,9 @@ export default function RightsPortalClient({
             <h3 className="font-bold text-base">Right to Correction</h3>
           </div>
           <p className="text-xs text-slate-500">
-            Request correction of inaccurate or incomplete personal information for {activeStudentName} (e.g. spelling corrections, updated family contact details).
+            Request correction of inaccurate or incomplete personal information
+            for {activeStudentName} (e.g. spelling corrections, updated family
+            contact details).
           </p>
           <textarea
             value={correctionDesc}
@@ -269,7 +293,9 @@ export default function RightsPortalClient({
             disabled={loading === "CORRECTION"}
             className="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider"
           >
-            {loading === "CORRECTION" ? "Submitting..." : "Submit Correction Request"}
+            {loading === "CORRECTION"
+              ? "Submitting..."
+              : "Submit Correction Request"}
           </button>
         </form>
 
@@ -283,7 +309,9 @@ export default function RightsPortalClient({
             <h3 className="font-bold text-base">Right to Erasure</h3>
           </div>
           <p className="text-xs text-slate-500">
-            Request erasure of personal data that is no longer necessary for {activeStudentName}&apos;s school admission purpose. Initiates a mandatory 30-day workflow.
+            Request erasure of personal data that is no longer necessary for{" "}
+            {activeStudentName}&apos;s school admission purpose. Initiates a
+            mandatory 30-day workflow.
           </p>
           <textarea
             value={erasureDesc}
@@ -330,13 +358,21 @@ export default function RightsPortalClient({
           Grievance Redressal (Section 13)
         </h3>
         <p className="text-xs text-slate-500 mb-4">
-          If you have a query, issue, or complaint regarding how your minor child&apos;s data is handled, raise a grievance ticket directly to the Data Protection Officer (DPO). The school resolves grievances within a maximum SLA of 30 days.
+          If you have a query, issue, or complaint regarding how your minor
+          child&apos;s data is handled, raise a grievance ticket directly to the
+          Data Protection Officer (DPO). The school resolves grievances within a
+          maximum SLA of 30 days.
         </p>
 
-        <form onSubmit={handleSubmitGrievance} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmitGrievance}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           <div className="space-y-3 md:col-span-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase">Subject</label>
+              <label className="text-xs font-bold text-slate-400 uppercase">
+                Subject
+              </label>
               <input
                 type="text"
                 value={grievanceSubject}
@@ -347,7 +383,9 @@ export default function RightsPortalClient({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase">Detailed Description</label>
+              <label className="text-xs font-bold text-slate-400 uppercase">
+                Detailed Description
+              </label>
               <textarea
                 value={grievanceDesc}
                 onChange={(e) => setGrievanceDesc(e.target.value)}
@@ -364,7 +402,9 @@ export default function RightsPortalClient({
               disabled={loading === "GRIEVANCE"}
               className="bg-indigo-650 hover:bg-indigo-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md"
             >
-              {loading === "GRIEVANCE" ? "Raising Ticket..." : "Submit Grievance Ticket"}
+              {loading === "GRIEVANCE"
+                ? "Raising Ticket..."
+                : "Submit Grievance Ticket"}
             </button>
           </div>
         </form>
@@ -375,7 +415,9 @@ export default function RightsPortalClient({
         {/* Rights Requests Table */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-850 dark:text-white">Rights Requests Log</h4>
+            <h4 className="font-bold text-sm text-slate-850 dark:text-white">
+              Rights Requests Log
+            </h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -389,9 +431,16 @@ export default function RightsPortalClient({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {requests.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-850">
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-350">{r.ticketNumber}</td>
-                    <td className="p-3 font-semibold text-slate-650 dark:text-slate-400">{r.requestType}</td>
+                  <tr
+                    key={r.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                  >
+                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-350">
+                      {r.ticketNumber}
+                    </td>
+                    <td className="p-3 font-semibold text-slate-650 dark:text-slate-400">
+                      {r.requestType}
+                    </td>
                     <td className="p-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
@@ -410,7 +459,9 @@ export default function RightsPortalClient({
                 ))}
                 {requests.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-500">No requests raised yet.</td>
+                    <td colSpan={4} className="p-8 text-center text-slate-500">
+                      No requests raised yet.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -421,7 +472,9 @@ export default function RightsPortalClient({
         {/* Grievances Table */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-850 dark:text-white">Grievances Tickets Log</h4>
+            <h4 className="font-bold text-sm text-slate-850 dark:text-white">
+              Grievances Tickets Log
+            </h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -435,9 +488,16 @@ export default function RightsPortalClient({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {grievances.map((g) => (
-                  <tr key={g.id} className="hover:bg-slate-50 dark:hover:bg-slate-850">
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-350">{g.ticketNumber}</td>
-                    <td className="p-3 font-semibold text-slate-650 dark:text-slate-400 truncate max-w-[150px]">{g.subject}</td>
+                  <tr
+                    key={g.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                  >
+                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-350">
+                      {g.ticketNumber}
+                    </td>
+                    <td className="p-3 font-semibold text-slate-650 dark:text-slate-400 truncate max-w-[150px]">
+                      {g.subject}
+                    </td>
                     <td className="p-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
@@ -456,7 +516,9 @@ export default function RightsPortalClient({
                 ))}
                 {grievances.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-500">No grievances raised yet.</td>
+                    <td colSpan={4} className="p-8 text-center text-slate-500">
+                      No grievances raised yet.
+                    </td>
                   </tr>
                 )}
               </tbody>

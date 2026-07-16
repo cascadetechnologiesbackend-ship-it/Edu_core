@@ -30,7 +30,9 @@ export default async function ConsentPage() {
     return (
       <div className="p-6">
         <h2 className="text-xl font-bold text-red-650">Access Restricted</h2>
-        <p className="text-slate-500 mt-2">No students linked to your account.</p>
+        <p className="text-slate-500 mt-2">
+          No students linked to your account.
+        </p>
       </div>
     );
   }
@@ -47,7 +49,7 @@ export default async function ConsentPage() {
       const rec = await db.query.consentRecords.findFirst({
         where: and(
           eq(consentRecords.studentId, student.id),
-          eq(consentRecords.purposeId, p.purposeId)
+          eq(consentRecords.purposeId, p.purposeId),
         ),
         orderBy: (t, { desc }) => [desc(t.grantedAt)],
       });
@@ -64,7 +66,8 @@ export default async function ConsentPage() {
           Parent Consent Center
         </h1>
         <p className="text-sm text-slate-500">
-          DPDP Act 2023 Compliance — Manage consent settings and verify data processing choices.
+          DPDP Act 2023 Compliance — Manage consent settings and verify data
+          processing choices.
         </p>
       </div>
 

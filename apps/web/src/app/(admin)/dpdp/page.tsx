@@ -13,7 +13,8 @@ import DpdpDashboardClient from "./DpdpDashboardClient";
 
 export const metadata = {
   title: "DPDP Compliance Centre | SchoolMitra ERP",
-  description: "Administrative console for DPDP Act 2023 compliance audits, data purges, and consent coverage",
+  description:
+    "Administrative console for DPDP Act 2023 compliance audits, data purges, and consent coverage",
 };
 
 export default async function DpdpPage() {
@@ -23,12 +24,17 @@ export default async function DpdpPage() {
   }
 
   // Authorize HR_MANAGER or SUPER_ADMIN / SCHOOL_ADMIN
-  const isAuthorized = ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"].includes(session.user.role);
+  const isAuthorized = ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"].includes(
+    session.user.role,
+  );
   if (!isAuthorized) {
     return (
       <div className="p-12 text-center">
         <h2 className="text-xl font-bold text-red-650">Access Denied</h2>
-        <p className="text-slate-500 mt-2">You do not have administrative permissions to view the compliance centre.</p>
+        <p className="text-slate-500 mt-2">
+          You do not have administrative permissions to view the compliance
+          centre.
+        </p>
       </div>
     );
   }
@@ -50,7 +56,7 @@ export default async function DpdpPage() {
       const latest = await db.query.consentRecords.findFirst({
         where: and(
           eq(consentRecords.studentId, student.id),
-          eq(consentRecords.purposeId, p.purposeId)
+          eq(consentRecords.purposeId, p.purposeId),
         ),
         orderBy: (t, { desc }) => [desc(t.grantedAt)],
       });
@@ -59,7 +65,10 @@ export default async function DpdpPage() {
       }
     }
 
-    const percentage = totalStudentsCount > 0 ? Math.round((grantedCount / totalStudentsCount) * 100) : 0;
+    const percentage =
+      totalStudentsCount > 0
+        ? Math.round((grantedCount / totalStudentsCount) * 100)
+        : 0;
     consentMetrics.push({
       purposeId: p.purposeId,
       labelEn: p.labelEn,
@@ -114,7 +123,8 @@ export default async function DpdpPage() {
           DPDP Compliance Centre
         </h1>
         <p className="text-sm text-slate-500">
-          Admin Console — Audit trails, consent coverage levels, SLA queues, and data retention schedules.
+          Admin Console — Audit trails, consent coverage levels, SLA queues, and
+          data retention schedules.
         </p>
       </div>
 

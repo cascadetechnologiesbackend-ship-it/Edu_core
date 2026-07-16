@@ -1,7 +1,7 @@
 /**
  * SchoolMitra ERP Payroll Engine
- * 
- * Computes monthly gross salary, statutory deductions (PF, PT, ESI), 
+ *
+ * Computes monthly gross salary, statutory deductions (PF, PT, ESI),
  * LWP salary deductions, loan EMI repayments, net pay, and exports
  * EPFO ECR text format files.
  */
@@ -52,7 +52,10 @@ export function calculateGrossComponents(input: SalaryComponentInput) {
   const basic = input.basicSalary;
   const da = (basic * input.daPercent) / 100;
   const hra = (basic * input.hraPercent) / 100;
-  const allowances = input.otherAllowances.reduce((acc, curr) => acc + curr.amount, 0);
+  const allowances = input.otherAllowances.reduce(
+    (acc, curr) => acc + curr.amount,
+    0,
+  );
   const grossBeforeLwp = basic + da + hra + allowances;
 
   return {
@@ -67,7 +70,11 @@ export function calculateGrossComponents(input: SalaryComponentInput) {
 /**
  * Calculates Professional Tax (PT) based on State slabs and Gross Salary.
  */
-export function calculateProfessionalTax(gross: number, state: string, isFebruary = false): number {
+export function calculateProfessionalTax(
+  gross: number,
+  state: string,
+  isFebruary = false,
+): number {
   const code = state.toUpperCase();
   if (code === "MH") {
     // Maharashtra slabs
@@ -92,9 +99,11 @@ export function calculateProvidentFund(
   basicAndDa: number,
   employeePercent = 12,
   employerPercent = 12,
-  capToStatutoryLimit = true
+  capToStatutoryLimit = true,
 ) {
-  const baseWages = capToStatutoryLimit ? Math.min(basicAndDa, 15000) : basicAndDa;
+  const baseWages = capToStatutoryLimit
+    ? Math.min(basicAndDa, 15000)
+    : basicAndDa;
 
   const employeePf = (baseWages * employeePercent) / 100;
   const employerPf = (baseWages * employerPercent) / 100;
@@ -129,21 +138,33 @@ export function calculateESI(gross: number, isApplicable: boolean) {
 export function runPayrollCalculations(
   salary: SalaryComponentInput,
   deductions: PayrollDeductionsInput,
-  isFebruary = false
+  isFebruary = false,
 ): PayrollCalculationResult {
-  const { basic, da, hra, allowances, grossBeforeLwp } = calculateGrossComponents(salary);
+  const { basic, da, hra, allowances, grossBeforeLwp } =
+    calculateGrossComponents(salary);
 
   // 1. Calculate LWP deduction: (GrossBeforeLwp / DaysInMonth) * LWP days
-  const dailyRate = deductions.daysInMonth > 0 ? grossBeforeLwp / deductions.daysInMonth : 0;
+  const dailyRate =
+    deductions.daysInMonth > 0 ? grossBeforeLwp / deductions.daysInMonth : 0;
   const lwpDeduction = Math.round(dailyRate * deductions.lwpDays * 100) / 100;
 
   // Actual Gross Salary after LWP
-  const actualGross = Math.max(0, Math.round((grossBeforeLwp - lwpDeduction) * 100) / 100);
+  const actualGross = Math.max(
+    0,
+    Math.round((grossBeforeLwp - lwpDeduction) * 100) / 100,
+  );
 
   // PF calculated on (Basic + DA) proportioned after LWP
   // If LWP occurred, wages scale down proportionally
-  const actualBasic = Math.max(0, basic - (daysRateDeduction(basic, deductions.lwpDays, deductions.daysInMonth)));
-  const actualDa = Math.max(0, da - (daysRateDeduction(da, deductions.lwpDays, deductions.daysInMonth)));
+  const actualBasic = Math.max(
+    0,
+    basic -
+      daysRateDeduction(basic, deductions.lwpDays, deductions.daysInMonth),
+  );
+  const actualDa = Math.max(
+    0,
+    da - daysRateDeduction(da, deductions.lwpDays, deductions.daysInMonth),
+  );
   const pfWages = actualBasic + actualDa;
 
   // 2. PF Deduction
@@ -151,26 +172,42 @@ export function runPayrollCalculations(
     pfWages,
     salary.pfEmployeePercent,
     salary.pfEmployerPercent,
-    true // default cap to EPFO statutory limit of 15k
+    true, // default cap to EPFO statutory limit of 15k
   );
 
   // 3. PT Deduction
-  const pt = calculateProfessionalTax(actualGross, salary.professionalTaxState, isFebruary);
+  const pt = calculateProfessionalTax(
+    actualGross,
+    salary.professionalTaxState,
+    isFebruary,
+  );
 
   // 4. ESI Deduction (based on actualGross)
-  const { employeeEsi, employerEsi } = calculateESI(actualGross, salary.esiApplicable);
+  const { employeeEsi, employerEsi } = calculateESI(
+    actualGross,
+    salary.esiApplicable,
+  );
 
   // 5. Loan EMI Deduction (cannot exceed remaining amount or actualGross)
-  const loanEmiApplied = Math.min(deductions.activeLoanEmi, deductions.activeLoanRemaining, actualGross);
+  const loanEmiApplied = Math.min(
+    deductions.activeLoanEmi,
+    deductions.activeLoanRemaining,
+    actualGross,
+  );
 
   // 6. TDS
   const tds = deductions.monthlyTdsAmount;
 
   // Sum up deductions
-  const totalDeductions = Math.round((employeePf + employeeEsi + pt + tds + loanEmiApplied) * 100) / 100;
+  const totalDeductions =
+    Math.round((employeePf + employeeEsi + pt + tds + loanEmiApplied) * 100) /
+    100;
 
   // Net Pay
-  const netPay = Math.max(0, Math.round((actualGross - totalDeductions) * 100) / 100);
+  const netPay = Math.max(
+    0,
+    Math.round((actualGross - totalDeductions) * 100) / 100,
+  );
 
   return {
     baseGross: basic,
@@ -192,7 +229,11 @@ export function runPayrollCalculations(
   };
 }
 
-function daysRateDeduction(val: number, lwpDays: number, totalDays: number): number {
+function daysRateDeduction(
+  val: number,
+  lwpDays: number,
+  totalDays: number,
+): number {
   if (totalDays <= 0) return 0;
   return Math.round((val / totalDays) * lwpDays * 100) / 100;
 }

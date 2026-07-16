@@ -135,7 +135,10 @@ export default function DpdpDashboardClient({
   const [errorMsg, setErrorMsg] = useState("");
 
   // Resolution modals
-  const [resolvingTicket, setResolvingTicket] = useState<{ id: string; type: "REQUEST" | "GRIEVANCE" } | null>(null);
+  const [resolvingTicket, setResolvingTicket] = useState<{
+    id: string;
+    type: "REQUEST" | "GRIEVANCE";
+  } | null>(null);
   const [resApprove, setResApprove] = useState(true);
   const [resDetails, setResDetails] = useState("");
 
@@ -145,7 +148,9 @@ export default function DpdpDashboardClient({
   const [breachCount, setBreachCount] = useState(0);
   const [breachCategories, setBreachCategories] = useState("");
   const [breachActions, setBreachActions] = useState("");
-  const [breachSeverity, setBreachSeverity] = useState<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL">("MEDIUM");
+  const [breachSeverity, setBreachSeverity] = useState<
+    "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+  >("MEDIUM");
 
   // Vendor Form Modal
   const [showVendorModal, setShowVendorModal] = useState(false);
@@ -160,10 +165,14 @@ export default function DpdpDashboardClient({
   useEffect(() => {
     let list = auditLogs;
     if (searchEmail.trim()) {
-      list = list.filter((l) => l.userEmail.toLowerCase().includes(searchEmail.toLowerCase()));
+      list = list.filter((l) =>
+        l.userEmail.toLowerCase().includes(searchEmail.toLowerCase()),
+      );
     }
     if (searchTable.trim()) {
-      list = list.filter((l) => l.tableName.toLowerCase().includes(searchTable.toLowerCase()));
+      list = list.filter((l) =>
+        l.tableName.toLowerCase().includes(searchTable.toLowerCase()),
+      );
     }
     if (searchAction.trim()) {
       list = list.filter((l) => l.action === searchAction);
@@ -173,7 +182,9 @@ export default function DpdpDashboardClient({
 
   // SLA Time Countdown Calculations
   const getSlaHoursLeft = (dueAtStr: Date) => {
-    const hours = Math.round((new Date(dueAtStr).getTime() - Date.now()) / (1000 * 60 * 60));
+    const hours = Math.round(
+      (new Date(dueAtStr).getTime() - Date.now()) / (1000 * 60 * 60),
+    );
     return hours;
   };
 
@@ -182,14 +193,22 @@ export default function DpdpDashboardClient({
 
     setLoading("RESOLVE");
     if (resolvingTicket.type === "REQUEST") {
-      const res = await resolveRightsRequest(resolvingTicket.id, resApprove, resDetails);
+      const res = await resolveRightsRequest(
+        resolvingTicket.id,
+        resApprove,
+        resDetails,
+      );
       if (res.success) {
         setRequests((prev) =>
           prev.map((r) =>
             r.id === resolvingTicket.id
-              ? { ...r, status: resApprove ? "COMPLETED" : "REJECTED", responseDetails: resDetails }
-              : r
-          )
+              ? {
+                  ...r,
+                  status: resApprove ? "COMPLETED" : "REJECTED",
+                  responseDetails: resDetails,
+                }
+              : r,
+          ),
         );
         setSuccessMsg("Rights request resolved successfully!");
       } else {
@@ -202,8 +221,8 @@ export default function DpdpDashboardClient({
           prev.map((g) =>
             g.id === resolvingTicket.id
               ? { ...g, status: "COMPLETED", resolutionDetails: resDetails }
-              : g
-          )
+              : g,
+          ),
         );
         setSuccessMsg("Grievance resolved and DPO notified successfully!");
       } else {
@@ -218,7 +237,10 @@ export default function DpdpDashboardClient({
   const handleReportBreach = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading("BREACH");
-    const categories = breachCategories.split(",").map((c) => c.trim()).filter(Boolean);
+    const categories = breachCategories
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
 
     const res = await reportDataBreach({
       description: breachDesc,
@@ -230,7 +252,9 @@ export default function DpdpDashboardClient({
     setLoading(null);
 
     if (res.success) {
-      setSuccessMsg("Data breach logged. DPO automatically notified via email!");
+      setSuccessMsg(
+        "Data breach logged. DPO automatically notified via email!",
+      );
       setShowBreachModal(false);
       setBreachDesc("");
       setBreachCount(0);
@@ -257,7 +281,10 @@ export default function DpdpDashboardClient({
   const handleAddVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading("VENDOR");
-    const shared = vDataShared.split(",").map((c) => c.trim()).filter(Boolean);
+    const shared = vDataShared
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
 
     const res = await createVendor({
       vendorName: vName,
@@ -293,7 +320,11 @@ export default function DpdpDashboardClient({
     }
   };
 
-  const handleToggleHold = async (recordId: string, table: "students" | "staff", currentHold: boolean) => {
+  const handleToggleHold = async (
+    recordId: string,
+    table: "students" | "staff",
+    currentHold: boolean,
+  ) => {
     setLoading(`HOLD_${recordId}`);
     const res = await toggleLegalHold(recordId, table, !currentHold);
     setLoading(null);
@@ -309,9 +340,12 @@ export default function DpdpDashboardClient({
     const res = await triggerManualRetentionRun();
     setLoading(null);
     if (res.success && "softDeletedCount" in res) {
-      setSuccessMsg(`Automated Purge Completed: Soft-deleted ${res.softDeletedCount} records; Hard-purged ${res.hardPurgedCount} records.`);
+      setSuccessMsg(
+        `Automated Purge Completed: Soft-deleted ${res.softDeletedCount} records; Hard-purged ${res.hardPurgedCount} records.`,
+      );
     } else {
-      const errMsg = "message" in res ? res.message : "Failed to execute retention policy";
+      const errMsg =
+        "message" in res ? res.message : "Failed to execute retention policy";
       setErrorMsg(String(errMsg));
     }
   };
@@ -322,13 +356,23 @@ export default function DpdpDashboardClient({
       {successMsg && (
         <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 rounded-2xl text-sm flex justify-between items-center z-20">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg("")} className="font-bold text-xs hover:underline">Dismiss</button>
+          <button
+            onClick={() => setSuccessMsg("")}
+            className="font-bold text-xs hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
       {errorMsg && (
         <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 rounded-2xl text-sm flex justify-between items-center z-20">
           <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg("")} className="font-bold text-xs hover:underline">Dismiss</button>
+          <button
+            onClick={() => setErrorMsg("")}
+            className="font-bold text-xs hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -372,14 +416,19 @@ export default function DpdpDashboardClient({
                 Real-Time Consent Coverage
               </h3>
               <p className="text-xs text-slate-400">
-                Percentage of active students with granted consent flags (Total Active: <strong>{totalStudentsCount}</strong>).
+                Percentage of active students with granted consent flags (Total
+                Active: <strong>{totalStudentsCount}</strong>).
               </p>
               <div className="flex flex-col gap-4">
                 {consentMetrics.map((m) => (
                   <div key={m.purposeId} className="space-y-1">
                     <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-700 dark:text-slate-350">{m.labelEn}</span>
-                      <span className="text-indigo-600">{m.percentage}% ({m.grantedCount} students)</span>
+                      <span className="text-slate-700 dark:text-slate-350">
+                        {m.labelEn}
+                      </span>
+                      <span className="text-indigo-600">
+                        {m.percentage}% ({m.grantedCount} students)
+                      </span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                       <div
@@ -403,31 +452,47 @@ export default function DpdpDashboardClient({
                   disabled={loading === "RETENTION"}
                   className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
                 >
-                  {loading === "RETENTION" ? "Running Purge..." : "Run Retention Purge"}
+                  {loading === "RETENTION"
+                    ? "Running Purge..."
+                    : "Run Retention Purge"}
                 </button>
               </div>
               <p className="text-xs text-slate-400">
-                Active students/staff currently soft-deleted and scheduled for permanent hard purge (after 30-day grace period):
+                Active students/staff currently soft-deleted and scheduled for
+                permanent hard purge (after 30-day grace period):
               </p>
               <div className="space-y-3 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                 {softDeletedStudents.map((s) => {
                   const pName = `${decryptData(s.firstNameEncrypted) || ""} ${
                     decryptData(s.lastNameEncrypted) || ""
                   }`.trim();
-                  const purgeDate = new Date(new Date(s.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000);
+                  const purgeDate = new Date(
+                    new Date(s.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000,
+                  );
                   const isHold = s.legalHold;
 
                   return (
-                    <div key={s.id} className="pt-3 flex justify-between items-center">
+                    <div
+                      key={s.id}
+                      className="pt-3 flex justify-between items-center"
+                    >
                       <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{pName} (Student)</p>
-                        <p className="text-[10px] text-slate-500">Purge due: {purgeDate.toLocaleDateString()}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {pName} (Student)
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Purge due: {purgeDate.toLocaleDateString()}
+                        </p>
                       </div>
                       <button
-                        onClick={() => handleToggleHold(s.id, "students", isHold)}
+                        onClick={() =>
+                          handleToggleHold(s.id, "students", isHold)
+                        }
                         disabled={loading === `HOLD_${s.id}`}
                         className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg uppercase tracking-wider ${
-                          isHold ? "bg-red-100 text-red-800" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                          isHold
+                            ? "bg-red-100 text-red-800"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                         }`}
                       >
                         {isHold ? "Legal Hold Active" : "Place Legal Hold"}
@@ -440,20 +505,31 @@ export default function DpdpDashboardClient({
                   const pName = `${decryptData(st.firstNameEncrypted) || ""} ${
                     decryptData(st.lastNameEncrypted) || ""
                   }`.trim();
-                  const purgeDate = new Date(new Date(st.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000);
+                  const purgeDate = new Date(
+                    new Date(st.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000,
+                  );
                   const isHold = st.legalHold;
 
                   return (
-                    <div key={st.id} className="pt-3 flex justify-between items-center">
+                    <div
+                      key={st.id}
+                      className="pt-3 flex justify-between items-center"
+                    >
                       <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{pName} (Staff)</p>
-                        <p className="text-[10px] text-slate-500">Purge due: {purgeDate.toLocaleDateString()}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {pName} (Staff)
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Purge due: {purgeDate.toLocaleDateString()}
+                        </p>
                       </div>
                       <button
                         onClick={() => handleToggleHold(st.id, "staff", isHold)}
                         disabled={loading === `HOLD_${st.id}`}
                         className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg uppercase tracking-wider ${
-                          isHold ? "bg-red-100 text-red-800" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                          isHold
+                            ? "bg-red-100 text-red-800"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                         }`}
                       >
                         {isHold ? "Legal Hold Active" : "Place Legal Hold"}
@@ -462,9 +538,12 @@ export default function DpdpDashboardClient({
                   );
                 })}
 
-                {softDeletedStudents.length === 0 && softDeletedStaff.length === 0 && (
-                  <p className="text-xs text-slate-500 py-4 text-center">No records scheduled for deletion.</p>
-                )}
+                {softDeletedStudents.length === 0 &&
+                  softDeletedStaff.length === 0 && (
+                    <p className="text-xs text-slate-500 py-4 text-center">
+                      No records scheduled for deletion.
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -475,7 +554,9 @@ export default function DpdpDashboardClient({
       {activeTab === "requests" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-800 dark:text-white">Active SLA Rights Requests Queue</h4>
+            <h4 className="font-bold text-sm text-slate-800 dark:text-white">
+              Active SLA Rights Requests Queue
+            </h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -496,10 +577,19 @@ export default function DpdpDashboardClient({
                   const isOverdue = hoursLeft <= 0;
 
                   return (
-                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-850">
-                      <td className="p-3 font-mono font-bold">{r.ticketNumber}</td>
-                      <td className="p-3 font-bold text-slate-655">{r.requestType}</td>
-                      <td className="p-3 text-slate-500 max-w-[200px] truncate">{r.description}</td>
+                    <tr
+                      key={r.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                    >
+                      <td className="p-3 font-mono font-bold">
+                        {r.ticketNumber}
+                      </td>
+                      <td className="p-3 font-bold text-slate-655">
+                        {r.requestType}
+                      </td>
+                      <td className="p-3 text-slate-500 max-w-[200px] truncate">
+                        {r.description}
+                      </td>
                       <td className="p-3">
                         {r.status === "COMPLETED" || r.status === "REJECTED" ? (
                           <span className="text-slate-400">Resolved</span>
@@ -509,7 +599,8 @@ export default function DpdpDashboardClient({
                           </span>
                         ) : (
                           <span className="text-amber-600 font-bold flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 animate-pulse" /> {Math.ceil(hoursLeft / 24)}d left
+                            <Clock className="w-3.5 h-3.5 animate-pulse" />{" "}
+                            {Math.ceil(hoursLeft / 24)}d left
                           </span>
                         )}
                       </td>
@@ -519,8 +610,8 @@ export default function DpdpDashboardClient({
                             r.status === "COMPLETED"
                               ? "bg-green-105 text-green-800"
                               : r.status === "REJECTED"
-                              ? "bg-red-105 text-red-800"
-                              : "bg-amber-100 text-amber-800"
+                                ? "bg-red-105 text-red-800"
+                                : "bg-amber-100 text-amber-800"
                           }`}
                         >
                           {r.status}
@@ -532,7 +623,9 @@ export default function DpdpDashboardClient({
                       <td className="p-3 text-right">
                         {r.status === "SUBMITTED" && (
                           <button
-                            onClick={() => setResolvingTicket({ id: r.id, type: "REQUEST" })}
+                            onClick={() =>
+                              setResolvingTicket({ id: r.id, type: "REQUEST" })
+                            }
                             className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
                           >
                             Resolve
@@ -552,7 +645,9 @@ export default function DpdpDashboardClient({
       {activeTab === "grievances" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-800 dark:text-white">Parent Grievance SLA Queue</h4>
+            <h4 className="font-bold text-sm text-slate-800 dark:text-white">
+              Parent Grievance SLA Queue
+            </h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -573,10 +668,19 @@ export default function DpdpDashboardClient({
                   const isOverdue = hoursLeft <= 0;
 
                   return (
-                    <tr key={g.id} className="hover:bg-slate-50 dark:hover:bg-slate-850">
-                      <td className="p-3 font-mono font-bold">{g.ticketNumber}</td>
-                      <td className="p-3 font-bold text-slate-655">{g.subject}</td>
-                      <td className="p-3 text-slate-500 max-w-[200px] truncate">{g.description}</td>
+                    <tr
+                      key={g.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                    >
+                      <td className="p-3 font-mono font-bold">
+                        {g.ticketNumber}
+                      </td>
+                      <td className="p-3 font-bold text-slate-655">
+                        {g.subject}
+                      </td>
+                      <td className="p-3 text-slate-500 max-w-[200px] truncate">
+                        {g.description}
+                      </td>
                       <td className="p-3">
                         {g.status === "COMPLETED" ? (
                           <span className="text-slate-400">Resolved</span>
@@ -586,7 +690,8 @@ export default function DpdpDashboardClient({
                           </span>
                         ) : (
                           <span className="text-amber-600 font-bold flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 animate-pulse" /> {Math.ceil(hoursLeft / 24)}d left
+                            <Clock className="w-3.5 h-3.5 animate-pulse" />{" "}
+                            {Math.ceil(hoursLeft / 24)}d left
                           </span>
                         )}
                       </td>
@@ -607,7 +712,12 @@ export default function DpdpDashboardClient({
                       <td className="p-3 text-right">
                         {g.status === "SUBMITTED" && (
                           <button
-                            onClick={() => setResolvingTicket({ id: g.id, type: "GRIEVANCE" })}
+                            onClick={() =>
+                              setResolvingTicket({
+                                id: g.id,
+                                type: "GRIEVANCE",
+                              })
+                            }
                             className="bg-indigo-650 hover:bg-indigo-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
                           >
                             Resolve
@@ -653,10 +763,19 @@ export default function DpdpDashboardClient({
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {vendorList.map((v) => (
-                    <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-850">
-                      <td className="p-3 font-bold text-slate-700 dark:text-slate-350">{v.vendorName}</td>
-                      <td className="p-3 font-medium text-slate-500">{v.vendorType}</td>
-                      <td className="p-3 text-slate-550 max-w-[200px] truncate">{v.purposeOfSharing}</td>
+                    <tr
+                      key={v.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                    >
+                      <td className="p-3 font-bold text-slate-700 dark:text-slate-350">
+                        {v.vendorName}
+                      </td>
+                      <td className="p-3 font-medium text-slate-500">
+                        {v.vendorType}
+                      </td>
+                      <td className="p-3 text-slate-550 max-w-[200px] truncate">
+                        {v.purposeOfSharing}
+                      </td>
                       <td className="p-3">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
@@ -669,20 +788,27 @@ export default function DpdpDashboardClient({
                         </span>
                       </td>
                       <td className="p-3 text-slate-500">
-                        {Array.isArray(v.dataShared) ? v.dataShared.join(", ") : String(v.dataShared)}
+                        {Array.isArray(v.dataShared)
+                          ? v.dataShared.join(", ")
+                          : String(v.dataShared)}
                       </td>
                       <td className="p-3 text-right">
                         {v.dpaStatus !== "SIGNED" && (
                           <button
                             onClick={async () => {
                               setLoading(`V_${v.id}`);
-                              const res = await updateVendorDpaStatus(v.id, "SIGNED");
+                              const res = await updateVendorDpaStatus(
+                                v.id,
+                                "SIGNED",
+                              );
                               setLoading(null);
                               if (res.success) {
                                 setVendorList((prev) =>
                                   prev.map((item) =>
-                                    item.id === v.id ? { ...item, dpaStatus: "SIGNED" } : item
-                                  )
+                                    item.id === v.id
+                                      ? { ...item, dpaStatus: "SIGNED" }
+                                      : item,
+                                  ),
                                 );
                                 setSuccessMsg("Vendor DPA updated to SIGNED!");
                               }
@@ -719,7 +845,10 @@ export default function DpdpDashboardClient({
 
           <div className="grid grid-cols-1 gap-4">
             {breachList.map((b) => {
-              const hoursLeft = Math.round((new Date(b.boardNotificationDeadline).getTime() - Date.now()) / (1000 * 60 * 60));
+              const hoursLeft = Math.round(
+                (new Date(b.boardNotificationDeadline).getTime() - Date.now()) /
+                  (1000 * 60 * 60),
+              );
               const isOverdue = hoursLeft <= 0;
 
               return (
@@ -753,7 +882,9 @@ export default function DpdpDashboardClient({
 
                     {/* 72h countdown status */}
                     <div className="text-right">
-                      {b.status === "BOARD_NOTIFIED" || b.status === "PARENTS_NOTIFIED" || b.status === "CLOSED" ? (
+                      {b.status === "BOARD_NOTIFIED" ||
+                      b.status === "PARENTS_NOTIFIED" ||
+                      b.status === "CLOSED" ? (
                         <span className="text-xs font-bold text-emerald-650 flex items-center gap-1 justify-end">
                           <CheckCircle className="w-4 h-4" /> Board Notified
                         </span>
@@ -763,7 +894,8 @@ export default function DpdpDashboardClient({
                         </span>
                       ) : (
                         <span className="text-xs font-bold text-amber-600 flex items-center gap-1 justify-end">
-                          <Clock className="w-4 h-4 animate-pulse" /> {hoursLeft} hours left to notify Board
+                          <Clock className="w-4 h-4 animate-pulse" />{" "}
+                          {hoursLeft} hours left to notify Board
                         </span>
                       )}
                     </div>
@@ -774,9 +906,12 @@ export default function DpdpDashboardClient({
                       <strong>Incident Details:</strong> {b.description}
                     </p>
                     <p className="text-xs text-slate-500">
-                      <strong>Affected Records:</strong> {b.affectedRecordsCount} |{" "}
+                      <strong>Affected Records:</strong>{" "}
+                      {b.affectedRecordsCount} |{" "}
                       <strong>Affected Categories:</strong>{" "}
-                      {Array.isArray(b.affectedDataCategories) ? b.affectedDataCategories.join(", ") : String(b.affectedDataCategories)}
+                      {Array.isArray(b.affectedDataCategories)
+                        ? b.affectedDataCategories.join(", ")
+                        : String(b.affectedDataCategories)}
                     </p>
                   </div>
 
@@ -792,11 +927,17 @@ export default function DpdpDashboardClient({
                             setBreachList((prev) =>
                               prev.map((item) =>
                                 item.id === b.id
-                                  ? { ...item, status: "BOARD_NOTIFIED", boardNotifiedAt: new Date() }
-                                  : item
-                              )
+                                  ? {
+                                      ...item,
+                                      status: "BOARD_NOTIFIED",
+                                      boardNotifiedAt: new Date(),
+                                    }
+                                  : item,
+                              ),
                             );
-                            setSuccessMsg("Logged Board notification timestamp!");
+                            setSuccessMsg(
+                              "Logged Board notification timestamp!",
+                            );
                           }
                         }}
                         className="bg-indigo-650 hover:bg-indigo-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
@@ -814,11 +955,17 @@ export default function DpdpDashboardClient({
                             setBreachList((prev) =>
                               prev.map((item) =>
                                 item.id === b.id
-                                  ? { ...item, status: "PARENTS_NOTIFIED", parentsNotifiedAt: new Date() }
-                                  : item
-                              )
+                                  ? {
+                                      ...item,
+                                      status: "PARENTS_NOTIFIED",
+                                      parentsNotifiedAt: new Date(),
+                                    }
+                                  : item,
+                              ),
                             );
-                            setSuccessMsg("Logged parent breach warnings notification templates dispatch!");
+                            setSuccessMsg(
+                              "Logged parent breach warnings notification templates dispatch!",
+                            );
                           }
                         }}
                         className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider border border-slate-200 dark:border-slate-700"
@@ -846,7 +993,9 @@ export default function DpdpDashboardClient({
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Parent/User Email</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Parent/User Email
+              </label>
               <input
                 type="text"
                 value={searchEmail}
@@ -856,7 +1005,9 @@ export default function DpdpDashboardClient({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Table Name</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Table Name
+              </label>
               <input
                 type="text"
                 value={searchTable}
@@ -866,7 +1017,9 @@ export default function DpdpDashboardClient({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Audit Action</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Audit Action
+              </label>
               <select
                 value={searchAction}
                 onChange={(e) => setSearchAction(e.target.value)}
@@ -897,33 +1050,51 @@ export default function DpdpDashboardClient({
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredLogs.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-slate-850">
+                    <tr
+                      key={l.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                    >
                       <td className="p-3 font-mono text-[10px] text-slate-500">
                         {new Date(l.createdAt).toLocaleString()}
                       </td>
-                      <td className="p-3 font-bold text-slate-700 dark:text-slate-350">{l.userEmail}</td>
-                      <td className="p-3 font-semibold text-slate-500">{l.userRole}</td>
+                      <td className="p-3 font-bold text-slate-700 dark:text-slate-350">
+                        {l.userEmail}
+                      </td>
+                      <td className="p-3 font-semibold text-slate-500">
+                        {l.userRole}
+                      </td>
                       <td className="p-3">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
                             l.action === "READ"
                               ? "bg-blue-100 text-blue-800"
                               : l.action === "WRITE"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {l.action}
                         </span>
                       </td>
-                      <td className="p-3 font-semibold text-slate-655 font-mono">{l.tableName}</td>
-                      <td className="p-3 font-mono text-[10px] text-slate-450">{l.recordId || "-"}</td>
-                      <td className="p-3 font-mono text-[10px] text-slate-500">{l.ipAddress}</td>
+                      <td className="p-3 font-semibold text-slate-655 font-mono">
+                        {l.tableName}
+                      </td>
+                      <td className="p-3 font-mono text-[10px] text-slate-450">
+                        {l.recordId || "-"}
+                      </td>
+                      <td className="p-3 font-mono text-[10px] text-slate-500">
+                        {l.ipAddress}
+                      </td>
                     </tr>
                   ))}
                   {filteredLogs.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500">No logs match search filters.</td>
+                      <td
+                        colSpan={7}
+                        className="p-8 text-center text-slate-500"
+                      >
+                        No logs match search filters.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -938,7 +1109,10 @@ export default function DpdpDashboardClient({
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">
-              Resolve {resolvingTicket.type === "REQUEST" ? "Rights Request" : "Grievance Ticket"}
+              Resolve{" "}
+              {resolvingTicket.type === "REQUEST"
+                ? "Rights Request"
+                : "Grievance Ticket"}
             </h3>
 
             {resolvingTicket.type === "REQUEST" && (
@@ -963,7 +1137,9 @@ export default function DpdpDashboardClient({
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase">Resolution Notes / Action Taken</label>
+              <label className="text-xs font-bold text-slate-400 uppercase">
+                Resolution Notes / Action Taken
+              </label>
               <textarea
                 value={resDetails}
                 onChange={(e) => setResDetails(e.target.value)}
@@ -1003,11 +1179,14 @@ export default function DpdpDashboardClient({
             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4"
           >
             <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <AlertOctagon className="w-5 h-5 text-red-600" /> Log Data Breach Incident
+              <AlertOctagon className="w-5 h-5 text-red-600" /> Log Data Breach
+              Incident
             </h3>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Severity</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Severity
+              </label>
               <select
                 value={breachSeverity}
                 onChange={(e: any) => setBreachSeverity(e.target.value)}
@@ -1021,7 +1200,9 @@ export default function DpdpDashboardClient({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Incident Description</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Incident Description
+              </label>
               <textarea
                 value={breachDesc}
                 onChange={(e) => setBreachDesc(e.target.value)}
@@ -1034,17 +1215,23 @@ export default function DpdpDashboardClient({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Affected Records Count</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  Affected Records Count
+                </label>
                 <input
                   type="number"
                   value={breachCount}
-                  onChange={(e) => setBreachCount(parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setBreachCount(parseInt(e.target.value) || 0)
+                  }
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
                   required
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Data Categories (comma sep)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  Data Categories (comma sep)
+                </label>
                 <input
                   type="text"
                   value={breachCategories}
@@ -1057,7 +1244,9 @@ export default function DpdpDashboardClient({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Immediate Containment Actions Taken</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Immediate Containment Actions Taken
+              </label>
               <textarea
                 value={breachActions}
                 onChange={(e) => setBreachActions(e.target.value)}
@@ -1100,7 +1289,9 @@ export default function DpdpDashboardClient({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Vendor Name</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  Vendor Name
+                </label>
                 <input
                   type="text"
                   value={vName}
@@ -1111,7 +1302,9 @@ export default function DpdpDashboardClient({
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Processor Type</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  Processor Type
+                </label>
                 <input
                   type="text"
                   value={vType}
@@ -1124,7 +1317,9 @@ export default function DpdpDashboardClient({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Data Categories Shared (comma sep)</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Data Categories Shared (comma sep)
+              </label>
               <input
                 type="text"
                 value={vDataShared}
@@ -1136,7 +1331,9 @@ export default function DpdpDashboardClient({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Purpose of Data Transfer</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Purpose of Data Transfer
+              </label>
               <input
                 type="text"
                 value={vPurpose}
@@ -1149,7 +1346,9 @@ export default function DpdpDashboardClient({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">DPA Status</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  DPA Status
+                </label>
                 <select
                   value={vDpaStatus}
                   onChange={(e: any) => setVDpaStatus(e.target.value)}
@@ -1160,7 +1359,9 @@ export default function DpdpDashboardClient({
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Contract Expiry Date</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  Contract Expiry Date
+                </label>
                 <input
                   type="date"
                   value={vDpaExpiry}

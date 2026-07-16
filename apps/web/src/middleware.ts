@@ -7,7 +7,9 @@ const { auth } = NextAuth(authConfig);
 export default (auth as any)((req: any) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
-  const isAuthRoute = nextUrl.pathname.startsWith("/login") || nextUrl.pathname.startsWith("/forgot-password");
+  const isAuthRoute =
+    nextUrl.pathname.startsWith("/login") ||
+    nextUrl.pathname.startsWith("/forgot-password");
   const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
   const isProtectedRoute = !isAuthRoute && !isApiAuthRoute;
 
@@ -29,4 +31,3 @@ export default (auth as any)((req: any) => {
 export const config = {
   matcher: ["/((?!api/trpc|_next/static|_next/image|favicon.ico).*)"],
 };
-

@@ -21,18 +21,21 @@ export async function POST(req: Request) {
         .digest("hex");
 
       if (expectedSignature !== signature) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 400 },
+        );
       }
     }
 
     const event = JSON.parse(rawBody);
-    
+
     if (event.event === "payment.captured") {
       const payment = event.payload.payment.entity;
       const orderId = payment.order_id;
-      
+
       const log = await db.query.paymentGatewayLogs.findFirst({
-        where: eq(paymentGatewayLogs.gatewayOrderId, orderId)
+        where: eq(paymentGatewayLogs.gatewayOrderId, orderId),
       });
 
       if (!log || !log.feeInvoiceId) {
@@ -40,7 +43,7 @@ export async function POST(req: Request) {
       }
 
       const invoice = await db.query.feeInvoices.findFirst({
-        where: eq(feeInvoices.id, log.feeInvoiceId)
+        where: eq(feeInvoices.id, log.feeInvoiceId),
       });
 
       if (!invoice) return NextResponse.json({ success: true });
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
 
       const newPaidAmount = parseFloat(invoice.paidAmount) + amountPaid;
       const newBalanceAmount = parseFloat(invoice.netAmount) - newPaidAmount;
-      
+
       let newStatus = invoice.status;
       if (newBalanceAmount <= 0) {
         newStatus = "PAID";
@@ -61,7 +64,8 @@ export async function POST(req: Request) {
 
       await db.transaction(async (tx) => {
         // Update Log
-        await tx.update(paymentGatewayLogs)
+        await tx
+          .update(paymentGatewayLogs)
           .set({
             status: "PAID",
             gatewayPaymentId: payment.id,
@@ -84,7 +88,8 @@ export async function POST(req: Request) {
         });
 
         // Update Invoice
-        await tx.update(feeInvoices)
+        await tx
+          .update(feeInvoices)
           .set({
             paidAmount: newPaidAmount.toFixed(2),
             balanceAmount: newBalanceAmount.toFixed(2),

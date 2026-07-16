@@ -2,13 +2,7 @@
 // Activity skills with emoji indicators (🌟/⭐/✨), NO numeric marks
 
 import React from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Watermark } from "../WatermarkWrapper";
 
 const styles = StyleSheet.create({
@@ -142,7 +136,8 @@ const LEVEL_EMOJI: Record<string, string> = {
   NEEDS_IMPROVEMENT: "🔆",
 };
 
-type ActivityLevel = "EXCELLENT" | "GOOD" | "SATISFACTORY" | "NEEDS_IMPROVEMENT";
+type ActivityLevel =
+  "EXCELLENT" | "GOOD" | "SATISFACTORY" | "NEEDS_IMPROVEMENT";
 
 interface ActivitySkill {
   area: string;
@@ -197,12 +192,16 @@ export function NurseryTemplate({ data }: { data: NurseryReportCardData }) {
           </View>
           <View style={styles.studentField}>
             <Text style={styles.fieldLabel}>Class & Section</Text>
-            <Text style={styles.fieldValue}>{data.classDisplay} — {data.section}</Text>
+            <Text style={styles.fieldValue}>
+              {data.classDisplay} — {data.section}
+            </Text>
           </View>
           {data.attendancePercent !== undefined && (
             <View style={styles.studentField}>
               <Text style={styles.fieldLabel}>Attendance</Text>
-              <Text style={styles.fieldValue}>{data.attendancePercent.toFixed(1)}%</Text>
+              <Text style={styles.fieldValue}>
+                {data.attendancePercent.toFixed(1)}%
+              </Text>
             </View>
           )}
         </View>
@@ -222,11 +221,16 @@ export function NurseryTemplate({ data }: { data: NurseryReportCardData }) {
             {area.skills.map((skill, sIdx) => (
               <View
                 key={sIdx}
-                style={[styles.activityRow, sIdx % 2 === 0 ? styles.activityRowAlt : {}]}
+                style={[
+                  styles.activityRow,
+                  sIdx % 2 === 0 ? styles.activityRowAlt : {},
+                ]}
               >
                 <Text style={styles.activityName}>{skill.name}</Text>
                 <Text style={styles.emojiCell}>{LEVEL_EMOJI[skill.level]}</Text>
-                <Text style={styles.levelLabel}>{skill.level.replace("_", " ")}</Text>
+                <Text style={styles.levelLabel}>
+                  {skill.level.replace("_", " ")}
+                </Text>
               </View>
             ))}
           </View>
@@ -238,7 +242,9 @@ export function NurseryTemplate({ data }: { data: NurseryReportCardData }) {
             <Text style={{ fontSize: 9, fontWeight: "bold", marginBottom: 4 }}>
               Class Teacher Remarks:
             </Text>
-            <Text style={{ fontSize: 9, color: "#374151" }}>{data.teacherRemarks}</Text>
+            <Text style={{ fontSize: 9, color: "#374151" }}>
+              {data.teacherRemarks}
+            </Text>
           </View>
         )}
 

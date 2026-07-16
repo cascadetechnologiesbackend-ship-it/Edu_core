@@ -71,7 +71,12 @@ const styles = StyleSheet.create({
   tableRowAlt: { backgroundColor: "#f9fafb" },
   subjectCol: { flex: 3, fontSize: 9, color: "#374151" },
   maxCol: { flex: 1, textAlign: "center", fontSize: 9, color: "#6b7280" },
-  obtainedCol: { flex: 1, textAlign: "center", fontSize: 9, fontWeight: "bold" },
+  obtainedCol: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
   gradeCol: {
     flex: 1,
     textAlign: "center",
@@ -180,12 +185,16 @@ export function Class1to5Template({ data }: { data: Class1to5ReportData }) {
           </View>
           <View style={styles.studentField}>
             <Text style={styles.fieldLabel}>Class & Section</Text>
-            <Text style={styles.fieldValue}>{data.classDisplay} — {data.section}</Text>
+            <Text style={styles.fieldValue}>
+              {data.classDisplay} — {data.section}
+            </Text>
           </View>
           {data.attendancePercent !== undefined && (
             <View style={styles.studentField}>
               <Text style={styles.fieldLabel}>Attendance</Text>
-              <Text style={styles.fieldValue}>{data.attendancePercent.toFixed(1)}%</Text>
+              <Text style={styles.fieldValue}>
+                {data.attendancePercent.toFixed(1)}%
+              </Text>
             </View>
           )}
           {data.rank && (
@@ -202,36 +211,69 @@ export function Class1to5Template({ data }: { data: Class1to5ReportData }) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Subject</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: "center" }]}>Max</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: "center" }]}>Obtained</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: "center" }]}>Grade</Text>
+            <Text
+              style={[styles.tableHeaderCell, { flex: 1, textAlign: "center" }]}
+            >
+              Max
+            </Text>
+            <Text
+              style={[styles.tableHeaderCell, { flex: 1, textAlign: "center" }]}
+            >
+              Obtained
+            </Text>
+            <Text
+              style={[styles.tableHeaderCell, { flex: 1, textAlign: "center" }]}
+            >
+              Grade
+            </Text>
           </View>
 
           {data.subjects.map((s, idx) => (
-            <View key={idx} style={[styles.tableRow, idx % 2 === 0 ? styles.tableRowAlt : {}]}>
+            <View
+              key={idx}
+              style={[styles.tableRow, idx % 2 === 0 ? styles.tableRowAlt : {}]}
+            >
               <Text style={styles.subjectCol}>{s.name}</Text>
               <Text style={styles.maxCol}>{s.maxMarks}</Text>
               <Text style={styles.obtainedCol}>
-                {s.isAbsent ? "AB" : s.isMedicalExempt ? "ME" : (s.marksObtained ?? "—")}
+                {s.isAbsent
+                  ? "AB"
+                  : s.isMedicalExempt
+                    ? "ME"
+                    : (s.marksObtained ?? "—")}
               </Text>
               <Text style={styles.gradeCol}>{s.grade}</Text>
             </View>
           ))}
 
           <View style={styles.summaryRow}>
-            <Text style={[styles.subjectCol, { fontWeight: "bold" }]}>TOTAL</Text>
+            <Text style={[styles.subjectCol, { fontWeight: "bold" }]}>
+              TOTAL
+            </Text>
             <Text style={styles.maxCol}>{data.totalMaxMarks}</Text>
             <Text style={[styles.obtainedCol, { fontWeight: "bold" }]}>
               {data.totalMarks}
             </Text>
-            <Text style={[styles.gradeCol, { fontWeight: "bold", fontSize: 11 }]}>
+            <Text
+              style={[styles.gradeCol, { fontWeight: "bold", fontSize: 11 }]}
+            >
               {data.overallGrade}
             </Text>
           </View>
         </View>
 
-        <View style={[styles.badge, { backgroundColor: data.isPassed ? "#d1fae5" : "#fee2e2" }]}>
-          <Text style={{ color: data.isPassed ? "#065f46" : "#991b1b", fontSize: 10 }}>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: data.isPassed ? "#d1fae5" : "#fee2e2" },
+          ]}
+        >
+          <Text
+            style={{
+              color: data.isPassed ? "#065f46" : "#991b1b",
+              fontSize: 10,
+            }}
+          >
             {data.isPassed ? "RESULT: PASS ✓" : "RESULT: FAIL ✗"}
           </Text>
         </View>
@@ -241,7 +283,9 @@ export function Class1to5Template({ data }: { data: Class1to5ReportData }) {
             <Text style={{ fontSize: 9, fontWeight: "bold", marginBottom: 4 }}>
               Class Teacher Remarks:
             </Text>
-            <Text style={{ fontSize: 9, color: "#374151" }}>{data.teacherRemarks}</Text>
+            <Text style={{ fontSize: 9, color: "#374151" }}>
+              {data.teacherRemarks}
+            </Text>
           </View>
         )}
 
@@ -250,7 +294,9 @@ export function Class1to5Template({ data }: { data: Class1to5ReportData }) {
             <Text style={{ fontSize: 9, fontWeight: "bold", marginBottom: 4 }}>
               Principal Remarks:
             </Text>
-            <Text style={{ fontSize: 9, color: "#374151" }}>{data.principalRemarks}</Text>
+            <Text style={{ fontSize: 9, color: "#374151" }}>
+              {data.principalRemarks}
+            </Text>
           </View>
         )}
 

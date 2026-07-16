@@ -1,7 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { markEntries, exams, gradeRules, students, classes, users } from "@/db/schema";
+import {
+  markEntries,
+  exams,
+  gradeRules,
+  students,
+  classes,
+  users,
+} from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -34,7 +41,8 @@ export async function saveMarkEntries(input: SaveMarksInput) {
     if (!dbUser) {
       return {
         success: false,
-        message: "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
+        message:
+          "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
       };
     }
 
@@ -43,13 +51,21 @@ export async function saveMarkEntries(input: SaveMarksInput) {
     });
 
     if (!exam) return { success: false, message: "Exam not found" };
-    if (exam.isLocked) return { success: false, message: "Exam is locked. Cannot enter marks." };
+    if (exam.isLocked)
+      return { success: false, message: "Exam is locked. Cannot enter marks." };
 
     for (const entry of input.entries) {
       const parsed = MarkEntrySchema.safeParse(entry);
       if (!parsed.success) continue;
 
-      const { studentId, subjectId, marksObtained, maxMarks, isAbsent, isMedicalExempt } = parsed.data;
+      const {
+        studentId,
+        subjectId,
+        marksObtained,
+        maxMarks,
+        isAbsent,
+        isMedicalExempt,
+      } = parsed.data;
 
       // Fetch grade rules for this student
       const student = await db.query.students.findFirst({
@@ -63,7 +79,9 @@ export async function saveMarkEntries(input: SaveMarksInput) {
         const studentClass = await db.query.classes.findFirst({
           where: eq(classes.id, student.currentClassId),
         });
-        const classGroup = studentClass ? gradeToClassGroup(studentClass.gradeLevel) : "CLASS_1_5";
+        const classGroup = studentClass
+          ? gradeToClassGroup(studentClass.gradeLevel)
+          : "CLASS_1_5";
 
         const dbRules = await db.query.gradeRules.findMany({
           where: and(
@@ -116,14 +134,20 @@ export async function saveMarkEntries(input: SaveMarksInput) {
       };
 
       if (existing) {
-        await db.update(markEntries).set(values).where(eq(markEntries.id, existing.id));
+        await db
+          .update(markEntries)
+          .set(values)
+          .where(eq(markEntries.id, existing.id));
       } else {
         await db.insert(markEntries).values(values);
       }
     }
 
     revalidatePath(`/exams/${input.examId}/marks`);
-    return { success: true, message: `Saved ${input.entries.length} mark entries` };
+    return {
+      success: true,
+      message: `Saved ${input.entries.length} mark entries`,
+    };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("[saveMarkEntries]", message);

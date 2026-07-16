@@ -68,11 +68,19 @@ export function MarkEntryGrid({
 
   const [marks, setMarks] = useState<Record<MarkKey, MarkState>>(initialState);
 
-  const setMark = (studentId: string, subjectId: string, value: Partial<MarkState>) => {
+  const setMark = (
+    studentId: string,
+    subjectId: string,
+    value: Partial<MarkState>,
+  ) => {
     const key: MarkKey = `${studentId}_${subjectId}`;
     setMarks((prev) => ({
       ...prev,
-      [key]: { ...{ marksObtained: "", isAbsent: false, isMedicalExempt: false }, ...prev[key], ...value },
+      [key]: {
+        ...{ marksObtained: "", isAbsent: false, isMedicalExempt: false },
+        ...prev[key],
+        ...value,
+      },
     }));
   };
 
@@ -85,12 +93,23 @@ export function MarkEntryGrid({
       for (const student of students) {
         for (const subject of subjects) {
           const key: MarkKey = `${student.id}_${subject.id}`;
-          const state = marks[key] ?? { marksObtained: "", isAbsent: false, isMedicalExempt: false };
-          if (state.marksObtained !== "" || state.isAbsent || state.isMedicalExempt) {
+          const state = marks[key] ?? {
+            marksObtained: "",
+            isAbsent: false,
+            isMedicalExempt: false,
+          };
+          if (
+            state.marksObtained !== "" ||
+            state.isAbsent ||
+            state.isMedicalExempt
+          ) {
             entries.push({
               studentId: student.id,
               subjectId: subject.id,
-              marksObtained: state.isAbsent || state.isMedicalExempt ? null : parseFloat(state.marksObtained) || 0,
+              marksObtained:
+                state.isAbsent || state.isMedicalExempt
+                  ? null
+                  : parseFloat(state.marksObtained) || 0,
               maxMarks: subject.maxMarks,
               isAbsent: state.isAbsent,
               isMedicalExempt: state.isMedicalExempt,
@@ -162,28 +181,49 @@ export function MarkEntryGrid({
               {subjects.map((s) => (
                 <th key={s.id} className="px-3 py-3 text-center min-w-[120px]">
                   <div>{s.name}</div>
-                  <div className="text-xs font-normal text-gray-400">(Max: {s.maxMarks})</div>
+                  <div className="text-xs font-normal text-gray-400">
+                    (Max: {s.maxMarks})
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
             {students.map((student, sIdx) => (
-              <tr key={student.id} className={sIdx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-gray-50/50 dark:bg-slate-800/30"}>
+              <tr
+                key={student.id}
+                className={
+                  sIdx % 2 === 0
+                    ? "bg-white dark:bg-slate-900"
+                    : "bg-gray-50/50 dark:bg-slate-800/30"
+                }
+              >
                 <td className="sticky left-0 bg-inherit px-4 py-2 border-r border-gray-100 dark:border-slate-800 z-10">
-                  <div className="font-medium text-gray-900 dark:text-white text-xs">{student.name}</div>
-                  <div className="text-xs text-gray-400">{student.admissionNumber}</div>
+                  <div className="font-medium text-gray-900 dark:text-white text-xs">
+                    {student.name}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {student.admissionNumber}
+                  </div>
                 </td>
                 {subjects.map((subject) => {
                   const key: MarkKey = `${student.id}_${subject.id}`;
-                  const state = marks[key] ?? { marksObtained: "", isAbsent: false, isMedicalExempt: false };
+                  const state = marks[key] ?? {
+                    marksObtained: "",
+                    isAbsent: false,
+                    isMedicalExempt: false,
+                  };
 
                   return (
                     <td key={subject.id} className="px-2 py-1.5 text-center">
                       {state.isAbsent ? (
-                        <span className="text-xs font-bold text-red-600">AB</span>
+                        <span className="text-xs font-bold text-red-600">
+                          AB
+                        </span>
                       ) : state.isMedicalExempt ? (
-                        <span className="text-xs font-bold text-blue-600">ME</span>
+                        <span className="text-xs font-bold text-blue-600">
+                          ME
+                        </span>
                       ) : (
                         <input
                           type="number"
@@ -193,7 +233,9 @@ export function MarkEntryGrid({
                           disabled={isLocked}
                           value={state.marksObtained}
                           onChange={(e) =>
-                            setMark(student.id, subject.id, { marksObtained: e.target.value })
+                            setMark(student.id, subject.id, {
+                              marksObtained: e.target.value,
+                            })
                           }
                           className="w-16 text-center rounded border border-gray-300 dark:border-slate-600 px-1 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           placeholder="—"

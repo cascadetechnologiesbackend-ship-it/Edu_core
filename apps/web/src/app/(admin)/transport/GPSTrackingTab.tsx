@@ -28,8 +28,11 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
   const [currentSpeed, setCurrentSpeed] = useState("0");
   const [statusMsg, setStatusMsg] = useState("Ready for simulation");
 
-  const selectedRoute = routes.find((r) => r.id === selectedRouteId) || routes[0];
-  const sortedStops = selectedRoute ? [...selectedRoute.stops].sort((a, b) => a.stopOrder - b.stopOrder) : [];
+  const selectedRoute =
+    routes.find((r) => r.id === selectedRouteId) || routes[0];
+  const sortedStops = selectedRoute
+    ? [...selectedRoute.stops].sort((a, b) => a.stopOrder - b.stopOrder)
+    : [];
 
   useEffect(() => {
     if (routes.length > 0 && !selectedRouteId) {
@@ -66,7 +69,8 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
     setIsSimulating(true);
     setStatusMsg("Starting Route Simulation...");
 
-    const vehicleId = selectedRoute.vehicleId || "00000000-0000-0000-0000-000000000000";
+    const vehicleId =
+      selectedRoute.vehicleId || "00000000-0000-0000-0000-000000000000";
 
     for (let i = 0; i < sortedStops.length; i++) {
       const stop = sortedStops[i];
@@ -105,7 +109,9 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Live GPS Tracker & Simulator</h2>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+          Live GPS Tracker & Simulator
+        </h2>
         <div className="flex gap-2">
           <select
             value={selectedRouteId}
@@ -144,41 +150,55 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Status Panel */}
         <div className="bg-white dark:bg-slate-900 shadow border border-gray-200 dark:border-slate-800 rounded-xl p-5 space-y-4">
-          <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider">Simulation Details</h3>
+          <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider">
+            Simulation Details
+          </h3>
 
           <div className="space-y-3">
             <div>
               <p className="text-xs text-gray-500">Trip Status</p>
-              <p className="text-sm font-semibold text-gray-950 dark:text-white">{statusMsg}</p>
+              <p className="text-sm font-semibold text-gray-950 dark:text-white">
+                {statusMsg}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500">Latitude</p>
-                <p className="text-sm font-mono font-semibold text-gray-950 dark:text-white">{currentLat}</p>
+                <p className="text-sm font-mono font-semibold text-gray-950 dark:text-white">
+                  {currentLat}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Longitude</p>
-                <p className="text-sm font-mono font-semibold text-gray-950 dark:text-white">{currentLng}</p>
+                <p className="text-sm font-mono font-semibold text-gray-950 dark:text-white">
+                  {currentLng}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500">Speed</p>
-                <p className="text-sm font-semibold text-primary">{currentSpeed} km/h</p>
+                <p className="text-sm font-semibold text-primary">
+                  {currentSpeed} km/h
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Active Vehicle</p>
                 <p className="text-xs text-gray-400">
-                  {selectedRoute?.vehicleId ? "BUS-01 (Registered)" : "Unassigned"}
+                  {selectedRoute?.vehicleId
+                    ? "BUS-01 (Registered)"
+                    : "Unassigned"}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Route Progress</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase">
+              Route Progress
+            </p>
             <div className="space-y-1">
               {sortedStops.map((stop, i) => (
                 <div
@@ -210,13 +230,19 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
           <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px]" />
 
           {/* SVG Map Layout */}
-          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            className="absolute inset-0 w-full h-full"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             {/* Draw Path between stops */}
             {sortedStops.length > 1 && (
               <path
                 d={sortedStops
                   .map((stop, i) => {
-                    const coords = getCoordinates(stop.gpsLatitude, stop.gpsLongitude);
+                    const coords = getCoordinates(
+                      stop.gpsLatitude,
+                      stop.gpsLongitude,
+                    );
                     return `${i === 0 ? "M" : "L"} ${coords.x} ${coords.y}`;
                   })
                   .join(" ")}
@@ -229,15 +255,31 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
             )}
 
             {/* School location representation */}
-            <circle cx="200" cy="150" r="10" fill="#ef4444" className="animate-ping opacity-30" />
+            <circle
+              cx="200"
+              cy="150"
+              r="10"
+              fill="#ef4444"
+              className="animate-ping opacity-30"
+            />
             <circle cx="200" cy="150" r="6" fill="#ef4444" />
-            <text x="200" y="135" fill="#ef4444" fontSize="10" fontWeight="bold" textAnchor="middle">
+            <text
+              x="200"
+              y="135"
+              fill="#ef4444"
+              fontSize="10"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
               SCHOOL
             </text>
 
             {/* Route Stops */}
             {sortedStops.map((stop) => {
-              const coords = getCoordinates(stop.gpsLatitude, stop.gpsLongitude);
+              const coords = getCoordinates(
+                stop.gpsLatitude,
+                stop.gpsLongitude,
+              );
               return (
                 <g key={stop.id}>
                   <circle cx={coords.x} cy={coords.y} r="5" fill="#6366f1" />
@@ -262,8 +304,23 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
                   getCoordinates(currentLat, currentLng).y - 12
                 })`}
               >
-                <circle cx="12" cy="12" r="16" fill="#3b82f6" className="animate-ping opacity-25" />
-                <rect x="2" y="2" width="20" height="20" rx="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="16"
+                  fill="#3b82f6"
+                  className="animate-ping opacity-25"
+                />
+                <rect
+                  x="2"
+                  y="2"
+                  width="20"
+                  height="20"
+                  rx="4"
+                  fill="#3b82f6"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                />
                 <foreignObject x="4" y="4" width="16" height="16">
                   <div className="w-full h-full flex items-center justify-center text-white">
                     <Bus className="w-3.5 h-3.5" />

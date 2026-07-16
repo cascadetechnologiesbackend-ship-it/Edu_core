@@ -66,7 +66,10 @@ export default function LoginForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-950 via-primary-900 to-primary-800 flex items-center justify-center p-4">
       {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        aria-hidden="true"
+      >
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
       </div>
@@ -77,14 +80,23 @@ export default function LoginForm() {
           {/* Brand */}
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-              <GraduationCap className="w-9 h-9 text-white" aria-hidden="true" />
+              <GraduationCap
+                className="w-9 h-9 text-white"
+                aria-hidden="true"
+              />
             </div>
             <h1 className="text-2xl font-bold text-white">SchoolMitra ERP</h1>
-            <p className="text-white/60 text-sm mt-1">Sign in to your account</p>
+            <p className="text-white/60 text-sm mt-1">
+              Sign in to your account
+            </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-5"
+            noValidate
+          >
             {/* Error banner */}
             {serverError && (
               <div
@@ -119,7 +131,11 @@ export default function LoginForm() {
                 aria-invalid={errors.email ? "true" : "false"}
               />
               {errors.email && (
-                <p id="email-error" className="mt-1 text-xs text-danger-light" role="alert">
+                <p
+                  id="email-error"
+                  className="mt-1 text-xs text-danger-light"
+                  role="alert"
+                >
                   {errors.email.message}
                 </p>
               )}
@@ -144,7 +160,9 @@ export default function LoginForm() {
                              focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40
                              transition-all"
                   placeholder="Enter your password"
-                  aria-describedby={errors.password ? "password-error" : undefined}
+                  aria-describedby={
+                    errors.password ? "password-error" : undefined
+                  }
                   aria-invalid={errors.password ? "true" : "false"}
                 />
                 <button
@@ -161,7 +179,11 @@ export default function LoginForm() {
                 </button>
               </div>
               {errors.password && (
-                <p id="password-error" className="mt-1 text-xs text-danger-light" role="alert">
+                <p
+                  id="password-error"
+                  className="mt-1 text-xs text-danger-light"
+                  role="alert"
+                >
                   {errors.password.message}
                 </p>
               )}
@@ -169,7 +191,10 @@ export default function LoginForm() {
 
             {/* Forgot password */}
             <div className="flex justify-end">
-              <a href="/forgot-password" className="text-xs text-white/60 hover:text-white transition-colors">
+              <a
+                href="/forgot-password"
+                className="text-xs text-white/60 hover:text-white transition-colors"
+              >
                 Forgot password?
               </a>
             </div>
@@ -185,7 +210,10 @@ export default function LoginForm() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="w-4 h-4 animate-spin"
+                    aria-hidden="true"
+                  />
                   Signing in…
                 </>
               ) : (

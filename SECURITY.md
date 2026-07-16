@@ -16,6 +16,7 @@ If you discover a security vulnerability within SchoolMitra ERP, please send an 
 ## Security Practices
 
 We take security seriously and have implemented the following practices:
+
 - **DPDP Act 2023 Compliance**: All minor/student data processing is gated by explicit parental consent tracking.
 - **PII Encryption**: Sensitive fields (like parent contact info, names) are stored using AES-256 encryption at rest.
 - **Data Subject Rights**: Automated JSON data exports and explicit right-to-be-forgotten purges.

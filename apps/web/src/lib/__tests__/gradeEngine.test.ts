@@ -65,9 +65,9 @@ describe("calculateGrade — CBSE Scale", () => {
   });
 
   it("throws if maxMarks is 0", () => {
-    expect(() =>
-      calculateGrade(mkInput({ maxMarks: 0 }), CBSE_RULES),
-    ).toThrow("maxMarks must be greater than zero");
+    expect(() => calculateGrade(mkInput({ maxMarks: 0 }), CBSE_RULES)).toThrow(
+      "maxMarks must be greater than zero",
+    );
   });
 });
 
@@ -166,12 +166,18 @@ describe("aggregateSubjectGrades", () => {
   it("calculates overall percent correctly across subjects", () => {
     const subjects = [
       {
-        result: calculateGrade(mkInput({ marksObtained: 80, maxMarks: 100 }), CBSE_RULES),
+        result: calculateGrade(
+          mkInput({ marksObtained: 80, maxMarks: 100 }),
+          CBSE_RULES,
+        ),
         maxMarks: 100,
         marksObtained: 80,
       },
       {
-        result: calculateGrade(mkInput({ marksObtained: 60, maxMarks: 100 }), CBSE_RULES),
+        result: calculateGrade(
+          mkInput({ marksObtained: 60, maxMarks: 100 }),
+          CBSE_RULES,
+        ),
         maxMarks: 100,
         marksObtained: 60,
       },

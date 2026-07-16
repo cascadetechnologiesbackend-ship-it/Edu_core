@@ -15,7 +15,8 @@ import LibraryClientTabs from "./LibraryClientTabs";
 
 export const metadata: Metadata = {
   title: "Library Management",
-  description: "Manage catalog books, copies, library card members, and checkouts.",
+  description:
+    "Manage catalog books, copies, library card members, and checkouts.",
 };
 
 export default async function LibraryPage() {
@@ -65,14 +66,14 @@ export default async function LibraryPage() {
     studentsListRaw.map((s) => [
       s.id,
       `${decryptData(s.firstNameEncrypted) || ""} ${decryptData(s.lastNameEncrypted) || ""}`.trim(),
-    ])
+    ]),
   );
 
   const staffMap = new Map(
     staffListRaw.map((st) => [
       st.id,
       `${decryptData(st.firstNameEncrypted) || ""} ${decryptData(st.lastNameEncrypted) || ""}`.trim(),
-    ])
+    ]),
   );
 
   // 3. Fetch library members
@@ -81,9 +82,10 @@ export default async function LibraryPage() {
   });
 
   const membersList = rawMembers.map((m) => {
-    const name = m.memberType === "STUDENT"
-      ? studentsMap.get(m.memberRefId) || "Unknown Student"
-      : staffMap.get(m.memberRefId) || "Unknown Staff";
+    const name =
+      m.memberType === "STUDENT"
+        ? studentsMap.get(m.memberRefId) || "Unknown Student"
+        : staffMap.get(m.memberRefId) || "Unknown Staff";
 
     return {
       id: m.id,
@@ -110,9 +112,10 @@ export default async function LibraryPage() {
   });
 
   const issuesList = rawIssues.map((i) => {
-    const memberName = i.member.memberType === "STUDENT"
-      ? studentsMap.get(i.member.memberRefId) || "Unknown Student"
-      : staffMap.get(i.member.memberRefId) || "Unknown Staff";
+    const memberName =
+      i.member.memberType === "STUDENT"
+        ? studentsMap.get(i.member.memberRefId) || "Unknown Student"
+        : staffMap.get(i.member.memberRefId) || "Unknown Staff";
 
     return {
       id: i.id,
@@ -128,8 +131,14 @@ export default async function LibraryPage() {
   });
 
   // Simple lists for member registration selection dropdowns
-  const studentsList = Array.from(studentsMap.entries()).map(([id, name]) => ({ id, name }));
-  const staffList = Array.from(staffMap.entries()).map(([id, name]) => ({ id, name }));
+  const studentsList = Array.from(studentsMap.entries()).map(([id, name]) => ({
+    id,
+    name,
+  }));
+  const staffList = Array.from(staffMap.entries()).map(([id, name]) => ({
+    id,
+    name,
+  }));
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

@@ -1,16 +1,22 @@
 import { describe, it, expect } from "vitest";
 
 // Business logic functions to test
-function isEligibleForSoftDelete(student: { createdAt: Date; legalHold: boolean; deletedAt: Date | null }, retentionDays: number): boolean {
+function isEligibleForSoftDelete(
+  student: { createdAt: Date; legalHold: boolean; deletedAt: Date | null },
+  retentionDays: number,
+): boolean {
   if (student.legalHold) return false;
   if (student.deletedAt !== null) return false;
-  
+
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - retentionDays);
   return student.createdAt < cutoff;
 }
 
-function isEligibleForHardPurge(student: { deletedAt: Date | null; legalHold: boolean }, graceDays: number): boolean {
+function isEligibleForHardPurge(
+  student: { deletedAt: Date | null; legalHold: boolean },
+  graceDays: number,
+): boolean {
   if (student.legalHold) return false;
   if (student.deletedAt === null) return false;
 

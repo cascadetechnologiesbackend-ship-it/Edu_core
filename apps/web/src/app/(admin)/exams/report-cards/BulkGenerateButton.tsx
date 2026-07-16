@@ -9,9 +9,16 @@ interface BulkGenerateButtonProps {
   className: string;
 }
 
-export function BulkGenerateButton({ examId, classId, className }: BulkGenerateButtonProps) {
+export function BulkGenerateButton({
+  examId,
+  classId,
+  className,
+}: BulkGenerateButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ batchJobId: string; totalStudents: number } | null>(null);
+  const [result, setResult] = useState<{
+    batchJobId: string;
+    totalStudents: number;
+  } | null>(null);
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -26,10 +33,19 @@ export function BulkGenerateButton({ examId, classId, className }: BulkGenerateB
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ examId, classId }),
       });
-      const data = await res.json() as { success?: boolean; message?: string; batchJobId?: string; totalStudents?: number; error?: string };
+      const data = (await res.json()) as {
+        success?: boolean;
+        message?: string;
+        batchJobId?: string;
+        totalStudents?: number;
+        error?: string;
+      };
 
       if (data.success) {
-        setResult({ batchJobId: data.batchJobId!, totalStudents: data.totalStudents! });
+        setResult({
+          batchJobId: data.batchJobId!,
+          totalStudents: data.totalStudents!,
+        });
         router.refresh();
       } else {
         setError(data.error ?? data.message ?? "Failed to queue jobs");

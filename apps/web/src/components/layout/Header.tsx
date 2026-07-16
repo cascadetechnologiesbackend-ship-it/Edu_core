@@ -1,6 +1,14 @@
 "use client";
 
-import { Bell, Search, ChevronRight, LogOut, User, Sun, Moon } from "lucide-react";
+import {
+  Bell,
+  Search,
+  ChevronRight,
+  LogOut,
+  User,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -15,7 +23,10 @@ interface HeaderProps {
   notificationCount?: number;
 }
 
-export function Header({ breadcrumbs = [], notificationCount = 0 }: HeaderProps) {
+export function Header({
+  breadcrumbs = [],
+  notificationCount = 0,
+}: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { data: session } = useSession();
   const [userMenuOpen, setUserMenuOpen] = useState(false);

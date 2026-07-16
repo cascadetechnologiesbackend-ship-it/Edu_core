@@ -9,7 +9,8 @@ export const metadata: Metadata = {
 const SETTINGS_CARDS = [
   {
     title: "School Profile Setup",
-    description: "Manage school name, address, logo, principal credentials, and basic details.",
+    description:
+      "Manage school name, address, logo, principal credentials, and basic details.",
     href: "/settings/school-setup",
     icon: Building2,
     color: "text-blue-500",
@@ -17,7 +18,8 @@ const SETTINGS_CARDS = [
   },
   {
     title: "Exam Types & Weightages",
-    description: "Define exam types (Unit Tests, Half-Yearly, Board Exams) and weightages.",
+    description:
+      "Define exam types (Unit Tests, Half-Yearly, Board Exams) and weightages.",
     href: "/settings/exam-types",
     icon: Award,
     color: "text-purple-500",
@@ -25,7 +27,8 @@ const SETTINGS_CARDS = [
   },
   {
     title: "Grading Configuration",
-    description: "Setup percentages boundaries, letter grades, GPAs, and class group mappings.",
+    description:
+      "Setup percentages boundaries, letter grades, GPAs, and class group mappings.",
     href: "/settings/grading",
     icon: Percent,
     color: "text-amber-500",
@@ -41,7 +44,9 @@ export default function SettingsDashboardPage() {
           <Settings className="w-6 h-6 text-indigo-600" />
           Settings Dashboard
         </h1>
-        <p className="text-sm text-gray-500">Configure core school setups, parameters, and grading rules.</p>
+        <p className="text-sm text-gray-500">
+          Configure core school setups, parameters, and grading rules.
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

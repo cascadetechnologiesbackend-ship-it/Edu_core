@@ -79,16 +79,18 @@ export const privacyNotices = pgTable(
     isActive: boolean("is_active").notNull().default(false),
     // What changed from previous version (for selective re-consent)
     changedPurposeIds: jsonb("changed_purpose_ids").default([]).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     // NO updatedAt, NO deletedAt — immutable once published
   },
   (t) => ({
     schoolVersionUnique: unique("privacy_notices_school_version_unique").on(
       t.schoolId,
-      t.version
+      t.version,
     ),
     schoolIdx: index("privacy_notices_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── consent_purposes ─────────────────────────────────────────────────────────
@@ -99,7 +101,9 @@ export const consentPurposes = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     purposeId: text("purpose_id").notNull(), // matches ConsentPurposeId
-    schoolId: uuid("school_id").references(() => schools.id, { onDelete: "restrict" }), // null = global
+    schoolId: uuid("school_id").references(() => schools.id, {
+      onDelete: "restrict",
+    }), // null = global
     labelEn: text("label_en").notNull(),
     labelHi: text("label_hi").notNull(),
     descriptionEn: text("description_en").notNull(),
@@ -108,16 +112,20 @@ export const consentPurposes = pgTable(
     legalBasis: text("legal_basis").notNull(),
     retentionDays: integer("retention_days").notNull(),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     purposeIdIdx: index("consent_purposes_purpose_id_idx").on(t.purposeId),
     schoolPurposeUnique: unique("consent_purposes_school_purpose_unique").on(
       t.schoolId,
-      t.purposeId
+      t.purposeId,
     ),
-  })
+  }),
 );
 
 // ─── consent_records ──────────────────────────────────────────────────────────
@@ -139,22 +147,28 @@ export const consentRecords = pgTable(
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
     otpVerified: boolean("otp_verified").notNull().default(false),
-    grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
+    grantedAt: timestamp("granted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     withdrawalReason: text("withdrawal_reason"),
     // Processing halt confirmation
-    processingHaltedAt: timestamp("processing_halted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    processingHaltedAt: timestamp("processing_halted_at", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     // NO updatedAt — each consent event creates a new record
   },
   (t) => ({
     studentPurposeIdx: index("consent_records_student_purpose_idx").on(
       t.studentId,
-      t.purposeId
+      t.purposeId,
     ),
     schoolIdx: index("consent_records_school_idx").on(t.schoolId),
     parentIdx: index("consent_records_parent_idx").on(t.parentUserId),
-  })
+  }),
 );
 
 // ─── rights_requests ─────────────────────────────────────────────────────────
@@ -184,10 +198,18 @@ export const rightsRequests = pgTable(
     escalatedToDpoAt: timestamp("escalated_to_dpo_at", { withTimezone: true }),
     // Data export (for ACCESS requests)
     dataExportS3Key: text("data_export_s3_key"),
-    dataExportReadyAt: timestamp("data_export_ready_at", { withTimezone: true }),
-    dataExportExpiresAt: timestamp("data_export_expires_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    dataExportReadyAt: timestamp("data_export_ready_at", {
+      withTimezone: true,
+    }),
+    dataExportExpiresAt: timestamp("data_export_expires_at", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     ticketUnique: unique("rights_requests_ticket_unique").on(t.ticketNumber),
@@ -195,7 +217,7 @@ export const rightsRequests = pgTable(
     studentIdx: index("rights_requests_student_idx").on(t.studentId),
     statusIdx: index("rights_requests_status_idx").on(t.status),
     dueIdx: index("rights_requests_due_idx").on(t.dueAt),
-  })
+  }),
 );
 
 // ─── dpdp_grievances ──────────────────────────────────────────────────────────
@@ -216,14 +238,18 @@ export const dpdpGrievances = pgTable(
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     dueAt: timestamp("due_at", { withTimezone: true }).notNull(), // + 30 days
     escalatedToDpoAt: timestamp("escalated_to_dpo_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     ticketUnique: unique("dpdp_grievances_ticket_unique").on(t.ticketNumber),
     schoolIdx: index("dpdp_grievances_school_idx").on(t.schoolId),
     dueIdx: index("dpdp_grievances_due_idx").on(t.dueAt),
-  })
+  }),
 );
 
 // ─── data_breach_log ─────────────────────────────────────────────────────────
@@ -242,23 +268,35 @@ export const dataBreachLog = pgTable(
     severity: breachSeverityEnum("severity").notNull(),
     status: breachStatusEnum("status").notNull().default("DETECTED"),
     description: text("description").notNull(),
-    affectedRecordsCount: integer("affected_records_count").notNull().default(0),
-    affectedDataCategories: jsonb("affected_data_categories").notNull().default([]),
+    affectedRecordsCount: integer("affected_records_count")
+      .notNull()
+      .default(0),
+    affectedDataCategories: jsonb("affected_data_categories")
+      .notNull()
+      .default([]),
     containmentActions: text("containment_actions"),
     // 72-hour notification deadlines
-    boardNotificationDeadline: timestamp("board_notification_deadline", { withTimezone: true }).notNull(),
+    boardNotificationDeadline: timestamp("board_notification_deadline", {
+      withTimezone: true,
+    }).notNull(),
     boardNotifiedAt: timestamp("board_notified_at", { withTimezone: true }),
     parentsNotifiedAt: timestamp("parents_notified_at", { withTimezone: true }),
-    affectedParentUserIds: jsonb("affected_parent_user_ids").default([]).notNull(),
+    affectedParentUserIds: jsonb("affected_parent_user_ids")
+      .default([])
+      .notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     refUnique: unique("data_breach_log_ref_unique").on(t.incidentReference),
     schoolIdx: index("data_breach_log_school_idx").on(t.schoolId),
     detectedIdx: index("data_breach_log_detected_idx").on(t.detectedAt),
-  })
+  }),
 );
 
 // ─── vendor_register ─────────────────────────────────────────────────────────
@@ -283,13 +321,17 @@ export const vendorRegister = pgTable(
     contactEmail: text("contact_email"),
     privacyPolicyUrl: text("privacy_policy_url"),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     schoolIdx: index("vendor_register_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── data_retention_policies ─────────────────────────────────────────────────
@@ -309,29 +351,45 @@ export const dataRetentionPolicies = pgTable(
     nextRunAt: timestamp("next_run_at", { withTimezone: true }),
     recordsDeletedLastRun: integer("records_deleted_last_run").default(0),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     schoolIdx: index("data_retention_policies_school_idx").on(t.schoolId),
     tableIdx: index("data_retention_policies_table_idx").on(t.tableName),
-  })
+  }),
 );
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const privacyNoticesRelations = relations(privacyNotices, ({ one }) => ({
-  school: one(schools, { fields: [privacyNotices.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [privacyNotices.schoolId],
+    references: [schools.id],
+  }),
 }));
 
 export const consentRecordsRelations = relations(consentRecords, ({ one }) => ({
-  school: one(schools, { fields: [consentRecords.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [consentRecords.schoolId],
+    references: [schools.id],
+  }),
 }));
 
 export const rightsRequestsRelations = relations(rightsRequests, ({ one }) => ({
-  school: one(schools, { fields: [rightsRequests.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [rightsRequests.schoolId],
+    references: [schools.id],
+  }),
 }));
 
 export const vendorRegisterRelations = relations(vendorRegister, ({ one }) => ({
-  school: one(schools, { fields: [vendorRegister.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [vendorRegister.schoolId],
+    references: [schools.id],
+  }),
 }));

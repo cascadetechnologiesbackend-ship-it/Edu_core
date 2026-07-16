@@ -7,7 +7,7 @@ async function verify() {
       with: {
         academicYears: true,
         users: true,
-      }
+      },
     });
     console.log("Query successful!");
   } catch (e: any) {

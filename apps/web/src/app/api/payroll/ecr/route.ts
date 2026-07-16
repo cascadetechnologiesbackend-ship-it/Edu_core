@@ -21,9 +21,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization checks
-    const allowedRoles = ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "HR_MANAGER"];
+    const allowedRoles = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "ACCOUNTANT",
+      "HR_MANAGER",
+    ];
     if (!allowedRoles.includes(session.user.role)) {
-      return new NextResponse("Access denied: Insufficient permissions", { status: 403 });
+      return new NextResponse("Access denied: Insufficient permissions", {
+        status: 403,
+      });
     }
 
     // Fetch payroll run
@@ -43,7 +50,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (run.status !== "APPROVED") {
-      return new NextResponse("Payroll run must be locked and approved to export ECR", { status: 400 });
+      return new NextResponse(
+        "Payroll run must be locked and approved to export ECR",
+        { status: 400 },
+      );
     }
 
     // Map to ECR record inputs
@@ -86,6 +96,8 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("ECR Generation Error:", error);
-    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+    return new NextResponse(error.message || "Internal Server Error", {
+      status: 500,
+    });
   }
 }

@@ -30,7 +30,9 @@ export default async function RightsPage() {
     return (
       <div className="p-6">
         <h2 className="text-xl font-bold text-red-650">Access Restricted</h2>
-        <p className="text-slate-500 mt-2">No students linked to your account.</p>
+        <p className="text-slate-500 mt-2">
+          No students linked to your account.
+        </p>
       </div>
     );
   }
@@ -54,7 +56,8 @@ export default async function RightsPage() {
           Data Subject Rights Portal
         </h1>
         <p className="text-sm text-slate-500">
-          DPDP Act 2023 Sections 11–14 — Exercise your rights to access, correction, erasure, or grievances.
+          DPDP Act 2023 Sections 11–14 — Exercise your rights to access,
+          correction, erasure, or grievances.
         </p>
       </div>
 

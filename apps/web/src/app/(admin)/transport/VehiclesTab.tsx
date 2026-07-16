@@ -70,7 +70,9 @@ export default function VehiclesTab({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Vehicles & Drivers Directory</h2>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+          Vehicles & Drivers Directory
+        </h2>
         {isAdmin && (
           <button
             onClick={() => setShowForm(true)}
@@ -102,8 +104,13 @@ export default function VehiclesTab({
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                 {vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{v.busNumber}</td>
+                  <tr
+                    key={v.id}
+                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                  >
+                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                      {v.busNumber}
+                    </td>
                     <td className="px-6 py-4">
                       <div>{v.registrationNumber}</div>
                       <div className="text-xs text-gray-400">
@@ -112,15 +119,25 @@ export default function VehiclesTab({
                     </td>
                     <td className="px-6 py-4">{v.capacity} Seats</td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 dark:text-white">{v.driverName}</div>
-                      <div className="text-xs text-gray-400">Licence: {v.driverLicence}</div>
-                      <div className="text-xs text-gray-400">Mobile: {v.driverMobile}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {v.driverName}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Licence: {v.driverLicence}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Mobile: {v.driverMobile}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {v.conductorName ? (
                         <>
-                          <div className="text-gray-900 dark:text-white">{v.conductorName}</div>
-                          <div className="text-xs text-gray-400">{v.conductorMobile}</div>
+                          <div className="text-gray-900 dark:text-white">
+                            {v.conductorName}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {v.conductorMobile}
+                          </div>
                         </>
                       ) : (
                         <span className="text-gray-400 italic">None</span>
@@ -145,28 +162,41 @@ export default function VehiclesTab({
             onSubmit={handleSubmit}
             className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-lg w-full border border-gray-200 dark:border-slate-800 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Register New Vehicle</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Register New Vehicle
+            </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Bus Number *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Bus Number *
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. BUS-03"
                   value={formData.busNumber}
-                  onChange={(e) => setFormData({ ...formData, busNumber: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, busNumber: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Registration Number *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Registration Number *
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. MH-12-AB-1234"
                   value={formData.registrationNumber}
-                  onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      registrationNumber: e.target.value,
+                    })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
@@ -174,91 +204,139 @@ export default function VehiclesTab({
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Capacity *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Capacity *
+                </label>
                 <input
                   type="number"
                   required
                   value={formData.capacity}
-                  onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      capacity: parseInt(e.target.value),
+                    })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Make</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Make
+                </label>
                 <input
                   type="text"
                   placeholder="Tata / Ashok Leyland"
                   value={formData.make}
-                  onChange={(e) => setFormData({ ...formData, make: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, make: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Model</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Model
+                </label>
                 <input
                   type="text"
                   placeholder="Starbus"
                   value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, model: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             </div>
 
             <div className="border-t border-gray-100 dark:border-slate-800 pt-4 space-y-4">
-              <h4 className="font-semibold text-sm text-primary">Driver Details (Mandatory PII Encryption)</h4>
+              <h4 className="font-semibold text-sm text-primary">
+                Driver Details (Mandatory PII Encryption)
+              </h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Driver Name *</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Driver Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={formData.driverName}
-                    onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, driverName: e.target.value })
+                    }
                     className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Licence Number *</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Licence Number *
+                  </label>
                   <input
                     type="text"
                     required
                     value={formData.driverLicence}
-                    onChange={(e) => setFormData({ ...formData, driverLicence: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        driverLicence: e.target.value,
+                      })
+                    }
                     className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Driver Mobile *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Driver Mobile *
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.driverMobile}
-                  onChange={(e) => setFormData({ ...formData, driverMobile: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, driverMobile: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             </div>
 
             <div className="border-t border-gray-100 dark:border-slate-800 pt-4 space-y-4">
-              <h4 className="font-semibold text-sm text-primary">Conductor Details (Optional)</h4>
+              <h4 className="font-semibold text-sm text-primary">
+                Conductor Details (Optional)
+              </h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Conductor Name</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Conductor Name
+                  </label>
                   <input
                     type="text"
                     value={formData.conductorName}
-                    onChange={(e) => setFormData({ ...formData, conductorName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        conductorName: e.target.value,
+                      })
+                    }
                     className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Conductor Mobile</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Conductor Mobile
+                  </label>
                   <input
                     type="text"
                     value={formData.conductorMobile}
-                    onChange={(e) => setFormData({ ...formData, conductorMobile: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        conductorMobile: e.target.value,
+                      })
+                    }
                     className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -278,7 +356,9 @@ export default function VehiclesTab({
                 disabled={isPending}
                 className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
               >
-                {isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                {isPending && (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                )}
                 Save Vehicle
               </button>
             </div>

@@ -5,7 +5,11 @@ import { notFound } from "next/navigation";
 
 import { PromoteStudentModal } from "./PromoteStudentModal";
 
-export default async function StudentClassHistoryPage({ params }: { params: { id: string } }) {
+export default async function StudentClassHistoryPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const studentId = params.id;
 
   const student = await db.query.students.findFirst({
@@ -25,7 +29,10 @@ export default async function StudentClassHistoryPage({ params }: { params: { id
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
           Class & Section History
         </h1>
-        <PromoteStudentModal studentId={student.id} schoolId={student.schoolId} />
+        <PromoteStudentModal
+          studentId={student.id}
+          schoolId={student.schoolId}
+        />
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow border border-gray-200 dark:border-slate-800 overflow-hidden">
@@ -48,12 +55,21 @@ export default async function StudentClassHistoryPage({ params }: { params: { id
               </tr>
             ) : (
               history.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4 font-medium">{record.academicYearId.slice(0, 8)}...</td>
+                <tr
+                  key={record.id}
+                  className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <td className="px-6 py-4 font-medium">
+                    {record.academicYearId.slice(0, 8)}...
+                  </td>
                   <td className="px-6 py-4">{record.classId.slice(0, 8)}...</td>
-                  <td className="px-6 py-4">{record.sectionId.slice(0, 8)}...</td>
-                  <td className="px-6 py-4">{record.rollNumber || '-'}</td>
-                  <td className="px-6 py-4">{record.createdAt.toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    {record.sectionId.slice(0, 8)}...
+                  </td>
+                  <td className="px-6 py-4">{record.rollNumber || "-"}</td>
+                  <td className="px-6 py-4">
+                    {record.createdAt.toLocaleDateString()}
+                  </td>
                 </tr>
               ))
             )}

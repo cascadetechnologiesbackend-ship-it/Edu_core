@@ -17,7 +17,8 @@ interface ExamTypesListProps {
 }
 
 export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
-  const [examTypesList, setExamTypesList] = useState<ExamTypeItem[]>(initialExamTypes);
+  const [examTypesList, setExamTypesList] =
+    useState<ExamTypeItem[]>(initialExamTypes);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
 
@@ -60,7 +61,9 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6 h-fit space-y-6">
         <div>
           <h2 className="font-semibold text-lg">Add Exam Type</h2>
-          <p className="text-sm text-gray-500">Define a new category of exams for weightage and grading.</p>
+          <p className="text-sm text-gray-500">
+            Define a new category of exams for weightage and grading.
+          </p>
         </div>
 
         <form onSubmit={handleCreate} className="space-y-4">
@@ -85,7 +88,9 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Standard Type *</label>
+            <label className="block text-sm font-medium mb-1">
+              Standard Type *
+            </label>
             <select
               name="examType"
               required
@@ -99,7 +104,9 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Weightage % *</label>
+            <label className="block text-sm font-medium mb-1">
+              Weightage % *
+            </label>
             <input
               type="number"
               name="weightagePercent"
@@ -137,7 +144,9 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
       {/* List */}
       <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Configured Exam Types</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            Configured Exam Types
+          </h2>
         </div>
 
         {examTypesList.length === 0 ? (
@@ -147,10 +156,15 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-slate-800">
             {examTypesList.map((item) => (
-              <div key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-800/40">
+              <div
+                key={item.id}
+                className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-800/40"
+              >
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-gray-900 dark:text-white">{item.name}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {item.name}
+                    </span>
                     <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400">
                       {item.code}
                     </span>

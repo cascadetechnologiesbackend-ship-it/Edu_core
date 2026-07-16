@@ -5,7 +5,8 @@ import { getSignedDownloadUrl } from "@/lib/s3";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
 
 function decryptData(encryptedText: string | null) {
   if (!encryptedText) return null;
@@ -15,10 +16,14 @@ function decryptData(encryptedText: string | null) {
     const ivHex = parts[0];
     const encryptedHex = parts[1];
     if (!ivHex || !encryptedHex) return encryptedText;
-    
+
     const iv = Buffer.from(ivHex, "hex");
     const encrypted = Buffer.from(encryptedHex, "hex");
-    const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), iv);
+    const decipher = crypto.createDecipheriv(
+      "aes-256-cbc",
+      Buffer.from(ENCRYPTION_KEY, "hex"),
+      iv,
+    );
     let decrypted = decipher.update(encrypted);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
@@ -30,7 +35,6 @@ function decryptData(encryptedText: string | null) {
 import { logAuditEvent } from "@/lib/auditLogger";
 
 export const studentsRouter = createTRPCRouter({
-
   getStudentProfile: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -56,7 +60,10 @@ export const studentsRouter = createTRPCRouter({
 
       let photoUrl = null;
       if (student.photoS3Key) {
-        photoUrl = await getSignedDownloadUrl(student.photoS3Key, process.env.S3_BUCKET || "schoolmitra-docs");
+        photoUrl = await getSignedDownloadUrl(
+          student.photoS3Key,
+          process.env.S3_BUCKET || "schoolmitra-docs",
+        );
       }
 
       return {
@@ -64,16 +71,17 @@ export const studentsRouter = createTRPCRouter({
         firstName: decryptData(student.firstNameEncrypted),
         middleName: decryptData(student.middleNameEncrypted),
         lastName: decryptData(student.lastNameEncrypted),
-        aadhaarLast4: student.aadhaarLast4 ? `XXXX-XXXX-${student.aadhaarLast4}` : null,
+        aadhaarLast4: student.aadhaarLast4
+          ? `XXXX-XXXX-${student.aadhaarLast4}`
+          : null,
         photoUrl,
-        family: familyMembers.map(fm => ({
+        family: familyMembers.map((fm) => ({
           ...fm,
           name: decryptData(fm.nameEncrypted),
           mobile: decryptData(fm.mobileEncrypted),
           email: decryptData(fm.emailEncrypted),
           occupation: decryptData(fm.occupationEncrypted),
-        }))
+        })),
       };
     }),
-
 });

@@ -41,7 +41,7 @@ export function requireConsent(purposeId: ConsentPurposeId) {
         eq(consentRecords.studentId, studentId),
         eq(consentRecords.purposeId, purposeId),
         eq(consentRecords.granted, true),
-        isNull(consentRecords.withdrawnAt)
+        isNull(consentRecords.withdrawnAt),
       ),
     });
 
@@ -63,14 +63,14 @@ export function requireConsent(purposeId: ConsentPurposeId) {
  */
 export async function assertConsent(
   studentId: string,
-  purposeId: ConsentPurposeId
+  purposeId: ConsentPurposeId,
 ): Promise<void> {
   const consentRecord = await db.query.consentRecords.findFirst({
     where: and(
       eq(consentRecords.studentId, studentId),
       eq(consentRecords.purposeId, purposeId),
       eq(consentRecords.granted, true),
-      isNull(consentRecords.withdrawnAt)
+      isNull(consentRecords.withdrawnAt),
     ),
   });
 
@@ -83,17 +83,19 @@ export async function assertConsent(
  * Check multiple consents at once — returns a map of purpose → granted.
  */
 export async function getConsentStatus(
-  studentId: string
+  studentId: string,
 ): Promise<Record<ConsentPurposeId, boolean>> {
   const records = await db.query.consentRecords.findMany({
     where: and(
       eq(consentRecords.studentId, studentId),
       eq(consentRecords.granted, true),
-      isNull(consentRecords.withdrawnAt)
+      isNull(consentRecords.withdrawnAt),
     ),
   });
 
-  const grantedPurposes = new Set(records.map((r) => r.purposeId as ConsentPurposeId));
+  const grantedPurposes = new Set(
+    records.map((r) => r.purposeId as ConsentPurposeId),
+  );
 
   return {
     admission_data: grantedPurposes.has("admission_data"),

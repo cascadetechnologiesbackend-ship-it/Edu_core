@@ -11,9 +11,10 @@ export async function logAuditEvent(
     purposeId: string;
     metadata?: any;
     schoolId: string;
-  }
+  },
 ) {
-  const userId = ctx.session?.user?.id || "00000000-0000-0000-0000-000000000000";
+  const userId =
+    ctx.session?.user?.id || "00000000-0000-0000-0000-000000000000";
   const userEmail = ctx.session?.user?.email || "public@schoolmitra.com";
   const userRole = ctx.session?.user?.role || "PARENT"; // Public users are typically parents applying
 

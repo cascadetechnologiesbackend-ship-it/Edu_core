@@ -1,8 +1,5 @@
 import { db } from "@/db";
-import {
-  academicYears,
-  leaveBalances,
-} from "@/db/schema";
+import { academicYears, leaveBalances } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Metadata } from "next";
 import { auth } from "@/lib/auth";
@@ -10,7 +7,8 @@ import HRDashboardClient from "./HRDashboardClient";
 
 export const metadata: Metadata = {
   title: "HR & Payroll | SchoolMitra ERP",
-  description: "Manage staff, designations, departments, leave balances, and payroll runs",
+  description:
+    "Manage staff, designations, departments, leave balances, and payroll runs",
 };
 
 export default async function HRPage() {
@@ -38,7 +36,11 @@ export default async function HRPage() {
       if (prevYear) {
         try {
           const { carryForwardLeaveBalances } = require("@/lib/leaveEngine");
-          await carryForwardLeaveBalances(school.id, prevYear.id, activeYear.id);
+          await carryForwardLeaveBalances(
+            school.id,
+            prevYear.id,
+            activeYear.id,
+          );
         } catch (e) {
           console.error("Auto carry-forward leaves failed:", e);
         }

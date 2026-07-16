@@ -23,14 +23,17 @@ export default async function NewExamPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Create New Exam</h1>
         <p className="text-sm text-gray-500">
-          Schedule a new examination for {activeYear?.label ?? "the current academic year"}.
+          Schedule a new examination for{" "}
+          {activeYear?.label ?? "the current academic year"}.
         </p>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-6">
         <form action={createExam as any} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Exam Name *</label>
+            <label className="block text-sm font-medium mb-1">
+              Exam Name *
+            </label>
             <input
               name="name"
               required
@@ -40,7 +43,9 @@ export default async function NewExamPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Exam Type *</label>
+            <label className="block text-sm font-medium mb-1">
+              Exam Type *
+            </label>
             <select
               name="examTypeId"
               required
@@ -62,7 +67,9 @@ export default async function NewExamPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Start Date *</label>
+              <label className="block text-sm font-medium mb-1">
+                Start Date *
+              </label>
               <input
                 type="date"
                 name="startDate"
@@ -71,7 +78,9 @@ export default async function NewExamPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">End Date *</label>
+              <label className="block text-sm font-medium mb-1">
+                End Date *
+              </label>
               <input
                 type="date"
                 name="endDate"

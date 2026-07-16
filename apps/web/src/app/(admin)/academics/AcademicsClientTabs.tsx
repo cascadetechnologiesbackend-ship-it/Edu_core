@@ -45,7 +45,8 @@ type Subject = {
   code: string;
   name: string;
   nameHindi: string | null;
-  subjectType: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+  subjectType:
+    "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
   maxMarks: number;
   passingMarks: number;
 };
@@ -99,7 +100,10 @@ export default function AcademicsClientTabs({
     <div className="space-y-6">
       {/* Tab Selectors */}
       <div className="border-b border-gray-200 dark:border-slate-800">
-        <ul className="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
+        <ul
+          className="flex flex-wrap -mb-px text-sm font-medium text-center"
+          role="tablist"
+        >
           {tabs.map((tab) => (
             <li key={tab.id} className="mr-2" role="presentation">
               <button
@@ -122,7 +126,11 @@ export default function AcademicsClientTabs({
       {/* Tab Panels */}
       <div className="transition-all duration-150">
         {activeTab === "classrooms" && (
-          <ClassroomsTab classrooms={classrooms} teachers={teachers} isAdmin={isAdmin} />
+          <ClassroomsTab
+            classrooms={classrooms}
+            teachers={teachers}
+            isAdmin={isAdmin}
+          />
         )}
         {activeTab === "subjects" && (
           <SubjectsTab subjects={subjects} isAdmin={isAdmin} />

@@ -1,13 +1,19 @@
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from "zod";
-import { studentAttendance, sections, studentClassHistory, students, auditLogs, academicYears } from "@/db/schema";
+import {
+  studentAttendance,
+  sections,
+  studentClassHistory,
+  students,
+  auditLogs,
+  academicYears,
+} from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import { TRPCError } from "@trpc/server";
 import { logAuditEvent } from "@/lib/auditLogger";
 
 export const attendanceRouter = createTRPCRouter({
-
   // 1. Fetch available sections for the logged-in user (Teacher sees only their class; admin sees all)
   getAssignedSections: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
@@ -18,7 +24,7 @@ export const attendanceRouter = createTRPCRouter({
         where: eq(sections.isActive, true),
         with: {
           class: true,
-        }
+        },
       });
     }
 
@@ -26,20 +32,22 @@ export const attendanceRouter = createTRPCRouter({
     return await ctx.db.query.sections.findMany({
       where: and(
         eq(sections.isActive, true),
-        eq(sections.classTeacherId, userId)
+        eq(sections.classTeacherId, userId),
       ),
       with: {
         class: true,
-      }
+      },
     });
   }),
 
   // 2. Fetch students in a section and their attendance status on a specific date
   getSectionStudents: protectedProcedure
-    .input(z.object({
-      sectionId: z.string().uuid(),
-      date: z.string(), // ISO string date
-    }))
+    .input(
+      z.object({
+        sectionId: z.string().uuid(),
+        date: z.string(), // ISO string date
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const parsedDate = new Date(input.date);
       // Start/end of day logic to query records on that specific date
@@ -62,11 +70,11 @@ export const attendanceRouter = createTRPCRouter({
       const history = await ctx.db.query.studentClassHistory.findMany({
         where: and(
           eq(studentClassHistory.sectionId, input.sectionId),
-          eq(studentClassHistory.academicYearId, activeYear.id)
+          eq(studentClassHistory.academicYearId, activeYear.id),
         ),
         with: {
           student: true,
-        }
+        },
       });
 
       // Fetch existing attendance records for these students on the selected date
@@ -76,48 +84,66 @@ export const attendanceRouter = createTRPCRouter({
           eq(studentAttendance.academicYearId, activeYear.id),
           and(
             sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-            sql`${studentAttendance.attendanceDate} <= ${endOfDay}`
-          )
+            sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+          ),
         ),
       });
 
       const attendanceMap = new Map(
-        attendanceRecords.map(r => [r.studentId, { status: r.status, remarks: r.remarks, id: r.id }])
+        attendanceRecords.map((r) => [
+          r.studentId,
+          { status: r.status, remarks: r.remarks, id: r.id },
+        ]),
       );
 
       // Map history back to a decrypted student list with existing attendance status
-      return history.map((h) => {
-        const student = h.student;
-        const record = attendanceMap.get(student.id);
+      return history
+        .map((h) => {
+          const student = h.student;
+          const record = attendanceMap.get(student.id);
 
-        return {
-          studentId: student.id,
-          rollNumber: h.rollNumber,
-          firstName: decryptData(student.firstNameEncrypted) || "Unknown",
-          lastName: decryptData(student.lastNameEncrypted) || "",
-          admissionNumber: student.admissionNumber,
-          attendanceStatus: record?.status || null,
-          remarks: record?.remarks || "",
-          attendanceRecordId: record?.id || null,
-        };
-      }).sort((a, b) => {
-        const rollA = parseInt(a.rollNumber || "0", 10);
-        const rollB = parseInt(b.rollNumber || "0", 10);
-        return rollA - rollB;
-      });
+          return {
+            studentId: student.id,
+            rollNumber: h.rollNumber,
+            firstName: decryptData(student.firstNameEncrypted) || "Unknown",
+            lastName: decryptData(student.lastNameEncrypted) || "",
+            admissionNumber: student.admissionNumber,
+            attendanceStatus: record?.status || null,
+            remarks: record?.remarks || "",
+            attendanceRecordId: record?.id || null,
+          };
+        })
+        .sort((a, b) => {
+          const rollA = parseInt(a.rollNumber || "0", 10);
+          const rollB = parseInt(b.rollNumber || "0", 10);
+          return rollA - rollB;
+        });
     }),
 
   // 3. Mark or Update attendance for students
   markSectionAttendance: protectedProcedure
-    .input(z.object({
-      sectionId: z.string().uuid(),
-      date: z.string(), // ISO string date
-      records: z.array(z.object({
-        studentId: z.string().uuid(),
-        status: z.enum(["PRESENT", "ABSENT", "LATE", "HALF_DAY", "LEAVE", "HOLIDAY"]),
-        remarks: z.string().optional(),
-      })),
-    }).strict())
+    .input(
+      z
+        .object({
+          sectionId: z.string().uuid(),
+          date: z.string(), // ISO string date
+          records: z.array(
+            z.object({
+              studentId: z.string().uuid(),
+              status: z.enum([
+                "PRESENT",
+                "ABSENT",
+                "LATE",
+                "HALF_DAY",
+                "LEAVE",
+                "HOLIDAY",
+              ]),
+              remarks: z.string().optional(),
+            }),
+          ),
+        })
+        .strict(),
+    )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
       const userRole = ctx.session.user.role;
@@ -135,14 +161,15 @@ export const attendanceRouter = createTRPCRouter({
         const assignedSection = await ctx.db.query.sections.findFirst({
           where: and(
             eq(sections.id, input.sectionId),
-            eq(sections.classTeacherId, userId)
-          )
+            eq(sections.classTeacherId, userId),
+          ),
         });
 
         if (!assignedSection) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Access Denied: You can only mark attendance for your assigned section.",
+            message:
+              "Access Denied: You can only mark attendance for your assigned section.",
           });
         }
       }
@@ -170,14 +197,16 @@ export const attendanceRouter = createTRPCRouter({
           const [existingRecord] = await tx
             .select()
             .from(studentAttendance)
-            .where(and(
-              eq(studentAttendance.studentId, record.studentId),
-              eq(studentAttendance.academicYearId, activeYear.id),
+            .where(
               and(
-                sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-                sql`${studentAttendance.attendanceDate} <= ${endOfDay}`
-              )
-            ))
+                eq(studentAttendance.studentId, record.studentId),
+                eq(studentAttendance.academicYearId, activeYear.id),
+                and(
+                  sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
+                  sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+                ),
+              ),
+            )
             .limit(1);
 
           let markedRecordId = "";
@@ -217,12 +246,11 @@ export const attendanceRouter = createTRPCRouter({
             recordId: markedRecordId,
             purposeId: "attendance",
             schoolId,
-            metadata: { studentId: record.studentId, status: record.status }
+            metadata: { studentId: record.studentId, status: record.status },
           });
         }
       });
 
       return { success: true };
     }),
-
 });

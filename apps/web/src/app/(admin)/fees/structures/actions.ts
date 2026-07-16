@@ -36,10 +36,12 @@ export async function createFeeStructure(formData: FormData) {
     const term = formData.get("term") as any;
     const amount = formData.get("amount") as string;
     const dueDate = new Date(formData.get("dueDate") as string);
-    
+
     const lateFeeType = formData.get("lateFeeType") as any;
     const lateFeeAmount = formData.get("lateFeeAmount") as string;
-    const lateFeeStartAfterDays = formData.get("lateFeeStartAfterDays") as string;
+    const lateFeeStartAfterDays = formData.get(
+      "lateFeeStartAfterDays",
+    ) as string;
 
     await db.insert(feeStructures).values({
       schoolId,
@@ -51,7 +53,9 @@ export async function createFeeStructure(formData: FormData) {
       dueDate,
       lateFeeType: lateFeeType || null,
       lateFeeAmount: lateFeeAmount || null,
-      lateFeeStartAfterDays: lateFeeStartAfterDays ? parseInt(lateFeeStartAfterDays) : null,
+      lateFeeStartAfterDays: lateFeeStartAfterDays
+        ? parseInt(lateFeeStartAfterDays)
+        : null,
     });
 
     revalidatePath("/fees/structures");

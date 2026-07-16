@@ -1,7 +1,13 @@
 "use server";
 
 import { db } from "@/db";
-import { feeStructures, feeInvoices, students, feeConcessions, academicYears } from "@/db/schema";
+import {
+  feeStructures,
+  feeInvoices,
+  students,
+  feeConcessions,
+  academicYears,
+} from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
@@ -12,27 +18,29 @@ export async function generateInvoicesForStudent(studentId: string) {
       where: eq(academicYears.isActive, true),
     });
 
-    if (!activeYear) return { success: false, message: "No active academic year found" };
+    if (!activeYear)
+      return { success: false, message: "No active academic year found" };
 
     const student = await db.query.students.findFirst({
       where: eq(students.id, studentId),
     });
 
     if (!student) return { success: false, message: "Student not found" };
-    if (!student.currentClassId) return { success: false, message: "Student is not assigned to a class" };
+    if (!student.currentClassId)
+      return { success: false, message: "Student is not assigned to a class" };
 
     const allStructures = await db.query.feeStructures.findMany({
       where: and(
         eq(feeStructures.academicYearId, activeYear.id),
-        eq(feeStructures.classId, student.currentClassId)
+        eq(feeStructures.classId, student.currentClassId),
       ),
-      with: { feeHead: true }
+      with: { feeHead: true },
     });
 
     const studentConcessions = await db.query.feeConcessions.findMany({
       where: and(
         eq(feeConcessions.academicYearId, activeYear.id),
-        eq(feeConcessions.studentId, student.id)
+        eq(feeConcessions.studentId, student.id),
       ),
     });
 
@@ -43,8 +51,8 @@ export async function generateInvoicesForStudent(studentId: string) {
       const existingInvoice = await db.query.feeInvoices.findFirst({
         where: and(
           eq(feeInvoices.studentId, student.id),
-          eq(feeInvoices.feeStructureId, structure.id)
-        )
+          eq(feeInvoices.feeStructureId, structure.id),
+        ),
       });
 
       if (existingInvoice) continue;
@@ -52,12 +60,16 @@ export async function generateInvoicesForStudent(studentId: string) {
       // Calculate amounts
       const grossAmount = parseFloat(structure.amount);
       let discountAmount = 0;
-      
+
       // Find applicable concessions
-      const applicableConcession = studentConcessions.find(c => c.appliesTo === "ALL" || c.appliesTo === structure.feeHeadId);
+      const applicableConcession = studentConcessions.find(
+        (c) => c.appliesTo === "ALL" || c.appliesTo === structure.feeHeadId,
+      );
       if (applicableConcession) {
         if (applicableConcession.discountPercentage) {
-          discountAmount = grossAmount * (parseFloat(applicableConcession.discountPercentage) / 100);
+          discountAmount =
+            grossAmount *
+            (parseFloat(applicableConcession.discountPercentage) / 100);
         } else if (applicableConcession.discountAmount) {
           discountAmount = parseFloat(applicableConcession.discountAmount);
         }
@@ -68,12 +80,17 @@ export async function generateInvoicesForStudent(studentId: string) {
 
       const taxableAmount = grossAmount - discountAmount;
       let taxAmount = 0;
-      if ((structure.feeHead as any)?.isTaxable && (structure.feeHead as any)?.gstPercentage) {
-        taxAmount = taxableAmount * (parseFloat((structure.feeHead as any).gstPercentage) / 100);
+      if (
+        (structure.feeHead as any)?.isTaxable &&
+        (structure.feeHead as any)?.gstPercentage
+      ) {
+        taxAmount =
+          taxableAmount *
+          (parseFloat((structure.feeHead as any).gstPercentage) / 100);
       }
 
       const netAmount = taxableAmount + taxAmount;
-      
+
       const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
       await db.insert(feeInvoices).values({
@@ -97,12 +114,17 @@ export async function generateInvoicesForStudent(studentId: string) {
     }
 
     revalidatePath(`/students/${studentId}/fees`);
-    
-    if (generatedCount === 0) {
-      return { success: true, message: "No missing invoices to generate. Ledger is up to date." };
-    }
-    return { success: true, message: `Successfully generated ${generatedCount} missing invoice(s).` };
 
+    if (generatedCount === 0) {
+      return {
+        success: true,
+        message: "No missing invoices to generate. Ledger is up to date.",
+      };
+    }
+    return {
+      success: true,
+      message: `Successfully generated ${generatedCount} missing invoice(s).`,
+    };
   } catch (error: any) {
     console.error("Action Error (generateInvoicesForStudent):", error);
     return { success: false, message: error.message || "An error occurred" };

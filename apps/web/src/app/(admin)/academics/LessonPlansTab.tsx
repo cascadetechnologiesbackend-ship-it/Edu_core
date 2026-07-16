@@ -99,19 +99,28 @@ export default function LessonPlansTab({
   };
 
   const completionPercentage = plans.length
-    ? Math.round((plans.filter((p) => p.status === "COMPLETED").length / plans.length) * 100)
+    ? Math.round(
+        (plans.filter((p) => p.status === "COMPLETED").length / plans.length) *
+          100,
+      )
     : 0;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Syllabus & Lesson Plans</h2>
-          <p className="text-xs text-gray-500">Track chapter completion progress and teaching objectives.</p>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+            Syllabus & Lesson Plans
+          </h2>
+          <p className="text-xs text-gray-500">
+            Track chapter completion progress and teaching objectives.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">Select Course Mapping:</label>
+            <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">
+              Select Course Mapping:
+            </label>
             <select
               value={selectedSubjectMapping}
               onChange={(e) => setSelectedSubjectMapping(e.target.value)}
@@ -138,12 +147,17 @@ export default function LessonPlansTab({
       {/* Completion progress bar */}
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 p-6 flex flex-col md:flex-row items-center gap-6">
         <div className="relative flex-shrink-0 w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center border-4 border-primary">
-          <span className="text-xl font-bold text-primary">{completionPercentage}%</span>
+          <span className="text-xl font-bold text-primary">
+            {completionPercentage}%
+          </span>
         </div>
         <div className="flex-1 text-center md:text-left space-y-1">
-          <h3 className="font-bold text-gray-900 dark:text-white">Syllabus Coverage</h3>
+          <h3 className="font-bold text-gray-900 dark:text-white">
+            Syllabus Coverage
+          </h3>
           <p className="text-sm text-gray-500">
-            {plans.filter((p) => p.status === "COMPLETED").length} of {plans.length} chapters completed. Keep up the great pace!
+            {plans.filter((p) => p.status === "COMPLETED").length} of{" "}
+            {plans.length} chapters completed. Keep up the great pace!
           </p>
         </div>
       </div>
@@ -157,7 +171,9 @@ export default function LessonPlansTab({
         ) : plans.length === 0 ? (
           <div className="text-center py-20 text-gray-500 space-y-2">
             <Layers className="w-10 h-10 mx-auto text-gray-300" />
-            <p className="font-medium text-sm">No chapters planned for this course mapping.</p>
+            <p className="font-medium text-sm">
+              No chapters planned for this course mapping.
+            </p>
           </div>
         ) : (
           <table className="w-full text-sm text-left">
@@ -173,18 +189,31 @@ export default function LessonPlansTab({
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
               {plans.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition">
+                <tr
+                  key={p.id}
+                  className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                >
                   <td className="px-6 py-4">
-                    <p className="font-semibold text-gray-900 dark:text-white">{p.chapterName}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {p.chapterName}
+                    </p>
                     <p className="text-xs text-gray-500">{p.title}</p>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{p.objectives || "—"}</td>
-                  <td className="px-6 py-4 text-gray-500">{p.ncertReference || "—"}</td>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                    {p.objectives || "—"}
+                  </td>
                   <td className="px-6 py-4 text-gray-500">
-                    {p.plannedDate ? new Date(p.plannedDate).toLocaleDateString() : "—"}
+                    {p.ncertReference || "—"}
+                  </td>
+                  <td className="px-6 py-4 text-gray-500">
+                    {p.plannedDate
+                      ? new Date(p.plannedDate).toLocaleDateString()
+                      : "—"}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${p.status === "COMPLETED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : p.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" : "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-400"}`}>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${p.status === "COMPLETED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : p.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" : "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-400"}`}
+                    >
                       {p.status}
                     </span>
                   </td>
@@ -208,62 +237,91 @@ export default function LessonPlansTab({
       {/* Plan Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Plan Chapter Lesson</h3>
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
+          >
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Plan Chapter Lesson
+            </h3>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Chapter Name (e.g. Chapter 1: Introduction)</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Chapter Name (e.g. Chapter 1: Introduction)
+              </label>
               <input
                 type="text"
                 required
                 value={planData.chapterName}
-                onChange={(e) => setPlanData({ ...planData, chapterName: e.target.value })}
+                onChange={(e) =>
+                  setPlanData({ ...planData, chapterName: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Lesson Title</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Lesson Title
+              </label>
               <input
                 type="text"
                 required
                 value={planData.title}
-                onChange={(e) => setPlanData({ ...planData, title: e.target.value })}
+                onChange={(e) =>
+                  setPlanData({ ...planData, title: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">NCERT Book Chapter Reference</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                NCERT Book Chapter Reference
+              </label>
               <input
                 type="text"
                 value={planData.ncertReference}
-                onChange={(e) => setPlanData({ ...planData, ncertReference: e.target.value })}
+                onChange={(e) =>
+                  setPlanData({ ...planData, ncertReference: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Objectives</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Objectives
+              </label>
               <textarea
                 value={planData.objectives}
-                onChange={(e) => setPlanData({ ...planData, objectives: e.target.value })}
+                onChange={(e) =>
+                  setPlanData({ ...planData, objectives: e.target.value })
+                }
                 rows={2}
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Planned Date</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Planned Date
+                </label>
                 <input
                   type="date"
                   required
                   value={planData.plannedDate}
-                  onChange={(e) => setPlanData({ ...planData, plannedDate: e.target.value })}
+                  onChange={(e) =>
+                    setPlanData({ ...planData, plannedDate: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Status</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Status
+                </label>
                 <select
                   value={planData.status}
-                  onChange={(e) => setPlanData({ ...planData, status: e.target.value as any })}
+                  onChange={(e) =>
+                    setPlanData({ ...planData, status: e.target.value as any })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="PLANNED">PLANNED</option>
@@ -285,7 +343,8 @@ export default function LessonPlansTab({
                 disabled={isPending}
                 className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
               >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />} Save Plan
+                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+                Save Plan
               </button>
             </div>
           </form>

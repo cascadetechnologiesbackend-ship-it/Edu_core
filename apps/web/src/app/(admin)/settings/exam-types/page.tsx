@@ -16,7 +16,10 @@ export default async function ExamTypesSettingsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div>
         <div className="flex items-center gap-3">
-          <Link href="/settings" className="text-sm text-indigo-600 hover:underline">
+          <Link
+            href="/settings"
+            className="text-sm text-indigo-600 hover:underline"
+          >
             ← Settings
           </Link>
         </div>
@@ -24,7 +27,8 @@ export default async function ExamTypesSettingsPage() {
           Exam Types Settings
         </h1>
         <p className="text-sm text-gray-500">
-          Configure exam weightages and codes. These categories appear when creating new exams.
+          Configure exam weightages and codes. These categories appear when
+          creating new exams.
         </p>
       </div>
 

@@ -6,12 +6,12 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 export async function recordFailedAttempt(email: string): Promise<number> {
   const key = `lockout:${email.toLowerCase()}`;
   const current = await redis.incr(key);
-  
+
   if (current === 1) {
     // Set expiration on first failed attempt
     await redis.pexpire(key, LOCKOUT_DURATION_MS);
   }
-  
+
   return current;
 }
 

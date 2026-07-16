@@ -34,7 +34,9 @@ export function GradeRulesManager({
   classGroups,
   existingRules,
 }: GradeRulesManagerProps) {
-  const [activeGroup, setActiveGroup] = useState<ClassGroupValue>(classGroups[0]?.value || "CLASS_1_5");
+  const [activeGroup, setActiveGroup] = useState<ClassGroupValue>(
+    classGroups[0]?.value || "CLASS_1_5",
+  );
   const [rules, setRules] = useState<GradeRule[]>(existingRules);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
@@ -48,9 +50,15 @@ export function GradeRulesManager({
     ]);
   };
 
-  const updateRule = (idx: number, field: keyof GradeRule, value: string | number) => {
+  const updateRule = (
+    idx: number,
+    field: keyof GradeRule,
+    value: string | number,
+  ) => {
     const globalIdx = rules.findIndex(
-      (r) => r.classGroup === activeGroup && rules.filter((x) => x.classGroup === activeGroup).indexOf(r) === idx,
+      (r) =>
+        r.classGroup === activeGroup &&
+        rules.filter((x) => x.classGroup === activeGroup).indexOf(r) === idx,
     );
     if (globalIdx === -1) return;
 
@@ -81,7 +89,11 @@ export function GradeRulesManager({
           description: r.description,
         })),
       });
-      setMessage(res.success ? `✓ Saved ${groupRules.length} rules for ${activeGroup}` : `✗ ${res.message}`);
+      setMessage(
+        res.success
+          ? `✓ Saved ${groupRules.length} rules for ${activeGroup}`
+          : `✗ ${res.message}`,
+      );
     });
   };
 
@@ -178,23 +190,35 @@ export function GradeRulesManager({
             {groupRules.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                  No rules yet. Click &quot;Seed CBSE Scale&quot; or &quot;Add Row&quot;.
+                  No rules yet. Click &quot;Seed CBSE Scale&quot; or &quot;Add
+                  Row&quot;.
                 </td>
               </tr>
             )}
             {groupRules.map((rule, idx) => (
-              <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                {(["minPercent", "maxPercent", "gradePoint"] as const).map((field) => (
-                  <td key={field} className="px-4 py-2">
-                    <input
-                      type="number"
-                      value={rule[field]}
-                      onChange={(e) => updateRule(idx, field, parseFloat(e.target.value) || 0)}
-                      className="w-20 rounded border border-gray-300 dark:border-slate-600 px-2 py-1 text-xs"
-                      step={field === "gradePoint" ? 0.5 : 1}
-                    />
-                  </td>
-                ))}
+              <tr
+                key={idx}
+                className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+              >
+                {(["minPercent", "maxPercent", "gradePoint"] as const).map(
+                  (field) => (
+                    <td key={field} className="px-4 py-2">
+                      <input
+                        type="number"
+                        value={rule[field]}
+                        onChange={(e) =>
+                          updateRule(
+                            idx,
+                            field,
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        className="w-20 rounded border border-gray-300 dark:border-slate-600 px-2 py-1 text-xs"
+                        step={field === "gradePoint" ? 0.5 : 1}
+                      />
+                    </td>
+                  ),
+                )}
                 <td className="px-4 py-2">
                   <input
                     type="text"
@@ -208,7 +232,9 @@ export function GradeRulesManager({
                   <input
                     type="text"
                     value={rule.description}
-                    onChange={(e) => updateRule(idx, "description", e.target.value)}
+                    onChange={(e) =>
+                      updateRule(idx, "description", e.target.value)
+                    }
                     placeholder="Outstanding"
                     className="w-32 rounded border border-gray-300 dark:border-slate-600 px-2 py-1 text-xs"
                   />

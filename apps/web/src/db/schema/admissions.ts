@@ -66,8 +66,12 @@ export const admissionApplications = pgTable(
     fatherNameEncrypted: text("father_name_encrypted").notNull(),
     motherNameEncrypted: text("mother_name_encrypted").notNull(),
     guardianNameEncrypted: text("guardian_name_encrypted"),
-    primaryContactMobileEncrypted: text("primary_contact_mobile_encrypted").notNull(),
-    primaryContactEmailEncrypted: text("primary_contact_email_encrypted").notNull(),
+    primaryContactMobileEncrypted: text(
+      "primary_contact_mobile_encrypted",
+    ).notNull(),
+    primaryContactEmailEncrypted: text(
+      "primary_contact_email_encrypted",
+    ).notNull(),
     addressEncrypted: text("address_encrypted").notNull(),
     pincode: text("pincode").notNull(),
     // Workflow
@@ -76,7 +80,9 @@ export const admissionApplications = pgTable(
     assignedToUserId: uuid("assigned_to_user_id"),
     // Priorities
     isRteApplicant: boolean("is_rte_applicant").notNull().default(false),
-    hasSiblingInSchool: boolean("has_sibling_in_school").notNull().default(false),
+    hasSiblingInSchool: boolean("has_sibling_in_school")
+      .notNull()
+      .default(false),
     siblingStudentId: uuid("sibling_student_id"),
     isStaffWard: boolean("is_staff_ward").notNull().default(false),
     // Outcome
@@ -87,22 +93,26 @@ export const admissionApplications = pgTable(
     // DPDP: Consent given at step 1 (before any data entry)
     consentRecordedAt: timestamp("consent_recorded_at", { withTimezone: true }),
     // Timestamps
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     appNumberUnique: unique("admission_applications_number_unique").on(
       t.schoolId,
-      t.applicationNumber
+      t.applicationNumber,
     ),
     schoolYearIdx: index("admission_applications_school_year_idx").on(
       t.schoolId,
-      t.academicYearId
+      t.academicYearId,
     ),
     statusIdx: index("admission_applications_status_idx").on(t.status),
     gradeIdx: index("admission_applications_grade_idx").on(t.gradeAppliedFor),
-  })
+  }),
 );
 
 // ─── admission_documents ─────────────────────────────────────────────────────
@@ -124,14 +134,20 @@ export const admissionDocuments = pgTable(
     isVerified: boolean("is_verified").notNull().default(false),
     verifiedById: uuid("verified_by_id"),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
-    applicationIdx: index("admission_documents_application_idx").on(t.applicationId),
+    applicationIdx: index("admission_documents_application_idx").on(
+      t.applicationId,
+    ),
     schoolIdx: index("admission_documents_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── admission_workflow_steps ─────────────────────────────────────────────────
@@ -152,16 +168,22 @@ export const admissionWorkflowSteps = pgTable(
     completedById: uuid("completed_by_id"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     applicationStepUnique: unique("admission_workflow_unique").on(
       t.applicationId,
-      t.stepNumber
+      t.stepNumber,
     ),
-    applicationIdx: index("admission_workflow_steps_application_idx").on(t.applicationId),
-  })
+    applicationIdx: index("admission_workflow_steps_application_idx").on(
+      t.applicationId,
+    ),
+  }),
 );
 
 // ─── waitlist ─────────────────────────────────────────────────────────────────
@@ -186,17 +208,21 @@ export const waitlist = pgTable(
     offeredAt: timestamp("offered_at", { withTimezone: true }),
     offerExpiresAt: timestamp("offer_expires_at", { withTimezone: true }),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     gradeRankIdx: index("waitlist_grade_rank_idx").on(
       t.schoolId,
       t.academicYearId,
       t.gradeAppliedFor,
-      t.rank
+      t.rank,
     ),
-  })
+  }),
 );
 
 // ─── Relations ────────────────────────────────────────────────────────────────
@@ -214,7 +240,7 @@ export const admissionApplicationsRelations = relations(
     }),
     documents: many(admissionDocuments),
     workflowSteps: many(admissionWorkflowSteps),
-  })
+  }),
 );
 
 export const admissionDocumentsRelations = relations(
@@ -228,7 +254,7 @@ export const admissionDocumentsRelations = relations(
       fields: [admissionDocuments.schoolId],
       references: [schools.id],
     }),
-  })
+  }),
 );
 
 export const admissionWorkflowStepsRelations = relations(
@@ -242,23 +268,20 @@ export const admissionWorkflowStepsRelations = relations(
       fields: [admissionWorkflowSteps.schoolId],
       references: [schools.id],
     }),
-  })
+  }),
 );
 
-export const waitlistRelations = relations(
-  waitlist,
-  ({ one }) => ({
-    application: one(admissionApplications, {
-      fields: [waitlist.applicationId],
-      references: [admissionApplications.id],
-    }),
-    school: one(schools, {
-      fields: [waitlist.schoolId],
-      references: [schools.id],
-    }),
-    academicYear: one(academicYears, {
-      fields: [waitlist.academicYearId],
-      references: [academicYears.id],
-    }),
-  })
-);
+export const waitlistRelations = relations(waitlist, ({ one }) => ({
+  application: one(admissionApplications, {
+    fields: [waitlist.applicationId],
+    references: [admissionApplications.id],
+  }),
+  school: one(schools, {
+    fields: [waitlist.schoolId],
+    references: [schools.id],
+  }),
+  academicYear: one(academicYears, {
+    fields: [waitlist.academicYearId],
+    references: [academicYears.id],
+  }),
+}));

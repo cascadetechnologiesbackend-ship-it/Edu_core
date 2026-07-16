@@ -13,7 +13,9 @@ export default async function ParentReportCardsPage() {
   }
 
   const parentUserId = session.user.id;
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PRINCIPAL", "TEACHER"].includes(session.user.role as string);
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PRINCIPAL", "TEACHER"].includes(
+    session.user.role as string,
+  );
 
   // Find students linked to this parent (primary_parent_user_id)
   let myStudents = await db.query.students.findMany({
@@ -31,8 +33,13 @@ export default async function ParentReportCardsPage() {
   if (myStudents.length === 0) {
     return (
       <div className="p-6">
-        <h2 className="text-xl font-bold text-red-600 mb-2">Access Restricted</h2>
-        <p>No students linked to your account. If you are a parent, please contact the school administration.</p>
+        <h2 className="text-xl font-bold text-red-600 mb-2">
+          Access Restricted
+        </h2>
+        <p>
+          No students linked to your account. If you are a parent, please
+          contact the school administration.
+        </p>
       </div>
     );
   }
@@ -40,7 +47,11 @@ export default async function ParentReportCardsPage() {
   // Fetch report cards for all linked students
   const studentsReportCards: Array<{
     student: typeof students.$inferSelect;
-    cards: Array<typeof reportCards.$inferSelect & { exam?: typeof exams.$inferSelect | null }>;
+    cards: Array<
+      typeof reportCards.$inferSelect & {
+        exam?: typeof exams.$inferSelect | null;
+      }
+    >;
   }> = [];
 
   for (const student of myStudents) {
@@ -78,7 +89,9 @@ export default async function ParentReportCardsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Report Cards
           </h1>
-          <p className="text-sm text-gray-500">View and download academic progress reports for your wards.</p>
+          <p className="text-sm text-gray-500">
+            View and download academic progress reports for your wards.
+          </p>
         </div>
         <div className="flex gap-2">
           <Link
@@ -106,7 +119,9 @@ export default async function ParentReportCardsPage() {
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                     {studentName}
                   </h2>
-                  <p className="text-xs text-gray-500">Admission No: {student.admissionNumber}</p>
+                  <p className="text-xs text-gray-500">
+                    Admission No: {student.admissionNumber}
+                  </p>
                 </div>
                 <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-medium">
                   Ward
@@ -114,7 +129,9 @@ export default async function ParentReportCardsPage() {
               </div>
 
               {cards.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4">No report cards generated yet for this student.</p>
+                <p className="text-sm text-gray-500 py-4">
+                  No report cards generated yet for this student.
+                </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {cards.map((card) => (
@@ -127,10 +144,16 @@ export default async function ParentReportCardsPage() {
                           {card.exam?.name ?? "Examination"}
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">
-                          Generated on: {card.generatedAt ? new Date(card.generatedAt).toLocaleDateString("en-IN") : "—"}
+                          Generated on:{" "}
+                          {card.generatedAt
+                            ? new Date(card.generatedAt).toLocaleDateString(
+                                "en-IN",
+                              )
+                            : "—"}
                         </p>
                         <p className="text-xs text-indigo-600 mt-0.5">
-                          Grade: {card.overallGrade ?? "—"} {card.rank ? `| Rank: ${card.rank}` : ""}
+                          Grade: {card.overallGrade ?? "—"}{" "}
+                          {card.rank ? `| Rank: ${card.rank}` : ""}
                         </p>
                       </div>
                       <a

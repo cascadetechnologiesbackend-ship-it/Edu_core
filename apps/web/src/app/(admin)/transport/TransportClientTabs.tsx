@@ -48,7 +48,10 @@ export default function TransportClientTabs({
     <div className="space-y-6">
       {/* Tab Selectors */}
       <div className="border-b border-gray-200 dark:border-slate-800">
-        <ul className="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
+        <ul
+          className="flex flex-wrap -mb-px text-sm font-medium text-center"
+          role="tablist"
+        >
           {tabs.map((tab) => (
             <li key={tab.id} className="mr-2" role="presentation">
               <button
@@ -74,14 +77,21 @@ export default function TransportClientTabs({
           <VehiclesTab vehicles={vehicles} isAdmin={isAdmin} />
         )}
         {activeTab === "routes" && (
-          <RoutesStopsTab routesList={routesList} vehicles={vehicles} isAdmin={isAdmin} />
+          <RoutesStopsTab
+            routesList={routesList}
+            vehicles={vehicles}
+            isAdmin={isAdmin}
+          />
         )}
         {activeTab === "passes" && (
-          <BusPassesTab passes={passes} students={students} routes={routesList} isAdmin={isAdmin} />
+          <BusPassesTab
+            passes={passes}
+            students={students}
+            routes={routesList}
+            isAdmin={isAdmin}
+          />
         )}
-        {activeTab === "gps" && (
-          <GPSTrackingTab routes={routesList} />
-        )}
+        {activeTab === "gps" && <GPSTrackingTab routes={routesList} />}
       </div>
     </div>
   );

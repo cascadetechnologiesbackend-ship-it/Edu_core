@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   authors: [{ name: "SchoolMitra" }],
   creator: "SchoolMitra ERP",
   metadataBase: new URL(
-    process.env["NEXT_PUBLIC_APP_URL"] ?? "https://schoolmitra.in"
+    process.env["NEXT_PUBLIC_APP_URL"] ?? "https://schoolmitra.in",
   ),
   openGraph: {
     type: "website",

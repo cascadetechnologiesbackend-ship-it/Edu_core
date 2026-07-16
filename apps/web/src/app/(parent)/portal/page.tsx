@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default async function ParentFeesPage() {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return <div className="p-6">Please log in to view fees.</div>;
   }
@@ -18,13 +18,13 @@ export default async function ParentFeesPage() {
 
   // Find students linked to this parent (primary_parent_user_id)
   let myStudents = await db.query.students.findMany({
-    where: eq(students.primaryParentUserId, parentUserId)
+    where: eq(students.primaryParentUserId, parentUserId),
   });
 
   // If Admin and no students, fetch a demo student for preview
   if (myStudents.length === 0 && isAdmin) {
     const demoStudent = await db.query.students.findFirst({
-      where: isNotNull(students.primaryParentUserId)
+      where: isNotNull(students.primaryParentUserId),
     });
     if (demoStudent) myStudents = [demoStudent];
   }
@@ -32,9 +32,19 @@ export default async function ParentFeesPage() {
   if (myStudents.length === 0) {
     return (
       <div className="p-6">
-        <h2 className="text-xl font-bold text-red-600 mb-2">Access Restricted</h2>
-        <p>No students linked to your account. If you are a parent, please contact the school administration.</p>
-        {isAdmin && <p className="mt-4 text-sm text-gray-500">Note: As an admin, a demo student would be shown here if any existed in the database.</p>}
+        <h2 className="text-xl font-bold text-red-600 mb-2">
+          Access Restricted
+        </h2>
+        <p>
+          No students linked to your account. If you are a parent, please
+          contact the school administration.
+        </p>
+        {isAdmin && (
+          <p className="mt-4 text-sm text-gray-500">
+            Note: As an admin, a demo student would be shown here if any existed
+            in the database.
+          </p>
+        )}
       </div>
     );
   }
@@ -64,17 +74,19 @@ export default async function ParentFeesPage() {
       orderBy: [desc(feeInvoices.dueDate)],
     });
 
-    allInvoices.push(...studentInvoices.map(i => ({ ...i, student })));
+    allInvoices.push(...studentInvoices.map((i) => ({ ...i, student })));
 
     const studentPayments = await db.query.feePayments.findMany({
       where: eq(feePayments.studentId, student.id),
       orderBy: [desc(feePayments.paymentDate)],
     });
 
-    allPayments.push(...studentPayments.map(p => ({ ...p, student })));
+    allPayments.push(...studentPayments.map((p) => ({ ...p, student })));
   }
 
-  const pendingInvoices = allInvoices.filter(i => ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status));
+  const pendingInvoices = allInvoices.filter((i) =>
+    ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status),
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -83,7 +95,9 @@ export default async function ParentFeesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Fee Management
           </h1>
-          <p className="text-sm text-gray-500">View current dues and payment history for your wards.</p>
+          <p className="text-sm text-gray-500">
+            View current dues and payment history for your wards.
+          </p>
         </div>
         <div className="flex gap-2">
           <span className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md font-semibold">
@@ -112,29 +126,41 @@ export default async function ParentFeesPage() {
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 space-y-6">
         <h2 className="text-lg font-semibold">Current Dues</h2>
-        
+
         {pendingInvoices.length === 0 ? (
           <p className="text-gray-500">No pending dues.</p>
         ) : (
           <div className="space-y-4">
-            {pendingInvoices.map(inv => {
-              const fName = decryptData(inv.student.firstNameEncrypted) || "Student";
+            {pendingInvoices.map((inv) => {
+              const fName =
+                decryptData(inv.student.firstNameEncrypted) || "Student";
               return (
-                <div key={inv.id} className="flex justify-between items-center p-4 border rounded-lg bg-gray-50 dark:bg-slate-800 dark:border-slate-700">
+                <div
+                  key={inv.id}
+                  className="flex justify-between items-center p-4 border rounded-lg bg-gray-50 dark:bg-slate-800 dark:border-slate-700"
+                >
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {fName} - {(inv.feeStructure?.feeHead as any)?.name} ({inv.term})
+                      {fName} - {(inv.feeStructure?.feeHead as any)?.name} (
+                      {inv.term})
                     </h3>
-                    <p className="text-sm text-gray-500">Invoice: {inv.invoiceNumber} | Due: {inv.dueDate.toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">
+                      Invoice: {inv.invoiceNumber} | Due:{" "}
+                      {inv.dueDate.toLocaleDateString()}
+                    </p>
                     <p className="text-sm mt-1">
-                      Gross: ₹{inv.grossAmount} | Discount: ₹{inv.discountAmount} | Late Fee: ₹{inv.lateFeeAmount}
+                      Gross: ₹{inv.grossAmount} | Discount: ₹
+                      {inv.discountAmount} | Late Fee: ₹{inv.lateFeeAmount}
                     </p>
                   </div>
                   <div className="text-right flex flex-col gap-2">
                     <span className="text-xl font-bold text-red-600 dark:text-red-400">
                       ₹{inv.balanceAmount}
                     </span>
-                    <CheckoutButton invoiceId={inv.id} amount={parseFloat(inv.balanceAmount)} />
+                    <CheckoutButton
+                      invoiceId={inv.id}
+                      amount={parseFloat(inv.balanceAmount)}
+                    />
                   </div>
                 </div>
               );
@@ -159,16 +185,27 @@ export default async function ParentFeesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
               {allPayments.map((p) => {
-                const fName = decryptData(p.student.firstNameEncrypted) || "Student";
+                const fName =
+                  decryptData(p.student.firstNameEncrypted) || "Student";
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                    <td className="py-3">{p.paymentDate.toLocaleDateString()}</td>
+                  <tr
+                    key={p.id}
+                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                  >
+                    <td className="py-3">
+                      {p.paymentDate.toLocaleDateString()}
+                    </td>
                     <td className="py-3">{fName}</td>
                     <td className="py-3 font-mono">{p.receiptNumber}</td>
                     <td className="py-3">{p.paymentMethod}</td>
-                    <td className="py-3 text-right font-medium text-green-600">₹{p.amountPaid}</td>
+                    <td className="py-3 text-right font-medium text-green-600">
+                      ₹{p.amountPaid}
+                    </td>
                     <td className="py-3 text-right">
-                      <Link href={`/fees/receipt/${p.id}` as any} className="text-blue-600 hover:underline">
+                      <Link
+                        href={`/fees/receipt/${p.id}` as any}
+                        className="text-blue-600 hover:underline"
+                      >
                         Download PDF
                       </Link>
                     </td>
@@ -177,7 +214,9 @@ export default async function ParentFeesPage() {
               })}
               {allPayments.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">No payment history found.</td>
+                  <td colSpan={6} className="py-8 text-center text-gray-500">
+                    No payment history found.
+                  </td>
                 </tr>
               )}
             </tbody>

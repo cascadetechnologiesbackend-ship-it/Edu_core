@@ -1,5 +1,11 @@
 import { db } from "@/db";
-import { feeStructures, feeInvoices, students, feeConcessions, academicYears } from "@/db/schema";
+import {
+  feeStructures,
+  feeInvoices,
+  students,
+  feeConcessions,
+  academicYears,
+} from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
@@ -10,7 +16,11 @@ export const POST = withCronAuth(async () => {
     where: eq(academicYears.isActive, true),
   });
 
-  if (!activeYear) return NextResponse.json({ error: "No active academic year found" }, { status: 400 });
+  if (!activeYear)
+    return NextResponse.json(
+      { error: "No active academic year found" },
+      { status: 400 },
+    );
 
   const activeStudents = await db.query.students.findMany({
     where: eq(students.isActive, true),
@@ -18,7 +28,7 @@ export const POST = withCronAuth(async () => {
 
   const allStructures = await db.query.feeStructures.findMany({
     where: eq(feeStructures.academicYearId, activeYear.id),
-    with: { feeHead: true }
+    with: { feeHead: true },
   });
 
   const allConcessions = await db.query.feeConcessions.findMany({
@@ -29,17 +39,21 @@ export const POST = withCronAuth(async () => {
 
   for (const student of activeStudents) {
     if (!student.currentClassId) continue;
-    
-    const studentStructures = allStructures.filter(s => s.classId === student.currentClassId);
-    const studentConcessions = allConcessions.filter(c => c.studentId === student.id);
+
+    const studentStructures = allStructures.filter(
+      (s) => s.classId === student.currentClassId,
+    );
+    const studentConcessions = allConcessions.filter(
+      (c) => c.studentId === student.id,
+    );
 
     for (const structure of studentStructures) {
       // Check if invoice already exists for this student + structure
       const existingInvoice = await db.query.feeInvoices.findFirst({
         where: and(
           eq(feeInvoices.studentId, student.id),
-          eq(feeInvoices.feeStructureId, structure.id)
-        )
+          eq(feeInvoices.feeStructureId, structure.id),
+        ),
       });
 
       if (existingInvoice) continue;
@@ -47,12 +61,16 @@ export const POST = withCronAuth(async () => {
       // Calculate amounts
       const grossAmount = parseFloat(structure.amount);
       let discountAmount = 0;
-      
+
       // Find applicable concessions
-      const applicableConcession = studentConcessions.find(c => c.appliesTo === "ALL" || c.appliesTo === structure.feeHeadId);
+      const applicableConcession = studentConcessions.find(
+        (c) => c.appliesTo === "ALL" || c.appliesTo === structure.feeHeadId,
+      );
       if (applicableConcession) {
         if (applicableConcession.discountPercentage) {
-          discountAmount = grossAmount * (parseFloat(applicableConcession.discountPercentage) / 100);
+          discountAmount =
+            grossAmount *
+            (parseFloat(applicableConcession.discountPercentage) / 100);
         } else if (applicableConcession.discountAmount) {
           discountAmount = parseFloat(applicableConcession.discountAmount);
         }
@@ -63,12 +81,17 @@ export const POST = withCronAuth(async () => {
 
       const taxableAmount = grossAmount - discountAmount;
       let taxAmount = 0;
-      if ((structure.feeHead as any)?.isTaxable && (structure.feeHead as any)?.gstPercentage) {
-        taxAmount = taxableAmount * (parseFloat((structure.feeHead as any).gstPercentage) / 100);
+      if (
+        (structure.feeHead as any)?.isTaxable &&
+        (structure.feeHead as any)?.gstPercentage
+      ) {
+        taxAmount =
+          taxableAmount *
+          (parseFloat((structure.feeHead as any).gstPercentage) / 100);
       }
 
       const netAmount = taxableAmount + taxAmount;
-      
+
       const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
       await db.insert(feeInvoices).values({
@@ -92,5 +115,8 @@ export const POST = withCronAuth(async () => {
     }
   }
 
-  return NextResponse.json({ success: true, message: `Generated ${generatedCount} invoices.` });
+  return NextResponse.json({
+    success: true,
+    message: `Generated ${generatedCount} invoices.`,
+  });
 });

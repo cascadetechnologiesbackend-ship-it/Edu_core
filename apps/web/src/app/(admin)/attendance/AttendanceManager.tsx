@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { getAssignedSections, getSectionStudents, markSectionAttendance } from "./actions";
-import { Calendar, CheckCircle2, AlertTriangle, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  getAssignedSections,
+  getSectionStudents,
+  markSectionAttendance,
+} from "./actions";
+import {
+  Calendar,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 
 type Section = {
   id: string;
@@ -18,7 +28,8 @@ type StudentRecord = {
   firstName: string;
   lastName: string;
   admissionNumber: string;
-  attendanceStatus: "PRESENT" | "ABSENT" | "LATE" | "HALF_DAY" | "LEAVE" | "HOLIDAY" | null;
+  attendanceStatus:
+    "PRESENT" | "ABSENT" | "LATE" | "HALF_DAY" | "LEAVE" | "HOLIDAY" | null;
   remarks: string;
 };
 
@@ -26,14 +37,17 @@ export default function AttendanceManager() {
   const [sectionsList, setSectionsList] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0] || ""
+    new Date().toISOString().split("T")[0] || "",
   );
   const [students, setStudents] = useState<StudentRecord[]>([]);
-  
+
   const [isPending, startTransition] = useTransition();
   const [loadingSections, setLoadingSections] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // Load sections on mount
   useEffect(() => {
@@ -46,7 +60,10 @@ export default function AttendanceManager() {
       })
       .catch((err) => {
         console.error(err);
-        setMessage({ type: "error", text: "Failed to load sections. Make sure you are authenticated." });
+        setMessage({
+          type: "error",
+          text: "Failed to load sections. Make sure you are authenticated.",
+        });
       })
       .finally(() => {
         setLoadingSections(false);
@@ -72,27 +89,37 @@ export default function AttendanceManager() {
       });
   }, [selectedSection, selectedDate]);
 
-  const handleStatusChange = (studentId: string, status: StudentRecord["attendanceStatus"]) => {
+  const handleStatusChange = (
+    studentId: string,
+    status: StudentRecord["attendanceStatus"],
+  ) => {
     setStudents((prev) =>
-      prev.map((s) => (s.studentId === studentId ? { ...s, attendanceStatus: status } : s))
+      prev.map((s) =>
+        s.studentId === studentId ? { ...s, attendanceStatus: status } : s,
+      ),
     );
   };
 
   const handleRemarksChange = (studentId: string, remarks: string) => {
     setStudents((prev) =>
-      prev.map((s) => (s.studentId === studentId ? { ...s, remarks } : s))
+      prev.map((s) => (s.studentId === studentId ? { ...s, remarks } : s)),
     );
   };
 
   const handleMarkAll = (status: "PRESENT" | "ABSENT") => {
-    setStudents((prev) => prev.map((s) => ({ ...s, attendanceStatus: status })));
+    setStudents((prev) =>
+      prev.map((s) => ({ ...s, attendanceStatus: status })),
+    );
   };
 
   const handleSave = () => {
     setMessage(null);
     const incomplete = students.some((s) => s.attendanceStatus === null);
     if (incomplete) {
-      setMessage({ type: "error", text: "Please select attendance status for all students before saving." });
+      setMessage({
+        type: "error",
+        text: "Please select attendance status for all students before saving.",
+      });
       return;
     }
 
@@ -105,11 +132,17 @@ export default function AttendanceManager() {
             studentId: s.studentId,
             status: s.attendanceStatus!,
             remarks: s.remarks,
-          }))
+          })),
         );
-        setMessage({ type: "success", text: "Attendance marked successfully! Logs written to compliance trail." });
+        setMessage({
+          type: "success",
+          text: "Attendance marked successfully! Logs written to compliance trail.",
+        });
       } catch (err: any) {
-        setMessage({ type: "error", text: err.message || "Failed to save attendance." });
+        setMessage({
+          type: "error",
+          text: err.message || "Failed to save attendance.",
+        });
       }
     });
   };
@@ -206,7 +239,9 @@ export default function AttendanceManager() {
         {loadingStudents ? (
           <div className="flex flex-col justify-center items-center py-20 space-y-2">
             <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-            <span className="text-sm text-gray-500">Retrieving classroom register…</span>
+            <span className="text-sm text-gray-500">
+              Retrieving classroom register…
+            </span>
           </div>
         ) : students.length === 0 ? (
           <div className="text-center py-20 text-gray-500 space-y-2">
@@ -227,7 +262,10 @@ export default function AttendanceManager() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {students.map((student) => (
-                  <tr key={student.studentId} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition">
+                  <tr
+                    key={student.studentId}
+                    className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                  >
                     <td className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">
                       {student.rollNumber || "—"}
                     </td>
@@ -240,23 +278,63 @@ export default function AttendanceManager() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
                         {[
-                          { value: "PRESENT", label: "Present", color: "peer-checked:bg-green-600 peer-checked:text-white" },
-                          { value: "ABSENT", label: "Absent", color: "peer-checked:bg-red-600 peer-checked:text-white" },
-                          { value: "LATE", label: "Late", color: "peer-checked:bg-yellow-600 peer-checked:text-white" },
-                          { value: "HALF_DAY", label: "Half Day", color: "peer-checked:bg-orange-600 peer-checked:text-white" },
-                          { value: "LEAVE", label: "Leave", color: "peer-checked:bg-blue-600 peer-checked:text-white" },
-                          { value: "HOLIDAY", label: "Holiday", color: "peer-checked:bg-gray-600 peer-checked:text-white" },
+                          {
+                            value: "PRESENT",
+                            label: "Present",
+                            color:
+                              "peer-checked:bg-green-600 peer-checked:text-white",
+                          },
+                          {
+                            value: "ABSENT",
+                            label: "Absent",
+                            color:
+                              "peer-checked:bg-red-600 peer-checked:text-white",
+                          },
+                          {
+                            value: "LATE",
+                            label: "Late",
+                            color:
+                              "peer-checked:bg-yellow-600 peer-checked:text-white",
+                          },
+                          {
+                            value: "HALF_DAY",
+                            label: "Half Day",
+                            color:
+                              "peer-checked:bg-orange-600 peer-checked:text-white",
+                          },
+                          {
+                            value: "LEAVE",
+                            label: "Leave",
+                            color:
+                              "peer-checked:bg-blue-600 peer-checked:text-white",
+                          },
+                          {
+                            value: "HOLIDAY",
+                            label: "Holiday",
+                            color:
+                              "peer-checked:bg-gray-600 peer-checked:text-white",
+                          },
                         ].map((opt) => (
-                          <label key={opt.value} className="relative flex-1 text-center cursor-pointer select-none">
+                          <label
+                            key={opt.value}
+                            className="relative flex-1 text-center cursor-pointer select-none"
+                          >
                             <input
                               type="radio"
                               name={`attendance-${student.studentId}`}
                               value={opt.value}
                               checked={student.attendanceStatus === opt.value}
-                              onChange={() => handleStatusChange(student.studentId, opt.value as any)}
+                              onChange={() =>
+                                handleStatusChange(
+                                  student.studentId,
+                                  opt.value as any,
+                                )
+                              }
                               className="peer sr-only"
                             />
-                            <span className={`block px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-slate-800 transition ${opt.color}`}>
+                            <span
+                              className={`block px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-slate-800 transition ${opt.color}`}
+                            >
                               {opt.label}
                             </span>
                           </label>
@@ -267,7 +345,9 @@ export default function AttendanceManager() {
                       <input
                         type="text"
                         value={student.remarks}
-                        onChange={(e) => handleRemarksChange(student.studentId, e.target.value)}
+                        onChange={(e) =>
+                          handleRemarksChange(student.studentId, e.target.value)
+                        }
                         placeholder="Optional remarks"
                         className="w-full text-xs rounded border border-gray-200 dark:border-slate-700 bg-transparent px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
                       />

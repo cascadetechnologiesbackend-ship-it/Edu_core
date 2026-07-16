@@ -26,9 +26,7 @@ export default async function ExamsPage() {
   const allExamTypes = await db.query.examTypes.findMany();
 
   const statusBadge = (locked: boolean) =>
-    locked
-      ? "bg-green-100 text-green-800"
-      : "bg-yellow-100 text-yellow-800";
+    locked ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800";
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -75,7 +73,9 @@ export default async function ExamsPage() {
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
           <h2 className="font-semibold text-gray-900 dark:text-white">
-            {activeYear ? `Exams — ${activeYear.label}` : "No Active Academic Year"}
+            {activeYear
+              ? `Exams — ${activeYear.label}`
+              : "No Active Academic Year"}
           </h2>
         </div>
 

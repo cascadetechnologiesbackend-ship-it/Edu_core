@@ -32,8 +32,8 @@ export default async function GradingSettingsPage() {
           Grading Configuration
         </h1>
         <p className="text-sm text-gray-500">
-          Configure grade boundaries for each class group. These rules power automatic grade
-          calculation when teachers enter marks.
+          Configure grade boundaries for each class group. These rules power
+          automatic grade calculation when teachers enter marks.
         </p>
       </div>
 

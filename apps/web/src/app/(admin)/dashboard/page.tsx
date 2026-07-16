@@ -72,8 +72,8 @@ function MetricCard({
                 trend.direction === "up"
                   ? "text-secondary"
                   : trend.direction === "down"
-                  ? "text-danger"
-                  : "text-muted-foreground"
+                    ? "text-danger"
+                    : "text-muted-foreground"
               }`}
             >
               {trend.direction === "up" ? (
@@ -145,14 +145,17 @@ export default async function DashboardPage() {
       {
         title: "Assigned Classrooms",
         value: activeTeacherSections.length.toString(),
-        subtext: activeTeacherSections.map((s) => s.name).join(", ") || "No homeroom assigned",
+        subtext:
+          activeTeacherSections.map((s) => s.name).join(", ") ||
+          "No homeroom assigned",
         icon: UserCheck,
         iconBgClass: "bg-primary/10",
         accentColor: "text-primary",
       },
       {
         title: "Total Students under care",
-        value: totalStudents > 0 ? Math.ceil(totalStudents / 10).toString() : "0", // Mock subset
+        value:
+          totalStudents > 0 ? Math.ceil(totalStudents / 10).toString() : "0", // Mock subset
         subtext: "Academic Year 2025-26",
         icon: Users,
         iconBgClass: "bg-secondary/10",
@@ -176,7 +179,8 @@ export default async function DashboardPage() {
               Welcome back, Teacher 👋
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Manage your classrooms, student attendance, and homework assignments.
+              Manage your classrooms, student attendance, and homework
+              assignments.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -207,11 +211,15 @@ export default async function DashboardPage() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
                 <span>Check and grade homework assignments</span>
-                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">Pending</span>
+                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">
+                  Pending
+                </span>
               </li>
               <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
                 <span>Update weekly lesson planning calendar</span>
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">Weekly</span>
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">
+                  Weekly
+                </span>
               </li>
             </ul>
           </div>
@@ -229,7 +237,9 @@ export default async function DashboardPage() {
     const activeIssues = await db
       .select({ count: sql<number>`count(*)` })
       .from(bookIssues)
-      .where(and(eq(bookIssues.schoolId, schoolId), eq(bookIssues.status, "ISSUED")));
+      .where(
+        and(eq(bookIssues.schoolId, schoolId), eq(bookIssues.status, "ISSUED")),
+      );
 
     const metrics = [
       {
@@ -300,7 +310,12 @@ export default async function DashboardPage() {
     const activePasses = await db
       .select({ count: sql<number>`count(*)` })
       .from(studentBusPasses)
-      .where(and(eq(studentBusPasses.schoolId, schoolId), eq(studentBusPasses.isActive, true)));
+      .where(
+        and(
+          eq(studentBusPasses.schoolId, schoolId),
+          eq(studentBusPasses.isActive, true),
+        ),
+      );
 
     const metrics = [
       {
@@ -506,11 +521,14 @@ export default async function DashboardPage() {
                     task.urgency === "danger"
                       ? "text-danger hover:bg-danger/10"
                       : task.urgency === "warning"
-                      ? "text-warning hover:bg-warning/10"
-                      : "text-muted-foreground hover:bg-muted"
+                        ? "text-warning hover:bg-warning/10"
+                        : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <AlertCircle
+                    className="w-4 h-4 mt-0.5 flex-shrink-0"
+                    aria-hidden="true"
+                  />
                   {task.label}
                 </a>
               </li>

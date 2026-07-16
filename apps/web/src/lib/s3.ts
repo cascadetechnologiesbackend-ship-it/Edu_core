@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -11,14 +15,21 @@ const s3Client = new S3Client({
   forcePathStyle: true, // Required for MinIO
 });
 
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 export function validateUpload(mimeType: string, sizeBytes?: number) {
   if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
-    throw new Error(`Invalid file type: ${mimeType}. Allowed: ${ALLOWED_MIME_TYPES.join(", ")}`);
+    throw new Error(
+      `Invalid file type: ${mimeType}. Allowed: ${ALLOWED_MIME_TYPES.join(", ")}`,
+    );
   }
-  
+
   if (sizeBytes !== undefined && sizeBytes > MAX_FILE_SIZE_BYTES) {
     throw new Error(`File size exceeds 10MB limit.`);
   }
@@ -27,7 +38,11 @@ export function validateUpload(mimeType: string, sizeBytes?: number) {
   return true;
 }
 
-export async function generateUploadUrl(key: string, bucket: string, contentType: string) {
+export async function generateUploadUrl(
+  key: string,
+  bucket: string,
+  contentType: string,
+) {
   validateUpload(contentType);
 
   const command = new PutObjectCommand({
@@ -41,9 +56,13 @@ export async function generateUploadUrl(key: string, bucket: string, contentType
   return uploadUrl;
 }
 
-export async function getSignedDownloadUrl(key: string, bucket: string, expiresIn = 900) {
+export async function getSignedDownloadUrl(
+  key: string,
+  bucket: string,
+  expiresIn = 900,
+) {
   if (!key) return null;
-  
+
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: key,

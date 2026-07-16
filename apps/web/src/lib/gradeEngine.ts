@@ -2,7 +2,8 @@
 // Pure, testable functions for calculating grades, grade points, and ranks.
 // No DB access — accepts pre-fetched grade rules as parameters.
 
-export type ClassGroup = "NURSERY_UKG" | "CLASS_1_5" | "CLASS_6_8" | "CLASS_9_10";
+export type ClassGroup =
+  "NURSERY_UKG" | "CLASS_1_5" | "CLASS_6_8" | "CLASS_9_10";
 
 export interface GradeRule {
   minPercent: number;
@@ -105,7 +106,8 @@ export function calculateGrade(
   const practicalMarks = input.practicalMarks ?? 0;
   const totalObtained = theoryMarks + practicalMarks;
 
-  const practicalMax = (input.isPracticalAbsent !== true) ? (input.practicalMaxMarks ?? 0) : 0;
+  const practicalMax =
+    input.isPracticalAbsent !== true ? (input.practicalMaxMarks ?? 0) : 0;
   const totalMax = input.maxMarks + practicalMax;
 
   const percent = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
@@ -149,7 +151,13 @@ export function calculateGrade(
  * A student fails overall if they fail in any non-exempt subject.
  */
 export function aggregateSubjectGrades(
-  subjects: Array<{ result: GradeResult; maxMarks: number; marksObtained: number | null; practicalMarks?: number | null; practicalMaxMarks?: number | null }>,
+  subjects: Array<{
+    result: GradeResult;
+    maxMarks: number;
+    marksObtained: number | null;
+    practicalMarks?: number | null;
+    practicalMaxMarks?: number | null;
+  }>,
   rules: GradeRule[],
 ): AggregateResult {
   let totalMarks = 0;
@@ -157,7 +165,11 @@ export function aggregateSubjectGrades(
   let overallPassed = true;
 
   const subjectResults = subjects.map((s) => {
-    if (s.result.isMedicalExempt || s.result.isAbsent || s.result.grade === PRACTICAL_ABSENT_GRADE) {
+    if (
+      s.result.isMedicalExempt ||
+      s.result.isAbsent ||
+      s.result.grade === PRACTICAL_ABSENT_GRADE
+    ) {
       if (!s.result.isMedicalExempt) overallPassed = false;
       return s.result;
     }
@@ -169,7 +181,8 @@ export function aggregateSubjectGrades(
     return s.result;
   });
 
-  const overallPercent = totalMaxMarks > 0 ? (totalMarks / totalMaxMarks) * 100 : 0;
+  const overallPercent =
+    totalMaxMarks > 0 ? (totalMarks / totalMaxMarks) * 100 : 0;
 
   const overallGradeResult = calculateGrade(
     {
@@ -229,13 +242,61 @@ export function calculateRanks(
  */
 export function getCBSEDefaultRules(): GradeRule[] {
   return [
-    { minPercent: 91, maxPercent: 100, grade: "A1", gradePoint: 10, description: "Outstanding" },
-    { minPercent: 81, maxPercent: 90.99, grade: "A2", gradePoint: 9, description: "Excellent" },
-    { minPercent: 71, maxPercent: 80.99, grade: "B1", gradePoint: 8, description: "Very Good" },
-    { minPercent: 61, maxPercent: 70.99, grade: "B2", gradePoint: 7, description: "Good" },
-    { minPercent: 51, maxPercent: 60.99, grade: "C1", gradePoint: 6, description: "Average" },
-    { minPercent: 41, maxPercent: 50.99, grade: "C2", gradePoint: 5, description: "Satisfactory" },
-    { minPercent: 33, maxPercent: 40.99, grade: "D", gradePoint: 4, description: "Pass" },
-    { minPercent: 0, maxPercent: 32.99, grade: "E", gradePoint: 0, description: "Fail" },
+    {
+      minPercent: 91,
+      maxPercent: 100,
+      grade: "A1",
+      gradePoint: 10,
+      description: "Outstanding",
+    },
+    {
+      minPercent: 81,
+      maxPercent: 90.99,
+      grade: "A2",
+      gradePoint: 9,
+      description: "Excellent",
+    },
+    {
+      minPercent: 71,
+      maxPercent: 80.99,
+      grade: "B1",
+      gradePoint: 8,
+      description: "Very Good",
+    },
+    {
+      minPercent: 61,
+      maxPercent: 70.99,
+      grade: "B2",
+      gradePoint: 7,
+      description: "Good",
+    },
+    {
+      minPercent: 51,
+      maxPercent: 60.99,
+      grade: "C1",
+      gradePoint: 6,
+      description: "Average",
+    },
+    {
+      minPercent: 41,
+      maxPercent: 50.99,
+      grade: "C2",
+      gradePoint: 5,
+      description: "Satisfactory",
+    },
+    {
+      minPercent: 33,
+      maxPercent: 40.99,
+      grade: "D",
+      gradePoint: 4,
+      description: "Pass",
+    },
+    {
+      minPercent: 0,
+      maxPercent: 32.99,
+      grade: "E",
+      gradePoint: 0,
+      description: "Fail",
+    },
   ];
 }

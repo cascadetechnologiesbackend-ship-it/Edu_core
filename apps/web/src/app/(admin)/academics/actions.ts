@@ -21,7 +21,8 @@ import { revalidatePath } from "next/cache";
 
 async function getAuditContext(session: any) {
   const reqHeaders = headers();
-  const ip = reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip =
+    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const userAgent = reqHeaders.get("user-agent") ?? "unknown";
   return {
     db,
@@ -67,7 +68,12 @@ export async function getTeachersList() {
   });
 }
 
-export async function saveClassroom(data: { id?: string; gradeLevel: any; displayName: string; sortOrder: number }) {
+export async function saveClassroom(data: {
+  id?: string;
+  gradeLevel: any;
+  displayName: string;
+  sortOrder: number;
+}) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const activeYear = await db.query.academicYears.findFirst({
     where: eq(academicYears.isActive, true),
@@ -97,7 +103,14 @@ export async function saveClassroom(data: { id?: string; gradeLevel: any; displa
   return { success: true };
 }
 
-export async function saveSection(data: { id?: string; classId: string; name: string; capacity: number; classTeacherId?: string | null; roomNumber?: string | null }) {
+export async function saveSection(data: {
+  id?: string;
+  classId: string;
+  name: string;
+  capacity: number;
+  classTeacherId?: string | null;
+  roomNumber?: string | null;
+}) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
   const classTeacherIdVal = data.classTeacherId || null;
@@ -109,7 +122,9 @@ export async function saveSection(data: { id?: string; classId: string; name: st
       .set({
         name: data.name,
         capacity: data.capacity,
-        ...(classTeacherIdVal !== undefined ? { classTeacherId: classTeacherIdVal } : {}),
+        ...(classTeacherIdVal !== undefined
+          ? { classTeacherId: classTeacherIdVal }
+          : {}),
         ...(roomNumberVal !== undefined ? { roomNumber: roomNumberVal } : {}),
         updatedAt: new Date(),
       })
@@ -138,7 +153,16 @@ export async function getSubjects() {
   });
 }
 
-export async function saveSubject(data: { id?: string; code: string; name: string; nameHindi?: string | null; subjectType: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY"; maxMarks?: number; passingMarks?: number }) {
+export async function saveSubject(data: {
+  id?: string;
+  code: string;
+  name: string;
+  nameHindi?: string | null;
+  subjectType:
+    "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+  maxMarks?: number;
+  passingMarks?: number;
+}) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const maxMarksVal = data.maxMarks ?? 100;
   const passingMarksVal = data.passingMarks ?? 33;
@@ -184,7 +208,14 @@ export async function getClassSubjectsList() {
   });
 }
 
-export async function saveClassSubject(data: { id?: string; classId: string; subjectId: string; assignedTeacherId?: string | null; periodsPerWeek?: number; isElective?: boolean }) {
+export async function saveClassSubject(data: {
+  id?: string;
+  classId: string;
+  subjectId: string;
+  assignedTeacherId?: string | null;
+  periodsPerWeek?: number;
+  isElective?: boolean;
+}) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const assignedTeacherIdVal = data.assignedTeacherId || null;
   const periodsPerWeekVal = data.periodsPerWeek ?? 5;
@@ -194,7 +225,9 @@ export async function saveClassSubject(data: { id?: string; classId: string; sub
     await db
       .update(classSubjects)
       .set({
-        ...(assignedTeacherIdVal !== undefined ? { assignedTeacherId: assignedTeacherIdVal } : {}),
+        ...(assignedTeacherIdVal !== undefined
+          ? { assignedTeacherId: assignedTeacherIdVal }
+          : {}),
         periodsPerWeek: periodsPerWeekVal,
         isElective: isElectiveVal,
         updatedAt: new Date(),
@@ -205,7 +238,9 @@ export async function saveClassSubject(data: { id?: string; classId: string; sub
       schoolId: session.user.schoolId!,
       classId: data.classId,
       subjectId: data.subjectId,
-      ...(assignedTeacherIdVal ? { assignedTeacherId: assignedTeacherIdVal } : {}),
+      ...(assignedTeacherIdVal
+        ? { assignedTeacherId: assignedTeacherIdVal }
+        : {}),
       periodsPerWeek: periodsPerWeekVal,
       isElective: isElectiveVal,
     });
@@ -221,7 +256,7 @@ export async function getSectionTimetable(sectionId: string) {
   return await db.query.timetablePeriods.findMany({
     where: and(
       eq(timetablePeriods.sectionId, sectionId),
-      eq(timetablePeriods.isActive, true)
+      eq(timetablePeriods.isActive, true),
     ),
     with: {
       subject: true,
@@ -232,11 +267,20 @@ export async function getSectionTimetable(sectionId: string) {
 export async function saveTimetablePeriod(data: {
   id?: string;
   sectionId: string;
-  dayOfWeek: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
+  dayOfWeek:
+    "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
   periodNumber: number;
   startTime: string;
   endTime: string;
-  periodType: "REGULAR" | "ASSEMBLY" | "BREAK" | "LUNCH" | "LAB" | "PT" | "LIBRARY" | "FREE";
+  periodType:
+    | "REGULAR"
+    | "ASSEMBLY"
+    | "BREAK"
+    | "LUNCH"
+    | "LAB"
+    | "PT"
+    | "LIBRARY"
+    | "FREE";
   subjectId?: string | null;
   teacherId?: string | null;
   roomNumber?: string | null;
@@ -259,11 +303,13 @@ export async function saveTimetablePeriod(data: {
         eq(timetablePeriods.academicYearId, activeYear.id),
         eq(timetablePeriods.dayOfWeek, data.dayOfWeek),
         eq(timetablePeriods.periodNumber, data.periodNumber),
-        eq(timetablePeriods.teacherId, data.teacherId)
+        eq(timetablePeriods.teacherId, data.teacherId),
       ),
     });
     if (conflict && (!data.id || conflict.id !== data.id)) {
-      throw new Error(`Conflict: Teacher is already booked for Period ${data.periodNumber} on ${data.dayOfWeek}.`);
+      throw new Error(
+        `Conflict: Teacher is already booked for Period ${data.periodNumber} on ${data.dayOfWeek}.`,
+      );
     }
   }
 
@@ -301,7 +347,10 @@ export async function saveTimetablePeriod(data: {
 
 // ─── 5. Assignment Actions ────────────────────────────────────────────────────
 
-export async function getAssignments(sectionId: string, classSubjectId: string) {
+export async function getAssignments(
+  sectionId: string,
+  classSubjectId: string,
+) {
   const session = await checkAuth();
   const userRole = session.user.role;
   const userId = session.user.id;
@@ -311,16 +360,17 @@ export async function getAssignments(sectionId: string, classSubjectId: string) 
     const mapping = await db.query.classSubjects.findFirst({
       where: and(
         eq(classSubjects.id, classSubjectId),
-        eq(classSubjects.assignedTeacherId, userId)
+        eq(classSubjects.assignedTeacherId, userId),
       ),
     });
-    if (!mapping) throw new Error("Access Denied: You do not teach this subject mapping.");
+    if (!mapping)
+      throw new Error("Access Denied: You do not teach this subject mapping.");
   }
 
   return await db.query.assignments.findMany({
     where: and(
       eq(assignments.sectionId, sectionId),
-      eq(assignments.classSubjectId, classSubjectId)
+      eq(assignments.classSubjectId, classSubjectId),
     ),
     orderBy: [assignments.dueDate],
   });
@@ -337,7 +387,12 @@ export async function saveAssignment(data: {
   attachmentS3Key?: string | null;
   status: "DRAFT" | "PUBLISHED" | "CLOSED" | "GRADED";
 }) {
-  const session = await checkAuth(["TEACHER", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const session = await checkAuth([
+    "TEACHER",
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+  ]);
   const maxMarksVal = data.maxMarks ?? 100;
   const attachmentS3KeyVal = data.attachmentS3Key || null;
 
@@ -349,7 +404,9 @@ export async function saveAssignment(data: {
         description: data.description,
         maxMarks: maxMarksVal,
         dueDate: new Date(data.dueDate),
-        ...(attachmentS3KeyVal !== undefined ? { attachmentS3Key: attachmentS3KeyVal } : {}),
+        ...(attachmentS3KeyVal !== undefined
+          ? { attachmentS3Key: attachmentS3KeyVal }
+          : {}),
         status: data.status,
         updatedAt: new Date(),
       })
@@ -380,8 +437,17 @@ export async function getAssignmentSubmissions(assignmentId: string) {
   });
 }
 
-export async function gradeSubmission(data: { submissionId: string; marksAwarded: number; remarks?: string | null }) {
-  const session = await checkAuth(["TEACHER", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+export async function gradeSubmission(data: {
+  submissionId: string;
+  marksAwarded: number;
+  remarks?: string | null;
+}) {
+  const session = await checkAuth([
+    "TEACHER",
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+  ]);
   const remarksVal = data.remarks || null;
 
   // Grade update
@@ -413,9 +479,20 @@ export async function gradeSubmission(data: { submissionId: string; marksAwarded
   return { success: true };
 }
 
-export async function submitAssignment(data: { assignmentId: string; studentId: string; attachmentS3Key?: string | null; remarks?: string | null }) {
+export async function submitAssignment(data: {
+  assignmentId: string;
+  studentId: string;
+  attachmentS3Key?: string | null;
+  remarks?: string | null;
+}) {
   // Allow students or parents (on behalf of children) to submit
-  const session = await checkAuth(["STUDENT", "PARENT", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const session = await checkAuth([
+    "STUDENT",
+    "PARENT",
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+  ]);
   const attachmentS3KeyVal = data.attachmentS3Key || null;
   const remarksVal = data.remarks || null;
 
@@ -465,12 +542,19 @@ export async function saveLessonPlan(data: {
   completedDate?: string | null;
   status: "PLANNED" | "IN_PROGRESS" | "COMPLETED";
 }) {
-  const session = await checkAuth(["TEACHER", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
-  
+  const session = await checkAuth([
+    "TEACHER",
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+  ]);
+
   const ncertReferenceVal = data.ncertReference || null;
   const objectivesVal = data.objectives || null;
   const plannedDateVal = data.plannedDate ? new Date(data.plannedDate) : null;
-  const completedDateVal = data.completedDate ? new Date(data.completedDate) : null;
+  const completedDateVal = data.completedDate
+    ? new Date(data.completedDate)
+    : null;
 
   if (data.id) {
     await db
@@ -478,10 +562,16 @@ export async function saveLessonPlan(data: {
       .set({
         title: data.title,
         chapterName: data.chapterName,
-        ...(ncertReferenceVal !== undefined ? { ncertReference: ncertReferenceVal } : {}),
+        ...(ncertReferenceVal !== undefined
+          ? { ncertReference: ncertReferenceVal }
+          : {}),
         ...(objectivesVal !== undefined ? { objectives: objectivesVal } : {}),
-        ...(plannedDateVal !== undefined ? { plannedDate: plannedDateVal } : {}),
-        ...(completedDateVal !== undefined ? { completedDate: completedDateVal } : {}),
+        ...(plannedDateVal !== undefined
+          ? { plannedDate: plannedDateVal }
+          : {}),
+        ...(completedDateVal !== undefined
+          ? { completedDate: completedDateVal }
+          : {}),
         status: data.status,
         updatedAt: new Date(),
       })

@@ -50,7 +50,9 @@ export function MeritListManager({
 
   // Get report cards with student info for selected class
   const classMeritList = initialReportCards
-    .filter((rc) => initialReportCards.some((x) => x.studentId === rc.studentId)) // Simple check
+    .filter((rc) =>
+      initialReportCards.some((x) => x.studentId === rc.studentId),
+    ) // Simple check
     .map((rc) => {
       const student = students.find((s) => s.id === rc.studentId);
       return {
@@ -81,7 +83,10 @@ export function MeritListManager({
       const res = await issueTopperCertificate(studentId, examId, rank);
       if (res.success && res.certificate) {
         setMessage(`✓ ${res.message}`);
-        setCertificates((prev) => [...prev, res.certificate as CertificateItem]);
+        setCertificates((prev) => [
+          ...prev,
+          res.certificate as CertificateItem,
+        ]);
       } else {
         setMessage(`✗ ${res.message}`);
       }
@@ -90,16 +95,19 @@ export function MeritListManager({
 
   const getCertForStudent = (studentId: string) => {
     return certificates.find(
-      (c) => c.studentId === studentId && c.remarks?.includes(examId)
+      (c) => c.studentId === studentId && c.remarks?.includes(examId),
     );
   };
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6 space-y-6">
       <div>
-        <h2 className="font-semibold text-lg">Merit List & Topper Certificates</h2>
+        <h2 className="font-semibold text-lg">
+          Merit List & Topper Certificates
+        </h2>
         <p className="text-sm text-gray-500">
-          Rank students based on their performance in the exam and award certificates of merit.
+          Rank students based on their performance in the exam and award
+          certificates of merit.
         </p>
       </div>
 
@@ -156,7 +164,8 @@ export function MeritListManager({
             {classMeritList.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  No ranked students. Click &quot;Calculate Class Ranks&quot; to compute rankings.
+                  No ranked students. Click &quot;Calculate Class Ranks&quot; to
+                  compute rankings.
                 </td>
               </tr>
             ) : (
@@ -173,11 +182,15 @@ export function MeritListManager({
                     <td className="px-4 py-3 font-semibold text-indigo-600">
                       {item.rank ? `#${item.rank}` : "—"}
                     </td>
-                    <td className="px-4 py-3 font-medium">{item.student?.name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {item.student?.name}
+                    </td>
                     <td className="px-4 py-3 text-gray-500">
                       {item.student?.admissionNumber}
                     </td>
-                    <td className="px-4 py-3 font-semibold">{item.overallGrade ?? "—"}</td>
+                    <td className="px-4 py-3 font-semibold">
+                      {item.overallGrade ?? "—"}
+                    </td>
                     <td className="px-4 py-3">
                       {cert ? (
                         <a
@@ -189,7 +202,9 @@ export function MeritListManager({
                         </a>
                       ) : canGetCert ? (
                         <button
-                          onClick={() => handleIssueCertificate(item.studentId, item.rank!)}
+                          onClick={() =>
+                            handleIssueCertificate(item.studentId, item.rank!)
+                          }
                           disabled={isPending}
                           className="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded"
                         >

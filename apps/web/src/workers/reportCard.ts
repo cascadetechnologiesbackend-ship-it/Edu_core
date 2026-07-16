@@ -31,22 +31,27 @@ export interface ReportCardJobPayload {
 
 // ─── Queue Definition ─────────────────────────────────────────────────────────
 // Export so API routes can enqueue jobs
-export const reportCardQueue = new Queue<ReportCardJobPayload>("report-card-generation", {
-  connection: {
-    host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-    port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-    password: process.env["REDIS_PASSWORD"] ?? undefined,
+export const reportCardQueue = new Queue<ReportCardJobPayload>(
+  "report-card-generation",
+  {
+    connection: {
+      host: process.env["REDIS_HOST"] ?? "127.0.0.1",
+      port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
+      password: process.env["REDIS_PASSWORD"] ?? undefined,
+    },
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 5000 },
+      removeOnComplete: { count: 100 },
+      removeOnFail: { count: 50 },
+    },
   },
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: "exponential", delay: 5000 },
-    removeOnComplete: { count: 100 },
-    removeOnFail: { count: 50 },
-  },
-});
+);
 
 // ─── Worker ───────────────────────────────────────────────────────────────────
-async function processReportCardJob(job: Job<ReportCardJobPayload>): Promise<void> {
+async function processReportCardJob(
+  job: Job<ReportCardJobPayload>,
+): Promise<void> {
   const { studentId, examId, schoolId, jobId } = job.data;
 
   // Mark job as processing
@@ -114,10 +119,13 @@ async function processReportCardJob(job: Job<ReportCardJobPayload>): Promise<voi
   const subjectResults = marks.map((m) => {
     const result = calculateGrade(
       {
-        marksObtained: m.marksObtained != null ? parseFloat(m.marksObtained) : null,
+        marksObtained:
+          m.marksObtained != null ? parseFloat(m.marksObtained) : null,
         maxMarks: parseFloat(m.maxMarks),
-        practicalMarks: m.practicalMarks != null ? parseFloat(m.practicalMarks) : null,
-        practicalMaxMarks: m.practicalMaxMarks != null ? parseFloat(m.practicalMaxMarks) : null,
+        practicalMarks:
+          m.practicalMarks != null ? parseFloat(m.practicalMarks) : null,
+        practicalMaxMarks:
+          m.practicalMaxMarks != null ? parseFloat(m.practicalMaxMarks) : null,
         isAbsent: m.isAbsent,
         isMedicalExempt: m.isMedicalExempt,
         isPracticalAbsent: m.isPracticalAbsent,
@@ -132,8 +140,10 @@ async function processReportCardJob(job: Job<ReportCardJobPayload>): Promise<voi
     result,
     maxMarks: parseFloat(m.maxMarks),
     marksObtained: m.marksObtained != null ? parseFloat(m.marksObtained) : null,
-    practicalMarks: m.practicalMarks != null ? parseFloat(m.practicalMarks) : null,
-    practicalMaxMarks: m.practicalMaxMarks != null ? parseFloat(m.practicalMaxMarks) : null,
+    practicalMarks:
+      m.practicalMarks != null ? parseFloat(m.practicalMarks) : null,
+    practicalMaxMarks:
+      m.practicalMaxMarks != null ? parseFloat(m.practicalMaxMarks) : null,
   }));
 
   const aggregate = aggregateSubjectGrades(aggregateInput, engineRules);
@@ -222,11 +232,15 @@ if (process.env["START_WORKERS"] === "true") {
   );
 
   worker.on("completed", (job) => {
-    workerLogger.info(`[ReportCardWorker] Job ${job.id} completed for student ${job.data.studentId}`);
+    workerLogger.info(
+      `[ReportCardWorker] Job ${job.id} completed for student ${job.data.studentId}`,
+    );
   });
 
   worker.on("failed", async (job, err) => {
-    workerLogger.error(`[ReportCardWorker] Job ${job?.id} failed: ${err.message}`);
+    workerLogger.error(
+      `[ReportCardWorker] Job ${job?.id} failed: ${err.message}`,
+    );
     if (job?.data.jobId) {
       await db
         .update(reportCardJobs)

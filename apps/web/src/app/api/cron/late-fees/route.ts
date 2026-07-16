@@ -9,29 +9,38 @@ export const POST = withCronAuth(async () => {
   const overdueInvoices = await db.query.feeInvoices.findMany({
     where: and(
       lt(feeInvoices.dueDate, new Date()),
-      eq(feeInvoices.status, "PENDING") // For simplicity, only apply to PENDING (can expand to PARTIAL later)
+      eq(feeInvoices.status, "PENDING"), // For simplicity, only apply to PENDING (can expand to PARTIAL later)
     ),
-    with: { feeStructure: true }
+    with: { feeStructure: true },
   });
 
   let updatedCount = 0;
 
   for (const invoice of overdueInvoices) {
     if (!invoice.feeStructure) continue;
-    
+
     const structure = invoice.feeStructure;
-    if (!structure.lateFeeType || !structure.lateFeeAmount || !structure.lateFeeStartAfterDays) {
+    if (
+      !structure.lateFeeType ||
+      !structure.lateFeeAmount ||
+      !structure.lateFeeStartAfterDays
+    ) {
       continue;
     }
 
     // Check if late fee grace period has expired
     const gracePeriodDate = new Date(invoice.dueDate);
-    gracePeriodDate.setDate(gracePeriodDate.getDate() + structure.lateFeeStartAfterDays);
+    gracePeriodDate.setDate(
+      gracePeriodDate.getDate() + structure.lateFeeStartAfterDays,
+    );
 
-    if (new Date() > gracePeriodDate && parseFloat(invoice.lateFeeAmount) === 0) {
+    if (
+      new Date() > gracePeriodDate &&
+      parseFloat(invoice.lateFeeAmount) === 0
+    ) {
       let lateFee = 0;
       const grossAmount = parseFloat(invoice.grossAmount);
-      
+
       if (structure.lateFeeType === "FLAT") {
         lateFee = parseFloat(structure.lateFeeAmount);
       } else if (structure.lateFeeType === "PERCENTAGE") {
@@ -41,7 +50,8 @@ export const POST = withCronAuth(async () => {
       const newNetAmount = parseFloat(invoice.netAmount) + lateFee;
       const newBalanceAmount = parseFloat(invoice.balanceAmount) + lateFee;
 
-      await db.update(feeInvoices)
+      await db
+        .update(feeInvoices)
         .set({
           lateFeeAmount: lateFee.toFixed(2),
           netAmount: newNetAmount.toFixed(2),
@@ -49,10 +59,13 @@ export const POST = withCronAuth(async () => {
           status: "OVERDUE",
         })
         .where(eq(feeInvoices.id, invoice.id));
-      
+
       updatedCount++;
     }
   }
 
-  return NextResponse.json({ success: true, message: `Applied late fees to ${updatedCount} invoices.` });
+  return NextResponse.json({
+    success: true,
+    message: `Applied late fees to ${updatedCount} invoices.`,
+  });
 });

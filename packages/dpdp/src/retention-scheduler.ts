@@ -25,7 +25,8 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
     purposeId: "academic_records",
     tableName: "mark_entries",
     retentionDays: 3650, // 10 years
-    description: "Student academic records retained 10 years after Class 10 completion (Board requirement)",
+    description:
+      "Student academic records retained 10 years after Class 10 completion (Board requirement)",
     retentionFromField: "created_at",
     retentionFromEvent: "class_10_completion_date",
     respectLegalHold: true,
@@ -84,7 +85,8 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
     purposeId: "admission_data",
     tableName: "admission_applications",
     retentionDays: 90,
-    description: "REJECTED admission applications deleted within 90 days of rejection",
+    description:
+      "REJECTED admission applications deleted within 90 days of rejection",
     retentionFromField: "rejected_at",
     respectLegalHold: false,
   },
@@ -92,7 +94,8 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
     purposeId: "audit_log",
     tableName: "audit_logs",
     retentionDays: 2555, // 7 years — NON-DELETABLE except via this scheduled purge
-    description: "Audit logs retained 7 years. Append-only; no manual deletion permitted.",
+    description:
+      "Audit logs retained 7 years. Append-only; no manual deletion permitted.",
     retentionFromField: "created_at",
     respectLegalHold: false, // Audit logs themselves cannot be placed on legal hold
   },
@@ -100,7 +103,8 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
     purposeId: "consent",
     tableName: "consent_records",
     retentionDays: 1095, // duration of processing + 3 years
-    description: "Consent records retained for duration of processing plus 3 years",
+    description:
+      "Consent records retained for duration of processing plus 3 years",
     retentionFromField: "withdrawn_at",
     respectLegalHold: true,
   },
@@ -119,19 +123,19 @@ export interface RetentionJobDefinition {
  * BullMQ cron job definitions for data retention.
  * Workers are registered in apps/web/src/server/jobs/retention-workers.ts
  */
-export const RETENTION_JOB_DEFINITIONS: readonly RetentionJobDefinition[] = RETENTION_POLICIES.map(
-  (policy) => ({
+export const RETENTION_JOB_DEFINITIONS: readonly RetentionJobDefinition[] =
+  RETENTION_POLICIES.map((policy) => ({
     jobName: `retention:${policy.tableName}`,
     // Run at 2 AM IST (20:30 UTC previous day) — low-traffic window
     cronExpression: "30 20 * * *",
     policy,
     description: policy.description,
-  })
-);
+  }));
 
 // ─── Deletion Workflow Phases ─────────────────────────────────────────────────
 
-export type DeletionPhase = "SOFT_DELETE" | "REVIEW_PENDING" | "HARD_DELETE" | "LEGAL_HOLD";
+export type DeletionPhase =
+  "SOFT_DELETE" | "REVIEW_PENDING" | "HARD_DELETE" | "LEGAL_HOLD";
 
 export interface DeletionWorkflowState {
   recordId: string;

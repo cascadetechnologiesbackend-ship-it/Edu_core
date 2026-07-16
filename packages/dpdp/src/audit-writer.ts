@@ -3,7 +3,16 @@
 // DPDP Act 2023 Section 8(5) — Security safeguards mandate audit trails.
 // This module defines the interface; the DB implementation is in apps/web.
 
-export type AuditAction = "READ" | "WRITE" | "DELETE" | "EXPORT" | "CONSENT_GRANT" | "CONSENT_WITHDRAW" | "LOGIN" | "LOGOUT" | "FAILED_LOGIN";
+export type AuditAction =
+  | "READ"
+  | "WRITE"
+  | "DELETE"
+  | "EXPORT"
+  | "CONSENT_GRANT"
+  | "CONSENT_WITHDRAW"
+  | "LOGIN"
+  | "LOGOUT"
+  | "FAILED_LOGIN";
 
 export type AuditTableName =
   | "students"
@@ -86,13 +95,17 @@ export const PII_FIELD_NAMES = new Set([
  * Safe to call on any payload — pure function, no side effects.
  */
 export function redactPii(
-  obj: Record<string, unknown>
+  obj: Record<string, unknown>,
 ): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (PII_FIELD_NAMES.has(key)) {
       redacted[key] = "[REDACTED]";
-    } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    } else if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
       redacted[key] = redactPii(value as Record<string, unknown>);
     } else {
       redacted[key] = value;
@@ -121,7 +134,7 @@ export interface StructuredLogEntry {
 export function createLogEntry(
   level: StructuredLogEntry["level"],
   message: string,
-  context: Record<string, unknown> = {}
+  context: Record<string, unknown> = {},
 ): StructuredLogEntry {
   // Redact any accidentally included PII
   const safeContext = redactPii(context);

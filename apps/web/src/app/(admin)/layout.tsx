@@ -21,7 +21,7 @@ export default async function AdminLayout({
   await getActiveTenant();
 
   const session = await auth();
-  
+
   if (!session?.user) {
     redirect("/login");
   }
@@ -54,4 +54,3 @@ export default async function AdminLayout({
     </div>
   );
 }
-

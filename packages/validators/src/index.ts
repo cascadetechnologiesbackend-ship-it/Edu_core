@@ -15,7 +15,10 @@ export const dateTimeSchema = z.string().datetime({ offset: true });
 
 export const indianMobileSchema = z
   .string()
-  .regex(/^[6-9]\d{9}$/, "Invalid Indian mobile number (must be 10 digits starting with 6-9)");
+  .regex(
+    /^[6-9]\d{9}$/,
+    "Invalid Indian mobile number (must be 10 digits starting with 6-9)",
+  );
 
 export const aadhaarLast4Schema = z
   .string()
@@ -314,7 +317,7 @@ export const createFeeStructureSchema = z.object({
         amount: z.number().positive(),
         isTaxable: z.boolean().default(false),
         taxPercentage: z.number().min(0).max(28).default(0),
-      })
+      }),
     )
     .min(1),
 });
@@ -352,7 +355,7 @@ export const markAttendanceSchema = z.object({
         studentId: uuidSchema,
         status: z.enum(ATTENDANCE_STATUS),
         remarks: z.string().max(200).optional(),
-      })
+      }),
     )
     .min(1),
 });
@@ -380,7 +383,7 @@ export const markEntrySchema = z.object({
         marksObtained: z.number().min(0),
         isAbsent: z.boolean().default(false),
         remarks: z.string().max(200).optional(),
-      })
+      }),
     )
     .min(1),
 });
@@ -475,7 +478,11 @@ export const ALLOWED_DOCUMENT_TYPES = [
 export const fileUploadRequestSchema = z.object({
   fileName: z.string().min(1).max(255),
   mimeType: z.enum(ALLOWED_DOCUMENT_TYPES),
-  fileSizeBytes: z.number().int().positive().max(10 * 1024 * 1024), // 10MB
+  fileSizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(10 * 1024 * 1024), // 10MB
   purpose: z.string().max(100),
 });
 

@@ -3,7 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveBusPass } from "./actions";
-import { Plus, QrCode, ShieldAlert, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Plus,
+  QrCode,
+  ShieldAlert,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 type RouteStop = {
   id: string;
@@ -59,7 +66,10 @@ export default function BusPassesTab({
     routeId: "",
     routeStopId: "",
     validFrom: new Date().toISOString().split("T")[0] || "",
-    validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] || "",
+    validTo:
+      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0] || "",
   });
 
   const selectedStudent = students.find((s) => s.id === formData.studentId);
@@ -72,7 +82,10 @@ export default function BusPassesTab({
       routeId: routes[0]?.id || "",
       routeStopId: routes[0]?.stops[0]?.id || "",
       validFrom: new Date().toISOString().split("T")[0] || "",
-      validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] || "",
+      validTo:
+        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0] || "",
     });
     setErrorMsg("");
     setSuccessMsg("");
@@ -95,7 +108,9 @@ export default function BusPassesTab({
 
     // Extra safeguard: UI prevention
     if (selectedStudent && !selectedStudent.hasTransportConsent) {
-      setErrorMsg("DPDP Compliance Block: Verifiable parental consent is missing or withdrawn for transport data processing.");
+      setErrorMsg(
+        "DPDP Compliance Block: Verifiable parental consent is missing or withdrawn for transport data processing.",
+      );
       return;
     }
 
@@ -118,7 +133,9 @@ export default function BusPassesTab({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Student Bus Passes Directory</h2>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+          Student Bus Passes Directory
+        </h2>
         {isAdmin && (
           <button
             onClick={handleOpenForm}
@@ -133,7 +150,9 @@ export default function BusPassesTab({
         {passes.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-gray-500">
             <QrCode className="w-12 h-12 mb-3 text-gray-300 animate-pulse" />
-            <p className="font-semibold text-sm">No student bus passes generated yet.</p>
+            <p className="font-semibold text-sm">
+              No student bus passes generated yet.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -149,15 +168,26 @@ export default function BusPassesTab({
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                 {passes.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{p.passNumber}</td>
-                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{p.studentName}</td>
+                  <tr
+                    key={p.id}
+                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                  >
+                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                      {p.passNumber}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                      {p.studentName}
+                    </td>
                     <td className="px-6 py-4">
                       <div>{p.routeName}</div>
-                      <div className="text-xs text-gray-400">Stop: {p.stopName}</div>
+                      <div className="text-xs text-gray-400">
+                        Stop: {p.stopName}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-500">
-                      <div>From: {new Date(p.validFrom).toLocaleDateString()}</div>
+                      <div>
+                        From: {new Date(p.validFrom).toLocaleDateString()}
+                      </div>
                       <div>To: {new Date(p.validTo).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-4">
@@ -165,7 +195,10 @@ export default function BusPassesTab({
                         <div className="bg-gray-100 dark:bg-slate-800 p-2 rounded-lg border border-gray-200 dark:border-slate-700 flex items-center justify-center">
                           <QrCode className="w-8 h-8 text-primary" />
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono select-all max-w-[200px] truncate" title={p.qrCodeData}>
+                        <div
+                          className="text-[10px] text-gray-400 font-mono select-all max-w-[200px] truncate"
+                          title={p.qrCodeData}
+                        >
                           {p.qrCodeData}
                         </div>
                       </div>
@@ -184,7 +217,9 @@ export default function BusPassesTab({
             onSubmit={handleSubmit}
             className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4 shadow-xl"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Map Student & Issue Pass</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Map Student & Issue Pass
+            </h3>
 
             {errorMsg && (
               <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 p-3 rounded-lg flex items-start gap-2 text-xs text-red-800 dark:text-red-400">
@@ -201,10 +236,14 @@ export default function BusPassesTab({
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Student Name *</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Student Name *
+              </label>
               <select
                 value={formData.studentId}
-                onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, studentId: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 required
               >
@@ -242,7 +281,9 @@ export default function BusPassesTab({
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Route *</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Route *
+              </label>
               <select
                 value={formData.routeId}
                 onChange={(e) => handleRouteSelectChange(e.target.value)}
@@ -258,10 +299,14 @@ export default function BusPassesTab({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Route Stop *</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Route Stop *
+              </label>
               <select
                 value={formData.routeStopId}
-                onChange={(e) => setFormData({ ...formData, routeStopId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, routeStopId: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 required
               >
@@ -275,22 +320,30 @@ export default function BusPassesTab({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valid From *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Valid From *
+                </label>
                 <input
                   type="date"
                   required
                   value={formData.validFrom}
-                  onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, validFrom: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valid To *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Valid To *
+                </label>
                 <input
                   type="date"
                   required
                   value={formData.validTo}
-                  onChange={(e) => setFormData({ ...formData, validTo: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, validTo: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
@@ -306,10 +359,15 @@ export default function BusPassesTab({
               </button>
               <button
                 type="submit"
-                disabled={isPending || (selectedStudent && !selectedStudent.hasTransportConsent)}
+                disabled={
+                  isPending ||
+                  (selectedStudent && !selectedStudent.hasTransportConsent)
+                }
                 className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
               >
-                {isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                {isPending && (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                )}
                 Map & Issue Pass
               </button>
             </div>

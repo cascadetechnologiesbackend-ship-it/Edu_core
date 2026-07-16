@@ -4,7 +4,8 @@ import { desc, count, eq } from "drizzle-orm";
 import Link from "next/link";
 import crypto from "crypto";
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
 
 function decryptData(encryptedText: string | null) {
   if (!encryptedText) return null;
@@ -13,10 +14,14 @@ function decryptData(encryptedText: string | null) {
     const ivStr = parts[0];
     const encryptedStr = parts[1];
     if (!ivStr || !encryptedStr) return encryptedText;
-  
+
     const iv = Buffer.from(ivStr, "hex");
     const encrypted = Buffer.from(encryptedStr, "hex");
-    const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), iv);
+    const decipher = crypto.createDecipheriv(
+      "aes-256-cbc",
+      Buffer.from(ENCRYPTION_KEY, "hex"),
+      iv,
+    );
     let decrypted = decipher.update(encrypted);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
@@ -31,8 +36,13 @@ export default async function AdmissionsDashboard() {
     limit: 50,
   });
 
-  const totalPromise = db.select({ value: count() }).from(admissionApplications);
-  const rtePromise = db.select({ value: count() }).from(admissionApplications).where(eq(admissionApplications.isRteApplicant, true));
+  const totalPromise = db
+    .select({ value: count() })
+    .from(admissionApplications);
+  const rtePromise = db
+    .select({ value: count() })
+    .from(admissionApplications)
+    .where(eq(admissionApplications.isRteApplicant, true));
 
   const [applications, [totalResult], [rteResult]] = await Promise.all([
     applicationsPromise,
@@ -42,14 +52,19 @@ export default async function AdmissionsDashboard() {
 
   const totalApps = totalResult?.value ?? 0;
   const rteApps = rteResult?.value ?? 0;
-  const rtePercentage = totalApps > 0 ? Math.round((rteApps / totalApps) * 100) : 0;
+  const rtePercentage =
+    totalApps > 0 ? Math.round((rteApps / totalApps) * 100) : 0;
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Admissions</h1>
-          <p className="text-gray-500 mt-1">Manage student applications and enrolments.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Admissions
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Manage student applications and enrolments.
+          </p>
         </div>
         <Link href="/admissions/new">
           <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors">
@@ -60,19 +75,36 @@ export default async function AdmissionsDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-slate-900 rounded-lg p-6 shadow border border-gray-200 dark:border-slate-800">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Applications</h3>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalApps}</p>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Total Applications
+          </h3>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+            {totalApps}
+          </p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-lg p-6 shadow border border-gray-200 dark:border-slate-800">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">RTE 25% Quota Tracker</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            RTE 25% Quota Tracker
+          </h3>
           <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{rteApps}</p>
-            <p className="text-sm text-gray-500 font-medium">({rtePercentage}% of total)</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+              {rteApps}
+            </p>
+            <p className="text-sm text-gray-500 font-medium">
+              ({rtePercentage}% of total)
+            </p>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4 dark:bg-gray-700 overflow-hidden">
-            <div className={`h-2.5 rounded-full ${rtePercentage >= 25 ? 'bg-green-500' : 'bg-blue-600'}`} style={{ width: `${Math.min(rtePercentage, 100)}%` }}></div>
+            <div
+              className={`h-2.5 rounded-full ${rtePercentage >= 25 ? "bg-green-500" : "bg-blue-600"}`}
+              style={{ width: `${Math.min(rtePercentage, 100)}%` }}
+            ></div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">{rtePercentage >= 25 ? 'Quota met or exceeded' : 'Below 25% mandate'}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {rtePercentage >= 25
+              ? "Quota met or exceeded"
+              : "Below 25% mandate"}
+          </p>
         </div>
       </div>
 
@@ -97,16 +129,30 @@ export default async function AdmissionsDashboard() {
               </tr>
             ) : (
               applications.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr
+                  key={app.id}
+                  className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
                   <td className="px-6 py-4 font-medium">
-                    <Link href={`/admissions/${app.id}`} className="text-blue-600 hover:underline">
+                    <Link
+                      href={`/admissions/${app.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
                       {app.applicationNumber}
                     </Link>
                   </td>
-                  <td className="px-6 py-4">{decryptData(app.applicantNameEncrypted)}</td>
-                  <td className="px-6 py-4">{app.gradeAppliedFor.replace('_', ' ')}</td>
-                  <td className="px-6 py-4">{decryptData(app.primaryContactMobileEncrypted)}</td>
-                  <td className="px-6 py-4">{app.createdAt?.toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    {decryptData(app.applicantNameEncrypted)}
+                  </td>
+                  <td className="px-6 py-4">
+                    {app.gradeAppliedFor.replace("_", " ")}
+                  </td>
+                  <td className="px-6 py-4">
+                    {decryptData(app.primaryContactMobileEncrypted)}
+                  </td>
+                  <td className="px-6 py-4">
+                    {app.createdAt?.toLocaleDateString()}
+                  </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
                       {app.status}

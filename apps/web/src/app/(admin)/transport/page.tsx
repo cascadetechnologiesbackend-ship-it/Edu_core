@@ -1,7 +1,14 @@
 import { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { vehicles, routes, routeStops, studentBusPasses, students, consentRecords } from "@/db/schema";
+import {
+  vehicles,
+  routes,
+  routeStops,
+  studentBusPasses,
+  students,
+  consentRecords,
+} from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import TransportClientTabs from "./TransportClientTabs";
@@ -16,7 +23,12 @@ export default async function TransportPage() {
   const role = session?.user?.role || "STUDENT";
   const userId = session?.user?.id || "";
   const schoolId = session?.user?.schoolId || "";
-  const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TRANSPORT_MANAGER"].includes(role);
+  const isAdmin = [
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+    "TRANSPORT_MANAGER",
+  ].includes(role);
 
   // 1. Fetch vehicles and decrypt PII inline (avoids server action auth context issue)
   const rawVehicles = await db.query.vehicles.findMany({
@@ -29,8 +41,12 @@ export default async function TransportPage() {
     driverName: decryptData(v.driverNameEncrypted) || "",
     driverLicence: decryptData(v.driverLicenceEncrypted) || "",
     driverMobile: decryptData(v.driverMobileEncrypted) || "",
-    conductorName: v.conductorNameEncrypted ? decryptData(v.conductorNameEncrypted) || "" : "",
-    conductorMobile: v.conductorMobileEncrypted ? decryptData(v.conductorMobileEncrypted) || "" : "",
+    conductorName: v.conductorNameEncrypted
+      ? decryptData(v.conductorNameEncrypted) || ""
+      : "",
+    conductorMobile: v.conductorMobileEncrypted
+      ? decryptData(v.conductorMobileEncrypted) || ""
+      : "",
   }));
 
   // 2. Fetch routes with stops and vehicles
@@ -76,7 +92,7 @@ export default async function TransportPage() {
       eq(consentRecords.schoolId, schoolId),
       eq(consentRecords.purposeId, "transport"),
       eq(consentRecords.granted, true),
-      isNull(consentRecords.withdrawnAt)
+      isNull(consentRecords.withdrawnAt),
     ),
   });
 
@@ -95,7 +111,8 @@ export default async function TransportPage() {
           Transport Management
         </h1>
         <p className="text-gray-500 mt-1">
-          Monitor vehicles, assign bus passes under DPDP consent, and track route progress.
+          Monitor vehicles, assign bus passes under DPDP consent, and track
+          route progress.
         </p>
       </div>
 
@@ -111,4 +128,3 @@ export default async function TransportPage() {
     </div>
   );
 }
-

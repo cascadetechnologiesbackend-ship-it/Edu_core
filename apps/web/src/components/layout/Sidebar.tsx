@@ -89,18 +89,47 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
       case "/hr":
       case "/fees":
       case "/settings":
-        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER", "ACCOUNTANT"].includes(role);
+        return [
+          "SUPER_ADMIN",
+          "SCHOOL_ADMIN",
+          "PRINCIPAL",
+          "HR_MANAGER",
+          "ACCOUNTANT",
+        ].includes(role);
       case "/academics":
       case "/attendance":
-        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"].includes(role);
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"].includes(
+          role,
+        );
       case "/exams":
-        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTANT"].includes(role);
+        return [
+          "SUPER_ADMIN",
+          "SCHOOL_ADMIN",
+          "PRINCIPAL",
+          "TEACHER",
+          "ACCOUNTANT",
+        ].includes(role);
       case "/library":
-        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"].includes(role);
+        return [
+          "SUPER_ADMIN",
+          "SCHOOL_ADMIN",
+          "PRINCIPAL",
+          "LIBRARIAN",
+        ].includes(role);
       case "/transport":
-        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TRANSPORT_MANAGER"].includes(role);
+        return [
+          "SUPER_ADMIN",
+          "SCHOOL_ADMIN",
+          "PRINCIPAL",
+          "TRANSPORT_MANAGER",
+        ].includes(role);
       case "/dpdp":
-        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"].includes(role);
+        return [
+          "SUPER_ADMIN",
+          "SCHOOL_ADMIN",
+          "PRINCIPAL",
+          "HR_MANAGER",
+        ].includes(role);
       case "/analytics":
       case "/communication":
       case "/inventory":
@@ -120,7 +149,7 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
     <aside
       className={cn(
         "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-16" : "w-64",
       )}
       aria-label="Main navigation"
     >
@@ -142,7 +171,10 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6" role="navigation">
+      <nav
+        className="flex-1 overflow-y-auto py-4 px-2 space-y-6"
+        role="navigation"
+      >
         {filteredGroups.map((group) => (
           <div key={group.group}>
             {!collapsed && (
@@ -164,7 +196,7 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
                       className={cn(
                         "sidebar-nav-item",
                         isActive && "active",
-                        collapsed && "justify-center px-2"
+                        collapsed && "justify-center px-2",
                       )}
                       aria-current={isActive ? "page" : undefined}
                       title={collapsed ? item.label : undefined}

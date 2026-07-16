@@ -71,7 +71,7 @@ export function safeParseJson<T>(json: string): T | null {
 export function generateAdmissionNumber(
   year: number,
   gradeCode: string,
-  sequence: number
+  sequence: number,
 ): string {
   const seq = String(sequence).padStart(3, "0");
   return `${year}/${gradeCode}/${seq}`;
@@ -160,7 +160,7 @@ export const PROFESSIONAL_TAX_SLABS: Record<
 export function calculateProfessionalTax(
   state: string,
   grossSalary: number,
-  isFebruary: boolean = false
+  isFebruary: boolean = false,
 ): number {
   const slabs = PROFESSIONAL_TAX_SLABS[state] ?? PROFESSIONAL_TAX_SLABS["DL"];
   if (!slabs) return 0;
@@ -168,7 +168,7 @@ export function calculateProfessionalTax(
   const slab = slabs.find(
     (s) =>
       grossSalary >= s.minSalary &&
-      (s.maxSalary === null || grossSalary <= s.maxSalary)
+      (s.maxSalary === null || grossSalary <= s.maxSalary),
   );
 
   if (!slab) return 0;

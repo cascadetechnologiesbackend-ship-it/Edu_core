@@ -15,7 +15,11 @@ export async function getCached<T>(key: string): Promise<T | null> {
   }
 }
 
-export async function setCached(key: string, value: any, ttlSeconds = 3600): Promise<void> {
+export async function setCached(
+  key: string,
+  value: any,
+  ttlSeconds = 3600,
+): Promise<void> {
   try {
     await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
   } catch (error) {

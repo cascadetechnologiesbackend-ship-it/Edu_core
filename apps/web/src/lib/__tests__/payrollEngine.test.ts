@@ -13,7 +13,7 @@ describe("SchoolMitra ERP Payroll Engine Calculations", () => {
     it("sums Basic, HRA%, DA% and other allowances correctly", () => {
       const result = calculateGrossComponents({
         basicSalary: 20000,
-        daPercent: 10,  // 2,000
+        daPercent: 10, // 2,000
         hraPercent: 40, // 8,000
         otherAllowances: [
           { name: "Special Allowance", amount: 3000 },
@@ -57,19 +57,34 @@ describe("SchoolMitra ERP Payroll Engine Calculations", () => {
 
   describe("Provident Fund", () => {
     it("caps PF at 15,000 basic + DA standard limit", () => {
-      const { employeePf, employerPf } = calculateProvidentFund(25000, 12, 12, true);
+      const { employeePf, employerPf } = calculateProvidentFund(
+        25000,
+        12,
+        12,
+        true,
+      );
       expect(employeePf).toBe(1800); // 12% of 15,000
       expect(employerPf).toBe(1800);
     });
 
     it("calculates PF on full salary if capping is disabled", () => {
-      const { employeePf, employerPf } = calculateProvidentFund(20000, 12, 12, false);
+      const { employeePf, employerPf } = calculateProvidentFund(
+        20000,
+        12,
+        12,
+        false,
+      );
       expect(employeePf).toBe(2400); // 12% of 20,000
       expect(employerPf).toBe(2400);
     });
 
     it("calculates exact amount if wages are below 15,000 cap limit", () => {
-      const { employeePf, employerPf } = calculateProvidentFund(12000, 12, 12, true);
+      const { employeePf, employerPf } = calculateProvidentFund(
+        12000,
+        12,
+        12,
+        true,
+      );
       expect(employeePf).toBe(1440); // 12% of 12,000
       expect(employerPf).toBe(1440);
     });

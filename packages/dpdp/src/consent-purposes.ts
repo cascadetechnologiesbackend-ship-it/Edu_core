@@ -26,7 +26,8 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "प्रवेश संसाधित करने और आधिकारिक प्रवेश संख्या उत्पन्न करने के लिए हम आपके बच्चे का नाम, जन्म तिथि और पिछले स्कूल का विवरण एकत्र करते हैं।",
     mandatory: true,
-    legalBasis: "DPDP Act 2023 Section 6 — Processing for legitimate purpose (admission)",
+    legalBasis:
+      "DPDP Act 2023 Section 6 — Processing for legitimate purpose (admission)",
     dataCategories: ["name", "date_of_birth", "address", "previous_school"],
     retentionDays: 3650, // 10 years after Class 10 completion
   },
@@ -39,8 +40,14 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "रिपोर्ट कार्ड बनाने और स्कूल बोर्ड के अनुसार शैक्षणिक प्रगति को ट्रैक करने के लिए हम आपके बच्चे के अंक, ग्रेड और शिक्षक टिप्पणियाँ दर्ज करते हैं।",
     mandatory: true,
-    legalBasis: "DPDP Act 2023 Section 6 — Processing for legitimate purpose (education records)",
-    dataCategories: ["marks", "grades", "attendance_summary", "teacher_remarks"],
+    legalBasis:
+      "DPDP Act 2023 Section 6 — Processing for legitimate purpose (education records)",
+    dataCategories: [
+      "marks",
+      "grades",
+      "attendance_summary",
+      "teacher_remarks",
+    ],
     retentionDays: 3650,
   },
   {
@@ -65,8 +72,14 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "स्कूल परिसर में आपके बच्चे की सुरक्षा के लिए हम एलर्जी जानकारी, विकलांगता विवरण और आपातकालीन चिकित्सा संपर्क संग्रहीत करते हैं।",
     mandatory: false,
-    legalBasis: "DPDP Act 2023 Section 7(a) — Consent for sensitive personal data",
-    dataCategories: ["allergies", "disabilities", "emergency_contacts", "medications"],
+    legalBasis:
+      "DPDP Act 2023 Section 7(a) — Consent for sensitive personal data",
+    dataCategories: [
+      "allergies",
+      "disabilities",
+      "emergency_contacts",
+      "medications",
+    ],
     retentionDays: 1095, // 3 years after leaving
   },
   {
@@ -78,7 +91,8 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "स्कूल अभिलेख और संचार के लिए हम स्कूल कार्यक्रमों, खेल दिवस या सांस्कृतिक कार्यक्रमों के दौरान आपके बच्चे की तस्वीरें या वीडियो ले सकते हैं।",
     mandatory: false,
-    legalBasis: "DPDP Act 2023 Section 9 — Children's data requires explicit consent",
+    legalBasis:
+      "DPDP Act 2023 Section 9 — Children's data requires explicit consent",
     dataCategories: ["photographs", "videos"],
     retentionDays: 1095,
   },
@@ -91,7 +105,8 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "यदि आपका बच्चा स्कूल परिवहन का उपयोग करता है, तो हम उनके बस मार्ग और स्टॉप असाइनमेंट को दर्ज करते हैं। जीपीएस ट्रैकिंग डेटा केवल वास्तविक समय सुरक्षा निगरानी के लिए उपयोग किया जाता है।",
     mandatory: false,
-    legalBasis: "DPDP Act 2023 Section 7(a) — Consent for location data processing",
+    legalBasis:
+      "DPDP Act 2023 Section 7(a) — Consent for location data processing",
     dataCategories: ["route_assignment", "gps_coordinates", "timestamps"],
     retentionDays: 365,
   },
@@ -117,7 +132,8 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "यदि आपका स्कूल बायोमेट्रिक डिवाइस का उपयोग करता है, तो आपके बच्चे का फिंगरप्रिंट टेम्पलेट केवल डिवाइस पर संग्रहीत किया जाएगा और केवल उपस्थिति अंकन के लिए उपयोग किया जाएगा।",
     mandatory: false,
-    legalBasis: "DPDP Act 2023 Section 7(a) — Explicit consent for biometric data",
+    legalBasis:
+      "DPDP Act 2023 Section 7(a) — Explicit consent for biometric data",
     dataCategories: ["fingerprint_template"],
     retentionDays: 365,
   },
@@ -130,7 +146,8 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
     descriptionHindi:
       "कुछ शैक्षिक सुविधाओं के लिए अनुमोदित तृतीय-पक्ष एप्लिकेशन के साथ सीमित डेटा साझा करने की आवश्यकता हो सकती है। आपकी स्पष्ट सहमति के बिना कोई डेटा साझा नहीं किया जाता।",
     mandatory: false,
-    legalBasis: "DPDP Act 2023 Section 6 + 8(7) — Disclosure to Data Processors",
+    legalBasis:
+      "DPDP Act 2023 Section 6 + 8(7) — Disclosure to Data Processors",
     dataCategories: ["name", "grade", "performance_summary"],
     retentionDays: 365,
   },
@@ -178,7 +195,7 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
 // ─── Lookup helpers ───────────────────────────────────────────────────────────
 
 export const MANDATORY_PURPOSE_IDS = CONSENT_PURPOSES.filter(
-  (p) => p.mandatory
+  (p) => p.mandatory,
 ).map((p) => p.id) as ReadonlyArray<ConsentPurposeId>;
 
 export function getConsentPurpose(id: ConsentPurposeId): ConsentPurpose {

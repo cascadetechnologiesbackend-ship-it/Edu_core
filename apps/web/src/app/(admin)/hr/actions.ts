@@ -32,8 +32,14 @@ export async function revealStaffPii(staffId: string, field: "pan" | "bank") {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
-    if (session.user.role !== "HR_MANAGER" && session.user.role !== "SUPER_ADMIN") {
-      return { success: false, message: "Access denied: HR Manager role required" };
+    if (
+      session.user.role !== "HR_MANAGER" &&
+      session.user.role !== "SUPER_ADMIN"
+    ) {
+      return {
+        success: false,
+        message: "Access denied: HR Manager role required",
+      };
     }
 
     const staffRecord = await db.query.staff.findFirst({
@@ -85,7 +91,13 @@ const CreateStaffSchema = z.object({
   employeeCode: z.string().min(2),
   departmentId: z.string().uuid(),
   designationId: z.string().uuid(),
-  contractType: z.enum(["PERMANENT", "PROBATION", "CONTRACTUAL", "PART_TIME", "GUEST_FACULTY"]),
+  contractType: z.enum([
+    "PERMANENT",
+    "PROBATION",
+    "CONTRACTUAL",
+    "PART_TIME",
+    "GUEST_FACULTY",
+  ]),
   joiningDate: z.string(),
   aadhaarLast4: z.string().length(4),
   pan: z.string().optional(),
@@ -107,7 +119,8 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     if (!school) return { success: false, message: "School not configured" };
 
     // Create user login credential first
-    const dummyPasswordHash = "$2a$12$5IoYcudrg1ffKr7WS8sKVO3Xe./e.J7LaHap2qSMFpTmQgo9otUCm"; // schoolmitra_dev
+    const dummyPasswordHash =
+      "$2a$12$5IoYcudrg1ffKr7WS8sKVO3Xe./e.J7LaHap2qSMFpTmQgo9otUCm"; // schoolmitra_dev
     const [newUser] = await db
       .insert(users)
       .values({
@@ -121,7 +134,8 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       })
       .returning();
 
-    if (!newUser) return { success: false, message: "Failed to create user credential" };
+    if (!newUser)
+      return { success: false, message: "Failed to create user credential" };
 
     // Bind Teacher or Staff role
     const staffRole = await db.query.roles.findFirst({
@@ -155,7 +169,9 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       aadhaarLast4: parsed.aadhaarLast4,
       panEncrypted: parsed.pan ? encryptData(parsed.pan) : null,
       bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName) : null,
-      bankAccountEncrypted: parsed.bankAccount ? encryptData(parsed.bankAccount) : null,
+      bankAccountEncrypted: parsed.bankAccount
+        ? encryptData(parsed.bankAccount)
+        : null,
       bankIfscEncrypted: parsed.bankIfsc ? encryptData(parsed.bankIfsc) : null,
       qualification: parsed.qualification || null,
       experience: parsed.experience || null,
@@ -209,7 +225,8 @@ export async function createLeaveRequest(input: {
       where: eq(staff.id, input.staffId),
     });
 
-    if (!staffRecord) return { success: false, message: "Staff member not found" };
+    if (!staffRecord)
+      return { success: false, message: "Staff member not found" };
 
     await db.insert(leaveRequests).values({
       schoolId: staffRecord.schoolId,
@@ -231,7 +248,12 @@ export async function createLeaveRequest(input: {
   }
 }
 
-export async function approveLeaveRequest(id: string, step: "HOD" | "HR" | "PRINCIPAL", approve: boolean, rejectionReason?: string) {
+export async function approveLeaveRequest(
+  id: string,
+  step: "HOD" | "HR" | "PRINCIPAL",
+  approve: boolean,
+  rejectionReason?: string,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
@@ -274,7 +296,7 @@ export async function approveLeaveRequest(id: string, step: "HOD" | "HR" | "PRIN
               where: and(
                 eq(leaveBalances.staffId, request.staffId),
                 eq(leaveBalances.leaveType, leaveTypeRecord.code),
-                eq(leaveBalances.academicYearId, activeYear.id)
+                eq(leaveBalances.academicYearId, activeYear.id),
               ),
             });
 
@@ -294,7 +316,10 @@ export async function approveLeaveRequest(id: string, step: "HOD" | "HR" | "PRIN
       }
     }
 
-    await db.update(leaveRequests).set(updateValues).where(eq(leaveRequests.id, id));
+    await db
+      .update(leaveRequests)
+      .set(updateValues)
+      .where(eq(leaveRequests.id, id));
 
     revalidatePath("/hr/leaves");
     return { success: true };
@@ -345,7 +370,12 @@ export async function createSalaryTemplate(input: {
   }
 }
 
-export async function associateSalaryTemplate(staffId: string, templateId: string, baseGrossSalary: number, monthlyTds = 0) {
+export async function associateSalaryTemplate(
+  staffId: string,
+  templateId: string,
+  baseGrossSalary: number,
+  monthlyTds = 0,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
@@ -356,10 +386,13 @@ export async function associateSalaryTemplate(staffId: string, templateId: strin
 
     if (!template) return { success: false, message: "Template not found" };
 
-    const basicSalary = (baseGrossSalary * parseFloat(template.basicPercent)) / 100;
+    const basicSalary =
+      (baseGrossSalary * parseFloat(template.basicPercent)) / 100;
 
     // Delete existing salaryComponents
-    await db.delete(salaryComponents).where(eq(salaryComponents.staffId, staffId));
+    await db
+      .delete(salaryComponents)
+      .where(eq(salaryComponents.staffId, staffId));
 
     await db.insert(salaryComponents).values({
       schoolId: template.schoolId,
@@ -470,7 +503,8 @@ export async function runPayrollForMonth(month: string) {
       where: eq(academicYears.isActive, true),
     });
 
-    if (!activeYear) return { success: false, message: "Active Academic Year not found" };
+    if (!activeYear)
+      return { success: false, message: "Active Academic Year not found" };
 
     // Get all staff
     const allStaff = await db.query.staff.findMany({
@@ -495,7 +529,8 @@ export async function runPayrollForMonth(month: string) {
       })
       .returning();
 
-    if (!run) return { success: false, message: "Failed to create payroll run" };
+    if (!run)
+      return { success: false, message: "Failed to create payroll run" };
 
     let totalGrossSum = 0;
     let totalDeductionsSum = 0;
@@ -516,7 +551,10 @@ export async function runPayrollForMonth(month: string) {
       });
 
       // Sum of LWP days
-      const approvedLwpDays = lwpLeaves.reduce((acc, curr) => acc + parseFloat(curr.totalDays), 0);
+      const approvedLwpDays = lwpLeaves.reduce(
+        (acc, curr) => acc + parseFloat(curr.totalDays),
+        0,
+      );
 
       // Query staff attendance for unauthorised absences
       const [yearStr, monthStr] = month.split("-");
@@ -529,11 +567,13 @@ export async function runPayrollForMonth(month: string) {
         where: and(
           eq(staffAttendance.staffId, s.id),
           gte(staffAttendance.attendanceDate, startDate),
-          lte(staffAttendance.attendanceDate, endDate)
+          lte(staffAttendance.attendanceDate, endDate),
         ),
       });
 
-      const absentDays = attendanceRecords.filter((r) => r.status === "ABSENT").length;
+      const absentDays = attendanceRecords.filter(
+        (r) => r.status === "ABSENT",
+      ).length;
       const totalDeductibleDays = approvedLwpDays + absentDays;
 
       // Get active loan
@@ -544,7 +584,9 @@ export async function runPayrollForMonth(month: string) {
         daysInMonth,
         monthlyTdsAmount: parseFloat(activeSalary.monthlyTdsAmount),
         activeLoanEmi: activeLoan ? parseFloat(activeLoan.emiAmount) : 0,
-        activeLoanRemaining: activeLoan ? parseFloat(activeLoan.remainingAmount) : 0,
+        activeLoanRemaining: activeLoan
+          ? parseFloat(activeLoan.remainingAmount)
+          : 0,
       };
 
       const salaryInput = {
@@ -559,7 +601,11 @@ export async function runPayrollForMonth(month: string) {
       };
 
       // Perform calculations
-      const calc = runPayrollCalculations(salaryInput, deductionsInput, month.endsWith("-02"));
+      const calc = runPayrollCalculations(
+        salaryInput,
+        deductionsInput,
+        month.endsWith("-02"),
+      );
 
       // Save payslip
       await db.insert(payslips).values({
@@ -615,8 +661,16 @@ export async function approveAndLockPayroll(runId: string) {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
-    if (session.user.role !== "SUPER_ADMIN" && session.user.role !== "PRINCIPAL" && session.user.role !== "SCHOOL_ADMIN") {
-      return { success: false, message: "Access denied: Principal or Admin authorization required to lock payroll." };
+    if (
+      session.user.role !== "SUPER_ADMIN" &&
+      session.user.role !== "PRINCIPAL" &&
+      session.user.role !== "SCHOOL_ADMIN"
+    ) {
+      return {
+        success: false,
+        message:
+          "Access denied: Principal or Admin authorization required to lock payroll.",
+      };
     }
 
     const run = await db.query.payrollRuns.findFirst({
@@ -642,7 +696,10 @@ export async function approveAndLockPayroll(runId: string) {
       const loanDed = parseFloat(slip.loanDeduction);
       if (loanDed > 0) {
         const activeLoan = await db.query.staffLoans.findFirst({
-          where: and(eq(staffLoans.staffId, slip.staffId), eq(staffLoans.status, "ACTIVE")),
+          where: and(
+            eq(staffLoans.staffId, slip.staffId),
+            eq(staffLoans.status, "ACTIVE"),
+          ),
         });
 
         if (activeLoan) {

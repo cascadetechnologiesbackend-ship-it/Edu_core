@@ -40,7 +40,8 @@ export function ScheduleManager({
   schedules: initialSchedules,
   isLocked,
 }: ScheduleManagerProps) {
-  const [schedulesList, setSchedulesList] = useState<ScheduleItem[]>(initialSchedules);
+  const [schedulesList, setSchedulesList] =
+    useState<ScheduleItem[]>(initialSchedules);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
 
@@ -53,10 +54,12 @@ export function ScheduleManager({
     const subjectId = formData.get("subjectId") as string;
     const examDate = formData.get("examDate") as string;
     const startTime = formData.get("startTime") as string;
-    const durationMinutes = parseInt(formData.get("durationMinutes") as string) || 180;
+    const durationMinutes =
+      parseInt(formData.get("durationMinutes") as string) || 180;
     const roomNumber = formData.get("roomNumber") as string;
     const maxMarks = parseFloat(formData.get("maxMarks") as string) || 100;
-    const passingMarks = parseFloat(formData.get("passingMarks") as string) || 33;
+    const passingMarks =
+      parseFloat(formData.get("passingMarks") as string) || 33;
 
     startTransition(async () => {
       setMessage("");
@@ -83,7 +86,8 @@ export function ScheduleManager({
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm("Are you sure you want to delete this schedule entry?")) return;
+    if (!confirm("Are you sure you want to delete this schedule entry?"))
+      return;
 
     startTransition(async () => {
       setMessage("");
@@ -104,13 +108,17 @@ export function ScheduleManager({
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6 h-fit space-y-6">
           <div>
             <h3 className="font-semibold text-lg">Add to Schedule</h3>
-            <p className="text-sm text-gray-500">Configure subject dates, timings, and rooms.</p>
+            <p className="text-sm text-gray-500">
+              Configure subject dates, timings, and rooms.
+            </p>
           </div>
 
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-1">Class *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Class *
+                </label>
                 <select
                   name="classId"
                   required
@@ -125,7 +133,9 @@ export function ScheduleManager({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Subject *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Subject *
+                </label>
                 <select
                   name="subjectId"
                   required
@@ -142,7 +152,9 @@ export function ScheduleManager({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-1">Exam Date *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Exam Date *
+                </label>
                 <input
                   type="date"
                   name="examDate"
@@ -152,7 +164,9 @@ export function ScheduleManager({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Start Time *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Start Time *
+                </label>
                 <input
                   type="time"
                   name="startTime"
@@ -164,7 +178,9 @@ export function ScheduleManager({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-1">Duration (Min) *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Duration (Min) *
+                </label>
                 <input
                   type="number"
                   name="durationMinutes"
@@ -175,7 +191,9 @@ export function ScheduleManager({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Room Number</label>
+                <label className="block text-xs font-medium mb-1">
+                  Room Number
+                </label>
                 <input
                   name="roomNumber"
                   placeholder="e.g., Room 102"
@@ -186,7 +204,9 @@ export function ScheduleManager({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-1">Max Marks *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Max Marks *
+                </label>
                 <input
                   type="number"
                   name="maxMarks"
@@ -197,7 +217,9 @@ export function ScheduleManager({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Passing Marks *</label>
+                <label className="block text-xs font-medium mb-1">
+                  Passing Marks *
+                </label>
                 <input
                   type="number"
                   name="passingMarks"
@@ -238,7 +260,9 @@ export function ScheduleManager({
       {/* Schedule Table */}
       <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Exam Timetable</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            Exam Timetable
+          </h3>
         </div>
 
         {schedulesList.length === 0 ? (
@@ -256,15 +280,26 @@ export function ScheduleManager({
                   <th className="px-4 py-3 text-left">Time</th>
                   <th className="px-4 py-3 text-left">Room</th>
                   <th className="px-4 py-3 text-left">Max / Pass</th>
-                  {!isLocked && <th className="px-4 py-3 text-right">Action</th>}
+                  {!isLocked && (
+                    <th className="px-4 py-3 text-right">Action</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {schedulesList.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/40">
-                    <td className="px-4 py-3 font-medium">{s.class?.displayName ?? "—"}</td>
-                    <td className="px-4 py-3 font-medium">{s.subject?.name ?? "—"}</td>
-                    <td className="px-4 py-3">{new Date(s.examDate).toLocaleDateString()}</td>
+                  <tr
+                    key={s.id}
+                    className="hover:bg-gray-50 dark:hover:bg-slate-800/40"
+                  >
+                    <td className="px-4 py-3 font-medium">
+                      {s.class?.displayName ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {s.subject?.name ?? "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(s.examDate).toLocaleDateString()}
+                    </td>
                     <td className="px-4 py-3">
                       {s.startTime} ({s.durationMinutes}m)
                     </td>

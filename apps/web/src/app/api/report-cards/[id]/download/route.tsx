@@ -7,16 +7,15 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { db } from "@/db";
-import {
-  reportCards,
-  students,
-  schools,
-  classes,
-} from "@/db/schema";
+import { reportCards, students, schools, classes } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
-import { ReportCardPDF, gradeToClassGroup, type ReportCardData } from "@/lib/pdf/ReportCardPDF";
+import {
+  ReportCardPDF,
+  gradeToClassGroup,
+  type ReportCardData,
+} from "@/lib/pdf/ReportCardPDF";
 
 export async function GET(
   _req: Request,
@@ -34,7 +33,10 @@ export async function GET(
     });
 
     if (!reportCard) {
-      return NextResponse.json({ error: "Report card not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Report card not found" },
+        { status: 404 },
+      );
     }
 
     // DPDP: Parents can only download their own child's report card
@@ -42,11 +44,15 @@ export async function GET(
       where: eq(students.id, reportCard.studentId),
     });
 
-    if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    if (!student)
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
-    const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"].includes(
-      session.user.role as string,
-    );
+    const isAdmin = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+      "TEACHER",
+    ].includes(session.user.role as string);
     const isParent = session.user.id === student.primaryParentUserId;
 
     if (!isAdmin && !isParent) {
@@ -86,9 +92,15 @@ export async function GET(
           activitySkills: (gradeData["activitySkills"] as any[]) ?? [],
           isWatermarked: isParent,
           watermarkDate: today,
-          ...(reportCard.attendancePercent ? { attendancePercent: parseFloat(reportCard.attendancePercent) } : {}),
-          ...(reportCard.teacherRemarks ? { teacherRemarks: reportCard.teacherRemarks } : {}),
-          ...(school?.principalName ? { principalName: school.principalName } : {}),
+          ...(reportCard.attendancePercent
+            ? { attendancePercent: parseFloat(reportCard.attendancePercent) }
+            : {}),
+          ...(reportCard.teacherRemarks
+            ? { teacherRemarks: reportCard.teacherRemarks }
+            : {}),
+          ...(school?.principalName
+            ? { principalName: school.principalName }
+            : {}),
         },
       };
     } else if (classGroup === "CLASS_1_5") {
@@ -111,10 +123,18 @@ export async function GET(
           isWatermarked: isParent,
           watermarkDate: today,
           ...(reportCard.rank ? { rank: reportCard.rank } : {}),
-          ...(reportCard.attendancePercent ? { attendancePercent: parseFloat(reportCard.attendancePercent) } : {}),
-          ...(reportCard.teacherRemarks ? { teacherRemarks: reportCard.teacherRemarks } : {}),
-          ...(reportCard.principalRemarks ? { principalRemarks: reportCard.principalRemarks } : {}),
-          ...(school?.principalName ? { principalName: school.principalName } : {}),
+          ...(reportCard.attendancePercent
+            ? { attendancePercent: parseFloat(reportCard.attendancePercent) }
+            : {}),
+          ...(reportCard.teacherRemarks
+            ? { teacherRemarks: reportCard.teacherRemarks }
+            : {}),
+          ...(reportCard.principalRemarks
+            ? { principalRemarks: reportCard.principalRemarks }
+            : {}),
+          ...(school?.principalName
+            ? { principalName: school.principalName }
+            : {}),
         },
       };
     } else if (classGroup === "CLASS_6_8") {
@@ -139,10 +159,18 @@ export async function GET(
           isWatermarked: isParent,
           watermarkDate: today,
           ...(reportCard.rank ? { rank: reportCard.rank } : {}),
-          ...(reportCard.attendancePercent ? { attendancePercent: parseFloat(reportCard.attendancePercent) } : {}),
-          ...(reportCard.teacherRemarks ? { teacherRemarks: reportCard.teacherRemarks } : {}),
-          ...(reportCard.principalRemarks ? { principalRemarks: reportCard.principalRemarks } : {}),
-          ...(school?.principalName ? { principalName: school.principalName } : {}),
+          ...(reportCard.attendancePercent
+            ? { attendancePercent: parseFloat(reportCard.attendancePercent) }
+            : {}),
+          ...(reportCard.teacherRemarks
+            ? { teacherRemarks: reportCard.teacherRemarks }
+            : {}),
+          ...(reportCard.principalRemarks
+            ? { principalRemarks: reportCard.principalRemarks }
+            : {}),
+          ...(school?.principalName
+            ? { principalName: school.principalName }
+            : {}),
         },
       };
     } else {
@@ -166,10 +194,18 @@ export async function GET(
           isWatermarked: isParent,
           watermarkDate: today,
           ...(reportCard.rank ? { rank: reportCard.rank } : {}),
-          ...(reportCard.attendancePercent ? { attendancePercent: parseFloat(reportCard.attendancePercent) } : {}),
-          ...(reportCard.teacherRemarks ? { teacherRemarks: reportCard.teacherRemarks } : {}),
-          ...(reportCard.principalRemarks ? { principalRemarks: reportCard.principalRemarks } : {}),
-          ...(school?.principalName ? { principalName: school.principalName } : {}),
+          ...(reportCard.attendancePercent
+            ? { attendancePercent: parseFloat(reportCard.attendancePercent) }
+            : {}),
+          ...(reportCard.teacherRemarks
+            ? { teacherRemarks: reportCard.teacherRemarks }
+            : {}),
+          ...(reportCard.principalRemarks
+            ? { principalRemarks: reportCard.principalRemarks }
+            : {}),
+          ...(school?.principalName
+            ? { principalName: school.principalName }
+            : {}),
         },
       };
     }

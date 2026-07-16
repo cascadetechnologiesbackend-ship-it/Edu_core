@@ -83,16 +83,26 @@ export const feeHeads = pgTable(
     name: text("name").notNull(),
     headType: feeHeadTypeEnum("head_type").notNull(),
     isTaxable: boolean("is_taxable").notNull().default(false),
-    gstPercentage: numeric("gst_percentage", { precision: 5, scale: 2 }).default("0"),
+    gstPercentage: numeric("gst_percentage", {
+      precision: 5,
+      scale: 2,
+    }).default("0"),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     schoolIdx: index("fee_heads_school_idx").on(t.schoolId),
-    schoolNameUnique: unique("fee_heads_school_name_unique").on(t.schoolId, t.name),
-  })
+    schoolNameUnique: unique("fee_heads_school_name_unique").on(
+      t.schoolId,
+      t.name,
+    ),
+  }),
 );
 
 // ─── fee_structures ───────────────────────────────────────────────────────────
@@ -107,7 +117,9 @@ export const feeStructures = pgTable(
     academicYearId: uuid("academic_year_id")
       .notNull()
       .references(() => academicYears.id, { onDelete: "restrict" }),
-    classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "restrict" }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "restrict" }),
     feeHeadId: uuid("fee_head_id")
       .notNull()
       .references(() => feeHeads.id, { onDelete: "restrict" }),
@@ -118,17 +130,21 @@ export const feeStructures = pgTable(
     lateFeeAmount: numeric("late_fee_amount", { precision: 10, scale: 2 }),
     lateFeeStartAfterDays: integer("late_fee_start_after_days"),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     schoolYearClassIdx: index("fee_structures_school_year_class_idx").on(
       t.schoolId,
       t.academicYearId,
-      t.classId
+      t.classId,
     ),
-  })
+  }),
 );
 
 // ─── fee_concessions ─────────────────────────────────────────────────────────
@@ -147,23 +163,30 @@ export const feeConcessions = pgTable(
     concessionType: concessionTypeEnum("concession_type").notNull(),
     concessionName: text("concession_name").notNull(),
     appliesTo: text("applies_to").notNull().default("ALL"), // "ALL" or fee_head_id
-    discountPercentage: numeric("discount_percentage", { precision: 5, scale: 2 }),
+    discountPercentage: numeric("discount_percentage", {
+      precision: 5,
+      scale: 2,
+    }),
     discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }),
     approvedById: uuid("approved_by_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     studentIdx: index("fee_concessions_student_idx").on(t.studentId),
     schoolYearIdx: index("fee_concessions_school_year_idx").on(
       t.schoolId,
-      t.academicYearId
+      t.academicYearId,
     ),
-  })
+  }),
 );
 
 // ─── fee_invoices ─────────────────────────────────────────────────────────────
@@ -180,15 +203,28 @@ export const feeInvoices = pgTable(
     academicYearId: uuid("academic_year_id")
       .notNull()
       .references(() => academicYears.id, { onDelete: "restrict" }),
-    feeStructureId: uuid("fee_structure_id")
-      .references(() => feeStructures.id, { onDelete: "restrict" }),
+    feeStructureId: uuid("fee_structure_id").references(
+      () => feeStructures.id,
+      { onDelete: "restrict" },
+    ),
     grossAmount: numeric("gross_amount", { precision: 12, scale: 2 }).notNull(),
-    discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-    lateFeeAmount: numeric("late_fee_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-    taxAmount: numeric("tax_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+    discountAmount: numeric("discount_amount", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    lateFeeAmount: numeric("late_fee_amount", { precision: 10, scale: 2 })
+      .notNull()
+      .default("0"),
+    taxAmount: numeric("tax_amount", { precision: 10, scale: 2 })
+      .notNull()
+      .default("0"),
     netAmount: numeric("net_amount", { precision: 12, scale: 2 }).notNull(),
-    paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-    balanceAmount: numeric("balance_amount", { precision: 12, scale: 2 }).notNull(),
+    paidAmount: numeric("paid_amount", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    balanceAmount: numeric("balance_amount", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
     dueDate: timestamp("due_date", { withTimezone: true }).notNull(),
     status: feeInvoiceStatusEnum("status").notNull().default("PENDING"),
     term: feeTermEnum("term").notNull(),
@@ -196,20 +232,27 @@ export const feeInvoices = pgTable(
     reminderSentD7: boolean("reminder_sent_d7").notNull().default(false),
     reminderSentD15: boolean("reminder_sent_d15").notNull().default(false),
     reminderSentD30: boolean("reminder_sent_d30").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
     invoiceNumberUnique: unique("fee_invoices_number_unique").on(
       t.schoolId,
-      t.invoiceNumber
+      t.invoiceNumber,
     ),
     studentIdx: index("fee_invoices_student_idx").on(t.studentId),
-    schoolYearIdx: index("fee_invoices_school_year_idx").on(t.schoolId, t.academicYearId),
+    schoolYearIdx: index("fee_invoices_school_year_idx").on(
+      t.schoolId,
+      t.academicYearId,
+    ),
     statusIdx: index("fee_invoices_status_idx").on(t.status),
     dueDateIdx: index("fee_invoices_due_date_idx").on(t.dueDate),
-  })
+  }),
 );
 
 // ─── fee_payments ─────────────────────────────────────────────────────────────
@@ -235,15 +278,22 @@ export const feePayments = pgTable(
     }),
     remarks: text("remarks"),
     receiptS3Key: text("receipt_s3_key"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
-    receiptUnique: unique("fee_payments_receipt_unique").on(t.schoolId, t.receiptNumber),
+    receiptUnique: unique("fee_payments_receipt_unique").on(
+      t.schoolId,
+      t.receiptNumber,
+    ),
     invoiceIdx: index("fee_payments_invoice_idx").on(t.feeInvoiceId),
     studentIdx: index("fee_payments_student_idx").on(t.studentId),
     dateIdx: index("fee_payments_date_idx").on(t.paymentDate),
-  })
+  }),
 );
 
 // ─── fee_refunds ──────────────────────────────────────────────────────────────
@@ -258,19 +308,28 @@ export const feeRefunds = pgTable(
     feePaymentId: uuid("fee_payment_id")
       .notNull()
       .references(() => feePayments.id, { onDelete: "restrict" }),
-    refundAmount: numeric("refund_amount", { precision: 12, scale: 2 }).notNull(),
+    refundAmount: numeric("refund_amount", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
     reason: text("reason").notNull(),
     status: text("status").notNull().default("PENDING"), // PENDING, APPROVED, PROCESSED, REJECTED
-    approvedById: uuid("approved_by_id").references(() => users.id, { onDelete: "restrict" }),
+    approvedById: uuid("approved_by_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     processedAt: timestamp("processed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     paymentIdx: index("fee_refunds_payment_idx").on(t.feePaymentId),
     schoolIdx: index("fee_refunds_school_idx").on(t.schoolId),
-  })
+  }),
 );
 
 // ─── payment_gateway_logs ─────────────────────────────────────────────────────
@@ -293,19 +352,26 @@ export const paymentGatewayLogs = pgTable(
     currency: text("currency").notNull().default("INR"),
     status: text("status").notNull(), // CREATED, ATTEMPTED, PAID, FAILED, REFUNDED
     webhookPayload: text("webhook_payload"), // Sanitised — no card data
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     schoolIdx: index("payment_gateway_logs_school_idx").on(t.schoolId),
     orderIdx: index("payment_gateway_logs_order_idx").on(t.gatewayOrderId),
-  })
+  }),
 );
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const feeInvoicesRelations = relations(feeInvoices, ({ one, many }) => ({
-  school: one(schools, { fields: [feeInvoices.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [feeInvoices.schoolId],
+    references: [schools.id],
+  }),
   feeStructure: one(feeStructures, {
     fields: [feeInvoices.feeStructureId],
     references: [feeStructures.id],
@@ -313,21 +379,42 @@ export const feeInvoicesRelations = relations(feeInvoices, ({ one, many }) => ({
   payments: many(feePayments),
 }));
 
-export const feeStructuresRelations = relations(feeStructures, ({ one, many }) => ({
-  school: one(schools, { fields: [feeStructures.schoolId], references: [schools.id] }),
-  academicYear: one(academicYears, { fields: [feeStructures.academicYearId], references: [academicYears.id] }),
-  class: one(classes, { fields: [feeStructures.classId], references: [classes.id] }),
-  feeHead: one(feeHeads, { fields: [feeStructures.feeHeadId], references: [feeHeads.id] }),
-  invoices: many(feeInvoices),
-}));
+export const feeStructuresRelations = relations(
+  feeStructures,
+  ({ one, many }) => ({
+    school: one(schools, {
+      fields: [feeStructures.schoolId],
+      references: [schools.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [feeStructures.academicYearId],
+      references: [academicYears.id],
+    }),
+    class: one(classes, {
+      fields: [feeStructures.classId],
+      references: [classes.id],
+    }),
+    feeHead: one(feeHeads, {
+      fields: [feeStructures.feeHeadId],
+      references: [feeHeads.id],
+    }),
+    invoices: many(feeInvoices),
+  }),
+);
 
 export const feeHeadsRelations = relations(feeHeads, ({ one, many }) => ({
-  school: one(schools, { fields: [feeHeads.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [feeHeads.schoolId],
+    references: [schools.id],
+  }),
   structures: many(feeStructures),
 }));
 
 export const feePaymentsRelations = relations(feePayments, ({ one, many }) => ({
-  school: one(schools, { fields: [feePayments.schoolId], references: [schools.id] }),
+  school: one(schools, {
+    fields: [feePayments.schoolId],
+    references: [schools.id],
+  }),
   invoice: one(feeInvoices, {
     fields: [feePayments.feeInvoiceId],
     references: [feeInvoices.id],
@@ -336,17 +423,41 @@ export const feePaymentsRelations = relations(feePayments, ({ one, many }) => ({
 }));
 
 export const feeRefundsRelations = relations(feeRefunds, ({ one }) => ({
-  school: one(schools, { fields: [feeRefunds.schoolId], references: [schools.id] }),
-  payment: one(feePayments, { fields: [feeRefunds.feePaymentId], references: [feePayments.id] }),
+  school: one(schools, {
+    fields: [feeRefunds.schoolId],
+    references: [schools.id],
+  }),
+  payment: one(feePayments, {
+    fields: [feeRefunds.feePaymentId],
+    references: [feePayments.id],
+  }),
 }));
 
-export const paymentGatewayLogsRelations = relations(paymentGatewayLogs, ({ one }) => ({
-  school: one(schools, { fields: [paymentGatewayLogs.schoolId], references: [schools.id] }),
-  invoice: one(feeInvoices, { fields: [paymentGatewayLogs.feeInvoiceId], references: [feeInvoices.id] }),
-}));
+export const paymentGatewayLogsRelations = relations(
+  paymentGatewayLogs,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [paymentGatewayLogs.schoolId],
+      references: [schools.id],
+    }),
+    invoice: one(feeInvoices, {
+      fields: [paymentGatewayLogs.feeInvoiceId],
+      references: [feeInvoices.id],
+    }),
+  }),
+);
 
 export const feeConcessionsRelations = relations(feeConcessions, ({ one }) => ({
-  school: one(schools, { fields: [feeConcessions.schoolId], references: [schools.id] }),
-  student: one(students, { fields: [feeConcessions.studentId], references: [students.id] }),
-  academicYear: one(academicYears, { fields: [feeConcessions.academicYearId], references: [academicYears.id] }),
+  school: one(schools, {
+    fields: [feeConcessions.schoolId],
+    references: [schools.id],
+  }),
+  student: one(students, {
+    fields: [feeConcessions.studentId],
+    references: [students.id],
+  }),
+  academicYear: one(academicYears, {
+    fields: [feeConcessions.academicYearId],
+    references: [academicYears.id],
+  }),
 }));

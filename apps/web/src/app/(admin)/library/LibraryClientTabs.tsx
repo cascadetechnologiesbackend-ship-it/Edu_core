@@ -16,7 +16,12 @@ import {
   CornerDownRight,
   TrendingUp,
 } from "lucide-react";
-import { saveBook, registerLibraryMember, issueBook, returnBook } from "./actions";
+import {
+  saveBook,
+  registerLibraryMember,
+  issueBook,
+  returnBook,
+} from "./actions";
 
 interface BookCatalog {
   id: string;
@@ -29,7 +34,12 @@ interface BookCatalog {
   rackLocation?: string | null;
   totalCopies: number;
   availableCopies: number;
-  copies: { id: string; barcodeNumber: string; isAvailable: boolean; condition: string }[];
+  copies: {
+    id: string;
+    barcodeNumber: string;
+    isAvailable: boolean;
+    condition: string;
+  }[];
 }
 
 interface LibraryMember {
@@ -73,7 +83,9 @@ export default function LibraryClientTabs({
   userId,
 }: LibraryClientTabsProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "books" | "members" | "transactions">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "books" | "members" | "transactions"
+  >("overview");
 
   // Filter States
   const [bookSearch, setBookSearch] = useState("");
@@ -118,7 +130,9 @@ export default function LibraryClientTabs({
 
   // Calculate Overview Stats
   const totalBooks = booksList.reduce((acc, curr) => acc + curr.totalCopies, 0);
-  const activeCheckouts = issuesList.filter((i) => i.returnedAt === null).length;
+  const activeCheckouts = issuesList.filter(
+    (i) => i.returnedAt === null,
+  ).length;
   const totalMembers = membersList.length;
 
   // Handlers
@@ -225,22 +239,24 @@ export default function LibraryClientTabs({
 
       {/* Control Tabs */}
       <div className="flex border-b border-border bg-card p-1 rounded-xl max-w-md shadow-sm">
-        {(["overview", "books", "members", "transactions"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              setErrorMsg(null);
-            }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg capitalize transition-all ${
-              activeTab === tab
-                ? "bg-primary text-white shadow-sm"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+        {(["overview", "books", "members", "transactions"] as const).map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                setErrorMsg(null);
+              }}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg capitalize transition-all ${
+                activeTab === tab
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {tab}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Tab contents */}
@@ -253,8 +269,12 @@ export default function LibraryClientTabs({
                 <Book className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-semibold">Total Catalog Copies</p>
-                <p className="text-2xl font-bold text-foreground mt-0.5">{totalBooks}</p>
+                <p className="text-xs text-muted-foreground font-semibold">
+                  Total Catalog Copies
+                </p>
+                <p className="text-2xl font-bold text-foreground mt-0.5">
+                  {totalBooks}
+                </p>
               </div>
             </div>
             <div className="bg-card border border-border p-6 rounded-xl flex items-center gap-4">
@@ -262,8 +282,12 @@ export default function LibraryClientTabs({
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-semibold">Active Checked Out</p>
-                <p className="text-2xl font-bold text-foreground mt-0.5">{activeCheckouts}</p>
+                <p className="text-xs text-muted-foreground font-semibold">
+                  Active Checked Out
+                </p>
+                <p className="text-2xl font-bold text-foreground mt-0.5">
+                  {activeCheckouts}
+                </p>
               </div>
             </div>
             <div className="bg-card border border-border p-6 rounded-xl flex items-center gap-4">
@@ -271,8 +295,12 @@ export default function LibraryClientTabs({
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-semibold">Registered Members</p>
-                <p className="text-2xl font-bold text-foreground mt-0.5">{totalMembers}</p>
+                <p className="text-xs text-muted-foreground font-semibold">
+                  Registered Members
+                </p>
+                <p className="text-2xl font-bold text-foreground mt-0.5">
+                  {totalMembers}
+                </p>
               </div>
             </div>
           </div>
@@ -282,7 +310,8 @@ export default function LibraryClientTabs({
             {/* Left: Issue Book form */}
             <div className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <CornerDownRight className="w-5 h-5 text-primary" /> Book Checkout (Issue)
+                <CornerDownRight className="w-5 h-5 text-primary" /> Book
+                Checkout (Issue)
               </h3>
               <form onSubmit={handleCheckout} className="space-y-4">
                 <div>
@@ -293,7 +322,12 @@ export default function LibraryClientTabs({
                     type="text"
                     required
                     value={checkoutData.barcodeNumber}
-                    onChange={(e) => setCheckoutData({ ...checkoutData, barcodeNumber: e.target.value })}
+                    onChange={(e) =>
+                      setCheckoutData({
+                        ...checkoutData,
+                        barcodeNumber: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                     placeholder="Enter copy barcode number"
                   />
@@ -306,7 +340,12 @@ export default function LibraryClientTabs({
                     type="text"
                     required
                     value={checkoutData.memberCardNumber}
-                    onChange={(e) => setCheckoutData({ ...checkoutData, memberCardNumber: e.target.value })}
+                    onChange={(e) =>
+                      setCheckoutData({
+                        ...checkoutData,
+                        memberCardNumber: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                     placeholder="Enter member library card number"
                   />
@@ -324,7 +363,8 @@ export default function LibraryClientTabs({
             {/* Right: Return Book form */}
             <div className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <CornerDownLeft className="w-5 h-5 text-secondary" /> Book Return & Fines
+                <CornerDownLeft className="w-5 h-5 text-secondary" /> Book
+                Return & Fines
               </h3>
               <form onSubmit={handleReturn} className="space-y-4">
                 <div>
@@ -334,7 +374,12 @@ export default function LibraryClientTabs({
                   <select
                     required
                     value={returnValues.issueId}
-                    onChange={(e) => setReturnValues({ ...returnValues, issueId: e.target.value })}
+                    onChange={(e) =>
+                      setReturnValues({
+                        ...returnValues,
+                        issueId: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                   >
                     <option value="">-- Choose checked-out copy --</option>
@@ -354,7 +399,12 @@ export default function LibraryClientTabs({
                     </label>
                     <select
                       value={returnValues.condition}
-                      onChange={(e) => setReturnValues({ ...returnValues, condition: e.target.value })}
+                      onChange={(e) =>
+                        setReturnValues({
+                          ...returnValues,
+                          condition: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                     >
                       <option value="GOOD">Good / Fine</option>
@@ -370,7 +420,12 @@ export default function LibraryClientTabs({
                       type="number"
                       min="0"
                       value={returnValues.fineAmount}
-                      onChange={(e) => setReturnValues({ ...returnValues, fineAmount: Number(e.target.value) })}
+                      onChange={(e) =>
+                        setReturnValues({
+                          ...returnValues,
+                          fineAmount: Number(e.target.value),
+                        })
+                      }
                       className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
                     />
                   </div>
@@ -424,15 +479,26 @@ export default function LibraryClientTabs({
                 {booksList
                   .filter(
                     (b) =>
-                      b.title.toLowerCase().includes(bookSearch.toLowerCase()) ||
-                      b.author.toLowerCase().includes(bookSearch.toLowerCase()) ||
-                      (b.category && b.category.toLowerCase().includes(bookSearch.toLowerCase()))
+                      b.title
+                        .toLowerCase()
+                        .includes(bookSearch.toLowerCase()) ||
+                      b.author
+                        .toLowerCase()
+                        .includes(bookSearch.toLowerCase()) ||
+                      (b.category &&
+                        b.category
+                          .toLowerCase()
+                          .includes(bookSearch.toLowerCase())),
                   )
                   .map((b) => (
                     <tr key={b.id} className="hover:bg-muted/10">
                       <td className="p-4">
-                        <p className="font-semibold text-gray-900 dark:text-white">{b.title}</p>
-                        <p className="text-xs text-muted-foreground">{b.author}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          {b.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {b.author}
+                        </p>
                       </td>
                       <td className="p-4">
                         <span className="text-xs bg-muted text-foreground px-2.5 py-1 rounded-full font-medium">
@@ -440,9 +506,14 @@ export default function LibraryClientTabs({
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className="font-bold text-primary">{b.availableCopies}</span> / {b.totalCopies}
+                        <span className="font-bold text-primary">
+                          {b.availableCopies}
+                        </span>{" "}
+                        / {b.totalCopies}
                       </td>
-                      <td className="p-4 text-xs font-medium">{b.rackLocation || "Not specified"}</td>
+                      <td className="p-4 text-xs font-medium">
+                        {b.rackLocation || "Not specified"}
+                      </td>
                       <td className="p-4">
                         <div className="flex flex-wrap gap-1.5 max-w-xs">
                           {b.copies.map((c) => (
@@ -504,20 +575,30 @@ export default function LibraryClientTabs({
                 {membersList
                   .filter(
                     (m) =>
-                      m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-                      m.memberCardNumber.toLowerCase().includes(memberSearch.toLowerCase())
+                      m.name
+                        .toLowerCase()
+                        .includes(memberSearch.toLowerCase()) ||
+                      m.memberCardNumber
+                        .toLowerCase()
+                        .includes(memberSearch.toLowerCase()),
                   )
                   .map((m) => (
                     <tr key={m.id} className="hover:bg-muted/10">
-                      <td className="p-4 font-mono font-bold text-primary text-xs">{m.memberCardNumber}</td>
-                      <td className="p-4 font-medium text-gray-900 dark:text-white">{m.name}</td>
+                      <td className="p-4 font-mono font-bold text-primary text-xs">
+                        {m.memberCardNumber}
+                      </td>
+                      <td className="p-4 font-medium text-gray-900 dark:text-white">
+                        {m.name}
+                      </td>
                       <td className="p-4">
                         <span className="text-xs bg-secondary/10 text-secondary px-2.5 py-1 rounded-full font-medium">
                           {m.memberType}
                         </span>
                       </td>
                       <td className="p-4">{m.maxBooksAllowed} books max</td>
-                      <td className="p-4 text-xs font-medium text-muted-foreground">{m.loanPeriodDays} days</td>
+                      <td className="p-4 text-xs font-medium text-muted-foreground">
+                        {m.loanPeriodDays} days
+                      </td>
                     </tr>
                   ))}
               </tbody>
@@ -543,17 +624,27 @@ export default function LibraryClientTabs({
               {issuesList.map((i) => (
                 <tr key={i.id} className="hover:bg-muted/10">
                   <td className="p-4">
-                    <p className="font-mono text-xs font-semibold text-primary">{i.barcodeNumber}</p>
+                    <p className="font-mono text-xs font-semibold text-primary">
+                      {i.barcodeNumber}
+                    </p>
                     <p className="text-xs text-muted-foreground">{i.title}</p>
                   </td>
                   <td className="p-4">
                     <p className="font-semibold">{i.memberName}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{i.memberCardNumber}</p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {i.memberCardNumber}
+                    </p>
                   </td>
-                  <td className="p-4 text-xs font-medium">{new Date(i.issuedAt).toLocaleDateString()}</td>
-                  <td className="p-4 text-xs font-medium">{new Date(i.dueDate).toLocaleDateString()}</td>
                   <td className="p-4 text-xs font-medium">
-                    {i.returnedAt ? new Date(i.returnedAt).toLocaleDateString() : "-"}
+                    {new Date(i.issuedAt).toLocaleDateString()}
+                  </td>
+                  <td className="p-4 text-xs font-medium">
+                    {new Date(i.dueDate).toLocaleDateString()}
+                  </td>
+                  <td className="p-4 text-xs font-medium">
+                    {i.returnedAt
+                      ? new Date(i.returnedAt).toLocaleDateString()
+                      : "-"}
                   </td>
                   <td className="p-4">
                     <span
@@ -580,8 +671,10 @@ export default function LibraryClientTabs({
             onSubmit={handleAddBook}
             className="bg-card border border-border w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-glass animate-fade-in"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Register New Book Volume</h3>
-            
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Register New Book Volume
+            </h3>
+
             {errorMsg && (
               <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-xs text-danger">
                 {errorMsg}
@@ -589,23 +682,31 @@ export default function LibraryClientTabs({
             )}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Book Title</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Book Title
+                </label>
                 <input
                   type="text"
                   required
                   value={newBook.title}
-                  onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
+                  onChange={(e) =>
+                    setNewBook({ ...newBook, title: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="e.g. Intro to Algorithms"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Author Name</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Author Name
+                </label>
                 <input
                   type="text"
                   required
                   value={newBook.author}
-                  onChange={(e) => setNewBook({ ...newBook, author: e.target.value })}
+                  onChange={(e) =>
+                    setNewBook({ ...newBook, author: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="e.g. Thomas H. Cormen"
                 />
@@ -613,21 +714,29 @@ export default function LibraryClientTabs({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Category</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Category
+                </label>
                 <input
                   type="text"
                   value={newBook.category}
-                  onChange={(e) => setNewBook({ ...newBook, category: e.target.value })}
+                  onChange={(e) =>
+                    setNewBook({ ...newBook, category: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="e.g. Reference"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Subject</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Subject
+                </label>
                 <input
                   type="text"
                   value={newBook.subject}
-                  onChange={(e) => setNewBook({ ...newBook, subject: e.target.value })}
+                  onChange={(e) =>
+                    setNewBook({ ...newBook, subject: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="e.g. Computer Science"
                 />
@@ -635,34 +744,49 @@ export default function LibraryClientTabs({
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Edition</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Edition
+                </label>
                 <input
                   type="text"
                   value={newBook.edition}
-                  onChange={(e) => setNewBook({ ...newBook, edition: e.target.value })}
+                  onChange={(e) =>
+                    setNewBook({ ...newBook, edition: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="4th"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Rack Location</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Rack Location
+                </label>
                 <input
                   type="text"
                   value={newBook.rackLocation}
-                  onChange={(e) => setNewBook({ ...newBook, rackLocation: e.target.value })}
+                  onChange={(e) =>
+                    setNewBook({ ...newBook, rackLocation: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="Rack A-3"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Copies count</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Copies count
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="50"
                   required
                   value={newBook.copiesCount}
-                  onChange={(e) => setNewBook({ ...newBook, copiesCount: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setNewBook({
+                      ...newBook,
+                      copiesCount: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                 />
               </div>
@@ -694,9 +818,13 @@ export default function LibraryClientTabs({
             onSubmit={handleRegisterMember}
             className="bg-card border border-border w-full max-w-md rounded-2xl p-6 space-y-4 shadow-glass animate-fade-in"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Register Library Member Card</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Register Library Member Card
+            </h3>
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Member Role / Type</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                Member Role / Type
+              </label>
               <select
                 value={newMember.memberType}
                 onChange={(e) =>
@@ -713,11 +841,15 @@ export default function LibraryClientTabs({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Select school Person</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                Select school Person
+              </label>
               <select
                 required
                 value={newMember.memberRefId}
-                onChange={(e) => setNewMember({ ...newMember, memberRefId: e.target.value })}
+                onChange={(e) =>
+                  setNewMember({ ...newMember, memberRefId: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
               >
                 <option value="">-- Select Person --</option>
@@ -736,23 +868,37 @@ export default function LibraryClientTabs({
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Library Card Number</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Library Card Number
+                </label>
                 <input
                   type="text"
                   required
                   value={newMember.memberCardNumber}
-                  onChange={(e) => setNewMember({ ...newMember, memberCardNumber: e.target.value })}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      memberCardNumber: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                   placeholder="e.g. LIB-ST-1002"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Loan Days</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Loan Days
+                </label>
                 <input
                   type="number"
                   required
                   value={newMember.loanPeriodDays}
-                  onChange={(e) => setNewMember({ ...newMember, loanPeriodDays: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      loanPeriodDays: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-sm"
                 />
               </div>

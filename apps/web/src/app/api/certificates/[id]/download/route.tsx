@@ -29,7 +29,10 @@ export async function GET(
     });
 
     if (!cert) {
-      return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Certificate not found" },
+        { status: 404 },
+      );
     }
 
     // DPDP / Security check: Parent can only download for their child
@@ -37,11 +40,15 @@ export async function GET(
       where: eq(students.id, cert.studentId),
     });
 
-    if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    if (!student)
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
-    const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"].includes(
-      session.user.role as string,
-    );
+    const isAdmin = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+      "TEACHER",
+    ].includes(session.user.role as string);
     const isParent = session.user.id === student.primaryParentUserId;
 
     if (!isAdmin && !isParent) {
@@ -68,7 +75,10 @@ export async function GET(
 
     if (!reportCard) {
       return NextResponse.json(
-        { error: "No report card with rank found for this student to generate certificate" },
+        {
+          error:
+            "No report card with rank found for this student to generate certificate",
+        },
         { status: 400 },
       );
     }
@@ -101,10 +111,14 @@ export async function GET(
       certificateNumber: cert.certificateNumber,
       ...(school?.address ? { schoolAddress: school.address } : {}),
       ...(school?.principalName ? { principalName: school.principalName } : {}),
-      ...(gradeData["overallGradePoint"] ? { cgpa: gradeData["overallGradePoint"] } : {}),
+      ...(gradeData["overallGradePoint"]
+        ? { cgpa: gradeData["overallGradePoint"] }
+        : {}),
     };
 
-    const pdfBuffer = await renderToBuffer(<TopperCertificate data={payload} />);
+    const pdfBuffer = await renderToBuffer(
+      <TopperCertificate data={payload} />,
+    );
 
     const safeStudentName = studentName.replace(/[^a-zA-Z0-9_]/g, "_");
     const filename = `TopperCertificate_${safeStudentName}.pdf`;

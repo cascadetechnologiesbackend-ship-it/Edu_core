@@ -6,13 +6,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import {
-  students,
-  exams,
-  classes,
-  reportCardJobs,
-  users,
-} from "@/db/schema";
+import { students, exams, classes, reportCardJobs, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { reportCardQueue } from "@/workers/reportCard";
@@ -34,12 +28,15 @@ export async function POST(req: Request) {
     });
     if (!dbUser) {
       return NextResponse.json(
-        { error: "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in." },
-        { status: 401 }
+        {
+          error:
+            "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
+        },
+        { status: 401 },
       );
     }
 
-    const body = await req.json() as unknown;
+    const body = (await req.json()) as unknown;
     const parsed = GenerateBulkSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -54,13 +51,15 @@ export async function POST(req: Request) {
     const exam = await db.query.exams.findFirst({
       where: eq(exams.id, examId),
     });
-    if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+    if (!exam)
+      return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
     // Verify class exists
     const classRecord = await db.query.classes.findFirst({
       where: eq(classes.id, classId),
     });
-    if (!classRecord) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    if (!classRecord)
+      return NextResponse.json({ error: "Class not found" }, { status: 404 });
 
     // Get all active students in this class
     const classStudents = await db.query.students.findMany({
@@ -95,7 +94,10 @@ export async function POST(req: Request) {
       .returning();
 
     if (!jobRecord) {
-      return NextResponse.json({ error: "Failed to create batch job record" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to create batch job record" },
+        { status: 500 },
+      );
     }
 
     // Enqueue one job per student

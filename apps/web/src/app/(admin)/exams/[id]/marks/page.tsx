@@ -32,9 +32,14 @@ export default async function MarkEntryPage({
 
   const selectedClassId = searchParams.classId ?? allClasses[0]?.id;
 
-  let classStudents: Array<{ id: string; admissionNumber: string; name: string }> = [];
-  let classSubjectsData: Array<{ id: string; name: string; maxMarks: number }> = [];
-  let existingMarks: typeof markEntries.$inferSelect[] = [];
+  let classStudents: Array<{
+    id: string;
+    admissionNumber: string;
+    name: string;
+  }> = [];
+  let classSubjectsData: Array<{ id: string; name: string; maxMarks: number }> =
+    [];
+  let existingMarks: (typeof markEntries.$inferSelect)[] = [];
 
   if (selectedClassId) {
     const rawStudents = await db.query.students.findMany({
@@ -50,7 +55,6 @@ export default async function MarkEntryPage({
       admissionNumber: s.admissionNumber,
       name: `${decryptData(s.firstNameEncrypted)} ${decryptData(s.lastNameEncrypted)}`,
     }));
-
 
     // Get subjects directly if classSubjects join is empty
     const allSubjectsData = await db.query.subjects.findMany({
@@ -82,7 +86,10 @@ export default async function MarkEntryPage({
       <div className="flex justify-between items-center">
         <div>
           <div className="flex items-center gap-3">
-            <Link href={`/exams/${params.id}`} className="text-sm text-indigo-600 hover:underline">
+            <Link
+              href={`/exams/${params.id}`}
+              className="text-sm text-indigo-600 hover:underline"
+            >
               ← {exam.name}
             </Link>
           </div>

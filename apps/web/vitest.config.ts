@@ -1,13 +1,13 @@
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import path from "path";
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: "node",
     globals: true,
-    exclude: ['**/node_modules/**', '**/e2e/**', '**/dist/**'],
+    exclude: ["**/node_modules/**", "**/e2e/**", "**/dist/**"],
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });

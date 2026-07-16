@@ -71,8 +71,12 @@ async function runMigrations() {
       )
     `);
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS exam_schedules_exam_idx ON exam_schedules(exam_id)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS exam_schedules_class_idx ON exam_schedules(class_id)`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS exam_schedules_exam_idx ON exam_schedules(exam_id)`,
+    );
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS exam_schedules_class_idx ON exam_schedules(class_id)`,
+    );
 
     console.log("✓ exam_schedules created");
 
@@ -93,7 +97,9 @@ async function runMigrations() {
       )
     `);
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS grade_rules_school_group_idx ON grade_rules(school_id, class_group)`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS grade_rules_school_group_idx ON grade_rules(school_id, class_group)`,
+    );
 
     console.log("✓ grade_rules created");
 
@@ -117,7 +123,9 @@ async function runMigrations() {
       )
     `);
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS report_card_jobs_exam_class_idx ON report_card_jobs(exam_id, class_id)`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS report_card_jobs_exam_class_idx ON report_card_jobs(exam_id, class_id)`,
+    );
 
     console.log("✓ report_card_jobs created");
 
@@ -137,7 +145,9 @@ async function runMigrations() {
       )
     `);
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS medical_exemptions_student_exam_idx ON medical_exemptions(student_id, exam_id)`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS medical_exemptions_student_exam_idx ON medical_exemptions(student_id, exam_id)`,
+    );
 
     console.log("✓ medical_exemptions created");
 

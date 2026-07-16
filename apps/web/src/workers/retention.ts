@@ -1,10 +1,5 @@
 import { db } from "@/db";
-import {
-  students,
-  staff,
-  auditLogs,
-  dataRetentionPolicies,
-} from "@/db/schema";
+import { students, staff, auditLogs, dataRetentionPolicies } from "@/db/schema";
 import { eq, and, isNull, isNotNull, lt } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
 
@@ -29,7 +24,7 @@ export async function executeRetentionPolicy(schoolId: string) {
   const policies = await db.query.dataRetentionPolicies.findMany({
     where: and(
       eq(dataRetentionPolicies.schoolId, schoolId),
-      eq(dataRetentionPolicies.isActive, true)
+      eq(dataRetentionPolicies.isActive, true),
     ),
   });
 
@@ -49,7 +44,7 @@ export async function executeRetentionPolicy(schoolId: string) {
           eq(students.isActive, true),
           eq(students.legalHold, false),
           isNull(students.deletedAt),
-          lt(students.createdAt, retentionCutoff)
+          lt(students.createdAt, retentionCutoff),
         ),
       });
 
@@ -88,7 +83,7 @@ export async function executeRetentionPolicy(schoolId: string) {
           eq(staff.isActive, true),
           eq(staff.legalHold, false),
           isNull(staff.deletedAt),
-          lt(staff.createdAt, retentionCutoff)
+          lt(staff.createdAt, retentionCutoff),
         ),
       });
 
@@ -131,7 +126,7 @@ export async function executeRetentionPolicy(schoolId: string) {
           eq(students.schoolId, schoolId),
           eq(students.legalHold, false),
           isNotNull(students.deletedAt),
-          lt(students.deletedAt, purgeCutoff)
+          lt(students.deletedAt, purgeCutoff),
         ),
       });
 
@@ -160,7 +155,7 @@ export async function executeRetentionPolicy(schoolId: string) {
           eq(staff.schoolId, schoolId),
           eq(staff.legalHold, false),
           isNotNull(staff.deletedAt),
-          lt(staff.deletedAt, purgeCutoff)
+          lt(staff.deletedAt, purgeCutoff),
         ),
       });
 
@@ -207,7 +202,9 @@ if (process.env["START_WORKERS"] === "true") {
     "data-retention",
     async (job) => {
       const { schoolId } = job.data;
-      workerLogger.info(`[RetentionWorker] Processing retention policies for school: ${schoolId}`);
+      workerLogger.info(
+        `[RetentionWorker] Processing retention policies for school: ${schoolId}`,
+      );
       await executeRetentionPolicy(schoolId);
     },
     {
@@ -216,7 +213,7 @@ if (process.env["START_WORKERS"] === "true") {
         port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
         password: process.env["REDIS_PASSWORD"] ?? undefined,
       },
-    }
+    },
   );
 
   worker.on("completed", (job) => {
@@ -224,7 +221,9 @@ if (process.env["START_WORKERS"] === "true") {
   });
 
   worker.on("failed", (job, err) => {
-    workerLogger.error(`[RetentionWorker] Job ${job?.id} failed: ${err.message}`);
+    workerLogger.error(
+      `[RetentionWorker] Job ${job?.id} failed: ${err.message}`,
+    );
   });
 
   workerLogger.info("[RetentionWorker] Worker started");

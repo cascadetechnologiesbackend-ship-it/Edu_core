@@ -2,13 +2,25 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { vehicles, routes, routeStops, studentBusPasses, gpsPings, students } from "@/db/schema";
+import {
+  vehicles,
+  routes,
+  routeStops,
+  studentBusPasses,
+  gpsPings,
+  students,
+} from "@/db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { encryptData, decryptData } from "@/lib/encryption";
 import { assertConsent } from "@/server/middleware/consent";
 import { logAuditEvent } from "@/lib/auditLogger";
 
-const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TRANSPORT_MANAGER"];
+const ALLOWED_ROLES = [
+  "SUPER_ADMIN",
+  "SCHOOL_ADMIN",
+  "PRINCIPAL",
+  "TRANSPORT_MANAGER",
+];
 
 async function checkAuth() {
   const session = await auth();
@@ -55,8 +67,12 @@ export async function saveVehicle(data: {
     driverNameEncrypted: encryptData(data.driverName),
     driverLicenceEncrypted: encryptData(data.driverLicence),
     driverMobileEncrypted: encryptData(data.driverMobile),
-    conductorNameEncrypted: data.conductorName ? encryptData(data.conductorName) : null,
-    conductorMobileEncrypted: data.conductorMobile ? encryptData(data.conductorMobile) : null,
+    conductorNameEncrypted: data.conductorName
+      ? encryptData(data.conductorName)
+      : null,
+    conductorMobileEncrypted: data.conductorMobile
+      ? encryptData(data.conductorMobile)
+      : null,
     isActive: true,
   };
 
@@ -67,7 +83,10 @@ export async function saveVehicle(data: {
       .set(values)
       .where(and(eq(vehicles.id, data.id), eq(vehicles.schoolId, schoolId)));
   } else {
-    const [inserted] = await db.insert(vehicles).values(values).returning({ id: vehicles.id });
+    const [inserted] = await db
+      .insert(vehicles)
+      .values(values)
+      .returning({ id: vehicles.id });
     recordId = inserted?.id || "";
   }
 
@@ -99,8 +118,12 @@ export async function getVehicles() {
     driverName: decryptData(v.driverNameEncrypted) || "",
     driverLicence: decryptData(v.driverLicenceEncrypted) || "",
     driverMobile: decryptData(v.driverMobileEncrypted) || "",
-    conductorName: v.conductorNameEncrypted ? decryptData(v.conductorNameEncrypted) || "" : "",
-    conductorMobile: v.conductorMobileEncrypted ? decryptData(v.conductorMobileEncrypted) || "" : "",
+    conductorName: v.conductorNameEncrypted
+      ? decryptData(v.conductorNameEncrypted) || ""
+      : "",
+    conductorMobile: v.conductorMobileEncrypted
+      ? decryptData(v.conductorMobileEncrypted) || ""
+      : "",
   }));
 
   // Audit Log Read (PII accessed)
@@ -142,7 +165,10 @@ export async function saveRoute(data: {
       .set(values)
       .where(and(eq(routes.id, data.id), eq(routes.schoolId, schoolId)));
   } else {
-    const [inserted] = await db.insert(routes).values(values).returning({ id: routes.id });
+    const [inserted] = await db
+      .insert(routes)
+      .values(values)
+      .returning({ id: routes.id });
     recordId = inserted?.id || "";
   }
 
@@ -176,9 +202,14 @@ export async function saveRouteStop(data: {
     await db
       .update(routeStops)
       .set(values)
-      .where(and(eq(routeStops.id, data.id), eq(routeStops.schoolId, schoolId)));
+      .where(
+        and(eq(routeStops.id, data.id), eq(routeStops.schoolId, schoolId)),
+      );
   } else {
-    const [inserted] = await db.insert(routeStops).values(values).returning({ id: routeStops.id });
+    const [inserted] = await db
+      .insert(routeStops)
+      .values(values)
+      .returning({ id: routeStops.id });
     recordId = inserted?.id || "";
   }
 
@@ -233,7 +264,12 @@ export async function saveBusPass(data: {
     await db
       .update(studentBusPasses)
       .set(values)
-      .where(and(eq(studentBusPasses.id, data.id), eq(studentBusPasses.schoolId, schoolId)));
+      .where(
+        and(
+          eq(studentBusPasses.id, data.id),
+          eq(studentBusPasses.schoolId, schoolId),
+        ),
+      );
   } else {
     const [inserted] = await db
       .insert(studentBusPasses)
@@ -264,13 +300,16 @@ export async function submitGpsPing(data: {
   // Webhook endpoint equivalent for simulation pings
   const session = await checkAuth();
 
-  const [inserted] = await db.insert(gpsPings).values({
-    vehicleId: data.vehicleId,
-    latitude: data.latitude,
-    longitude: data.longitude,
-    speed: data.speed,
-    recordedAt: new Date(),
-  }).returning({ id: gpsPings.id });
+  const [inserted] = await db
+    .insert(gpsPings)
+    .values({
+      vehicleId: data.vehicleId,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      speed: data.speed,
+      recordedAt: new Date(),
+    })
+    .returning({ id: gpsPings.id });
 
   return { success: true, id: inserted?.id };
 }

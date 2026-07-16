@@ -2,7 +2,14 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { books, bookCopies, libraryMembers, bookIssues, bookFines, auditLogs } from "@/db/schema";
+import {
+  books,
+  bookCopies,
+  libraryMembers,
+  bookIssues,
+  bookFines,
+  auditLogs,
+} from "@/db/schema";
 import { eq, and, isNull, desc, sql } from "drizzle-orm";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { z } from "zod";
@@ -87,7 +94,10 @@ export async function saveBook(rawData: unknown) {
   if (!book) throw new Error("Failed to save book");
 
   // Create individual copy instances with barcodes
-  const barcodePrefix = data.title.slice(0, 3).toUpperCase().replace(/[^A-Z]/g, "BOK");
+  const barcodePrefix = data.title
+    .slice(0, 3)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "BOK");
   const suffixRandom = Math.floor(Math.random() * 1000).toString();
 
   for (let i = 1; i <= data.copiesCount; i++) {
@@ -122,7 +132,7 @@ export async function registerLibraryMember(rawData: unknown) {
   const existing = await db.query.libraryMembers.findFirst({
     where: and(
       eq(libraryMembers.schoolId, schoolId),
-      eq(libraryMembers.memberCardNumber, data.memberCardNumber)
+      eq(libraryMembers.memberCardNumber, data.memberCardNumber),
     ),
   });
 
@@ -151,7 +161,10 @@ export async function registerLibraryMember(rawData: unknown) {
     tableName: "library_members",
     recordId: member.id,
     purposeId: "academic_records",
-    metadata: { memberCardNumber: data.memberCardNumber, memberType: data.memberType },
+    metadata: {
+      memberCardNumber: data.memberCardNumber,
+      memberType: data.memberType,
+    },
   });
 
   return { success: true, member };
@@ -168,7 +181,7 @@ export async function issueBook(rawData: unknown) {
     where: and(
       eq(libraryMembers.schoolId, schoolId),
       eq(libraryMembers.memberCardNumber, data.memberCardNumber),
-      eq(libraryMembers.isActive, true)
+      eq(libraryMembers.isActive, true),
     ),
   });
 
@@ -181,12 +194,15 @@ export async function issueBook(rawData: unknown) {
     where: and(
       eq(bookCopies.schoolId, schoolId),
       eq(bookCopies.barcodeNumber, data.barcodeNumber),
-      isNull(bookCopies.deletedAt)
+      isNull(bookCopies.deletedAt),
     ),
   });
 
   if (!copy) {
-    return { success: false, message: "Book copy barcode not found in catalog" };
+    return {
+      success: false,
+      message: "Book copy barcode not found in catalog",
+    };
   }
 
   if (!copy.isAvailable) {
@@ -202,7 +218,9 @@ export async function issueBook(rawData: unknown) {
       .where(eq(bookCopies.id, copy.id));
 
     // Create checkout issue log
-    const dueDate = new Date(Date.now() + member.loanPeriodDays * 24 * 60 * 60 * 1000);
+    const dueDate = new Date(
+      Date.now() + member.loanPeriodDays * 24 * 60 * 60 * 1000,
+    );
     await tx.insert(bookIssues).values({
       schoolId,
       bookCopyId: copy.id,
@@ -226,7 +244,10 @@ export async function issueBook(rawData: unknown) {
     tableName: "book_issues",
     recordId: copy.id,
     purposeId: "academic_records",
-    metadata: { barcodeNumber: data.barcodeNumber, memberCardNumber: data.memberCardNumber },
+    metadata: {
+      barcodeNumber: data.barcodeNumber,
+      memberCardNumber: data.memberCardNumber,
+    },
   });
 
   return { success: true };
@@ -242,7 +263,7 @@ export async function returnBook(rawData: unknown) {
   const issue = await db.query.bookIssues.findFirst({
     where: and(
       eq(bookIssues.schoolId, schoolId),
-      eq(bookIssues.id, data.issueId)
+      eq(bookIssues.id, data.issueId),
     ),
   });
 
@@ -268,7 +289,10 @@ export async function returnBook(rawData: unknown) {
     if (data.fineAmount > 0) {
       const overdueDays = Math.max(
         0,
-        Math.ceil((Date.now() - new Date(issue.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+        Math.ceil(
+          (Date.now() - new Date(issue.dueDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
       );
       await tx.insert(bookFines).values({
         schoolId,

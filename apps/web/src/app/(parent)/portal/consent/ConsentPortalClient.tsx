@@ -44,12 +44,17 @@ export default function ConsentPortalClient({
   initialConsentRecords,
 }: Props) {
   const [activeStudentId, setActiveStudentId] = useState(students[0]?.id || "");
-  const [consentRecords, setConsentRecords] = useState<ConsentRecord[]>(initialConsentRecords);
+  const [consentRecords, setConsentRecords] = useState<ConsentRecord[]>(
+    initialConsentRecords,
+  );
   const [loading, setLoading] = useState<string | null>(null);
 
   // OTP Modal State
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpTarget, setOtpTarget] = useState<{ purposeId: string; nextVal: boolean } | null>(null);
+  const [otpTarget, setOtpTarget] = useState<{
+    purposeId: string;
+    nextVal: boolean;
+  } | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [withdrawalReason, setWithdrawalReason] = useState("");
   const [otpStatusMsg, setOtpStatusMsg] = useState("");
@@ -64,7 +69,7 @@ export default function ConsentPortalClient({
 
   const getConsentState = (purposeId: string) => {
     const record = consentRecords.find(
-      (r) => r.studentId === activeStudentId && r.purposeId === purposeId
+      (r) => r.studentId === activeStudentId && r.purposeId === purposeId,
     );
     return record ? record.granted : false;
   };
@@ -81,10 +86,15 @@ export default function ConsentPortalClient({
   const triggerOtpSend = async () => {
     if (!otpTarget) return;
     setLoading("SEND_OTP");
-    const res = await generateConsentChangeOtp(activeStudentId, otpTarget.purposeId);
+    const res = await generateConsentChangeOtp(
+      activeStudentId,
+      otpTarget.purposeId,
+    );
     setLoading(null);
     if (res.success) {
-      setOtpStatusMsg("OTP generated and sent to console! (Accepts '123456' or code)");
+      setOtpStatusMsg(
+        "OTP generated and sent to console! (Accepts '123456' or code)",
+      );
     } else {
       setOtpError(res.message || "Failed to trigger OTP");
     }
@@ -120,7 +130,11 @@ export default function ConsentPortalClient({
 
       setConsentRecords((prev) => {
         const filtered = prev.filter(
-          (r) => !(r.studentId === activeStudentId && r.purposeId === otpTarget.purposeId)
+          (r) =>
+            !(
+              r.studentId === activeStudentId &&
+              r.purposeId === otpTarget.purposeId
+            ),
         );
         return [...filtered, updatedRecord];
       });
@@ -166,10 +180,12 @@ export default function ConsentPortalClient({
             DPDP Compliance Consent Agreement
           </h4>
           <p className="text-xs text-indigo-700 dark:text-indigo-400">
-            In accordance with the Digital Personal Data Protection (DPDP) Act 2023, the school requires
-            your explicit parental consent to process your minor child&apos;s personal data. You have the
-            legal right to review, update, or withdraw consent at any time. Withdrawal of consent triggers
-            an immediate halt to data processing for that purpose within 24 hours.
+            In accordance with the Digital Personal Data Protection (DPDP) Act
+            2023, the school requires your explicit parental consent to process
+            your minor child&apos;s personal data. You have the legal right to
+            review, update, or withdraw consent at any time. Withdrawal of
+            consent triggers an immediate halt to data processing for that
+            purpose within 24 hours.
           </p>
         </div>
       </div>
@@ -179,7 +195,8 @@ export default function ConsentPortalClient({
         {purposes.map((p) => {
           const granted = getConsentState(p.purposeId);
           const record = consentRecords.find(
-            (r) => r.studentId === activeStudentId && r.purposeId === p.purposeId
+            (r) =>
+              r.studentId === activeStudentId && r.purposeId === p.purposeId,
           );
 
           return (
@@ -198,7 +215,10 @@ export default function ConsentPortalClient({
                       Legal Basis: {p.legalBasis}
                     </span>
                     <h3 className="text-base font-bold mt-2 text-slate-800 dark:text-white">
-                      {p.labelEn} <span className="text-xs text-slate-400 font-normal">/ {p.labelHi}</span>
+                      {p.labelEn}{" "}
+                      <span className="text-xs text-slate-400 font-normal">
+                        / {p.labelHi}
+                      </span>
                     </h3>
                   </div>
 
@@ -214,13 +234,15 @@ export default function ConsentPortalClient({
                   {record && !granted && record.processingHaltedAt && (
                     <div className="text-[10px] text-red-600 dark:text-red-400 font-extrabold flex items-center gap-1">
                       <ShieldAlert className="w-3.5 h-3.5" />
-                      PROCESSING HALTED: Consent withdrawn on {new Date(record.grantedAt).toLocaleString()}
+                      PROCESSING HALTED: Consent withdrawn on{" "}
+                      {new Date(record.grantedAt).toLocaleString()}
                     </div>
                   )}
                   {record && granted && (
                     <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1">
                       <Check className="w-3.5 h-3.5" />
-                      CONSENT ACTIVE: Granted on {new Date(record.grantedAt).toLocaleString()}
+                      CONSENT ACTIVE: Granted on{" "}
+                      {new Date(record.grantedAt).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -234,7 +256,9 @@ export default function ConsentPortalClient({
                     <button
                       onClick={() => handleToggleClick(p.purposeId, granted)}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        granted ? "bg-indigo-650" : "bg-slate-205 dark:bg-slate-800"
+                        granted
+                          ? "bg-indigo-650"
+                          : "bg-slate-205 dark:bg-slate-800"
                       }`}
                     >
                       <span
@@ -261,7 +285,9 @@ export default function ConsentPortalClient({
             </h3>
 
             <p className="text-xs text-slate-500">
-              You are updating consent choices for <strong>{activeStudentName}</strong>. This requires a 6-digit OTP verification.
+              You are updating consent choices for{" "}
+              <strong>{activeStudentName}</strong>. This requires a 6-digit OTP
+              verification.
             </p>
 
             {otpStatusMsg && (
@@ -278,7 +304,9 @@ export default function ConsentPortalClient({
 
             {!otpTarget.nextVal && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase">Reason for Withdrawal (Optional)</label>
+                <label className="text-xs font-bold text-slate-400 uppercase">
+                  Reason for Withdrawal (Optional)
+                </label>
                 <textarea
                   value={withdrawalReason}
                   onChange={(e) => setWithdrawalReason(e.target.value)}

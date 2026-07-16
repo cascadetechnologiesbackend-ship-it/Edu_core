@@ -3,10 +3,22 @@
 
 import React from "react";
 import type { ClassGroup } from "../gradeEngine";
-import { NurseryTemplate, type NurseryReportCardData } from "./templates/NurseryTemplate";
-import { Class1to5Template, type Class1to5ReportData } from "./templates/Class1to5Template";
-import { Class6to8Template, type Class6to8ReportData } from "./templates/Class6to8Template";
-import { Class9to10Template, type Class9to10ReportData } from "./templates/Class9to10Template";
+import {
+  NurseryTemplate,
+  type NurseryReportCardData,
+} from "./templates/NurseryTemplate";
+import {
+  Class1to5Template,
+  type Class1to5ReportData,
+} from "./templates/Class1to5Template";
+import {
+  Class6to8Template,
+  type Class6to8ReportData,
+} from "./templates/Class6to8Template";
+import {
+  Class9to10Template,
+  type Class9to10ReportData,
+} from "./templates/Class9to10Template";
 
 export type ReportCardData =
   | { classGroup: "NURSERY_UKG"; data: NurseryReportCardData }
@@ -35,8 +47,12 @@ export function ReportCardPDF({ payload }: { payload: ReportCardData }) {
  */
 export function gradeToClassGroup(gradeLevel: string): ClassGroup {
   if (["NURSERY", "LKG", "UKG"].includes(gradeLevel)) return "NURSERY_UKG";
-  if (["CLASS_1", "CLASS_2", "CLASS_3", "CLASS_4", "CLASS_5"].includes(gradeLevel)) return "CLASS_1_5";
-  if (["CLASS_6", "CLASS_7", "CLASS_8"].includes(gradeLevel)) return "CLASS_6_8";
+  if (
+    ["CLASS_1", "CLASS_2", "CLASS_3", "CLASS_4", "CLASS_5"].includes(gradeLevel)
+  )
+    return "CLASS_1_5";
+  if (["CLASS_6", "CLASS_7", "CLASS_8"].includes(gradeLevel))
+    return "CLASS_6_8";
   if (["CLASS_9", "CLASS_10"].includes(gradeLevel)) return "CLASS_9_10";
   throw new Error(`Unknown grade level: ${gradeLevel}`);
 }

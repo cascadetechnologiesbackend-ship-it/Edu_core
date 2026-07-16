@@ -19,14 +19,20 @@ import { executeRetentionPolicy } from "@/workers/retention";
 export async function toggleLegalHold(
   recordId: string,
   targetTable: "students" | "staff",
-  hold: boolean
+  hold: boolean,
 ) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
-    if (session.user.role !== "HR_MANAGER" && session.user.role !== "SUPER_ADMIN") {
-      return { success: false, message: "Access denied: HR Manager or Super Admin role required." };
+    if (
+      session.user.role !== "HR_MANAGER" &&
+      session.user.role !== "SUPER_ADMIN"
+    ) {
+      return {
+        success: false,
+        message: "Access denied: HR Manager or Super Admin role required.",
+      };
     }
 
     if (targetTable === "students") {
@@ -104,7 +110,11 @@ export async function createVendor(input: {
   }
 }
 
-export async function updateVendorDpaStatus(vendorId: string, status: string, expiry?: string) {
+export async function updateVendorDpaStatus(
+  vendorId: string,
+  status: string,
+  expiry?: string,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
@@ -213,7 +223,11 @@ export async function markBreachParentsNotified(breachId: string) {
 }
 
 // ─── Resolve Subject Requests & Grievances ────────────────────────────────────
-export async function resolveRightsRequest(id: string, approve: boolean, responseDetails: string) {
+export async function resolveRightsRequest(
+  id: string,
+  approve: boolean,
+  responseDetails: string,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };

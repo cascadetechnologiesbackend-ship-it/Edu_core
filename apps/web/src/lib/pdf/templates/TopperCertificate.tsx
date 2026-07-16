@@ -2,7 +2,14 @@
 // Gold border, school logo, merit details; used for Merit list + Topper recognition
 
 import React from "react";
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Image,
+} from "@react-pdf/renderer";
 
 const GOLD = "#b8860b";
 const GOLD_LIGHT = "#fef3c7";
@@ -214,8 +221,8 @@ export function TopperCertificate({ data }: { data: TopperCertificateData }) {
   const meritLabel = isFirstRank
     ? "SCHOOL TOPPER"
     : data.rank <= 3
-    ? `${data.rank}${data.rank === 2 ? "nd" : "rd"} RANK HOLDER`
-    : `MERIT CERTIFICATE`;
+      ? `${data.rank}${data.rank === 2 ? "nd" : "rd"} RANK HOLDER`
+      : `MERIT CERTIFICATE`;
 
   return (
     <Document>
@@ -231,7 +238,10 @@ export function TopperCertificate({ data }: { data: TopperCertificateData }) {
             {/* School Header */}
             {data.schoolLogoUrl && (
               <View style={styles.logoContainer}>
-                <Image src={data.schoolLogoUrl} style={{ width: 60, height: 60, objectFit: "contain" }} />
+                <Image
+                  src={data.schoolLogoUrl}
+                  style={{ width: 60, height: 60, objectFit: "contain" }}
+                />
               </View>
             )}
             <Text style={styles.schoolName}>{data.schoolName}</Text>
@@ -243,10 +253,14 @@ export function TopperCertificate({ data }: { data: TopperCertificateData }) {
 
             {/* Certificate Title */}
             <Text style={styles.certTitle}>Certificate of Merit</Text>
-            <Text style={styles.certSubtitle}>Academic Excellence Award — {data.academicYear}</Text>
+            <Text style={styles.certSubtitle}>
+              Academic Excellence Award — {data.academicYear}
+            </Text>
 
             {/* Recipient */}
-            <Text style={styles.presentedTo}>This certificate is proudly presented to</Text>
+            <Text style={styles.presentedTo}>
+              This certificate is proudly presented to
+            </Text>
             <Text style={styles.studentName}>{data.studentName}</Text>
 
             {/* Merit Badge */}
@@ -270,7 +284,9 @@ export function TopperCertificate({ data }: { data: TopperCertificateData }) {
               </View>
               <View style={styles.statBlock}>
                 <Text style={styles.statLabel}>Percentage</Text>
-                <Text style={styles.statValue}>{data.overallPercent.toFixed(1)}%</Text>
+                <Text style={styles.statValue}>
+                  {data.overallPercent.toFixed(1)}%
+                </Text>
                 <Text style={styles.statSub}>Grade {data.overallGrade}</Text>
               </View>
               {data.cgpa != null && (
@@ -283,9 +299,9 @@ export function TopperCertificate({ data }: { data: TopperCertificateData }) {
             </View>
 
             <Text style={styles.achievementText}>
-              For outstanding academic performance in the {data.examName} examination
-              of the Academic Year {data.academicYear}, demonstrating exceptional
-              dedication and commitment to excellence.
+              For outstanding academic performance in the {data.examName}{" "}
+              examination of the Academic Year {data.academicYear},
+              demonstrating exceptional dedication and commitment to excellence.
             </Text>
 
             <View style={styles.divider} />

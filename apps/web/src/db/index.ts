@@ -11,13 +11,17 @@ const globalForDb = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
-const pool = globalForDb.pool ?? new Pool({
-  connectionString: process.env["DATABASE_URL"] ?? "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
-  min: Number(process.env["DATABASE_POOL_MIN"] ?? 2),
-  max: Number(process.env["DATABASE_POOL_MAX"] ?? 10),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const pool =
+  globalForDb.pool ??
+  new Pool({
+    connectionString:
+      process.env["DATABASE_URL"] ??
+      "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
+    min: Number(process.env["DATABASE_POOL_MIN"] ?? 2),
+    max: Number(process.env["DATABASE_POOL_MAX"] ?? 10),
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
 
 if (process.env["NODE_ENV"] !== "production") {
   globalForDb.pool = pool;
@@ -40,11 +44,13 @@ export type Db = typeof db;
  */
 export async function withTenant<T>(
   tenantSlug: string,
-  cb: (tx: Db) => Promise<T>
+  cb: (tx: Db) => Promise<T>,
 ): Promise<T> {
   const schemaName = `tenant_${tenantSlug.replace(/[^a-zA-Z0-9_]/g, "")}`;
   return await db.transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL search_path TO ${sql.raw(schemaName)}, public`);
+    await tx.execute(
+      sql`SET LOCAL search_path TO ${sql.raw(schemaName)}, public`,
+    );
     return await cb(tx as any);
   });
 }
@@ -70,7 +76,9 @@ export async function provisionTenant(tenantSlug: string): Promise<void> {
 
   await db.transaction(async (tx) => {
     // Force migration DDL statements to create tables inside the tenant schema
-    await tx.execute(sql`SET LOCAL search_path TO ${sql.raw(schemaName)}, public`);
+    await tx.execute(
+      sql`SET LOCAL search_path TO ${sql.raw(schemaName)}, public`,
+    );
 
     for (const file of migrationFiles) {
       const fullPath = path.join(migrationsDir, file);

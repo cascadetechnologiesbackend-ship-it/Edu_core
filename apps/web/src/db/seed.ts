@@ -77,7 +77,11 @@ const ROLES = [
   { name: "TEACHER", displayName: "Teacher", isSystemRole: true },
   { name: "ACCOUNTANT", displayName: "Accountant", isSystemRole: true },
   { name: "LIBRARIAN", displayName: "Librarian", isSystemRole: true },
-  { name: "TRANSPORT_MANAGER", displayName: "Transport Manager", isSystemRole: true },
+  {
+    name: "TRANSPORT_MANAGER",
+    displayName: "Transport Manager",
+    isSystemRole: true,
+  },
   { name: "PARENT", displayName: "Parent", isSystemRole: true },
   { name: "STUDENT", displayName: "Student", isSystemRole: true },
 ] as const;
@@ -98,16 +102,69 @@ const GRADES = [
   "CLASS_10",
 ] as const;
 
-const FIRST_NAMES_MALE = ["Aarav", "Vihaan", "Aditya", "Sai", "Arjun", "Rishi", "Dev", "Krishna", "Om", "Kabir", "Aryan", "Dhruv", "Rudra", "Ishaan", "Kartik"];
-const FIRST_NAMES_FEMALE = ["Ananya", "Aadhya", "Saanvi", "Diya", "Riya", "Myra", "Kiara", "Kavya", "Pari", "Navya", "Meera", "Zara", "Aarohi", "Ira", "Shruti"];
-const LAST_NAMES = ["Sharma", "Verma", "Gupta", "Patil", "Deshmukh", "Joshi", "Kulkarni", "Singh", "Yadav", "Reddy", "Nair", "Iyer", "Das", "Bose", "Choudhury"];
+const FIRST_NAMES_MALE = [
+  "Aarav",
+  "Vihaan",
+  "Aditya",
+  "Sai",
+  "Arjun",
+  "Rishi",
+  "Dev",
+  "Krishna",
+  "Om",
+  "Kabir",
+  "Aryan",
+  "Dhruv",
+  "Rudra",
+  "Ishaan",
+  "Kartik",
+];
+const FIRST_NAMES_FEMALE = [
+  "Ananya",
+  "Aadhya",
+  "Saanvi",
+  "Diya",
+  "Riya",
+  "Myra",
+  "Kiara",
+  "Kavya",
+  "Pari",
+  "Navya",
+  "Meera",
+  "Zara",
+  "Aarohi",
+  "Ira",
+  "Shruti",
+];
+const LAST_NAMES = [
+  "Sharma",
+  "Verma",
+  "Gupta",
+  "Patil",
+  "Deshmukh",
+  "Joshi",
+  "Kulkarni",
+  "Singh",
+  "Yadav",
+  "Reddy",
+  "Nair",
+  "Iyer",
+  "Das",
+  "Bose",
+  "Choudhury",
+];
 
 // AES-256 Encryption Mock
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
 
 function encryptData(text: string) {
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), iv);
+  const cipher = crypto.createCipheriv(
+    "aes-256-cbc",
+    Buffer.from(ENCRYPTION_KEY, "hex"),
+    iv,
+  );
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   return iv.toString("hex") + ":" + encrypted.toString("hex");
@@ -118,11 +175,18 @@ function getRandomItem<T>(arr: T[] | readonly T[]): T {
 }
 
 function generateMobile() {
-  return "9" + Math.floor(Math.random() * 1000000000).toString().padStart(9, "0");
+  return (
+    "9" +
+    Math.floor(Math.random() * 1000000000)
+      .toString()
+      .padStart(9, "0")
+  );
 }
 
 function generateAadhaar() {
-  return Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+  return Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
 }
 
 async function main() {
@@ -181,7 +245,7 @@ async function main() {
   await db.delete(examTypes);
   await db.delete(gradeRules);
   await db.delete(salaryTemplates);
-  
+
   await db.delete(studentClassHistory);
   await db.delete(studentFamilyMembers);
   await db.delete(students);
@@ -250,7 +314,7 @@ async function main() {
       mandatory: p.mandatory,
       legalBasis: p.legalBasis,
       retentionDays: p.retentionDays === "LEGAL_HOLD" ? 36500 : p.retentionDays,
-    }))
+    })),
   );
 
   const [privacyNotice] = await db
@@ -278,7 +342,7 @@ async function main() {
         name: r.name,
         displayName: r.displayName,
         isSystemRole: r.isSystemRole,
-      }))
+      })),
     )
     .returning({ id: roles.id, name: roles.name });
 
@@ -303,7 +367,7 @@ async function main() {
           passwordHash,
           isActive: true,
           isEmailVerified: true,
-        }))
+        })),
       )
       .returning({ id: users.id });
 
@@ -312,7 +376,7 @@ async function main() {
         userId: u.id,
         roleId,
         schoolId: school.id,
-      }))
+      })),
     );
 
     if (roleName === "TEACHER") {
@@ -324,7 +388,7 @@ async function main() {
   console.log("🎓 Creating 390 students, parents, and DPDP consent records...");
   const parentRoleId = roleMap["PARENT"];
   const studentRoleId = roleMap["STUDENT"];
-  
+
   if (!parentRoleId || !studentRoleId) throw new Error("Missing roles");
 
   let admissionNumberCounter = 1000;
@@ -333,33 +397,55 @@ async function main() {
   let sortOrder = 1;
   for (const grade of GRADES) {
     console.log(`   -> Generating Class and Sections for ${grade}...`);
-    
+
     // Create Class
-    const [cls] = await db.insert(classes).values({
-      schoolId: school.id,
-      academicYearId: academicYear.id,
-      gradeLevel: grade,
-      displayName: grade.replace("_", " "),
-      sortOrder: sortOrder++,
-      isActive: true,
-    }).returning({ id: classes.id });
+    const [cls] = await db
+      .insert(classes)
+      .values({
+        schoolId: school.id,
+        academicYearId: academicYear.id,
+        gradeLevel: grade,
+        displayName: grade.replace("_", " "),
+        sortOrder: sortOrder++,
+        isActive: true,
+      })
+      .returning({ id: classes.id });
 
     if (!cls) throw new Error("Failed to create class");
     createdClasses.push(cls);
 
     // Create Sections A and B (assign teacher1 to Section A, teacher2 to Section B)
-    const createdSections = await db.insert(sections).values([
-      { classId: cls.id, schoolId: school.id, name: "A", capacity: 30, isActive: true, classTeacherId: teacherIds[0] || null },
-      { classId: cls.id, schoolId: school.id, name: "B", capacity: 30, isActive: true, classTeacherId: teacherIds[1] || null },
-    ]).returning({ id: sections.id });
+    const createdSections = await db
+      .insert(sections)
+      .values([
+        {
+          classId: cls.id,
+          schoolId: school.id,
+          name: "A",
+          capacity: 30,
+          isActive: true,
+          classTeacherId: teacherIds[0] || null,
+        },
+        {
+          classId: cls.id,
+          schoolId: school.id,
+          name: "B",
+          capacity: 30,
+          isActive: true,
+          classTeacherId: teacherIds[1] || null,
+        },
+      ])
+      .returning({ id: sections.id });
 
     console.log(`   -> Generating 30 students for ${grade}...`);
     for (let i = 0; i < 30; i++) {
       const isMale = Math.random() > 0.5;
-      const firstName = getRandomItem(isMale ? FIRST_NAMES_MALE : FIRST_NAMES_FEMALE);
+      const firstName = getRandomItem(
+        isMale ? FIRST_NAMES_MALE : FIRST_NAMES_FEMALE,
+      );
       const lastName = getRandomItem(LAST_NAMES);
       const admissionNum = `2025/${grade}/${admissionNumberCounter++}`;
-      
+
       const fatherName = getRandomItem(FIRST_NAMES_MALE) + " " + lastName;
       const motherName = getRandomItem(FIRST_NAMES_FEMALE) + " " + lastName;
       const parentMobile = generateMobile();
@@ -393,7 +479,11 @@ async function main() {
           admissionNumber: admissionNum,
           firstNameEncrypted: encryptData(firstName),
           lastNameEncrypted: encryptData(lastName),
-          dateOfBirth: new Date(2010 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          dateOfBirth: new Date(
+            2010 + Math.floor(Math.random() * 10),
+            Math.floor(Math.random() * 12),
+            Math.floor(Math.random() * 28) + 1,
+          ),
           gender: isMale ? "MALE" : "FEMALE",
           category: "GENERAL",
           aadhaarLast4: generateAadhaar(),
@@ -413,7 +503,7 @@ async function main() {
           academicYearId: academicYear.id,
           classId: cls.id,
           sectionId: assignedSection.id,
-          rollNumber: (i % 15 + 1).toString(),
+          rollNumber: ((i % 15) + 1).toString(),
           promotionStatus: "PROMOTED",
         });
       }
@@ -436,12 +526,12 @@ async function main() {
           relation: "MOTHER",
           nameEncrypted: encryptData(motherName),
           hasConsentAuthority: true,
-        }
+        },
       ]);
 
       // Create DPDP Consent Records (Mandatory purposes)
       await db.insert(consentRecords).values(
-        MANDATORY_PURPOSE_IDS.map(purposeId => ({
+        MANDATORY_PURPOSE_IDS.map((purposeId) => ({
           schoolId: school.id,
           studentId: student.id,
           parentUserId: parentUser.id,
@@ -450,7 +540,7 @@ async function main() {
           granted: true,
           method: "physical_scan" as const,
           otpVerified: true,
-        }))
+        })),
       );
 
       // Add transport purpose to the first student for testing
@@ -471,51 +561,99 @@ async function main() {
 
   // 8. Create Default Subjects and Subject Mappings
   console.log("📚 Seeding default subjects and teacher mapping...");
-  const defaultSubjects = await db.insert(subjects).values([
-    { schoolId: school.id, code: "MATH101", name: "Mathematics", subjectType: "THEORY", maxMarks: 100, passingMarks: 33 },
-    { schoolId: school.id, code: "SCI101", name: "Science", subjectType: "THEORY", maxMarks: 100, passingMarks: 33 },
-    { schoolId: school.id, code: "ENG101", name: "English", subjectType: "THEORY", maxMarks: 100, passingMarks: 33 },
-  ]).returning({ id: subjects.id, code: subjects.code });
+  const defaultSubjects = await db
+    .insert(subjects)
+    .values([
+      {
+        schoolId: school.id,
+        code: "MATH101",
+        name: "Mathematics",
+        subjectType: "THEORY",
+        maxMarks: 100,
+        passingMarks: 33,
+      },
+      {
+        schoolId: school.id,
+        code: "SCI101",
+        name: "Science",
+        subjectType: "THEORY",
+        maxMarks: 100,
+        passingMarks: 33,
+      },
+      {
+        schoolId: school.id,
+        code: "ENG101",
+        name: "English",
+        subjectType: "THEORY",
+        maxMarks: 100,
+        passingMarks: 33,
+      },
+    ])
+    .returning({ id: subjects.id, code: subjects.code });
 
-  const mathSub = defaultSubjects.find(s => s.code === "MATH101")!;
-  const sciSub = defaultSubjects.find(s => s.code === "SCI101")!;
-  const engSub = defaultSubjects.find(s => s.code === "ENG101")!;
+  const mathSub = defaultSubjects.find((s) => s.code === "MATH101")!;
+  const sciSub = defaultSubjects.find((s) => s.code === "SCI101")!;
+  const engSub = defaultSubjects.find((s) => s.code === "ENG101")!;
 
   if (createdClasses.length > 0) {
     const firstClass = createdClasses[0];
     await db.insert(classSubjects).values([
-      { classId: firstClass.id, subjectId: mathSub.id, schoolId: school.id, assignedTeacherId: teacherIds[0] || null, periodsPerWeek: 5 },
-      { classId: firstClass.id, subjectId: sciSub.id, schoolId: school.id, assignedTeacherId: teacherIds[0] || null, periodsPerWeek: 5 },
-      { classId: firstClass.id, subjectId: engSub.id, schoolId: school.id, assignedTeacherId: teacherIds[1] || null, periodsPerWeek: 5 },
+      {
+        classId: firstClass.id,
+        subjectId: mathSub.id,
+        schoolId: school.id,
+        assignedTeacherId: teacherIds[0] || null,
+        periodsPerWeek: 5,
+      },
+      {
+        classId: firstClass.id,
+        subjectId: sciSub.id,
+        schoolId: school.id,
+        assignedTeacherId: teacherIds[0] || null,
+        periodsPerWeek: 5,
+      },
+      {
+        classId: firstClass.id,
+        subjectId: engSub.id,
+        schoolId: school.id,
+        assignedTeacherId: teacherIds[1] || null,
+        periodsPerWeek: 5,
+      },
     ]);
   }
 
   // 9. Create Default Transport Vehicle, Route, and Stop
   console.log("🚌 Seeding default transport vehicle, route, and stop...");
-  const [vehicle] = await db.insert(vehicles).values({
-    schoolId: school.id,
-    busNumber: "BUS-01",
-    registrationNumber: "MH-12-QQ-1234",
-    capacity: 40,
-    make: "Tata",
-    model: "Starbus",
-    yearOfManufacture: 2021,
-    driverNameEncrypted: encryptData("Rajesh Kumar"),
-    driverLicenceEncrypted: encryptData("DL-1420230099887"),
-    driverMobileEncrypted: encryptData("9876543210"),
-    conductorNameEncrypted: encryptData("Amit Singh"),
-    conductorMobileEncrypted: encryptData("9876543211"),
-    isActive: true,
-  }).returning({ id: vehicles.id });
+  const [vehicle] = await db
+    .insert(vehicles)
+    .values({
+      schoolId: school.id,
+      busNumber: "BUS-01",
+      registrationNumber: "MH-12-QQ-1234",
+      capacity: 40,
+      make: "Tata",
+      model: "Starbus",
+      yearOfManufacture: 2021,
+      driverNameEncrypted: encryptData("Rajesh Kumar"),
+      driverLicenceEncrypted: encryptData("DL-1420230099887"),
+      driverMobileEncrypted: encryptData("9876543210"),
+      conductorNameEncrypted: encryptData("Amit Singh"),
+      conductorMobileEncrypted: encryptData("9876543211"),
+      isActive: true,
+    })
+    .returning({ id: vehicles.id });
 
   if (vehicle) {
-    const [route] = await db.insert(routes).values({
-      schoolId: school.id,
-      vehicleId: vehicle.id,
-      routeName: "Route A - Hinjewadi",
-      routeCode: "R-A",
-      isActive: true,
-    }).returning({ id: routes.id });
+    const [route] = await db
+      .insert(routes)
+      .values({
+        schoolId: school.id,
+        vehicleId: vehicle.id,
+        routeName: "Route A - Hinjewadi",
+        routeCode: "R-A",
+        isActive: true,
+      })
+      .returning({ id: routes.id });
 
     if (route) {
       await db.insert(routeStops).values([
@@ -543,54 +681,69 @@ async function main() {
 
   // 10. Seed Library Books, Copies, Members, and Issues
   console.log("📚 Seeding default library books and copies...");
-  const seededBooks = await db.insert(books).values([
-    {
-      schoolId: school.id,
-      title: "Introduction to Algorithms",
-      author: "Thomas H. Cormen",
-      publisher: "MIT Press",
-      edition: "4th",
-      subject: "Computer Science",
-      category: "Technical",
-      rackLocation: "Rack A-3",
-      totalCopies: 2,
-      availableCopies: 1,
-      isActive: true,
-    },
-    {
-      schoolId: school.id,
-      title: "The C++ Programming Language",
-      author: "Bjarne Stroustrup",
-      publisher: "Addison-Wesley",
-      edition: "4th",
-      subject: "Computer Science",
-      category: "Technical",
-      rackLocation: "Rack A-4",
-      totalCopies: 2,
-      availableCopies: 2,
-      isActive: true,
-    },
-    {
-      schoolId: school.id,
-      title: "Harry Potter and the Sorcerer's Stone",
-      author: "J.K. Rowling",
-      publisher: "Scholastic",
-      edition: "1st",
-      subject: "Fiction",
-      category: "Novel",
-      rackLocation: "Rack F-1",
-      totalCopies: 2,
-      availableCopies: 2,
-      isActive: true,
-    },
-  ]).returning({ id: books.id, title: books.title });
+  const seededBooks = await db
+    .insert(books)
+    .values([
+      {
+        schoolId: school.id,
+        title: "Introduction to Algorithms",
+        author: "Thomas H. Cormen",
+        publisher: "MIT Press",
+        edition: "4th",
+        subject: "Computer Science",
+        category: "Technical",
+        rackLocation: "Rack A-3",
+        totalCopies: 2,
+        availableCopies: 1,
+        isActive: true,
+      },
+      {
+        schoolId: school.id,
+        title: "The C++ Programming Language",
+        author: "Bjarne Stroustrup",
+        publisher: "Addison-Wesley",
+        edition: "4th",
+        subject: "Computer Science",
+        category: "Technical",
+        rackLocation: "Rack A-4",
+        totalCopies: 2,
+        availableCopies: 2,
+        isActive: true,
+      },
+      {
+        schoolId: school.id,
+        title: "Harry Potter and the Sorcerer's Stone",
+        author: "J.K. Rowling",
+        publisher: "Scholastic",
+        edition: "1st",
+        subject: "Fiction",
+        category: "Novel",
+        rackLocation: "Rack F-1",
+        totalCopies: 2,
+        availableCopies: 2,
+        isActive: true,
+      },
+    ])
+    .returning({ id: books.id, title: books.title });
 
   // Add copies for each book
   for (const b of seededBooks) {
     const prefix = b.title.slice(0, 3).toUpperCase();
     await db.insert(bookCopies).values([
-      { bookId: b.id, schoolId: school.id, barcodeNumber: `BC-${prefix}-01`, condition: "GOOD", isAvailable: true },
-      { bookId: b.id, schoolId: school.id, barcodeNumber: `BC-${prefix}-02`, condition: "GOOD", isAvailable: true },
+      {
+        bookId: b.id,
+        schoolId: school.id,
+        barcodeNumber: `BC-${prefix}-01`,
+        condition: "GOOD",
+        isAvailable: true,
+      },
+      {
+        bookId: b.id,
+        schoolId: school.id,
+        barcodeNumber: `BC-${prefix}-02`,
+        condition: "GOOD",
+        isAvailable: true,
+      },
     ]);
   }
 
@@ -601,15 +754,18 @@ async function main() {
 
   if (firstStudent) {
     console.log("💳 Seeding student library member and checkout issue...");
-    const [studentMember] = await db.insert(libraryMembers).values({
-      schoolId: school.id,
-      memberType: "STUDENT",
-      memberRefId: firstStudent.id,
-      memberCardNumber: "LIB-ST-1001",
-      maxBooksAllowed: 3,
-      loanPeriodDays: 14,
-      isActive: true,
-    }).returning({ id: libraryMembers.id });
+    const [studentMember] = await db
+      .insert(libraryMembers)
+      .values({
+        schoolId: school.id,
+        memberType: "STUDENT",
+        memberRefId: firstStudent.id,
+        memberCardNumber: "LIB-ST-1001",
+        maxBooksAllowed: 3,
+        loanPeriodDays: 14,
+        isActive: true,
+      })
+      .returning({ id: libraryMembers.id });
 
     // Issue a book to the student
     const firstCopy = await db.query.bookCopies.findFirst({
@@ -618,7 +774,8 @@ async function main() {
 
     if (firstCopy && studentMember) {
       // Mark copy as checked out
-      await db.update(bookCopies)
+      await db
+        .update(bookCopies)
         .set({ isAvailable: false })
         .where(eq(bookCopies.id, firstCopy.id));
 

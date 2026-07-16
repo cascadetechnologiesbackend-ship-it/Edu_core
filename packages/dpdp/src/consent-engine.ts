@@ -91,7 +91,7 @@ export class ConsentRequiredError extends Error {
     const purpose = getConsentPurpose(purposeId);
     super(
       `Processing blocked: Parental consent required for purpose "${purpose.label}" (${purposeId}) for student ${studentId}. ` +
-        `This is required under DPDP Act 2023 Section 9 (Children's Data Protection).`
+        `This is required under DPDP Act 2023 Section 9 (Children's Data Protection).`,
     );
     this.name = "ConsentRequiredError";
     this.purposeId = purposeId;
@@ -103,7 +103,7 @@ export class OtpVerificationRequiredError extends Error {
   constructor() {
     super(
       "Guardian identity verification via OTP is required before recording consent. " +
-        "This is required under DPDP Act 2023 Section 9 (Verifiable Parental Consent)."
+        "This is required under DPDP Act 2023 Section 9 (Verifiable Parental Consent).",
     );
     this.name = "OtpVerificationRequiredError";
   }
@@ -115,7 +115,7 @@ export class MandatoryConsentError extends Error {
   constructor(missingPurposeIds: readonly ConsentPurposeId[]) {
     super(
       `Cannot process student data: Mandatory consents are missing for purposes: ${missingPurposeIds.join(", ")}. ` +
-        `Mandatory purposes cannot be opted out (${MANDATORY_PURPOSE_IDS.join(", ")}).`
+        `Mandatory purposes cannot be opted out (${MANDATORY_PURPOSE_IDS.join(", ")}).`,
     );
     this.name = "MandatoryConsentError";
     this.missingPurposeIds = missingPurposeIds;
@@ -141,7 +141,7 @@ export function validateConsentInput(input: ConsentRecordInput): void {
   const invalidMandatory = MANDATORY_PURPOSE_IDS.filter(
     (mandId) =>
       !input.purposeIds.includes(mandId) &&
-      input.purposeIds.some((p) => p === mandId)
+      input.purposeIds.some((p) => p === mandId),
   );
 
   if (invalidMandatory.length > 0) {
@@ -154,7 +154,7 @@ export function validateConsentInput(input: ConsentRecordInput): void {
  */
 export function validateWithdrawalInput(input: WithdrawConsentInput): void {
   const attemptedMandatory = input.purposeIds.filter((id) =>
-    (MANDATORY_PURPOSE_IDS as readonly string[]).includes(id)
+    (MANDATORY_PURPOSE_IDS as readonly string[]).includes(id),
   );
 
   if (attemptedMandatory.length > 0) {

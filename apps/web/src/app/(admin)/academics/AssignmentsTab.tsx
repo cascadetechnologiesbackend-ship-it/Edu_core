@@ -1,8 +1,21 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { getAssignments, saveAssignment, getAssignmentSubmissions, gradeSubmission, submitAssignment } from "./actions";
-import { Plus, RefreshCw, FileText, CheckCircle2, Award, ClipboardList } from "lucide-react";
+import {
+  getAssignments,
+  saveAssignment,
+  getAssignmentSubmissions,
+  gradeSubmission,
+  submitAssignment,
+} from "./actions";
+import {
+  Plus,
+  RefreshCw,
+  FileText,
+  CheckCircle2,
+  Award,
+  ClipboardList,
+} from "lucide-react";
 
 type Assignment = {
   id: string;
@@ -54,7 +67,8 @@ export default function AssignmentsTab({
   const [selectedSection, setSelectedSection] = useState("");
   const [selectedSubjectMapping, setSelectedSubjectMapping] = useState("");
   const [assignmentsList, setAssignmentsList] = useState<Assignment[]>([]);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<Assignment | null>(null);
   const [submissionsList, setSubmissionsList] = useState<Submission[]>([]);
 
   const [loading, setLoading] = useState(false);
@@ -183,12 +197,18 @@ export default function AssignmentsTab({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Assignments & Home Work</h2>
-          <p className="text-xs text-gray-500">Create, submit, or evaluate classroom assignments.</p>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+            Assignments & Home Work
+          </h2>
+          <p className="text-xs text-gray-500">
+            Create, submit, or evaluate classroom assignments.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">Section:</label>
+            <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">
+              Section:
+            </label>
             <select
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
@@ -199,12 +219,14 @@ export default function AssignmentsTab({
                   <option key={sec.id} value={sec.id}>
                     {cls.displayName} - Sec {sec.name}
                   </option>
-                ))
+                )),
               )}
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">Course:</label>
+            <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">
+              Course:
+            </label>
             <select
               value={selectedSubjectMapping}
               onChange={(e) => setSelectedSubjectMapping(e.target.value)}
@@ -231,13 +253,17 @@ export default function AssignmentsTab({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Assignments List */}
         <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 p-4 space-y-3">
-          <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider">Assignments</h3>
+          <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider">
+            Assignments
+          </h3>
           {loading ? (
             <div className="flex justify-center py-10">
               <RefreshCw className="w-5 h-5 animate-spin text-primary" />
             </div>
           ) : assignmentsList.length === 0 ? (
-            <p className="text-xs text-gray-500 italic">No assignments posted.</p>
+            <p className="text-xs text-gray-500 italic">
+              No assignments posted.
+            </p>
           ) : (
             <div className="space-y-2">
               {assignmentsList.map((assign) => (
@@ -251,7 +277,9 @@ export default function AssignmentsTab({
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <p className="font-semibold text-xs text-gray-800 dark:text-gray-200 truncate">{assign.title}</p>
+                    <p className="font-semibold text-xs text-gray-800 dark:text-gray-200 truncate">
+                      {assign.title}
+                    </p>
                     <span className="text-[10px] bg-gray-100 dark:bg-slate-800 text-gray-500 px-1.5 py-0.5 rounded font-semibold">
                       {assign.status}
                     </span>
@@ -271,10 +299,15 @@ export default function AssignmentsTab({
             <div className="space-y-6">
               <div className="flex justify-between items-start border-b border-gray-100 dark:border-slate-800 pb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{selectedAssignment.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{selectedAssignment.description}</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {selectedAssignment.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {selectedAssignment.description}
+                  </p>
                   <p className="text-xs text-gray-400 mt-2 font-semibold">
-                    Max Marks: {selectedAssignment.maxMarks || "—"} | Due Date: {new Date(selectedAssignment.dueDate).toLocaleDateString()}
+                    Max Marks: {selectedAssignment.maxMarks || "—"} | Due Date:{" "}
+                    {new Date(selectedAssignment.dueDate).toLocaleDateString()}
                   </p>
                 </div>
                 {isStudent && (
@@ -290,7 +323,8 @@ export default function AssignmentsTab({
               {/* Submissions list for teachers/admins */}
               <div className="space-y-4">
                 <h4 className="font-bold text-sm text-gray-800 dark:text-white flex items-center gap-1.5">
-                  <ClipboardList className="w-4 h-4 text-primary" /> Evaluation & Submissions
+                  <ClipboardList className="w-4 h-4 text-primary" /> Evaluation
+                  & Submissions
                 </h4>
 
                 {loadingSubs ? (
@@ -298,24 +332,35 @@ export default function AssignmentsTab({
                     <RefreshCw className="w-5 h-5 animate-spin text-primary" />
                   </div>
                 ) : submissionsList.length === 0 ? (
-                  <p className="text-xs text-gray-500 italic">No submissions yet.</p>
+                  <p className="text-xs text-gray-500 italic">
+                    No submissions yet.
+                  </p>
                 ) : (
                   <div className="divide-y divide-gray-100 dark:divide-slate-800">
                     {submissionsList.map((sub) => (
-                      <div key={sub.id} className="py-3 flex justify-between items-center text-xs">
+                      <div
+                        key={sub.id}
+                        className="py-3 flex justify-between items-center text-xs"
+                      >
                         <div className="space-y-1 text-left">
                           <p className="font-semibold text-gray-700 dark:text-gray-300">
                             Student ID: {sub.studentId.substring(0, 8)}...
                           </p>
                           <p className="text-[10px] text-gray-400">
-                            Submitted: {new Date(sub.submittedAt).toLocaleString()}
+                            Submitted:{" "}
+                            {new Date(sub.submittedAt).toLocaleString()}
                           </p>
-                          {sub.remarks && <p className="text-gray-500 italic">"{sub.remarks}"</p>}
+                          {sub.remarks && (
+                            <p className="text-gray-500 italic">
+                              "{sub.remarks}"
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           {sub.marksAwarded !== null ? (
                             <span className="bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400 px-2 py-1 rounded font-bold border border-green-200 dark:border-green-800">
-                              Graded: {sub.marksAwarded}/{selectedAssignment.maxMarks}
+                              Graded: {sub.marksAwarded}/
+                              {selectedAssignment.maxMarks}
                             </span>
                           ) : (
                             <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 px-2 py-1 rounded font-bold border border-amber-200 dark:border-amber-800">
@@ -326,7 +371,10 @@ export default function AssignmentsTab({
                             <button
                               onClick={() => {
                                 setSelectedSub(sub);
-                                setGradeData({ marksAwarded: sub.marksAwarded || 90, remarks: sub.remarks || "" });
+                                setGradeData({
+                                  marksAwarded: sub.marksAwarded || 90,
+                                  remarks: sub.remarks || "",
+                                });
                                 setShowGradeForm(true);
                               }}
                               className="text-primary hover:underline font-semibold"
@@ -344,7 +392,9 @@ export default function AssignmentsTab({
           ) : (
             <div className="text-center py-20 text-gray-400 space-y-2">
               <FileText className="w-12 h-12 mx-auto text-gray-300" />
-              <p className="font-medium text-sm">Select an assignment to view details and grading records.</p>
+              <p className="font-medium text-sm">
+                Select an assignment to view details and grading records.
+              </p>
             </div>
           )}
         </div>
@@ -353,46 +403,70 @@ export default function AssignmentsTab({
       {/* Assignment Post Modal */}
       {showAssignForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleCreateAssignment} className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Post New Assignment</h3>
+          <form
+            onSubmit={handleCreateAssignment}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
+          >
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Post New Assignment
+            </h3>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Title</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Title
+              </label>
               <input
                 type="text"
                 required
                 value={assignData.title}
-                onChange={(e) => setAssignData({ ...assignData, title: e.target.value })}
+                onChange={(e) =>
+                  setAssignData({ ...assignData, title: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Description</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Description
+              </label>
               <textarea
                 required
                 value={assignData.description}
-                onChange={(e) => setAssignData({ ...assignData, description: e.target.value })}
+                onChange={(e) =>
+                  setAssignData({ ...assignData, description: e.target.value })
+                }
                 rows={3}
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Marks</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Max Marks
+                </label>
                 <input
                   type="number"
                   required
                   value={assignData.maxMarks}
-                  onChange={(e) => setAssignData({ ...assignData, maxMarks: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setAssignData({
+                      ...assignData,
+                      maxMarks: parseInt(e.target.value),
+                    })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Due Date</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Due Date
+                </label>
                 <input
                   type="date"
                   required
                   value={assignData.dueDate}
-                  onChange={(e) => setAssignData({ ...assignData, dueDate: e.target.value })}
+                  onChange={(e) =>
+                    setAssignData({ ...assignData, dueDate: e.target.value })
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
@@ -410,7 +484,8 @@ export default function AssignmentsTab({
                 disabled={isPending}
                 className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
               >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />} Post Assignment
+                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+                Post Assignment
               </button>
             </div>
           </form>
@@ -420,25 +495,41 @@ export default function AssignmentsTab({
       {/* Grading Form Modal */}
       {showGradeForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleGradeSubmit} className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Evaluate Submission</h3>
+          <form
+            onSubmit={handleGradeSubmit}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
+          >
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Evaluate Submission
+            </h3>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Marks Awarded</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Marks Awarded
+              </label>
               <input
                 type="number"
                 required
                 max={selectedAssignment?.maxMarks || 100}
                 value={gradeData.marksAwarded}
-                onChange={(e) => setGradeData({ ...gradeData, marksAwarded: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  setGradeData({
+                    ...gradeData,
+                    marksAwarded: parseInt(e.target.value),
+                  })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Feedback Remarks</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Feedback Remarks
+              </label>
               <input
                 type="text"
                 value={gradeData.remarks}
-                onChange={(e) => setGradeData({ ...gradeData, remarks: e.target.value })}
+                onChange={(e) =>
+                  setGradeData({ ...gradeData, remarks: e.target.value })
+                }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
@@ -455,7 +546,8 @@ export default function AssignmentsTab({
                 disabled={isPending}
                 className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
               >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />} Submit Grades
+                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+                Submit Grades
               </button>
             </div>
           </form>
@@ -465,25 +557,41 @@ export default function AssignmentsTab({
       {/* Student Submit Modal */}
       {showSubmitForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleStudentSubmit} className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Submit Assignment</h3>
+          <form
+            onSubmit={handleStudentSubmit}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
+          >
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Submit Assignment
+            </h3>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Attachment S3 Key / Document Link</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Attachment S3 Key / Document Link
+              </label>
               <input
                 type="text"
                 required
                 value={submitData.attachmentS3Key}
-                onChange={(e) => setSubmitData({ ...submitData, attachmentS3Key: e.target.value })}
+                onChange={(e) =>
+                  setSubmitData({
+                    ...submitData,
+                    attachmentS3Key: e.target.value,
+                  })
+                }
                 placeholder="s3://bucket/path/homework.pdf"
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Remarks</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Remarks
+              </label>
               <input
                 type="text"
                 value={submitData.remarks}
-                onChange={(e) => setSubmitData({ ...submitData, remarks: e.target.value })}
+                onChange={(e) =>
+                  setSubmitData({ ...submitData, remarks: e.target.value })
+                }
                 placeholder="Explain details of your submission"
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
@@ -501,7 +609,8 @@ export default function AssignmentsTab({
                 disabled={isPending}
                 className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
               >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />} Submit Homework
+                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+                Submit Homework
               </button>
             </div>
           </form>

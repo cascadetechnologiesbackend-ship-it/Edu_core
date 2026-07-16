@@ -1,7 +1,13 @@
 "use server";
 
 import { db } from "@/db";
-import { sections, studentClassHistory, students, studentAttendance, academicYears } from "@/db/schema";
+import {
+  sections,
+  studentClassHistory,
+  students,
+  studentAttendance,
+  academicYears,
+} from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
@@ -11,7 +17,8 @@ import { headers } from "next/headers";
 // Helper to construct a mock context for logAuditEvent
 async function getAuditContext(session: any) {
   const reqHeaders = headers();
-  const ip = reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip =
+    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const userAgent = reqHeaders.get("user-agent") ?? "unknown";
   return {
     db,
@@ -34,7 +41,7 @@ export async function getAssignedSections() {
       where: eq(sections.isActive, true),
       with: {
         class: true,
-      }
+      },
     });
   }
 
@@ -42,11 +49,11 @@ export async function getAssignedSections() {
   return await db.query.sections.findMany({
     where: and(
       eq(sections.isActive, true),
-      eq(sections.classTeacherId, userId)
+      eq(sections.classTeacherId, userId),
     ),
     with: {
       class: true,
-    }
+    },
   });
 }
 
@@ -72,11 +79,11 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
   const history = await db.query.studentClassHistory.findMany({
     where: and(
       eq(studentClassHistory.sectionId, sectionId),
-      eq(studentClassHistory.academicYearId, activeYear.id)
+      eq(studentClassHistory.academicYearId, activeYear.id),
     ),
     with: {
       student: true,
-    }
+    },
   });
 
   // Fetch existing attendance records for these students on the selected date
@@ -86,35 +93,40 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
       eq(studentAttendance.academicYearId, activeYear.id),
       and(
         sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-        sql`${studentAttendance.attendanceDate} <= ${endOfDay}`
-      )
+        sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+      ),
     ),
   });
 
   const attendanceMap = new Map(
-    attendanceRecords.map(r => [r.studentId, { status: r.status, remarks: r.remarks, id: r.id }])
+    attendanceRecords.map((r) => [
+      r.studentId,
+      { status: r.status, remarks: r.remarks, id: r.id },
+    ]),
   );
 
   // Map history back to a decrypted student list with existing attendance status
-  return history.map((h) => {
-    const student = h.student;
-    const record = attendanceMap.get(student.id);
+  return history
+    .map((h) => {
+      const student = h.student;
+      const record = attendanceMap.get(student.id);
 
-    return {
-      studentId: student.id,
-      rollNumber: h.rollNumber,
-      firstName: decryptData(student.firstNameEncrypted) || "Unknown",
-      lastName: decryptData(student.lastNameEncrypted) || "",
-      admissionNumber: student.admissionNumber,
-      attendanceStatus: record?.status || null,
-      remarks: record?.remarks || "",
-      attendanceRecordId: record?.id || null,
-    };
-  }).sort((a, b) => {
-    const rollA = parseInt(a.rollNumber || "0", 10);
-    const rollB = parseInt(b.rollNumber || "0", 10);
-    return rollA - rollB;
-  });
+      return {
+        studentId: student.id,
+        rollNumber: h.rollNumber,
+        firstName: decryptData(student.firstNameEncrypted) || "Unknown",
+        lastName: decryptData(student.lastNameEncrypted) || "",
+        admissionNumber: student.admissionNumber,
+        attendanceStatus: record?.status || null,
+        remarks: record?.remarks || "",
+        attendanceRecordId: record?.id || null,
+      };
+    })
+    .sort((a, b) => {
+      const rollA = parseInt(a.rollNumber || "0", 10);
+      const rollB = parseInt(b.rollNumber || "0", 10);
+      return rollA - rollB;
+    });
 }
 
 // 3. Mark or Update attendance for students
@@ -125,7 +137,7 @@ export async function markSectionAttendance(
     studentId: string;
     status: "PRESENT" | "ABSENT" | "LATE" | "HALF_DAY" | "LEAVE" | "HOLIDAY";
     remarks?: string;
-  }>
+  }>,
 ) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -143,12 +155,14 @@ export async function markSectionAttendance(
     const assignedSection = await db.query.sections.findFirst({
       where: and(
         eq(sections.id, sectionId),
-        eq(sections.classTeacherId, userId)
-      )
+        eq(sections.classTeacherId, userId),
+      ),
     });
 
     if (!assignedSection) {
-      throw new Error("Access Denied: You can only mark attendance for your assigned section.");
+      throw new Error(
+        "Access Denied: You can only mark attendance for your assigned section.",
+      );
     }
   }
 
@@ -174,14 +188,16 @@ export async function markSectionAttendance(
       const [existingRecord] = await tx
         .select()
         .from(studentAttendance)
-        .where(and(
-          eq(studentAttendance.studentId, record.studentId),
-          eq(studentAttendance.academicYearId, activeYear.id),
+        .where(
           and(
-            sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-            sql`${studentAttendance.attendanceDate} <= ${endOfDay}`
-          )
-        ))
+            eq(studentAttendance.studentId, record.studentId),
+            eq(studentAttendance.academicYearId, activeYear.id),
+            and(
+              sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
+              sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+            ),
+          ),
+        )
         .limit(1);
 
       let markedRecordId = "";
@@ -221,7 +237,7 @@ export async function markSectionAttendance(
         recordId: markedRecordId,
         purposeId: "attendance",
         schoolId,
-        metadata: { studentId: record.studentId, status: record.status }
+        metadata: { studentId: record.studentId, status: record.status },
       });
     }
   });

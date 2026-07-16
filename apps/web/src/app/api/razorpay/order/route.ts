@@ -9,20 +9,27 @@ export async function POST(req: Request) {
     const { invoiceId, amount } = await req.json();
 
     if (!invoiceId || !amount) {
-      return NextResponse.json({ error: "Missing invoiceId or amount" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing invoiceId or amount" },
+        { status: 400 },
+      );
     }
 
     const invoice = await db.query.feeInvoices.findFirst({
-      where: eq(feeInvoices.id, invoiceId)
+      where: eq(feeInvoices.id, invoiceId),
     });
 
-    if (!invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    if (!invoice)
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
 
     // Validate if keys exist
-    if (!process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === "change-me") {
+    if (
+      !process.env.RAZORPAY_KEY_ID ||
+      process.env.RAZORPAY_KEY_ID === "change-me"
+    ) {
       // Mock flow if keys are not configured
       const mockOrderId = `order_mock_${Date.now()}`;
-      
+
       await db.insert(paymentGatewayLogs).values({
         schoolId: invoice.schoolId,
         feeInvoiceId: invoice.id,
@@ -33,7 +40,11 @@ export async function POST(req: Request) {
         status: "CREATED",
       });
 
-      return NextResponse.json({ id: mockOrderId, amount: amount * 100, currency: "INR" });
+      return NextResponse.json({
+        id: mockOrderId,
+        amount: amount * 100,
+        currency: "INR",
+      });
     }
 
     const razorpay = new Razorpay({

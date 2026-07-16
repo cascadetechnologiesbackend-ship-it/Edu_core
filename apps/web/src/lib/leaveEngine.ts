@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 /**
  * Carries forward leave balances from one academic year to the next.
  * Typically run on April 1.
- * 
+ *
  * Rules:
  * - CL (Casual Leave) resets to 0 carried forward.
  * - SL (Sick Leave) resets to 0 carried forward.
@@ -15,7 +15,7 @@ import { eq, and } from "drizzle-orm";
 export async function carryForwardLeaveBalances(
   schoolId: string,
   fromYearId: string,
-  toYearId: string
+  toYearId: string,
 ) {
   // 1. Fetch all active staff
   const allStaff = await db.query.staff.findMany({
@@ -34,7 +34,7 @@ export async function carryForwardLeaveBalances(
     const oldBalances = await db.query.leaveBalances.findMany({
       where: and(
         eq(leaveBalances.staffId, s.id),
-        eq(leaveBalances.academicYearId, fromYearId)
+        eq(leaveBalances.academicYearId, fromYearId),
       ),
     });
 
@@ -60,7 +60,7 @@ export async function carryForwardLeaveBalances(
         where: and(
           eq(leaveBalances.staffId, s.id),
           eq(leaveBalances.academicYearId, toYearId),
-          eq(leaveBalances.leaveType, lt.code)
+          eq(leaveBalances.leaveType, lt.code),
         ),
       });
 

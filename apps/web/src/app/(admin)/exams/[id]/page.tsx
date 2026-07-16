@@ -42,7 +42,10 @@ export default async function ExamDetailPage({
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-3">
-            <Link href="/exams" className="text-sm text-indigo-600 hover:underline">
+            <Link
+              href="/exams"
+              className="text-sm text-indigo-600 hover:underline"
+            >
               ← Exams
             </Link>
           </div>

@@ -29,8 +29,11 @@ export async function saveGradeRules(input: SaveGradeRulesInput) {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
-    const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role as string);
-    if (!allowed) return { success: false, message: "Insufficient permissions" };
+    const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
+      session.user.role as string,
+    );
+    if (!allowed)
+      return { success: false, message: "Insufficient permissions" };
 
     // Delete existing rules for this school + class group
     await db
@@ -63,7 +66,10 @@ export async function saveGradeRules(input: SaveGradeRulesInput) {
     }
 
     revalidatePath("/settings/grading");
-    return { success: true, message: `Saved ${input.rules.length} grade rules` };
+    return {
+      success: true,
+      message: `Saved ${input.rules.length} grade rules`,
+    };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return { success: false, message };

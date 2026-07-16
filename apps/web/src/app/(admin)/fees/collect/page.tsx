@@ -4,7 +4,11 @@ import { eq, inArray } from "drizzle-orm";
 import { CollectForm } from "./CollectForm";
 import { decryptData } from "@/lib/encryption";
 
-export default async function FeeCollectPage({ searchParams }: { searchParams: { studentId?: string } }) {
+export default async function FeeCollectPage({
+  searchParams,
+}: {
+  searchParams: { studentId?: string };
+}) {
   const activeSchool = await db.query.schools.findFirst();
   const activeYear = await db.query.academicYears.findFirst({
     where: eq(academicYears.isActive, true),
@@ -19,26 +23,26 @@ export default async function FeeCollectPage({ searchParams }: { searchParams: {
       feeStructure: {
         with: {
           feeHead: true,
-        }
-      }
-    }
+        },
+      },
+    },
   });
 
   // Get corresponding students for the dropdown
-  const studentIds = new Set(pendingInvoices.map(i => i.studentId));
-  
+  const studentIds = new Set(pendingInvoices.map((i) => i.studentId));
+
   if (searchParams.studentId) {
     studentIds.add(searchParams.studentId);
   }
-  
+
   let relatedStudents: any[] = [];
   if (studentIds.size > 0) {
     relatedStudents = await db.query.students.findMany({
-      where: inArray(students.id, Array.from(studentIds))
+      where: inArray(students.id, Array.from(studentIds)),
     });
   }
 
-  const mappedStudents = relatedStudents.map(s => ({
+  const mappedStudents = relatedStudents.map((s) => ({
     id: s.id,
     admissionNumber: s.admissionNumber,
     firstName: decryptData(s.firstNameEncrypted) || "Unknown",
@@ -51,13 +55,17 @@ export default async function FeeCollectPage({ searchParams }: { searchParams: {
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
           Fee Collection Counter
         </h1>
-        <p className="text-sm text-gray-500">Record offline manual payments (Cash, Cheque, DD).</p>
+        <p className="text-sm text-gray-500">
+          Record offline manual payments (Cash, Cheque, DD).
+        </p>
       </div>
 
       <CollectForm
         invoices={pendingInvoices}
         students={mappedStudents}
-        {...(searchParams.studentId ? { defaultStudentId: searchParams.studentId } : {})}
+        {...(searchParams.studentId
+          ? { defaultStudentId: searchParams.studentId }
+          : {})}
       />
     </div>
   );

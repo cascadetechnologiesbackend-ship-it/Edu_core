@@ -19,15 +19,23 @@ import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 
 // ─── OTP Generator Stub ──────────────────────────────────────────────────────
-export async function generateConsentChangeOtp(studentId: string, purposeId: string) {
+export async function generateConsentChangeOtp(
+  studentId: string,
+  purposeId: string,
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
     const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`[DPDP OTP STUB] Generated OTP for Parent ${session.user.id} (Wards: ${studentId}), Purpose ${purposeId}: ${mockOtp}`);
+    console.log(
+      `[DPDP OTP STUB] Generated OTP for Parent ${session.user.id} (Wards: ${studentId}), Purpose ${purposeId}: ${mockOtp}`,
+    );
 
-    return { success: true, message: "OTP sent successfully (check server console log)" };
+    return {
+      success: true,
+      message: "OTP sent successfully (check server console log)",
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -54,10 +62,11 @@ export async function submitConsentChange(input: {
       where: eq(students.id, input.studentId),
     });
 
-    if (!studentRecord) return { success: false, message: "Ward record not found" };
+    if (!studentRecord)
+      return { success: false, message: "Ward record not found" };
 
     const now = new Date();
-    
+
     // Withdrawal confirms processing halt timestamp immediately (compliance: within 24h)
     const processingHaltedAt = !input.granted ? now : null;
 
@@ -81,7 +90,9 @@ export async function submitConsentChange(input: {
     });
 
     // Mock confirmation email log
-    console.log(`[DPDP EMAIL STUB] Consent confirmation sent to parent email for child ${input.studentId}, Purpose ${input.purposeId}, Action: ${input.granted ? 'GRANTED' : 'WITHDRAWN'}`);
+    console.log(
+      `[DPDP EMAIL STUB] Consent confirmation sent to parent email for child ${input.studentId}, Purpose ${input.purposeId}, Action: ${input.granted ? "GRANTED" : "WITHDRAWN"}`,
+    );
 
     revalidatePath("/portal/consent");
     return { success: true };
@@ -104,7 +115,8 @@ export async function raiseRightsRequest(input: {
       where: eq(students.id, input.studentId),
     });
 
-    if (!studentRecord) return { success: false, message: "Ward record not found" };
+    if (!studentRecord)
+      return { success: false, message: "Ward record not found" };
 
     const now = new Date();
     const dueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30-day SLA resolution
@@ -173,7 +185,7 @@ export async function fetchStudentCompleteData(studentId: string) {
     const studentRecord = await db.query.students.findFirst({
       where: and(
         eq(students.id, studentId),
-        eq(students.primaryParentUserId, session.user.id)
+        eq(students.primaryParentUserId, session.user.id),
       ),
     });
 
@@ -182,7 +194,11 @@ export async function fetchStudentCompleteData(studentId: string) {
       return { success: false, message: "Access denied: unauthorized parent" };
     }
 
-    const targetStudent = studentRecord || await db.query.students.findFirst({ where: eq(students.id, studentId) });
+    const targetStudent =
+      studentRecord ||
+      (await db.query.students.findFirst({
+        where: eq(students.id, studentId),
+      }));
     if (!targetStudent) return { success: false, message: "Student not found" };
 
     // Log this PII access to Audit Logs! (Crucial DPDP requirement)
@@ -200,9 +216,13 @@ export async function fetchStudentCompleteData(studentId: string) {
     });
 
     // Decrypt fields
-    const decryptedFirstName = decryptData(targetStudent.firstNameEncrypted) || "";
-    const decryptedLastName = decryptData(targetStudent.lastNameEncrypted) || "";
-    const decryptedMiddleName = targetStudent.middleNameEncrypted ? decryptData(targetStudent.middleNameEncrypted) || "" : "";
+    const decryptedFirstName =
+      decryptData(targetStudent.firstNameEncrypted) || "";
+    const decryptedLastName =
+      decryptData(targetStudent.lastNameEncrypted) || "";
+    const decryptedMiddleName = targetStudent.middleNameEncrypted
+      ? decryptData(targetStudent.middleNameEncrypted) || ""
+      : "";
 
     // Fetch related records
     const family = await db.query.studentFamilyMembers.findMany({
@@ -250,8 +270,12 @@ export async function fetchStudentCompleteData(studentId: string) {
       },
       family: family.map((f) => {
         const name = f.nameEncrypted ? decryptData(f.nameEncrypted) || "" : "";
-        const mob = f.mobileEncrypted ? decryptData(f.mobileEncrypted) || "" : "";
-        const occ = f.occupationEncrypted ? decryptData(f.occupationEncrypted) || "" : "";
+        const mob = f.mobileEncrypted
+          ? decryptData(f.mobileEncrypted) || ""
+          : "";
+        const occ = f.occupationEncrypted
+          ? decryptData(f.occupationEncrypted) || ""
+          : "";
         return {
           relation: f.relation,
           name,

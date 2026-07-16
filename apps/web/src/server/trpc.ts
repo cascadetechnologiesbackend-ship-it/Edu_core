@@ -84,13 +84,15 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 const rateLimitMiddleware = t.middleware(async ({ ctx, next, path }) => {
   if (process.env.NODE_ENV !== "development") {
     const isAuth = !!ctx.session?.user?.id;
-    const limits = isAuth ? RATE_LIMITS.AUTHENTICATED : RATE_LIMITS.UNAUTHENTICATED;
+    const limits = isAuth
+      ? RATE_LIMITS.AUTHENTICATED
+      : RATE_LIMITS.UNAUTHENTICATED;
     const key = isAuth
       ? `ratelimit:user:${ctx.session!.user!.id}`
       : `ratelimit:ip:${ctx.ip}`;
 
     const allowed = await checkRateLimit(key, limits.max, limits.windowMs);
-    
+
     if (!allowed) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
@@ -145,7 +147,9 @@ export function withRole(allowedRoles: readonly Role[]) {
 // ─── Procedure exports ────────────────────────────────────────────────────────
 
 /** Public procedure — no auth required */
-export const publicProcedure = t.procedure.use(timingMiddleware).use(rateLimitMiddleware);
+export const publicProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(rateLimitMiddleware);
 
 /** Protected procedure — requires authentication */
 export const protectedProcedure = t.procedure
