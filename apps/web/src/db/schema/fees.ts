@@ -16,6 +16,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { schools, academicYears, users } from "./core";
+import { students } from "./students";
+import { classes } from "./academics";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -105,7 +107,7 @@ export const feeStructures = pgTable(
     academicYearId: uuid("academic_year_id")
       .notNull()
       .references(() => academicYears.id, { onDelete: "restrict" }),
-    classId: uuid("class_id").notNull(),
+    classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "restrict" }),
     feeHeadId: uuid("fee_head_id")
       .notNull()
       .references(() => feeHeads.id, { onDelete: "restrict" }),
@@ -311,6 +313,19 @@ export const feeInvoicesRelations = relations(feeInvoices, ({ one, many }) => ({
   payments: many(feePayments),
 }));
 
+export const feeStructuresRelations = relations(feeStructures, ({ one, many }) => ({
+  school: one(schools, { fields: [feeStructures.schoolId], references: [schools.id] }),
+  academicYear: one(academicYears, { fields: [feeStructures.academicYearId], references: [academicYears.id] }),
+  class: one(classes, { fields: [feeStructures.classId], references: [classes.id] }),
+  feeHead: one(feeHeads, { fields: [feeStructures.feeHeadId], references: [feeHeads.id] }),
+  invoices: many(feeInvoices),
+}));
+
+export const feeHeadsRelations = relations(feeHeads, ({ one, many }) => ({
+  school: one(schools, { fields: [feeHeads.schoolId], references: [schools.id] }),
+  structures: many(feeStructures),
+}));
+
 export const feePaymentsRelations = relations(feePayments, ({ one, many }) => ({
   school: one(schools, { fields: [feePayments.schoolId], references: [schools.id] }),
   invoice: one(feeInvoices, {
@@ -318,4 +333,20 @@ export const feePaymentsRelations = relations(feePayments, ({ one, many }) => ({
     references: [feeInvoices.id],
   }),
   refunds: many(feeRefunds),
+}));
+
+export const feeRefundsRelations = relations(feeRefunds, ({ one }) => ({
+  school: one(schools, { fields: [feeRefunds.schoolId], references: [schools.id] }),
+  payment: one(feePayments, { fields: [feeRefunds.feePaymentId], references: [feePayments.id] }),
+}));
+
+export const paymentGatewayLogsRelations = relations(paymentGatewayLogs, ({ one }) => ({
+  school: one(schools, { fields: [paymentGatewayLogs.schoolId], references: [schools.id] }),
+  invoice: one(feeInvoices, { fields: [paymentGatewayLogs.feeInvoiceId], references: [feeInvoices.id] }),
+}));
+
+export const feeConcessionsRelations = relations(feeConcessions, ({ one }) => ({
+  school: one(schools, { fields: [feeConcessions.schoolId], references: [schools.id] }),
+  student: one(students, { fields: [feeConcessions.studentId], references: [students.id] }),
+  academicYear: one(academicYears, { fields: [feeConcessions.academicYearId], references: [academicYears.id] }),
 }));

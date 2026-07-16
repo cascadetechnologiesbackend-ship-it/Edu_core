@@ -8,14 +8,21 @@
 
 ## Code Style
 - TypeScript strict mode — zero `any` types; use `unknown` + type guards
+- exactOptionalPropertyTypes compliance: Do not explicitly assign `undefined` to optional properties. Instead, omit them using conditional spread operators (e.g., `...(condition ? { propName: value } : {})`).
 - Zod validation on every API endpoint (request and response)
 - Drizzle ORM for ALL database access — no raw SQL except in migration files
 - React Server Components by default; add "use client" only when necessary
 - Tailwind CSS + shadcn/ui for all UI — no inline styles except dynamic values
 
+## Tooling & Command Guidelines
+- PowerShell File Commands: When operating on paths containing square brackets (like Next.js `[id]` routes), always use `-LiteralPath` instead of `-Path` with PowerShell cmdlets (e.g., `Remove-Item -LiteralPath ...`).
+- Non-Interactive DB Migrations: Avoid stuck prompts with `drizzle-kit push:pg` by using manual SQL execution scripts or temporarily setting `strict: false` in `drizzle.config.ts`.
+
 ## Architecture Rules
 - All business logic in `src/server/` (tRPC routers or server actions)
 - All DB schemas in `src/db/schema.ts` using Drizzle pg-core
+- Next.js Server Actions: Never call server actions (`"use server"`) directly inside React Server Components during Server-Side Rendering (SSR). Instead, query data directly using Drizzle ORM (`db.query`) in Server Components, and restrict server actions to clientside mutations.
+- Next.js Connection Caching: Always cache the database client and pool instance on `globalThis` in development to prevent connection pool exhaustion (`sorry, too many clients already` error) during hot-reloads.
 - All shared types in `packages/validators/`
 - API routes: `/api/v1/[module]/[resource]` — versioned from day one
 - Environment variables: secrets only in `.env` (server-side); `NEXT_PUBLIC_` prefix only for non-sensitive config

@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { t } from "@/server/trpc";
 import { db } from "@/db";
 import { consentRecords } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
@@ -21,7 +20,6 @@ import { ConsentRequiredError } from "@schoolmitra/dpdp";
  */
 export function requireConsent(purposeId: ConsentPurposeId) {
   return async function consentMiddleware({
-    ctx,
     next,
     rawInput,
   }: {

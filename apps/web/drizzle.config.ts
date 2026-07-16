@@ -3,9 +3,9 @@ import { defineConfig } from "drizzle-kit";
 export default defineConfig({
   schema: "./src/db/schema/index.ts",
   out: "./src/db/migrations",
-  dialect: "postgresql",
+  driver: "pg",
   dbCredentials: {
-    url: process.env["DATABASE_URL"] ?? "postgresql://schoolmitra:schoolmitra_dev@localhost:5432/schoolmitra_erp",
+    connectionString: process.env["DATABASE_URL"] ?? "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
   },
   verbose: true,
   strict: true,

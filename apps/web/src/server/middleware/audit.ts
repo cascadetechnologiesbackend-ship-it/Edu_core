@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
-import type { AuditLogEntry, AuditAction, AuditTableName } from "@schoolmitra/dpdp";
+import type { AuditLogEntry, AuditTableName } from "@schoolmitra/dpdp";
 import { redactPii } from "@schoolmitra/dpdp";
 
 // ─── Audit Log Writer ─────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ import { redactPii } from "@schoolmitra/dpdp";
 export async function writeAuditLog(entry: AuditLogEntry): Promise<void> {
   const safeMetadata = entry.metadata
     ? redactPii(entry.metadata as Record<string, unknown>)
-    : undefined;
+    : null;
 
   await db.insert(auditLogs).values({
     userId: entry.userId,
@@ -23,11 +23,11 @@ export async function writeAuditLog(entry: AuditLogEntry): Promise<void> {
     schoolId: entry.schoolId,
     action: entry.action,
     tableName: entry.tableName,
-    recordId: entry.recordId,
-    purposeId: entry.purposeId,
+    recordId: entry.recordId ?? null,
+    purposeId: entry.purposeId ?? null,
     ipAddress: entry.ipAddress,
     userAgent: entry.userAgent,
-    metadata: safeMetadata as Record<string, unknown> | undefined,
+    metadata: safeMetadata as Record<string, unknown> | null,
   });
 }
 
@@ -45,13 +45,13 @@ export async function writeAuditLogBatch(entries: readonly AuditLogEntry[]): Pro
       schoolId: entry.schoolId,
       action: entry.action,
       tableName: entry.tableName,
-      recordId: entry.recordId,
-      purposeId: entry.purposeId,
+      recordId: entry.recordId ?? null,
+      purposeId: entry.purposeId ?? null,
       ipAddress: entry.ipAddress,
       userAgent: entry.userAgent,
       metadata: entry.metadata
         ? (redactPii(entry.metadata as Record<string, unknown>) as Record<string, unknown>)
-        : undefined,
+        : null,
     }))
   );
 }
@@ -69,16 +69,16 @@ export interface AuditContext {
 export function createAuditLogger(ctx: AuditContext) {
   return {
     read: (tableName: AuditTableName, recordId: string, purposeId?: string) =>
-      writeAuditLog({ ...ctx, action: "READ", tableName, recordId, purposeId }),
+      writeAuditLog({ ...ctx, action: "READ", tableName, recordId, ...(purposeId ? { purposeId } : {}) }),
 
     write: (tableName: AuditTableName, recordId: string, purposeId?: string) =>
-      writeAuditLog({ ...ctx, action: "WRITE", tableName, recordId, purposeId }),
+      writeAuditLog({ ...ctx, action: "WRITE", tableName, recordId, ...(purposeId ? { purposeId } : {}) }),
 
     delete: (tableName: AuditTableName, recordId: string, purposeId?: string) =>
-      writeAuditLog({ ...ctx, action: "DELETE", tableName, recordId, purposeId }),
+      writeAuditLog({ ...ctx, action: "DELETE", tableName, recordId, ...(purposeId ? { purposeId } : {}) }),
 
     export: (tableName: AuditTableName, purposeId?: string) =>
-      writeAuditLog({ ...ctx, action: "EXPORT", tableName, recordId: "BULK", purposeId }),
+      writeAuditLog({ ...ctx, action: "EXPORT", tableName, recordId: "BULK", ...(purposeId ? { purposeId } : {}) }),
 
     consentGrant: (studentId: string, purposeId: string) =>
       writeAuditLog({

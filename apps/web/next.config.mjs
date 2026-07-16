@@ -1,6 +1,8 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Standalone output for Docker
+  output: "standalone",
 
-const nextConfig: NextConfig = {
   // Strict mode for catching React bugs early
   reactStrictMode: true,
 

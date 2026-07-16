@@ -31,6 +31,7 @@ export const roleNameEnum = pgEnum("role_name", [
   "SUPER_ADMIN",
   "SCHOOL_ADMIN",
   "PRINCIPAL",
+  "HR_MANAGER",
   "TEACHER",
   "ACCOUNTANT",
   "LIBRARIAN",

@@ -1,10 +1,9 @@
 "use client";
 
-import { Bell, Sun, Moon, Search, ChevronRight, LogOut, User } from "lucide-react";
+import { Bell, Search, ChevronRight, LogOut, User, Sun, Moon } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { signOut, useSession } from "next-auth/react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface BreadcrumbItem {
   label: string;
@@ -21,6 +20,11 @@ export function Header({ breadcrumbs = [], notificationCount = 0 }: HeaderProps)
   const { data: session } = useSession();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header
@@ -105,7 +109,9 @@ export function Header({ breadcrumbs = [], notificationCount = 0 }: HeaderProps)
         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         id="theme-toggle"
       >
-        {theme === "dark" ? (
+        {!mounted ? (
+          <div className="w-5 h-5" />
+        ) : theme === "dark" ? (
           <Sun className="w-5 h-5" aria-hidden="true" />
         ) : (
           <Moon className="w-5 h-5" aria-hidden="true" />
@@ -158,10 +164,13 @@ export function Header({ breadcrumbs = [], notificationCount = 0 }: HeaderProps)
             </button>
             <hr className="border-border my-1" />
             <button
+              onClick={() => {
+                setUserMenuOpen(false);
+                signOut({ callbackUrl: "/login" });
+              }}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger
-                         hover:bg-danger/10 transition-colors"
+                         hover:bg-danger/10 transition-colors text-left"
               role="menuitem"
-              onClick={() => signOut({ callbackUrl: "/login" })}
             >
               <LogOut className="w-4 h-4" aria-hidden="true" />
               Sign out

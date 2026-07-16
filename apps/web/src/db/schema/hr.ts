@@ -2,7 +2,8 @@
 import {
   pgTable, uuid, text, boolean, timestamp, numeric, integer, pgEnum, index, unique, jsonb,
 } from "drizzle-orm/pg-core";
-import { schools, users } from "./core";
+import { relations } from "drizzle-orm";
+import { schools, users, academicYears } from "./core";
 
 export const contractTypeEnum = pgEnum("contract_type", [
   "PERMANENT", "PROBATION", "CONTRACTUAL", "PART_TIME", "GUEST_FACULTY",
@@ -68,6 +69,7 @@ export const staff = pgTable("staff", {
   experience: text("experience"),
   photoS3Key: text("photo_s3_key"),
   isActive: boolean("is_active").notNull().default(true),
+  legalHold: boolean("legal_hold").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -124,6 +126,7 @@ export const salaryComponents = pgTable("salary_components", {
   pfEmployerPercent: numeric("pf_employer_percent", { precision: 5, scale: 2 }).notNull().default("12"),
   esiApplicable: boolean("esi_applicable").notNull().default(false),
   professionalTaxState: text("professional_tax_state").default("DL"),
+  monthlyTdsAmount: numeric("monthly_tds_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
   effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull(),
   effectiveTo: timestamp("effective_to", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -175,4 +178,141 @@ export const payslips = pgTable("payslips", {
 }, (t) => ({
   runStaffUnique: unique("payslips_run_staff_unique").on(t.payrollRunId, t.staffId),
   staffIdx: index("payslips_staff_idx").on(t.staffId),
+}));
+
+export const salaryTemplates = pgTable("salary_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  schoolId: uuid("school_id").notNull().references(() => schools.id, { onDelete: "restrict" }),
+  name: text("name").notNull(),
+  basicPercent: numeric("basic_percent", { precision: 5, scale: 2 }).notNull().default("50.00"),
+  daPercent: numeric("da_percent", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  hraPercent: numeric("hra_percent", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  pfEmployeePercent: numeric("pf_employee_percent", { precision: 5, scale: 2 }).notNull().default("12.00"),
+  pfEmployerPercent: numeric("pf_employer_percent", { precision: 5, scale: 2 }).notNull().default("12.00"),
+  esiApplicable: boolean("esi_applicable").notNull().default(false),
+  professionalTaxState: text("professional_tax_state").default("DL").notNull(),
+  otherAllowances: jsonb("other_allowances").default([]).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  schoolNameUnique: unique("salary_templates_school_name_unique").on(t.schoolId, t.name),
+}));
+
+export const staffDocuments = pgTable("staff_documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  schoolId: uuid("school_id").notNull().references(() => schools.id, { onDelete: "restrict" }),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "restrict" }),
+  documentType: text("document_type").notNull(), // APPOINTMENT_LETTER, INCREMENT_LETTER, CERTIFICATE, OTHER
+  fileName: text("file_name").notNull(),
+  fileS3Key: text("file_s3_key").notNull(),
+  uploadedById: uuid("uploaded_by_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  staffIdx: index("staff_documents_staff_idx").on(t.staffId),
+}));
+
+export const staffLoans = pgTable("staff_loans", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  schoolId: uuid("school_id").notNull().references(() => schools.id, { onDelete: "restrict" }),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "restrict" }),
+  principalAmount: numeric("principal_amount", { precision: 12, scale: 2 }).notNull(),
+  emiAmount: numeric("emi_amount", { precision: 10, scale: 2 }).notNull(),
+  remainingAmount: numeric("remaining_amount", { precision: 12, scale: 2 }).notNull(),
+  status: text("status").notNull().default("ACTIVE"), // ACTIVE, PAID_OFF
+  approvedById: uuid("approved_by_id").references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  staffIdx: index("staff_loans_staff_idx").on(t.staffId),
+}));
+
+export const leaveBalances = pgTable("leave_balances", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  schoolId: uuid("school_id").notNull().references(() => schools.id, { onDelete: "restrict" }),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "restrict" }),
+  leaveType: leaveTypeEnum("leave_type").notNull(),
+  academicYearId: uuid("academic_year_id").notNull().references(() => academicYears.id, { onDelete: "restrict" }),
+  allocatedDays: numeric("allocated_days", { precision: 5, scale: 1 }).notNull(),
+  usedDays: numeric("used_days", { precision: 5, scale: 1 }).notNull().default("0"),
+  carriedForwardDays: numeric("carried_forward_days", { precision: 5, scale: 1 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  staffYearTypeUnique: unique("leave_balances_unique").on(t.staffId, t.academicYearId, t.leaveType),
+  staffIdx: index("leave_balances_staff_idx").on(t.staffId),
+}));
+
+// Drizzle Relations
+export const staffRelations = relations(staff, ({ one, many }) => ({
+  school: one(schools, { fields: [staff.schoolId], references: [schools.id] }),
+  user: one(users, { fields: [staff.userId], references: [users.id] }),
+  department: one(departments, { fields: [staff.departmentId], references: [departments.id] }),
+  designation: one(designations, { fields: [staff.designationId], references: [designations.id] }),
+  leaveRequests: many(leaveRequests),
+  payslips: many(payslips),
+  documents: many(staffDocuments),
+  loans: many(staffLoans),
+  leaveBalances: many(leaveBalances),
+  salaryComponents: many(salaryComponents),
+}));
+
+export const departmentRelations = relations(departments, ({ one, many }) => ({
+  school: one(schools, { fields: [departments.schoolId], references: [schools.id] }),
+  hod: one(users, { fields: [departments.hodUserId], references: [users.id] }),
+  staff: many(staff),
+  designations: many(designations),
+}));
+
+export const designationRelations = relations(designations, ({ one, many }) => ({
+  school: one(schools, { fields: [designations.schoolId], references: [schools.id] }),
+  department: one(departments, { fields: [designations.departmentId], references: [departments.id] }),
+  staff: many(staff),
+}));
+
+export const leaveRequestRelations = relations(leaveRequests, ({ one }) => ({
+  school: one(schools, { fields: [leaveRequests.schoolId], references: [schools.id] }),
+  staff: one(staff, { fields: [leaveRequests.staffId], references: [staff.id] }),
+  leaveType: one(leaveTypes, { fields: [leaveRequests.leaveTypeId], references: [leaveTypes.id] }),
+}));
+
+export const leaveTypeRelations = relations(leaveTypes, ({ one }) => ({
+  school: one(schools, { fields: [leaveTypes.schoolId], references: [schools.id] }),
+}));
+
+export const leaveBalanceRelations = relations(leaveBalances, ({ one }) => ({
+  school: one(schools, { fields: [leaveBalances.schoolId], references: [schools.id] }),
+  staff: one(staff, { fields: [leaveBalances.staffId], references: [staff.id] }),
+  academicYear: one(academicYears, { fields: [leaveBalances.academicYearId], references: [academicYears.id] }),
+}));
+
+export const salaryComponentRelations = relations(salaryComponents, ({ one }) => ({
+  school: one(schools, { fields: [salaryComponents.schoolId], references: [schools.id] }),
+  staff: one(staff, { fields: [salaryComponents.staffId], references: [staff.id] }),
+}));
+
+export const payrollRunRelations = relations(payrollRuns, ({ one, many }) => ({
+  school: one(schools, { fields: [payrollRuns.schoolId], references: [schools.id] }),
+  payslips: many(payslips),
+}));
+
+export const payslipRelations = relations(payslips, ({ one }) => ({
+  school: one(schools, { fields: [payslips.schoolId], references: [schools.id] }),
+  payrollRun: one(payrollRuns, { fields: [payslips.payrollRunId], references: [payrollRuns.id] }),
+  staff: one(staff, { fields: [payslips.staffId], references: [staff.id] }),
+}));
+
+export const staffDocumentRelations = relations(staffDocuments, ({ one }) => ({
+  school: one(schools, { fields: [staffDocuments.schoolId], references: [schools.id] }),
+  staff: one(staff, { fields: [staffDocuments.staffId], references: [staff.id] }),
+}));
+
+export const staffLoanRelations = relations(staffLoans, ({ one }) => ({
+  school: one(schools, { fields: [staffLoans.schoolId], references: [schools.id] }),
+  staff: one(staff, { fields: [staffLoans.staffId], references: [staff.id] }),
+}));
+
+export const salaryTemplateRelations = relations(salaryTemplates, ({ one }) => ({
+  school: one(schools, { fields: [salaryTemplates.schoolId], references: [schools.id] }),
 }));

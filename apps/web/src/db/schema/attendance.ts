@@ -2,7 +2,6 @@
 import {
   pgTable, uuid, text, boolean, timestamp, pgEnum, index, unique,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { schools, academicYears } from "./core";
 import { sections } from "./academics";
 

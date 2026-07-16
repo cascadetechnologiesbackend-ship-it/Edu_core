@@ -1,8 +1,9 @@
 // ─── Library Schema ───────────────────────────────────────────────────────────
 import {
-  pgTable, uuid, text, boolean, timestamp, integer, numeric, pgEnum, index, unique,
+  pgTable, uuid, text, boolean, timestamp, integer, numeric, index, unique,
 } from "drizzle-orm/pg-core";
 import { schools } from "./core";
+import { relations } from "drizzle-orm";
 
 export const books = pgTable("books", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -84,3 +85,41 @@ export const bookFines = pgTable("book_fines", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ─── Relations ────────────────────────────────────────────────────────────────
+
+export const booksRelations = relations(books, ({ many }) => ({
+  copies: many(bookCopies),
+}));
+
+export const bookCopiesRelations = relations(bookCopies, ({ one, many }) => ({
+  book: one(books, {
+    fields: [bookCopies.bookId],
+    references: [books.id],
+  }),
+  issues: many(bookIssues),
+}));
+
+export const libraryMembersRelations = relations(libraryMembers, ({ many }) => ({
+  issues: many(bookIssues),
+}));
+
+export const bookIssuesRelations = relations(bookIssues, ({ one, many }) => ({
+  copy: one(bookCopies, {
+    fields: [bookIssues.bookCopyId],
+    references: [bookCopies.id],
+  }),
+  member: one(libraryMembers, {
+    fields: [bookIssues.libraryMemberId],
+    references: [libraryMembers.id],
+  }),
+  fines: many(bookFines),
+}));
+
+export const bookFinesRelations = relations(bookFines, ({ one }) => ({
+  issue: one(bookIssues, {
+    fields: [bookFines.bookIssueId],
+    references: [bookIssues.id],
+  }),
+}));
+

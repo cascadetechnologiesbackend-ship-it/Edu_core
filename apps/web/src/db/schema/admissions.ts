@@ -216,3 +216,49 @@ export const admissionApplicationsRelations = relations(
     workflowSteps: many(admissionWorkflowSteps),
   })
 );
+
+export const admissionDocumentsRelations = relations(
+  admissionDocuments,
+  ({ one }) => ({
+    application: one(admissionApplications, {
+      fields: [admissionDocuments.applicationId],
+      references: [admissionApplications.id],
+    }),
+    school: one(schools, {
+      fields: [admissionDocuments.schoolId],
+      references: [schools.id],
+    }),
+  })
+);
+
+export const admissionWorkflowStepsRelations = relations(
+  admissionWorkflowSteps,
+  ({ one }) => ({
+    application: one(admissionApplications, {
+      fields: [admissionWorkflowSteps.applicationId],
+      references: [admissionApplications.id],
+    }),
+    school: one(schools, {
+      fields: [admissionWorkflowSteps.schoolId],
+      references: [schools.id],
+    }),
+  })
+);
+
+export const waitlistRelations = relations(
+  waitlist,
+  ({ one }) => ({
+    application: one(admissionApplications, {
+      fields: [waitlist.applicationId],
+      references: [admissionApplications.id],
+    }),
+    school: one(schools, {
+      fields: [waitlist.schoolId],
+      references: [schools.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [waitlist.academicYearId],
+      references: [academicYears.id],
+    }),
+  })
+);

@@ -340,3 +340,32 @@ export const subjectsRelations = relations(subjects, ({ one, many }) => ({
   school: one(schools, { fields: [subjects.schoolId], references: [schools.id] }),
   classSubjects: many(classSubjects),
 }));
+
+export const classSubjectsRelations = relations(classSubjects, ({ one }) => ({
+  class: one(classes, { fields: [classSubjects.classId], references: [classes.id] }),
+  subject: one(subjects, { fields: [classSubjects.subjectId], references: [subjects.id] }),
+  teacher: one(users, { fields: [classSubjects.assignedTeacherId], references: [users.id] }),
+}));
+
+export const timetablePeriodsRelations = relations(timetablePeriods, ({ one }) => ({
+  section: one(sections, { fields: [timetablePeriods.sectionId], references: [sections.id] }),
+  subject: one(subjects, { fields: [timetablePeriods.subjectId], references: [subjects.id] }),
+  teacher: one(users, { fields: [timetablePeriods.teacherId], references: [users.id] }),
+}));
+
+export const assignmentsRelations = relations(assignments, ({ one, many }) => ({
+  classSubject: one(classSubjects, { fields: [assignments.classSubjectId], references: [classSubjects.id] }),
+  section: one(sections, { fields: [assignments.sectionId], references: [sections.id] }),
+  teacher: one(users, { fields: [assignments.createdByTeacherId], references: [users.id] }),
+  submissions: many(assignmentSubmissions),
+}));
+
+export const assignmentSubmissionsRelations = relations(assignmentSubmissions, ({ one }) => ({
+  assignment: one(assignments, { fields: [assignmentSubmissions.assignmentId], references: [assignments.id] }),
+}));
+
+export const lessonPlansRelations = relations(lessonPlans, ({ one }) => ({
+  classSubject: one(classSubjects, { fields: [lessonPlans.classSubjectId], references: [classSubjects.id] }),
+  teacher: one(users, { fields: [lessonPlans.teacherId], references: [users.id] }),
+}));
+

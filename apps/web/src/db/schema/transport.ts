@@ -1,6 +1,6 @@
 // ─── Transport Schema ─────────────────────────────────────────────────────────
 import {
-  pgTable, uuid, text, boolean, timestamp, integer, numeric, pgEnum, index, unique,
+  pgTable, uuid, text, boolean, timestamp, integer, numeric, index, unique,
 } from "drizzle-orm/pg-core";
 import { schools } from "./core";
 
@@ -90,3 +90,33 @@ export const gpsPings = pgTable("gps_pings", {
 }, (t) => ({
   vehicleTimeIdx: index("gps_pings_vehicle_time_idx").on(t.vehicleId, t.recordedAt),
 }));
+
+import { relations } from "drizzle-orm";
+import { students } from "./students";
+
+export const vehiclesRelations = relations(vehicles, ({ many }) => ({
+  routes: many(routes),
+  gpsPings: many(gpsPings),
+}));
+
+export const routesRelations = relations(routes, ({ one, many }) => ({
+  vehicle: one(vehicles, { fields: [routes.vehicleId], references: [vehicles.id] }),
+  stops: many(routeStops),
+  passes: many(studentBusPasses),
+}));
+
+export const routeStopsRelations = relations(routeStops, ({ one, many }) => ({
+  route: one(routes, { fields: [routeStops.routeId], references: [routes.id] }),
+  passes: many(studentBusPasses),
+}));
+
+export const studentBusPassesRelations = relations(studentBusPasses, ({ one }) => ({
+  route: one(routes, { fields: [studentBusPasses.routeId], references: [routes.id] }),
+  stop: one(routeStops, { fields: [studentBusPasses.routeStopId], references: [routeStops.id] }),
+  student: one(students, { fields: [studentBusPasses.studentId], references: [students.id] }),
+}));
+
+export const gpsPingsRelations = relations(gpsPings, ({ one }) => ({
+  vehicle: one(vehicles, { fields: [gpsPings.vehicleId], references: [vehicles.id] }),
+}));
+

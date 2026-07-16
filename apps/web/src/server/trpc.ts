@@ -59,7 +59,8 @@ const t = initTRPC.context<TRPCContext>().create({
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 
-// ─── Middlewares ──────────────────────────────────────────────────────────────
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
+import { trpcLogger } from "@/lib/logger";
 
 /**
  * Logging middleware — PII-safe structured logging.
@@ -71,10 +72,33 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   const durationMs = Date.now() - start;
 
   if (process.env["NODE_ENV"] === "development") {
-    console.log(`[tRPC] ${path} — ${durationMs}ms`);
+    trpcLogger.info(`[tRPC] ${path} — ${durationMs}ms`);
   }
 
   return result;
+});
+
+/**
+ * Rate Limiting Middleware
+ */
+const rateLimitMiddleware = t.middleware(async ({ ctx, next, path }) => {
+  if (process.env.NODE_ENV !== "development") {
+    const isAuth = !!ctx.session?.user?.id;
+    const limits = isAuth ? RATE_LIMITS.AUTHENTICATED : RATE_LIMITS.UNAUTHENTICATED;
+    const key = isAuth
+      ? `ratelimit:user:${ctx.session!.user!.id}`
+      : `ratelimit:ip:${ctx.ip}`;
+
+    const allowed = await checkRateLimit(key, limits.max, limits.windowMs);
+    
+    if (!allowed) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Rate limit exceeded. Please try again later.",
+      });
+    }
+  }
+  return next({ ctx });
 });
 
 /**
@@ -121,45 +145,52 @@ export function withRole(allowedRoles: readonly Role[]) {
 // ─── Procedure exports ────────────────────────────────────────────────────────
 
 /** Public procedure — no auth required */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure.use(timingMiddleware).use(rateLimitMiddleware);
 
 /** Protected procedure — requires authentication */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed);
 
 /** Admin procedure — Super Admin or School Admin only */
 export const adminProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed)
   .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN"]));
 
 /** Principal procedure — Principal, School Admin, Super Admin */
 export const principalProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed)
   .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]));
 
 /** HR procedure — HR Manager access */
 export const hrProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed)
   .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]));
 
 /** Accountant procedure */
 export const accountantProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed)
   .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"]));
 
 /** Teacher procedure */
 export const teacherProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed)
   .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"]));
 
 /** Parent procedure */
 export const parentProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(isAuthed)
   .use(withRole(["PARENT"]));

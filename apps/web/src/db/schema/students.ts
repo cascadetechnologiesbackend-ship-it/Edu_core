@@ -109,6 +109,7 @@ export const students = pgTable(
     primaryParentUserId: uuid("primary_parent_user_id"),
     // Status
     isActive: boolean("is_active").notNull().default(true),
+    legalHold: boolean("legal_hold").notNull().default(false),
     leavingDate: timestamp("leaving_date", { withTimezone: true }),
     leavingReason: text("leaving_reason"),
     // Timestamps
@@ -320,3 +321,24 @@ export const studentFamilyMembersRelations = relations(
     }),
   })
 );
+
+export const studentMedicalRecordsRelations = relations(studentMedicalRecords, ({ one }) => ({
+  student: one(students, { fields: [studentMedicalRecords.studentId], references: [students.id] }),
+  school: one(schools, { fields: [studentMedicalRecords.schoolId], references: [schools.id] }),
+}));
+
+export const studentClassHistoryRelations = relations(studentClassHistory, ({ one }) => ({
+  student: one(students, { fields: [studentClassHistory.studentId], references: [students.id] }),
+  school: one(schools, { fields: [studentClassHistory.schoolId], references: [schools.id] }),
+  academicYear: one(academicYears, { fields: [studentClassHistory.academicYearId], references: [academicYears.id] }),
+}));
+
+export const studentDocumentsRelations = relations(studentDocuments, ({ one }) => ({
+  student: one(students, { fields: [studentDocuments.studentId], references: [students.id] }),
+  school: one(schools, { fields: [studentDocuments.schoolId], references: [schools.id] }),
+}));
+
+export const alumniRelations = relations(alumni, ({ one }) => ({
+  student: one(students, { fields: [alumni.studentId], references: [students.id] }),
+  school: one(schools, { fields: [alumni.schoolId], references: [schools.id] }),
+}));

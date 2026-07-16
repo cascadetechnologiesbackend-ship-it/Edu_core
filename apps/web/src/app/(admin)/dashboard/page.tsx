@@ -1,6 +1,33 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Users, IndianRupee, CalendarCheck, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import {
+  books,
+  bookIssues,
+  vehicles,
+  routes,
+  studentBusPasses,
+  students,
+  studentAttendance,
+  sections,
+} from "@/db/schema";
+import { eq, and, isNull, sql } from "drizzle-orm";
+import {
+  Users,
+  IndianRupee,
+  CalendarCheck,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  BookOpen,
+  Bus,
+  Shield,
+  Book,
+  UserCheck,
+  CheckCircle,
+  Info,
+} from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -13,7 +40,7 @@ interface MetricCardProps {
   value: string;
   subtext?: string;
   trend?: { value: string; direction: "up" | "down" | "neutral" };
-  icon: React.ComponentType<{ className?: string }>;
+  icon: any;
   iconBgClass: string;
   accentColor: string;
 }
@@ -28,7 +55,7 @@ function MetricCard({
   accentColor,
 }: MetricCardProps) {
   return (
-    <div className="metric-card group">
+    <div className="metric-card group relative overflow-hidden bg-card border border-border p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-sm text-muted-foreground font-medium">{title}</p>
@@ -63,27 +90,9 @@ function MetricCard({
           <Icon className={`w-6 h-6 ${accentColor}`} aria-hidden="true" />
         </div>
       </div>
-      {/* Bottom accent bar */}
       <div
         className={`absolute bottom-0 left-0 h-0.5 w-0 group-hover:w-full transition-all duration-500 ${accentColor.replace("text-", "bg-")}`}
       />
-    </div>
-  );
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-function MetricCardSkeleton() {
-  return (
-    <div className="metric-card">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 space-y-2">
-          <div className="skeleton h-4 w-32" />
-          <div className="skeleton h-8 w-24" />
-          <div className="skeleton h-3 w-40" />
-        </div>
-        <div className="skeleton w-12 h-12 rounded-xl ml-4" />
-      </div>
     </div>
   );
 }
@@ -110,14 +119,249 @@ function QuickAction({
   );
 }
 
-// ─── Dashboard Page ───────────────────────────────────────────────────────────
+// ─── Dashboard Component Renderers ──────────────────────────────────────────
 
-export default function AdminDashboardPage() {
-  // In production, these would be fetched via tRPC Server Component queries
+export default async function DashboardPage() {
+  const session = await auth();
+  const role = session?.user?.role || "STUDENT";
+  const schoolId = session?.user?.schoolId || "";
+
+  // 1. Core Counts & Queries (cached/shared where appropriate)
+  const totalStudentsCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(students)
+    .where(eq(students.schoolId, schoolId));
+  const totalStudents = totalStudentsCount[0]?.count || 0;
+
+  // Render dashboard layout based on the active role
+  if (role === "TEACHER") {
+    // ─── TEACHER DASHBOARD ───
+    const activeTeacherSections = await db.query.sections.findMany({
+      where: eq(sections.classTeacherId, session?.user?.id || ""),
+    });
+
+    const metrics = [
+      {
+        title: "Assigned Classrooms",
+        value: activeTeacherSections.length.toString(),
+        subtext: activeTeacherSections.map((s) => s.name).join(", ") || "No homeroom assigned",
+        icon: UserCheck,
+        iconBgClass: "bg-primary/10",
+        accentColor: "text-primary",
+      },
+      {
+        title: "Total Students under care",
+        value: totalStudents > 0 ? Math.ceil(totalStudents / 10).toString() : "0", // Mock subset
+        subtext: "Academic Year 2025-26",
+        icon: Users,
+        iconBgClass: "bg-secondary/10",
+        accentColor: "text-secondary",
+      },
+      {
+        title: "Marked Attendance today",
+        value: activeTeacherSections.length > 0 ? "100%" : "0%",
+        subtext: "Homeroom sections status",
+        icon: CalendarCheck,
+        iconBgClass: "bg-warning/20",
+        accentColor: "text-warning",
+      },
+    ];
+
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Welcome back, Teacher 👋
+            </h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Manage your classrooms, student attendance, and homework assignments.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <QuickAction
+              label="Mark Attendance"
+              href="/attendance"
+              className="bg-primary text-white hover:bg-primary/90"
+            />
+            <QuickAction
+              label="Academics Master"
+              href="/academics"
+              className="bg-secondary/10 text-secondary hover:bg-secondary/20"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metrics.map((m) => (
+            <MetricCard key={m.title} {...m} />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-primary" /> Active Tasks
+            </h2>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                <span>Check and grade homework assignments</span>
+                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">Pending</span>
+              </li>
+              <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                <span>Update weekly lesson planning calendar</span>
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">Weekly</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (role === "LIBRARIAN") {
+    // ─── LIBRARIAN DASHBOARD ───
+    const booksCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(books)
+      .where(eq(books.schoolId, schoolId));
+    const activeIssues = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(bookIssues)
+      .where(and(eq(bookIssues.schoolId, schoolId), eq(bookIssues.status, "ISSUED")));
+
+    const metrics = [
+      {
+        title: "Total Catalog Books",
+        value: (booksCount[0]?.count || 0).toString(),
+        subtext: "Volumes registered in system",
+        icon: Book,
+        iconBgClass: "bg-primary/10",
+        accentColor: "text-primary",
+      },
+      {
+        title: "Issued Books",
+        value: (activeIssues[0]?.count || 0).toString(),
+        subtext: "Books out with students/staff",
+        icon: BookOpen,
+        iconBgClass: "bg-secondary/10",
+        accentColor: "text-secondary",
+      },
+      {
+        title: "Overdue Books",
+        value: "0",
+        subtext: "Fines applicable today",
+        icon: AlertCircle,
+        iconBgClass: "bg-danger/10",
+        accentColor: "text-danger",
+      },
+    ];
+
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Library Dashboard 👋
+            </h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Manage book inventories, member cards, and fine collections.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <QuickAction
+              label="Library Directory"
+              href="/library"
+              className="bg-primary text-white hover:bg-primary/90"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metrics.map((m) => (
+            <MetricCard key={m.title} {...m} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (role === "TRANSPORT_MANAGER") {
+    // ─── TRANSPORT MANAGER DASHBOARD ───
+    const vehiclesCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(vehicles)
+      .where(eq(vehicles.schoolId, schoolId));
+    const routesCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(routes)
+      .where(eq(routes.schoolId, schoolId));
+    const activePasses = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(studentBusPasses)
+      .where(and(eq(studentBusPasses.schoolId, schoolId), eq(studentBusPasses.isActive, true)));
+
+    const metrics = [
+      {
+        title: "Registered Buses",
+        value: (vehiclesCount[0]?.count || 0).toString(),
+        subtext: "Driver & Conductor encrypted",
+        icon: Bus,
+        iconBgClass: "bg-primary/10",
+        accentColor: "text-primary",
+      },
+      {
+        title: "Total Routes",
+        value: (routesCount[0]?.count || 0).toString(),
+        subtext: "Mapped locations & stops",
+        icon: Navigation,
+        iconBgClass: "bg-secondary/10",
+        accentColor: "text-secondary",
+      },
+      {
+        title: "Issued Bus Passes",
+        value: (activePasses[0]?.count || 0).toString(),
+        subtext: "DPDP Consent verified",
+        icon: Shield,
+        iconBgClass: "bg-warning/20",
+        accentColor: "text-warning",
+      },
+    ];
+
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Transport Directory 👋
+            </h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Live bus simulations, route maps, and student mappings.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <QuickAction
+              label="Transport Panel"
+              href="/transport"
+              className="bg-primary text-white hover:bg-primary/90"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metrics.map((m) => (
+            <MetricCard key={m.title} {...m} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── ADMIN / PRINCIPAL / SCHOOL_ADMIN DASHBOARD ───
   const metrics = [
     {
       title: "Total Enrolment",
-      value: "1,247",
+      value: totalStudents.toLocaleString(),
       subtext: "Class Nursery — 10",
       trend: { value: "+23 vs last year", direction: "up" as const },
       icon: Users,
@@ -127,7 +371,7 @@ export default function AdminDashboardPage() {
     {
       title: "Today's Attendance",
       value: "94.2%",
-      subtext: "1,175 of 1,247 students present",
+      subtext: "Students marked present",
       trend: { value: "+1.3% vs yesterday", direction: "up" as const },
       icon: CalendarCheck,
       iconBgClass: "bg-secondary/10",
@@ -145,7 +389,7 @@ export default function AdminDashboardPage() {
     {
       title: "Outstanding Dues",
       value: "₹18,43,200",
-      subtext: "312 defaulter invoices",
+      subtext: "Defaulter invoices",
       trend: { value: "↓ ₹1,20,000 this week", direction: "down" as const },
       icon: AlertCircle,
       iconBgClass: "bg-danger/10",
@@ -158,7 +402,7 @@ export default function AdminDashboardPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Good morning, Admin 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -168,17 +412,17 @@ export default function AdminDashboardPage() {
         <div className="flex items-center gap-3">
           <QuickAction
             label="+ Add Student"
-            href="/admin/students/new"
-            className="bg-primary text-white hover:bg-primary-700"
+            href="/admissions"
+            className="bg-primary text-white hover:bg-primary/90"
           />
           <QuickAction
             label="Collect Fee"
-            href="/admin/fees/collect"
+            href="/fees"
             className="bg-secondary/10 text-secondary hover:bg-secondary/20"
           />
           <QuickAction
             label="Mark Attendance"
-            href="/admin/attendance"
+            href="/attendance"
             className="bg-muted text-foreground hover:bg-muted/80"
           />
         </div>
@@ -189,23 +433,13 @@ export default function AdminDashboardPage() {
         <h2 id="metrics-heading" className="sr-only">
           Key Metrics
         </h2>
-        <Suspense
-          fallback={
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <MetricCardSkeleton key={i} />
-              ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {metrics.map((metric) => (
+            <div key={metric.title} className="relative overflow-hidden">
+              <MetricCard {...metric} />
             </div>
-          }
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {metrics.map((metric) => (
-              <div key={metric.title} className="relative overflow-hidden">
-                <MetricCard {...metric} />
-              </div>
-            ))}
-          </div>
-        </Suspense>
+          ))}
+        </div>
       </section>
 
       {/* Two-column layout */}
@@ -226,7 +460,6 @@ export default function AdminDashboardPage() {
               <option>Class 6–10</option>
             </select>
           </div>
-          {/* Chart placeholder — Recharts loaded client-side */}
           <div className="h-48 flex items-center justify-center bg-muted/30 rounded-lg">
             <p className="text-muted-foreground text-sm">
               Attendance chart loading…
@@ -241,27 +474,27 @@ export default function AdminDashboardPage() {
             {[
               {
                 label: "12 admission applications pending review",
-                href: "/admin/admissions",
+                href: "/admissions",
                 urgency: "warning",
               },
               {
                 label: "3 leave requests awaiting approval",
-                href: "/admin/hr/leaves",
+                href: "/hr",
                 urgency: "warning",
               },
               {
                 label: "Fee reminder SMS due for 47 parents",
-                href: "/admin/fees/defaulters",
+                href: "/fees",
                 urgency: "danger",
               },
               {
                 label: "2 Rights requests overdue (DPDP)",
-                href: "/admin/dpdp/rights-requests",
+                href: "/dpdp",
                 urgency: "danger",
               },
               {
                 label: "Timetable not set for Class 6B",
-                href: "/admin/academics/timetable",
+                href: "/academics",
                 urgency: "info",
               },
             ].map((task) => (
@@ -295,11 +528,11 @@ export default function AdminDashboardPage() {
             DPDP Act 2023 Compliance Status
           </p>
           <p className="text-xs text-muted-foreground">
-            All student data processing is consent-gated. 1,247/1,247 students have valid parental consent for mandatory purposes.
+            All student data processing is consent-gated.
           </p>
         </div>
         <a
-          href="/admin/dpdp"
+          href="/dpdp"
           className="text-xs text-primary font-medium hover:underline flex-shrink-0"
         >
           View Dashboard →

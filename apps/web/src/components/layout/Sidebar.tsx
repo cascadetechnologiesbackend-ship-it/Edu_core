@@ -25,6 +25,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 // ─── Navigation Config ────────────────────────────────────────────────────────
 
@@ -32,37 +33,37 @@ const NAV_GROUPS = [
   {
     group: "Core",
     items: [
-      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/admissions", label: "Admissions", icon: UserPlus },
-      { href: "/admin/students", label: "Students", icon: Users },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admissions", label: "Admissions", icon: UserPlus },
+      { href: "/students", label: "Students", icon: Users },
     ],
   },
   {
     group: "Academic",
     items: [
-      { href: "/admin/academics", label: "Academics", icon: BookOpen },
-      { href: "/admin/attendance", label: "Attendance", icon: CalendarCheck },
-      { href: "/admin/examinations", label: "Examinations", icon: Award },
+      { href: "/academics", label: "Academics", icon: BookOpen },
+      { href: "/attendance", label: "Attendance", icon: CalendarCheck },
+      { href: "/exams", label: "Examinations", icon: Award },
     ],
   },
   {
     group: "Administration",
     items: [
-      { href: "/admin/fees", label: "Fees", icon: IndianRupee },
-      { href: "/admin/hr", label: "HR & Payroll", icon: UserCog },
-      { href: "/admin/library", label: "Library", icon: Library },
-      { href: "/admin/transport", label: "Transport", icon: Bus },
-      { href: "/admin/communication", label: "Communication", icon: Bell },
-      { href: "/admin/inventory", label: "Inventory", icon: Package },
-      { href: "/admin/hostel", label: "Hostel", icon: Building2 },
+      { href: "/fees", label: "Fees", icon: IndianRupee },
+      { href: "/hr", label: "HR & Payroll", icon: UserCog },
+      { href: "/library", label: "Library", icon: Library },
+      { href: "/transport", label: "Transport", icon: Bus },
+      { href: "/communication", label: "Communication", icon: Bell },
+      { href: "/inventory", label: "Inventory", icon: Package },
+      { href: "/hostel", label: "Hostel", icon: Building2 },
     ],
   },
   {
     group: "Insights",
     items: [
-      { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/admin/dpdp", label: "Privacy & Consent", icon: Shield },
-      { href: "/admin/settings", label: "Settings", icon: Settings },
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/dpdp", label: "Privacy & Consent", icon: Shield },
+      { href: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ] as const;
@@ -76,6 +77,44 @@ interface SidebarProps {
 export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role || "STUDENT";
+
+  const isAllowed = (href: string) => {
+    if (href === "/dashboard") return true;
+
+    switch (href) {
+      case "/admissions":
+      case "/students":
+      case "/hr":
+      case "/fees":
+      case "/settings":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER", "ACCOUNTANT"].includes(role);
+      case "/academics":
+      case "/attendance":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"].includes(role);
+      case "/exams":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTANT"].includes(role);
+      case "/library":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"].includes(role);
+      case "/transport":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TRANSPORT_MANAGER"].includes(role);
+      case "/dpdp":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"].includes(role);
+      case "/analytics":
+      case "/communication":
+      case "/inventory":
+      case "/hostel":
+        return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(role);
+      default:
+        return false;
+    }
+  };
+
+  const filteredGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => isAllowed(item.href)),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside
@@ -104,7 +143,7 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6" role="navigation">
-        {NAV_GROUPS.map((group) => (
+        {filteredGroups.map((group) => (
           <div key={group.group}>
             {!collapsed && (
               <p className="text-xs font-semibold text-sidebar-text/50 uppercase tracking-wider px-2 mb-1">
@@ -115,13 +154,13 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
               {group.items.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== "/admin/dashboard" &&
+                  (item.href !== "/dashboard" &&
                     pathname.startsWith(item.href));
 
                 return (
                   <li key={item.href}>
                     <Link
-                      href={item.href}
+                      href={item.href as any}
                       className={cn(
                         "sidebar-nav-item",
                         isActive && "active",
