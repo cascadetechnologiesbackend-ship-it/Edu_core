@@ -1,0 +1,6 @@
+[allowlist]
+description = "Ignore example config files and false positives on variable names containing Key"
+paths = [
+    '''^\.env\.example$''',
+    '''^apps/web/src/app/\(admin\)/academics/actions\.ts$'''
+]
