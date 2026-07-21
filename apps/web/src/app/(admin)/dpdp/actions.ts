@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { auth } from "@/lib/auth";
 import { executeRetentionPolicy } from "@/workers/retention";
 
@@ -22,18 +23,8 @@ export async function toggleLegalHold(
   hold: boolean,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    if (
-      session.user.role !== "HR_MANAGER" &&
-      session.user.role !== "SUPER_ADMIN"
-    ) {
-      return {
-        success: false,
-        message: "Access denied: HR Manager or Super Admin role required.",
-      };
-    }
+    const ctx = await requireAuth(["HR_MANAGER", "SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+    const schoolId = ctx.schoolId ?? "00000000-0000-0000-0000-000000000000";
 
     if (targetTable === "students") {
       await db
@@ -49,10 +40,10 @@ export async function toggleLegalHold(
 
     // Log to DPDP Audit Log
     await db.insert(auditLogs).values({
-      userId: session.user.id,
+      userId: ctx.userId,
       userEmail: "[audit-redacted]",
-      userRole: session.user.role,
-      schoolId: session.user.schoolId ?? "00000000-0000-0000-0000-000000000000",
+      userRole: ctx.role,
+      schoolId,
       action: "WRITE",
       tableName: targetTable,
       recordId,
@@ -81,11 +72,8 @@ export async function createVendor(input: {
   privacyPolicyUrl?: string;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     await db.insert(vendorRegister).values({
       schoolId: school.id,
@@ -145,11 +133,8 @@ export async function reportDataBreach(input: {
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     const now = new Date();
     // 72-hour board notification countdown deadline
@@ -161,7 +146,7 @@ export async function reportDataBreach(input: {
       schoolId: school.id,
       incidentReference: ref,
       detectedAt: now,
-      reportedByUserId: session.user.id,
+      reportedByUserId: ctx.userId,
       severity: input.severity,
       status: "DETECTED",
       description: input.description,
@@ -182,8 +167,7 @@ export async function reportDataBreach(input: {
 
 export async function markBreachBoardNotified(breachId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
 
     await db
       .update(dataBreachLog)
@@ -229,8 +213,7 @@ export async function resolveRightsRequest(
   responseDetails: string,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
 
     await db
       .update(rightsRequests)
@@ -238,7 +221,7 @@ export async function resolveRightsRequest(
         status: approve ? "COMPLETED" : "REJECTED",
         responseDetails,
         respondedAt: new Date(),
-        respondedByUserId: session.user.id,
+        respondedByUserId: ctx.userId,
         updatedAt: new Date(),
       })
       .where(eq(rightsRequests.id, id));
@@ -252,8 +235,7 @@ export async function resolveRightsRequest(
 
 export async function resolveGrievance(id: string, responseDetails: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
 
     await db
       .update(dpdpGrievances)
@@ -275,11 +257,8 @@ export async function resolveGrievance(id: string, responseDetails: string) {
 // ─── Manual Retention Execution Trigger ───────────────────────────────────────
 export async function triggerManualRetentionRun() {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+    const school = await requireSchool(ctx);
 
     const res = await executeRetentionPolicy(school.id);
     return res;

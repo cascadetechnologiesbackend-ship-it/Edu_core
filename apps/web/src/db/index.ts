@@ -1,9 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { sql, eq } from "drizzle-orm";
 import * as schema from "./schema";
-import { sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
+import { auth } from "@/lib/auth";
 
 // ─── Connection Pool ──────────────────────────────────────────────────────────
 
@@ -60,7 +61,10 @@ export async function withTenant<T>(
  * and applies all base database migrations dynamically.
  */
 export async function provisionTenant(tenantSlug: string): Promise<void> {
-  const schemaName = `tenant_${tenantSlug.replace(/[^a-zA-Z0-9_]/g, "")}`;
+  if (!/^[a-zA-Z0-9_]{1,63}$/.test(tenantSlug)) {
+    throw new Error(`Invalid tenant slug: "${tenantSlug}"`);
+  }
+  const schemaName = `tenant_${tenantSlug}`;
 
   // 1. Create the tenant's individual database schema namespace
   await db.execute(sql`CREATE SCHEMA IF NOT EXISTS ${sql.raw(schemaName)}`);
@@ -95,6 +99,24 @@ export async function provisionTenant(tenantSlug: string): Promise<void> {
       }
     }
   });
+}
+
+/**
+ * Gets the tenant slug from the current session's schoolId.
+ * Used by server actions to scope all DB queries to the tenant schema.
+ */
+export async function getTenantDb() {
+  const session = await auth();
+  if (!session?.user?.schoolId) throw new Error("No tenant context");
+
+  const school = await db.query.schools.findFirst({
+    where: eq(schema.schools.id, session.user.schoolId),
+    columns: { udiseCode: true, id: true },
+  });
+  if (!school) throw new Error("School not found");
+
+  const tenantSlug = school.udiseCode.replace(/[^a-zA-Z0-9]/g, "_");
+  return { tenantDb: db, tenantSlug, schoolId: school.id };
 }
 
 // ─── Re-export schema for convenience ────────────────────────────────────────

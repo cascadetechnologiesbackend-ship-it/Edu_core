@@ -17,6 +17,7 @@ import {
   Save,
 } from "lucide-react";
 import { z } from "zod";
+import { setupSchool } from "./actions";
 
 const STEPS = [
   { id: 1, label: "Basic Info", icon: Building },
@@ -83,10 +84,16 @@ export default function SchoolSetupPage() {
 
   const onSubmit = async (data: WizardFormData) => {
     setIsSubmitting(true);
-    // In production, send to tRPC endpoint
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    alert("School setup complete! (Mock success)");
+    try {
+      await setupSchool(data);
+      alert("School setup complete! Data saved successfully.");
+      // Optionally redirect to another page
+    } catch (e) {
+      console.error(e);
+      alert("Failed to save setup data.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

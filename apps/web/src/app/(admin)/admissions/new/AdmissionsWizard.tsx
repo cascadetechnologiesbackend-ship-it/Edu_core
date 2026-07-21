@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { verifyConsentOtp, submitAdmissionApplication } from "./actions";
+import { verifyConsentOtp, dispatchConsentOtp, submitAdmissionApplication } from "./actions";
 
 export function AdmissionsWizard({
   privacyNoticeVersion,
@@ -32,6 +32,7 @@ export function AdmissionsWizard({
     category: "GENERAL",
     gradeAppliedFor: "CLASS_1",
     previousSchool: "",
+    aadhaarNumber: "",
   });
 
   const [familyDetails, setFamilyDetails] = useState({
@@ -42,6 +43,16 @@ export function AdmissionsWizard({
     primaryContactEmail: "",
     address: "",
     pincode: "",
+  });
+
+  const [documents, setDocuments] = useState<{
+    birthCertificate: File | null;
+    aadhaar: File | null;
+    photo: File | null;
+  }>({
+    birthCertificate: null,
+    aadhaar: null,
+    photo: null,
   });
 
   const handleNext = async () => {
@@ -65,7 +76,19 @@ export function AdmissionsWizard({
           );
           return;
         }
-        setOtpSent(true);
+        setLoading(true);
+        try {
+          const res = await dispatchConsentOtp(mobileOtp.mobile);
+          if (!res.success) {
+            setError(res.message || "Failed to dispatch OTP");
+            setLoading(false);
+            return;
+          }
+          setOtpSent(true);
+        } catch (e: any) {
+          setError(e.message || "Failed to dispatch OTP");
+        }
+        setLoading(false);
         return;
       } else {
         setLoading(true);
@@ -90,8 +113,33 @@ export function AdmissionsWizard({
       ...familyDetails,
       primaryContactMobile: mobileOtp.mobile, // Overwrite with verified mobile
     };
+    
+    // Upload documents to S3
+    const documentKeys: Record<string, string> = {};
+    for (const [key, file] of Object.entries(documents)) {
+      if (file) {
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: file.name, contentType: file.type, prefix: "admissions" }),
+          });
+          const data = await res.json();
+          if (data.url && data.key) {
+            await fetch(data.url, {
+              method: "PUT",
+              headers: { "Content-Type": file.type },
+              body: file,
+            });
+            documentKeys[key] = data.key;
+          }
+        } catch (e) {
+          console.error(`Failed to upload ${key}`, e);
+        }
+      }
+    }
 
-    const res = await submitAdmissionApplication(formData, consentState);
+    const res = await submitAdmissionApplication(formData, consentState, documentKeys);
     setLoading(false);
 
     if (res.success) {
@@ -313,7 +361,13 @@ export function AdmissionsWizard({
                   <option value="UKG">UKG</option>
                   <option value="CLASS_1">Class 1</option>
                   <option value="CLASS_2">Class 2</option>
+                  <option value="CLASS_3">Class 3</option>
+                  <option value="CLASS_4">Class 4</option>
                   <option value="CLASS_5">Class 5</option>
+                  <option value="CLASS_6">Class 6</option>
+                  <option value="CLASS_7">Class 7</option>
+                  <option value="CLASS_8">Class 8</option>
+                  <option value="CLASS_9">Class 9</option>
                   <option value="CLASS_10">Class 10</option>
                 </select>
               </div>
@@ -335,6 +389,22 @@ export function AdmissionsWizard({
                   <option value="ST">ST</option>
                   <option value="EWS">EWS</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Aadhaar Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="12-digit Aadhaar"
+                  value={basicInfo.aadhaarNumber}
+                  onChange={(e) =>
+                    setBasicInfo({ ...basicInfo, aadhaarNumber: e.target.value })
+                  }
+                  maxLength={12}
+                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                />
               </div>
 
               <div className="col-span-2">
@@ -458,14 +528,32 @@ export function AdmissionsWizard({
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Document Upload
             </h2>
-            <div className="p-12 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-2xl bg-gray-50 dark:bg-slate-800">
-              <span className="text-4xl mb-4 block">📄</span>
-              <p className="text-gray-500 mb-4">
-                Upload Birth Certificate, Aadhaar (Masked), and Photo here.
-              </p>
-              <button className="px-4 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm font-medium">
-                Select Files
-              </button>
+            <div className="grid gap-6 text-left">
+              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800">
+                <label className="block text-sm font-medium mb-2">Birth Certificate</label>
+                <input 
+                  type="file" 
+                  onChange={(e) => setDocuments(prev => ({ ...prev, birthCertificate: e.target.files?.[0] || null }))}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                />
+              </div>
+              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800">
+                <label className="block text-sm font-medium mb-2">Aadhaar (Masked)</label>
+                <input 
+                  type="file" 
+                  onChange={(e) => setDocuments(prev => ({ ...prev, aadhaar: e.target.files?.[0] || null }))}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                />
+              </div>
+              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800">
+                <label className="block text-sm font-medium mb-2">Student Photo</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => setDocuments(prev => ({ ...prev, photo: e.target.files?.[0] || null }))}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                />
+              </div>
             </div>
           </div>
         )}
@@ -496,37 +584,133 @@ export function AdmissionsWizard({
 
         {/* STEP 6: Confirmation */}
         {step === 6 && (
-          <div className="space-y-6 max-w-2xl mx-auto">
+          <div className="space-y-8 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Review & Confirm
+              Full Review & Confirm
             </h2>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Basic Info */}
+              <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Basic Information</h3>
+                <dl className="grid grid-cols-2 gap-y-4 gap-x-4">
+                  <div>
+                    <dt className="text-sm text-gray-500">Applicant Name</dt>
+                    <dd className="font-medium">{basicInfo.applicantName || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Date of Birth</dt>
+                    <dd className="font-medium">{basicInfo.dateOfBirth || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Gender</dt>
+                    <dd className="font-medium">{basicInfo.gender}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Category</dt>
+                    <dd className="font-medium">{basicInfo.category}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Aadhaar</dt>
+                    <dd className="font-medium">{basicInfo.aadhaarNumber || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Grade Applied</dt>
+                    <dd className="font-medium">{basicInfo.gradeAppliedFor.replace("_", " ")}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-sm text-gray-500">Previous School</dt>
+                    <dd className="font-medium">{basicInfo.previousSchool || "-"}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Family Details */}
+              <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Family & Contact Details</h3>
+                <dl className="grid grid-cols-2 gap-y-4 gap-x-4">
+                  <div>
+                    <dt className="text-sm text-gray-500">Father's Name</dt>
+                    <dd className="font-medium">{familyDetails.fatherName || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Mother's Name</dt>
+                    <dd className="font-medium">{familyDetails.motherName || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Guardian's Name</dt>
+                    <dd className="font-medium">{familyDetails.guardianName || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Contact Number</dt>
+                    <dd className="font-medium">{mobileOtp.mobile || "-"}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-sm text-gray-500">Email Address</dt>
+                    <dd className="font-medium">{familyDetails.primaryContactEmail || "-"}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-sm text-gray-500">Residential Address</dt>
+                    <dd className="font-medium">{familyDetails.address || "-"} {familyDetails.pincode ? `(${familyDetails.pincode})` : ""}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            {/* Document Previews */}
             <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
-              <dl className="grid grid-cols-2 gap-4">
+              <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Document Previews</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <dt className="text-sm text-gray-500">Applicant</dt>
-                  <dd className="font-medium">{basicInfo.applicantName}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-gray-500">Grade</dt>
-                  <dd className="font-medium">
-                    {basicInfo.gradeAppliedFor.replace("_", " ")}
+                  <dt className="text-sm font-medium text-gray-500 mb-2">Birth Certificate</dt>
+                  <dd>
+                    {documents.birthCertificate ? (
+                      <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
+                        <span className="text-2xl mr-3">📄</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-2">{documents.birthCertificate.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-red-500 font-medium">Not uploaded</span>
+                    )}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Parent</dt>
-                  <dd className="font-medium">{familyDetails.fatherName}</dd>
+                  <dt className="text-sm font-medium text-gray-500 mb-2">Aadhaar (Masked)</dt>
+                  <dd>
+                    {documents.aadhaar ? (
+                      <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
+                        <span className="text-2xl mr-3">📄</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-2">{documents.aadhaar.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-red-500 font-medium">Not uploaded</span>
+                    )}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Contact</dt>
-                  <dd className="font-medium">{mobileOtp.mobile}</dd>
+                  <dt className="text-sm font-medium text-gray-500 mb-2">Student Photo</dt>
+                  <dd>
+                    {documents.photo ? (
+                      <div className="p-2 border rounded-lg bg-white dark:bg-slate-900 flex flex-col items-center shadow-sm">
+                        {documents.photo.type.startsWith("image/") ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={URL.createObjectURL(documents.photo)} alt="Student Photo" className="h-32 w-32 object-cover rounded-md mb-2 shadow-sm border" />
+                        ) : (
+                          <div className="h-32 flex items-center justify-center text-5xl mb-2">📄</div>
+                        )}
+                        <span className="text-xs text-center break-all w-full font-medium text-gray-700 dark:text-gray-200 line-clamp-1" title={documents.photo.name}>{documents.photo.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-red-500 font-medium">Not uploaded</span>
+                    )}
+                  </dd>
                 </div>
-              </dl>
+              </div>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800 flex items-center">
               <p className="text-green-800 dark:text-green-300 font-medium">
-                ✓ DPDP Consent Verified via OTP
+                ✓ DPDP Consent Verified via OTP ({mobileOtp.mobile})
               </p>
             </div>
           </div>

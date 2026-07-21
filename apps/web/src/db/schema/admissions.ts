@@ -60,6 +60,7 @@ export const admissionApplications = pgTable(
     dateOfBirth: timestamp("date_of_birth", { withTimezone: true }).notNull(),
     gender: genderEnum("gender").notNull(),
     category: categoryEnum("category").notNull(),
+    aadhaarNumberEncrypted: text("aadhaar_number_encrypted"),
     gradeAppliedFor: gradeLevelEnum("grade_applied_for").notNull(),
     previousSchool: text("previous_school"),
     // Parent / Guardian details — PII encrypted

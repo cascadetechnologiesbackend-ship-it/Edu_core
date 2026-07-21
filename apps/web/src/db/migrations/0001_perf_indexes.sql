@@ -9,23 +9,23 @@ CREATE INDEX IF NOT EXISTS user_roles_user_id_idx ON user_roles(user_id);
 
 -- Students
 CREATE INDEX IF NOT EXISTS students_school_id_idx ON students(school_id);
-CREATE INDEX IF NOT EXISTS students_class_id_idx ON students(class_id);
-CREATE INDEX IF NOT EXISTS students_section_id_idx ON students(section_id);
+CREATE INDEX IF NOT EXISTS students_class_id_idx ON students(current_class_id);
+CREATE INDEX IF NOT EXISTS students_section_id_idx ON students(current_section_id);
 CREATE INDEX IF NOT EXISTS students_admission_no_idx ON students(admission_number);
 
 -- Staff
 CREATE INDEX IF NOT EXISTS staff_school_id_idx ON staff(school_id);
 CREATE INDEX IF NOT EXISTS staff_department_id_idx ON staff(department_id);
-CREATE INDEX IF NOT EXISTS staff_email_idx ON staff(email);
+CREATE INDEX IF NOT EXISTS staff_user_id_idx ON staff(user_id);
 
 -- Fees
 CREATE INDEX IF NOT EXISTS fee_invoices_student_id_idx ON fee_invoices(student_id);
 CREATE INDEX IF NOT EXISTS fee_invoices_school_id_idx ON fee_invoices(school_id);
-CREATE INDEX IF NOT EXISTS fee_payments_invoice_id_idx ON fee_payments(invoice_id);
+CREATE INDEX IF NOT EXISTS fee_payments_invoice_id_idx ON fee_payments(fee_invoice_id);
 
 -- Attendance
-CREATE INDEX IF NOT EXISTS attendance_student_date_idx ON attendance_records(student_id, date);
-CREATE INDEX IF NOT EXISTS attendance_section_date_idx ON attendance_records(section_id, date);
+CREATE INDEX IF NOT EXISTS attendance_student_date_idx ON student_attendance(student_id, attendance_date);
+CREATE INDEX IF NOT EXISTS attendance_section_date_idx ON student_attendance(section_id, attendance_date);
 
 -- Exams & Marks
 CREATE INDEX IF NOT EXISTS marks_student_exam_idx ON mark_entries(student_id, exam_id);
@@ -36,7 +36,7 @@ CREATE INDEX IF NOT EXISTS report_cards_student_exam_idx ON report_cards(student
 CREATE INDEX IF NOT EXISTS audit_logs_school_id_idx ON audit_logs(school_id);
 CREATE INDEX IF NOT EXISTS audit_logs_user_id_idx ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS audit_logs_record_id_idx ON audit_logs(record_id);
-CREATE INDEX IF NOT EXISTS dpdp_consents_student_idx ON dpdp_consents(student_id);
+CREATE INDEX IF NOT EXISTS consent_records_student_idx ON consent_records(student_id);
 
 -- Admissions
 CREATE INDEX IF NOT EXISTS admission_applications_school_idx ON admission_applications(school_id);

@@ -31,6 +31,11 @@ export default async function AdminLayout({
     redirect("/portal");
   }
 
+  // Super admins belong in the platform management group
+  if (session.user.role === "SUPER_ADMIN") {
+    redirect("/platform/dashboard");
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}

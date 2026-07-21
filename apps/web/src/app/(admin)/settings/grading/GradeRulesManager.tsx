@@ -79,7 +79,6 @@ export function GradeRulesManager({
     startTransition(async () => {
       setMessage("");
       const res = await saveGradeRules({
-        schoolId,
         classGroup: activeGroup,
         rules: groupRules.map((r) => ({
           minPercent: r.minPercent,
@@ -100,7 +99,7 @@ export function GradeRulesManager({
   const handleSeedCBSE = () => {
     startTransition(async () => {
       setMessage("");
-      const res = await seedCBSERules({ schoolId, classGroup: activeGroup });
+      const res = await seedCBSERules({ classGroup: activeGroup });
       if (res.success && res.rules) {
         const newGroupRules = res.rules as GradeRule[];
         setRules((prev) => [

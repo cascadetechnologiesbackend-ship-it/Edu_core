@@ -42,6 +42,13 @@ import {
   routeStops,
   studentBusPasses,
   gpsPings,
+  paymentGatewayLogs,
+  feePayments,
+  feeRefunds,
+  feeInvoices,
+  feeConcessions,
+  feeStructures,
+  feeHeads,
   // Library tables
   books,
   bookCopies,
@@ -194,6 +201,14 @@ async function main() {
 
   // 1. Clear existing core data (in reverse dependency order to prevent constraint errors)
   console.log("🧹 Clearing existing data...");
+  await db.delete(paymentGatewayLogs);
+  await db.delete(feeRefunds);
+  await db.delete(feePayments);
+  await db.delete(feeInvoices);
+  await db.delete(feeConcessions);
+  await db.delete(feeStructures);
+  await db.delete(feeHeads);
+
   await db.delete(gpsPings);
   await db.delete(studentBusPasses);
   await db.delete(routeStops);

@@ -1,17 +1,27 @@
 import { db } from "@/db";
-import { feeInvoices, students, academicYears } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { feeInvoices, students, academicYears, schools } from "@/db/schema";
+import { eq, inArray, and } from "drizzle-orm";
 import { CollectForm } from "./CollectForm";
 import { decryptData } from "@/lib/encryption";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function FeeCollectPage({
   searchParams,
 }: {
   searchParams: { studentId?: string };
 }) {
-  const activeSchool = await db.query.schools.findFirst();
+  const session = await auth();
+  if (!session?.user?.schoolId) redirect("/login");
+
+  const activeSchool = await db.query.schools.findFirst({
+    where: eq(schools.id, session.user.schoolId),
+  });
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, session.user.schoolId),
+    ),
   });
 
   if (!activeSchool || !activeYear) return <div>No active school/year.</div>;

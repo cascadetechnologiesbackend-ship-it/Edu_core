@@ -1,8 +1,9 @@
 import { db } from "@/db";
-import { academicYears, leaveBalances } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { academicYears, leaveBalances, schools } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
 import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import HRDashboardClient from "./HRDashboardClient";
 
 export const metadata: Metadata = {
@@ -13,12 +14,18 @@ export const metadata: Metadata = {
 
 export default async function HRPage() {
   const session = await auth();
+  if (!session?.user?.schoolId) redirect("/login");
 
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, session.user.schoolId),
+    ),
   });
 
-  const school = await db.query.schools.findFirst();
+  const school = await db.query.schools.findFirst({
+    where: eq(schools.id, session.user.schoolId),
+  });
 
   // Auto-carry forward check on page load if academic year has rolled over
   if (activeYear && school) {

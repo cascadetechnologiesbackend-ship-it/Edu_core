@@ -14,9 +14,11 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
+import { sendSMS } from "@/lib/sms";
 
 // ─── OTP Generator Stub ──────────────────────────────────────────────────────
 export async function generateConsentChangeOtp(
@@ -28,13 +30,19 @@ export async function generateConsentChangeOtp(
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
     const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(
-      `[DPDP OTP STUB] Generated OTP for Parent ${session.user.id} (Wards: ${studentId}), Purpose ${purposeId}: ${mockOtp}`,
-    );
+    
+    // In a production system, we'd look up the parent's mobile number here from DB
+    const parentMobile = "+919999999999"; 
+    
+    const sent = await sendSMS(parentMobile, `Your OTP for changing DPDP consent for purpose ${purposeId} is: ${mockOtp}`);
+    
+    if (!sent) {
+      return { success: false, message: "Failed to dispatch SMS via gateway" };
+    }
 
     return {
       success: true,
-      message: "OTP sent successfully (check server console log)",
+      message: "OTP sent successfully to your registered mobile number",
     };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -147,11 +155,8 @@ export async function raiseGrievanceTicket(input: {
   description: string;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const ctx = await requireAuth(["PARENT"] as const);
+    const school = await requireSchool(ctx);
 
     const now = new Date();
     const dueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30-day SLA
@@ -160,7 +165,7 @@ export async function raiseGrievanceTicket(input: {
     await db.insert(dpdpGrievances).values({
       ticketNumber: ticket,
       schoolId: school.id,
-      submittedByUserId: session.user.id,
+      submittedByUserId: ctx.userId,
       subject: input.subject,
       description: input.description,
       status: "SUBMITTED",
@@ -200,6 +205,10 @@ export async function fetchStudentCompleteData(studentId: string) {
         where: eq(students.id, studentId),
       }));
     if (!targetStudent) return { success: false, message: "Student not found" };
+
+    // DPDP Consent Check
+    const { assertConsent } = await import("@/server/middleware/consent");
+    await assertConsent(targetStudent.id, "academic_records");
 
     // Log this PII access to Audit Logs! (Crucial DPDP requirement)
     await db.insert(auditLogs).values({

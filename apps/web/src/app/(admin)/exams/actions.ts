@@ -13,6 +13,7 @@ import {
 import { eq, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { calculateRanks } from "@/lib/gradeEngine";
@@ -24,9 +25,10 @@ const CreateExamSchema = z.object({
   endDate: z.string().min(1, "End date required"),
 });
 
+const EXAM_ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"] as const;
+
 export async function createExam(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const ctx = await requireAuth(EXAM_ADMIN_ROLES);
 
   const parsed = CreateExamSchema.safeParse({
     name: formData.get("name"),
@@ -42,14 +44,16 @@ export async function createExam(formData: FormData) {
   const { name, examTypeId, startDate, endDate } = parsed.data;
 
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, ctx.schoolId!),
+    ),
   });
 
   if (!activeYear)
     return { success: false, errors: { _: ["No active academic year"] } };
 
-  const school = await db.query.schools.findFirst();
-  if (!school) return { success: false, errors: { _: ["No school found"] } };
+  const school = await requireSchool(ctx);
 
   await db.insert(exams).values({
     schoolId: school.id,
@@ -66,28 +70,19 @@ export async function createExam(formData: FormData) {
 }
 
 export async function lockExam(examId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
-  const dbUser = await db.query.users.findFirst({
-    where: eq(users.id, session.user.id),
+  // Verify exam belongs to this school before locking
+  const exam = await db.query.exams.findFirst({
+    where: and(eq(exams.id, examId), eq(exams.schoolId, ctx.schoolId!)),
   });
-  if (!dbUser) {
-    throw new Error(
-      "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
-    );
-  }
-
-  const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
-    session.user.role as string,
-  );
-  if (!allowed) throw new Error("Only Principal or Admin can lock exams");
+  if (!exam) throw new Error("Exam not found");
 
   await db
     .update(exams)
     .set({
       isLocked: true,
-      lockedById: session.user.id,
+      lockedById: ctx.userId,
       lockedAt: new Date(),
       updatedAt: new Date(),
     })

@@ -18,10 +18,13 @@ import {
   roles,
   academicYears,
   staffAttendance,
+  designations,
+  departments,
 } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { encryptData, decryptData } from "@/lib/encryption";
 import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
@@ -110,13 +113,9 @@ const CreateStaffSchema = z.object({
 
 export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
     const parsed = CreateStaffSchema.parse(input);
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const school = await requireSchool(ctx);
 
     // Create user login credential first
     const dummyPasswordHash =
@@ -341,11 +340,8 @@ export async function createSalaryTemplate(input: {
   otherAllowances: Array<{ name: string; amount: number }>;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
 
     await db.insert(salaryTemplates).values({
       schoolId: school.id,
@@ -493,14 +489,14 @@ export async function uploadStaffDocument(input: {
 // ─── Payroll Run Actions ──────────────────────────────────────────────────────
 export async function runPayrollForMonth(month: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const school = await db.query.schools.findFirst();
-    if (!school) return { success: false, message: "School not configured" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
 
     const activeYear = await db.query.academicYears.findFirst({
-      where: eq(academicYears.isActive, true),
+      where: and(
+        eq(academicYears.isActive, true),
+        eq(academicYears.schoolId, school.id),
+      ),
     });
 
     if (!activeYear)
@@ -519,7 +515,7 @@ export async function runPayrollForMonth(month: string) {
         schoolId: school.id,
         month,
         status: "DRAFT",
-        processedById: session.user.id,
+        processedById: ctx.userId,
         processedAt: new Date(),
         totalGross: "0.00",
         totalNetPay: "0.00",

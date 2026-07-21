@@ -3,36 +3,9 @@ import { z } from "zod";
 import { students, studentFamilyMembers } from "@/db/schema";
 import { getSignedDownloadUrl } from "@/lib/s3";
 import { eq } from "drizzle-orm";
-import crypto from "crypto";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
-
-function decryptData(encryptedText: string | null) {
-  if (!encryptedText) return null;
-  try {
-    const parts = encryptedText.split(":");
-    if (parts.length !== 2) return encryptedText;
-    const ivHex = parts[0];
-    const encryptedHex = parts[1];
-    if (!ivHex || !encryptedHex) return encryptedText;
-
-    const iv = Buffer.from(ivHex, "hex");
-    const encrypted = Buffer.from(encryptedHex, "hex");
-    const decipher = crypto.createDecipheriv(
-      "aes-256-cbc",
-      Buffer.from(ENCRYPTION_KEY, "hex"),
-      iv,
-    );
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (e) {
-    return encryptedText;
-  }
-}
-
+import { decryptData } from "@/lib/encryption";
 import { logAuditEvent } from "@/lib/auditLogger";
+import { assertConsent } from "../middleware/consent";
 
 export const studentsRouter = createTRPCRouter({
   getStudentProfile: protectedProcedure
@@ -45,6 +18,8 @@ export const studentsRouter = createTRPCRouter({
       if (!student) {
         throw new Error("Student not found");
       }
+
+      await assertConsent(student.id, "academic_records");
 
       await logAuditEvent(ctx, {
         action: "READ",

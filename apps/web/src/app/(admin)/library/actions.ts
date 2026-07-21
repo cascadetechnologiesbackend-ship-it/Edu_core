@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { db } from "@/db";
 import {
   books,
@@ -14,22 +14,18 @@ import { eq, and, isNull, desc, sql } from "drizzle-orm";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { z } from "zod";
 
-const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"];
+const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"] as const;
 
 async function checkAuth() {
-  const session = await auth();
-  if (!session?.user || !ALLOWED_ROLES.includes(session.user.role)) {
-    throw new Error("Unauthorized");
-  }
-  return session;
+  const ctx = await requireAuth(ALLOWED_ROLES);
+  const school = await requireSchool(ctx);
+  return { ctx, school };
 }
 
-function makeAuditCtx(session: any) {
+function makeAuditCtx(ctx: any) {
   return {
-    session,
-    ip: "127.0.0.1",
-    userAgent: "ServerAction",
-  };
+    user: { id: ctx.userId, role: ctx.role, schoolId: ctx.schoolId }
+  } as any;
 }
 
 // ─── Zod Validators ───────────────────────────────────────────────────────────
@@ -68,8 +64,8 @@ const returnBookSchema = z.object({
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export async function saveBook(rawData: unknown) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const data = saveBookSchema.parse(rawData);
 
@@ -110,7 +106,7 @@ export async function saveBook(rawData: unknown) {
     });
   }
 
-  await logAuditEvent(makeAuditCtx(session) as any, {
+  await logAuditEvent(makeAuditCtx(ctx), {
     schoolId,
     action: "WRITE",
     tableName: "books",
@@ -123,8 +119,8 @@ export async function saveBook(rawData: unknown) {
 }
 
 export async function registerLibraryMember(rawData: unknown) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const data = registerMemberSchema.parse(rawData);
 
@@ -155,7 +151,7 @@ export async function registerLibraryMember(rawData: unknown) {
 
   if (!member) throw new Error("Failed to register member");
 
-  await logAuditEvent(makeAuditCtx(session) as any, {
+  await logAuditEvent(makeAuditCtx(ctx), {
     schoolId,
     action: "WRITE",
     tableName: "library_members",
@@ -171,8 +167,8 @@ export async function registerLibraryMember(rawData: unknown) {
 }
 
 export async function issueBook(rawData: unknown) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const data = issueBookSchema.parse(rawData);
 
@@ -238,7 +234,7 @@ export async function issueBook(rawData: unknown) {
       .where(eq(books.id, copy.bookId));
   });
 
-  await logAuditEvent(makeAuditCtx(session) as any, {
+  await logAuditEvent(makeAuditCtx(ctx), {
     schoolId,
     action: "WRITE",
     tableName: "book_issues",
@@ -254,8 +250,8 @@ export async function issueBook(rawData: unknown) {
 }
 
 export async function returnBook(rawData: unknown) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const data = returnBookSchema.parse(rawData);
 
@@ -318,7 +314,7 @@ export async function returnBook(rawData: unknown) {
     }
   });
 
-  await logAuditEvent(makeAuditCtx(session) as any, {
+  await logAuditEvent(makeAuditCtx(ctx), {
     schoolId,
     action: "WRITE",
     tableName: "book_issues",

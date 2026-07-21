@@ -176,7 +176,21 @@ export const hrProcedure = t.procedure
   .use(timingMiddleware)
   .use(rateLimitMiddleware)
   .use(isAuthed)
-  .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]));
+  .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"]));
+
+/** Librarian procedure */
+export const librarianProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(rateLimitMiddleware)
+  .use(isAuthed)
+  .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"]));
+
+/** Transport Manager procedure */
+export const transportManagerProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(rateLimitMiddleware)
+  .use(isAuthed)
+  .use(withRole(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TRANSPORT_MANAGER"]));
 
 /** Accountant procedure */
 export const accountantProcedure = t.procedure

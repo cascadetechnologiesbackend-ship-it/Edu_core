@@ -3,10 +3,12 @@
 import { db } from "@/db";
 import { gradeRules } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 import { getCBSEDefaultRules } from "@/lib/gradeEngine";
 import { z } from "zod";
+
+const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
 
 type ClassGroupValue = "NURSERY_UKG" | "CLASS_1_5" | "CLASS_6_8" | "CLASS_9_10";
 
@@ -19,28 +21,23 @@ const GradeRuleSchema = z.object({
 });
 
 interface SaveGradeRulesInput {
-  schoolId: string;
+  // NOTE: schoolId is intentionally NOT accepted from the client — comes from session
   classGroup: ClassGroupValue;
   rules: Array<z.infer<typeof GradeRuleSchema>>;
 }
 
 export async function saveGradeRules(input: SaveGradeRulesInput) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
-      session.user.role as string,
-    );
-    if (!allowed)
-      return { success: false, message: "Insufficient permissions" };
+    const ctx = await requireAuth(ALLOWED_ROLES);
+    const schoolId = ctx.schoolId;
+    if (!schoolId) return { success: false, message: "No school context" };
 
     // Delete existing rules for this school + class group
     await db
       .delete(gradeRules)
       .where(
         and(
-          eq(gradeRules.schoolId, input.schoolId),
+          eq(gradeRules.schoolId, schoolId),
           eq(gradeRules.classGroup, input.classGroup),
         ),
       );
@@ -49,7 +46,7 @@ export async function saveGradeRules(input: SaveGradeRulesInput) {
       const validatedRules = input.rules.map((r) => {
         const parsed = GradeRuleSchema.parse(r);
         return {
-          schoolId: input.schoolId,
+          schoolId,
           classGroup: input.classGroup,
           minPercent: parsed.minPercent.toFixed(2),
           maxPercent: parsed.maxPercent.toFixed(2),
@@ -77,15 +74,14 @@ export async function saveGradeRules(input: SaveGradeRulesInput) {
 }
 
 export async function seedCBSERules({
-  schoolId,
   classGroup,
 }: {
-  schoolId: string;
   classGroup: ClassGroupValue;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(ALLOWED_ROLES);
+    const schoolId = ctx.schoolId;
+    if (!schoolId) return { success: false, message: "No school context" };
 
     const cbseRules = getCBSEDefaultRules();
 

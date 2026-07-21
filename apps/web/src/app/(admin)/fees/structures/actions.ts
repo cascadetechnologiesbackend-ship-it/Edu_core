@@ -3,17 +3,20 @@
 import { db } from "@/db";
 import { feeStructures, feeHeads } from "@/db/schema";
 import { revalidatePath } from "next/cache";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 
 export async function createFeeHead(formData: FormData) {
   try {
-    const schoolId = formData.get("schoolId") as string;
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
     const name = formData.get("name") as string;
     const headType = formData.get("headType") as any;
     const isTaxable = formData.get("isTaxable") === "on";
     const gstPercentage = formData.get("gstPercentage") as string;
 
     await db.insert(feeHeads).values({
-      schoolId,
+      schoolId: school.id,
       name,
       headType,
       isTaxable,
@@ -29,7 +32,9 @@ export async function createFeeHead(formData: FormData) {
 
 export async function createFeeStructure(formData: FormData) {
   try {
-    const schoolId = formData.get("schoolId") as string;
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
     const academicYearId = formData.get("academicYearId") as string;
     const classId = formData.get("classId") as string;
     const feeHeadId = formData.get("feeHeadId") as string;
@@ -44,7 +49,7 @@ export async function createFeeStructure(formData: FormData) {
     ) as string;
 
     await db.insert(feeStructures).values({
-      schoolId,
+      schoolId: school.id,
       academicYearId,
       classId,
       feeHeadId,

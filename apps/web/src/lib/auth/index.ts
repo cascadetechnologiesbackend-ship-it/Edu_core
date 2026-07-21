@@ -33,7 +33,29 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           );
         }
 
-        // Fetch user
+        // 1. Check super_admin_users first
+        const { superAdminUsers } = await import("@/db/schema/core");
+        const [superAdmin] = await db
+          .select()
+          .from(superAdminUsers)
+          .where(eq(superAdminUsers.email, email))
+          .limit(1);
+
+        if (superAdmin && superAdmin.isActive) {
+          const isValid = await bcrypt.compare(password, superAdmin.passwordHash);
+          if (isValid) {
+            await clearLockout(email);
+            return {
+              id: superAdmin.id,
+              email: superAdmin.email,
+              name: superAdmin.fullName,
+              schoolId: null, // Super admins have no school ID
+              role: "SUPER_ADMIN",
+            };
+          }
+        }
+
+        // 2. Fetch regular user
         const [user] = await db
           .select()
           .from(users)

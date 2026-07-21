@@ -1,8 +1,10 @@
 import { db } from "@/db";
-import { gradeRules } from "@/db/schema";
+import { gradeRules, schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Metadata } from "next";
 import { GradeRulesManager } from "./GradeRulesManager";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Grading Configuration | SchoolMitra ERP",
@@ -16,7 +18,13 @@ const CLASS_GROUPS = [
 ] as const;
 
 export default async function GradingSettingsPage() {
-  const school = await db.query.schools.findFirst();
+  const session = await auth();
+  if (!session?.user?.schoolId) redirect("/login");
+
+  // Scope query to the session's school — never use findFirst() without WHERE
+  const school = await db.query.schools.findFirst({
+    where: eq(schools.id, session.user.schoolId),
+  });
 
   const allRules = school
     ? await db.query.gradeRules.findMany({

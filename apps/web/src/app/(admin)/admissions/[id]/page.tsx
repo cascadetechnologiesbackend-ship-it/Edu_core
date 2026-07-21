@@ -42,6 +42,7 @@ export default async function AdmissionDetailPage({
       workflowSteps: {
         orderBy: [desc(admissionWorkflowSteps.stepNumber)],
       },
+      documents: true,
     },
   });
 
@@ -101,6 +102,10 @@ export default async function AdmissionDetailPage({
               <span className="col-span-2">{application.category}</span>
             </div>
             <div className="grid grid-cols-3">
+              <span className="text-gray-500">Aadhaar</span>
+              <span className="col-span-2">{decryptData(application.aadhaarNumberEncrypted) || "Not Provided"}</span>
+            </div>
+            <div className="grid grid-cols-3">
               <span className="text-gray-500">RTE Applicant</span>
               <span className="col-span-2">
                 {application.isRteApplicant ? "Yes" : "No"}
@@ -151,6 +156,37 @@ export default async function AdmissionDetailPage({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Documents */}
+      <div className="bg-white dark:bg-slate-900 shadow rounded-lg p-6 border border-gray-200 dark:border-slate-800">
+        <h2 className="text-lg font-semibold border-b pb-2 mb-4">
+          Uploaded Documents
+        </h2>
+        {application.documents && application.documents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {application.documents.map((doc: any) => (
+              <div key={doc.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-slate-800 flex items-start space-x-3">
+                <span className="text-3xl">📄</span>
+                <div className="overflow-hidden">
+                  <p className="font-medium text-sm text-gray-900 dark:text-white mb-1">
+                    {doc.documentType.replace(/_/g, " ")}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate" title={doc.originalFileName}>
+                    {doc.originalFileName}
+                  </p>
+                  {doc.isVerified && (
+                    <span className="inline-block mt-2 text-[10px] uppercase font-bold px-2 py-0.5 bg-green-100 text-green-800 rounded">
+                      Verified
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No documents uploaded.</p>
+        )}
       </div>
 
       {/* Workflow Steps */}

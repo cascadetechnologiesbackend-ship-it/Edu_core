@@ -65,45 +65,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
   };
 
   const handleSimulate = async () => {
-    if (!selectedRoute || sortedStops.length === 0) return;
-    setIsSimulating(true);
-    setStatusMsg("Starting Route Simulation...");
-
-    const vehicleId =
-      selectedRoute.vehicleId || "00000000-0000-0000-0000-000000000000";
-
-    for (let i = 0; i < sortedStops.length; i++) {
-      const stop = sortedStops[i];
-      if (!stop) continue;
-
-      setCurrentStopIndex(i);
-      const lat = stop.gpsLatitude || "18.6";
-      const lng = stop.gpsLongitude || "73.77";
-
-      setCurrentLat(lat);
-      setCurrentLng(lng);
-      setCurrentSpeed((30 + Math.floor(Math.random() * 20)).toString());
-      setStatusMsg(`Bus reached Stop ${stop.stopOrder}: ${stop.stopName}`);
-
-      // Call database server action to insert GPS ping
-      try {
-        await submitGpsPing({
-          vehicleId,
-          latitude: lat,
-          longitude: lng,
-          speed: (30 + Math.floor(Math.random() * 20)).toString(),
-        });
-      } catch (e) {
-        console.error("Failed to insert mock GPS ping", e);
-      }
-
-      // Pause for visual step in the loop
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
-
-    setIsSimulating(false);
-    setStatusMsg("Trip simulation completed! Bus reached destination.");
-    setCurrentSpeed("0");
+    alert("Simulation removed. GPS will connect to actual device webhooks in production.");
   };
 
   return (
@@ -128,22 +90,6 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
               </option>
             ))}
           </select>
-
-          <button
-            onClick={handleSimulate}
-            disabled={isSimulating || sortedStops.length === 0}
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60"
-          >
-            {isSimulating ? (
-              <>
-                <Square className="w-4 h-4" /> Simulating...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" /> Simulate live trip
-              </>
-            )}
-          </button>
         </div>
       </div>
 

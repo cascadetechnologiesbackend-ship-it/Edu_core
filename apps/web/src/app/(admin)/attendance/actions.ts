@@ -9,13 +9,15 @@ import {
   academicYears,
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { decryptData } from "@/lib/encryption";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logAuditEvent } from "@/lib/auditLogger";
+import { decryptData } from "@/lib/encryption";
+import { assertConsent } from "@/server/middleware/consent";
 import { headers } from "next/headers";
+import type { Session } from "next-auth";
 
 // Helper to construct a mock context for logAuditEvent
-async function getAuditContext(session: any) {
+async function getAuditContext(session: Session) {
   const reqHeaders = headers();
   const ip =
     reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -23,6 +25,7 @@ async function getAuditContext(session: any) {
   return {
     db,
     session,
+    req: null as any,
     ip,
     userAgent,
   };
@@ -30,15 +33,18 @@ async function getAuditContext(session: any) {
 
 // 1. Fetch available sections for the logged-in user
 export async function getAssignedSections() {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"] as const);
+  const school = await requireSchool(ctx);
 
-  const userId = session.user.id;
-  const userRole = session.user.role;
+  const userId = ctx.userId;
+  const userRole = ctx.role;
 
   if (["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(userRole)) {
     return await db.query.sections.findMany({
-      where: eq(sections.isActive, true),
+      where: and(
+        eq(sections.isActive, true),
+        eq(sections.schoolId, school.id)
+      ),
       with: {
         class: true,
       },
@@ -49,6 +55,7 @@ export async function getAssignedSections() {
   return await db.query.sections.findMany({
     where: and(
       eq(sections.isActive, true),
+      eq(sections.schoolId, school.id),
       eq(sections.classTeacherId, userId),
     ),
     with: {
@@ -59,8 +66,8 @@ export async function getAssignedSections() {
 
 // 2. Fetch students and their attendance status on a specific date
 export async function getSectionStudents(sectionId: string, dateStr: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"] as const);
+  const school = await requireSchool(ctx);
 
   const parsedDate = new Date(dateStr);
   const startOfDay = new Date(parsedDate.setHours(0, 0, 0, 0));
@@ -68,7 +75,10 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
 
   // Resolve current active academic year
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, school.id)
+    ),
   });
 
   if (!activeYear) {
@@ -139,16 +149,12 @@ export async function markSectionAttendance(
     remarks?: string;
   }>,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"] as const);
+  const school = await requireSchool(ctx);
 
-  const userId = session.user.id;
-  const userRole = session.user.role;
-  const schoolId = session.user.schoolId;
-
-  if (!schoolId) {
-    throw new Error("User session does not specify schoolId.");
-  }
+  const userId = ctx.userId;
+  const userRole = ctx.role;
+  const schoolId = school.id;
 
   // Strict check: Teachers can only mark attendance of their assigned sections
   if (userRole === "TEACHER") {
@@ -168,7 +174,10 @@ export async function markSectionAttendance(
 
   // Resolve current active academic year
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, school.id)
+    ),
   });
 
   if (!activeYear) {
@@ -179,11 +188,14 @@ export async function markSectionAttendance(
   const startOfDay = new Date(parsedDate.setHours(0, 0, 0, 0));
   const endOfDay = new Date(parsedDate.setHours(23, 59, 59, 999));
 
-  const ctx = await getAuditContext(session);
+  const ctxAudit = await getAuditContext({ user: { id: ctx.userId, role: ctx.role, schoolId: school.id } } as any);
 
   // Execute bulk insert/update in a transaction
   await db.transaction(async (tx) => {
     for (const record of records) {
+      // DPDP Consent Check
+      await assertConsent(record.studentId, "attendance");
+
       // Look for existing attendance record on this date
       const [existingRecord] = await tx
         .select()
@@ -231,7 +243,7 @@ export async function markSectionAttendance(
       }
 
       // DPDP compliance: write to audit log
-      await logAuditEvent(ctx as any, {
+      await logAuditEvent(ctxAudit, {
         action: existingRecord ? "WRITE" : "WRITE",
         tableName: "student_attendance",
         recordId: markedRecordId,

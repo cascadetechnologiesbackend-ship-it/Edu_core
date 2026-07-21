@@ -27,24 +27,7 @@ export async function POST(req: Request) {
       !process.env.RAZORPAY_KEY_ID ||
       process.env.RAZORPAY_KEY_ID === "change-me"
     ) {
-      // Mock flow if keys are not configured
-      const mockOrderId = `order_mock_${Date.now()}`;
-
-      await db.insert(paymentGatewayLogs).values({
-        schoolId: invoice.schoolId,
-        feeInvoiceId: invoice.id,
-        gateway: "RAZORPAY",
-        gatewayOrderId: mockOrderId,
-        amount: amount.toFixed(2),
-        currency: "INR",
-        status: "CREATED",
-      });
-
-      return NextResponse.json({
-        id: mockOrderId,
-        amount: amount * 100,
-        currency: "INR",
-      });
+      return NextResponse.json({ error: "Payment Gateway not configured" }, { status: 500 });
     }
 
     const razorpay = new Razorpay({

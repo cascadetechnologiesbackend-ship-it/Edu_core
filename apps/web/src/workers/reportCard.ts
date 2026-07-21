@@ -21,6 +21,7 @@ import {
   type GradeRule,
 } from "@/lib/gradeEngine";
 import { gradeToClassGroup } from "@/lib/pdf/ReportCardPDF";
+import { assertConsent } from "@/server/middleware/consent";
 
 export interface ReportCardJobPayload {
   studentId: string;
@@ -59,6 +60,9 @@ async function processReportCardJob(
     .update(reportCardJobs)
     .set({ status: "PROCESSING", startedAt: new Date(), updatedAt: new Date() })
     .where(eq(reportCardJobs.id, jobId));
+
+  // DPDP Consent Check
+  await assertConsent(studentId, "academic_records");
 
   // Fetch the student
   const student = await db.query.students.findFirst({

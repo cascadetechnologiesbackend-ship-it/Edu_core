@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { db } from "@/db";
 import {
   vehicles,
@@ -20,23 +20,19 @@ const ALLOWED_ROLES = [
   "SCHOOL_ADMIN",
   "PRINCIPAL",
   "TRANSPORT_MANAGER",
-];
+] as const;
 
 async function checkAuth() {
-  const session = await auth();
-  if (!session?.user || !ALLOWED_ROLES.includes(session.user.role)) {
-    throw new Error("Unauthorized");
-  }
-  return session;
+  const ctx = await requireAuth(ALLOWED_ROLES);
+  const school = await requireSchool(ctx);
+  return { ctx, school };
 }
 
 // Helper to construct a mock context for logAuditEvent
-function makeAuditCtx(session: any) {
+function makeAuditCtx(ctx: any) {
   return {
-    session,
-    ip: "127.0.0.1",
-    userAgent: "SchoolMitra ERP Client",
-  };
+    user: { id: ctx.userId, role: ctx.role, schoolId: ctx.schoolId }
+  } as any;
 }
 
 export async function saveVehicle(data: {
@@ -53,8 +49,8 @@ export async function saveVehicle(data: {
   conductorName?: string;
   conductorMobile?: string;
 }) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const values = {
     schoolId,
@@ -91,7 +87,7 @@ export async function saveVehicle(data: {
   }
 
   // Audit Log Write
-  await logAuditEvent(makeAuditCtx(session) as any, {
+  await logAuditEvent(makeAuditCtx(ctx), {
     action: data.id ? "WRITE" : "WRITE",
     tableName: "vehicles",
     recordId,
@@ -104,8 +100,8 @@ export async function saveVehicle(data: {
 }
 
 export async function getVehicles() {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const list = await db.query.vehicles.findMany({
     where: and(eq(vehicles.schoolId, schoolId), isNull(vehicles.deletedAt)),
@@ -128,7 +124,7 @@ export async function getVehicles() {
 
   // Audit Log Read (PII accessed)
   if (decryptedList.length > 0) {
-    await logAuditEvent(makeAuditCtx(session) as any, {
+    await logAuditEvent(makeAuditCtx(ctx), {
       action: "READ",
       tableName: "vehicles",
       recordId: decryptedList[0]?.id || "BULK",
@@ -147,8 +143,8 @@ export async function saveRoute(data: {
   routeName: string;
   routeCode?: string;
 }) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const values = {
     schoolId,
@@ -184,8 +180,8 @@ export async function saveRouteStop(data: {
   gpsLongitude?: string;
   estimatedArrivalTime?: string;
 }) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   const values = {
     schoolId,
@@ -224,8 +220,8 @@ export async function saveBusPass(data: {
   validFrom: string;
   validTo: string;
 }) {
-  const session = await checkAuth();
-  const schoolId = session.user.schoolId!;
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
 
   // ─── DPDP CONSENT ENFORCEMENT ───
   // Section 9 / Standing Instructions: Check Consent before student PII assignment
@@ -279,7 +275,7 @@ export async function saveBusPass(data: {
   }
 
   // Audit Log Write (Student Bus Pass allocation)
-  await logAuditEvent(makeAuditCtx(session) as any, {
+  await logAuditEvent(makeAuditCtx(ctx), {
     action: data.id ? "WRITE" : "WRITE",
     tableName: "student_bus_passes",
     recordId,
@@ -298,7 +294,7 @@ export async function submitGpsPing(data: {
   speed: string;
 }) {
   // Webhook endpoint equivalent for simulation pings
-  const session = await checkAuth();
+  await checkAuth();
 
   const [inserted] = await db
     .insert(gpsPings)

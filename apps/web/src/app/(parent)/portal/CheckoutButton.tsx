@@ -30,38 +30,7 @@ export function CheckoutButton({
         return;
       }
 
-      if (order.id && order.id.startsWith("order_mock_")) {
-        // Mock flow
-        alert(
-          "Mock payment flow detected! Keys are not configured. Marking as paid...",
-        );
-
-        // Directly trigger webhook manually for mock testing (in reality, webhook comes from Razorpay backend)
-        await fetch("/api/webhooks/razorpay", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-razorpay-signature": "mock",
-          },
-          body: JSON.stringify({
-            event: "payment.captured",
-            payload: {
-              payment: {
-                entity: {
-                  id: `pay_mock_${Date.now()}`,
-                  order_id: order.id,
-                  amount: order.amount,
-                },
-              },
-            },
-          }),
-        });
-
-        window.location.reload();
-        return;
-      }
-
-      // Initialize Razorpay Checkout
+      // Open Razorpay Checkout modal
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use NEXT_PUBLIC key
         amount: order.amount,

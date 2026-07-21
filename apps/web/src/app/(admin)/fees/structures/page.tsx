@@ -1,13 +1,23 @@
 import { db } from "@/db";
-import { feeHeads, feeStructures, classes, academicYears } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { feeHeads, feeStructures, classes, academicYears, schools } from "@/db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { createFeeHead, createFeeStructure } from "./actions";
 import { getCached, setCached } from "@/lib/cache";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function FeeStructuresPage() {
-  const activeSchool = await db.query.schools.findFirst();
+  const session = await auth();
+  if (!session?.user?.schoolId) redirect("/login");
+
+  const activeSchool = await db.query.schools.findFirst({
+    where: eq(schools.id, session.user.schoolId),
+  });
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, session.user.schoolId),
+    ),
   });
 
   if (!activeSchool || !activeYear) return <div>No active school/year.</div>;

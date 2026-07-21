@@ -2,12 +2,16 @@
 
 import { db } from "@/db";
 import { feeInvoices, feePayments } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import crypto from "crypto";
 
 export async function processManualPayment(formData: FormData) {
   try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
     const invoiceId = formData.get("invoiceId") as string;
     const amountPaidStr = formData.get("amountPaid") as string;
     const paymentMethod = formData.get("paymentMethod") as any;
@@ -21,7 +25,10 @@ export async function processManualPayment(formData: FormData) {
     }
 
     const invoice = await db.query.feeInvoices.findFirst({
-      where: eq(feeInvoices.id, invoiceId),
+      where: and(
+        eq(feeInvoices.id, invoiceId),
+        eq(feeInvoices.schoolId, school.id)
+      ),
     });
 
     if (!invoice) return { success: false, message: "Invoice not found" };
@@ -53,7 +60,7 @@ export async function processManualPayment(formData: FormData) {
         paymentDate: new Date(),
         remarks: remarks || null,
         // Mock collector ID for MVP
-        collectedById: invoice.schoolId,
+        collectedById: ctx.userId,
       });
 
       // Update invoice
