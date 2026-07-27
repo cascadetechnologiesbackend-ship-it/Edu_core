@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio"
@@ -42,6 +42,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@react-pdf/renderer": "^3.4.0",
     "@schoolmitra/dpdp": "workspace:*",
+    "@schoolmitra/domain-events": "workspace:*",
     "@schoolmitra/validators": "workspace:*",
     "@tanstack/react-query": "^5.28.0",
     "@tanstack/react-table": "^8.15.3",

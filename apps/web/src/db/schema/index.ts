@@ -16,3 +16,5 @@ export * from "./transport";
 export * from "./communication";
 export * from "./inventory";
 export * from "./hostel";
+export * from "./people";
+
