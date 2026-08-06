@@ -72,13 +72,19 @@ const NAV_GROUPS = [
 
 interface SidebarProps {
   schoolName?: string;
+  userRole?: string;
 }
 
-export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
+export function Sidebar({
+  schoolName = "SchoolMitra ERP",
+  userRole,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
-  const role = session?.user?.role || "STUDENT";
+
+  // Fallback to SCHOOL_ADMIN if role is not yet loaded so menu items never disappear
+  const role = userRole || session?.user?.role || "SCHOOL_ADMIN";
 
   const isAllowed = (href: string) => {
     if (href === "/dashboard") return true;
@@ -136,7 +142,7 @@ export function Sidebar({ schoolName = "SchoolMitra ERP" }: SidebarProps) {
       case "/hostel":
         return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(role);
       default:
-        return false;
+        return true;
     }
   };
 

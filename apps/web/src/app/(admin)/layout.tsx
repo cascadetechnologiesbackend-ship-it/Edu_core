@@ -39,7 +39,8 @@ export default async function AdminLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar userRole={session.user.role} />
+
 
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
