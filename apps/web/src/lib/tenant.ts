@@ -3,12 +3,13 @@ import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 /**
  * Resolves the active tenant school from the request headers' subdomain.
- * Triggers a 404 Not Found if the subdomain is invalid.
+ * Wrapped in React cache() to deduplicate queries within a single request.
  */
-export async function getActiveTenant() {
+export const getActiveTenant = cache(async () => {
   const host = headers().get("host") || "";
   const parts = host.split(".");
   let tenant = "";
@@ -35,4 +36,4 @@ export async function getActiveTenant() {
   }
 
   return school;
-}
+});
