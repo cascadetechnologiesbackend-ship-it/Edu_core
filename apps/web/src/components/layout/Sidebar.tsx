@@ -199,7 +199,9 @@ export function Sidebar({
                   <li key={item.href}>
                     <Link
                       href={item.href as any}
+                      prefetch={true}
                       className={cn(
+
                         "sidebar-nav-item",
                         isActive && "active",
                         collapsed && "justify-center px-2",
