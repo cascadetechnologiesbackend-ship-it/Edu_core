@@ -86,10 +86,15 @@ export default function LoginForm() {
 
           {/* Form */}
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            method="POST"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit(onSubmit)(e);
+            }}
             className="space-y-5"
             noValidate
           >
+
             {/* Error banner */}
             {serverError && (
               <div

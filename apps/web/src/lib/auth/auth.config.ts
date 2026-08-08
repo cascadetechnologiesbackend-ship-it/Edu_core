@@ -16,15 +16,21 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const isAuthRoute =
-        nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/forgot-password");
-      const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
+      const pathname = nextUrl.pathname;
 
-      if (isApiAuthRoute) {
+      // Always allow Next.js internal assets, static files, and auth API endpoints
+      if (
+        pathname.startsWith("/_next") ||
+        pathname.startsWith("/api/auth") ||
+        pathname.includes(".")
+      ) {
         return true;
       }
+
+      const isLoggedIn = !!auth?.user;
+      const isAuthRoute =
+        pathname.startsWith("/login") ||
+        pathname.startsWith("/forgot-password");
 
       if (isAuthRoute) {
         if (isLoggedIn) {
