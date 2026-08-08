@@ -5,7 +5,9 @@ import {
   academicYears,
   roles,
   users,
+  superAdminUsers,
   userRoles,
+
   students,
   studentFamilyMembers,
   consentPurposes,
@@ -366,7 +368,19 @@ async function main() {
   // 6. Create Users
   console.log("👤 Creating user accounts...");
   const passwordHash = await bcrypt.hash("schoolmitra_dev", 12);
+
+  // 6a. Create Super Admin account
+  await db.delete(superAdminUsers);
+  await db.insert(superAdminUsers).values({
+    email: "superadmin@schoolos.com",
+    passwordHash,
+    fullName: "System Super Admin",
+    isActive: true,
+  });
+  console.log("⚡ Super Admin created: superadmin@schoolos.com / schoolmitra_dev");
+
   const teacherIds: string[] = [];
+
 
   for (const roleName of ROLES.map((r) => r.name)) {
     const roleId = roleMap[roleName];

@@ -45,17 +45,10 @@ export default function LoginForm() {
       if (result?.error) {
         setServerError("Invalid email or password. Please try again.");
       } else {
-        // Fetch session to determine the user's role for proper portal/dashboard routing
-        const session = await getSession();
-        const role = session?.user?.role;
-
-        if (role === "PARENT" || role === "STUDENT") {
-          router.push("/portal");
-        } else {
-          router.push("/dashboard");
-        }
-        router.refresh();
+        // Full page navigation to send session cookie to server layout for reliable role-based redirection
+        window.location.href = "/dashboard";
       }
+
     } catch {
       setServerError("Something went wrong. Please try again.");
     } finally {
