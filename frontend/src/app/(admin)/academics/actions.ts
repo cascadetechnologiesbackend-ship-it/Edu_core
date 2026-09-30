@@ -641,6 +641,7 @@ import {
   saveTimetablePeriod as saveTimetablePeriodDomain,
   deleteTimetablePeriod as deleteTimetablePeriodDomain,
   createSubstitution as createSubstitutionDomain,
+  updateSubstitutionStatus as updateSubstitutionStatusDomain,
   saveTimetableSubstitution as saveTimetableSubstitutionDomain,
   getSubstitutionsForDate as getSubstitutionsForDateDomain,
   getPendingSubstitutions as getPendingSubstitutionsDomain,
@@ -727,6 +728,9 @@ export async function deleteTimetablePeriod(...args: Parameters<typeof deleteTim
 }
 export async function createSubstitution(...args: Parameters<typeof createSubstitutionDomain>) {
   return createSubstitutionDomain(...args);
+}
+export async function updateSubstitutionStatus(...args: Parameters<typeof updateSubstitutionStatusDomain>) {
+  return updateSubstitutionStatusDomain(...args);
 }
 export async function saveTimetableSubstitution(...args: Parameters<typeof saveTimetableSubstitutionDomain>) {
   return saveTimetableSubstitutionDomain(...args);

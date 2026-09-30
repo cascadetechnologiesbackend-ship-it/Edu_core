@@ -9,8 +9,9 @@ import {
   classSubjects,
   sectionSubjectTeachers,
   academicYears,
+  academicCalendarEvents,
 } from "@/db/schema";
-import { eq, and, ne, asc, desc, isNull } from "drizzle-orm";
+import { eq, and, ne, asc, desc, isNull, lte, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { checkAuth, getActiveAcademicYear } from "./auth-helper";
 
@@ -145,7 +146,25 @@ export async function saveTimetablePeriod(data: {
 
   const subjectIdVal = data.subjectId || null;
   const teacherIdVal = data.teacherId || null;
-  const roomNumberVal = data.roomNumber || null;
+  const roomNumberVal = data.roomNumber ? data.roomNumber.trim() : null;
+
+  // Resolve existing slot if id is not passed to ensure seamless upsert and accurate exclusion
+  let effectiveId = data.id || null;
+  if (!effectiveId) {
+    const existingSlot = await db.query.timetablePeriods.findFirst({
+      where: and(
+        eq(timetablePeriods.schoolId, session.user.schoolId),
+        eq(timetablePeriods.academicYearId, activeYear.id),
+        eq(timetablePeriods.sectionId, data.sectionId),
+        eq(timetablePeriods.dayOfWeek, data.dayOfWeek),
+        eq(timetablePeriods.periodNumber, data.periodNumber),
+        eq(timetablePeriods.isActive, true),
+      ),
+    });
+    if (existingSlot) {
+      effectiveId = existingSlot.id;
+    }
+  }
 
   // ── Step 1: Teacher double-booking check ──────────────────────────────────
   if (teacherIdVal) {
@@ -157,7 +176,7 @@ export async function saveTimetablePeriod(data: {
         eq(timetablePeriods.periodNumber, data.periodNumber),
         eq(timetablePeriods.teacherId, teacherIdVal),
         eq(timetablePeriods.isActive, true),
-        data.id ? ne(timetablePeriods.id, data.id) : undefined,
+        effectiveId ? ne(timetablePeriods.id, effectiveId) : undefined,
       ),
     });
     if (teacherConflict) {
@@ -177,7 +196,7 @@ export async function saveTimetablePeriod(data: {
         eq(timetablePeriods.periodNumber, data.periodNumber),
         eq(timetablePeriods.roomNumber, roomNumberVal),
         eq(timetablePeriods.isActive, true),
-        data.id ? ne(timetablePeriods.id, data.id) : undefined,
+        effectiveId ? ne(timetablePeriods.id, effectiveId) : undefined,
       ),
     });
     if (roomConflict) {
@@ -241,7 +260,7 @@ export async function saveTimetablePeriod(data: {
   }
 
   // ── Step 5: Persist timetable entry ──────────────────────────────────────
-  if (data.id) {
+  if (effectiveId) {
     await db
       .update(timetablePeriods)
       .set({
@@ -251,11 +270,12 @@ export async function saveTimetablePeriod(data: {
         subjectId: subjectIdVal,
         teacherId: teacherIdVal,
         roomNumber: roomNumberVal,
+        isActive: true,
         updatedAt: new Date(),
       })
       .where(
         and(
-          eq(timetablePeriods.id, data.id),
+          eq(timetablePeriods.id, effectiveId),
           eq(timetablePeriods.schoolId, session.user.schoolId),
         ),
       );
@@ -335,9 +355,32 @@ export async function createSubstitution(data: {
   });
   if (!period) throw new Error("Invalid timetable period");
 
-  // If substitute teacher provided, check double-booking on that period
+  // Conflict Check 1: Disallow self-substitution
+  if (data.substituteTeacherId && data.substituteTeacherId === data.originalTeacherId) {
+    throw new Error("Conflict: Cannot assign the original teacher as their own substitute.");
+  }
+
+  // Conflict Check 2: Check academic calendar for holiday or non-working day
+  const calendarConflict = await db.query.academicCalendarEvents.findFirst({
+    where: and(
+      eq(academicCalendarEvents.schoolId, session.user.schoolId),
+      eq(academicCalendarEvents.academicYearId, activeYear.id),
+      eq(academicCalendarEvents.isActive, true),
+      eq(academicCalendarEvents.isWorkingDay, false),
+      lte(academicCalendarEvents.startDate, data.date),
+      gte(academicCalendarEvents.endDate, data.date),
+    ),
+  });
+  if (calendarConflict) {
+    throw new Error(
+      `Conflict: Cannot schedule substitution on a non-working day or holiday (${calendarConflict.title}).`,
+    );
+  }
+
+  // If substitute teacher provided, check double-booking
   if (data.substituteTeacherId) {
-    const subConflict = await db.query.timetablePeriods.findFirst({
+    // Conflict Check 3: Check regular timetable double-booking for the substitute teacher
+    const subTimetableConflict = await db.query.timetablePeriods.findFirst({
       where: and(
         eq(timetablePeriods.schoolId, session.user.schoolId),
         eq(timetablePeriods.academicYearId, activeYear.id),
@@ -347,9 +390,31 @@ export async function createSubstitution(data: {
         eq(timetablePeriods.isActive, true),
       ),
     });
-    if (subConflict) {
+    if (subTimetableConflict) {
       throw new Error(
         `Conflict: Substitute teacher is already booked for Period ${period.periodNumber} on ${period.dayOfWeek}.`,
+      );
+    }
+
+    // Conflict Check 4: Check concurrent confirmed substitutions
+    const subConcurrentConflict = await db.query.timetableSubstitutions.findFirst({
+      where: and(
+        eq(timetableSubstitutions.schoolId, session.user.schoolId),
+        eq(timetableSubstitutions.academicYearId, activeYear.id),
+        eq(timetableSubstitutions.date, data.date),
+        eq(timetableSubstitutions.substituteTeacherId, data.substituteTeacherId),
+        eq(timetableSubstitutions.status, "CONFIRMED"),
+      ),
+      with: {
+        timetablePeriod: true,
+      },
+    });
+    if (
+      subConcurrentConflict &&
+      subConcurrentConflict.timetablePeriod?.periodNumber === period.periodNumber
+    ) {
+      throw new Error(
+        `Conflict: Substitute teacher is already assigned to another confirmed substitution for Period ${period.periodNumber} on ${data.date}.`,
       );
     }
   }
@@ -379,12 +444,97 @@ export async function updateSubstitutionStatus(
   substituteTeacherId?: string,
 ) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"]);
+  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+
+  const sub = await db.query.timetableSubstitutions.findFirst({
+    where: and(
+      eq(timetableSubstitutions.id, id),
+      eq(timetableSubstitutions.schoolId, session.user.schoolId),
+    ),
+    with: {
+      timetablePeriod: true,
+    },
+  });
+  if (!sub) {
+    throw new Error("Substitution record not found");
+  }
+
+  const effectiveSubTeacherId =
+    substituteTeacherId !== undefined ? substituteTeacherId : sub.substituteTeacherId;
+
+  if (status === "CONFIRMED") {
+    if (!effectiveSubTeacherId) {
+      throw new Error("Cannot confirm substitution without assigning a substitute teacher.");
+    }
+    if (effectiveSubTeacherId === sub.originalTeacherId) {
+      throw new Error("Conflict: Cannot assign the original teacher as their own substitute.");
+    }
+
+    // Check calendar holiday / non-working day
+    const calendarConflict = await db.query.academicCalendarEvents.findFirst({
+      where: and(
+        eq(academicCalendarEvents.schoolId, session.user.schoolId),
+        eq(academicCalendarEvents.academicYearId, activeYear.id),
+        eq(academicCalendarEvents.isActive, true),
+        eq(academicCalendarEvents.isWorkingDay, false),
+        lte(academicCalendarEvents.startDate, sub.date),
+        gte(academicCalendarEvents.endDate, sub.date),
+      ),
+    });
+    if (calendarConflict) {
+      throw new Error(
+        `Conflict: Cannot schedule substitution on a non-working day or holiday (${calendarConflict.title}).`,
+      );
+    }
+
+    if (sub.timetablePeriod) {
+      // Conflict Check: Substitute teacher double-booking in regular timetable
+      const subTimetableConflict = await db.query.timetablePeriods.findFirst({
+        where: and(
+          eq(timetablePeriods.schoolId, session.user.schoolId),
+          eq(timetablePeriods.academicYearId, activeYear.id),
+          eq(timetablePeriods.dayOfWeek, sub.timetablePeriod.dayOfWeek),
+          eq(timetablePeriods.periodNumber, sub.timetablePeriod.periodNumber),
+          eq(timetablePeriods.teacherId, effectiveSubTeacherId),
+          eq(timetablePeriods.isActive, true),
+        ),
+      });
+      if (subTimetableConflict) {
+        throw new Error(
+          `Conflict: Substitute teacher is already booked for Period ${sub.timetablePeriod.periodNumber} on ${sub.timetablePeriod.dayOfWeek}.`,
+        );
+      }
+
+      // Conflict Check: Concurrent confirmed substitutions
+      const concurrentSub = await db.query.timetableSubstitutions.findFirst({
+        where: and(
+          eq(timetableSubstitutions.schoolId, session.user.schoolId),
+          eq(timetableSubstitutions.academicYearId, activeYear.id),
+          eq(timetableSubstitutions.date, sub.date),
+          eq(timetableSubstitutions.substituteTeacherId, effectiveSubTeacherId),
+          eq(timetableSubstitutions.status, "CONFIRMED"),
+          ne(timetableSubstitutions.id, id),
+        ),
+        with: {
+          timetablePeriod: true,
+        },
+      });
+      if (
+        concurrentSub &&
+        concurrentSub.timetablePeriod?.periodNumber === sub.timetablePeriod.periodNumber
+      ) {
+        throw new Error(
+          `Conflict: Substitute teacher is already assigned to another confirmed substitution for Period ${sub.timetablePeriod.periodNumber} on ${sub.date}.`,
+        );
+      }
+    }
+  }
 
   await db
     .update(timetableSubstitutions)
     .set({
       status,
-      ...(substituteTeacherId ? { substituteTeacherId } : {}),
+      ...(effectiveSubTeacherId !== undefined ? { substituteTeacherId: effectiveSubTeacherId || null } : {}),
       updatedAt: new Date(),
     })
     .where(
