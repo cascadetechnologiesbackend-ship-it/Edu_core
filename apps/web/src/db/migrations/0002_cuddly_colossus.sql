@@ -1,1 +1,0 @@
-ALTER TABLE "admission_applications" ADD COLUMN "aadhaar_number_encrypted" text;
