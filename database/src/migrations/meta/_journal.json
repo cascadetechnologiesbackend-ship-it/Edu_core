@@ -1,0 +1,41 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1783958891444,
+      "tag": "0000_dark_garia",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1784384755521,
+      "tag": "0001_lame_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1784388067997,
+      "tag": "0002_cuddly_colossus",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1785165332598,
+      "tag": "0003_watery_vapor",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1790785323538,
+      "tag": "0004_handy_major_mapleleaf",
+      "breakpoints": true
+    }
+  ]
+}

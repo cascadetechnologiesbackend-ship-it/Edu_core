@@ -18,7 +18,18 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@frontend/*": ["./frontend/src/*"],
+      "@backend/*": ["./backend/src/*"],
+      "@database": ["./database/src/index.ts"],
+      "@database/*": ["./database/src/*"],
+      "@schoolmitra/frontend/*": ["./frontend/src/*"],
+      "@schoolmitra/backend": ["./backend/src/server/root.ts"],
+      "@schoolmitra/backend/*": ["./backend/src/*"],
+      "@schoolmitra/database": ["./database/src/index.ts"],
+      "@schoolmitra/database/*": ["./database/src/*"]
+    }
   },
   "exclude": ["node_modules"]
 }

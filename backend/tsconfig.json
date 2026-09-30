@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "preserve",
+    "paths": {
+      "@/db": ["../database/src/index.ts"],
+      "@/db/*": ["../database/src/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/server/*": ["./src/server/*"],
+      "@/workers/*": ["./src/workers/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

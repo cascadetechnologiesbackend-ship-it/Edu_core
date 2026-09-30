@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --muted: 214 32% 95%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 32% 95%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 40%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 10%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 10%;
+    --popover-foreground: 213 31% 91%;
+    --muted: 223 47% 15%;
+    --muted-foreground: 215 16% 57%;
+    --accent: 223 47% 15%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 213 31% 91%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 221 83% 53%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Focus visible */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-primary/20 text-primary-900;
+  }
+}
+
+@layer components {
+  /* ── Sidebar ──────────────────────────────────────────────────────────────── */
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-text
+           text-sm font-medium transition-all duration-200 cursor-pointer
+           hover:bg-sidebar-hover hover:text-sidebar-text-active;
+  }
+
+  .sidebar-nav-item.active {
+    @apply bg-sidebar-active text-sidebar-text-active shadow-sidebar-item;
+  }
+
+  /* ── Cards ────────────────────────────────────────────────────────────────── */
+  .metric-card {
+    @apply bg-card rounded-xl border shadow-sm p-6
+           transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-xl;
+  }
+
+  /* ── Tables ───────────────────────────────────────────────────────────────── */
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply text-left py-3 px-4 font-semibold text-muted-foreground
+           bg-muted/50 border-b border-border;
+  }
+
+  .data-table td {
+    @apply py-3 px-4 border-b border-border;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-accent/50;
+  }
+
+  /* ── Skeleton Loaders ─────────────────────────────────────────────────────── */
+  .skeleton {
+    @apply rounded bg-shimmer-skeleton bg-[length:200%_100%]
+           animate-shimmer;
+  }
+
+  /* ── Status Badges ────────────────────────────────────────────────────────── */
+  .badge-success {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+           bg-secondary/10 text-secondary;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+           bg-warning/10 text-warning;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+           bg-danger/10 text-danger;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+           bg-primary/10 text-primary;
+  }
+
+  /* ── Print Styles ─────────────────────────────────────────────────────────── */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .print-only {
+      display: block !important;
+    }
+
+    body {
+      @apply text-black bg-white;
+      font-size: 12pt;
+    }
+  }
+
+  /* ── Accessibility ────────────────────────────────────────────────────────── */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  /* High contrast mode */
+  @media (forced-colors: active) {
+    .metric-card {
+      border: 2px solid ButtonText;
+    }
+  }
+}
+
+@layer utilities {
+  /* Truncate with tooltip */
+  .truncate-tooltip {
+    @apply truncate cursor-default;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+}

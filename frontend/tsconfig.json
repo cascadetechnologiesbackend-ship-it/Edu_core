@@ -1,0 +1,40 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/db": ["../database/src/index.ts"],
+      "@/db/*": ["../database/src/*"],
+      "@/lib/*": ["../backend/src/lib/*"],
+      "@/server/*": ["../backend/src/server/*"],
+      "@/workers/*": ["../backend/src/workers/*"],
+      "@schoolmitra/database": ["../database/src/index.ts"],
+      "@schoolmitra/database/*": ["../database/src/*"],
+      "@schoolmitra/backend": ["../backend/src/server/root.ts"],
+      "@schoolmitra/backend/*": ["../backend/src/*"]
+    },
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts",
+    "../database/src/**/*.ts",
+    "../backend/src/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

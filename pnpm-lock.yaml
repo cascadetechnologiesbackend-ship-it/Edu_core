@@ -33,7 +33,153 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
-  apps/web:
+  backend:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1085.0
+        version: 3.1085.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: ^3.1085.0
+        version: 3.1085.0
+      '@react-pdf/renderer':
+        specifier: ^3.4.0
+        version: 3.4.5(react@18.3.1)
+      '@schoolmitra/database':
+        specifier: workspace:*
+        version: link:../database
+      '@schoolmitra/domain-events':
+        specifier: workspace:*
+        version: link:../packages/domain-events
+      '@schoolmitra/dpdp':
+        specifier: workspace:*
+        version: link:../packages/dpdp
+      '@schoolmitra/validators':
+        specifier: workspace:*
+        version: link:../packages/validators
+      '@trpc/server':
+        specifier: ^11.0.0
+        version: 11.18.0(typescript@5.9.3)
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
+      bullmq:
+        specifier: ^5.4.2
+        version: 5.80.2
+      clsx:
+        specifier: ^2.1.0
+        version: 2.1.1
+      date-fns:
+        specifier: ^3.6.0
+        version: 3.6.0
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      drizzle-orm:
+        specifier: ^0.30.10
+        version: 0.30.10(@types/pg@8.20.0)(@types/react@18.3.31)(pg@8.22.0)(react@18.3.1)
+      ioredis:
+        specifier: ^5.3.2
+        version: 5.11.1
+      jose:
+        specifier: ^5.2.3
+        version: 5.10.0
+      next:
+        specifier: 14.2.3
+        version: 14.2.3(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      next-auth:
+        specifier: ^5.0.0-beta.16
+        version: 5.0.0-beta.31(next@14.2.3(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(nodemailer@6.10.1)(react@18.3.1)
+      nodemailer:
+        specifier: ^6.9.13
+        version: 6.10.1
+      otplib:
+        specifier: ^12.0.1
+        version: 12.0.1
+      pg:
+        specifier: ^8.11.5
+        version: 8.22.0
+      pino:
+        specifier: ^10.3.1
+        version: 10.3.1
+      pino-pretty:
+        specifier: ^13.1.3
+        version: 13.1.3
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+      superjson:
+        specifier: ^2.2.1
+        version: 2.2.6
+      tailwind-merge:
+        specifier: ^2.2.2
+        version: 2.6.1
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
+      '@types/node':
+        specifier: ^20.12.7
+        version: 20.19.43
+      '@types/nodemailer':
+        specifier: ^6.4.14
+        version: 6.4.24
+      '@types/pg':
+        specifier: ^8.11.5
+        version: 8.20.0
+      '@types/react':
+        specifier: ^18.2.79
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.2.25
+        version: 18.3.7(@types/react@18.3.31)
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.5.0
+        version: 1.6.1(@types/node@20.19.43)(jsdom@28.1.0(@noble/hashes@1.8.0))
+
+  database:
+    dependencies:
+      '@schoolmitra/dpdp':
+        specifier: workspace:*
+        version: link:../packages/dpdp
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      drizzle-orm:
+        specifier: ^0.30.10
+        version: 0.30.10(@types/pg@8.20.0)(@types/react@18.3.31)(pg@8.22.0)(react@18.3.1)
+      pg:
+        specifier: ^8.11.5
+        version: 8.22.0
+    devDependencies:
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
+      '@types/pg':
+        specifier: ^8.11.6
+        version: 8.20.0
+      drizzle-kit:
+        specifier: ^0.20.18
+        version: 0.20.18
+      tsx:
+        specifier: ^4.7.3
+        version: 4.23.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  frontend:
     dependencies:
       '@auth/drizzle-adapter':
         specifier: ^1.1.0
@@ -101,15 +247,21 @@ importers:
       '@react-pdf/renderer':
         specifier: ^3.4.0
         version: 3.4.5(react@18.3.1)
+      '@schoolmitra/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@schoolmitra/database':
+        specifier: workspace:*
+        version: link:../database
       '@schoolmitra/domain-events':
         specifier: workspace:*
-        version: link:../../packages/domain-events
+        version: link:../packages/domain-events
       '@schoolmitra/dpdp':
         specifier: workspace:*
-        version: link:../../packages/dpdp
+        version: link:../packages/dpdp
       '@schoolmitra/validators':
         specifier: workspace:*
-        version: link:../../packages/validators
+        version: link:../packages/validators
       '@tanstack/react-query':
         specifier: ^5.28.0
         version: 5.101.2(react@18.3.1)
@@ -3067,6 +3219,7 @@ packages:
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   css-tree@3.2.1:
     resolution: {integrity: sha512-X7sjQzceUhu1u7Y/ylrRZFU2FS6LRiFVp6rKLPg23y3x3c3DOKAwuXGDp+PAGjh6CSnCjYeAul8pcT8bAl+lSA==}
