@@ -12,22 +12,39 @@ import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
+
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
 export async function generateInvoicesForStudent(studentId: string) {
   try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
+    const student = await db.query.students.findFirst({
+      where: and(
+        eq(students.id, studentId),
+        eq(students.schoolId, school.id),
+      ),
+    });
+
+    if (!student) return { success: false, message: "Student not found in this school" };
+    if (!student.currentClassId)
+      return { success: false, message: "Student is not assigned to a class" };
+
     const activeYear = await db.query.academicYears.findFirst({
-      where: eq(academicYears.isActive, true),
+      where: and(
+        eq(academicYears.isActive, true),
+        eq(academicYears.schoolId, school.id),
+      ),
     });
 
     if (!activeYear)
       return { success: false, message: "No active academic year found" };
-
-    const student = await db.query.students.findFirst({
-      where: eq(students.id, studentId),
-    });
-
-    if (!student) return { success: false, message: "Student not found" };
-    if (!student.currentClassId)
-      return { success: false, message: "Student is not assigned to a class" };
 
     const allStructures = await db.query.feeStructures.findMany({
       where: and(
@@ -113,7 +130,7 @@ export async function generateInvoicesForStudent(studentId: string) {
       generatedCount++;
     }
 
-    revalidatePath(`/students/${studentId}/fees`);
+    safeRevalidate(`/students/${studentId}/fees`);
 
     if (generatedCount === 0) {
       return {

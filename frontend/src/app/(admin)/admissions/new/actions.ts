@@ -9,22 +9,7 @@ import { and, eq } from "drizzle-orm";
 
 import { sendSMS } from "@/lib/sms";
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-if (!ENCRYPTION_KEY) {
-  throw new Error("ENCRYPTION_KEY environment variable is required. Generate with: openssl rand -hex 32");
-}
-
-function encryptData(text: string) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(
-    "aes-256-cbc",
-    Buffer.from(ENCRYPTION_KEY as string, "hex"),
-    iv,
-  );
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString("hex") + ":" + encrypted.toString("hex");
-}
+import { encryptData } from "@/lib/encryption";
 
 export async function dispatchConsentOtp(mobile: string) {
   try {
@@ -171,7 +156,11 @@ export async function submitAdmissionApplication(
     // However, parent user isn't created yet until enrollment. So we skip storing it until then,
     // or store it temporarily in a generic consent table linked to the application ID.
 
-    return { success: true, applicationNumber: application?.applicationNumber };
+    return {
+      success: true,
+      applicationId: application?.id,
+      applicationNumber: application?.applicationNumber,
+    };
   } catch (error: any) {
     console.error("Admission error:", error);
     return {

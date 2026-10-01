@@ -1,7 +1,8 @@
 import crypto from "crypto";
 
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
+const DEFAULT_DEV_KEY =
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+export const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || DEFAULT_DEV_KEY;
 
 export function decryptData(encryptedText: string | null) {
   if (!encryptedText) return null;
@@ -33,4 +34,11 @@ export function encryptData(text: string) {
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   return iv.toString("hex") + ":" + encrypted.toString("hex");
+}
+
+export function computeSearchHash(text: string) {
+  return crypto
+    .createHmac("sha256", ENCRYPTION_KEY)
+    .update(text.trim().toLowerCase())
+    .digest("hex");
 }

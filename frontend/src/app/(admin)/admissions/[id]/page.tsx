@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { admissionApplications, admissionWorkflowSteps } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { admissionApplications, admissionWorkflowSteps, classes, sections } from "@/db/schema";
+import { eq, desc, and, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import crypto from "crypto";
 import { StatusUpdater } from "./StatusUpdater";
@@ -50,6 +50,25 @@ export default async function AdmissionDetailPage({
     notFound();
   }
 
+  const schoolClasses = await db.query.classes.findMany({
+    where: and(
+      eq(classes.schoolId, application.schoolId),
+      eq(classes.isActive, true),
+    ),
+    with: {
+      sections: {
+        where: eq(sections.isActive, true),
+      },
+    },
+    orderBy: [asc(classes.sortOrder), asc(classes.displayName)],
+  });
+
+  const availableClasses = schoolClasses.map((c) => ({
+    id: c.id,
+    name: c.displayName,
+    sections: c.sections?.map((s) => ({ id: s.id, name: s.name })),
+  }));
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex justify-between items-start">
@@ -65,6 +84,8 @@ export default async function AdmissionDetailPage({
         <StatusUpdater
           currentStatus={application.status}
           applicationId={application.id}
+          enrolledStudentId={application.enrolledStudentId}
+          availableClasses={availableClasses}
         />
       </div>
 
