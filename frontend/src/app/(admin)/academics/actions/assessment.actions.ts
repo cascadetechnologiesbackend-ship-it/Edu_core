@@ -98,7 +98,9 @@ export async function saveAssessment(data: {
     });
   }
 
-  revalidatePath("/academics");
+  try {
+    revalidatePath("/academics");
+  } catch {}
   return { success: true };
 }
 
@@ -132,6 +134,8 @@ export async function archiveAssessment(id: string) {
       ),
     );
 
-  revalidatePath("/academics");
+  try {
+    revalidatePath("/academics");
+  } catch {}
   return { success: true };
 }

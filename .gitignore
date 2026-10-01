@@ -42,6 +42,7 @@ desktop.ini
 coverage/
 playwright-report/
 test-results/
+scratch/
 
 # Misc
 *.tgz

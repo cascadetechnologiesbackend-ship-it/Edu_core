@@ -13,6 +13,7 @@ import {
   syllabusChapters,
   syllabusTopics,
   assessments,
+  users,
 } from "@/db/schema";
 import { eq, and, asc, desc, isNull, inArray, count, countDistinct, avg } from "drizzle-orm";
 import {
@@ -342,6 +343,21 @@ export async function getTeacherWorkloadReport() {
         tp.teacherId,
         (timetableCountMap.get(tp.teacherId) ?? 0) + 1,
       );
+      if (!teacherMap.has(tp.teacherId)) {
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, tp.teacherId),
+          columns: { email: true },
+        });
+        if (user) {
+          teacherMap.set(tp.teacherId, {
+            teacherId: tp.teacherId,
+            email: user.email,
+            totalPeriodsPerWeek: 0,
+            subjectCount: 0,
+            classSubjectIds: [],
+          });
+        }
+      }
     }
   }
 

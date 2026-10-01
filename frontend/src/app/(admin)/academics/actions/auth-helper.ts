@@ -130,6 +130,20 @@ export async function verifyTeacherAccessToClassSubject(
           "Access Denied: Another teacher is specifically allocated to this section.",
         );
       }
+    } else {
+      // If no sectionId specified (e.g. class-level syllabus), check if teacher is allocated to any section
+      const anySectionAlloc = await db.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
+          eq(sectionSubjectTeachers.teacherId, session.user.id),
+          eq(sectionSubjectTeachers.isActive, true),
+          isNull(sectionSubjectTeachers.effectiveTo),
+        ),
+      });
+      if (anySectionAlloc) {
+        return;
+      }
     }
 
     // Class-level default teacher mapping (only applies if no section-specific allocation exists)

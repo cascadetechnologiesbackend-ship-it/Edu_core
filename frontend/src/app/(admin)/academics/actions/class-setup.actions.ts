@@ -88,7 +88,9 @@ export async function createClassSetup(data: {
       );
     }
 
-    revalidatePath("/academics");
+    try {
+      revalidatePath("/academics");
+    } catch {}
     return { success: true as const, classId: newClass.id };
   });
 }
@@ -592,6 +594,8 @@ export async function deleteClass(classId: string): Promise<{ success: true; mes
       .where(and(eq(classes.id, classId), eq(classes.schoolId, session.user.schoolId)));
   });
 
-  revalidatePath("/academics");
+  try {
+    revalidatePath("/academics");
+  } catch {}
   return { success: true as const, message: `Class "${cls.displayName}" was deleted successfully.` };
 }

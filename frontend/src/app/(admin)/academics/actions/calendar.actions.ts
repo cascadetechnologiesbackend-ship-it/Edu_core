@@ -6,9 +6,121 @@ import {
   academicCalendarEvents,
   academicYears,
 } from "@/db/schema";
-import { eq, and, asc, isNull } from "drizzle-orm";
+import { eq, and, asc, desc, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { checkAuth, getActiveAcademicYear } from "./auth-helper";
+
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
+// ─── Academic Years ──────────────────────────────────────────────────────────
+
+export async function getAcademicYears() {
+  const session = await checkAuth();
+  return await db.query.academicYears.findMany({
+    where: eq(academicYears.schoolId, session.user.schoolId),
+    orderBy: [desc(academicYears.startDate)],
+  });
+}
+
+export async function saveAcademicYear(data: {
+  id?: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  isActive?: boolean;
+}) {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+
+  if (data.startDate > data.endDate) {
+    throw new Error("Start date must be before or equal to end date");
+  }
+
+  const startDateObj = new Date(data.startDate);
+  const endDateObj = new Date(data.endDate);
+
+  if (data.id) {
+    await db
+      .update(academicYears)
+      .set({
+        label: data.label,
+        startDate: startDateObj,
+        endDate: endDateObj,
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(academicYears.id, data.id),
+          eq(academicYears.schoolId, session.user.schoolId),
+        ),
+      );
+    safeRevalidate("/academics");
+    safeRevalidate("/academics/setup/calendar");
+    return { success: true as const, id: data.id };
+  } else {
+    if (data.isActive) {
+      await db
+        .update(academicYears)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(academicYears.schoolId, session.user.schoolId));
+    }
+
+    const [created] = await db
+      .insert(academicYears)
+      .values({
+        schoolId: session.user.schoolId,
+        label: data.label,
+        startDate: startDateObj,
+        endDate: endDateObj,
+        isActive: data.isActive ?? false,
+      })
+      .returning({ id: academicYears.id });
+
+    safeRevalidate("/academics");
+    safeRevalidate("/academics/setup/calendar");
+    return { success: true as const, id: created!.id };
+  }
+}
+
+export async function activateAcademicYear(id: string) {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+
+  const year = await db.query.academicYears.findFirst({
+    where: and(
+      eq(academicYears.id, id),
+      eq(academicYears.schoolId, session.user.schoolId),
+    ),
+  });
+
+  if (!year) {
+    throw new Error("Academic year not found");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(academicYears)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(academicYears.schoolId, session.user.schoolId));
+
+    await tx
+      .update(academicYears)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(academicYears.id, id),
+          eq(academicYears.schoolId, session.user.schoolId),
+        ),
+      );
+  });
+
+  safeRevalidate("/academics");
+  safeRevalidate("/academics/setup/calendar");
+  return { success: true as const };
+}
 
 // ─── Academic Terms ──────────────────────────────────────────────────────────
 
@@ -71,8 +183,8 @@ export async function saveAcademicTerm(data: {
     });
   }
 
-  revalidatePath("/academics/setup/calendar");
-  revalidatePath("/academics");
+  safeRevalidate("/academics/setup/calendar");
+  safeRevalidate("/academics");
   return { success: true };
 }
 
@@ -93,7 +205,7 @@ export async function deleteAcademicTerm(id: string) {
       ),
     );
 
-  revalidatePath("/academics/setup/calendar");
+  safeRevalidate("/academics/setup/calendar");
   return { success: true };
 }
 
@@ -197,7 +309,7 @@ export async function saveCalendarEvent(data: {
     });
   }
 
-  revalidatePath("/academics/setup/calendar");
+  safeRevalidate("/academics/setup/calendar");
   return { success: true };
 }
 
@@ -218,6 +330,6 @@ export async function archiveCalendarEvent(id: string) {
       ),
     );
 
-  revalidatePath("/academics/setup/calendar");
+  safeRevalidate("/academics/setup/calendar");
   return { success: true };
 }

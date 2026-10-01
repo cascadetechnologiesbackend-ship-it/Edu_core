@@ -625,6 +625,9 @@ export async function saveLessonPlan(data: {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import {
+  getAcademicYears as getAcademicYearsDomain,
+  saveAcademicYear as saveAcademicYearDomain,
+  activateAcademicYear as activateAcademicYearDomain,
   getAcademicTerms as getAcademicTermsDomain,
   saveAcademicTerm as saveAcademicTermDomain,
   deleteAcademicTerm as deleteAcademicTermDomain,
@@ -688,6 +691,15 @@ import {
 } from "./actions/reports.actions";
 
 // Calendar
+export async function getAcademicYears(...args: Parameters<typeof getAcademicYearsDomain>) {
+  return getAcademicYearsDomain(...args);
+}
+export async function saveAcademicYear(...args: Parameters<typeof saveAcademicYearDomain>) {
+  return saveAcademicYearDomain(...args);
+}
+export async function activateAcademicYear(...args: Parameters<typeof activateAcademicYearDomain>) {
+  return activateAcademicYearDomain(...args);
+}
 export async function getAcademicTerms(...args: Parameters<typeof getAcademicTermsDomain>) {
   return getAcademicTermsDomain(...args);
 }

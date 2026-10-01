@@ -16,6 +16,12 @@ import {
   calculateSyllabusProgress,
 } from "./auth-helper";
 
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
 // ─── 1. Syllabus Units ────────────────────────────────────────────────────────
 
 export async function getSyllabusUnits(classSubjectId: string) {
@@ -93,7 +99,7 @@ export async function saveSyllabusUnit(data: {
     });
   }
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true };
 }
 
@@ -156,7 +162,7 @@ export async function archiveSyllabusUnit(id: string, force = false) {
       .where(eq(syllabusUnits.id, id));
   });
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true, referenced: false };
 }
 
@@ -183,7 +189,7 @@ export async function restoreSyllabusUnit(id: string) {
       ),
     );
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true };
 }
 
@@ -258,7 +264,7 @@ export async function saveSyllabusChapter(data: {
     });
   }
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true };
 }
 
@@ -311,7 +317,7 @@ export async function archiveSyllabusChapter(id: string, force = false) {
       .where(eq(syllabusChapters.id, id));
   });
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true, referenced: false };
 }
 
@@ -344,7 +350,7 @@ export async function restoreSyllabusChapter(id: string) {
       .where(eq(syllabusChapters.id, id));
   });
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true };
 }
 
@@ -414,7 +420,7 @@ export async function saveSyllabusTopic(data: {
     });
   }
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true };
 }
 
@@ -465,7 +471,7 @@ export async function archiveSyllabusTopic(id: string, force = false) {
       ),
     );
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true, referenced: false };
 }
 
@@ -509,6 +515,6 @@ export async function restoreSyllabusTopic(id: string) {
       .where(eq(syllabusTopics.id, id));
   });
 
-  revalidatePath("/academics");
+  safeRevalidate("/academics");
   return { success: true };
 }
