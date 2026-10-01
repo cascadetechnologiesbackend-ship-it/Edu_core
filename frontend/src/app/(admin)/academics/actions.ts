@@ -23,6 +23,7 @@ import {
   getActiveAcademicYear,
   checkAuth,
 } from "./actions/auth-helper";
+import { getCanonicalTeachingStaff } from "../hr/actions";
 
 async function getAuditContext(session: any) {
   let ip = "unknown";
@@ -68,14 +69,16 @@ export async function getClassrooms() {
 
 export async function getTeachersList() {
   const session = await checkAuth();
-  // Fetch users that are teachers in this school
-  return await db.query.users.findMany({
-    where: and(
-      eq(users.schoolId, session.user.schoolId!),
-      eq(users.isActive, true),
-    ),
-    orderBy: [users.email],
-  });
+  const schoolId = session.user.schoolId!;
+  const teachingStaff = await getCanonicalTeachingStaff(schoolId);
+  return teachingStaff.map((t) => ({
+    id: t.id,
+    email: t.email,
+    name: t.name,
+    displayName: `${t.name} (${t.employeeCode})`,
+    employeeCode: t.employeeCode,
+    designationName: t.designationName,
+  }));
 }
 
 export async function saveClassroom(data: {

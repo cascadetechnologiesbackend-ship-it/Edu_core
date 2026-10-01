@@ -65,26 +65,39 @@ export const departments = pgTable(
       t.schoolId,
       t.name,
     ),
+    schoolIdx: index("departments_school_idx").on(t.schoolId),
   }),
 );
 
-export const designations = pgTable("designations", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  schoolId: uuid("school_id")
-    .notNull()
-    .references(() => schools.id, { onDelete: "restrict" }),
-  departmentId: uuid("department_id")
-    .notNull()
-    .references(() => departments.id, { onDelete: "restrict" }),
-  name: text("name").notNull(),
-  isTeaching: boolean("is_teaching").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const designations = pgTable(
+  "designations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    isTeaching: boolean("is_teaching").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolNameUnique: unique("designations_school_name_unique").on(
+      t.schoolId,
+      t.name,
+    ),
+    schoolIdx: index("designations_school_idx").on(t.schoolId),
+    deptIdx: index("designations_dept_idx").on(t.departmentId),
+  }),
+);
 
 export const staff = pgTable(
   "staff",
@@ -114,6 +127,7 @@ export const staff = pgTable(
     mobileEncrypted: text("mobile_encrypted").notNull(),
     emailEncrypted: text("email_encrypted").notNull(),
     addressEncrypted: text("address_encrypted"),
+    emergencyContactEncrypted: text("emergency_contact_encrypted"),
     // Aadhaar — last 4 only
     aadhaarLast4: text("aadhaar_last4"),
     // PAN — AES-256 encrypted (HR Manager only)
@@ -127,6 +141,9 @@ export const staff = pgTable(
     photoS3Key: text("photo_s3_key"),
     isActive: boolean("is_active").notNull().default(true),
     legalHold: boolean("legal_hold").notNull().default(false),
+    relievingDate: timestamp("relieving_date", { withTimezone: true }),
+    separationType: text("separation_type"),
+    separationReason: text("separation_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -141,6 +158,10 @@ export const staff = pgTable(
       t.employeeCode,
     ),
     schoolIdx: index("staff_school_idx").on(t.schoolId),
+    userIdx: index("staff_user_idx").on(t.userId),
+    deptIdx: index("staff_dept_idx").on(t.departmentId),
+    desigIdx: index("staff_desig_idx").on(t.designationId),
+    activeIdx: index("staff_active_idx").on(t.schoolId, t.isActive),
   }),
 );
 

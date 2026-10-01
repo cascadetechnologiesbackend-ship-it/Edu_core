@@ -1,5 +1,16 @@
 import { db } from "@/db";
-import { academicYears, leaveBalances, schools } from "@/db/schema";
+import {
+  academicYears,
+  leaveBalances,
+  schools,
+  staff,
+  departments,
+  designations,
+  leaveTypes,
+  leaveRequests,
+  salaryTemplates,
+  payrollRuns,
+} from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
 import { auth } from "@/lib/auth";
@@ -36,7 +47,10 @@ export default async function HRPage() {
     if (!activeBalancesExist) {
       // Find the most recently ended academic year
       const prevYear = await db.query.academicYears.findFirst({
-        where: eq(academicYears.isActive, false),
+        where: and(
+          eq(academicYears.isActive, false),
+          eq(academicYears.schoolId, school.id),
+        ),
         orderBy: (t, { desc }) => [desc(t.endDate)],
       });
 
@@ -56,6 +70,7 @@ export default async function HRPage() {
   }
 
   const allStaff = await db.query.staff.findMany({
+    where: eq(staff.schoolId, session.user.schoolId),
     with: {
       user: true,
       department: true,
@@ -69,16 +84,29 @@ export default async function HRPage() {
   });
 
   const allDepartments = await db.query.departments.findMany({
+    where: eq(departments.schoolId, session.user.schoolId),
+    with: {
+      staff: true,
+      hod: true,
+    },
     orderBy: (t, { asc }) => [asc(t.name)],
   });
 
   const allDesignations = await db.query.designations.findMany({
+    where: eq(designations.schoolId, session.user.schoolId),
+    with: {
+      department: true,
+      staff: true,
+    },
     orderBy: (t, { asc }) => [asc(t.name)],
   });
 
-  const allLeaveTypes = await db.query.leaveTypes.findMany();
+  const allLeaveTypes = await db.query.leaveTypes.findMany({
+    where: eq(leaveTypes.schoolId, session.user.schoolId),
+  });
 
   const allLeaveRequests = await db.query.leaveRequests.findMany({
+    where: eq(leaveRequests.schoolId, session.user.schoolId),
     with: {
       staff: true,
       leaveType: true,
@@ -87,10 +115,12 @@ export default async function HRPage() {
   });
 
   const allSalaryTemplates = await db.query.salaryTemplates.findMany({
+    where: eq(salaryTemplates.schoolId, session.user.schoolId),
     orderBy: (t, { desc }) => [desc(t.createdAt)],
   });
 
   const allPayrollRuns = await db.query.payrollRuns.findMany({
+    where: eq(payrollRuns.schoolId, session.user.schoolId),
     orderBy: (t, { desc }) => [desc(t.month)],
   });
 

@@ -36,6 +36,13 @@
       "when": 1790785323538,
       "tag": "0004_handy_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1790800000000,
+      "tag": "0005_hr_phase1_master_data",
+      "breakpoints": true
     }
   ]
 }

@@ -20,8 +20,12 @@ import {
   staffAttendance,
   designations,
   departments,
+  classSubjects,
+  sectionSubjectTeachers,
+  timetablePeriods,
+  sections,
 } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, sql, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -29,69 +33,592 @@ import { encryptData, decryptData } from "@/lib/encryption";
 import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
 
-// ─── STaff PII Reveal Action (DPDP Restricted) ────────────────────────────────
-export async function revealStaffPii(staffId: string, field: "pan" | "bank") {
+function safeRevalidate(path: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    revalidatePath(path);
+  } catch {}
+}
 
-    if (
-      session.user.role !== "HR_MANAGER" &&
-      session.user.role !== "SUPER_ADMIN"
-    ) {
-      return {
-        success: false,
-        message: "Access denied: HR Manager role required",
-      };
-    }
+// ─── Internal Audit Helper ───────────────────────────────────────────────────
+async function logHrAudit(
+  ctx: { userId: string; schoolId: string | null; role: string },
+  action: "READ" | "WRITE" | "DELETE",
+  tableName: string,
+  recordId: string,
+  metadata?: any,
+) {
+  try {
+    await db.insert(auditLogs).values({
+      userId: ctx.userId,
+      userEmail: "[audit-system]",
+      userRole: ctx.role as any,
+      schoolId: ctx.schoolId || "00000000-0000-0000-0000-000000000000",
+      action,
+      tableName,
+      recordId,
+      purposeId: "hr_records",
+      ipAddress: "127.0.0.1",
+      userAgent: "HR Phase 1 Server Action",
+      metadata: metadata || {},
+    });
+  } catch (err) {
+    console.error("Failed to log HR audit event:", err);
+  }
+}
+
+// ─── Staff PII Reveal Action (DPDP Restricted & Tenant-Scoped) ───────────────
+export async function revealStaffPii(
+  staffId: string,
+  field: "pan" | "bank" | "all" | string,
+) {
+  try {
+    const ctx = await requireAuth([
+      "HR_MANAGER",
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
 
     const staffRecord = await db.query.staff.findFirst({
-      where: eq(staff.id, staffId),
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
     });
 
-    if (!staffRecord) return { success: false, message: "Staff not found" };
+    if (!staffRecord)
+      return { success: false, message: "Staff not found or access denied." };
 
     let decrypted = "";
+    let data: any = undefined;
+
     if (field === "pan") {
       decrypted = decryptData(staffRecord.panEncrypted) ?? "—";
-    } else {
+    } else if (field === "bank") {
       const acc = decryptData(staffRecord.bankAccountEncrypted) ?? "—";
       const ifsc = decryptData(staffRecord.bankIfscEncrypted) ?? "—";
       const bank = decryptData(staffRecord.bankNameEncrypted) ?? "—";
       decrypted = `${bank} | A/C: ${acc} | IFSC: ${ifsc}`;
+    } else {
+      const pan = decryptData(staffRecord.panEncrypted) ?? "—";
+      const bankName = decryptData(staffRecord.bankNameEncrypted) ?? "—";
+      const bankAccount = decryptData(staffRecord.bankAccountEncrypted) ?? "—";
+      const bankIfsc = decryptData(staffRecord.bankIfscEncrypted) ?? "—";
+      data = { pan, bankName, bankAccount, bankIfsc };
+      decrypted = `PAN: ${pan} | Bank: ${bankName}`;
     }
 
-    // Write to DPDP Audit Log
-    await db.insert(auditLogs).values({
-      userId: session.user.id,
-      userEmail: "[audit-redacted]",
-      userRole: session.user.role,
-      schoolId: session.user.schoolId ?? staffRecord.schoolId,
-      action: "READ",
-      tableName: "staff",
-      recordId: staffId,
-      purposeId: "hr_records",
-      ipAddress: "127.0.0.1",
-      userAgent: "Server Action Reveal",
-      metadata: { revealedField: field },
-    });
+    // Write to DPDP Audit Log without decrypted PII
+    await logHrAudit(ctx, "READ", "staff", staffId, { revealedField: field });
 
-    return { success: true, decrypted };
+    return { success: true, decrypted, data };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
-// ─── Staff CRUD Actions ────────────────────────────────────────────────────────
+// ─── MASTER DATA: Departments Management ─────────────────────────────────────
+export async function getDepartments() {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
+
+    const depts = await db.query.departments.findMany({
+      where: eq(departments.schoolId, school.id),
+      with: {
+        hod: true,
+        designations: true,
+        staff: true,
+      },
+      orderBy: [asc(departments.name)],
+    });
+
+    return {
+      success: true,
+      departments: depts.map((d) => ({
+        id: d.id,
+        name: d.name,
+        hodUserId: d.hodUserId,
+        hodEmail: d.hod?.email || null,
+        isActive: d.isActive,
+        staffCount: d.staff.filter((s) => s.isActive).length,
+        totalStaffCount: d.staff.length,
+        designationsCount: d.designations.filter((des) => des.isActive).length,
+        createdAt: d.createdAt,
+      })),
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message, departments: [] };
+  }
+}
+
+export async function createDepartment(
+  input: { name: string; hodUserId?: string } | string,
+) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const payload = typeof input === "string" ? { name: input } : input;
+    const name = payload.name?.trim();
+    if (!name || name.length < 2) {
+      return { success: false, message: "Department name must be at least 2 characters." };
+    }
+
+    const existing = await db.query.departments.findFirst({
+      where: and(
+        eq(departments.schoolId, school.id),
+        sql`LOWER(${departments.name}) = LOWER(${name})`,
+      ),
+    });
+
+    if (existing) {
+      return { success: false, message: `Department "${name}" already exists in this school.` };
+    }
+
+    let hodId: string | null = null;
+    if (payload.hodUserId) {
+      const user = await db.query.users.findFirst({
+        where: and(eq(users.id, payload.hodUserId), eq(users.schoolId, school.id)),
+      });
+      if (!user) {
+        return { success: false, message: "Selected HOD user does not belong to this school." };
+      }
+      hodId = user.id;
+    }
+
+    const [dept] = await db
+      .insert(departments)
+      .values({
+        schoolId: school.id,
+        name,
+        hodUserId: hodId,
+        isActive: true,
+      })
+      .returning();
+
+    if (!dept) {
+      return { success: false, message: "Failed to create department record." };
+    }
+
+    await logHrAudit(ctx, "WRITE", "departments", dept.id, { action: "CREATE_DEPARTMENT", name });
+    safeRevalidate("/hr");
+    return { success: true, department: dept };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function updateDepartment(
+  departmentId: string,
+  input: { name?: string; hodUserId?: string | null; isActive?: boolean } | string,
+) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const payload = typeof input === "string" ? { name: input } : input;
+
+    const dept = await db.query.departments.findFirst({
+      where: and(eq(departments.id, departmentId), eq(departments.schoolId, school.id)),
+    });
+
+    if (!dept) {
+      return { success: false, message: "Department not found or unauthorized." };
+    }
+
+    const updates: Record<string, any> = { updatedAt: new Date() };
+
+    if (payload.name !== undefined) {
+      const name = payload.name.trim();
+      if (!name || name.length < 2) {
+        return { success: false, message: "Department name must be at least 2 characters." };
+      }
+
+      const duplicate = await db.query.departments.findFirst({
+        where: and(
+          eq(departments.schoolId, school.id),
+          sql`LOWER(${departments.name}) = LOWER(${name})`,
+          sql`${departments.id} != ${departmentId}`,
+        ),
+      });
+
+      if (duplicate) {
+        return { success: false, message: `Another department with name "${name}" already exists.` };
+      }
+      updates.name = name;
+    }
+
+    if (payload.hodUserId !== undefined) {
+      if (payload.hodUserId === null || payload.hodUserId === "") {
+        updates.hodUserId = null;
+      } else {
+        const user = await db.query.users.findFirst({
+          where: and(eq(users.id, payload.hodUserId), eq(users.schoolId, school.id)),
+        });
+        if (!user) {
+          return { success: false, message: "Selected HOD user does not belong to this school." };
+        }
+        updates.hodUserId = user.id;
+      }
+    }
+
+    if (payload.isActive !== undefined) {
+      updates.isActive = Boolean(payload.isActive);
+    }
+
+    const [updated] = await db
+      .update(departments)
+      .set(updates)
+      .where(and(eq(departments.id, departmentId), eq(departments.schoolId, school.id)))
+      .returning();
+
+    await logHrAudit(ctx, "WRITE", "departments", departmentId, { action: "UPDATE_DEPARTMENT", updates });
+    safeRevalidate("/hr");
+    return { success: true, department: updated };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function archiveDepartment(departmentId: string, isActive?: boolean) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const dept = await db.query.departments.findFirst({
+      where: and(eq(departments.id, departmentId), eq(departments.schoolId, school.id)),
+    });
+
+    if (!dept) {
+      return { success: false, message: "Department not found or unauthorized." };
+    }
+
+    const nextActive = isActive !== undefined ? isActive : !dept.isActive;
+
+    await db
+      .update(departments)
+      .set({ isActive: nextActive, updatedAt: new Date() })
+      .where(and(eq(departments.id, departmentId), eq(departments.schoolId, school.id)));
+
+    await logHrAudit(ctx, "WRITE", "departments", departmentId, { action: "ARCHIVE_DEPARTMENT" });
+    safeRevalidate("/hr");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function deleteDepartment(departmentId: string) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const dept = await db.query.departments.findFirst({
+      where: and(eq(departments.id, departmentId), eq(departments.schoolId, school.id)),
+      with: {
+        staff: true,
+        designations: true,
+      },
+    });
+
+    if (!dept) {
+      return { success: false, message: "Department not found or unauthorized." };
+    }
+
+    if (dept.staff.length > 0 || dept.designations.length > 0) {
+      return {
+        success: false,
+        message: `Cannot delete department "${dept.name}" because it is referenced by ${dept.staff.length} staff member(s) and ${dept.designations.length} designation(s). Please archive it instead.`,
+      };
+    }
+
+    await db
+      .delete(departments)
+      .where(and(eq(departments.id, departmentId), eq(departments.schoolId, school.id)));
+
+    await logHrAudit(ctx, "DELETE", "departments", departmentId, { action: "DELETE_DEPARTMENT" });
+    safeRevalidate("/hr");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── MASTER DATA: Designations Management ────────────────────────────────────
+export async function getDesignations(departmentId?: string) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
+
+    const conditions = [eq(designations.schoolId, school.id)];
+    if (departmentId) {
+      conditions.push(eq(designations.departmentId, departmentId));
+    }
+
+    const desigs = await db.query.designations.findMany({
+      where: and(...conditions),
+      with: {
+        department: true,
+        staff: true,
+      },
+      orderBy: [asc(designations.name)],
+    });
+
+    return {
+      success: true,
+      designations: desigs.map((d) => ({
+        id: d.id,
+        name: d.name,
+        departmentId: d.departmentId,
+        departmentName: d.department?.name || "—",
+        isTeaching: d.isTeaching,
+        isActive: d.isActive,
+        staffCount: d.staff.filter((s) => s.isActive).length,
+        totalStaffCount: d.staff.length,
+        createdAt: d.createdAt,
+      })),
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message, designations: [] };
+  }
+}
+
+export async function createDesignation(
+  input:
+    | {
+        name: string;
+        departmentId?: string;
+        isTeaching?: boolean;
+      }
+    | string,
+  departmentId?: string,
+  isTeaching?: boolean,
+) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const payload =
+      typeof input === "string"
+        ? {
+            name: input,
+            departmentId: departmentId || undefined,
+            isTeaching: Boolean(isTeaching),
+          }
+        : input;
+
+    const name = payload.name?.trim();
+    if (!name || name.length < 2) {
+      return { success: false, message: "Designation name must be at least 2 characters." };
+    }
+
+    let targetDeptId = payload.departmentId;
+    if (!targetDeptId) {
+      const defaultDept = await db.query.departments.findFirst({
+        where: and(eq(departments.schoolId, school.id), eq(departments.isActive, true)),
+      });
+      if (!defaultDept) {
+        return {
+          success: false,
+          message:
+            "A department is required to create a designation. Please create a department first.",
+        };
+      }
+      targetDeptId = defaultDept.id;
+    } else {
+      const dept = await db.query.departments.findFirst({
+        where: and(eq(departments.id, targetDeptId), eq(departments.schoolId, school.id)),
+      });
+      if (!dept) {
+        return { success: false, message: "Specified department does not belong to this school." };
+      }
+    }
+
+    const existing = await db.query.designations.findFirst({
+      where: and(
+        eq(designations.schoolId, school.id),
+        sql`LOWER(${designations.name}) = LOWER(${name})`,
+      ),
+    });
+
+    if (existing) {
+      return { success: false, message: `Designation "${name}" already exists in this school.` };
+    }
+
+    const [desig] = await db
+      .insert(designations)
+      .values({
+        schoolId: school.id,
+        departmentId: targetDeptId,
+        name,
+        isTeaching: Boolean(payload.isTeaching),
+        isActive: true,
+      })
+      .returning();
+
+    if (!desig) {
+      return { success: false, message: "Failed to create designation record." };
+    }
+
+    await logHrAudit(ctx, "WRITE", "designations", desig.id, {
+      action: "CREATE_DESIGNATION",
+      name,
+      departmentId: targetDeptId,
+      isTeaching: payload.isTeaching,
+    });
+    safeRevalidate("/hr");
+    return { success: true, designation: desig };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function updateDesignation(
+  designationId: string,
+  input: {
+    name?: string | undefined;
+    departmentId?: string | undefined;
+    isTeaching?: boolean | undefined;
+    isActive?: boolean | undefined;
+  },
+) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const desig = await db.query.designations.findFirst({
+      where: and(eq(designations.id, designationId), eq(designations.schoolId, school.id)),
+    });
+
+    if (!desig) {
+      return { success: false, message: "Designation not found or unauthorized." };
+    }
+
+    const updates: Record<string, any> = { updatedAt: new Date() };
+
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name || name.length < 2) {
+        return { success: false, message: "Designation name must be at least 2 characters." };
+      }
+
+      const duplicate = await db.query.designations.findFirst({
+        where: and(
+          eq(designations.schoolId, school.id),
+          sql`LOWER(${designations.name}) = LOWER(${name})`,
+          sql`${designations.id} != ${designationId}`,
+        ),
+      });
+
+      if (duplicate) {
+        return { success: false, message: `Another designation with name "${name}" already exists.` };
+      }
+      updates.name = name;
+    }
+
+    if (input.departmentId !== undefined) {
+      const dept = await db.query.departments.findFirst({
+        where: and(eq(departments.id, input.departmentId), eq(departments.schoolId, school.id)),
+      });
+      if (!dept) {
+        return { success: false, message: "Selected department does not belong to this school." };
+      }
+      updates.departmentId = input.departmentId;
+    }
+
+    if (input.isTeaching !== undefined) {
+      updates.isTeaching = Boolean(input.isTeaching);
+    }
+
+    if (input.isActive !== undefined) {
+      updates.isActive = Boolean(input.isActive);
+    }
+
+    const [updated] = await db
+      .update(designations)
+      .set(updates)
+      .where(and(eq(designations.id, designationId), eq(designations.schoolId, school.id)))
+      .returning();
+
+    await logHrAudit(ctx, "WRITE", "designations", designationId, { action: "UPDATE_DESIGNATION", updates });
+    safeRevalidate("/hr");
+    return { success: true, designation: updated };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function archiveDesignation(designationId: string, isActive?: boolean) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const desig = await db.query.designations.findFirst({
+      where: and(eq(designations.id, designationId), eq(designations.schoolId, school.id)),
+    });
+
+    if (!desig) {
+      return { success: false, message: "Designation not found or unauthorized." };
+    }
+
+    const nextActive = isActive !== undefined ? isActive : !desig.isActive;
+
+    await db
+      .update(designations)
+      .set({ isActive: nextActive, updatedAt: new Date() })
+      .where(and(eq(designations.id, designationId), eq(designations.schoolId, school.id)));
+
+    await logHrAudit(ctx, "WRITE", "designations", designationId, { action: "ARCHIVE_DESIGNATION", isActive: nextActive });
+    safeRevalidate("/hr");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function deleteDesignation(designationId: string) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const desig = await db.query.designations.findFirst({
+      where: and(eq(designations.id, designationId), eq(designations.schoolId, school.id)),
+      with: { staff: true },
+    });
+
+    if (!desig) {
+      return { success: false, message: "Designation not found or unauthorized." };
+    }
+
+    if (desig.staff.length > 0) {
+      return {
+        success: false,
+        message: `Cannot delete designation "${desig.name}" because it is currently assigned to ${desig.staff.length} staff member(s). Please archive it instead.`,
+      };
+    }
+
+    await db
+      .delete(designations)
+      .where(and(eq(designations.id, designationId), eq(designations.schoolId, school.id)));
+
+    await logHrAudit(ctx, "DELETE", "designations", designationId, { action: "DELETE_DESIGNATION" });
+    safeRevalidate("/hr");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── STAFF ONBOARDING (Canonical Flow & Authoritative RBAC) ───────────────────
 const CreateStaffSchema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(1),
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(1, "Last name is required"),
   dateOfBirth: z.string(),
   gender: z.string(),
-  mobile: z.string().min(10),
-  email: z.string().email(),
+  mobile: z.string().min(10, "Mobile must be at least 10 digits"),
+  email: z.string().email("Invalid email address"),
   address: z.string().optional(),
-  employeeCode: z.string().min(2),
+  emergencyContact: z.string().optional(),
+  employeeCode: z.string().min(2, "Employee code must be at least 2 characters"),
   departmentId: z.string().uuid(),
   designationId: z.string().uuid(),
   contractType: z.enum([
@@ -102,7 +629,7 @@ const CreateStaffSchema = z.object({
     "GUEST_FACULTY",
   ]),
   joiningDate: z.string(),
-  aadhaarLast4: z.string().length(4),
+  aadhaarLast4: z.string().length(4, "Aadhaar must be last 4 digits only"),
   pan: z.string().optional(),
   bankName: z.string().optional(),
   bankAccount: z.string().optional(),
@@ -114,17 +641,50 @@ const CreateStaffSchema = z.object({
 export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
-    const parsed = CreateStaffSchema.parse(input);
     const school = await requireSchool(ctx);
+    const parsed = CreateStaffSchema.parse(input);
 
-    // Create user login credential first
+    // 1. Validate department
+    const dept = await db.query.departments.findFirst({
+      where: and(eq(departments.id, parsed.departmentId), eq(departments.schoolId, school.id)),
+    });
+    if (!dept || !dept.isActive) {
+      return { success: false, message: "Selected department is invalid or archived." };
+    }
+
+    // 2. Validate designation
+    const desig = await db.query.designations.findFirst({
+      where: and(eq(designations.id, parsed.designationId), eq(designations.schoolId, school.id)),
+    });
+    if (!desig || !desig.isActive) {
+      return { success: false, message: "Selected designation is invalid or archived." };
+    }
+
+    // 3. Validate unique employeeCode within school
+    const existingCode = await db.query.staff.findFirst({
+      where: and(eq(staff.schoolId, school.id), eq(staff.employeeCode, parsed.employeeCode.trim())),
+    });
+    if (existingCode) {
+      return { success: false, message: `Staff member with employee code "${parsed.employeeCode}" already exists.` };
+    }
+
+    // 4. Validate user email uniqueness
+    const emailNormalized = parsed.email.trim().toLowerCase();
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, emailNormalized),
+    });
+    if (existingUser) {
+      return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
+    }
+
+    // 5. Create user credential
     const dummyPasswordHash =
       "$2a$12$5IoYcudrg1ffKr7WS8sKVO3Xe./e.J7LaHap2qSMFpTmQgo9otUCm"; // schoolmitra_dev
     const [newUser] = await db
       .insert(users)
       .values({
         schoolId: school.id,
-        email: parsed.email,
+        email: emailNormalized,
         passwordHash: dummyPasswordHash,
         isActive: true,
         isEmailVerified: true,
@@ -133,63 +693,272 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       })
       .returning();
 
-    if (!newUser)
-      return { success: false, message: "Failed to create user credential" };
-
-    // Bind Teacher or Staff role
-    const staffRole = await db.query.roles.findFirst({
-      where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
-    });
-
-    if (staffRole) {
-      await db.insert(userRoles).values({
-        userId: newUser.id,
-        roleId: staffRole.id,
-        schoolId: school.id,
-      });
+    if (!newUser) {
+      return { success: false, message: "Failed to create user login credential." };
     }
 
-    // Insert staff record
-    await db.insert(staff).values({
-      schoolId: school.id,
-      userId: newUser.id,
+    // 6. Role Assignment: ONLY assign TEACHER if designation is authoritative for teaching!
+    if (desig.isTeaching) {
+      const teacherRole = await db.query.roles.findFirst({
+        where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
+      });
+      if (teacherRole) {
+        await db.insert(userRoles).values({
+          userId: newUser.id,
+          roleId: teacherRole.id,
+          schoolId: school.id,
+        });
+      }
+    } else {
+      // Check for administrative non-teaching roles
+      const desigLower = desig.name.toLowerCase();
+      let nonTeachingRoleName: any = null;
+      if (desigLower.includes("accountant")) nonTeachingRoleName = "ACCOUNTANT";
+      else if (desigLower.includes("librarian")) nonTeachingRoleName = "LIBRARIAN";
+      else if (desigLower.includes("transport")) nonTeachingRoleName = "TRANSPORT_MANAGER";
+      else if (desigLower.includes("hr")) nonTeachingRoleName = "HR_MANAGER";
+
+      if (nonTeachingRoleName) {
+        const foundRole = await db.query.roles.findFirst({
+          where: and(eq(roles.schoolId, school.id), eq(roles.name, nonTeachingRoleName)),
+        });
+        if (foundRole) {
+          await db.insert(userRoles).values({
+            userId: newUser.id,
+            roleId: foundRole.id,
+            schoolId: school.id,
+          });
+        }
+      }
+    }
+
+    // 7. Insert staff record with encrypted PII
+    const [newStaff] = await db
+      .insert(staff)
+      .values({
+        schoolId: school.id,
+        userId: newUser.id,
+        employeeCode: parsed.employeeCode.trim(),
+        departmentId: parsed.departmentId,
+        designationId: parsed.designationId,
+        contractType: parsed.contractType,
+        joiningDate: new Date(parsed.joiningDate),
+        firstNameEncrypted: encryptData(parsed.firstName.trim()),
+        lastNameEncrypted: encryptData(parsed.lastName.trim()),
+        dateOfBirthEncrypted: encryptData(parsed.dateOfBirth),
+        genderEncrypted: encryptData(parsed.gender),
+        mobileEncrypted: encryptData(parsed.mobile.trim()),
+        emailEncrypted: encryptData(emailNormalized),
+        addressEncrypted: parsed.address ? encryptData(parsed.address.trim()) : null,
+        emergencyContactEncrypted: parsed.emergencyContact
+          ? encryptData(parsed.emergencyContact.trim())
+          : null,
+        aadhaarLast4: parsed.aadhaarLast4,
+        panEncrypted: parsed.pan ? encryptData(parsed.pan.trim().toUpperCase()) : null,
+        bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName.trim()) : null,
+        bankAccountEncrypted: parsed.bankAccount ? encryptData(parsed.bankAccount.trim()) : null,
+        bankIfscEncrypted: parsed.bankIfsc ? encryptData(parsed.bankIfsc.trim().toUpperCase()) : null,
+        qualification: parsed.qualification || null,
+        experience: parsed.experience || null,
+        isActive: true,
+        legalHold: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    if (!newStaff) {
+      return { success: false, message: "Failed to create staff record." };
+    }
+
+    await logHrAudit(ctx, "WRITE", "staff", newStaff.id, {
+      action: "CREATE_STAFF",
       employeeCode: parsed.employeeCode,
-      departmentId: parsed.departmentId,
-      designationId: parsed.designationId,
-      contractType: parsed.contractType,
-      joiningDate: new Date(parsed.joiningDate),
-      firstNameEncrypted: encryptData(parsed.firstName),
-      lastNameEncrypted: encryptData(parsed.lastName),
-      dateOfBirthEncrypted: encryptData(parsed.dateOfBirth),
-      genderEncrypted: encryptData(parsed.gender),
-      mobileEncrypted: encryptData(parsed.mobile),
-      emailEncrypted: encryptData(parsed.email),
-      addressEncrypted: parsed.address ? encryptData(parsed.address) : null,
-      aadhaarLast4: parsed.aadhaarLast4,
-      panEncrypted: parsed.pan ? encryptData(parsed.pan) : null,
-      bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName) : null,
-      bankAccountEncrypted: parsed.bankAccount
-        ? encryptData(parsed.bankAccount)
-        : null,
-      bankIfscEncrypted: parsed.bankIfsc ? encryptData(parsed.bankIfsc) : null,
-      qualification: parsed.qualification || null,
-      experience: parsed.experience || null,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      isTeaching: desig.isTeaching,
     });
 
-    revalidatePath("/hr/staff");
+    safeRevalidate("/hr");
+    return { success: true, staffId: newStaff.id };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── STAFF PROFILE EDIT (Update) ─────────────────────────────────────────────
+export async function updateStaff(
+  staffId: string,
+  input: {
+    firstName?: string | undefined;
+    lastName?: string | undefined;
+    mobile?: string | undefined;
+    email?: string | undefined;
+    address?: string | undefined;
+    emergencyContact?: string | undefined;
+    departmentId?: string | undefined;
+    designationId?: string | undefined;
+    contractType?: any;
+    joiningDate?: string | undefined;
+    qualification?: string | undefined;
+    experience?: string | undefined;
+    bankName?: string | undefined;
+    bankAccount?: string | undefined;
+    bankIfsc?: string | undefined;
+    pan?: string | undefined;
+  },
+) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+      with: { designation: true },
+    });
+
+    if (!staffRecord) {
+      return { success: false, message: "Staff record not found or unauthorized." };
+    }
+
+    const updates: Record<string, any> = { updatedAt: new Date() };
+
+    if (input.firstName) updates.firstNameEncrypted = encryptData(input.firstName.trim());
+    if (input.lastName) updates.lastNameEncrypted = encryptData(input.lastName.trim());
+    if (input.mobile) updates.mobileEncrypted = encryptData(input.mobile.trim());
+    if (input.address !== undefined) {
+      updates.addressEncrypted = input.address ? encryptData(input.address.trim()) : null;
+    }
+    if (input.emergencyContact !== undefined) {
+      updates.emergencyContactEncrypted = input.emergencyContact
+        ? encryptData(input.emergencyContact.trim())
+        : null;
+    }
+    if (input.qualification !== undefined) updates.qualification = input.qualification;
+    if (input.experience !== undefined) updates.experience = input.experience;
+    if (input.contractType) updates.contractType = input.contractType;
+    if (input.joiningDate) updates.joiningDate = new Date(input.joiningDate);
+
+    if (input.bankName !== undefined) {
+      updates.bankNameEncrypted = input.bankName ? encryptData(input.bankName.trim()) : null;
+    }
+    if (input.bankAccount !== undefined) {
+      updates.bankAccountEncrypted = input.bankAccount ? encryptData(input.bankAccount.trim()) : null;
+    }
+    if (input.bankIfsc !== undefined) {
+      updates.bankIfscEncrypted = input.bankIfsc ? encryptData(input.bankIfsc.trim().toUpperCase()) : null;
+    }
+    if (input.pan !== undefined) {
+      updates.panEncrypted = input.pan ? encryptData(input.pan.trim().toUpperCase()) : null;
+    }
+
+    // Handle email update across staff and users
+    if (input.email) {
+      const emailNorm = input.email.trim().toLowerCase();
+      if (staffRecord.userId) {
+        const emailConflict = await db.query.users.findFirst({
+          where: and(eq(users.email, emailNorm), sql`${users.id} != ${staffRecord.userId}`),
+        });
+        if (emailConflict) {
+          return { success: false, message: "Another user account already uses this email." };
+        }
+        await db.update(users).set({ email: emailNorm, updatedAt: new Date() }).where(eq(users.id, staffRecord.userId));
+      }
+      updates.emailEncrypted = encryptData(emailNorm);
+    }
+
+    // Handle department change
+    if (input.departmentId) {
+      const dept = await db.query.departments.findFirst({
+        where: and(eq(departments.id, input.departmentId), eq(departments.schoolId, school.id)),
+      });
+      if (!dept || !dept.isActive) {
+        return { success: false, message: "Selected department is invalid or archived." };
+      }
+      updates.departmentId = input.departmentId;
+    }
+
+    // Handle designation change and teaching role synchronization
+    if (input.designationId && input.designationId !== staffRecord.designationId) {
+      const newDesig = await db.query.designations.findFirst({
+        where: and(eq(designations.id, input.designationId), eq(designations.schoolId, school.id)),
+      });
+      if (!newDesig || !newDesig.isActive) {
+        return { success: false, message: "Selected designation is invalid or archived." };
+      }
+      updates.designationId = input.designationId;
+
+      // Check if transitioning from Teaching -> Non-Teaching
+      if (staffRecord.designation.isTeaching && !newDesig.isTeaching && staffRecord.userId) {
+        // Academic safety check: Verify no active class allocations
+        const [csCount, sstCount, tpCount, secCount] = await Promise.all([
+          db.query.classSubjects.findMany({ where: eq(classSubjects.assignedTeacherId, staffRecord.userId) }),
+          db.query.sectionSubjectTeachers.findMany({ where: eq(sectionSubjectTeachers.teacherId, staffRecord.userId) }),
+          db.query.timetablePeriods.findMany({ where: eq(timetablePeriods.teacherId, staffRecord.userId) }),
+          db.query.sections.findMany({ where: eq(sections.classTeacherId, staffRecord.userId) }),
+        ]);
+
+        const totalActive = csCount.length + sstCount.length + tpCount.length + secCount.length;
+        if (totalActive > 0) {
+          return {
+            success: false,
+            message: `Cannot change staff to non-teaching. This teacher has ${totalActive} active academic allocation(s). Reassign classes and timetable periods first.`,
+          };
+        }
+
+        // Remove TEACHER role
+        const teacherRole = await db.query.roles.findFirst({
+          where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
+        });
+        if (teacherRole) {
+          await db.delete(userRoles).where(
+            and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, teacherRole.id)),
+          );
+        }
+      } else if (!staffRecord.designation.isTeaching && newDesig.isTeaching && staffRecord.userId) {
+        // Transitioning from Non-Teaching -> Teaching: Add TEACHER role
+        const teacherRole = await db.query.roles.findFirst({
+          where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
+        });
+        if (teacherRole) {
+          const hasRole = await db.query.userRoles.findFirst({
+            where: and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, teacherRole.id)),
+          });
+          if (!hasRole) {
+            await db.insert(userRoles).values({
+              userId: staffRecord.userId,
+              roleId: teacherRole.id,
+              schoolId: school.id,
+            });
+          }
+        }
+      }
+    }
+
+    await db.update(staff).set(updates).where(eq(staff.id, staffId));
+    await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "UPDATE_STAFF" });
+
+    safeRevalidate("/hr");
+    safeRevalidate(`/hr/staff/${staffId}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
+// ─── STAFF PROBATION CONFIRMATION ────────────────────────────────────────────
 export async function confirmStaffProbation(staffId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+    });
+
+    if (!staffRecord) return { success: false, message: "Staff not found or unauthorized." };
+
+    if (staffRecord.contractType === "PERMANENT") {
+      return { success: true, message: "Staff member is already permanent." };
+    }
 
     await db
       .update(staff)
@@ -198,14 +967,392 @@ export async function confirmStaffProbation(staffId: string) {
         confirmationDate: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(staff.id, staffId));
+      .where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
 
-    revalidatePath("/hr/staff");
+    await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "CONFIRM_PROBATION" });
+
+    safeRevalidate("/hr");
+    safeRevalidate(`/hr/staff/${staffId}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
+
+// ─── STAFF OFFBOARDING / SEPARATION & ACADEMIC SAFETY ─────────────────────────
+export async function offboardStaff(
+  staffId: string,
+  input: {
+    separationType: "RESIGNATION" | "TERMINATION" | "RETIREMENT" | "OTHER";
+    relievingDate?: string | undefined;
+    separationReason?: string | undefined;
+    forceReassign?: boolean | undefined;
+  },
+) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+      with: { designation: true },
+    });
+
+    if (!staffRecord) return { success: false, message: "Staff not found or unauthorized." };
+
+    // 1. Legal Hold Protection
+    if (staffRecord.legalHold) {
+      return {
+        success: false,
+        message: "Cannot offboard staff member under Legal Hold. Legal hold must be removed before separation.",
+      };
+    }
+
+    // 2. Idempotency Check
+    if (!staffRecord.isActive) {
+      return { success: true, message: "Staff member is already offboarded." };
+    }
+
+    // 3. Academic Safety Check if teaching staff
+    if (staffRecord.userId && staffRecord.designation?.isTeaching) {
+      const [csList, sstList, tpList, secList] = await Promise.all([
+        db.query.classSubjects.findMany({ where: eq(classSubjects.assignedTeacherId, staffRecord.userId) }),
+        db.query.sectionSubjectTeachers.findMany({ where: eq(sectionSubjectTeachers.teacherId, staffRecord.userId) }),
+        db.query.timetablePeriods.findMany({ where: eq(timetablePeriods.teacherId, staffRecord.userId) }),
+        db.query.sections.findMany({ where: eq(sections.classTeacherId, staffRecord.userId) }),
+      ]);
+
+      const totalAllocations = csList.length + sstList.length + tpList.length + secList.length;
+
+      if (totalAllocations > 0 && !input.forceReassign) {
+        return {
+          success: false,
+          requiresReassignment: true,
+          message: `This teacher has ${csList.length} assigned class subject(s), ${sstList.length} section allocation(s), ${tpList.length} timetable period(s), and is class teacher for ${secList.length} section(s). Please confirm re-allocation before offboarding.`,
+          activeAllocations: {
+            classSubjects: csList.length,
+            sectionTeachers: sstList.length,
+            timetablePeriods: tpList.length,
+            classTeacherSections: secList.length,
+          },
+        };
+      }
+
+      // If forceReassign is true, unassign from active classes/timetable while preserving all historical attendance and marks
+      if (input.forceReassign) {
+        if (csList.length > 0) {
+          await db
+            .update(classSubjects)
+            .set({ assignedTeacherId: null, updatedAt: new Date() })
+            .where(eq(classSubjects.assignedTeacherId, staffRecord.userId));
+        }
+        if (sstList.length > 0) {
+          await db
+            .delete(sectionSubjectTeachers)
+            .where(eq(sectionSubjectTeachers.teacherId, staffRecord.userId));
+        }
+        if (tpList.length > 0) {
+          await db
+            .update(timetablePeriods)
+            .set({ teacherId: null, updatedAt: new Date() })
+            .where(eq(timetablePeriods.teacherId, staffRecord.userId));
+        }
+        if (secList.length > 0) {
+          await db
+            .update(sections)
+            .set({ classTeacherId: null, updatedAt: new Date() })
+            .where(eq(sections.classTeacherId, staffRecord.userId));
+        }
+      }
+    }
+
+    // 4. Deactivate staff and record separation metadata
+    const relieving = input.relievingDate ? new Date(input.relievingDate) : new Date();
+    await db
+      .update(staff)
+      .set({
+        isActive: false,
+        relievingDate: relieving,
+        separationType: input.separationType,
+        separationReason: input.separationReason?.trim() || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(staff.id, staffId));
+
+    // 5. Deactivate linked user login account
+    if (staffRecord.userId) {
+      await db
+        .update(users)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(users.id, staffRecord.userId));
+    }
+
+    await logHrAudit(ctx, "WRITE", "staff", staffId, {
+      action: "OFFBOARD_STAFF",
+      separationType: input.separationType,
+      relievingDate: input.relievingDate,
+    });
+
+    safeRevalidate("/hr");
+    safeRevalidate(`/hr/staff/${staffId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function reactivateStaff(staffId: string) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+    });
+
+    if (!staffRecord) return { success: false, message: "Staff not found or unauthorized." };
+
+    await db
+      .update(staff)
+      .set({
+        isActive: true,
+        relievingDate: null,
+        separationType: null,
+        separationReason: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(staff.id, staffId));
+
+    if (staffRecord.userId) {
+      await db
+        .update(users)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(eq(users.id, staffRecord.userId));
+    }
+
+    await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "REACTIVATE_STAFF" });
+
+    safeRevalidate("/hr");
+    safeRevalidate(`/hr/staff/${staffId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function toggleStaffLegalHold(staffId: string, legalHold: boolean) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+    });
+
+    if (!staffRecord) return { success: false, message: "Staff not found or unauthorized." };
+
+    await db
+      .update(staff)
+      .set({ legalHold: Boolean(legalHold), updatedAt: new Date() })
+      .where(eq(staff.id, staffId));
+
+    await logHrAudit(ctx, "WRITE", "staff", staffId, {
+      action: "TOGGLE_LEGAL_HOLD",
+      legalHold: Boolean(legalHold),
+    });
+
+    safeRevalidate("/hr");
+    safeRevalidate(`/hr/staff/${staffId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── CANONICAL TEACHING STAFF RESOLVER FOR AMS & SIS ─────────────────────────
+export async function getCanonicalTeachingStaff(schoolId: string) {
+  try {
+    const staffList = await db.query.staff.findMany({
+      where: and(eq(staff.schoolId, schoolId), eq(staff.isActive, true)),
+      with: {
+        designation: true,
+        department: true,
+        user: true,
+      },
+      orderBy: [desc(staff.createdAt)],
+    });
+
+    const teachingFaculty = staffList
+      .filter((s) => s.designation?.isTeaching && s.user && s.user.isActive)
+      .map((s) => {
+        const first = decryptData(s.firstNameEncrypted) || "Faculty";
+        const last = decryptData(s.lastNameEncrypted) || "";
+        const email = decryptData(s.emailEncrypted) || s.user?.email || "";
+        return {
+          id: s.userId!, // users.id for AMS foreign keys
+          staffId: s.id,
+          name: `${first} ${last}`.trim(),
+          email,
+          employeeCode: s.employeeCode,
+          designationName: s.designation.name,
+          departmentName: s.department?.name || "—",
+          isTeaching: true,
+        };
+      });
+
+    // Also support fallback teacher accounts in seed/tests that do not have staff profiles
+    const teachingUserIds = new Set(teachingFaculty.map((t) => t.id));
+    const teacherRole = await db.query.roles.findFirst({
+      where: and(eq(roles.schoolId, schoolId), eq(roles.name, "TEACHER")),
+    });
+
+    if (teacherRole) {
+      const assignedUserRoles = await db.query.userRoles.findMany({
+        where: and(eq(userRoles.schoolId, schoolId), eq(userRoles.roleId, teacherRole.id)),
+        with: { user: true },
+      });
+
+      for (const ur of assignedUserRoles) {
+        if (ur.user && ur.user.isActive && !teachingUserIds.has(ur.userId)) {
+          // Strictly exclude if this user is linked to a non-teaching staff
+          const nonTeachingStaff = staffList.find((s) => s.userId === ur.userId);
+          if (nonTeachingStaff && !nonTeachingStaff.designation.isTeaching) {
+            continue;
+          }
+          teachingFaculty.push({
+            id: ur.user.id,
+            staffId: "",
+            name: ur.user.email.split("@")[0] ?? "Teacher",
+            email: ur.user.email,
+            employeeCode: "FACULTY",
+            designationName: "Teacher",
+            departmentName: "Academics",
+            isTeaching: true,
+          });
+          teachingUserIds.add(ur.user.id);
+        }
+      }
+    }
+
+    return teachingFaculty;
+  } catch (err) {
+    console.error("Error in getCanonicalTeachingStaff:", err);
+    return [];
+  }
+}
+
+// ─── STAFF 360 PROFILED DATA FETCHER ──────────────────────────────────────────
+export async function getStaff360(staffId: string) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+
+    const s = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+      with: {
+        department: true,
+        designation: true,
+        user: true,
+        salaryComponents: true,
+        loans: true,
+        documents: true,
+        leaveBalances: true,
+      },
+    });
+
+    if (!s) return { success: false, message: "Staff not found or unauthorized." };
+
+    // Decrypt fields securely
+    const firstName = decryptData(s.firstNameEncrypted) || "";
+    const lastName = decryptData(s.lastNameEncrypted) || "";
+    const mobile = decryptData(s.mobileEncrypted) || "";
+    const email = decryptData(s.emailEncrypted) || s.user?.email || "";
+    const address = decryptData(s.addressEncrypted) || "";
+    const emergencyContact = decryptData(s.emergencyContactEncrypted) || "";
+    const dateOfBirth = decryptData(s.dateOfBirthEncrypted) || "";
+    const gender = decryptData(s.genderEncrypted) || "";
+
+    // Academic allocations if teaching faculty
+    let academicAllocations: any = null;
+    if (s.userId && s.designation?.isTeaching) {
+      const [classSubjs, secTeachers, classTeacherSecs, periods] = await Promise.all([
+        db.query.classSubjects.findMany({
+          where: eq(classSubjects.assignedTeacherId, s.userId),
+          with: { class: true, subject: true },
+        }),
+        db.query.sectionSubjectTeachers.findMany({
+          where: eq(sectionSubjectTeachers.teacherId, s.userId),
+          with: { section: true, classSubject: { with: { subject: true } } },
+        }),
+        db.query.sections.findMany({
+          where: eq(sections.classTeacherId, s.userId),
+          with: { class: true },
+        }),
+        db.query.timetablePeriods.findMany({
+          where: eq(timetablePeriods.teacherId, s.userId),
+        }),
+      ]);
+
+      academicAllocations = {
+        classSubjects: classSubjs.map((cs) => ({
+          id: cs.id,
+          className: cs.class.displayName,
+          subjectName: cs.subject.name,
+        })),
+        sectionAllocations: secTeachers.map((st) => ({
+          id: st.id,
+          sectionName: st.section.name,
+          subjectName: st.classSubject.subject.name,
+        })),
+        classTeacherOf: classTeacherSecs.map((sec) => `${sec.class.displayName} - ${sec.name}`),
+        weeklyPeriodsCount: periods.length,
+      };
+    }
+
+    return {
+      success: true,
+      profile: {
+        id: s.id,
+        employeeCode: s.employeeCode,
+        firstName,
+        lastName,
+        fullName: `${firstName} ${lastName}`.trim(),
+        email,
+        mobile,
+        address,
+        emergencyContact,
+        dateOfBirth,
+        gender,
+        aadhaarLast4: s.aadhaarLast4,
+        departmentId: s.departmentId,
+        departmentName: s.department?.name || "—",
+        designationId: s.designationId,
+        designationName: s.designation?.name || "—",
+        isTeaching: s.designation?.isTeaching || false,
+        contractType: s.contractType,
+        joiningDate: s.joiningDate,
+        confirmationDate: s.confirmationDate,
+        relievingDate: s.relievingDate,
+        separationType: s.separationType,
+        separationReason: s.separationReason,
+        isActive: s.isActive,
+        legalHold: s.legalHold,
+        qualification: s.qualification,
+        experience: s.experience,
+        academicAllocations,
+        salaryConfigured: s.salaryComponents.length > 0,
+        salaryComponents: s.salaryComponents[0] || null,
+        activeLoansCount: s.loans.filter((l) => l.status === "ACTIVE").length,
+        documentsCount: s.documents.length,
+        leaveBalances: s.leaveBalances,
+        createdAt: s.createdAt,
+      },
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
 
 // ─── Leave Request Actions ───────────────────────────────────────────────────
 export async function createLeaveRequest(input: {
@@ -240,7 +1387,7 @@ export async function createLeaveRequest(input: {
       updatedAt: new Date(),
     });
 
-    revalidatePath("/hr/leaves");
+    safeRevalidate("/hr/leaves");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -320,7 +1467,7 @@ export async function approveLeaveRequest(
       .set(updateValues)
       .where(eq(leaveRequests.id, id));
 
-    revalidatePath("/hr/leaves");
+    safeRevalidate("/hr/leaves");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -359,7 +1506,7 @@ export async function createSalaryTemplate(input: {
       updatedAt: new Date(),
     });
 
-    revalidatePath("/hr/salary-templates");
+    safeRevalidate("/hr/salary-templates");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -410,7 +1557,7 @@ export async function associateSalaryTemplate(
     // Also update a monthly TDS amount setting field if needed (stored on the salaryComponents allowance or custom meta)
     // Wait, let's create/update the staff loan or TDS config if any
 
-    revalidatePath("/hr/staff");
+    safeRevalidate("/hr/staff");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -444,7 +1591,7 @@ export async function createStaffLoan(input: {
       updatedAt: new Date(),
     });
 
-    revalidatePath("/hr/staff");
+    safeRevalidate("/hr/staff");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -479,7 +1626,7 @@ export async function uploadStaffDocument(input: {
       updatedAt: new Date(),
     });
 
-    revalidatePath("/hr/staff");
+    safeRevalidate("/hr/staff");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -645,7 +1792,7 @@ export async function runPayrollForMonth(month: string) {
       })
       .where(eq(payrollRuns.id, run.id));
 
-    revalidatePath("/hr/payroll");
+    safeRevalidate("/hr/payroll");
     return { success: true, runId: run.id };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -713,7 +1860,7 @@ export async function approveAndLockPayroll(runId: string) {
       }
     }
 
-    revalidatePath("/hr/payroll");
+    safeRevalidate("/hr/payroll");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };

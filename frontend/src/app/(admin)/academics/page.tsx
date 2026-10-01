@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { getActiveAcademicYear } from "./actions/auth-helper";
+import { getCanonicalTeachingStaff } from "../hr/actions";
 import AmsHubClient from "./components/AmsHubClient";
 
 export const metadata: Metadata = {
@@ -65,13 +66,7 @@ export default async function AcademicsPage() {
         },
       }),
 
-      db.query.users.findMany({
-        where: and(
-          eq(users.schoolId, schoolId),
-          eq(users.isActive, true),
-        ),
-        orderBy: [users.email],
-      }),
+      getCanonicalTeachingStaff(schoolId).catch(() => []),
 
       db
         .select({ c: count() })

@@ -16,6 +16,7 @@ import {
   feeInvoices,
   feeConcessions,
   users,
+  staff,
 } from "@/db/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import crypto from "crypto";
@@ -166,9 +167,41 @@ export default async function StudentProfilePage({
     sectionAllocations.map((a) => [a.classSubjectId, a.teacher]),
   );
 
+  const teacherUserIds = Array.from(
+    new Set(
+      [
+        currentSection?.classTeacherId,
+        ...sectionAllocations.map((a) => a.teacherId),
+        ...classSubjectsList.map((cs) => cs.assignedTeacherId),
+      ].filter(Boolean) as string[],
+    ),
+  );
+
+  const staffProfiles =
+    teacherUserIds.length > 0
+      ? await db.query.staff.findMany({
+          where: and(
+            eq(staff.schoolId, school.id),
+            inArray(staff.userId, teacherUserIds),
+          ),
+        })
+      : [];
+
+  const staffNameMap = new Map<string, string>();
+  for (const s of staffProfiles) {
+    if (s.userId) {
+      const fName = decryptData(s.firstNameEncrypted) || "";
+      const lName = decryptData(s.lastNameEncrypted) || "";
+      const fullName = `${fName} ${lName}`.trim();
+      if (fullName) staffNameMap.set(s.userId, fullName);
+    }
+  }
+
   const subjects = classSubjectsList.map((cs) => {
     const overrideTeacher = allocationMap.get(cs.id);
+    const teacherId = overrideTeacher?.id || cs.teacher?.id;
     const teacherName =
+      (teacherId && staffNameMap.get(teacherId)) ||
       overrideTeacher?.email?.split("@")[0] ||
       cs.teacher?.email?.split("@")[0] ||
       "Not Assigned";
@@ -402,7 +435,10 @@ export default async function StudentProfilePage({
     className: currentClass?.displayName || "",
     sectionName: currentSection?.name || "",
     academicYearLabel: student.academicYear?.label || "",
-    classTeacherName: classTeacherUser?.email?.split("@")[0] || null,
+    classTeacherName:
+      (classTeacherUser?.id && staffNameMap.get(classTeacherUser.id)) ||
+      classTeacherUser?.email?.split("@")[0] ||
+      null,
     familyMembers: familyMembers.map((fm) => ({
       id: fm.id,
       relation: fm.relation,
