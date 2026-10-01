@@ -192,16 +192,33 @@ export async function saveSubject(data: {
   id?: string;
   name: string;
   code: string;
-  type: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+  type?: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+  subjectType?: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+  nameHindi?: string | null;
+  maxMarks?: number;
+  passingMarks?: number;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const resolvedType = (data.subjectType || data.type || "THEORY") as
+    | "THEORY"
+    | "PRACTICAL"
+    | "CO_SCHOLASTIC"
+    | "LANGUAGE"
+    | "ACTIVITY";
+
+  const codeSanitized = data.code.trim().toUpperCase();
+  const nameSanitized = data.name.trim();
+
   if (data.id) {
     await db
       .update(subjects)
       .set({
-        name: data.name,
-        code: data.code,
-        subjectType: data.type,
+        name: nameSanitized,
+        code: codeSanitized,
+        nameHindi: data.nameHindi?.trim() || null,
+        subjectType: resolvedType,
+        maxMarks: Number(data.maxMarks) || 100,
+        passingMarks: Number(data.passingMarks) || 33,
         updatedAt: new Date(),
       })
       .where(
@@ -213,9 +230,13 @@ export async function saveSubject(data: {
   } else {
     await db.insert(subjects).values({
       schoolId: session.user.schoolId!,
-      name: data.name,
-      code: data.code,
-      subjectType: data.type,
+      name: nameSanitized,
+      code: codeSanitized,
+      nameHindi: data.nameHindi?.trim() || null,
+      subjectType: resolvedType,
+      maxMarks: Number(data.maxMarks) || 100,
+      passingMarks: Number(data.passingMarks) || 33,
+      isActive: true,
     });
   }
   try {

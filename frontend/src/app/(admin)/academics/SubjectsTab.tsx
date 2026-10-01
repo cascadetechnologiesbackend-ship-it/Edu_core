@@ -26,6 +26,7 @@ export default function SubjectsTab({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [subjectData, setSubjectData] = useState({
     code: "",
     name: "",
@@ -37,10 +38,27 @@ export default function SubjectsTab({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     startTransition(async () => {
-      await saveSubject(subjectData as any);
-      setShowForm(false);
-      router.refresh();
+      try {
+        await saveSubject({
+          ...subjectData,
+          type: subjectData.subjectType as any,
+          subjectType: subjectData.subjectType as any,
+        });
+        setShowForm(false);
+        setSubjectData({
+          code: "",
+          name: "",
+          nameHindi: "",
+          subjectType: "THEORY",
+          maxMarks: 100,
+          passingMarks: 33,
+        });
+        router.refresh();
+      } catch (err: any) {
+        setErrorMsg(err?.message || "Failed to save subject. Please check inputs.");
+      }
     });
   };
 
@@ -52,7 +70,10 @@ export default function SubjectsTab({
         </h2>
         {isAdmin && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setErrorMsg(null);
+              setShowForm(true);
+            }}
             className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
           >
             <Plus className="w-4 h-4" /> Add Subject
@@ -70,6 +91,13 @@ export default function SubjectsTab({
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Create New Subject
             </h3>
+
+            {errorMsg && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs rounded-lg">
+                {errorMsg}
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                 Subject Code (e.g. MATH101)
