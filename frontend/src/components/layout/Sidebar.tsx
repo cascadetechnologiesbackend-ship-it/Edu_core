@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { getRoleConfig } from "@/lib/roleConfig";
 
 // ─── Navigation Config ────────────────────────────────────────────────────────
 
@@ -199,9 +200,13 @@ export function Sidebar({
     }
   };
 
+  const roleDashboard = getRoleConfig(role).defaultDashboard;
+
   const filteredGroups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => isAllowed(item.href)),
+    items: group.items
+      .filter((item) => isAllowed(item.href))
+      .map((item) => (item.href === "/dashboard" ? { ...item, href: roleDashboard } : item)),
   })).filter((group) => group.items.length > 0);
 
   return (
