@@ -28,6 +28,16 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
+      // Public pages accessible without login (Landing page & Tenant Onboarding)
+      const isPublicRoute =
+        pathname === "/" ||
+        pathname.startsWith("/onboard") ||
+        pathname.startsWith("/api/onboard");
+
+      if (isPublicRoute) {
+        return true;
+      }
+
       const isLoggedIn = !!auth?.user;
       const isAuthRoute =
         pathname.startsWith("/login") ||

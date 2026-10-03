@@ -6,16 +6,42 @@ import {
   academicYears,
   classes,
   sections,
+  subjects,
   feeHeads,
   users,
   roles,
   userRoles,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-export interface OnboardSchoolPayload {
-  // 1. School Profile
+export interface ClassSetupItem {
+  gradeLevel: string;
+  displayName: string;
+  sections: string[]; // e.g. ["A", "B"]
+}
+
+export interface SubjectSetupItem {
+  name: string;
+  code: string;
+  subjectType: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+}
+
+export interface FeeHeadSetupItem {
+  name: string;
+  code: string;
+  category: "RECURRING" | "ONE_TIME" | "OPTIONAL";
+  headType: "TUITION" | "ADMISSION" | "TRANSPORT" | "HOSTEL" | "LAB" | "LIBRARY" | "EXAMINATION" | "MISCELLANEOUS";
+  isRefundable?: boolean;
+}
+
+export interface ComprehensiveOnboardPayload {
+  // 1. Session Setup
+  academicYearLabel: string;
+  startDate: string;
+  endDate: string;
+
+  // 2. School Profile
   schoolName: string;
   board: "CBSE" | "ICSE" | "STATE_BOARD" | "IGCSE" | "IB";
   udiseCode: string;
@@ -25,20 +51,33 @@ export interface OnboardSchoolPayload {
   pincode: string;
   phone: string;
   email: string;
-  // 2. Academic Config
-  academicYearLabel: string;
-  startDate: string;
-  endDate: string;
-  selectedGrades: string[]; // e.g. ["NURSERY", "LKG", "UKG", "CLASS_1", "CLASS_2", "CLASS_3", "CLASS_4", "CLASS_5"]
-  // 3. Initial Admin Credentials
+  principalName?: string;
+  currencySymbol?: string;
+
+  // 3. Classes & Sections
+  classesSetup: ClassSetupItem[];
+
+  // 4. Subjects
+  subjectsSetup: SubjectSetupItem[];
+
+  // 5. Fee Heads & Grading
+  feeHeadsSetup: FeeHeadSetupItem[];
+  gradingScale?: "CBSE_9_POINT" | "PERCENTAGE" | "GPA";
+
+  // 6. Admin Credentials
   adminName: string;
   adminEmail: string;
   adminPassword: string;
 }
 
-export async function registerSchoolTenant(payload: OnboardSchoolPayload) {
+export type OnboardSchoolPayload = ComprehensiveOnboardPayload;
+
+export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload) {
   try {
     const {
+      academicYearLabel = "2026-27",
+      startDate = "2026-04-01",
+      endDate = "2027-03-31",
       schoolName,
       board = "CBSE",
       udiseCode,
@@ -48,10 +87,11 @@ export async function registerSchoolTenant(payload: OnboardSchoolPayload) {
       pincode,
       phone,
       email,
-      academicYearLabel = "2026-27",
-      startDate = "2026-04-01",
-      endDate = "2027-03-31",
-      selectedGrades = ["CLASS_1", "CLASS_2", "CLASS_3", "CLASS_4", "CLASS_5"],
+      principalName,
+      currencySymbol = "₹",
+      classesSetup = [],
+      subjectsSetup = [],
+      feeHeadsSetup = [],
       adminName,
       adminEmail,
       adminPassword,
@@ -87,7 +127,7 @@ export async function registerSchoolTenant(payload: OnboardSchoolPayload) {
           pincode,
           phone,
           email,
-          principalName: adminName,
+          principalName: principalName || adminName,
           establishedYear: new Date().getFullYear(),
           isActive: true,
         })
@@ -109,120 +149,93 @@ export async function registerSchoolTenant(payload: OnboardSchoolPayload) {
 
       if (!newYear) throw new Error("Failed to provision academic year.");
 
-      // 3. Create Default Classes & Section "A" for selected grades
-      const gradeDisplayNames: Record<string, string> = {
-        NURSERY: "Nursery",
-        LKG: "LKG",
-        UKG: "UKG",
-        CLASS_1: "Class 1",
-        CLASS_2: "Class 2",
-        CLASS_3: "Class 3",
-        CLASS_4: "Class 4",
-        CLASS_5: "Class 5",
-        CLASS_6: "Class 6",
-        CLASS_7: "Class 7",
-        CLASS_8: "Class 8",
-        CLASS_9: "Class 9",
-        CLASS_10: "Class 10",
-        CLASS_11: "Class 11",
-        CLASS_12: "Class 12",
-      };
+      // 3. Create Classes & Sections
+      const defaultClasses: ClassSetupItem[] = classesSetup.length > 0 ? classesSetup : [
+        { gradeLevel: "CLASS_1", displayName: "Class 1", sections: ["A"] },
+        { gradeLevel: "CLASS_2", displayName: "Class 2", sections: ["A"] },
+        { gradeLevel: "CLASS_3", displayName: "Class 3", sections: ["A"] },
+        { gradeLevel: "CLASS_4", displayName: "Class 4", sections: ["A"] },
+        { gradeLevel: "CLASS_5", displayName: "Class 5", sections: ["A"] },
+      ];
 
-      for (let i = 0; i < selectedGrades.length; i++) {
-        const grade = selectedGrades[i] as any;
-        const displayName = gradeDisplayNames[grade] || grade;
-
+      for (let i = 0; i < defaultClasses.length; i++) {
+        const clsItem = defaultClasses[i]!;
         const [cls] = await tx
           .insert(classes)
           .values({
             schoolId: newSchool.id,
             academicYearId: newYear.id,
-            gradeLevel: grade,
-            displayName,
+            gradeLevel: clsItem.gradeLevel as any,
+            displayName: clsItem.displayName,
             sortOrder: i + 1,
             isActive: true,
           })
           .returning();
 
         if (cls) {
-          await tx.insert(sections).values({
-            schoolId: newSchool.id,
-            classId: cls.id,
-            name: "A",
-            capacity: 40,
-            isActive: true,
-          });
+          const secList = clsItem.sections.length > 0 ? clsItem.sections : ["A"];
+          for (const secName of secList) {
+            await tx.insert(sections).values({
+              schoolId: newSchool.id,
+              classId: cls.id,
+              name: secName,
+              capacity: 40,
+              isActive: true,
+            });
+          }
         }
       }
 
-      // 4. Seed Starter Pack Fee Heads
-      const starterPackHeads = [
-        {
-          name: "Tuition Fee",
-          code: "TUT",
-          priority: 1,
-          category: "RECURRING",
-          headType: "TUITION",
-          discountEligible: true,
-        },
-        {
-          name: "Science & Computer Lab Fee",
-          code: "LAB",
-          priority: 2,
-          category: "RECURRING",
-          headType: "LAB",
-          discountEligible: true,
-        },
-        {
-          name: "Library & Resource Hub",
-          code: "LIB",
-          priority: 3,
-          category: "RECURRING",
-          headType: "LIBRARY",
-          discountEligible: true,
-        },
-        {
-          name: "Transport Fee (Opt-In)",
-          code: "TRN",
-          priority: 4,
-          category: "OPTIONAL",
-          headType: "TRANSPORT",
-          discountEligible: false,
-        },
-        {
-          name: "Admission Fee",
-          code: "ADM",
-          priority: 5,
-          category: "ONE_TIME",
-          headType: "ADMISSION",
-          discountEligible: false,
-        },
-        {
-          name: "Refundable Caution Deposit",
-          code: "CAU",
-          priority: 6,
-          category: "ONE_TIME",
-          headType: "MISCELLANEOUS",
-          isRefundable: true,
-          discountEligible: false,
-        },
+      // 4. Create Subjects
+      const defaultSubjects: SubjectSetupItem[] = subjectsSetup.length > 0 ? subjectsSetup : [
+        { name: "English Language & Literature", code: "ENG", subjectType: "LANGUAGE" },
+        { name: "Hindi Course A", code: "HIN", subjectType: "LANGUAGE" },
+        { name: "Mathematics", code: "MATH", subjectType: "THEORY" },
+        { name: "General Science", code: "SCI", subjectType: "THEORY" },
+        { name: "Social Science", code: "SST", subjectType: "THEORY" },
+        { name: "Computer Science & IT", code: "CS", subjectType: "PRACTICAL" },
+        { name: "Environmental Studies", code: "EVS", subjectType: "THEORY" },
+        { name: "Physical Education", code: "PED", subjectType: "ACTIVITY" },
       ];
 
-      for (const head of starterPackHeads) {
+      for (const sub of defaultSubjects) {
+        await tx.insert(subjects).values({
+          schoolId: newSchool.id,
+          name: sub.name,
+          code: sub.code || sub.name.substring(0, 4).toUpperCase(),
+          subjectType: sub.subjectType || "THEORY",
+          maxMarks: 100,
+          passingMarks: 33,
+          isActive: true,
+        }).onConflictDoNothing();
+      }
+
+      // 5. Create Fee Heads
+      const defaultFeeHeads: FeeHeadSetupItem[] = feeHeadsSetup.length > 0 ? feeHeadsSetup : [
+        { name: "Tuition Fee", code: "TUT", category: "RECURRING", headType: "TUITION" },
+        { name: "Science & Computer Lab Fee", code: "LAB", category: "RECURRING", headType: "LAB" },
+        { name: "Library & Resource Hub", code: "LIB", category: "RECURRING", headType: "LIBRARY" },
+        { name: "Transport Fee (Opt-In)", code: "TRN", category: "OPTIONAL", headType: "TRANSPORT" },
+        { name: "Admission Fee", code: "ADM", category: "ONE_TIME", headType: "ADMISSION" },
+        { name: "Refundable Caution Deposit", code: "CAU", category: "ONE_TIME", headType: "MISCELLANEOUS", isRefundable: true },
+      ];
+
+      for (let i = 0; i < defaultFeeHeads.length; i++) {
+        const head = defaultFeeHeads[i]!;
         await tx.insert(feeHeads).values({
           schoolId: newSchool.id,
           name: head.name,
-          code: head.code,
-          priority: head.priority,
-          category: head.category,
+          code: head.code || `FH_${i + 1}`,
+          priority: i + 1,
+          category: head.category as any,
           headType: head.headType as any,
-          discountEligible: head.discountEligible,
-          isRefundable: (head as any).isRefundable || false,
+          discountEligible: head.headType === "TUITION" || head.headType === "LAB",
+          isRefundable: head.isRefundable || false,
           isActive: true,
         });
       }
 
-      // 5. Seed System Roles for the new School
+      // 6. Seed System Roles for the new School
       const systemRoles = [
         { name: "SUPER_ADMIN", displayName: "Super Admin", isSystemRole: true },
         { name: "SCHOOL_ADMIN", displayName: "School Administrator", isSystemRole: true },
@@ -250,7 +263,7 @@ export async function registerSchoolTenant(payload: OnboardSchoolPayload) {
 
       const schoolAdminRole = createdRoles.find((r) => r.name === "SCHOOL_ADMIN");
 
-      // 6. Create Initial School Admin Account
+      // 7. Create Initial School Admin Account
       const passwordHash = await bcrypt.hash(adminPassword, 12);
       const [adminUser] = await tx
         .insert(users)
@@ -273,7 +286,7 @@ export async function registerSchoolTenant(payload: OnboardSchoolPayload) {
 
       return {
         success: true,
-        message: `School '${schoolName}' onboarded successfully! You can now log in with ${adminEmail}.`,
+        message: `School '${schoolName}' onboarded successfully! ${defaultClasses.length} classes, ${defaultSubjects.length} subjects, and ${defaultFeeHeads.length} fee heads provisioned under tenant ${udiseCode}.`,
         schoolId: newSchool.id,
         adminEmail,
       };

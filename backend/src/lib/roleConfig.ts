@@ -44,9 +44,9 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   SCHOOL_ADMIN: {
     role: "SCHOOL_ADMIN",
     displayName: "School Administrator",
-    defaultDashboard: "/admin/dashboard",
+    defaultDashboard: "/dashboard",
     navItems: [
-      { label: "Command Center", href: "/admin/dashboard", icon: "LayoutDashboard" },
+      { label: "Command Center", href: "/dashboard", icon: "LayoutDashboard" },
       { label: "Admissions & Intake", href: "/admissions", icon: "UserPlus" },
       { label: "Student Information", href: "/students", icon: "Users" },
       { label: "Academics & Classes", href: "/academics", icon: "GraduationCap" },

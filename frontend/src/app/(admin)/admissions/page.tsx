@@ -1,8 +1,9 @@
 import { db } from "@/db";
 import { admissionApplications } from "@/db/schema";
-import { desc, count, eq } from "drizzle-orm";
+import { desc, count, eq, and } from "drizzle-orm";
 import Link from "next/link";
 import crypto from "crypto";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 
 const ENCRYPTION_KEY =
   process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
@@ -31,18 +32,29 @@ function decryptData(encryptedText: string | null) {
 }
 
 export default async function AdmissionsDashboard() {
+  const ctx = await requireAuth();
+  const school = await requireSchool(ctx);
+
   const applicationsPromise = db.query.admissionApplications.findMany({
+    where: eq(admissionApplications.schoolId, school.id),
     orderBy: [desc(admissionApplications.createdAt)],
     limit: 50,
   });
 
   const totalPromise = db
     .select({ value: count() })
-    .from(admissionApplications);
+    .from(admissionApplications)
+    .where(eq(admissionApplications.schoolId, school.id));
+
   const rtePromise = db
     .select({ value: count() })
     .from(admissionApplications)
-    .where(eq(admissionApplications.isRteApplicant, true));
+    .where(
+      and(
+        eq(admissionApplications.schoolId, school.id),
+        eq(admissionApplications.isRteApplicant, true)
+      )
+    );
 
   const [applications, [totalResult], [rteResult]] = await Promise.all([
     applicationsPromise,
