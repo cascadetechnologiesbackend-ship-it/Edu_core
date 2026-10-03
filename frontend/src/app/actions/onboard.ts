@@ -10,6 +10,7 @@ import {
   feeHeads,
   departments,
   designations,
+  salaryTemplates,
   users,
   roles,
   userRoles,
@@ -237,7 +238,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         });
       }
 
-      // 6. Seed Standard Departments & Designations for HR & Staff Operations
+      // 6. Seed Standard Departments & Designations
       const standardDepartments = [
         { name: "School-Wide Administration", key: "ADMIN" },
         { name: "Pre-Primary Academic Department", key: "PRE_PRI" },
@@ -274,35 +275,20 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
       }
 
       const standardDesignations = [
-        // Executive & Leadership
         { name: "Principal", deptKey: "ADMIN", isTeaching: false },
         { name: "Vice Principal", deptKey: "ADMIN", isTeaching: false },
         { name: "Academic Coordinator", deptKey: "ADMIN", isTeaching: true },
         { name: "Head of Department (HoD)", deptKey: "ADMIN", isTeaching: true },
-
-        // Teaching Faculty (isTeaching: true)
         { name: "Pre-Primary Teacher (PRT)", deptKey: "PRE_PRI", isTeaching: true },
         { name: "Primary Teacher (PRT)", deptKey: "PRI", isTeaching: true },
         { name: "Trained Graduate Teacher (TGT) - Science", deptKey: "MID", isTeaching: true },
         { name: "Trained Graduate Teacher (TGT) - Mathematics", deptKey: "MID", isTeaching: true },
-        { name: "Trained Graduate Teacher (TGT) - Social Studies", deptKey: "MID", isTeaching: true },
         { name: "High School Teacher (TGT) - Physics", deptKey: "HIGH", isTeaching: true },
-        { name: "High School Teacher (TGT) - Chemistry", deptKey: "HIGH", isTeaching: true },
-        { name: "High School Teacher (TGT) - Biology", deptKey: "HIGH", isTeaching: true },
-        { name: "Physical Education Teacher (PET)", deptKey: "SPORTS", isTeaching: true },
-        { name: "Art & Craft Teacher", deptKey: "ADMIN", isTeaching: true },
-        { name: "Music & Performing Arts Teacher", deptKey: "ADMIN", isTeaching: true },
-
-        // Non-Teaching Staff (isTeaching: false)
         { name: "Chief Accountant / Bursar", deptKey: "FIN", isTeaching: false },
-        { name: "Assistant Accountant", deptKey: "FIN", isTeaching: false },
         { name: "HR Manager / Executive", deptKey: "HR", isTeaching: false },
         { name: "Head Librarian", deptKey: "LIB", isTeaching: false },
         { name: "Transport Operations Manager", deptKey: "TRN", isTeaching: false },
-        { name: "School Bus Driver", deptKey: "TRN", isTeaching: false },
         { name: "System Administrator / IT Support", deptKey: "IT", isTeaching: false },
-        { name: "School Nurse", deptKey: "ADMIN", isTeaching: false },
-        { name: "Campus Security Officer", deptKey: "OPS", isTeaching: false },
       ];
 
       for (const des of standardDesignations) {
@@ -318,7 +304,30 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         }
       }
 
-      // 7. Seed System Roles for the new School
+      // 7. Seed 4 Standard Default Salary Templates
+      const defaultTemplates = [
+        { name: "Standard Teaching Faculty", basicPercent: "50.00", daPercent: "10.00", hraPercent: "20.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: false, professionalTaxState: "DL" },
+        { name: "Admin Cadre", basicPercent: "45.00", daPercent: "10.00", hraPercent: "25.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: false, professionalTaxState: "DL" },
+        { name: "Support Staff", basicPercent: "60.00", daPercent: "15.00", hraPercent: "15.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: true, professionalTaxState: "DL" },
+        { name: "Fixed Contract Staff", basicPercent: "100.00", daPercent: "0.00", hraPercent: "0.00", pfEmployeePercent: "0.00", pfEmployerPercent: "0.00", esiApplicable: false, professionalTaxState: "DL" },
+      ];
+
+      for (const tpl of defaultTemplates) {
+        await tx.insert(salaryTemplates).values({
+          schoolId: newSchool.id,
+          name: tpl.name,
+          basicPercent: tpl.basicPercent,
+          daPercent: tpl.daPercent,
+          hraPercent: tpl.hraPercent,
+          pfEmployeePercent: tpl.pfEmployeePercent,
+          pfEmployerPercent: tpl.pfEmployerPercent,
+          esiApplicable: tpl.esiApplicable,
+          professionalTaxState: tpl.professionalTaxState,
+          isActive: true,
+        }).onConflictDoNothing();
+      }
+
+      // 8. Seed System Roles for the new School
       const systemRoles = [
         { name: "SUPER_ADMIN", displayName: "Super Admin", isSystemRole: true },
         { name: "SCHOOL_ADMIN", displayName: "School Administrator", isSystemRole: true },
@@ -346,7 +355,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
 
       const schoolAdminRole = createdRoles.find((r) => r.name === "SCHOOL_ADMIN");
 
-      // 8. Create Initial School Admin Account
+      // 9. Create Initial School Admin Account
       const passwordHash = await bcrypt.hash(adminPassword, 12);
       const [adminUser] = await tx
         .insert(users)
@@ -369,7 +378,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
 
       return {
         success: true,
-        message: `School '${schoolName}' onboarded successfully! ${defaultClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, and ${standardDesignations.length} designations provisioned under tenant ${udiseCode}.`,
+        message: `School '${schoolName}' onboarded successfully! ${defaultClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, and 4 salary templates provisioned under tenant ${udiseCode}.`,
         schoolId: newSchool.id,
         adminEmail,
       };
