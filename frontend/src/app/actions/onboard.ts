@@ -8,6 +8,8 @@ import {
   sections,
   subjects,
   feeHeads,
+  departments,
+  designations,
   users,
   roles,
   userRoles,
@@ -235,7 +237,88 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         });
       }
 
-      // 6. Seed System Roles for the new School
+      // 6. Seed Standard Departments & Designations for HR & Staff Operations
+      const standardDepartments = [
+        { name: "School-Wide Administration", key: "ADMIN" },
+        { name: "Pre-Primary Academic Department", key: "PRE_PRI" },
+        { name: "Primary Academic Department", key: "PRI" },
+        { name: "Middle School Academic Department", key: "MID" },
+        { name: "High School Academic Department", key: "HIGH" },
+        { name: "Finance & Accounts", key: "FIN" },
+        { name: "Human Resources", key: "HR" },
+        { name: "Library & Information Hub", key: "LIB" },
+        { name: "Transport & Fleet Logistics", key: "TRN" },
+        { name: "IT & Educational Technology", key: "IT" },
+        { name: "Sports & Physical Education", key: "SPORTS" },
+        { name: "Facilities & Campus Operations", key: "OPS" },
+      ];
+
+      const createdDepts = await tx
+        .insert(departments)
+        .values(
+          standardDepartments.map((d) => ({
+            schoolId: newSchool.id,
+            name: d.name,
+            isActive: true,
+          }))
+        )
+        .returning();
+
+      const deptMap: Record<string, string> = {};
+      for (let i = 0; i < standardDepartments.length; i++) {
+        const item = standardDepartments[i]!;
+        const created = createdDepts[i];
+        if (created) {
+          deptMap[item.key] = created.id;
+        }
+      }
+
+      const standardDesignations = [
+        // Executive & Leadership
+        { name: "Principal", deptKey: "ADMIN", isTeaching: false },
+        { name: "Vice Principal", deptKey: "ADMIN", isTeaching: false },
+        { name: "Academic Coordinator", deptKey: "ADMIN", isTeaching: true },
+        { name: "Head of Department (HoD)", deptKey: "ADMIN", isTeaching: true },
+
+        // Teaching Faculty (isTeaching: true)
+        { name: "Pre-Primary Teacher (PRT)", deptKey: "PRE_PRI", isTeaching: true },
+        { name: "Primary Teacher (PRT)", deptKey: "PRI", isTeaching: true },
+        { name: "Trained Graduate Teacher (TGT) - Science", deptKey: "MID", isTeaching: true },
+        { name: "Trained Graduate Teacher (TGT) - Mathematics", deptKey: "MID", isTeaching: true },
+        { name: "Trained Graduate Teacher (TGT) - Social Studies", deptKey: "MID", isTeaching: true },
+        { name: "High School Teacher (TGT) - Physics", deptKey: "HIGH", isTeaching: true },
+        { name: "High School Teacher (TGT) - Chemistry", deptKey: "HIGH", isTeaching: true },
+        { name: "High School Teacher (TGT) - Biology", deptKey: "HIGH", isTeaching: true },
+        { name: "Physical Education Teacher (PET)", deptKey: "SPORTS", isTeaching: true },
+        { name: "Art & Craft Teacher", deptKey: "ADMIN", isTeaching: true },
+        { name: "Music & Performing Arts Teacher", deptKey: "ADMIN", isTeaching: true },
+
+        // Non-Teaching Staff (isTeaching: false)
+        { name: "Chief Accountant / Bursar", deptKey: "FIN", isTeaching: false },
+        { name: "Assistant Accountant", deptKey: "FIN", isTeaching: false },
+        { name: "HR Manager / Executive", deptKey: "HR", isTeaching: false },
+        { name: "Head Librarian", deptKey: "LIB", isTeaching: false },
+        { name: "Transport Operations Manager", deptKey: "TRN", isTeaching: false },
+        { name: "School Bus Driver", deptKey: "TRN", isTeaching: false },
+        { name: "System Administrator / IT Support", deptKey: "IT", isTeaching: false },
+        { name: "School Nurse", deptKey: "ADMIN", isTeaching: false },
+        { name: "Campus Security Officer", deptKey: "OPS", isTeaching: false },
+      ];
+
+      for (const des of standardDesignations) {
+        const deptId = deptMap[des.deptKey] || createdDepts[0]?.id;
+        if (deptId) {
+          await tx.insert(designations).values({
+            schoolId: newSchool.id,
+            departmentId: deptId,
+            name: des.name,
+            isTeaching: des.isTeaching,
+            isActive: true,
+          }).onConflictDoNothing();
+        }
+      }
+
+      // 7. Seed System Roles for the new School
       const systemRoles = [
         { name: "SUPER_ADMIN", displayName: "Super Admin", isSystemRole: true },
         { name: "SCHOOL_ADMIN", displayName: "School Administrator", isSystemRole: true },
@@ -263,7 +346,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
 
       const schoolAdminRole = createdRoles.find((r) => r.name === "SCHOOL_ADMIN");
 
-      // 7. Create Initial School Admin Account
+      // 8. Create Initial School Admin Account
       const passwordHash = await bcrypt.hash(adminPassword, 12);
       const [adminUser] = await tx
         .insert(users)
@@ -286,7 +369,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
 
       return {
         success: true,
-        message: `School '${schoolName}' onboarded successfully! ${defaultClasses.length} classes, ${defaultSubjects.length} subjects, and ${defaultFeeHeads.length} fee heads provisioned under tenant ${udiseCode}.`,
+        message: `School '${schoolName}' onboarded successfully! ${defaultClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, and ${standardDesignations.length} designations provisioned under tenant ${udiseCode}.`,
         schoolId: newSchool.id,
         adminEmail,
       };
