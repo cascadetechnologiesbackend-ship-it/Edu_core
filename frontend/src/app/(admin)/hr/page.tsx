@@ -17,6 +17,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import HRDashboardClient from "./HRDashboardClient";
 
+import { decryptData } from "@/lib/encryption";
+
 export const metadata: Metadata = {
   title: "HR & Payroll | SchoolMitra ERP",
   description:
@@ -27,16 +29,78 @@ export default async function HRPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
 
-  const activeYear = await db.query.academicYears.findFirst({
-    where: and(
-      eq(academicYears.isActive, true),
-      eq(academicYears.schoolId, session.user.schoolId),
-    ),
-  });
+  const schoolId = session.user.schoolId;
 
-  const school = await db.query.schools.findFirst({
-    where: eq(schools.id, session.user.schoolId),
-  });
+  // Run all independent queries in parallel for high performance
+  const [
+    activeYear,
+    school,
+    allStaff,
+    allDepartments,
+    allDesignations,
+    allLeaveTypes,
+    allLeaveRequests,
+    allSalaryTemplates,
+    allPayrollRuns,
+  ] = await Promise.all([
+    db.query.academicYears.findFirst({
+      where: and(
+        eq(academicYears.isActive, true),
+        eq(academicYears.schoolId, schoolId),
+      ),
+    }),
+    db.query.schools.findFirst({
+      where: eq(schools.id, schoolId),
+    }),
+    db.query.staff.findMany({
+      where: eq(staff.schoolId, schoolId),
+      with: {
+        user: true,
+        department: true,
+        designation: true,
+        salaryComponents: true,
+        loans: true,
+        documents: true,
+        leaveBalances: true,
+      },
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    }),
+    db.query.departments.findMany({
+      where: eq(departments.schoolId, schoolId),
+      with: {
+        staff: true,
+        hod: true,
+      },
+      orderBy: (t, { asc }) => [asc(t.name)],
+    }),
+    db.query.designations.findMany({
+      where: eq(designations.schoolId, schoolId),
+      with: {
+        department: true,
+        staff: true,
+      },
+      orderBy: (t, { asc }) => [asc(t.name)],
+    }),
+    db.query.leaveTypes.findMany({
+      where: eq(leaveTypes.schoolId, schoolId),
+    }),
+    db.query.leaveRequests.findMany({
+      where: eq(leaveRequests.schoolId, schoolId),
+      with: {
+        staff: true,
+        leaveType: true,
+      },
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    }),
+    db.query.salaryTemplates.findMany({
+      where: eq(salaryTemplates.schoolId, schoolId),
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    }),
+    db.query.payrollRuns.findMany({
+      where: eq(payrollRuns.schoolId, schoolId),
+      orderBy: (t, { desc }) => [desc(t.month)],
+    }),
+  ]);
 
   // Auto-carry forward check on page load if academic year has rolled over
   if (activeYear && school) {
@@ -45,7 +109,6 @@ export default async function HRPage() {
     });
 
     if (!activeBalancesExist) {
-      // Find the most recently ended academic year
       const prevYear = await db.query.academicYears.findFirst({
         where: and(
           eq(academicYears.isActive, false),
@@ -56,7 +119,7 @@ export default async function HRPage() {
 
       if (prevYear) {
         try {
-          const { carryForwardLeaveBalances } = require("@/lib/leaveEngine");
+          const { carryForwardLeaveBalances } = await import("@/lib/leaveEngine");
           await carryForwardLeaveBalances(
             school.id,
             prevYear.id,
@@ -69,83 +132,23 @@ export default async function HRPage() {
     }
   }
 
-  const allStaff = await db.query.staff.findMany({
-    where: eq(staff.schoolId, session.user.schoolId),
-    with: {
-      user: true,
-      department: true,
-      designation: true,
-      salaryComponents: true,
-      loans: true,
-      documents: true,
-      leaveBalances: true,
-    },
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  });
-
-  const allDepartments = await db.query.departments.findMany({
-    where: eq(departments.schoolId, session.user.schoolId),
-    with: {
-      staff: true,
-      hod: true,
-    },
-    orderBy: (t, { asc }) => [asc(t.name)],
-  });
-
-  const allDesignations = await db.query.designations.findMany({
-    where: eq(designations.schoolId, session.user.schoolId),
-    with: {
-      department: true,
-      staff: true,
-    },
-    orderBy: (t, { asc }) => [asc(t.name)],
-  });
-
-  const allLeaveTypes = await db.query.leaveTypes.findMany({
-    where: eq(leaveTypes.schoolId, session.user.schoolId),
-  });
-
-  const allLeaveRequests = await db.query.leaveRequests.findMany({
-    where: eq(leaveRequests.schoolId, session.user.schoolId),
-    with: {
-      staff: true,
-      leaveType: true,
-    },
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  });
-
-  const allSalaryTemplates = await db.query.salaryTemplates.findMany({
-    where: eq(salaryTemplates.schoolId, session.user.schoolId),
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  });
-
-  const allPayrollRuns = await db.query.payrollRuns.findMany({
-    where: eq(payrollRuns.schoolId, session.user.schoolId),
-    orderBy: (t, { desc }) => [desc(t.month)],
-  });
-
   // Decrypt staff names on the server side securely for authorized users
-  const decryptedStaff = allStaff.map((s) => {
-    // Decrypt names using the AES decryption helper
-    // If the user role is not authorized or decryption fails, it defaults gracefully
-    const decryptField = (val: string | null) => {
-      if (!val) return "";
-      try {
-        const { decryptData } = require("@/lib/encryption");
-        return decryptData(val) || "";
-      } catch {
-        return "[Encrypted]";
-      }
-    };
+  const decryptField = (val: string | null) => {
+    if (!val) return "";
+    try {
+      return decryptData(val) || "";
+    } catch {
+      return "[Encrypted]";
+    }
+  };
 
-    return {
-      ...s,
-      firstName: decryptField(s.firstNameEncrypted),
-      lastName: decryptField(s.lastNameEncrypted),
-      mobile: decryptField(s.mobileEncrypted),
-      email: decryptField(s.emailEncrypted),
-    };
-  });
+  const decryptedStaff = allStaff.map((s) => ({
+    ...s,
+    firstName: decryptField(s.firstNameEncrypted),
+    lastName: decryptField(s.lastNameEncrypted),
+    mobile: decryptField(s.mobileEncrypted),
+    email: decryptField(s.emailEncrypted),
+  }));
 
   return (
     <HRDashboardClient

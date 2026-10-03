@@ -17,13 +17,19 @@ import {
 import { getBellSchedule } from "../../actions/timetable.actions";
 import { getSubjects, getTeachersList } from "../../actions";
 import ClassHubClient from "./ClassHubClient";
+import { cache } from "react";
+
+// Cached per-request so generateMetadata and the page body share one DB call
+const getClassWithDetailsCached = cache(async (classId: string) => {
+  return getClassWithDetails(classId);
+});
 
 export async function generateMetadata({
   params,
 }: {
   params: { classId: string };
 }): Promise<Metadata> {
-  const cls = await getClassWithDetails(params.classId);
+  const cls = await getClassWithDetailsCached(params.classId);
   return {
     title: cls ? `${cls.displayName} — Class Hub` : "Class Hub",
   };
@@ -46,7 +52,7 @@ export default async function ClassHubPage({
 
   const [cls, overview, activeYear, bellPeriods, allSubjects, allTeachers] =
     await Promise.all([
-      getClassWithDetails(params.classId),
+      getClassWithDetailsCached(params.classId),
       getClassHubOverview(params.classId).catch(() => null),
       getActiveAcademicYear(schoolId).catch(() => null),
       getBellSchedule().catch(() => []),

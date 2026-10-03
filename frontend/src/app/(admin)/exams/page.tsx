@@ -10,10 +10,25 @@ export const metadata: Metadata = {
   description: "Manage exams, mark entry, and report cards",
 };
 
+import { requireAuth } from "@/lib/serverAuth";
+import { getActiveAcademicYear } from "../academics/actions/auth-helper";
+import { examTypes } from "@/db/schema";
+
 export default async function ExamsPage() {
-  const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
-  });
+  const ctx = await requireAuth();
+  const schoolId = ctx.schoolId || "";
+
+  // Fetch active academic year and exam types concurrently
+  const [activeYear, allExamTypes] = await Promise.all([
+    schoolId
+      ? getActiveAcademicYear(schoolId).catch(() => null)
+      : db.query.academicYears.findFirst({
+          where: eq(academicYears.isActive, true),
+        }),
+    db.query.examTypes.findMany({
+      where: schoolId ? eq(examTypes.schoolId, schoolId) : undefined,
+    }),
+  ]);
 
   const allExams = activeYear
     ? await db.query.exams.findMany({
@@ -22,8 +37,6 @@ export default async function ExamsPage() {
         orderBy: (t, { desc }) => [desc(t.startDate)],
       })
     : [];
-
-  const allExamTypes = await db.query.examTypes.findMany();
 
   const statusBadge = (locked: boolean) =>
     locked ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800";

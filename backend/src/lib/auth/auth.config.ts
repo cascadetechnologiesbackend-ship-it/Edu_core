@@ -8,7 +8,8 @@ export const authConfig: NextAuthConfig = {
   providers: [], // Providers like Credentials with DB access go in index.ts
   session: {
     strategy: "jwt",
-    maxAge: 15 * 60, // 15 minutes
+    maxAge: 8 * 60 * 60, // 8 hours — ERP admin sessions are long-lived
+    updateAge: 60 * 60,  // Only re-sign JWT token every 1 hour
   },
   pages: {
     signIn: "/login",

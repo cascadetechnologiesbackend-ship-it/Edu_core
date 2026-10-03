@@ -26,9 +26,12 @@ export default async function FeeCollectPage({
 
   if (!activeSchool || !activeYear) return <div>No active school/year.</div>;
 
-  // Get all pending/partial invoices
+  // Get all pending/partial invoices strictly for this school
   const pendingInvoices = await db.query.feeInvoices.findMany({
-    where: inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
+    where: and(
+      eq(feeInvoices.schoolId, activeSchool.id),
+      inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
+    ),
     with: {
       feeStructure: {
         with: {

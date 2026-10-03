@@ -7,7 +7,12 @@ import { verifyConsentOtp, dispatchConsentOtp, submitAdmissionApplication } from
 export function AdmissionsWizard({
   privacyNoticeVersion,
   consentPurposes,
-}: any) {
+  availableGrades = [],
+}: {
+  privacyNoticeVersion: string;
+  consentPurposes: any[];
+  availableGrades?: Array<{ grade: string; displayName: string }>;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -29,10 +34,14 @@ export function AdmissionsWizard({
     applicantName: "",
     dateOfBirth: "",
     gender: "MALE",
+    bloodGroup: "",
     category: "GENERAL",
-    gradeAppliedFor: "CLASS_1",
+    gradeAppliedFor: availableGrades?.[0]?.grade || "CLASS_1",
     previousSchool: "",
     aadhaarNumber: "",
+    isRteApplicant: false,
+    optInTransport: false,
+    optInHostel: false,
   });
 
   const [familyDetails, setFamilyDetails] = useState({
@@ -110,32 +119,44 @@ export function AdmissionsWizard({
     setError("");
     const formData = {
       ...basicInfo,
+      bloodGroup: basicInfo.bloodGroup ? basicInfo.bloodGroup : undefined,
       ...familyDetails,
       primaryContactMobile: mobileOtp.mobile, // Overwrite with verified mobile
     };
     
-    // Upload documents to S3
-    const documentKeys: Record<string, string> = {};
+    // Upload documents
+    const documentKeys: Record<string, any> = {};
     for (const [key, file] of Object.entries(documents)) {
       if (file) {
+        let assignedKey = `admissions/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
         try {
           const res = await fetch("/api/upload", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filename: file.name, contentType: file.type, prefix: "admissions" }),
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: file.type || "application/octet-stream",
+              prefix: "admissions",
+            }),
           });
           const data = await res.json();
           if (data.url && data.key) {
+            assignedKey = data.key;
             await fetch(data.url, {
               method: "PUT",
-              headers: { "Content-Type": file.type },
+              headers: { "Content-Type": file.type || "application/octet-stream" },
               body: file,
             });
-            documentKeys[key] = data.key;
           }
         } catch (e) {
           console.error(`Failed to upload ${key}`, e);
         }
+        documentKeys[key] = {
+          key: assignedKey,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size || 0,
+        };
       }
     }
 
@@ -344,6 +365,29 @@ export function AdmissionsWizard({
 
               <div>
                 <label className="block text-sm font-medium mb-1">
+                  Blood Group
+                </label>
+                <select
+                  value={basicInfo.bloodGroup}
+                  onChange={(e) =>
+                    setBasicInfo({ ...basicInfo, bloodGroup: e.target.value })
+                  }
+                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                >
+                  <option value="">Select Blood Group</option>
+                  <option value="A_POSITIVE">A+ (A Positive)</option>
+                  <option value="A_NEGATIVE">A- (A Negative)</option>
+                  <option value="B_POSITIVE">B+ (B Positive)</option>
+                  <option value="B_NEGATIVE">B- (B Negative)</option>
+                  <option value="AB_POSITIVE">AB+ (AB Positive)</option>
+                  <option value="AB_NEGATIVE">AB- (AB Negative)</option>
+                  <option value="O_POSITIVE">O+ (O Positive)</option>
+                  <option value="O_NEGATIVE">O- (O Negative)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
                   Grade Applied For
                 </label>
                 <select
@@ -356,19 +400,29 @@ export function AdmissionsWizard({
                   }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
                 >
-                  <option value="NURSERY">Nursery</option>
-                  <option value="LKG">LKG</option>
-                  <option value="UKG">UKG</option>
-                  <option value="CLASS_1">Class 1</option>
-                  <option value="CLASS_2">Class 2</option>
-                  <option value="CLASS_3">Class 3</option>
-                  <option value="CLASS_4">Class 4</option>
-                  <option value="CLASS_5">Class 5</option>
-                  <option value="CLASS_6">Class 6</option>
-                  <option value="CLASS_7">Class 7</option>
-                  <option value="CLASS_8">Class 8</option>
-                  <option value="CLASS_9">Class 9</option>
-                  <option value="CLASS_10">Class 10</option>
+                  {availableGrades.length > 0 ? (
+                    availableGrades.map((g) => (
+                      <option key={g.grade} value={g.grade}>
+                        {g.displayName}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="NURSERY">Nursery</option>
+                      <option value="LKG">LKG</option>
+                      <option value="UKG">UKG</option>
+                      <option value="CLASS_1">Class 1</option>
+                      <option value="CLASS_2">Class 2</option>
+                      <option value="CLASS_3">Class 3</option>
+                      <option value="CLASS_4">Class 4</option>
+                      <option value="CLASS_5">Class 5</option>
+                      <option value="CLASS_6">Class 6</option>
+                      <option value="CLASS_7">Class 7</option>
+                      <option value="CLASS_8">Class 8</option>
+                      <option value="CLASS_9">Class 9</option>
+                      <option value="CLASS_10">Class 10</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -422,6 +476,58 @@ export function AdmissionsWizard({
                   }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
                 />
+              </div>
+
+              <div className="col-span-2 pt-2 border-t border-gray-200 dark:border-slate-800 space-y-3">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Quota & Facility Opt-Ins (Automated Fee Structure Assignments)
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+                    <input
+                      type="checkbox"
+                      checked={basicInfo.isRteApplicant}
+                      onChange={(e) =>
+                        setBasicInfo({ ...basicInfo, isRteApplicant: e.target.checked })
+                      }
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white block">RTE 25% Free Quota</span>
+                      <span className="text-xs text-gray-500 dark:text-slate-400 block">100% Tuition Waiver</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+                    <input
+                      type="checkbox"
+                      checked={basicInfo.optInTransport}
+                      onChange={(e) =>
+                        setBasicInfo({ ...basicInfo, optInTransport: e.target.checked })
+                      }
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white block">Transport Facility</span>
+                      <span className="text-xs text-gray-500 dark:text-slate-400 block">Auto-assign Bus Fee</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+                    <input
+                      type="checkbox"
+                      checked={basicInfo.optInHostel}
+                      onChange={(e) =>
+                        setBasicInfo({ ...basicInfo, optInHostel: e.target.checked })
+                      }
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white block">Hostel / Boarding</span>
+                      <span className="text-xs text-gray-500 dark:text-slate-400 block">Auto-assign Hostel Fee</span>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -609,6 +715,14 @@ export function AdmissionsWizard({
                   <div>
                     <dt className="text-sm text-gray-500">Category</dt>
                     <dd className="font-medium">{basicInfo.category}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Blood Group</dt>
+                    <dd className="font-medium">
+                      {basicInfo.bloodGroup
+                        ? basicInfo.bloodGroup.replace("_", " ")
+                        : "-"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Aadhaar</dt>

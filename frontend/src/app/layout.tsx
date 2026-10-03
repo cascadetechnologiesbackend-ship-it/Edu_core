@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     index: false, // ERP — not for search engine indexing
     follow: false,
   },
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -45,6 +48,8 @@ export const viewport: Viewport = {
 };
 
 import { Providers } from "@/components/providers/Providers";
+import { Suspense } from "react";
+import { TopProgressBar } from "@/components/layout/TopProgressBar";
 
 export default function RootLayout({
   children,
@@ -54,7 +59,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <Suspense fallback={null}>
+            <TopProgressBar />
+          </Suspense>
+          {children}
+        </Providers>
       </body>
     </html>
   );

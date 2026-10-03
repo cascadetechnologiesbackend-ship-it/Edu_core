@@ -8,8 +8,11 @@ import {
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { cache } from "react";
 
-export async function checkAuth(allowedRoles?: string[]) {
+// checkAuth is wrapped in React cache() so it only calls auth() ONCE per request,
+// even when called by multiple server actions during the same RSC render.
+export const checkAuth = cache(async function checkAuthImpl(allowedRoles?: string[]) {
   let session = null;
   if (process.env.NODE_ENV !== "production" && process.env.TEST_AUTH_USER) {
     try {
@@ -30,9 +33,27 @@ export async function checkAuth(allowedRoles?: string[]) {
   return session as typeof session & {
     user: { id: string; schoolId: string; role: string; email?: string | null };
   };
+});
+
+// In-memory TTL cache for active academic year (infrequently mutated)
+const activeYearCache = new Map<string, { data: any; expiresAt: number }>();
+
+export function invalidateActiveYearCache(schoolId?: string) {
+  if (schoolId) {
+    activeYearCache.delete(schoolId);
+  } else {
+    activeYearCache.clear();
+  }
 }
 
-export async function getActiveAcademicYear(schoolId: string) {
+// Cached per-request and with 60s in-memory TTL across requests
+export const getActiveAcademicYear = cache(async function getActiveAcademicYearImpl(schoolId: string) {
+  const now = Date.now();
+  const cached = activeYearCache.get(schoolId);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
   const activeYears = await db.query.academicYears.findMany({
     where: and(
       eq(academicYears.schoolId, schoolId),
@@ -52,8 +73,10 @@ export async function getActiveAcademicYear(schoolId: string) {
     );
   }
 
-  return activeYears[0]!;
-}
+  const result = activeYears[0]!;
+  activeYearCache.set(schoolId, { data: result, expiresAt: now + 60_000 });
+  return result;
+});
 
 /**
  * Server-side teacher authorization for a classSubject + optional section (Rule #11).

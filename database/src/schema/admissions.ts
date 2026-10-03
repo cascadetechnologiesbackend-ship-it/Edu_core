@@ -8,13 +8,14 @@ import {
   boolean,
   timestamp,
   integer,
+  jsonb,
   pgEnum,
   index,
   unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { schools, academicYears } from "./core";
-import { gradeLevelEnum, genderEnum, categoryEnum } from "./students";
+import { gradeLevelEnum, genderEnum, categoryEnum, bloodGroupEnum } from "./students";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ export const admissionApplications = pgTable(
     applicantNameEncrypted: text("applicant_name_encrypted").notNull(),
     dateOfBirth: timestamp("date_of_birth", { withTimezone: true }).notNull(),
     gender: genderEnum("gender").notNull(),
+    bloodGroup: bloodGroupEnum("blood_group"),
     category: categoryEnum("category").notNull(),
     aadhaarNumberEncrypted: text("aadhaar_number_encrypted"),
     gradeAppliedFor: gradeLevelEnum("grade_applied_for").notNull(),
@@ -81,6 +83,8 @@ export const admissionApplications = pgTable(
     assignedToUserId: uuid("assigned_to_user_id"),
     // Priorities
     isRteApplicant: boolean("is_rte_applicant").notNull().default(false),
+    optInTransport: boolean("opt_in_transport").notNull().default(false),
+    optInHostel: boolean("opt_in_hostel").notNull().default(false),
     hasSiblingInSchool: boolean("has_sibling_in_school")
       .notNull()
       .default(false),
@@ -93,6 +97,7 @@ export const admissionApplications = pgTable(
     enrolledAt: timestamp("enrolled_at", { withTimezone: true }),
     // DPDP: Consent given at step 1 (before any data entry)
     consentRecordedAt: timestamp("consent_recorded_at", { withTimezone: true }),
+    consentPreferences: jsonb("consent_preferences").$type<Record<string, boolean>>(),
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

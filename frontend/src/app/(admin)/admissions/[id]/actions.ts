@@ -19,6 +19,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { autoAssignFeeStructuresToStudent } from "@/lib/feeAssignmentEngine";
 import {
   encryptData,
   decryptData,
@@ -155,12 +156,15 @@ export async function enrollApplicant(
         lastNameSearchHash: lastNameHash,
         dateOfBirth: application.dateOfBirth!,
         gender: application.gender,
+        bloodGroup: application.bloodGroup,
         category: application.category,
         currentClassId: options.classId,
         currentSectionId: options.sectionId,
         admissionDate: new Date(),
         admissionApplicationId: application.id,
         rteApplicant: application.isRteApplicant,
+        optInTransport: application.optInTransport,
+        optInHostel: application.optInHostel,
         isActive: true,
       })
       .returning({ id: students.id });
@@ -254,18 +258,38 @@ export async function enrollApplicant(
       });
     }
 
-    // 6. DPDP Consent record
-    await tx.insert(consentRecords).values({
-      schoolId: school.id,
-      studentId: newStudent.id,
-      parentUserId: ctx.userId,
-      purposeId: "academic_records",
-      granted: true,
-      method: "web_form",
-      privacyNoticeVersion: "1.0",
-      ipAddress: "127.0.0.1",
-      userAgent: "SchoolMitra Admissions",
-    });
+    // 6. DPDP Consent records
+    const consentPrefs = (application.consentPreferences as Record<string, boolean>) || {};
+    const standardPurposes = [
+      "admission_data",
+      "academic_records",
+      "attendance",
+      "health_records",
+      "communication",
+      "transport",
+    ];
+    const grantedPurposes = new Set<string>(standardPurposes);
+    for (const [purpose, granted] of Object.entries(consentPrefs)) {
+      if (granted) {
+        grantedPurposes.add(purpose);
+      } else if (purpose !== "admission_data" && purpose !== "academic_records" && purpose !== "attendance") {
+        grantedPurposes.delete(purpose);
+      }
+    }
+
+    for (const purposeId of grantedPurposes) {
+      await tx.insert(consentRecords).values({
+        schoolId: school.id,
+        studentId: newStudent.id,
+        parentUserId: ctx.userId,
+        purposeId,
+        granted: true,
+        method: "web_form",
+        privacyNoticeVersion: "1.0",
+        ipAddress: "127.0.0.1",
+        userAgent: "SchoolMitra Admissions",
+      });
+    }
 
     // 7. Automatic Fee Concession assignment
     if (application.isRteApplicant) {
@@ -304,6 +328,9 @@ export async function enrollApplicant(
         approvedById: ctx.userId,
       });
     }
+
+    // 7.5. Automatically assign class fee structures & generate initial invoices for enrolled student
+    await autoAssignFeeStructuresToStudent(newStudent.id, tx);
 
     // 8. Update admission application
     const nextStepNumber = (application.workflowSteps?.length || 0) + 1;

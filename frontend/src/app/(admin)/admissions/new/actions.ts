@@ -83,6 +83,7 @@ export async function submitAdmissionApplication(
         applicantNameEncrypted: encryptData(parsed.applicantName),
         dateOfBirth: new Date(parsed.dateOfBirth),
         gender: parsed.gender,
+        bloodGroup: (parsed.bloodGroup as any) || (formData.bloodGroup as any) || null,
         category: parsed.category,
         gradeAppliedFor: parsed.gradeAppliedFor,
         aadhaarNumberEncrypted: formData.aadhaarNumber ? encryptData(formData.aadhaarNumber) : null,
@@ -97,8 +98,12 @@ export async function submitAdmissionApplication(
         addressEncrypted: encryptData(parsed.address),
         pincode: parsed.pincode,
         isRteApplicant: parsed.isRteApplicant,
+        optInTransport: parsed.optInTransport,
+        optInHostel: parsed.optInHostel,
         hasSiblingInSchool: parsed.hasSiblingInSchool,
         siblingStudentId: parsed.siblingStudentId ?? null,
+        consentRecordedAt: new Date(),
+        consentPreferences: _consentData || {},
       })
       .returning({
         id: admissionApplications.id,
@@ -115,35 +120,53 @@ export async function submitAdmissionApplication(
         completedAt: new Date(),
         notes: "Application submitted via wizard",
       });
+
+      const parseDocInfo = (val: any, fallbackName: string) => {
+        if (!val) return null;
+        if (typeof val === "string") {
+          return { key: val, fileName: fallbackName, mimeType: "application/octet-stream" };
+        }
+        return {
+          key: val.key || "",
+          fileName: val.fileName || fallbackName,
+          mimeType: val.mimeType || val.fileType || "application/octet-stream",
+        };
+      };
+
       const documentsToInsert = [];
-      if (documentKeys.birthCertificate) {
+      const bc = parseDocInfo(documentKeys.birthCertificate, "birth_certificate.pdf");
+      if (bc && bc.key) {
         documentsToInsert.push({
           applicationId: application.id,
           schoolId: parsed.schoolId,
           documentType: "BIRTH_CERTIFICATE",
-          s3Key: documentKeys.birthCertificate,
-          originalFileName: "birth_certificate",
-          mimeType: "application/octet-stream", // Fallback, could be passed from client
+          s3Key: bc.key,
+          originalFileName: bc.fileName,
+          mimeType: bc.mimeType,
         } as const);
       }
-      if (documentKeys.aadhaar) {
+
+      const aadhaar = parseDocInfo(documentKeys.aadhaar, "aadhaar_card.pdf");
+      if (aadhaar && aadhaar.key) {
         documentsToInsert.push({
           applicationId: application.id,
           schoolId: parsed.schoolId,
           documentType: "AADHAAR_PHOTO_MASKED",
-          s3Key: documentKeys.aadhaar,
-          originalFileName: "aadhaar_card",
-          mimeType: "application/octet-stream",
+          s3Key: aadhaar.key,
+          originalFileName: aadhaar.fileName,
+          mimeType: aadhaar.mimeType,
         } as const);
       }
-      if (documentKeys.photo) {
+
+      const photo = parseDocInfo(documentKeys.photo, "student_photo.jpg");
+      if (photo && photo.key) {
         documentsToInsert.push({
           applicationId: application.id,
           schoolId: parsed.schoolId,
           documentType: "PASSPORT_PHOTO",
-          s3Key: documentKeys.photo,
-          originalFileName: "student_photo",
-          mimeType: "application/octet-stream",
+          s3Key: photo.key,
+          originalFileName: photo.fileName,
+          mimeType: photo.mimeType,
         } as const);
       }
 

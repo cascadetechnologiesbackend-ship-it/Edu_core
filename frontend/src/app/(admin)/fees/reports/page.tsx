@@ -1,19 +1,26 @@
 import { db } from "@/db";
 import { feeInvoices, feePayments, students, academicYears } from "@/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, and } from "drizzle-orm";
 import { ExportButton } from "./ExportButton";
 import { decryptData } from "@/lib/encryption";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 
 export default async function FeeReportsPage() {
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"] as const);
+  const school = await requireSchool(ctx);
+
   const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+    where: and(
+      eq(academicYears.isActive, true),
+      eq(academicYears.schoolId, school.id),
+    ),
   });
 
   if (!activeYear) return <div>No active academic year found.</div>;
 
-  // 1. Fetch Collection Report Data
-  // For MVP, we fetch all payments in this year, group them in memory.
+  // 1. Fetch Collection Report Data strictly for this school
   const allPayments = await db.query.feePayments.findMany({
+    where: eq(feePayments.schoolId, school.id),
     with: { invoice: true },
     orderBy: [desc(feePayments.paymentDate)],
   });
@@ -34,9 +41,12 @@ export default async function FeeReportsPage() {
     .sort((a, b) => b[0].localeCompare(a[0]))
     .slice(0, 10);
 
-  // 2. Fetch Defaulter List (Ageing Buckets)
+  // 2. Fetch Defaulter List (Ageing Buckets) strictly for this school & year
   const allInvoices = await db.query.feeInvoices.findMany({
-    where: eq(feeInvoices.academicYearId, activeYear.id),
+    where: and(
+      eq(feeInvoices.schoolId, school.id),
+      eq(feeInvoices.academicYearId, activeYear.id),
+    ),
   });
 
   const pendingInvoices = allInvoices.filter(

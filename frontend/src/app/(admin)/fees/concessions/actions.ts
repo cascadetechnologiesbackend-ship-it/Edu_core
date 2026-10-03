@@ -4,9 +4,13 @@ import { db } from "@/db";
 import { feeConcessions } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
+
 export async function createFeeConcession(formData: FormData) {
   try {
-    const schoolId = formData.get("schoolId") as string;
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
     const academicYearId = formData.get("academicYearId") as string;
     const studentId = formData.get("studentId") as string;
     const concessionType = formData.get("concessionType") as any;
@@ -14,10 +18,9 @@ export async function createFeeConcession(formData: FormData) {
     const appliesTo = formData.get("appliesTo") as string;
     const discountPercentage = formData.get("discountPercentage") as string;
     const discountAmount = formData.get("discountAmount") as string;
-    const approvedById = formData.get("approvedById") as string;
 
     await db.insert(feeConcessions).values({
-      schoolId,
+      schoolId: school.id,
       academicYearId,
       studentId,
       concessionType,
@@ -25,7 +28,7 @@ export async function createFeeConcession(formData: FormData) {
       appliesTo: appliesTo || "ALL",
       discountPercentage: discountPercentage ? discountPercentage : null,
       discountAmount: discountAmount ? discountAmount : null,
-      approvedById,
+      approvedById: ctx.userId,
     });
 
     revalidatePath("/fees/concessions");

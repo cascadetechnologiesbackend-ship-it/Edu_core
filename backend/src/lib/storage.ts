@@ -19,6 +19,11 @@ export async function getPresignedUploadUrl(
   contentType: string,
   expiresIn = 3600
 ) {
+  if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === "") {
+    // Local dev mode fallback: Direct upload endpoint
+    return `/api/upload?key=${encodeURIComponent(key)}`;
+  }
+
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,

@@ -50,15 +50,8 @@ export default async function FeeConcessionsPage() {
       <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 space-y-6 max-w-2xl">
         <h2 className="text-lg font-semibold">Grant New Concession</h2>
         <form action={createFeeConcession as any} className="space-y-4">
-          <input type="hidden" name="schoolId" value={activeSchool.id} />
           <input type="hidden" name="academicYearId" value={activeYear.id} />
-          <input
-            type="hidden"
-            name="approvedById"
-            value={
-              activeSchool.id /* using school id as mock approver id for now */
-            }
-          />
+
 
           <div>
             <label className="block text-sm font-medium mb-1">Student</label>

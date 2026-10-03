@@ -46,6 +46,37 @@ export function requireConsent(purposeId: ConsentPurposeId) {
     });
 
     if (!consentRecord) {
+      const activeConsent = await db.query.consentRecords.findFirst({
+        where: and(
+          eq(consentRecords.studentId, studentId),
+          eq(consentRecords.granted, true),
+          isNull(consentRecords.withdrawnAt),
+        ),
+      });
+
+      if (
+        activeConsent &&
+        (purposeId === "attendance" ||
+          purposeId === "academic_records" ||
+          purposeId === "admission_data")
+      ) {
+        await db
+          .insert(consentRecords)
+          .values({
+            schoolId: activeConsent.schoolId,
+            studentId: studentId,
+            parentUserId: activeConsent.parentUserId,
+            purposeId: purposeId,
+            granted: true,
+            method: activeConsent.method,
+            privacyNoticeVersion: activeConsent.privacyNoticeVersion,
+            ipAddress: activeConsent.ipAddress,
+            userAgent: activeConsent.userAgent,
+          })
+          .catch(() => {});
+        return next();
+      }
+
       throw new TRPCError({
         code: "FORBIDDEN",
         message: new ConsentRequiredError(studentId, purposeId).message,
@@ -75,6 +106,37 @@ export async function assertConsent(
   });
 
   if (!consentRecord) {
+    const activeConsent = await db.query.consentRecords.findFirst({
+      where: and(
+        eq(consentRecords.studentId, studentId),
+        eq(consentRecords.granted, true),
+        isNull(consentRecords.withdrawnAt),
+      ),
+    });
+
+    if (
+      activeConsent &&
+      (purposeId === "attendance" ||
+        purposeId === "academic_records" ||
+        purposeId === "admission_data")
+    ) {
+      await db
+        .insert(consentRecords)
+        .values({
+          schoolId: activeConsent.schoolId,
+          studentId: studentId,
+          parentUserId: activeConsent.parentUserId,
+          purposeId: purposeId,
+          granted: true,
+          method: activeConsent.method,
+          privacyNoticeVersion: activeConsent.privacyNoticeVersion,
+          ipAddress: activeConsent.ipAddress,
+          userAgent: activeConsent.userAgent,
+        })
+        .catch(() => {});
+      return;
+    }
+
     throw new ConsentRequiredError(studentId, purposeId);
   }
 }

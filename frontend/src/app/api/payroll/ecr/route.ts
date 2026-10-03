@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth";
 import { generatePfEcrFile } from "@/lib/payrollEngine";
 import { decryptData } from "@/lib/encryption";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();

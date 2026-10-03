@@ -15,25 +15,41 @@ import { getSectionSubjectTeachers } from "../../../../actions/class-setup.actio
 import { getSubjectSyllabusProgress } from "../../../../actions/reports.actions";
 import { getLessonPlans, getTeachersList } from "../../../../actions";
 import SubjectWorkspaceClient from "./SubjectWorkspaceClient";
+import { cache } from "react";
+
+// Cached per-request: generateMetadata + page body share one auth() call and one DB query
+const getAuthSession = cache(async () => auth());
+
+const getClassSubjectCached = cache(async (classSubjectId: string, schoolId: string) => {
+  return db.query.classSubjects.findFirst({
+    where: and(
+      eq(classSubjects.id, classSubjectId),
+      eq(classSubjects.schoolId, schoolId),
+    ),
+    with: {
+      subject: true,
+      class: {
+        with: {
+          sections: {
+            where: eq(sections.isActive, true),
+            orderBy: [asc(sections.name)],
+          },
+        },
+      },
+      teacher: { columns: { id: true, email: true } },
+    },
+  });
+});
 
 export async function generateMetadata({
   params,
 }: {
   params: { classId: string; classSubjectId: string };
 }): Promise<Metadata> {
-  const session = await auth();
+  const session = await getAuthSession();
   if (!session?.user?.schoolId) return { title: "Subject Workspace" };
 
-  const cs = await db.query.classSubjects.findFirst({
-    where: and(
-      eq(classSubjects.id, params.classSubjectId),
-      eq(classSubjects.schoolId, session.user.schoolId),
-    ),
-    with: {
-      subject: true,
-      class: true,
-    },
-  });
+  const cs = await getClassSubjectCached(params.classSubjectId, session.user.schoolId);
 
   return {
     title: cs
@@ -47,7 +63,7 @@ export default async function SubjectWorkspacePage({
 }: {
   params: { classId: string; classSubjectId: string };
 }) {
-  const session = await auth();
+  const session = await getAuthSession();
   if (!session?.user?.id || !session?.user?.schoolId) {
     redirect("/login");
   }
@@ -67,25 +83,8 @@ export default async function SubjectWorkspacePage({
     }
   }
 
-  // Load classSubject details
-  const cs = await db.query.classSubjects.findFirst({
-    where: and(
-      eq(classSubjects.id, params.classSubjectId),
-      eq(classSubjects.schoolId, schoolId),
-    ),
-    with: {
-      subject: true,
-      class: {
-        with: {
-          sections: {
-            where: eq(sections.isActive, true),
-            orderBy: [asc(sections.name)],
-          },
-        },
-      },
-      teacher: { columns: { id: true, email: true } },
-    },
-  });
+  // Load classSubject details — reuses cached result from generateMetadata
+  const cs = await getClassSubjectCached(params.classSubjectId, schoolId);
 
   if (!cs || cs.classId !== params.classId) {
     notFound();

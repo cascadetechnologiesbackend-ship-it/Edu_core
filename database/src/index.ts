@@ -17,8 +17,8 @@ const pool =
     connectionString:
       process.env["DATABASE_URL"] ??
       "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
-    min: Number(process.env["DATABASE_POOL_MIN"] ?? 2),
-    max: Number(process.env["DATABASE_POOL_MAX"] ?? 10),
+    min: Number(process.env["DATABASE_POOL_MIN"] ?? 4),
+    max: Number(process.env["DATABASE_POOL_MAX"] ?? 25),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   });
@@ -31,7 +31,7 @@ if (process.env["NODE_ENV"] !== "production") {
 
 export const db = drizzle(pool, {
   schema,
-  logger: process.env["NODE_ENV"] === "development",
+  logger: process.env["DEBUG_DB"] === "true",
 });
 
 export type Db = typeof db;

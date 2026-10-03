@@ -11,8 +11,15 @@ import {
   students,
   studentAttendance,
   sections,
+  schools,
+  academicYears,
+  admissionApplications,
+  feeInvoices,
+  feePayments,
+  leaveRequests,
+  rightsRequests,
 } from "@/db/schema";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import {
   Users,
   IndianRupee,
@@ -128,18 +135,22 @@ export default async function DashboardPage() {
   const schoolId = session?.user?.schoolId || "";
 
   // 1. Core Counts & Queries (cached/shared where appropriate)
-  const totalStudentsCount = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(students)
-    .where(eq(students.schoolId, schoolId));
+  const totalStudentsCount = schoolId
+    ? await db
+        .select({ count: sql<number>`count(*)` })
+        .from(students)
+        .where(eq(students.schoolId, schoolId))
+    : [{ count: 0 }];
   const totalStudents = totalStudentsCount[0]?.count || 0;
 
   // Render dashboard layout based on the active role
   if (role === "TEACHER") {
     // ─── TEACHER DASHBOARD ───
-    const activeTeacherSections = await db.query.sections.findMany({
-      where: eq(sections.classTeacherId, session?.user?.id || ""),
-    });
+    const activeTeacherSections = session?.user?.id
+      ? await db.query.sections.findMany({
+          where: eq(sections.classTeacherId, session.user.id),
+        })
+      : [];
 
     const metrics = [
       {
@@ -374,39 +385,241 @@ export default async function DashboardPage() {
   }
 
   // ─── ADMIN / PRINCIPAL / SCHOOL_ADMIN DASHBOARD ───
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  // Execute all dashboard database queries in parallel
+  const [
+    school,
+    activeYear,
+    todayAttendance,
+    todayFeePayments,
+    outstandingInvoices,
+    pendingAdmissionsCount,
+    pendingLeavesCount,
+    pendingRightsCount,
+  ] = await Promise.all([
+    schoolId
+      ? db.query.schools.findFirst({
+          where: eq(schools.id, schoolId),
+        })
+      : Promise.resolve(null),
+
+    schoolId
+      ? db.query.academicYears.findFirst({
+          where: and(
+            eq(academicYears.schoolId, schoolId),
+            eq(academicYears.isActive, true),
+          ),
+        })
+      : Promise.resolve(null),
+
+    schoolId
+      ? db
+          .select({
+            status: studentAttendance.status,
+            count: sql<number>`count(*)`,
+          })
+          .from(studentAttendance)
+          .where(
+            and(
+              eq(studentAttendance.schoolId, schoolId),
+              sql`${studentAttendance.attendanceDate} >= ${startOfDay} AND ${studentAttendance.attendanceDate} <= ${endOfDay}`,
+            ),
+          )
+          .groupBy(studentAttendance.status)
+      : Promise.resolve([]),
+
+    schoolId
+      ? db
+          .select({
+            totalAmount: sql<string>`COALESCE(SUM(${feePayments.amountPaid}), 0)`,
+            txCount: sql<number>`count(*)`,
+          })
+          .from(feePayments)
+          .where(
+            and(
+              eq(feePayments.schoolId, schoolId),
+              sql`${feePayments.paymentDate} >= ${startOfDay} AND ${feePayments.paymentDate} <= ${endOfDay}`,
+            ),
+          )
+      : Promise.resolve([]),
+
+    schoolId
+      ? db
+          .select({
+            totalBalance: sql<string>`COALESCE(SUM(${feeInvoices.balanceAmount}), 0)`,
+            overdueCount: sql<number>`count(CASE WHEN ${feeInvoices.status} = 'OVERDUE' THEN 1 END)`,
+          })
+          .from(feeInvoices)
+          .where(
+            and(
+              eq(feeInvoices.schoolId, schoolId),
+              inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
+            ),
+          )
+      : Promise.resolve([]),
+
+    schoolId
+      ? db
+          .select({ count: sql<number>`count(*)` })
+          .from(admissionApplications)
+          .where(
+            and(
+              eq(admissionApplications.schoolId, schoolId),
+              inArray(admissionApplications.status, ["APPLIED", "SCREENING"]),
+            ),
+          )
+          .then((r) => Number(r[0]?.count || 0))
+          .catch(() => 0)
+      : Promise.resolve(0),
+
+    schoolId
+      ? db
+          .select({ count: sql<number>`count(*)` })
+          .from(leaveRequests)
+          .where(
+            and(
+              eq(leaveRequests.schoolId, schoolId),
+              eq(leaveRequests.status, "PENDING"),
+            ),
+          )
+          .then((r) => Number(r[0]?.count || 0))
+          .catch(() => 0)
+      : Promise.resolve(0),
+
+    schoolId
+      ? db
+          .select({ count: sql<number>`count(*)` })
+          .from(rightsRequests)
+          .where(
+            and(
+              eq(rightsRequests.schoolId, schoolId),
+              inArray(rightsRequests.status, ["SUBMITTED", "ACKNOWLEDGED", "IN_PROGRESS"]),
+            ),
+          )
+          .then((r) => Number(r[0]?.count || 0))
+          .catch(() => 0)
+      : Promise.resolve(0),
+  ]);
+
+  let totalMarkedToday = 0;
+  let presentToday = 0;
+  for (const row of todayAttendance) {
+    const c = Number(row.count) || 0;
+    totalMarkedToday += c;
+    if (
+      row.status === "PRESENT" ||
+      row.status === "LATE" ||
+      row.status === "HALF_DAY"
+    ) {
+      presentToday += c;
+    }
+  }
+
+  const attendancePercent =
+    totalMarkedToday > 0
+      ? `${Math.round((presentToday / totalMarkedToday) * 100)}%`
+      : "Not Marked";
+  const attendanceSubtext =
+    totalMarkedToday > 0
+      ? `${presentToday} of ${totalMarkedToday} marked present`
+      : "No attendance recorded today";
+
+  const feeCollectedTodayNum = Number(todayFeePayments[0]?.totalAmount || 0);
+  const feeTxCount = Number(todayFeePayments[0]?.txCount || 0);
+  const feeCollectedTodayStr = `₹${feeCollectedTodayNum.toLocaleString("en-IN")}`;
+  const feeCollectedSubtext =
+    feeTxCount > 0
+      ? `${feeTxCount} transaction${feeTxCount === 1 ? "" : "s"} today`
+      : "0 transactions today";
+
+  const outstandingDuesNum = Number(outstandingInvoices[0]?.totalBalance || 0);
+  const overdueCount = Number(outstandingInvoices[0]?.overdueCount || 0);
+  const outstandingDuesStr = `₹${outstandingDuesNum.toLocaleString("en-IN")}`;
+  const outstandingSubtext =
+    overdueCount > 0
+      ? `${overdueCount} overdue invoice${overdueCount === 1 ? "" : "s"}`
+      : outstandingDuesNum > 0
+        ? "Pending balance"
+        : "No outstanding dues";
+
+  const pendingTasks: Array<{
+    label: string;
+    href: string;
+    urgency: "warning" | "danger" | "info";
+  }> = [];
+
+  if (pendingAdmissionsCount > 0) {
+    pendingTasks.push({
+      label: `${pendingAdmissionsCount} admission application${pendingAdmissionsCount === 1 ? "" : "s"} pending review`,
+      href: "/admissions",
+      urgency: "warning",
+    });
+  }
+
+  if (pendingLeavesCount > 0) {
+    pendingTasks.push({
+      label: `${pendingLeavesCount} staff leave request${pendingLeavesCount === 1 ? "" : "s"} awaiting approval`,
+      href: "/hr",
+      urgency: "warning",
+    });
+  }
+
+  if (overdueCount > 0) {
+    pendingTasks.push({
+      label: `${overdueCount} student fee invoice${overdueCount === 1 ? "" : "s"} overdue`,
+      href: "/fees",
+      urgency: "danger",
+    });
+  }
+
+  if (pendingRightsCount > 0) {
+    pendingTasks.push({
+      label: `${pendingRightsCount} DPDP rights request${pendingRightsCount === 1 ? "" : "s"} awaiting response`,
+      href: "/dpdp",
+      urgency: "danger",
+    });
+  }
+
   const metrics = [
     {
       title: "Total Enrolment",
       value: totalStudents.toLocaleString(),
-      subtext: "Class Nursery — 10",
-      trend: { value: "+23 vs last year", direction: "up" as const },
+      subtext: totalStudents > 0 ? "Active Enrolled Students" : "No students enrolled yet",
       icon: Users,
       iconBgClass: "bg-primary/10",
       accentColor: "text-primary",
     },
     {
       title: "Today's Attendance",
-      value: "94.2%",
-      subtext: "Students marked present",
-      trend: { value: "+1.3% vs yesterday", direction: "up" as const },
+      value: attendancePercent,
+      subtext: attendanceSubtext,
       icon: CalendarCheck,
       iconBgClass: "bg-secondary/10",
       accentColor: "text-secondary",
     },
     {
       title: "Fee Collected Today",
-      value: "₹2,84,500",
-      subtext: "47 transactions",
-      trend: { value: "+₹38,000 vs yesterday", direction: "up" as const },
+      value: feeCollectedTodayStr,
+      subtext: feeCollectedSubtext,
       icon: IndianRupee,
       iconBgClass: "bg-warning/20",
       accentColor: "text-warning",
     },
     {
       title: "Outstanding Dues",
-      value: "₹18,43,200",
-      subtext: "Defaulter invoices",
-      trend: { value: "↓ ₹1,20,000 this week", direction: "down" as const },
+      value: outstandingDuesStr,
+      subtext: outstandingSubtext,
       icon: AlertCircle,
       iconBgClass: "bg-danger/10",
       accentColor: "text-danger",
@@ -419,10 +632,10 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Good morning, Admin 👋
+            Good morning, {session?.user?.name || "Admin"} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Saraswati Public School — Academic Year 2025-26
+            {school?.name || "School ERP"} — Academic Year {activeYear?.label || "2025-26"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -486,54 +699,40 @@ export default async function DashboardPage() {
         {/* Pending Tasks */}
         <div className="bg-card rounded-xl border p-6">
           <h2 className="font-semibold text-foreground mb-4">Pending Tasks</h2>
-          <ul className="space-y-3" role="list" aria-label="Pending tasks">
-            {[
-              {
-                label: "12 admission applications pending review",
-                href: "/admissions",
-                urgency: "warning",
-              },
-              {
-                label: "3 leave requests awaiting approval",
-                href: "/hr",
-                urgency: "warning",
-              },
-              {
-                label: "Fee reminder SMS due for 47 parents",
-                href: "/fees",
-                urgency: "danger",
-              },
-              {
-                label: "2 Rights requests overdue (DPDP)",
-                href: "/dpdp",
-                urgency: "danger",
-              },
-              {
-                label: "Timetable not set for Class 6B",
-                href: "/academics",
-                urgency: "info",
-              },
-            ].map((task) => (
-              <li key={task.label}>
-                <a
-                  href={task.href}
-                  className={`flex items-start gap-2 text-sm hover:underline p-2 rounded-lg transition-colors ${
-                    task.urgency === "danger"
-                      ? "text-danger hover:bg-danger/10"
-                      : task.urgency === "warning"
-                        ? "text-warning hover:bg-warning/10"
-                        : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  <AlertCircle
-                    className="w-4 h-4 mt-0.5 flex-shrink-0"
-                    aria-hidden="true"
-                  />
-                  {task.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+          {pendingTasks.length > 0 ? (
+            <ul className="space-y-3" role="list" aria-label="Pending tasks">
+              {pendingTasks.map((task) => (
+                <li key={task.label}>
+                  <a
+                    href={task.href}
+                    className={`flex items-start gap-2 text-sm hover:underline p-2 rounded-lg transition-colors ${
+                      task.urgency === "danger"
+                        ? "text-danger hover:bg-danger/10"
+                        : task.urgency === "warning"
+                          ? "text-warning hover:bg-warning/10"
+                          : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <AlertCircle
+                      className="w-4 h-4 mt-0.5 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    {task.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
+              <CheckCircle className="w-8 h-8 text-emerald-500 mb-2" />
+              <p className="text-sm font-medium text-foreground">
+                All caught up!
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                No pending tasks or urgent reviews require your attention.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

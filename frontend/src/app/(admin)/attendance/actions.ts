@@ -8,7 +8,7 @@ import {
   studentAttendance,
   academicYears,
 } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { decryptData } from "@/lib/encryption";
@@ -70,8 +70,8 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
   const school = await requireSchool(ctx);
 
   const parsedDate = new Date(dateStr);
-  const startOfDay = new Date(parsedDate.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(parsedDate.setHours(23, 59, 59, 999));
+  const startOfDay = new Date(new Date(dateStr).setHours(0, 0, 0, 0));
+  const endOfDay = new Date(new Date(dateStr).setHours(23, 59, 59, 999));
 
   // Resolve current active academic year
   const activeYear = await db.query.academicYears.findFirst({
@@ -85,28 +85,28 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
     throw new Error("No active academic year found.");
   }
 
-  // Fetch all students mapped to this section in the class history for the active year
-  const history = await db.query.studentClassHistory.findMany({
-    where: and(
-      eq(studentClassHistory.sectionId, sectionId),
-      eq(studentClassHistory.academicYearId, activeYear.id),
-    ),
-    with: {
-      student: true,
-    },
-  });
-
-  // Fetch existing attendance records for these students on the selected date
-  const attendanceRecords = await db.query.studentAttendance.findMany({
-    where: and(
-      eq(studentAttendance.sectionId, sectionId),
-      eq(studentAttendance.academicYearId, activeYear.id),
-      and(
-        sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-        sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+  // Fetch history and attendance records in parallel
+  const [history, attendanceRecords] = await Promise.all([
+    db.query.studentClassHistory.findMany({
+      where: and(
+        eq(studentClassHistory.sectionId, sectionId),
+        eq(studentClassHistory.academicYearId, activeYear.id),
       ),
-    ),
-  });
+      with: {
+        student: true,
+      },
+    }),
+    db.query.studentAttendance.findMany({
+      where: and(
+        eq(studentAttendance.sectionId, sectionId),
+        eq(studentAttendance.academicYearId, activeYear.id),
+        and(
+          sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
+          sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+        ),
+      ),
+    }),
+  ]);
 
   const attendanceMap = new Map(
     attendanceRecords.map((r) => [
@@ -190,32 +190,38 @@ export async function markSectionAttendance(
 
   const ctxAudit = await getAuditContext({ user: { id: ctx.userId, role: ctx.role, schoolId: school.id } } as any);
 
-  // Execute bulk insert/update in a transaction
+  const studentIds = records.map((r) => r.studentId);
+  if (studentIds.length === 0) return { success: true };
+
+  // DPDP Consent Check in parallel across all students
+  await Promise.all(
+    records.map((record) => assertConsent(record.studentId, "attendance")),
+  );
+
+  // Fetch all existing attendance records for these students on this date in a single batch query
+  const existingRecords = await db
+    .select()
+    .from(studentAttendance)
+    .where(
+      and(
+        inArray(studentAttendance.studentId, studentIds),
+        eq(studentAttendance.academicYearId, activeYear.id),
+        sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
+        sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+      ),
+    );
+
+  const existingMap = new Map(
+    existingRecords.map((r) => [r.studentId, r]),
+  );
+
+  // Execute bulk operations in a high-speed transaction
   await db.transaction(async (tx) => {
+    const toInsert: Array<typeof studentAttendance.$inferInsert> = [];
+
     for (const record of records) {
-      // DPDP Consent Check
-      await assertConsent(record.studentId, "attendance");
-
-      // Look for existing attendance record on this date
-      const [existingRecord] = await tx
-        .select()
-        .from(studentAttendance)
-        .where(
-          and(
-            eq(studentAttendance.studentId, record.studentId),
-            eq(studentAttendance.academicYearId, activeYear.id),
-            and(
-              sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-              sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
-            ),
-          ),
-        )
-        .limit(1);
-
-      let markedRecordId = "";
-
-      if (existingRecord) {
-        markedRecordId = existingRecord.id;
+      const existing = existingMap.get(record.studentId);
+      if (existing) {
         await tx
           .update(studentAttendance)
           .set({
@@ -224,34 +230,40 @@ export async function markSectionAttendance(
             remarks: record.remarks || null,
             updatedAt: new Date(),
           })
-          .where(eq(studentAttendance.id, existingRecord.id));
+          .where(eq(studentAttendance.id, existing.id));
       } else {
-        const [newRecord] = await tx
-          .insert(studentAttendance)
-          .values({
-            schoolId,
-            studentId: record.studentId,
-            sectionId,
-            academicYearId: activeYear.id,
-            attendanceDate: parsedDate,
-            status: record.status,
-            markedById: userId,
-            remarks: record.remarks || null,
-          })
-          .returning({ id: studentAttendance.id });
-        markedRecordId = newRecord?.id || "";
+        toInsert.push({
+          schoolId,
+          studentId: record.studentId,
+          sectionId,
+          academicYearId: activeYear.id,
+          attendanceDate: parsedDate,
+          status: record.status,
+          markedById: userId,
+          remarks: record.remarks || null,
+        });
       }
-
-      // DPDP compliance: write to audit log
-      await logAuditEvent(ctxAudit, {
-        action: existingRecord ? "WRITE" : "WRITE",
-        tableName: "student_attendance",
-        recordId: markedRecordId,
-        purposeId: "attendance",
-        schoolId,
-        metadata: { studentId: record.studentId, status: record.status },
-      });
     }
+
+    if (toInsert.length > 0) {
+      await tx.insert(studentAttendance).values(toInsert);
+    }
+
+    // DPDP compliance: write section-level batch audit log
+    await logAuditEvent(ctxAudit, {
+      action: "WRITE",
+      tableName: "student_attendance",
+      recordId: sectionId,
+      purposeId: "attendance",
+      schoolId,
+      metadata: {
+        sectionId,
+        date: dateStr,
+        totalCount: records.length,
+        newRecordsCount: toInsert.length,
+        updatedRecordsCount: records.length - toInsert.length,
+      },
+    });
   });
 
   return { success: true };

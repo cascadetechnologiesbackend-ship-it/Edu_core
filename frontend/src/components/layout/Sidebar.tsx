@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   UserPlus,
@@ -80,11 +80,64 @@ export function Sidebar({
   userRole,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
+
+  // Clear pending state whenever pathname catches up
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   // Fallback to SCHOOL_ADMIN if role is not yet loaded so menu items never disappear
   const role = userRole || session?.user?.role || "SCHOOL_ADMIN";
+
+  // Active route pre-warmer: in dev mode, real background fetch compiles routes on the server
+  // ahead of time; in prod, router.prefetch prefetches the RSC bundle.
+  const warmRoute = (href: string) => {
+    try {
+      router.prefetch(href as any);
+    } catch {}
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      try {
+        fetch(href, {
+          headers: { RSC: "1" },
+          credentials: "include",
+        }).catch(() => {});
+      } catch {}
+    }
+  };
+
+  // Pre-warm primary admin routes in the background during browser idle time
+  useEffect(() => {
+    const prewarmRoutes = () => {
+      const routes = [
+        "/students",
+        "/academics",
+        "/attendance",
+        "/fees",
+        "/hr",
+        "/exams",
+        "/transport",
+        "/library",
+        "/admissions",
+      ];
+      routes.forEach((route, idx) => {
+        setTimeout(() => {
+          warmRoute(route);
+        }, (idx + 1) * 500);
+      });
+    };
+
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        (window as any).requestIdleCallback(prewarmRoutes, { timeout: 2000 });
+      } else {
+        setTimeout(prewarmRoutes, 1000);
+      }
+    }
+  }, [router]);
 
   const isAllowed = (href: string) => {
     if (href === "/dashboard") return true;
@@ -194,27 +247,36 @@ export function Sidebar({
                   pathname === item.href ||
                   (item.href !== "/dashboard" &&
                     pathname.startsWith(item.href));
+                const isPending = pendingHref === item.href;
 
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href as any}
                       prefetch={true}
+                      onClick={() => setPendingHref(item.href)}
+                      onMouseEnter={() => warmRoute(item.href)}
                       className={cn(
-
-                        "sidebar-nav-item",
+                        "sidebar-nav-item transition-all",
                         isActive && "active",
+                        isPending && "opacity-80 animate-pulse bg-white/10",
                         collapsed && "justify-center px-2",
                       )}
                       aria-current={isActive ? "page" : undefined}
                       title={collapsed ? item.label : undefined}
                     >
                       <item.icon
-                        className="w-5 h-5 flex-shrink-0"
+                        className={cn(
+                          "w-5 h-5 flex-shrink-0 transition-transform",
+                          isPending && "scale-110 text-primary",
+                        )}
                         aria-hidden="true"
                       />
                       {!collapsed && (
                         <span className="truncate">{item.label}</span>
+                      )}
+                      {!collapsed && isPending && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
                       )}
                     </Link>
                   </li>

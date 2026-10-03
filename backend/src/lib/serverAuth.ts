@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { Role } from "@schoolmitra/validators";
+import { cache } from "react";
 
 // ─── Server Action Auth Context ───────────────────────────────────────────────
 // ALWAYS use requireAuth() at the top of every server action.
@@ -15,18 +16,8 @@ export interface AuthContext {
   email: string;
 }
 
-/**
- * Validates the session and (optionally) enforces an allowed-roles list.
- * Use this at the top of every server action instead of raw auth() calls.
- *
- * @throws "UNAUTHORIZED" if not logged in
- * @throws "FORBIDDEN: requires roles [...]" if role not in allowedRoles
- *
- * @example
- *   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"]);
- *   const school = await requireSchool(ctx);
- */
-export async function requireAuth(allowedRoles?: readonly Role[]): Promise<AuthContext> {
+// Zero-arg cached session fetcher ensures 100% deduplication per RSC request
+const getCachedSession = cache(async () => {
   let session: any = null;
   if (process.env.NODE_ENV !== "production" && process.env.TEST_AUTH_USER) {
     try {
@@ -38,6 +29,32 @@ export async function requireAuth(allowedRoles?: readonly Role[]): Promise<AuthC
   if (!session) {
     session = await auth();
   }
+  return session;
+});
+
+// In-memory TTL cache for tenant school settings (infrequently mutated)
+const schoolCache = new Map<string, { data: any; expiresAt: number }>();
+
+export function invalidateSchoolCache(schoolId?: string) {
+  if (schoolId) {
+    schoolCache.delete(schoolId);
+  } else {
+    schoolCache.clear();
+  }
+}
+
+/**
+ * Validates the session and (optionally) enforces an allowed-roles list.
+ * Wrapped in React cache() and uses getCachedSession() — auth() is called
+ * at most ONCE per request regardless of caller count.
+ *
+ * @throws "UNAUTHORIZED" if not logged in
+ * @throws "FORBIDDEN: requires roles [...]" if role not in allowedRoles
+ */
+export async function requireAuth(
+  allowedRoles?: readonly Role[],
+): Promise<AuthContext> {
+  const session = await getCachedSession();
 
   if (!session?.user?.id) {
     throw new Error("UNAUTHORIZED");
@@ -61,34 +78,41 @@ export async function requireAuth(allowedRoles?: readonly Role[]): Promise<AuthC
 
 /**
  * Resolves the active school record using the session's schoolId (tenant-scoped).
- * NEVER returns a random school — always scopes to the authenticated user's school.
- *
- * Use this to replace ALL occurrences of:
- *   db.query.schools.findFirst()
+ * Cached with a 60s in-memory TTL so multi-module clicks avoid redundant roundtrips.
  *
  * @throws Error if schoolId is missing or school is not found / not active
  */
-export async function requireSchool(ctx: AuthContext) {
+export const requireSchool = cache(async function requireSchoolImpl(
+  ctx: AuthContext,
+) {
   if (!ctx.schoolId) {
     throw new Error(
       "UNAUTHORIZED: no school context. SUPER_ADMIN must use platform-level actions.",
     );
   }
 
+  const schoolId = ctx.schoolId;
+  const now = Date.now();
+  const cached = schoolCache.get(schoolId);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
   const school = await db.query.schools.findFirst({
-    where: eq(schools.id, ctx.schoolId),
+    where: eq(schools.id, schoolId),
   });
 
   if (!school) {
-    throw new Error(`School not found for id: ${ctx.schoolId}`);
+    throw new Error(`School not found for id: ${schoolId}`);
   }
 
   if (!school.isActive) {
     throw new Error("School account is suspended. Contact your platform administrator.");
   }
 
+  schoolCache.set(schoolId, { data: school, expiresAt: now + 60_000 });
   return school;
-}
+});
 
 /**
  * Convenience wrapper for server actions that return { success, message }.

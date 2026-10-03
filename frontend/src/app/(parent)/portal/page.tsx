@@ -202,12 +202,14 @@ export default async function ParentFeesPage() {
                       ₹{p.amountPaid}
                     </td>
                     <td className="py-3 text-right">
-                      <Link
-                        href={`/fees/receipt/${p.id}` as any}
+                      <a
+                        href={`/api/receipt/${p.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"
                       >
                         Download PDF
-                      </Link>
+                      </a>
                     </td>
                   </tr>
                 );

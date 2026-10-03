@@ -1170,76 +1170,23 @@ export async function toggleStaffLegalHold(staffId: string, legalHold: boolean) 
 }
 
 // ─── CANONICAL TEACHING STAFF RESOLVER FOR AMS & SIS ─────────────────────────
+import {
+  getCanonicalTeachingStaff as _getCanonicalTeachingStaff,
+  invalidateTeachingStaffCache as _invalidateTeachingStaffCache,
+  type CanonicalTeacher,
+} from "./teachingStaff";
+
+export type { CanonicalTeacher };
+
 export async function getCanonicalTeachingStaff(schoolId: string) {
-  try {
-    const staffList = await db.query.staff.findMany({
-      where: and(eq(staff.schoolId, schoolId), eq(staff.isActive, true)),
-      with: {
-        designation: true,
-        department: true,
-        user: true,
-      },
-      orderBy: [desc(staff.createdAt)],
-    });
-
-    const teachingFaculty = staffList
-      .filter((s) => s.designation?.isTeaching && s.user && s.user.isActive)
-      .map((s) => {
-        const first = decryptData(s.firstNameEncrypted) || "Faculty";
-        const last = decryptData(s.lastNameEncrypted) || "";
-        const email = decryptData(s.emailEncrypted) || s.user?.email || "";
-        return {
-          id: s.userId!, // users.id for AMS foreign keys
-          staffId: s.id,
-          name: `${first} ${last}`.trim(),
-          email,
-          employeeCode: s.employeeCode,
-          designationName: s.designation.name,
-          departmentName: s.department?.name || "—",
-          isTeaching: true,
-        };
-      });
-
-    // Also support fallback teacher accounts in seed/tests that do not have staff profiles
-    const teachingUserIds = new Set(teachingFaculty.map((t) => t.id));
-    const teacherRole = await db.query.roles.findFirst({
-      where: and(eq(roles.schoolId, schoolId), eq(roles.name, "TEACHER")),
-    });
-
-    if (teacherRole) {
-      const assignedUserRoles = await db.query.userRoles.findMany({
-        where: and(eq(userRoles.schoolId, schoolId), eq(userRoles.roleId, teacherRole.id)),
-        with: { user: true },
-      });
-
-      for (const ur of assignedUserRoles) {
-        if (ur.user && ur.user.isActive && !teachingUserIds.has(ur.userId)) {
-          // Strictly exclude if this user is linked to a non-teaching staff
-          const nonTeachingStaff = staffList.find((s) => s.userId === ur.userId);
-          if (nonTeachingStaff && !nonTeachingStaff.designation.isTeaching) {
-            continue;
-          }
-          teachingFaculty.push({
-            id: ur.user.id,
-            staffId: "",
-            name: ur.user.email.split("@")[0] ?? "Teacher",
-            email: ur.user.email,
-            employeeCode: "FACULTY",
-            designationName: "Teacher",
-            departmentName: "Academics",
-            isTeaching: true,
-          });
-          teachingUserIds.add(ur.user.id);
-        }
-      }
-    }
-
-    return teachingFaculty;
-  } catch (err) {
-    console.error("Error in getCanonicalTeachingStaff:", err);
-    return [];
-  }
+  return _getCanonicalTeachingStaff(schoolId);
 }
+
+export async function invalidateTeachingStaffCache(schoolId?: string) {
+  return _invalidateTeachingStaffCache(schoolId);
+}
+
+
 
 // ─── STAFF 360 PROFILED DATA FETCHER ──────────────────────────────────────────
 export async function getStaff360(staffId: string) {

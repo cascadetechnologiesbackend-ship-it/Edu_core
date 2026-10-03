@@ -30,11 +30,47 @@ export default async function TransportPage() {
     "TRANSPORT_MANAGER",
   ].includes(role);
 
-  // 1. Fetch vehicles and decrypt PII inline (avoids server action auth context issue)
-  const rawVehicles = await db.query.vehicles.findMany({
-    where: and(eq(vehicles.schoolId, schoolId), isNull(vehicles.deletedAt)),
-    orderBy: [vehicles.busNumber],
-  });
+  // Run all queries in parallel — previously 4 sequential round-trips
+  const [rawVehicles, routesList, rawPasses, rawStudents, consentRecordsList] =
+    await Promise.all([
+      db.query.vehicles.findMany({
+        where: and(eq(vehicles.schoolId, schoolId), isNull(vehicles.deletedAt)),
+        orderBy: [vehicles.busNumber],
+      }),
+      db.query.routes.findMany({
+        where: and(eq(routes.schoolId, schoolId), isNull(routes.deletedAt)),
+        with: {
+          stops: true,
+          vehicle: true,
+        },
+      }),
+      db.query.studentBusPasses.findMany({
+        where: eq(studentBusPasses.schoolId, schoolId),
+        with: {
+          route: true,
+          stop: true,
+          student: true,
+        },
+      }),
+      db.query.students.findMany({
+        where: eq(students.schoolId, schoolId),
+        columns: {
+          id: true,
+          firstNameEncrypted: true,
+          lastNameEncrypted: true,
+        },
+        limit: 200,
+      }),
+      db.query.consentRecords.findMany({
+        where: and(
+          eq(consentRecords.schoolId, schoolId),
+          eq(consentRecords.purposeId, "transport"),
+          eq(consentRecords.granted, true),
+          isNull(consentRecords.withdrawnAt),
+        ),
+        columns: { studentId: true },
+      }),
+    ]);
 
   const vehiclesList = rawVehicles.map((v) => ({
     ...v,
@@ -49,24 +85,6 @@ export default async function TransportPage() {
       : "",
   }));
 
-  // 2. Fetch routes with stops and vehicles
-  const routesList = await db.query.routes.findMany({
-    where: and(eq(routes.schoolId, schoolId), isNull(routes.deletedAt)),
-    with: {
-      stops: true,
-      vehicle: true,
-    },
-  });
-
-  // 3. Fetch bus passes with relations
-  const rawPasses = await db.query.studentBusPasses.findMany({
-    where: eq(studentBusPasses.schoolId, schoolId),
-    with: {
-      route: true,
-      stop: true,
-      student: true,
-    },
-  });
 
   const passesList = rawPasses.map((p) => ({
     id: p.id,
@@ -81,20 +99,6 @@ export default async function TransportPage() {
     routeName: p.route.routeName,
     stopName: p.stop.stopName,
   }));
-
-  // 4. Fetch students and consent statuses
-  const rawStudents = await db.query.students.findMany({
-    where: eq(students.schoolId, schoolId),
-  });
-
-  const consentRecordsList = await db.query.consentRecords.findMany({
-    where: and(
-      eq(consentRecords.schoolId, schoolId),
-      eq(consentRecords.purposeId, "transport"),
-      eq(consentRecords.granted, true),
-      isNull(consentRecords.withdrawnAt),
-    ),
-  });
 
   const consentSet = new Set(consentRecordsList.map((c) => c.studentId));
 

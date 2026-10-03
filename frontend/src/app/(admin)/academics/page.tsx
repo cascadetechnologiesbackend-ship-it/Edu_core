@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
 import { db } from "@/db";
 import {
   classes,
@@ -11,7 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { getActiveAcademicYear } from "./actions/auth-helper";
-import { getCanonicalTeachingStaff } from "../hr/actions";
+import { getCanonicalTeachingStaff } from "../hr/teachingStaff";
 import AmsHubClient from "./components/AmsHubClient";
 
 export const metadata: Metadata = {
@@ -21,19 +21,18 @@ export const metadata: Metadata = {
 };
 
 export default async function AcademicsPage() {
-  const session = await auth();
-  const schoolId = session?.user?.schoolId || "";
-  const role = session?.user?.role || "STUDENT";
-  const userId = session?.user?.id || "";
+  const ctx = await requireAuth();
+  const schoolId = ctx.schoolId || "";
+  const role = ctx.role;
+  const userId = ctx.userId;
 
-  // 1. Resolve Active Academic Year server-side
-  const activeYear = schoolId
-    ? await getActiveAcademicYear(schoolId).catch(() => null)
-    : null;
-
-  // 2. Fetch School Data with strict tenant scoping
-  const [classroomsList, subjectsList, mappingsList, teachersList, pendingSubsResult] =
+  // Fetch all School Data in parallel with strict tenant scoping
+  const [activeYear, classroomsList, subjectsList, mappingsList, teachersList, pendingSubsResult] =
     await Promise.all([
+      schoolId
+        ? getActiveAcademicYear(schoolId).catch(() => null)
+        : Promise.resolve(null),
+
       db.query.classes.findMany({
         where: and(
           eq(classes.schoolId, schoolId),

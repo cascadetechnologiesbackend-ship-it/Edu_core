@@ -41,56 +41,75 @@ export default async function StudentsDirectoryPage() {
   const ctx = await requireAuth();
   const school = await requireSchool(ctx);
 
-  // Fetch all active classes for filter dropdown
-  const schoolClasses = await db.query.classes.findMany({
-    where: and(
-      eq(classes.schoolId, school.id),
-      eq(classes.isActive, true),
-    ),
-    orderBy: [classes.sortOrder, classes.displayName],
-  });
+  // Fetch classes and all sections in parallel with role-specific section checks
+  let classTeacherSections: { id: string }[] = [];
+  let subjectAllocations: { sectionId: string }[] = [];
+  let defaultTeacherClasses: { classId: string }[] = [];
 
-  // Role-based student filtering
-  let allowedSectionIds: string[] | null = null;
-  if (ctx.role === "TEACHER") {
-    // Collect sections where this teacher is assigned as class teacher
-    const classTeacherSections = await db.query.sections.findMany({
-      where: and(
-        eq(sections.schoolId, school.id),
-        eq(sections.classTeacherId, ctx.userId),
-        eq(sections.isActive, true),
-      ),
-      columns: { id: true },
-    });
+  const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role);
 
-    // Collect sections where teacher is allocated in sectionSubjectTeachers
-    const subjectAllocations = await db.query.sectionSubjectTeachers.findMany({
+  // For admins, allStudents has no teacher section filter — run it concurrently with classes and sections
+  const [schoolClasses, allSections, adminStudents, roleQueryResults] = await Promise.all([
+    db.query.classes.findMany({
       where: and(
-        eq(sectionSubjectTeachers.schoolId, school.id),
-        eq(sectionSubjectTeachers.teacherId, ctx.userId),
-        eq(sectionSubjectTeachers.isActive, true),
+        eq(classes.schoolId, school.id),
+        eq(classes.isActive, true),
       ),
-      columns: { sectionId: true },
-    });
+      orderBy: [classes.sortOrder, classes.displayName],
+    }),
+    db.query.sections.findMany({
+      where: eq(sections.schoolId, school.id),
+      with: { class: true },
+    }),
+    isAdmin
+      ? db.query.students.findMany({
+          where: eq(students.schoolId, school.id),
+          orderBy: [desc(students.createdAt)],
+          limit: 200,
+        })
+      : Promise.resolve(null),
+    ctx.role === "TEACHER"
+      ? Promise.all([
+          db.query.sections.findMany({
+            where: and(
+              eq(sections.schoolId, school.id),
+              eq(sections.classTeacherId, ctx.userId),
+              eq(sections.isActive, true),
+            ),
+            columns: { id: true },
+          }),
+          db.query.sectionSubjectTeachers.findMany({
+            where: and(
+              eq(sectionSubjectTeachers.schoolId, school.id),
+              eq(sectionSubjectTeachers.teacherId, ctx.userId),
+              eq(sectionSubjectTeachers.isActive, true),
+            ),
+            columns: { sectionId: true },
+          }),
+          db.query.classSubjects.findMany({
+            where: and(
+              eq(classSubjects.schoolId, school.id),
+              eq(classSubjects.assignedTeacherId, ctx.userId),
+            ),
+            columns: { classId: true },
+          }),
+        ])
+      : Promise.resolve(null),
+  ]);
 
-    // Collect class default teacher sections
-    const defaultTeacherClasses = await db.query.classSubjects.findMany({
-      where: and(
-        eq(classSubjects.schoolId, school.id),
-        eq(classSubjects.assignedTeacherId, ctx.userId),
-      ),
-      columns: { classId: true },
-    });
+  let allStudents = adminStudents;
+
+  if (ctx.role === "TEACHER" && roleQueryResults) {
+    const [ctSections, saSections, dtClasses] = roleQueryResults;
+    classTeacherSections = ctSections;
+    subjectAllocations = saSections;
+    defaultTeacherClasses = dtClasses;
+
     let defaultTeacherSections: { id: string }[] = [];
     if (defaultTeacherClasses.length > 0) {
-      defaultTeacherSections = await db.query.sections.findMany({
-        where: and(
-          eq(sections.schoolId, school.id),
-          inArray(sections.classId, defaultTeacherClasses.map((c) => c.classId)),
-          eq(sections.isActive, true),
-        ),
-        columns: { id: true },
-      });
+      defaultTeacherSections = allSections.filter((s) =>
+        defaultTeacherClasses.some((c) => c.classId === s.classId) && s.isActive,
+      ).map((s) => ({ id: s.id }));
     }
 
     const sectionIdSet = new Set<string>([
@@ -98,29 +117,26 @@ export default async function StudentsDirectoryPage() {
       ...subjectAllocations.map((s) => s.sectionId),
       ...defaultTeacherSections.map((s) => s.id),
     ]);
+    const allowedSectionIds = Array.from(sectionIdSet);
 
-    allowedSectionIds = Array.from(sectionIdSet);
+    // Query teacher's scoped students
+    allStudents = await db.query.students.findMany({
+      where: and(
+        eq(students.schoolId, school.id),
+        allowedSectionIds.length > 0
+          ? inArray(students.currentSectionId, allowedSectionIds)
+          : eq(students.id, "00000000-0000-0000-0000-000000000000"), // no permitted sections
+      ),
+      orderBy: [desc(students.createdAt)],
+      limit: 200,
+    });
   }
 
-  // Query students for this school
-  const allStudents = await db.query.students.findMany({
-    where: and(
-      eq(students.schoolId, school.id),
-      allowedSectionIds !== null
-        ? allowedSectionIds.length > 0
-          ? inArray(students.currentSectionId, allowedSectionIds)
-          : eq(students.id, "00000000-0000-0000-0000-000000000000") // no permitted sections
-        : undefined,
-    ),
-    orderBy: [desc(students.createdAt)],
-    limit: 200,
-  });
+  if (!allStudents) {
+    allStudents = [];
+  }
 
-  // Query section details for placement resolution
-  const allSections = await db.query.sections.findMany({
-    where: eq(sections.schoolId, school.id),
-    with: { class: true },
-  });
+  // allSections already fetched above in the parallel block
   const sectionMap = new Map(allSections.map((s) => [s.id, s]));
 
   const mappedStudents = allStudents.map((s) => {

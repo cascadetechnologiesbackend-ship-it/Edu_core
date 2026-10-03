@@ -25,15 +25,43 @@ export default async function LibraryPage() {
   const userId = session?.user?.id || "";
   const schoolId = session?.user?.schoolId || "";
 
-  // 1. Fetch catalog books with copies
-  const rawBooks = await db.query.books.findMany({
-    where: and(eq(books.schoolId, schoolId), isNull(books.deletedAt)),
-    with: {
-      copies: {
-        where: isNull(bookCopies.deletedAt),
-      },
-    },
-  });
+  // Run all 4 queries in parallel — previously sequential (~2.5s), now concurrent
+  const [rawBooks, studentsListRaw, staffListRaw, rawMembers, rawIssues] =
+    await Promise.all([
+      db.query.books.findMany({
+        where: and(eq(books.schoolId, schoolId), isNull(books.deletedAt)),
+        with: {
+          copies: {
+            where: isNull(bookCopies.deletedAt),
+          },
+        },
+      }),
+      db.query.students.findMany({
+        where: eq(students.schoolId, schoolId),
+        columns: { id: true, firstNameEncrypted: true, lastNameEncrypted: true },
+        limit: 200,
+      }),
+      db.query.staff.findMany({
+        where: eq(staff.schoolId, schoolId),
+        columns: { id: true, firstNameEncrypted: true, lastNameEncrypted: true },
+        limit: 200,
+      }),
+      db.query.libraryMembers.findMany({
+        where: eq(libraryMembers.schoolId, schoolId),
+      }),
+      db.query.bookIssues.findMany({
+        where: eq(bookIssues.schoolId, schoolId),
+        with: {
+          copy: {
+            with: {
+              book: true,
+            },
+          },
+          member: true,
+        },
+        orderBy: [desc(bookIssues.issuedAt)],
+      }),
+    ]);
 
   const booksList = rawBooks.map((b) => ({
     id: b.id,
@@ -54,13 +82,6 @@ export default async function LibraryPage() {
     })),
   }));
 
-  // 2. Fetch students and staff list (to map member registration names)
-  const studentsListRaw = await db.query.students.findMany({
-    where: eq(students.schoolId, schoolId),
-  });
-  const staffListRaw = await db.query.staff.findMany({
-    where: eq(staff.schoolId, schoolId),
-  });
 
   const studentsMap = new Map(
     studentsListRaw.map((s) => [
@@ -76,11 +97,6 @@ export default async function LibraryPage() {
     ]),
   );
 
-  // 3. Fetch library members
-  const rawMembers = await db.query.libraryMembers.findMany({
-    where: eq(libraryMembers.schoolId, schoolId),
-  });
-
   const membersList = rawMembers.map((m) => {
     const name =
       m.memberType === "STUDENT"
@@ -95,20 +111,6 @@ export default async function LibraryPage() {
       maxBooksAllowed: m.maxBooksAllowed,
       loanPeriodDays: m.loanPeriodDays,
     };
-  });
-
-  // 4. Fetch checkout issues
-  const rawIssues = await db.query.bookIssues.findMany({
-    where: eq(bookIssues.schoolId, schoolId),
-    with: {
-      copy: {
-        with: {
-          book: true,
-        },
-      },
-      member: true,
-    },
-    orderBy: [desc(bookIssues.issuedAt)],
   });
 
   const issuesList = rawIssues.map((i) => {

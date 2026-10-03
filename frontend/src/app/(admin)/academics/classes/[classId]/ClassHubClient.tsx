@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -200,6 +200,42 @@ export default function ClassHubClient({
     subjectId: "",
     reason: "",
   });
+
+  // Derive effective periods: use bellPeriods if configured, otherwise fallback to 8 standard periods
+  const effectivePeriods: BellPeriod[] = useMemo(() => {
+    if (bellPeriods && bellPeriods.length > 0) return bellPeriods;
+    const defaultTimes: Record<number, { start: string; end: string }> = {
+      1: { start: "08:00", end: "08:45" },
+      2: { start: "08:45", end: "09:30" },
+      3: { start: "09:30", end: "10:15" },
+      4: { start: "10:30", end: "11:15" },
+      5: { start: "11:15", end: "12:00" },
+      6: { start: "12:00", end: "12:45" },
+      7: { start: "13:30", end: "14:15" },
+      8: { start: "14:15", end: "15:00" },
+    };
+    const periodNums = new Set<number>([1, 2, 3, 4, 5, 6, 7, 8]);
+    if (initialTimetable) {
+      for (const t of initialTimetable) {
+        if (t.periodNumber) periodNums.add(t.periodNumber);
+      }
+    }
+    const sortedNums = Array.from(periodNums).sort((a, b) => a - b);
+    return sortedNums.map((num) => {
+      const match = initialTimetable?.find((t) => t.periodNumber === num);
+      const fallback = defaultTimes[num] || { start: "08:00", end: "08:45" };
+      return {
+        id: `period-${num}`,
+        schoolId: (cls as any).schoolId || "",
+        periodNumber: num,
+        name: `Period ${num}`,
+        startTime: match?.startTime || fallback.start,
+        endTime: match?.endTime || fallback.end,
+        periodType: (match?.periodType as any) || "REGULAR",
+        isActive: true,
+      };
+    });
+  }, [bellPeriods, initialTimetable]);
 
   // Calculate setup checklist metrics
   const hasSections = cls.sections.length > 0;
@@ -834,7 +870,7 @@ export default function ClassHubClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                {bellPeriods.map((period) => (
+                {effectivePeriods.map((period) => (
                   <tr key={period.id}>
                     <td className="p-3 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50/30 dark:bg-slate-800/20">
                       <div className="font-bold text-gray-900 dark:text-white">

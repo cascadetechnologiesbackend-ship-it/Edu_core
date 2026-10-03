@@ -3,9 +3,9 @@ const nextConfig = {
   // Standalone output for Docker
   ...(process.env.NEXT_OUTPUT_STANDALONE ? { output: "standalone" } : {}),
 
-
-  // Strict mode for catching React bugs early
-  reactStrictMode: true,
+  // Disable strict mode in dev to prevent double-rendering all Server Components
+  // (double-rendering doubles ALL DB query time in development)
+  reactStrictMode: false,
 
   // Trust internal package TypeScript
   transpilePackages: [
@@ -44,15 +44,15 @@ const nextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
+            value: "camera=(), microphone=(), geolocation=(self)",
           },
           {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
+              "style-src 'self' 'unsafe-inline'",
+              "font-src 'self' data:",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://api.razorpay.com",
               "frame-src https://api.razorpay.com",
@@ -80,17 +80,75 @@ const nextConfig = {
     ],
   },
 
+  // Keep compiled pages in memory during dev (default is only 15s before purging!)
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000, // 1 hour
+    pagesBufferLength: 50,
+  },
+
+  // Fast SWC direct icon imports — prevents scanning all 1400+ Lucide icons
+  modularizeImports: {
+    "lucide-react": {
+      transform: "lucide-react/dist/esm/icons/{{kebabCase member}}",
+    },
+  },
+
   // Experimental features
   experimental: {
     externalDir: true,
     typedRoutes: true,
-    serverComponentsExternalPackages: ["pg", "ioredis", "bcryptjs", "bullmq"],
+    serverComponentsExternalPackages: [
+      "pg",
+      "ioredis",
+      "bcryptjs",
+      "bullmq",
+      "@react-pdf/renderer",
+      "xlsx",
+      "aws-sdk",
+      "@aws-sdk/client-s3",
+      "@aws-sdk/s3-request-presigner",
+      "pino",
+      "pino-pretty",
+      "nodemailer",
+      "razorpay",
+      "qrcode",
+      "otplib",
+    ],
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "recharts",
+      "cmdk",
+      "@radix-ui/react-accordion",
+      "@radix-ui/react-alert-dialog",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-label",
+      "@radix-ui/react-navigation-menu",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-progress",
+      "@radix-ui/react-select",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-switch",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-toast",
+      "@radix-ui/react-tooltip",
+    ],
+    // Router cache: keep RSC payloads for 30s on dynamic pages, 180s on static
+    // This makes Back/Forward navigation instant and repeated module clicks instant
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
 
-  // Logging
+  // Logging — disable in dev for speed
   logging: {
     fetches: {
-      fullUrl: true,
+      fullUrl: false,
     },
   },
 };

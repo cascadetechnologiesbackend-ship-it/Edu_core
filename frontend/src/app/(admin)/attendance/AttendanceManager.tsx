@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import {
   getAssignedSections,
   getSectionStudents,
@@ -33,24 +33,41 @@ type StudentRecord = {
   remarks: string;
 };
 
-export default function AttendanceManager() {
-  const [sectionsList, setSectionsList] = useState<Section[]>([]);
-  const [selectedSection, setSelectedSection] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0] || "",
+interface AttendanceManagerProps {
+  initialSections?: Section[];
+  initialStudents?: StudentRecord[];
+  initialSelectedSection?: string;
+  initialSelectedDate?: string;
+}
+
+export default function AttendanceManager({
+  initialSections,
+  initialStudents,
+  initialSelectedSection,
+  initialSelectedDate,
+}: AttendanceManagerProps = {}) {
+  const [sectionsList, setSectionsList] = useState<Section[]>(initialSections || []);
+  const [selectedSection, setSelectedSection] = useState<string>(
+    initialSelectedSection || (initialSections && initialSections[0]?.id) || "",
   );
-  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    initialSelectedDate || new Date().toISOString().split("T")[0] || "",
+  );
+  const [students, setStudents] = useState<StudentRecord[]>(initialStudents || []);
 
   const [isPending, startTransition] = useTransition();
-  const [loadingSections, setLoadingSections] = useState(true);
+  const [loadingSections, setLoadingSections] = useState(!initialSections || initialSections.length === 0);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const isFirstRender = useRef(true);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  // Load sections on mount
+  // Load sections on mount only if not already provided by server
   useEffect(() => {
+    if (initialSections && initialSections.length > 0) return;
+
     getAssignedSections()
       .then((data) => {
         setSectionsList(data as any);
@@ -68,10 +85,17 @@ export default function AttendanceManager() {
       .finally(() => {
         setLoadingSections(false);
       });
-  }, []);
+  }, [initialSections]);
 
-  // Fetch students when section or date changes
+  // Fetch students when section or date changes (skip on first render if already provided)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (initialStudents && initialStudents.length > 0) {
+        return;
+      }
+    }
+
     if (!selectedSection || !selectedDate) return;
 
     setLoadingStudents(true);

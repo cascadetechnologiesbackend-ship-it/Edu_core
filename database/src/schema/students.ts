@@ -105,6 +105,8 @@ export const students = pgTable(
     admissionApplicationId: uuid("admission_application_id"),
     previousSchool: text("previous_school"),
     rteApplicant: boolean("rte_applicant").notNull().default(false),
+    optInTransport: boolean("opt_in_transport").notNull().default(false),
+    optInHostel: boolean("opt_in_hostel").notNull().default(false),
     // Linked user account (for student login)
     userId: uuid("user_id"),
     // Primary parent/guardian user

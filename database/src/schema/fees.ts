@@ -13,8 +13,10 @@ import {
   pgEnum,
   index,
   unique,
+  uniqueIndex,
+  varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { schools, academicYears, users } from "./core";
 import { students } from "./students";
 import { classes } from "./academics";
@@ -81,7 +83,14 @@ export const feeHeads = pgTable(
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
     name: text("name").notNull(),
+    code: varchar("code", { length: 10 }),
+    priority: integer("priority").notNull().default(99),
+    description: text("description"),
+    category: varchar("category", { length: 30 }).notNull().default("RECURRING"),
     headType: feeHeadTypeEnum("head_type").notNull(),
+    discountEligible: boolean("discount_eligible").notNull().default(true),
+    lateFineEligible: boolean("late_fine_eligible").notNull().default(false),
+    isRefundable: boolean("is_refundable").notNull().default(false),
     isTaxable: boolean("is_taxable").notNull().default(false),
     gstPercentage: numeric("gst_percentage", {
       precision: 5,
@@ -144,6 +153,15 @@ export const feeStructures = pgTable(
       t.academicYearId,
       t.classId,
     ),
+    uniqueSlotIdx: uniqueIndex("fee_structures_unique_slot_idx")
+      .on(
+        t.schoolId,
+        t.academicYearId,
+        t.classId,
+        t.feeHeadId,
+        t.term,
+      )
+      .where(sql`"deleted_at" IS NULL`),
   }),
 );
 

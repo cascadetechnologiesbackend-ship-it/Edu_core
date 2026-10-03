@@ -1,12 +1,26 @@
 import { Metadata } from "next";
 import AttendanceManager from "./AttendanceManager";
+import { getAssignedSections, getSectionStudents } from "./actions";
 
 export const metadata: Metadata = {
   title: "Student Attendance",
   description: "Mark and view student attendance.",
 };
 
-export default function AttendancePage() {
+export default async function AttendancePage() {
+  const todayStr = new Date().toISOString().split("T")[0] || "";
+  let initialSections: any[] = [];
+  let initialStudents: any[] = [];
+
+  try {
+    initialSections = await getAssignedSections();
+    if (initialSections.length > 0 && initialSections[0]?.id) {
+      initialStudents = await getSectionStudents(initialSections[0].id, todayStr);
+    }
+  } catch (e) {
+    // If not authenticated or error, client will handle gracefully
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div>
@@ -18,7 +32,13 @@ export default function AttendancePage() {
         </p>
       </div>
 
-      <AttendanceManager />
+      <AttendanceManager
+        initialSections={initialSections}
+        initialStudents={initialStudents}
+        initialSelectedSection={initialSections[0]?.id || ""}
+        initialSelectedDate={todayStr}
+      />
     </div>
   );
 }
+

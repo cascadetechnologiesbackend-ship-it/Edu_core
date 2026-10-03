@@ -176,6 +176,7 @@ export const createAdmissionApplicationSchema = z.object({
   applicantName: z.string().min(2).max(200),
   dateOfBirth: dateSchema,
   gender: z.enum(GENDERS),
+  bloodGroup: z.enum(BLOOD_GROUPS).optional(),
   category: z.enum(CATEGORIES),
   gradeAppliedFor: gradeLevelSchema,
   previousSchool: z.string().max(200).optional(),
@@ -187,6 +188,8 @@ export const createAdmissionApplicationSchema = z.object({
   address: z.string().min(10).max(500),
   pincode: pincodeSchema,
   isRteApplicant: z.boolean().default(false),
+  optInTransport: z.boolean().default(false),
+  optInHostel: z.boolean().default(false),
   hasSiblingInSchool: z.boolean().default(false),
   siblingStudentId: uuidSchema.optional(),
 });
@@ -216,6 +219,8 @@ export const createStudentSchema = z.object({
   admissionDate: dateSchema,
   previousSchool: z.string().max(200).optional(),
   rteApplicant: z.boolean().default(false),
+  optInTransport: z.boolean().default(false),
+  optInHostel: z.boolean().default(false),
 });
 
 // ─── DPDP / Consent ───────────────────────────────────────────────────────────
