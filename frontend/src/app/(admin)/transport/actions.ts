@@ -70,9 +70,9 @@ export async function saveVehicle(data: {
   make?: string;
   model?: string;
   yearOfManufacture?: number;
-  driverName: string;
-  driverLicence: string;
-  driverMobile: string;
+  driverName?: string;
+  driverLicence?: string;
+  driverMobile?: string;
   conductorName?: string;
   conductorMobile?: string;
 }) {
@@ -87,9 +87,9 @@ export async function saveVehicle(data: {
     make: data.make || null,
     model: data.model || null,
     yearOfManufacture: data.yearOfManufacture || null,
-    driverNameEncrypted: encryptData(data.driverName),
-    driverLicenceEncrypted: encryptData(data.driverLicence),
-    driverMobileEncrypted: encryptData(data.driverMobile),
+    driverNameEncrypted: data.driverName ? encryptData(data.driverName) : null,
+    driverLicenceEncrypted: data.driverLicence ? encryptData(data.driverLicence) : null,
+    driverMobileEncrypted: data.driverMobile ? encryptData(data.driverMobile) : null,
     conductorNameEncrypted: data.conductorName
       ? encryptData(data.conductorName)
       : null,
@@ -135,19 +135,47 @@ export async function getVehicles() {
     orderBy: [vehicles.busNumber],
   });
 
-  // Decrypt PII details
-  const decryptedList = list.map((v) => ({
-    ...v,
-    driverName: decryptData(v.driverNameEncrypted) || "",
-    driverLicence: decryptData(v.driverLicenceEncrypted) || "",
-    driverMobile: decryptData(v.driverMobileEncrypted) || "",
-    conductorName: v.conductorNameEncrypted
-      ? decryptData(v.conductorNameEncrypted) || ""
-      : "",
-    conductorMobile: v.conductorMobileEncrypted
-      ? decryptData(v.conductorMobileEncrypted) || ""
-      : "",
-  }));
+  // Query dedicated drivers assigned to these vehicles
+  const dedicatedDrivers = await db.query.drivers.findMany({
+    where: and(eq(drivers.schoolId, schoolId), isNull(drivers.deletedAt)),
+  });
+
+  const driverByVehicleId = new Map<string, any>();
+  dedicatedDrivers.forEach((d) => {
+    if (d.vehicleId) {
+      driverByVehicleId.set(d.vehicleId, d);
+    }
+  });
+
+  // Decrypt PII details, prioritizing dedicated drivers
+  const decryptedList = list.map((v) => {
+    const assignedDriver = driverByVehicleId.get(v.id);
+
+    return {
+      ...v,
+      driverName: assignedDriver
+        ? decryptData(assignedDriver.nameEncrypted) || "Driver"
+        : v.driverNameEncrypted
+        ? decryptData(v.driverNameEncrypted) || ""
+        : "",
+      driverLicence: assignedDriver
+        ? decryptData(assignedDriver.licenceEncrypted) || ""
+        : v.driverLicenceEncrypted
+        ? decryptData(v.driverLicenceEncrypted) || ""
+        : "",
+      driverMobile: assignedDriver
+        ? decryptData(assignedDriver.mobileEncrypted) || ""
+        : v.driverMobileEncrypted
+        ? decryptData(v.driverMobileEncrypted) || ""
+        : "",
+      conductorName: v.conductorNameEncrypted
+        ? decryptData(v.conductorNameEncrypted) || ""
+        : "",
+      conductorMobile: v.conductorMobileEncrypted
+        ? decryptData(v.conductorMobileEncrypted) || ""
+        : "",
+    };
+  });
 
   // Audit Log Read (PII accessed)
   if (decryptedList.length > 0) {

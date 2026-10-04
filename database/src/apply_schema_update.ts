@@ -47,8 +47,12 @@ async function main() {
       CREATE INDEX IF NOT EXISTS drivers_school_idx ON drivers(school_id);
       CREATE INDEX IF NOT EXISTS drivers_vehicle_idx ON drivers(vehicle_id);
       CREATE INDEX IF NOT EXISTS drivers_user_idx ON drivers(user_id);
+
+      ALTER TABLE vehicles ALTER COLUMN driver_name_encrypted DROP NOT NULL;
+      ALTER TABLE vehicles ALTER COLUMN driver_licence_encrypted DROP NOT NULL;
+      ALTER TABLE vehicles ALTER COLUMN driver_mobile_encrypted DROP NOT NULL;
     `);
-    console.log("✓ drivers table created/verified");
+    console.log("✓ drivers table created/verified and vehicles driver columns made optional");
   } finally {
     client.release();
     await pool.end();

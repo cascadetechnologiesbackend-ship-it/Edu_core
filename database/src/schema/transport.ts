@@ -25,10 +25,10 @@ export const vehicles = pgTable(
     make: text("make"),
     model: text("model"),
     yearOfManufacture: integer("year_of_manufacture"),
-    // Driver details — PII encrypted
-    driverNameEncrypted: text("driver_name_encrypted").notNull(),
-    driverLicenceEncrypted: text("driver_licence_encrypted").notNull(),
-    driverMobileEncrypted: text("driver_mobile_encrypted").notNull(),
+    // Driver details — optional / managed via dedicated drivers table
+    driverNameEncrypted: text("driver_name_encrypted"),
+    driverLicenceEncrypted: text("driver_licence_encrypted"),
+    driverMobileEncrypted: text("driver_mobile_encrypted"),
     // Conductor details
     conductorNameEncrypted: text("conductor_name_encrypted"),
     conductorMobileEncrypted: text("conductor_mobile_encrypted"),

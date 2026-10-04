@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveVehicle } from "./actions";
-import { Plus, Bus, ShieldAlert, RefreshCw } from "lucide-react";
+import { Plus, Bus, ShieldAlert, RefreshCw, Users } from "lucide-react";
 
 type Vehicle = {
   id: string;
@@ -37,9 +37,6 @@ export default function VehiclesTab({
     make: "",
     model: "",
     yearOfManufacture: new Date().getFullYear(),
-    driverName: "",
-    driverLicence: "",
-    driverMobile: "",
     conductorName: "",
     conductorMobile: "",
   });
@@ -57,9 +54,6 @@ export default function VehiclesTab({
         make: "",
         model: "",
         yearOfManufacture: new Date().getFullYear(),
-        driverName: "",
-        driverLicence: "",
-        driverMobile: "",
         conductorName: "",
         conductorMobile: "",
       });
@@ -119,15 +113,32 @@ export default function VehiclesTab({
                     </td>
                     <td className="px-6 py-4">{v.capacity} Seats</td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {v.driverName}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        Licence: {v.driverLicence}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        Mobile: {v.driverMobile}
-                      </div>
+                      {v.driverName ? (
+                        <>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {v.driverName}
+                          </div>
+                          {v.driverLicence && (
+                            <div className="text-xs text-gray-400">
+                              Licence: {v.driverLicence}
+                            </div>
+                          )}
+                          {v.driverMobile && (
+                            <div className="text-xs text-gray-400">
+                              Mobile: {v.driverMobile}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                            Unassigned
+                          </span>
+                          <div className="text-[10px] text-gray-400 mt-1">
+                            Assign in Drivers tab
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {v.conductorName ? (
@@ -250,56 +261,13 @@ export default function VehiclesTab({
               </div>
             </div>
 
-            <div className="border-t border-gray-100 dark:border-slate-800 pt-4 space-y-4">
-              <h4 className="font-semibold text-sm text-primary">
-                Driver Details (Mandatory PII Encryption)
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Driver Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.driverName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, driverName: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Licence Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.driverLicence}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        driverLicence: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-              </div>
+            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-3.5 flex items-start gap-2.5 text-xs text-indigo-300">
+              <Users className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Driver Mobile *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.driverMobile}
-                  onChange={(e) =>
-                    setFormData({ ...formData, driverMobile: e.target.value })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
+                <span className="font-semibold text-white">Driver Management:</span>
+                <p className="text-[11px] text-indigo-200/80 mt-0.5 leading-relaxed">
+                  Bus drivers with PWA login credentials are created and assigned to vehicles under the <strong>Drivers &amp; Accounts</strong> tab.
+                </p>
               </div>
             </div>
 
