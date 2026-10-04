@@ -11,9 +11,17 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 async function main() {
   console.log("Migration started");
-  await migrate(db, { migrationsFolder: "./src/migrations" });
+  const migrationsFolder = path.resolve(__dirname, "migrations");
+  console.log(`Using migrations folder: ${migrationsFolder}`);
+  await migrate(db, { migrationsFolder });
   console.log("Migration completed");
   process.exit(0);
 }
