@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireAuth } from "@/lib/serverAuth";
 import Link from "next/link";
 import { GraduationCap, Award, Calendar, BookOpen, CheckCircle2 } from "lucide-react";

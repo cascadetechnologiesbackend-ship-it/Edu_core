@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireAuth } from "@/lib/serverAuth";
 import Link from "next/link";
 import { BookOpen, ArrowLeftRight, AlertCircle, Search, CheckCircle2 } from "lucide-react";

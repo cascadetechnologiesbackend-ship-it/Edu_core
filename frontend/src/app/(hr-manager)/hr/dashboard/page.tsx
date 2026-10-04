@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireAuth } from "@/lib/serverAuth";
 import Link from "next/link";
 import { Users, Banknote, CalendarOff, UserCheck, FileSpreadsheet, CheckCircle2 } from "lucide-react";

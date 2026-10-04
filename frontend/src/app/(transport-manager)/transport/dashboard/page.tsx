@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireAuth } from "@/lib/serverAuth";
 import Link from "next/link";
 import { Bus, MapPin, Users, AlertCircle, CheckCircle2 } from "lucide-react";
