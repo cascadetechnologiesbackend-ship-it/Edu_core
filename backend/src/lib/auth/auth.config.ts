@@ -31,9 +31,9 @@ export const authConfig: NextAuthConfig = {
 
       // Strictly match static asset extensions to prevent dot-truncation middleware auth bypass
       const isStaticAsset =
-        /\.(ico|png|jpg|jpeg|svg|webp|gif|css|js|woff2?|ttf|eot|map|txt|webmanifest)$/i.test(
+        /\.(ico|png|jpg|jpeg|svg|webp|gif|css|js|woff2?|ttf|eot|map|txt|json|webmanifest)$/i.test(
           pathname,
-        );
+        ) || pathname === "/manifest.json";
 
       if (
         pathname.startsWith("/_next") ||

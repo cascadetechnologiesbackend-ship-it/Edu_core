@@ -14,11 +14,17 @@ export const getActiveTenant = cache(async () => {
   const parts = host.split(".");
   let tenant = "";
 
+  // Deployments on Vercel (*.vercel.app), Render (*.onrender.com), etc. are main apps, not school subdomains
+  const isCloudDeploymentDomain =
+    host.endsWith(".vercel.app") ||
+    host.endsWith(".onrender.com") ||
+    host.endsWith(".railway.app");
+
   if (host.includes("localhost") || host.includes("127.0.0.1")) {
     if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
       tenant = parts[0] || "";
     }
-  } else if (parts.length > 2) {
+  } else if (!isCloudDeploymentDomain && parts.length > 2) {
     tenant = parts[0] || "";
   }
 
