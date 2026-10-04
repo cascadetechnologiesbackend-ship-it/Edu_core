@@ -3,7 +3,7 @@ services:
     name: educore-app
     runtime: node
     plan: starter
-    buildCommand: pnpm install && pnpm run build
+    buildCommand: pnpm install && pnpm -w run build
     startCommand: pnpm start
     envVars:
       - key: NODE_VERSION
