@@ -9,11 +9,19 @@ import {
   studentBusPasses,
   gpsPings,
   students,
+  drivers,
+  users,
+  roles,
+  userRoles,
 } from "@/db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { encryptData, decryptData } from "@/lib/encryption";
 import { assertConsent } from "@/server/middleware/consent";
 import { logAuditEvent } from "@/lib/auditLogger";
+import bcrypt from "bcryptjs";
+import { sendSMS } from "@/lib/sms";
+
+import { headers } from "next/headers";
 
 const ALLOWED_ROLES = [
   "SUPER_ADMIN",
@@ -28,10 +36,29 @@ async function checkAuth() {
   return { ctx, school };
 }
 
-// Helper to construct a mock context for logAuditEvent
+// Helper to construct context for logAuditEvent
 function makeAuditCtx(ctx: any) {
+  let ip = "127.0.0.1";
+  let userAgent = "system/server-action";
+  try {
+    const h = headers();
+    ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "127.0.0.1";
+    userAgent = h.get("user-agent") || "system/server-action";
+  } catch {}
   return {
-    user: { id: ctx.userId, role: ctx.role, schoolId: ctx.schoolId }
+    session: {
+      user: {
+        id: ctx.userId,
+        email: ctx.email,
+        role: ctx.role,
+        schoolId: ctx.schoolId,
+      },
+    },
+    userId: ctx.userId,
+    userEmail: ctx.email,
+    userRole: ctx.role,
+    ip,
+    userAgent,
   } as any;
 }
 
@@ -318,3 +345,177 @@ export async function getLiveGpsPing(vehicleId: string) {
   });
   return ping;
 }
+
+export async function createDriver(data: {
+  name: string;
+  mobile: string;
+  licenceNumber: string;
+  vehicleId?: string | undefined;
+  email?: string | undefined;
+}) {
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
+
+  const rawMobile = data.mobile.trim().replace(/[^0-9]/g, "");
+  if (rawMobile.length < 10) {
+    return { success: false, message: "Valid 10-digit mobile number is required." };
+  }
+
+  const loginEmail = data.email?.trim().toLowerCase() || `driver.${rawMobile.slice(-10)}@${schoolId.slice(0, 8)}.schoolmitra.local`;
+
+  // Check if user already exists
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.email, loginEmail),
+  });
+  if (existingUser) {
+    return { success: false, message: `A user account with email "${loginEmail}" already exists.` };
+  }
+
+  const defaultPassword = `Driver@${rawMobile.slice(-4)}`;
+  const passwordHash = await bcrypt.hash(defaultPassword, 12);
+
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      schoolId,
+      email: loginEmail,
+      passwordHash,
+      mustChangePassword: true,
+      isActive: true,
+      isEmailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  if (!newUser) {
+    return { success: false, message: "Failed to create driver login credentials." };
+  }
+
+  // Ensure DRIVER role exists for school
+  let driverRole = await db.query.roles.findFirst({
+    where: and(eq(roles.schoolId, schoolId), eq(roles.name, "DRIVER")),
+  });
+
+  if (!driverRole) {
+    const [createdRole] = await db
+      .insert(roles)
+      .values({
+        schoolId,
+        name: "DRIVER",
+        displayName: "Bus Driver",
+        isSystemRole: true,
+      })
+      .returning();
+    driverRole = createdRole;
+  }
+
+  if (driverRole) {
+    await db.insert(userRoles).values({
+      userId: newUser.id,
+      roleId: driverRole.id,
+      schoolId,
+    });
+  }
+
+  // Create driver entity
+  const [newDriver] = await db
+    .insert(drivers)
+    .values({
+      schoolId,
+      vehicleId: data.vehicleId || null,
+      userId: newUser.id,
+      nameEncrypted: encryptData(data.name.trim()),
+      mobileEncrypted: encryptData(data.mobile.trim()),
+      licenceEncrypted: encryptData(data.licenceNumber.trim()),
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  // If vehicle was assigned, update vehicle record driver info
+  if (data.vehicleId) {
+    await db
+      .update(vehicles)
+      .set({
+        driverNameEncrypted: encryptData(data.name.trim()),
+        driverLicenceEncrypted: encryptData(data.licenceNumber.trim()),
+        driverMobileEncrypted: encryptData(data.mobile.trim()),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(vehicles.id, data.vehicleId), eq(vehicles.schoolId, schoolId)));
+  }
+
+  // Send credentials via SMS/WhatsApp
+  const formattedMobile = rawMobile.length === 10 ? `+91${rawMobile}` : `+${rawMobile}`;
+  const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3002";
+  await sendSMS(
+    formattedMobile,
+    `Welcome to ${school.name}!\n` +
+      `Your Bus Driver login credentials:\n` +
+      `Username/Email: ${loginEmail}\n` +
+      `Password: ${defaultPassword}\n` +
+      `Driver App: ${pwaUrl}\n` +
+      `Please change your password upon first login.`
+  );
+
+  // Audit log
+  await logAuditEvent(makeAuditCtx(ctx), {
+    action: "WRITE",
+    tableName: "drivers",
+    recordId: newDriver?.id || "",
+    purposeId: "transport",
+    schoolId,
+    metadata: { name: data.name, vehicleId: data.vehicleId },
+  });
+
+  return { success: true, driverId: newDriver?.id, loginEmail, defaultPassword };
+}
+
+export async function getDrivers() {
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
+
+  const list = await db.query.drivers.findMany({
+    where: and(eq(drivers.schoolId, schoolId), isNull(drivers.deletedAt)),
+    with: {
+      vehicle: true,
+      user: true,
+    },
+    orderBy: [desc(drivers.createdAt)],
+  });
+
+  return list.map((d) => ({
+    id: d.id,
+    name: decryptData(d.nameEncrypted) || "Unknown",
+    mobile: decryptData(d.mobileEncrypted) || "",
+    licenceNumber: decryptData(d.licenceEncrypted) || "",
+    vehicleId: d.vehicleId,
+    vehicleBusNumber: d.vehicle?.busNumber || null,
+    vehicleRegNumber: d.vehicle?.registrationNumber || null,
+    loginEmail: d.user?.email || "",
+    isActive: d.isActive,
+    mustChangePassword: d.user?.mustChangePassword || false,
+    createdAt: d.createdAt,
+  }));
+}
+
+export async function toggleDriverStatus(driverId: string, isActive: boolean) {
+  const { school } = await checkAuth();
+  await db
+    .update(drivers)
+    .set({ isActive, updatedAt: new Date() })
+    .where(and(eq(drivers.id, driverId), eq(drivers.schoolId, school.id)));
+  return { success: true };
+}
+
+export async function deleteDriver(driverId: string) {
+  const { school } = await checkAuth();
+  await db
+    .update(drivers)
+    .set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() })
+    .where(and(eq(drivers.id, driverId), eq(drivers.schoolId, school.id)));
+  return { success: true };
+}
+

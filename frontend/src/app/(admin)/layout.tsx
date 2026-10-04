@@ -31,6 +31,16 @@ export default async function AdminLayout({
     redirect("/portal");
   }
 
+  // Drivers belong in the driver hub
+  if (session.user.role === "DRIVER") {
+    redirect("/driver/dashboard");
+  }
+
+  // Teachers belong in the educator PWA workspace
+  if (session.user.role === "TEACHER") {
+    redirect("/teacher/dashboard");
+  }
+
   // Super admins belong in the platform management group
   if (session.user.role === "SUPER_ADMIN") {
     redirect("/platform/dashboard");

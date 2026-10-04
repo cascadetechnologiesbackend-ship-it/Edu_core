@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import Script from "next/script";
+import { CreditCard, Loader2 } from "lucide-react";
 
 export function CheckoutButton({
   invoiceId,
   amount,
+  className,
 }: {
   invoiceId: string;
   amount: number;
+  className?: string;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -32,44 +35,57 @@ export function CheckoutButton({
 
       // Open Razorpay Checkout modal
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use NEXT_PUBLIC key
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
         name: "SchoolMitra ERP",
         description: "Fee Payment",
         order_id: order.id,
         handler: function () {
-          // Webhook handles the actual database updates, but we can optimistically reload
           window.location.reload();
         },
         prefill: {
-          name: "Parent", // In real app, fetch from session
+          name: "Parent",
           email: "parent@example.com",
           contact: "9999999999",
         },
         theme: {
-          color: "#2563EB",
+          color: "#4f46e5",
         },
       };
 
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
     } catch (err: any) {
-      alert("Something went wrong");
+      alert("Something went wrong with the payment gateway.");
     } finally {
       setLoading(false);
     }
   };
 
+  const defaultStyles =
+    "w-full sm:w-auto py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs transition shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 disabled:opacity-50";
+
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       <button
+        type="button"
         onClick={handlePayment}
         disabled={loading}
-        className="bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        className={className || defaultStyles}
       >
-        {loading ? "Processing..." : "Pay Online"}
+        {loading ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Processing...</span>
+          </>
+        ) : (
+          <>
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Pay Online</span>
+          </>
+        )}
       </button>
     </>
   );

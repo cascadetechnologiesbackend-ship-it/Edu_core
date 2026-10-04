@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";

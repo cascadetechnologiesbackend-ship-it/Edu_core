@@ -8,6 +8,25 @@ import { eq } from "drizzle-orm";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt(params) {
+      let token = await (authConfig.callbacks?.jwt ? authConfig.callbacks.jwt(params) : params.token);
+      if (token?.id && token.mustChangePassword) {
+        try {
+          const [dbUser] = await db
+            .select({ mustChangePassword: users.mustChangePassword })
+            .from(users)
+            .where(eq(users.id, token.id as string))
+            .limit(1);
+          if (dbUser && !dbUser.mustChangePassword) {
+            token.mustChangePassword = false;
+          }
+        } catch {}
+      }
+      return token;
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -93,6 +112,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           name: email.split("@")[0] ?? "Unknown", // Simple fallback name
           schoolId: user.schoolId,
           role: roleNames[0] ?? "STUDENT",
+          mustChangePassword: user.mustChangePassword ?? false,
         };
       },
     }),

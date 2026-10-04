@@ -13,6 +13,7 @@ export * from "./fees";
 export * from "./hr";
 export * from "./library";
 export * from "./transport";
+export * from "./drivers";
 export * from "./communication";
 export * from "./inventory";
 export * from "./hostel";

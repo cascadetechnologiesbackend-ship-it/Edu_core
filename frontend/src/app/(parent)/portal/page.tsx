@@ -5,16 +5,33 @@ import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import { CheckoutButton } from "./CheckoutButton";
 import Link from "next/link";
+import {
+  CreditCard,
+  Receipt,
+  FileText,
+  Calendar,
+  AlertCircle,
+  Download,
+  ChevronRight,
+  ShieldCheck,
+  Award,
+} from "lucide-react";
 
 export default async function ParentFeesPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    return <div className="p-6">Please log in to view fees.</div>;
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 text-center text-xs text-slate-400">
+        Please log in to view fees.
+      </div>
+    );
   }
 
   const parentUserId = session.user.id;
-  const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
+    session.user.role
+  );
 
   // Find students linked to this parent (primary_parent_user_id)
   let myStudents = await db.query.students.findMany({
@@ -31,27 +48,18 @@ export default async function ParentFeesPage() {
 
   if (myStudents.length === 0) {
     return (
-      <div className="p-6">
-        <h2 className="text-xl font-bold text-red-600 mb-2">
-          Access Restricted
-        </h2>
-        <p>
-          No students linked to your account. If you are a parent, please
-          contact the school administration.
+      <div className="rounded-2xl border border-rose-900/40 bg-rose-950/20 p-6 text-center space-y-2">
+        <h2 className="text-base font-bold text-rose-400">Access Restricted</h2>
+        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          No students are currently linked to your parent profile. Please contact the school administration office to verify your account linkage.
         </p>
-        {isAdmin && (
-          <p className="mt-4 text-sm text-gray-500">
-            Note: As an admin, a demo student would be shown here if any existed
-            in the database.
-          </p>
-        )}
       </div>
     );
   }
 
   // Fetch dues and history
-  const allInvoices = [];
-  const allPayments = [];
+  const allInvoices: any[] = [];
+  const allPayments: any[] = [];
 
   for (const student of myStudents) {
     // DPDP AUDIT LOGGING
@@ -85,81 +93,123 @@ export default async function ParentFeesPage() {
   }
 
   const pendingInvoices = allInvoices.filter((i) =>
-    ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status),
+    ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status)
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      {/* ─── 1. Header & Section Title ──────────────────────────────────────── */}
+      <div className="space-y-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
             Fee Management
           </h1>
-          <p className="text-sm text-gray-500">
-            View current dues and payment history for your wards.
+          <p className="text-xs text-slate-400 mt-0.5">
+            View current tuition dues, term invoices, and payment receipts.
           </p>
         </div>
-        <div className="flex gap-2">
-          <span className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md font-semibold">
-            Fees & Dues
+
+        {/* ─── Dedicated Horizontal Pill Tabs (No Squashing!) ───────────────── */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+          <span className="px-3.5 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/30 whitespace-nowrap">
+            Fees &amp; Dues
           </span>
           <Link
             href="/portal/report-cards"
-            className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 dark:bg-slate-900 dark:border-slate-800 dark:text-gray-300 transition-colors"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
           >
             Report Cards
           </Link>
           <Link
             href="/portal/consent"
-            className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 dark:bg-slate-900 dark:border-slate-800 dark:text-gray-300 transition-colors"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
           >
             Consent Center
           </Link>
           <Link
             href="/portal/rights"
-            className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 dark:bg-slate-900 dark:border-slate-800 dark:text-gray-300 transition-colors"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
           >
             Subject Rights
           </Link>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 space-y-6">
-        <h2 className="text-lg font-semibold">Current Dues</h2>
+      {/* ─── 2. Outstanding Invoices & Dues ─────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-indigo-400" />
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+              Current Outstanding Invoices ({pendingInvoices.length})
+            </h2>
+          </div>
+        </div>
 
         {pendingInvoices.length === 0 ? (
-          <p className="text-gray-500">No pending dues.</p>
+          <div className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-6 text-center text-xs text-emerald-300">
+            All fees are fully cleared. No outstanding dues found!
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {pendingInvoices.map((inv) => {
-              const fName =
-                decryptData(inv.student.firstNameEncrypted) || "Student";
+              const fName = decryptData(inv.student.firstNameEncrypted) || "Student";
+              const feeHeadName = (inv.feeStructure?.feeHead as any)?.name || "Academic Fee";
+              const balanceAmt = parseFloat(inv.balanceAmount || "0");
+
               return (
                 <div
                   key={inv.id}
-                  className="flex justify-between items-center p-4 border rounded-lg bg-gray-50 dark:bg-slate-800 dark:border-slate-700"
+                  className="rounded-2xl border border-slate-800/90 bg-slate-950/60 p-4 space-y-3 transition hover:border-slate-700"
                 >
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {fName} - {(inv.feeStructure?.feeHead as any)?.name} (
-                      {inv.term})
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Invoice: {inv.invoiceNumber} | Due:{" "}
-                      {inv.dueDate.toLocaleDateString()}
-                    </p>
-                    <p className="text-sm mt-1">
-                      Gross: ₹{inv.grossAmount} | Discount: ₹
-                      {inv.discountAmount} | Late Fee: ₹{inv.lateFeeAmount}
-                    </p>
+                  {/* Top Row: Ward name, Fee Head, and Amount */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+                        <span>{fName} — {feeHeadName}</span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                          {inv.term}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+                        <span>Invoice: <strong className="text-slate-300">{inv.invoiceNumber}</strong></span>
+                        <span>•</span>
+                        <span>Due: <strong className="text-slate-300">{new Date(inv.dueDate).toLocaleDateString()}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-base sm:text-lg font-black text-rose-400">
+                        ₹{balanceAmt.toFixed(2)}
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        Balance Due
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right flex flex-col gap-2">
-                    <span className="text-xl font-bold text-red-600 dark:text-red-400">
-                      ₹{inv.balanceAmount}
-                    </span>
+
+                  {/* Middle Row: Breakdown Chips */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80 text-[11px]">
+                    <div className="bg-slate-900/80 border border-slate-800/60 rounded-xl p-2 text-center">
+                      <span className="text-slate-400 block text-[10px]">Gross</span>
+                      <span className="font-semibold text-white">₹{inv.grossAmount}</span>
+                    </div>
+                    <div className="bg-slate-900/80 border border-slate-800/60 rounded-xl p-2 text-center">
+                      <span className="text-slate-400 block text-[10px]">Discount</span>
+                      <span className="font-semibold text-emerald-400">₹{inv.discountAmount}</span>
+                    </div>
+                    <div className="bg-slate-900/80 border border-slate-800/60 rounded-xl p-2 text-center">
+                      <span className="text-slate-400 block text-[10px]">Late Fee</span>
+                      <span className="font-semibold text-amber-400">₹{inv.lateFeeAmount}</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Action: Pay Online Button */}
+                  <div className="pt-1">
                     <CheckoutButton
                       invoiceId={inv.id}
-                      amount={parseFloat(inv.balanceAmount)}
+                      amount={balanceAmt}
+                      className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs transition shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2"
                     />
                   </div>
                 </div>
@@ -169,61 +219,116 @@ export default async function ParentFeesPage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 mt-8">
-        <h2 className="text-lg font-semibold mb-4">Payment History</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-slate-700 text-gray-500">
-                <th className="pb-3">Date</th>
-                <th className="pb-3">Student</th>
-                <th className="pb-3">Receipt No</th>
-                <th className="pb-3">Method</th>
-                <th className="pb-3 text-right">Amount Paid</th>
-                <th className="pb-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+      {/* ─── 3. Payment History ─────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+              Payment History ({allPayments.length})
+            </h2>
+          </div>
+        </div>
+
+        {allPayments.length === 0 ? (
+          <p className="text-xs text-slate-400 py-6 text-center">
+            No payment transaction records found.
+          </p>
+        ) : (
+          <>
+            {/* Mobile View: Clean Receipt Cards (<640px) */}
+            <div className="space-y-2.5 sm:hidden">
               {allPayments.map((p) => {
-                const fName =
-                  decryptData(p.student.firstNameEncrypted) || "Student";
+                const fName = decryptData(p.student.firstNameEncrypted) || "Student";
                 return (
-                  <tr
+                  <div
                     key={p.id}
-                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                    className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 space-y-2 text-xs"
                   >
-                    <td className="py-3">
-                      {p.paymentDate.toLocaleDateString()}
-                    </td>
-                    <td className="py-3">{fName}</td>
-                    <td className="py-3 font-mono">{p.receiptNumber}</td>
-                    <td className="py-3">{p.paymentMethod}</td>
-                    <td className="py-3 text-right font-medium text-green-600">
-                      ₹{p.amountPaid}
-                    </td>
-                    <td className="py-3 text-right">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-bold text-white">{fName}</div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          Receipt #{p.receiptNumber}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-emerald-400 text-sm">
+                          ₹{p.amountPaid}
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(p.paymentDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-300">
+                        {p.paymentMethod}
+                      </span>
                       <a
                         href={`/api/receipt/${p.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
                       >
-                        Download PDF
+                        <Download className="w-3 h-3" /> Download PDF
                       </a>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })}
-              {allPayments.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">
-                    No payment history found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Desktop / Tablet View: Well-Spaced Table (>=640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[500px]">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="pb-3 font-semibold">Date</th>
+                    <th className="pb-3 font-semibold">Student</th>
+                    <th className="pb-3 font-semibold">Receipt No</th>
+                    <th className="pb-3 font-semibold">Method</th>
+                    <th className="pb-3 font-semibold text-right">Amount Paid</th>
+                    <th className="pb-3 font-semibold text-right">Receipt</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {allPayments.map((p) => {
+                    const fName = decryptData(p.student.firstNameEncrypted) || "Student";
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-3 text-slate-300">
+                          {new Date(p.paymentDate).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 font-medium text-white">{fName}</td>
+                        <td className="py-3 font-mono text-slate-400">{p.receiptNumber}</td>
+                        <td className="py-3">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-300">
+                            {p.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right font-bold text-emerald-400">
+                          ₹{p.amountPaid}
+                        </td>
+                        <td className="py-3 text-right">
+                          <a
+                            href={`/api/receipt/${p.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 font-semibold inline-flex items-center gap-1"
+                          >
+                            <Download className="w-3 h-3" /> PDF
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

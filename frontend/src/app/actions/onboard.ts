@@ -339,6 +339,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         { name: "TRANSPORT_MANAGER", displayName: "Transport Operations Manager", isSystemRole: true },
         { name: "PARENT", displayName: "Parent / Guardian", isSystemRole: true },
         { name: "STUDENT", displayName: "Student", isSystemRole: true },
+        { name: "DRIVER", displayName: "Bus Driver", isSystemRole: true },
       ];
 
       const createdRoles = await tx

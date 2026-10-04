@@ -38,6 +38,7 @@ export const roleNameEnum = pgEnum("role_name", [
   "TRANSPORT_MANAGER",
   "PARENT",
   "STUDENT",
+  "DRIVER",
 ]);
 
 export const auditActionEnum = pgEnum("audit_action", [
@@ -205,6 +206,7 @@ export const users = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     isEmailVerified: boolean("is_email_verified").notNull().default(false),
     isMobileVerified: boolean("is_mobile_verified").notNull().default(false),
+    mustChangePassword: boolean("must_change_password").notNull().default(false),
     // Password policy
     passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
     failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),

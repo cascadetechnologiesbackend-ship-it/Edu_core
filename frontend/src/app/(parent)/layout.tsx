@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import { Header } from "@/components/layout/Header";
-import { getActiveTenant } from "@/lib/tenant";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import BottomNav from "@/components/layout/BottomNav";
+import PwaHeader from "@/components/layout/PwaHeader";
+import { Users } from "lucide-react";
+import { db } from "@/db";
+import { schools } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export const metadata: Metadata = {
   title: {
@@ -9,31 +15,57 @@ export const metadata: Metadata = {
   },
 };
 
+const PARENT_NAV_ITEMS = [
+  { label: "Overview", href: "/parent/dashboard", icon: "LayoutDashboard" },
+  { label: "Attendance", href: "/parent/dashboard?tab=attendance", icon: "CalendarCheck" },
+  { label: "Fee Portal", href: "/parent/dashboard?tab=fees", icon: "Receipt" },
+  { label: "Bus Tracker", href: "/parent/dashboard?tab=bus", icon: "Bus" },
+];
+
 export default async function ParentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Validate active subdomain tenant
-  await getActiveTenant();
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  // Ensure role is parent or school administrator previewing parent portal
+  const allowed = ["PARENT", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"];
+  if (!allowed.includes(session.user.role)) {
+    redirect("/dashboard");
+  }
+
+  // Fetch school name if available
+  let schoolName = "SchoolMitra ERP";
+  if (session.user.schoolId) {
+    const school = await db.query.schools.findFirst({
+      where: eq(schools.id, session.user.schoolId),
+    });
+    if (school?.name) {
+      schoolName = school.name;
+    }
+  }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* For MVP, parent doesn't have a full sidebar, just a header and full content area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header breadcrumbs={[{ label: "Parent Portal", href: "/portal" }]} />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
+      {/* Mobile-First Parent PWA Top Bar */}
+      <PwaHeader
+        role="PARENT"
+        roleLabel="Parent Companion"
+        accentColor="indigo"
+        schoolName={schoolName}
+        icon={<Users className="w-4 h-4 text-indigo-400" />}
+      />
 
-        <main
-          className="flex-1 overflow-y-auto"
-          id="main-content"
-          role="main"
-          aria-label="Main content"
-        >
-          <div className="p-6 max-w-screen-2xl mx-auto animate-fade-in">
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Main Content Area (Max-w-3xl for optimal mobile/tablet reading) */}
+      <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+
+      {/* Bottom Thumb-Zone Navigation */}
+      <BottomNav items={PARENT_NAV_ITEMS} />
     </div>
   );
 }

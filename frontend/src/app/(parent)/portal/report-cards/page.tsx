@@ -4,17 +4,22 @@ import { eq, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import Link from "next/link";
+import { Award, Download, FileText, ChevronRight } from "lucide-react";
 
 export default async function ParentReportCardsPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    return <div className="p-6">Please log in to view report cards.</div>;
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 text-center text-xs text-slate-400">
+        Please log in to view report cards.
+      </div>
+    );
   }
 
   const parentUserId = session.user.id;
   const isAdmin = ["ADMIN", "SUPER_ADMIN", "PRINCIPAL", "TEACHER"].includes(
-    session.user.role as string,
+    session.user.role as string
   );
 
   // Find students linked to this parent (primary_parent_user_id)
@@ -32,13 +37,10 @@ export default async function ParentReportCardsPage() {
 
   if (myStudents.length === 0) {
     return (
-      <div className="p-6">
-        <h2 className="text-xl font-bold text-red-600 mb-2">
-          Access Restricted
-        </h2>
-        <p>
-          No students linked to your account. If you are a parent, please
-          contact the school administration.
+      <div className="rounded-2xl border border-rose-900/40 bg-rose-950/20 p-6 text-center space-y-2">
+        <h2 className="text-base font-bold text-rose-400">Access Restricted</h2>
+        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          No students linked to your parent account. If you are a parent, please contact the school administration.
         </p>
       </div>
     );
@@ -55,7 +57,7 @@ export default async function ParentReportCardsPage() {
   }> = [];
 
   for (const student of myStudents) {
-    // DPDP AUDIT LOGGING for viewing minor student academic/report card records
+    // DPDP AUDIT LOGGING
     await db.insert(auditLogs).values({
       schoolId: student.schoolId,
       userId: parentUserId,
@@ -82,86 +84,105 @@ export default async function ParentReportCardsPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      {/* Navigation Tabs */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      {/* ─── 1. Header & Navigation Tabs ──────────────────────────────────────── */}
+      <div className="space-y-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Report Cards
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            Scholastic Report Cards
           </h1>
-          <p className="text-sm text-gray-500">
-            View and download academic progress reports for your wards.
+          <p className="text-xs text-slate-400 mt-0.5">
+            View and download term progress reports and official academic marksheets.
           </p>
         </div>
-        <div className="flex gap-2">
+
+        {/* Dedicated Horizontal Pill Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
           <Link
             href="/portal"
-            className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 dark:bg-slate-900 dark:border-slate-800 dark:text-gray-300 transition-colors"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
           >
-            Fees & Dues
+            Fees &amp; Dues
           </Link>
-          <span className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md font-semibold">
+          <span className="px-3.5 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/30 whitespace-nowrap">
             Report Cards
           </span>
+          <Link
+            href="/portal/consent"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Consent Center
+          </Link>
+          <Link
+            href="/portal/rights"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Subject Rights
+          </Link>
         </div>
       </div>
 
-      <div className="space-y-6">
+      {/* ─── 2. Student Cards ─────────────────────────────────────────────────── */}
+      <div className="space-y-5">
         {studentsReportCards.map(({ student, cards }) => {
-          const studentName = `${decryptData(student.firstNameEncrypted)} ${decryptData(student.lastNameEncrypted)}`;
+          const studentName = `${decryptData(student.firstNameEncrypted)} ${decryptData(student.lastNameEncrypted)}`.trim();
           return (
             <div
               key={student.id}
-              className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 space-y-4"
+              className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4"
             >
-              <div className="border-b border-gray-100 dark:border-slate-800 pb-3 flex justify-between items-center">
+              <div className="border-b border-slate-800/80 pb-3 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-base font-bold text-white">
                     {studentName}
                   </h2>
-                  <p className="text-xs text-gray-500">
-                    Admission No: {student.admissionNumber}
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Admission No: <strong className="text-slate-300">{student.admissionNumber}</strong>
                   </p>
                 </div>
-                <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-medium">
-                  Ward
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                  Enrolled Ward
                 </span>
               </div>
 
               {cards.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4">
-                  No report cards generated yet for this student.
-                </p>
+                <div className="p-8 text-center rounded-xl bg-slate-950/60 text-slate-400 text-xs space-y-1">
+                  <Award className="w-8 h-8 text-slate-600 mx-auto mb-1" />
+                  <p>Term evaluations currently in progress.</p>
+                  <p className="text-[11px] text-slate-500">
+                    Official report cards will be published here upon completion of evaluation cycles.
+                  </p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {cards.map((card) => (
                     <div
                       key={card.id}
-                      className="flex justify-between items-center p-4 border rounded-lg border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors"
+                      className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 flex flex-col justify-between gap-3 text-xs"
                     >
                       <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                        <div className="font-bold text-white text-sm">
                           {card.exam?.name ?? "Examination"}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Generated on:{" "}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          Generated:{" "}
                           {card.generatedAt
-                            ? new Date(card.generatedAt).toLocaleDateString(
-                                "en-IN",
-                              )
+                            ? new Date(card.generatedAt).toLocaleDateString("en-IN")
                             : "—"}
-                        </p>
-                        <p className="text-xs text-indigo-600 mt-0.5">
+                        </div>
+                        <div className="text-xs text-indigo-400 mt-1 font-semibold">
                           Grade: {card.overallGrade ?? "—"}{" "}
-                          {card.rank ? `| Rank: ${card.rank}` : ""}
-                        </p>
+                          {card.rank ? `• Rank #${card.rank}` : ""}
+                        </div>
                       </div>
+
                       <a
                         href={`/api/report-cards/${card.id}/download`}
                         target="_blank"
-                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 transition-colors"
+                        rel="noopener noreferrer"
+                        className="py-2 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition flex items-center justify-center gap-1.5"
                       >
-                        Download PDF
+                        <Download className="w-3.5 h-3.5" /> Download PDF
                       </a>
                     </div>
                   ))}

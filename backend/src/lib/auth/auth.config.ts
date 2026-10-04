@@ -39,12 +39,28 @@ export const authConfig: NextAuthConfig = {
       }
 
       const isLoggedIn = !!auth?.user;
+      const mustChangePassword = (auth?.user as any)?.mustChangePassword;
+      const isForcePasswordRoute = pathname.startsWith("/force-password-change");
+
+      if (isLoggedIn && mustChangePassword) {
+        if (!isForcePasswordRoute && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
+          return Response.redirect(new URL("/force-password-change", nextUrl));
+        }
+      }
+
+      if (isLoggedIn && !mustChangePassword && isForcePasswordRoute) {
+        return Response.redirect(new URL("/dashboard", nextUrl));
+      }
+
       const isAuthRoute =
         pathname.startsWith("/login") ||
         pathname.startsWith("/forgot-password");
 
       if (isAuthRoute) {
         if (isLoggedIn) {
+          if (mustChangePassword) {
+            return Response.redirect(new URL("/force-password-change", nextUrl));
+          }
           return Response.redirect(new URL("/dashboard", nextUrl));
         }
         return true;
@@ -52,12 +68,18 @@ export const authConfig: NextAuthConfig = {
 
       return isLoggedIn;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         // user is only available the first time JWT is created
         token.id = user.id;
         token.schoolId = user.schoolId;
         token.role = user.role;
+        token.mustChangePassword = (user as any).mustChangePassword ?? false;
+      }
+      if (trigger === "update" && session) {
+        if (session.mustChangePassword !== undefined) {
+          token.mustChangePassword = session.mustChangePassword;
+        }
       }
       return token;
     },
@@ -66,6 +88,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id as string;
         (session.user as any).schoolId = token.schoolId as string | null;
         session.user.role = token.role as string;
+        (session.user as any).mustChangePassword = (token.mustChangePassword as boolean) ?? false;
       }
       return session;
     },

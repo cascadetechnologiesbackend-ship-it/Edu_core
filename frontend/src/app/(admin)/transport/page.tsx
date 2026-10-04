@@ -12,6 +12,7 @@ import {
 import { eq, and, isNull } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import TransportClientTabs from "./TransportClientTabs";
+import { getDrivers } from "./actions";
 
 export const metadata: Metadata = {
   title: "Transport Management",
@@ -31,7 +32,7 @@ export default async function TransportPage() {
   ].includes(role);
 
   // Run all queries in parallel — previously 4 sequential round-trips
-  const [rawVehicles, routesList, rawPasses, rawStudents, consentRecordsList] =
+  const [rawVehicles, routesList, rawPasses, rawStudents, consentRecordsList, driversList] =
     await Promise.all([
       db.query.vehicles.findMany({
         where: and(eq(vehicles.schoolId, schoolId), isNull(vehicles.deletedAt)),
@@ -70,6 +71,7 @@ export default async function TransportPage() {
         ),
         columns: { studentId: true },
       }),
+      getDrivers().catch(() => []),
     ]);
 
   const vehiclesList = rawVehicles.map((v) => ({
@@ -122,6 +124,7 @@ export default async function TransportPage() {
 
       <TransportClientTabs
         vehicles={vehiclesList}
+        driversList={driversList}
         routesList={routesList}
         passes={passesList}
         students={studentsWithConsent}

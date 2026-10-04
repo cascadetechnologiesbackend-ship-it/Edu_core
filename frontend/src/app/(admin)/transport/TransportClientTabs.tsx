@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VehiclesTab from "./VehiclesTab";
+import DriversTab from "./DriversTab";
 import RoutesStopsTab from "./RoutesStopsTab";
 import BusPassesTab from "./BusPassesTab";
 import GPSTrackingTab from "./GPSTrackingTab";
 
 export default function TransportClientTabs({
   vehicles,
+  driversList = [],
   routesList,
   passes,
   students,
@@ -16,6 +18,7 @@ export default function TransportClientTabs({
   isAdmin,
 }: {
   vehicles: any[];
+  driversList?: any[];
   routesList: any[];
   passes: any[];
   students: any[];
@@ -23,22 +26,27 @@ export default function TransportClientTabs({
   userId: string;
   isAdmin: boolean;
 }) {
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("transport_tab") || "vehicles";
-    }
-    return "vehicles";
-  });
+  const [activeTab, setActiveTab] = useState("vehicles");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("transport_tab");
+      if (saved) {
+        setActiveTab(saved);
+      }
+    } catch {}
+  }, []);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    if (typeof window !== "undefined") {
+    try {
       localStorage.setItem("transport_tab", tabId);
-    }
+    } catch {}
   };
 
   const tabs = [
-    { id: "vehicles", label: "Vehicles & Drivers" },
+    { id: "vehicles", label: "Vehicles" },
+    { id: "drivers", label: "Drivers & Accounts" },
     { id: "routes", label: "Routes & Stops" },
     { id: "passes", label: "Bus Passes" },
     { id: "gps", label: "Live GPS Tracking" },
@@ -75,6 +83,13 @@ export default function TransportClientTabs({
       <div className="transition-all duration-150">
         {activeTab === "vehicles" && (
           <VehiclesTab vehicles={vehicles} isAdmin={isAdmin} />
+        )}
+        {activeTab === "drivers" && (
+          <DriversTab
+            driversList={driversList}
+            vehiclesList={vehicles}
+            isAdmin={isAdmin}
+          />
         )}
         {activeTab === "routes" && (
           <RoutesStopsTab

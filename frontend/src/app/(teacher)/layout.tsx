@@ -1,0 +1,63 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import BottomNav from "@/components/layout/BottomNav";
+import PwaHeader from "@/components/layout/PwaHeader";
+import { BookOpen } from "lucide-react";
+import { db } from "@/db";
+import { schools } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+const TEACHER_NAV_ITEMS = [
+  { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard" },
+  { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck" },
+  { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet" },
+  { label: "My Classes", href: "/teacher/classes", icon: "BookOpen" },
+];
+
+export default async function TeacherLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  // Ensure role is teacher or administrator previewing teacher portal
+  const allowed = ["TEACHER", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"];
+  if (!allowed.includes(session.user.role)) {
+    redirect("/dashboard");
+  }
+
+  // Fetch school name if available
+  let schoolName = "SchoolMitra ERP";
+  if (session.user.schoolId) {
+    const school = await db.query.schools.findFirst({
+      where: eq(schools.id, session.user.schoolId),
+    });
+    if (school?.name) {
+      schoolName = school.name;
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
+      {/* Mobile-First PWA Header */}
+      <PwaHeader
+        role="TEACHER"
+        roleLabel="Educator Workspace"
+        accentColor="emerald"
+        schoolName={schoolName}
+        icon={<BookOpen className="w-4 h-4 text-emerald-400" />}
+      />
+
+      {/* Main Content Area (Optimized for Mobile & Tablet Thumb Zone) */}
+      <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+
+      {/* Persistent Bottom Navigation */}
+      <BottomNav items={TEACHER_NAV_ITEMS} />
+    </div>
+  );
+}

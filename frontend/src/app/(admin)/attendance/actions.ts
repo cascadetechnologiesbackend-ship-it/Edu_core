@@ -7,6 +7,8 @@ import {
   students,
   studentAttendance,
   academicYears,
+  classSubjects,
+  sectionSubjectTeachers,
 } from "@/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -48,11 +50,13 @@ export async function getAssignedSections() {
       with: {
         class: true,
       },
+      orderBy: [sections.name],
     });
   }
 
-  // Filter by classTeacherId for TEACHER
-  return await db.query.sections.findMany({
+  // For TEACHER:
+  // 1. Sections where teacher is the Class Teacher
+  const classTeacherSections = await db.query.sections.findMany({
     where: and(
       eq(sections.isActive, true),
       eq(sections.schoolId, school.id),
@@ -62,6 +66,51 @@ export async function getAssignedSections() {
       class: true,
     },
   });
+
+  // 2. Sections where teacher teaches specific subjects (sectionSubjectTeachers)
+  const sectionSubjectAllocations = await db.query.sectionSubjectTeachers.findMany({
+    where: and(
+      eq(sectionSubjectTeachers.schoolId, school.id),
+      eq(sectionSubjectTeachers.teacherId, userId),
+      eq(sectionSubjectTeachers.isActive, true),
+    ),
+  });
+
+  // 3. Classes where teacher teaches class-level subjects (classSubjects)
+  const classSubjectAllocations = await db.query.classSubjects.findMany({
+    where: and(
+      eq(classSubjects.schoolId, school.id),
+      eq(classSubjects.assignedTeacherId, userId),
+    ),
+  });
+
+  const extraClassIds = classSubjectAllocations.map((c) => c.classId).filter(Boolean);
+  const extraSectionIds = sectionSubjectAllocations.map((s) => s.sectionId).filter(Boolean);
+
+  let extraSections: any[] = [];
+  if (extraClassIds.length > 0 || extraSectionIds.length > 0) {
+    extraSections = await db.query.sections.findMany({
+      where: and(
+        eq(sections.isActive, true),
+        eq(sections.schoolId, school.id),
+        extraClassIds.length > 0 && extraSectionIds.length > 0
+          ? sql`(${sections.id} IN ${extraSectionIds} OR ${sections.classId} IN ${extraClassIds})`
+          : extraClassIds.length > 0
+          ? inArray(sections.classId, extraClassIds)
+          : inArray(sections.id, extraSectionIds)
+      ),
+      with: {
+        class: true,
+      },
+    });
+  }
+
+  // Merge uniquely
+  const mergedMap = new Map<string, any>();
+  classTeacherSections.forEach((s) => mergedMap.set(s.id, s));
+  extraSections.forEach((s) => mergedMap.set(s.id, s));
+
+  return Array.from(mergedMap.values());
 }
 
 // 2. Fetch students and their attendance status on a specific date
@@ -158,17 +207,41 @@ export async function markSectionAttendance(
 
   // Strict check: Teachers can only mark attendance of their assigned sections
   if (userRole === "TEACHER") {
-    const assignedSection = await db.query.sections.findFirst({
+    const isClassTeacher = await db.query.sections.findFirst({
       where: and(
         eq(sections.id, sectionId),
         eq(sections.classTeacherId, userId),
       ),
     });
 
-    if (!assignedSection) {
-      throw new Error(
-        "Access Denied: You can only mark attendance for your assigned section.",
-      );
+    if (!isClassTeacher) {
+      // Check if assigned via sectionSubjectTeachers
+      const isSectionSubjectTeacher = await db.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.sectionId, sectionId),
+          eq(sectionSubjectTeachers.teacherId, userId),
+          eq(sectionSubjectTeachers.isActive, true),
+        ),
+      });
+
+      if (!isSectionSubjectTeacher) {
+        // Check if assigned via class-level classSubjects
+        const targetSection = await db.query.sections.findFirst({
+          where: eq(sections.id, sectionId),
+        });
+        const isClassSubjectTeacher = targetSection ? await db.query.classSubjects.findFirst({
+          where: and(
+            eq(classSubjects.classId, targetSection.classId),
+            eq(classSubjects.assignedTeacherId, userId),
+          ),
+        }) : null;
+
+        if (!isClassSubjectTeacher) {
+          throw new Error(
+            "Access Denied: You can only mark attendance for your assigned sections.",
+          );
+        }
+      }
     }
   }
 

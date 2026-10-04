@@ -22,8 +22,11 @@ import {
   Loader2,
 } from "lucide-react";
 import ClassCreationWizard from "./ClassCreationWizard";
-import AcademicsClientTabs from "../AcademicsClientTabs";
 import { deleteClass } from "../actions/class-setup.actions";
+import AcademicBlockTabs, {
+  AcademicBlockKey,
+  getGradeBlock,
+} from "@/components/academics/AcademicBlockTabs";
 
 type Classroom = {
   id: string;
@@ -97,7 +100,7 @@ export default function AmsHubClient({
   const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeView, setActiveView] = useState<"classes" | "tools">("classes");
+  const [activeBlock, setActiveBlock] = useState<AcademicBlockKey>("all");
   const [classList, setClassList] = useState<Classroom[]>(classrooms);
   const [classToDelete, setClassToDelete] = useState<Classroom | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -118,11 +121,29 @@ export default function AmsHubClient({
     );
   });
 
-  // Filter classrooms by search query
-  const filteredClassrooms = classList.filter((c) =>
-    c.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.gradeLevel.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Block counts for tabs
+  const blockCounts: Record<AcademicBlockKey, number> = {
+    all: classList.length,
+    pre_primary: 0,
+    primary: 0,
+    middle_school: 0,
+    high_school: 0,
+  };
+
+  classList.forEach((c) => {
+    const b = getGradeBlock(c.gradeLevel, c.displayName);
+    blockCounts[b] = (blockCounts[b] || 0) + 1;
+  });
+
+  // Filter classrooms by search query and academic block
+  const filteredClassrooms = classList.filter((c) => {
+    const matchesSearch =
+      c.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.gradeLevel.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (activeBlock === "all") return true;
+    return getGradeBlock(c.gradeLevel, c.displayName) === activeBlock;
+  });
 
   const totalSections = classList.reduce(
     (sum, c) => sum + c.sections.length,
@@ -262,48 +283,37 @@ export default function AmsHubClient({
         </div>
       </div>
 
-      {/* ─── 3. View Switcher ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-2">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setActiveView("classes")}
-            className={`text-sm font-bold pb-2 border-b-2 transition ${
-              activeView === "classes"
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white"
-            }`}
-          >
+      {/* ─── 3. Header & Filter Bar ─────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-3">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-primary" />
             Class Hubs & Sections ({classrooms.length})
-          </button>
-          <button
-            onClick={() => setActiveView("tools")}
-            className={`text-sm font-bold pb-2 border-b-2 transition ${
-              activeView === "tools"
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white"
-            }`}
-          >
-            Detailed AMS Workspaces
-          </button>
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Manage classroom blocks, subjects, and section assignments
+          </p>
         </div>
 
-        {activeView === "classes" && (
-          <div className="relative w-64">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search classes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-        )}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search classes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
       </div>
 
       {/* ─── 4. Class-Centric Hub Grid ────────────────────────────────────────── */}
-      {activeView === "classes" ? (
-        <div>
+      <div className="space-y-6">
+          <AcademicBlockTabs
+            activeBlock={activeBlock}
+            onBlockChange={setActiveBlock}
+            counts={blockCounts}
+          />
           {filteredClassrooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredClassrooms.map((cls) => {
@@ -431,20 +441,6 @@ export default function AmsHubClient({
             </div>
           )}
         </div>
-      ) : (
-        /* Detailed AMS Specialized Tabs */
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
-          <AcademicsClientTabs
-            classrooms={classrooms as any}
-            subjects={subjects as any}
-            mappings={mappings as any}
-            teachers={teachers as any}
-            role={role}
-            userId={userId}
-            isAdmin={isAdmin}
-          />
-        </div>
-      )}
 
       {/* ─── 5. Progressive Class Creation Wizard ──────────────────────────────── */}
       {isAdmin && (

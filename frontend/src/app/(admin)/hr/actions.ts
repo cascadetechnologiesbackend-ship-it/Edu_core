@@ -32,6 +32,8 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { encryptData, decryptData } from "@/lib/encryption";
 import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
+import bcrypt from "bcryptjs";
+import { sendSMS } from "@/lib/sms";
 
 function safeRevalidate(path: string) {
   try {
@@ -677,21 +679,37 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
     }
 
-    // 5. Create user credential
-    const dummyPasswordHash =
-      "$2a$12$5IoYcudrg1ffKr7WS8sKVO3Xe./e.J7LaHap2qSMFpTmQgo9otUCm"; // schoolmitra_dev
+    // 5. Create user credential with default password and force change
+    const defaultPassword = `School@${parsed.mobile.trim().slice(-4)}`;
+    const passwordHash = await bcrypt.hash(defaultPassword, 12);
     const [newUser] = await db
       .insert(users)
       .values({
         schoolId: school.id,
         email: emailNormalized,
-        passwordHash: dummyPasswordHash,
+        passwordHash,
+        mustChangePassword: true,
         isActive: true,
         isEmailVerified: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
+
+    // Send credentials via SMS/WhatsApp
+    const formattedMobile = parsed.mobile.trim().startsWith("+91")
+      ? parsed.mobile.trim()
+      : `+91${parsed.mobile.trim()}`;
+    const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3002";
+    await sendSMS(
+      formattedMobile,
+      `Welcome to ${school.name}!\n` +
+        `Your ERP login credentials:\n` +
+        `Email: ${emailNormalized}\n` +
+        `Password: ${defaultPassword}\n` +
+        `App: ${pwaUrl}\n` +
+        `Please change your password on first login.`
+    );
 
     if (!newUser) {
       return { success: false, message: "Failed to create user login credential." };

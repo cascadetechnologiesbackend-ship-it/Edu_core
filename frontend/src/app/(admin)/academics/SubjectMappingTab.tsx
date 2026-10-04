@@ -2,8 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { saveClassSubject } from "./actions";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Sparkles, ArrowRight } from "lucide-react";
+import AcademicBlockTabs, {
+  AcademicBlockKey,
+  getGradeBlock,
+} from "@/components/academics/AcademicBlockTabs";
 
 type ClassSubject = {
   id: string;
@@ -53,12 +58,32 @@ export default function SubjectMappingTab({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
+  const [activeBlock, setActiveBlock] = useState<AcademicBlockKey>("all");
   const [formData, setFormData] = useState({
     classId: "",
     subjectId: "",
     assignedTeacherId: "",
     periodsPerWeek: 5,
     isElective: false,
+  });
+
+  // Block counts for tab badges
+  const blockCounts: Record<AcademicBlockKey, number> = {
+    all: mappings.length,
+    pre_primary: 0,
+    primary: 0,
+    middle_school: 0,
+    high_school: 0,
+  };
+
+  mappings.forEach((m) => {
+    const b = getGradeBlock("", m.class.displayName);
+    blockCounts[b] = (blockCounts[b] || 0) + 1;
+  });
+
+  const filteredMappings = mappings.filter((m) => {
+    if (activeBlock === "all") return true;
+    return getGradeBlock("", m.class.displayName) === activeBlock;
   });
 
   // Set default values when opening modal
@@ -98,9 +123,14 @@ export default function SubjectMappingTab({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-          Subject-Teacher Mapping
-        </h2>
+        <div>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+            Subject-Teacher Mapping
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Manage subject assignments, teacher allocations, and period schedules across classrooms.
+          </p>
+        </div>
         {isAdmin && (
           <button
             onClick={handleOpenForm}
@@ -110,6 +140,13 @@ export default function SubjectMappingTab({
           </button>
         )}
       </div>
+
+      {/* Academic Block Filtering Tabs */}
+      <AcademicBlockTabs
+        activeBlock={activeBlock}
+        onBlockChange={setActiveBlock}
+        counts={blockCounts}
+      />
 
       {/* Mapping Form Modal */}
       {showForm && (
@@ -236,9 +273,9 @@ export default function SubjectMappingTab({
 
       {/* Mappings Table */}
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 overflow-hidden">
-        {mappings.length === 0 ? (
+        {filteredMappings.length === 0 ? (
           <p className="text-center py-12 text-gray-500 italic text-sm">
-            No mappings assigned yet.
+            No mappings found for the selected academic block.
           </p>
         ) : (
           <table className="w-full text-sm text-left">
@@ -252,7 +289,7 @@ export default function SubjectMappingTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-              {mappings.map((m) => {
+              {filteredMappings.map((m) => {
                 const teacherEmail =
                   teachers.find((t) => t.id === m.assignedTeacherId)?.email ||
                   "Unassigned";

@@ -15,11 +15,16 @@ import {
   classes,
   sections,
   auditLogs,
+  users,
+  roles,
+  userRoles,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { autoAssignFeeStructuresToStudent } from "@/lib/feeAssignmentEngine";
+import bcrypt from "bcryptjs";
+import { sendSMS } from "@/lib/sms";
 import {
   encryptData,
   decryptData,
@@ -196,10 +201,100 @@ export async function enrollApplicant(
       application.primaryContactEmailEncrypted,
     );
 
+    // 4. Provision parent login user account if primaryEmail exists
+    let parentUserId: string | null = null;
+    if (primaryEmail) {
+      const emailNormalized = primaryEmail.trim().toLowerCase();
+      let parentUser = await tx.query.users.findFirst({
+        where: eq(users.email, emailNormalized),
+      });
+
+      if (!parentUser) {
+        const rawDigits = primaryMobile ? primaryMobile.replace(/[^0-9]/g, "") : "";
+        const defaultPassword = `Parent@${rawDigits.length >= 4 ? rawDigits.slice(-4) : "1234"}`;
+        const passwordHash = await bcrypt.hash(defaultPassword, 12);
+        const [nu] = await tx
+          .insert(users)
+          .values({
+            schoolId: school.id,
+            email: emailNormalized,
+            passwordHash,
+            mustChangePassword: true,
+            isActive: true,
+            isEmailVerified: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        parentUser = nu;
+
+        // Send SMS with credentials
+        if (primaryMobile) {
+          const formattedMobile = primaryMobile.trim().startsWith("+91")
+            ? primaryMobile.trim()
+            : `+91${primaryMobile.trim()}`;
+          const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3002";
+          await sendSMS(
+            formattedMobile,
+            `Welcome to ${school.name}!\n` +
+              `Your Parent Portal login credentials:\n` +
+              `Email: ${emailNormalized}\n` +
+              `Password: ${defaultPassword}\n` +
+              `Portal: ${pwaUrl}\n` +
+              `Please change your password upon first login.`
+          );
+        }
+      }
+
+      if (parentUser) {
+        parentUserId = parentUser.id;
+
+        // Ensure PARENT role exists
+        let parentRole = await tx.query.roles.findFirst({
+          where: and(eq(roles.schoolId, school.id), eq(roles.name, "PARENT")),
+        });
+        if (!parentRole) {
+          const [cr] = await tx
+            .insert(roles)
+            .values({
+              schoolId: school.id,
+              name: "PARENT",
+              displayName: "Parent / Guardian",
+              isSystemRole: true,
+            })
+            .returning();
+          parentRole = cr;
+        }
+
+        if (parentRole) {
+          const existingRole = await tx.query.userRoles.findFirst({
+            where: and(
+              eq(userRoles.userId, parentUser.id),
+              eq(userRoles.roleId, parentRole.id),
+            ),
+          });
+          if (!existingRole) {
+            await tx.insert(userRoles).values({
+              userId: parentUser.id,
+              roleId: parentRole.id,
+              schoolId: school.id,
+            });
+          }
+        }
+
+        // Link student to primaryParentUserId
+        await tx
+          .update(students)
+          .set({ primaryParentUserId: parentUserId })
+          .where(eq(students.id, newStudent.id));
+      }
+    }
+
     if (fatherName) {
       await tx.insert(studentFamilyMembers).values({
         studentId: newStudent.id,
         schoolId: school.id,
+        userId: parentUserId,
         relation: "FATHER",
         nameEncrypted: encryptData(fatherName),
         mobileEncrypted: primaryMobile ? encryptData(primaryMobile) : null,
@@ -214,6 +309,7 @@ export async function enrollApplicant(
       await tx.insert(studentFamilyMembers).values({
         studentId: newStudent.id,
         schoolId: school.id,
+        userId: !fatherName ? parentUserId : null,
         relation: "MOTHER",
         nameEncrypted: encryptData(motherName),
         mobileEncrypted: primaryMobile ? encryptData(primaryMobile) : null,
@@ -228,6 +324,7 @@ export async function enrollApplicant(
       await tx.insert(studentFamilyMembers).values({
         studentId: newStudent.id,
         schoolId: school.id,
+        userId: !fatherName && !motherName ? parentUserId : null,
         relation: "GUARDIAN",
         nameEncrypted: encryptData(guardianName),
         mobileEncrypted: primaryMobile ? encryptData(primaryMobile) : null,

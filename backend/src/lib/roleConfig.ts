@@ -13,7 +13,8 @@ export type UserRole =
   | "LIBRARIAN"
   | "TRANSPORT_MANAGER"
   | "PARENT"
-  | "STUDENT";
+  | "STUDENT"
+  | "DRIVER";
 
 export interface NavItem {
   label: string;
@@ -91,10 +92,10 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Educator / Teacher",
     defaultDashboard: "/teacher/dashboard",
     navItems: [
-      { label: "My Classroom", href: "/teacher/dashboard", icon: "LayoutDashboard" },
-      { label: "Daily Attendance", href: "/attendance", icon: "CalendarCheck" },
-      { label: "Marks & Evaluation", href: "/exams", icon: "FileSpreadsheet" },
-      { label: "Class Roster", href: "/academics", icon: "BookOpen" },
+      { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard" },
+      { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck" },
+      { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet" },
+      { label: "My Classes", href: "/teacher/classes", icon: "BookOpen" },
     ],
   },
   ACCOUNTANT: {
@@ -135,9 +136,10 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Parent / Guardian",
     defaultDashboard: "/parent/dashboard",
     navItems: [
-      { label: "Child Overview", href: "/parent/dashboard", icon: "LayoutDashboard" },
-      { label: "Fee Payment & Invoices", href: "/parent/dashboard?tab=fees", icon: "Receipt" },
-      { label: "Report Cards & Grades", href: "/parent/dashboard?tab=academics", icon: "Award" },
+      { label: "Overview", href: "/parent/dashboard", icon: "LayoutDashboard" },
+      { label: "Attendance", href: "/parent/dashboard?tab=attendance", icon: "CalendarCheck" },
+      { label: "Fee Portal", href: "/parent/dashboard?tab=fees", icon: "Receipt" },
+      { label: "Bus Tracker", href: "/parent/dashboard?tab=bus", icon: "Bus" },
     ],
   },
   STUDENT: {
@@ -148,6 +150,16 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
       { label: "Student Hub", href: "/student/dashboard", icon: "LayoutDashboard" },
       { label: "Timetable & Classes", href: "/student/dashboard?tab=timetable", icon: "Calendar" },
       { label: "My Report Cards", href: "/student/dashboard?tab=grades", icon: "Award" },
+    ],
+  },
+  DRIVER: {
+    role: "DRIVER",
+    displayName: "Bus Driver",
+    defaultDashboard: "/driver/dashboard",
+    navItems: [
+      { label: "My Route & Trip", href: "/driver/dashboard", icon: "Map" },
+      { label: "GPS Broadcast", href: "/driver/dashboard?tab=gps", icon: "Navigation" },
+      { label: "Profile & Settings", href: "/driver/profile", icon: "User" },
     ],
   },
 };

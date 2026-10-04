@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { students, consentPurposes, consentRecords } from "@/db/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import Link from "next/link";
 import ConsentPortalClient from "./ConsentPortalClient";
 
 export default async function ConsentPage() {
@@ -60,15 +61,41 @@ export default async function ConsentPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Parent Consent Center
-        </h1>
-        <p className="text-sm text-slate-500">
-          DPDP Act 2023 Compliance — Manage consent settings and verify data
-          processing choices.
-        </p>
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            Parent Consent Center
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            DPDP Act 2023 Compliance — Manage consent settings and verify data processing choices.
+          </p>
+        </div>
+
+        {/* Dedicated Horizontal Pill Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+          <Link
+            href="/portal"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Fees &amp; Dues
+          </Link>
+          <Link
+            href="/portal/report-cards"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Report Cards
+          </Link>
+          <span className="px-3.5 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/30 whitespace-nowrap">
+            Consent Center
+          </span>
+          <Link
+            href="/portal/rights"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Subject Rights
+          </Link>
+        </div>
       </div>
 
       <ConsentPortalClient

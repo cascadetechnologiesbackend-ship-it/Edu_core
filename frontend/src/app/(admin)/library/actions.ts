@@ -14,6 +14,8 @@ import { eq, and, isNull, desc, sql } from "drizzle-orm";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { z } from "zod";
 
+import { headers } from "next/headers";
+
 const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"] as const;
 
 async function checkAuth() {
@@ -23,8 +25,27 @@ async function checkAuth() {
 }
 
 function makeAuditCtx(ctx: any) {
+  let ip = "127.0.0.1";
+  let userAgent = "system/server-action";
+  try {
+    const h = headers();
+    ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "127.0.0.1";
+    userAgent = h.get("user-agent") || "system/server-action";
+  } catch {}
   return {
-    user: { id: ctx.userId, role: ctx.role, schoolId: ctx.schoolId }
+    session: {
+      user: {
+        id: ctx.userId,
+        email: ctx.email,
+        role: ctx.role,
+        schoolId: ctx.schoolId,
+      },
+    },
+    userId: ctx.userId,
+    userEmail: ctx.email,
+    userRole: ctx.role,
+    ip,
+    userAgent,
   } as any;
 }
 

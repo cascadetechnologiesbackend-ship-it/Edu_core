@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import ClassroomsTab from "./ClassroomsTab";
 import SubjectsTab from "./SubjectsTab";
@@ -46,7 +44,7 @@ type Subject = {
   name: string;
   nameHindi: string | null;
   subjectType:
-    "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+    | "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
   maxMarks: number;
   passingMarks: number;
 };
