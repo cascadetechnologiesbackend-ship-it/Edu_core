@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { sql } from "drizzle-orm";
 import { redis } from "@/lib/rateLimiter";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     // Check DB

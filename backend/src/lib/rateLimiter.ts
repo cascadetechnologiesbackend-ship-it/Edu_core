@@ -3,24 +3,27 @@ import Redis from "ioredis";
 // Connect to Redis using connection URL or host/port configuration
 const redisUrl = process.env.educore_REDIS_URL || process.env.REDIS_URL;
 
+const redisOptions = {
+  lazyConnect: true,
+  maxRetriesPerRequest: 2,
+  enableOfflineQueue: false,
+  retryStrategy: (times: number) => {
+    if (times > 3) return null; // Stop retrying after 3 attempts
+    return Math.min(times * 200, 1000);
+  },
+};
+
 export const redis = redisUrl
-  ? new Redis(redisUrl, {
-      lazyConnect: true,
-      retryStrategy: (times) => Math.min(times * 100, 3000),
-    })
+  ? new Redis(redisUrl, redisOptions)
   : new Redis({
       host: process.env.REDIS_HOST ?? "127.0.0.1",
       port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
       password: process.env.REDIS_PASSWORD ?? undefined,
-      lazyConnect: true,
-      retryStrategy: (times) => Math.min(times * 100, 3000),
+      ...redisOptions,
     });
 
-redis.on("error", (err) => {
-  // Avoid crashing process on redis connection hiccups
-  if (process.env.NODE_ENV !== "production") {
-    // suppress in local dev
-  }
+redis.on("error", (_err) => {
+  // Gracefully handle redis connection issues without throwing unhandled exceptions
 });
 
 // Lua script for atomic sliding window rate limiting

@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 
 // ⚠️  DEV-ONLY — This endpoint MUST NOT be accessible in production.
 // It reveals internal session and user data. Always returns 404 in production.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   if (process.env.NODE_ENV !== "development") {
     return new NextResponse(null, { status: 404 });
