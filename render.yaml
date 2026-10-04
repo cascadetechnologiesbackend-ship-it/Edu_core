@@ -5,9 +5,9 @@ services:
     plan: starter
     buildCommand: pnpm install && pnpm -w run build
     preDeployCommand: pnpm --filter @schoolmitra/database db:migrate
-    startCommand: pnpm start
+    startCommand: pnpm -w run start
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
       - key: PORT
-        value: 3000
+        value: 10000
