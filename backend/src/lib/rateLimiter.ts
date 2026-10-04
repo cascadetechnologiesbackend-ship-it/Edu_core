@@ -1,13 +1,20 @@
 import Redis from "ioredis";
 
-// Connect to Redis using existing configuration
-export const redis = new Redis({
-  host: process.env.REDIS_HOST ?? "127.0.0.1",
-  port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
-  password: process.env.REDIS_PASSWORD ?? undefined,
-  lazyConnect: true,
-  retryStrategy: (times) => Math.min(times * 100, 3000),
-});
+// Connect to Redis using connection URL or host/port configuration
+const redisUrl = process.env.educore_REDIS_URL || process.env.REDIS_URL;
+
+export const redis = redisUrl
+  ? new Redis(redisUrl, {
+      lazyConnect: true,
+      retryStrategy: (times) => Math.min(times * 100, 3000),
+    })
+  : new Redis({
+      host: process.env.REDIS_HOST ?? "127.0.0.1",
+      port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
+      password: process.env.REDIS_PASSWORD ?? undefined,
+      lazyConnect: true,
+      retryStrategy: (times) => Math.min(times * 100, 3000),
+    });
 
 redis.on("error", (err) => {
   // Avoid crashing process on redis connection hiccups

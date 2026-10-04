@@ -31,15 +31,20 @@ export interface ReportCardJobPayload {
 }
 
 // ─── Queue Definition ─────────────────────────────────────────────────────────
+const redisUrl = process.env["educore_REDIS_URL"] || process.env["REDIS_URL"];
+const redisConnection: any = redisUrl
+  ? { url: redisUrl }
+  : {
+      host: process.env["REDIS_HOST"] ?? "127.0.0.1",
+      port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
+      ...(process.env["REDIS_PASSWORD"] ? { password: process.env["REDIS_PASSWORD"] } : {}),
+    };
+
 // Export so API routes can enqueue jobs
 export const reportCardQueue = new Queue<ReportCardJobPayload>(
   "report-card-generation",
   {
-    connection: {
-      host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-      port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-      password: process.env["REDIS_PASSWORD"] ?? undefined,
-    },
+    connection: redisConnection,
     defaultJobOptions: {
       attempts: 3,
       backoff: { type: "exponential", delay: 5000 },
@@ -226,11 +231,7 @@ if (process.env["START_WORKERS"] === "true") {
     "report-card-generation",
     processReportCardJob,
     {
-      connection: {
-        host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-        port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-        password: process.env["REDIS_PASSWORD"] ?? undefined,
-      },
+      connection: redisConnection,
       concurrency: 5,
     },
   );

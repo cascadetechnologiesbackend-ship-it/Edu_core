@@ -1,6 +1,31 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "NODE_ENV",
+    "AUTH_SECRET",
+    "NEXTAUTH_SECRET",
+    "DATABASE_URL",
+    "DATABASE_POOL_MIN",
+    "DATABASE_POOL_MAX",
+    "REDIS_HOST",
+    "REDIS_PORT",
+    "REDIS_PASSWORD",
+    "REDIS_URL",
+    "educore_REDIS_URL",
+    "ENCRYPTION_KEY",
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET",
+    "RAZORPAY_WEBHOOK_SECRET",
+    "GPS_DEVICE_API_KEY",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+    "S3_BUCKET_NAME",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_DEFAULT_DOMAIN",
+    "NEXT_OUTPUT_STANDALONE"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
