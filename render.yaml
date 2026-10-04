@@ -4,6 +4,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: pnpm install && pnpm -w run build
+    preDeployCommand: pnpm --filter @schoolmitra/database db:migrate
     startCommand: pnpm start
     envVars:
       - key: NODE_VERSION
