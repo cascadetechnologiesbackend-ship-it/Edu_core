@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 export default function ForgotPasswordPage() {
   return (
     <div className="flex h-screen items-center justify-center bg-gray-50 p-4">
