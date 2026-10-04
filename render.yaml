@@ -3,7 +3,7 @@ services:
     name: educore-app
     runtime: node
     plan: starter
-    buildCommand: pnpm install && pnpm -w run build
+    buildCommand: pnpm install --ignore-scripts && pnpm -w run build
     preDeployCommand: pnpm --filter @schoolmitra/database db:migrate
     startCommand: pnpm -w run start
     envVars:
