@@ -45,8 +45,23 @@ export default function LoginForm() {
       if (result?.error) {
         setServerError("Invalid email or password. Please try again.");
       } else {
-        // Full page navigation to send session cookie to server layout for reliable role-based redirection
-        window.location.href = "/dashboard";
+        const session = await getSession();
+        const role = (session?.user as any)?.role;
+
+        let target = "/dashboard";
+        if (role === "SUPER_ADMIN") {
+          target = "/super-admin/dashboard";
+        } else if (role === "TEACHER") {
+          target = "/teacher/dashboard";
+        } else if (role === "PARENT" || role === "STUDENT") {
+          target = "/portal";
+        } else if (role === "DRIVER") {
+          target = "/driver/dashboard";
+        } else if (role === "PRINCIPAL") {
+          target = "/principal/dashboard";
+        }
+
+        window.location.href = target;
       }
 
     } catch {

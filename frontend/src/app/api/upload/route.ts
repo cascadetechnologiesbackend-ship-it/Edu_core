@@ -51,6 +51,9 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    // Only authenticated users can write uploads
+    await requireAuth();
+
     const url = new URL(req.url);
     const key = url.searchParams.get("key");
     if (!key) {
@@ -60,21 +63,64 @@ export async function PUT(req: Request) {
       );
     }
 
-    const buffer = Buffer.from(await req.arrayBuffer());
-    const safeKey = key.replace(/\.\./g, ""); // prevent path traversal
-    const targetDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      path.dirname(safeKey)
-    );
-    await fs.promises.mkdir(targetDir, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(process.cwd(), "public", "uploads", safeKey),
-      buffer
-    );
+    // Extension whitelisting - reject executable and script formats
+    const ext = path.extname(key).toLowerCase();
+    const ALLOWED_EXTENSIONS = new Set([
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".webp",
+      ".pdf",
+      ".csv",
+      ".xlsx",
+      ".docx",
+      ".txt",
+    ]);
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { success: false, message: "File type not permitted" },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ success: true, key: safeKey });
+    // Size limit check: 10MB
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, message: "File size exceeds 10MB limit" },
+        { status: 400 }
+      );
+    }
+
+    const buffer = Buffer.from(await req.arrayBuffer());
+    if (buffer.length > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, message: "File size exceeds 10MB limit" },
+        { status: 400 }
+      );
+    }
+
+    // Strict path traversal mitigation: guarantee target is within public/uploads
+    const uploadBase = path.resolve(process.cwd(), "public", "uploads");
+    const sanitizedKey = key
+      .split(/[\/\\]/)
+      .map((segment) => segment.replace(/[^a-zA-Z0-9.\-_]/g, "_"))
+      .filter((segment) => segment !== "." && segment !== "..")
+      .join(path.sep);
+
+    const resolvedPath = path.resolve(uploadBase, sanitizedKey);
+    if (!resolvedPath.startsWith(uploadBase) || resolvedPath === uploadBase) {
+      return NextResponse.json(
+        { success: false, message: "Invalid file destination path" },
+        { status: 400 }
+      );
+    }
+
+    await fs.promises.mkdir(path.dirname(resolvedPath), { recursive: true });
+    await fs.promises.writeFile(resolvedPath, buffer);
+
+    return NextResponse.json({ success: true, key });
   } catch (error: any) {
     console.error("Local file upload error:", error);
     return NextResponse.json(

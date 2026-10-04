@@ -2,7 +2,16 @@ import crypto from "crypto";
 
 const DEFAULT_DEV_KEY =
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-export const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || DEFAULT_DEV_KEY;
+
+function resolveKey(): string {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key && process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: ENCRYPTION_KEY must be configured in production environments.");
+  }
+  return key || DEFAULT_DEV_KEY;
+}
+
+export const ENCRYPTION_KEY = resolveKey();
 
 export function decryptData(encryptedText: string | null) {
   if (!encryptedText) return null;

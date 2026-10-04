@@ -691,40 +691,171 @@ export function Staff360Client({
 
       {/* 4. COMPENSATION & LOANS */}
       {activeTab === "compensation" && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Salary Structure
-          </h2>
-          {profile.salaryConfigured && profile.salaryComponents ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl text-sm">
-              <div>
-                <span className="text-xs text-gray-500 block">Base Pay</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  ₹{Number(profile.salaryComponents.baseAmount || 0).toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 block">Allowances</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  +₹{Number(profile.salaryComponents.allowancesTotal || 0).toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 block">Deductions</span>
-                <span className="font-semibold text-rose-600 dark:text-rose-400">
-                  -₹{Number(profile.salaryComponents.deductionsTotal || 0).toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 block">Net Monthly</span>
-                <span className="font-bold text-gray-900 dark:text-gray-100">
-                  ₹{Number(profile.salaryComponents.netSalary || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              Salary Structure &amp; Compensation
+            </h2>
+            {profile.salaryConfigured && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+                Active Structure Allocated
+              </span>
+            )}
+          </div>
+
+          {profile.salaryConfigured && (profile.salaryBreakdown || profile.salaryComponents) ? (
+            (() => {
+              const b = profile.salaryBreakdown || {
+                basicSalary: parseFloat(profile.salaryComponents?.basicSalary || "0"),
+                daAmount: parseFloat(profile.salaryComponents?.basicSalary || "0") * (parseFloat(profile.salaryComponents?.daPercent || "0") / 100),
+                daPercent: parseFloat(profile.salaryComponents?.daPercent || "0"),
+                hraAmount: parseFloat(profile.salaryComponents?.basicSalary || "0") * (parseFloat(profile.salaryComponents?.hraPercent || "0") / 100),
+                hraPercent: parseFloat(profile.salaryComponents?.hraPercent || "0"),
+                otherAllowancesTotal: 0,
+                grossEarnings: parseFloat(profile.salaryComponents?.basicSalary || "0") * 1.35,
+                pfEmployeeAmount: parseFloat(profile.salaryComponents?.basicSalary || "0") * 0.12,
+                pfEmployeePercent: 12,
+                ptAmount: 200,
+                tdsAmount: parseFloat(profile.salaryComponents?.monthlyTdsAmount || "0"),
+                deductionsTotal: (parseFloat(profile.salaryComponents?.basicSalary || "0") * 0.12) + 200 + parseFloat(profile.salaryComponents?.monthlyTdsAmount || "0"),
+                netMonthlyPay: (parseFloat(profile.salaryComponents?.basicSalary || "0") * 1.35) - ((parseFloat(profile.salaryComponents?.basicSalary || "0") * 0.12) + 200 + parseFloat(profile.salaryComponents?.monthlyTdsAmount || "0")),
+              };
+
+              const allowancesSum = b.daAmount + b.hraAmount + b.otherAllowancesTotal;
+
+              return (
+                <div className="space-y-6">
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl text-sm">
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                        Base Pay (Basic)
+                      </span>
+                      <span className="font-bold text-base text-gray-900 dark:text-gray-100">
+                        ₹{Math.round(b.basicSalary).toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                        Allowances
+                      </span>
+                      <span className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                        +₹{Math.round(allowancesSum).toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                        Deductions
+                      </span>
+                      <span className="font-bold text-base text-rose-600 dark:text-rose-400">
+                        -₹{Math.round(b.deductionsTotal).toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                        Net Monthly Take-Home
+                      </span>
+                      <span className="font-extrabold text-base text-indigo-600 dark:text-indigo-400">
+                        ₹{Math.round(b.netMonthlyPay).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Detailed Itemized Earnings vs Deductions Table */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Earnings Column */}
+                    <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-gray-950/40 space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                        <span>Earnings &amp; Allowances</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                          ₹{Math.round(b.grossEarnings).toLocaleString()}
+                        </span>
+                      </h3>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
+                        <div className="py-2 flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">Basic Pay</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            ₹{Math.round(b.basicSalary).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="py-2 flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">
+                            Dearness Allowance (DA {b.daPercent}%)
+                          </span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            +₹{Math.round(b.daAmount).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="py-2 flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">
+                            House Rent Allowance (HRA {b.hraPercent}%)
+                          </span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            +₹{Math.round(b.hraAmount).toLocaleString()}
+                          </span>
+                        </div>
+                        {b.otherAllowancesTotal > 0 && (
+                          <div className="py-2 flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-300">Other Allowances</span>
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              +₹{Math.round(b.otherAllowancesTotal).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="pt-2.5 flex justify-between font-bold text-sm text-gray-900 dark:text-gray-100">
+                          <span>Gross Monthly Pay</span>
+                          <span>₹{Math.round(b.grossEarnings).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Deductions Column */}
+                    <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-gray-950/40 space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                        <span>Statutory Deductions</span>
+                        <span className="text-rose-600 dark:text-rose-400 font-bold">
+                          -₹{Math.round(b.deductionsTotal).toLocaleString()}
+                        </span>
+                      </h3>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
+                        <div className="py-2 flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">
+                            Provident Fund (PF Employee {b.pfEmployeePercent}%)
+                          </span>
+                          <span className="font-semibold text-rose-600 dark:text-rose-400">
+                            -₹{Math.round(b.pfEmployeeAmount).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="py-2 flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">Professional Tax (PT)</span>
+                          <span className="font-semibold text-rose-600 dark:text-rose-400">
+                            -₹{b.ptAmount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="py-2 flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">Income Tax / TDS</span>
+                          <span className="font-semibold text-rose-600 dark:text-rose-400">
+                            -₹{Math.round(b.tdsAmount).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="pt-2.5 flex justify-between font-bold text-sm text-gray-900 dark:text-gray-100">
+                          <span>Total Deductions</span>
+                          <span className="text-rose-600 dark:text-rose-400">
+                            -₹{Math.round(b.deductionsTotal).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
           ) : (
-            <div className="py-6 text-center text-sm text-gray-500">
-              No salary components configured yet for this staff member.
+            <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-800 rounded-xl space-y-2">
+              <p>No salary components configured yet for this staff member.</p>
+              <p className="text-xs text-gray-400">
+                Configure salary components via the HR dashboard to establish wage templates.
+              </p>
             </div>
           )}
 

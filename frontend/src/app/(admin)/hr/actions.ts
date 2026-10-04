@@ -34,6 +34,7 @@ import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
 import bcrypt from "bcryptjs";
 import { sendSMS } from "@/lib/sms";
+import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
 
 function safeRevalidate(path: string) {
   try {
@@ -1307,6 +1308,9 @@ export async function getStaff360(staffId: string) {
         academicAllocations,
         salaryConfigured: s.salaryComponents.length > 0,
         salaryComponents: s.salaryComponents[0] || null,
+        salaryBreakdown: s.salaryComponents.length > 0
+          ? computeSalaryBreakdown(s.salaryComponents[0])
+          : null,
         activeLoansCount: s.loans.filter((l) => l.status === "ACTIVE").length,
         documentsCount: s.documents.length,
         leaveBalances: s.leaveBalances,
@@ -1522,7 +1526,11 @@ export async function associateSalaryTemplate(
     // Also update a monthly TDS amount setting field if needed (stored on the salaryComponents allowance or custom meta)
     // Wait, let's create/update the staff loan or TDS config if any
 
+    safeRevalidate("/hr");
     safeRevalidate("/hr/staff");
+    safeRevalidate(`/hr/staff/${staffId}`);
+    safeRevalidate("/teacher/dashboard");
+    safeRevalidate("/teacher/payroll");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };

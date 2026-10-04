@@ -14,13 +14,25 @@ export async function POST(req: Request) {
     }
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    if (secret && secret !== "change-me") {
+    if (!secret || secret === "change-me") {
+      if (process.env.NODE_ENV === "production") {
+        console.error("[Razorpay Webhook] CRITICAL: RAZORPAY_WEBHOOK_SECRET is not configured in production.");
+        return NextResponse.json({ error: "Webhook signature verification unavailable" }, { status: 500 });
+      }
+      console.warn("[Razorpay Webhook] Dev warning: RAZORPAY_WEBHOOK_SECRET is unconfigured.");
+    } else {
       const expectedSignature = crypto
         .createHmac("sha256", secret)
         .update(rawBody)
         .digest("hex");
 
-      if (expectedSignature !== signature) {
+      const expectedBuf = Buffer.from(expectedSignature, "utf8");
+      const sigBuf = Buffer.from(signature, "utf8");
+
+      if (
+        expectedBuf.length !== sigBuf.length ||
+        !crypto.timingSafeEqual(expectedBuf, sigBuf)
+      ) {
         return NextResponse.json(
           { error: "Invalid signature" },
           { status: 400 },
@@ -40,6 +52,18 @@ export async function POST(req: Request) {
 
       if (!log || !log.feeInvoiceId) {
         return NextResponse.json({ success: true, message: "Unrelated order" });
+      }
+
+      // Idempotency guard: prevent duplicate payment crediting on webhook retries
+      if (log.status === "PAID" || log.gatewayPaymentId === payment.id) {
+        return NextResponse.json({ success: true, message: "Order already fulfilled" });
+      }
+
+      const existingPayment = await db.query.feePayments.findFirst({
+        where: eq(feePayments.transactionReference, payment.id),
+      });
+      if (existingPayment) {
+        return NextResponse.json({ success: true, message: "Payment already recorded" });
       }
 
       const invoice = await db.query.feeInvoices.findFirst({

@@ -5,21 +5,7 @@ import { createAdmissionApplicationSchema } from "@schoolmitra/validators";
 import { generateUploadUrl } from "@/lib/s3";
 import { logAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
-
-function encryptData(text: string) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(
-    "aes-256-cbc",
-    Buffer.from(ENCRYPTION_KEY, "hex"),
-    iv,
-  );
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString("hex") + ":" + encrypted.toString("hex");
-}
+import { encryptData } from "@/lib/encryption";
 
 export const admissionsRouter = createTRPCRouter({
   getUploadUrl: publicProcedure

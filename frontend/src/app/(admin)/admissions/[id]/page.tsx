@@ -2,34 +2,8 @@ import { db } from "@/db";
 import { admissionApplications, admissionWorkflowSteps, classes, sections } from "@/db/schema";
 import { eq, desc, and, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import crypto from "crypto";
 import { StatusUpdater } from "./StatusUpdater";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
-
-function decryptData(encryptedText: string | null) {
-  if (!encryptedText) return null;
-  try {
-    const parts = encryptedText.split(":");
-    const ivStr = parts[0];
-    const encryptedStr = parts[1];
-    if (!ivStr || !encryptedStr) return encryptedText;
-
-    const iv = Buffer.from(ivStr, "hex");
-    const encrypted = Buffer.from(encryptedStr, "hex");
-    const decipher = crypto.createDecipheriv(
-      "aes-256-cbc",
-      Buffer.from(ENCRYPTION_KEY, "hex"),
-      iv,
-    );
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (e) {
-    return encryptedText;
-  }
-}
+import { decryptData } from "@/lib/encryption";
 
 export default async function AdmissionDetailPage({
   params,

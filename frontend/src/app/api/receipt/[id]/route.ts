@@ -24,12 +24,31 @@ export async function GET(
     return NextResponse.json({ error: "Receipt not found" }, { status: 404 });
   }
 
+  const user = session.user as { id: string; role: string; schoolId?: string | null };
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+  // Strict tenant boundary
+  if (!isSuperAdmin && user.schoolId && payment.schoolId !== user.schoolId) {
+    return NextResponse.json({ error: "Forbidden: cross-tenant access denied" }, { status: 403 });
+  }
+
   const student = await db.query.students.findFirst({
     where: eq(students.id, payment.studentId),
   });
 
   if (!student) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
+  }
+
+  // Role-based boundary: Parents & Students can only view their own receipts
+  if (user.role === "PARENT") {
+    if (student.primaryParentUserId !== user.id) {
+      return NextResponse.json({ error: "Forbidden: receipt does not belong to your ward" }, { status: 403 });
+    }
+  } else if (user.role === "STUDENT") {
+    if (student.userId && student.userId !== user.id) {
+      return NextResponse.json({ error: "Forbidden: access denied" }, { status: 403 });
+    }
   }
 
   const school = await db.query.schools.findFirst({

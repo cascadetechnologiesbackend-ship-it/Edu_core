@@ -5,13 +5,18 @@ export const redis = new Redis({
   host: process.env.REDIS_HOST ?? "127.0.0.1",
   port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
   password: process.env.REDIS_PASSWORD ?? undefined,
+  lazyConnect: true,
+  retryStrategy: (times) => Math.min(times * 100, 3000),
+});
+
+redis.on("error", (err) => {
+  // Avoid crashing process on redis connection hiccups
+  if (process.env.NODE_ENV !== "production") {
+    // suppress in local dev
+  }
 });
 
 // Lua script for atomic sliding window rate limiting
-// KEYS[1]: the rate limit key (e.g. ratelimit:ip:127.0.0.1)
-// ARGV[1]: window duration in milliseconds
-// ARGV[2]: maximum allowed requests
-// ARGV[3]: current timestamp in milliseconds
 const SLIDING_WINDOW_SCRIPT = `
   local key = KEYS[1]
   local window_size = tonumber(ARGV[1])
@@ -39,21 +44,45 @@ const SLIDING_WINDOW_SCRIPT = `
   return 1 -- Allowed
 `;
 
+// In-memory fallback if Redis is unreachable
+const memoryRateLimitMap = new Map<string, number[]>();
+
 export async function checkRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number,
 ): Promise<boolean> {
   const now = Date.now();
-  const result = await redis.eval(
-    SLIDING_WINDOW_SCRIPT,
-    1,
-    key,
-    windowMs,
-    maxRequests,
-    now,
-  );
-  return result === 1;
+
+  try {
+    const result = await redis.eval(
+      SLIDING_WINDOW_SCRIPT,
+      1,
+      key,
+      windowMs,
+      maxRequests,
+      now,
+    );
+    return result === 1;
+  } catch (err) {
+    // In-memory sliding window fallback
+    const timestamps = memoryRateLimitMap.get(key) || [];
+    const validTimestamps = timestamps.filter((t) => t > now - windowMs);
+
+    if (validTimestamps.length >= maxRequests) {
+      return false;
+    }
+
+    validTimestamps.push(now);
+    memoryRateLimitMap.set(key, validTimestamps);
+
+    // Periodically clean up old keys
+    if (memoryRateLimitMap.size > 10000) {
+      memoryRateLimitMap.clear();
+    }
+
+    return true;
+  }
 }
 
 export const RATE_LIMITS = {

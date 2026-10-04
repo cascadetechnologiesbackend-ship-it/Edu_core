@@ -37,8 +37,8 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     defaultDashboard: "/super-admin/dashboard",
     navItems: [
       { label: "Platform Overview", href: "/super-admin/dashboard", icon: "LayoutDashboard" },
-      { label: "School Tenants", href: "/super-admin/tenants", icon: "Building2" },
-      { label: "System Health & Logs", href: "/super-admin/system", icon: "Activity" },
+      { label: "School Tenants", href: "/super-admin/schools", icon: "Building2" },
+      { label: "System Health & Logs", href: "/super-admin/audit", icon: "Activity" },
       { label: "DPDP Governance", href: "/dpdp", icon: "ShieldCheck" },
     ],
   },

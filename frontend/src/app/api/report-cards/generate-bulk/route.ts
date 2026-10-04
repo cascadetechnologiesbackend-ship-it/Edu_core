@@ -45,6 +45,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"];
+    if (!ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 });
+    }
+
     const { examId, classId } = parsed.data;
 
     // Verify exam exists
@@ -54,12 +59,22 @@ export async function POST(req: Request) {
     if (!exam)
       return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
+    const userSchoolId = (session.user as any).schoolId;
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    if (!isSuperAdmin && userSchoolId && exam.schoolId !== userSchoolId) {
+      return NextResponse.json({ error: "Forbidden: exam does not belong to your school" }, { status: 403 });
+    }
+
     // Verify class exists
     const classRecord = await db.query.classes.findFirst({
       where: eq(classes.id, classId),
     });
     if (!classRecord)
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
+
+    if (!isSuperAdmin && userSchoolId && classRecord.schoolId !== userSchoolId) {
+      return NextResponse.json({ error: "Forbidden: class does not belong to your school" }, { status: 403 });
+    }
 
     // Get all active students in this class
     const classStudents = await db.query.students.findMany({
@@ -133,6 +148,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"];
+    if (!ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const examId = searchParams.get("examId");
     const classId = searchParams.get("classId");
@@ -142,6 +162,19 @@ export async function GET(req: Request) {
         { error: "examId and classId query params required" },
         { status: 400 },
       );
+    }
+
+    const exam = await db.query.exams.findFirst({
+      where: eq(exams.id, examId),
+    });
+    if (!exam) {
+      return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+    }
+
+    const userSchoolId = (session.user as any).schoolId;
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    if (!isSuperAdmin && userSchoolId && exam.schoolId !== userSchoolId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const jobs = await db.query.reportCardJobs.findMany({

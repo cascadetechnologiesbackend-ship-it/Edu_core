@@ -61,9 +61,9 @@ export async function submitConsentChange(input: {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
-    // OTP validation (accepts '123456' for ease of testing or checks length)
-    if (input.otpCode !== "123456" && input.otpCode.length !== 6) {
-      return { success: false, message: "Invalid OTP code entered." };
+    // OTP format validation
+    if (!/^\d{6}$/.test(input.otpCode)) {
+      return { success: false, message: "Invalid OTP code entered: must be a 6-digit code." };
     }
 
     const studentRecord = await db.query.students.findFirst({
@@ -72,6 +72,11 @@ export async function submitConsentChange(input: {
 
     if (!studentRecord)
       return { success: false, message: "Ward record not found" };
+
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    if (!isAdmin && studentRecord.primaryParentUserId !== session.user.id) {
+      return { success: false, message: "Forbidden: student is not registered under your account" };
+    }
 
     const now = new Date();
 
@@ -125,6 +130,11 @@ export async function raiseRightsRequest(input: {
 
     if (!studentRecord)
       return { success: false, message: "Ward record not found" };
+
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    if (!isAdmin && studentRecord.primaryParentUserId !== session.user.id) {
+      return { success: false, message: "Forbidden: student is not registered under your account" };
+    }
 
     const now = new Date();
     const dueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30-day SLA resolution

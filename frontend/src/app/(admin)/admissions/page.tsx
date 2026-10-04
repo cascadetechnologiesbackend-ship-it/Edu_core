@@ -2,34 +2,8 @@ import { db } from "@/db";
 import { admissionApplications } from "@/db/schema";
 import { desc, count, eq, and } from "drizzle-orm";
 import Link from "next/link";
-import crypto from "crypto";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
-
-function decryptData(encryptedText: string | null) {
-  if (!encryptedText) return null;
-  try {
-    const parts = encryptedText.split(":");
-    const ivStr = parts[0];
-    const encryptedStr = parts[1];
-    if (!ivStr || !encryptedStr) return encryptedText;
-
-    const iv = Buffer.from(ivStr, "hex");
-    const encrypted = Buffer.from(encryptedStr, "hex");
-    const decipher = crypto.createDecipheriv(
-      "aes-256-cbc",
-      Buffer.from(ENCRYPTION_KEY, "hex"),
-      iv,
-    );
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (e) {
-    return encryptedText;
-  }
-}
+import { decryptData } from "@/lib/encryption";
 
 export default async function AdmissionsDashboard() {
   const ctx = await requireAuth();

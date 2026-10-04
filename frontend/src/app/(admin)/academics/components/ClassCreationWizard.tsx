@@ -100,8 +100,8 @@ export default function ClassCreationWizard({
     const found = GRADE_LEVELS.find((g) => g.value === val);
     if (found) {
       setDisplayName(found.label);
-      const match = val.match(/\d+/);
-      if (match) setSortOrder(parseInt(match[0], 10));
+      const foundIdx = GRADE_LEVELS.findIndex((g) => g.value === val);
+      setSortOrder(foundIdx !== -1 ? foundIdx + 1 : 1);
     }
   };
 

@@ -50,12 +50,14 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com",
+              process.env.NODE_ENV === "production"
+                ? "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com"
+                : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://api.razorpay.com",
-              "frame-src https://api.razorpay.com",
+              "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
               "object-src 'none'",
               "base-uri 'self'",
             ].join("; "),

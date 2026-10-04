@@ -9,6 +9,7 @@ import {
   SubjectSetupItem,
   FeeHeadSetupItem,
 } from "@/app/actions/onboard";
+import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 import {
   GraduationCap,
   Building2,
@@ -125,6 +126,7 @@ export default function DedicatedSchoolOnboardingWizard() {
         ]);
         break;
       case "CBSE_MIDDLE":
+      case "HIGHER_PRIMARY":
         setClassesList([
           { gradeLevel: "CLASS_6", displayName: "Class 6", sections: ["A"] },
           { gradeLevel: "CLASS_7", displayName: "Class 7", sections: ["A"] },
@@ -132,6 +134,7 @@ export default function DedicatedSchoolOnboardingWizard() {
         ]);
         break;
       case "CBSE_SECONDARY":
+      case "HIGH_SCHOOL":
         setClassesList([
           { gradeLevel: "CLASS_9", displayName: "Class 9", sections: ["A"] },
           { gradeLevel: "CLASS_10", displayName: "Class 10", sections: ["A"] },
@@ -141,6 +144,23 @@ export default function DedicatedSchoolOnboardingWizard() {
         setClassesList([
           { gradeLevel: "CLASS_11", displayName: "Class 11", sections: ["A"] },
           { gradeLevel: "CLASS_12", displayName: "Class 12", sections: ["A"] },
+        ]);
+        break;
+      case "FULL_K10":
+        setClassesList([
+          { gradeLevel: "NURSERY", displayName: "Nursery", sections: ["A"] },
+          { gradeLevel: "LKG", displayName: "LKG", sections: ["A"] },
+          { gradeLevel: "UKG", displayName: "UKG", sections: ["A"] },
+          { gradeLevel: "CLASS_1", displayName: "Class 1", sections: ["A"] },
+          { gradeLevel: "CLASS_2", displayName: "Class 2", sections: ["A"] },
+          { gradeLevel: "CLASS_3", displayName: "Class 3", sections: ["A"] },
+          { gradeLevel: "CLASS_4", displayName: "Class 4", sections: ["A"] },
+          { gradeLevel: "CLASS_5", displayName: "Class 5", sections: ["A"] },
+          { gradeLevel: "CLASS_6", displayName: "Class 6", sections: ["A"] },
+          { gradeLevel: "CLASS_7", displayName: "Class 7", sections: ["A"] },
+          { gradeLevel: "CLASS_8", displayName: "Class 8", sections: ["A"] },
+          { gradeLevel: "CLASS_9", displayName: "Class 9", sections: ["A"] },
+          { gradeLevel: "CLASS_10", displayName: "Class 10", sections: ["A"] },
         ]);
         break;
       case "CBSE_FULL":
@@ -204,10 +224,15 @@ export default function DedicatedSchoolOnboardingWizard() {
     if (!customClassInput.trim()) return;
     const name = customClassInput.trim();
     const code = name.toUpperCase().replace(/\s+/g, "_");
-    setClassesList([
+    const updated = [
       ...classesList,
       { gradeLevel: code, displayName: name, sections: ["A"] },
-    ]);
+    ].sort(
+      (a, b) =>
+        getCanonicalSortOrder(a.gradeLevel, a.displayName) -
+        getCanonicalSortOrder(b.gradeLevel, b.displayName),
+    );
+    setClassesList(updated);
     setCustomClassInput("");
   };
 
@@ -701,11 +726,12 @@ export default function DedicatedSchoolOnboardingWizard() {
                         <span className="text-xs font-bold text-slate-300">Quick Presets:</span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {[
-                            { name: "Pre-Primary", code: "PRE_PRIMARY" },
-                            { name: "CBSE Primary (1-5)", code: "CBSE_PRIMARY" },
-                            { name: "CBSE Middle (6-8)", code: "CBSE_MIDDLE" },
-                            { name: "CBSE Secondary (9-10)", code: "CBSE_SECONDARY" },
-                            { name: "CBSE Senior Sec (11-12)", code: "CBSE_SENIOR_SEC" },
+                            { name: "Pre-Primary (Nursery-UKG)", code: "PRE_PRIMARY" },
+                            { name: "Primary (Class 1-5)", code: "CBSE_PRIMARY" },
+                            { name: "Higher Primary (Class 6-8)", code: "HIGHER_PRIMARY" },
+                            { name: "High School (Class 9-10)", code: "HIGH_SCHOOL" },
+                            { name: "Senior Secondary (11-12)", code: "CBSE_SENIOR_SEC" },
+                            { name: "Full K-10 (Nursery-10)", code: "FULL_K10" },
                             { name: "Full K-12 (Nursery-12)", code: "FULL_K12" },
                           ].map((preset) => (
                             <button

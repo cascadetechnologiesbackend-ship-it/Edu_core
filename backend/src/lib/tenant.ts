@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
-import { sql } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
@@ -27,8 +27,12 @@ export const getActiveTenant = cache(async () => {
     return null;
   }
 
+  const cleanTenant = tenant.toLowerCase().trim();
   const school = await db.query.schools.findFirst({
-    where: sql`lower(replace(${schools.name}, ' ', '')) LIKE ${tenant.toLowerCase() + "%"}`,
+    where: or(
+      eq(schools.slug, cleanTenant),
+      eq(schools.udiseCode, cleanTenant),
+    ),
   });
 
   if (!school) {

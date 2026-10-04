@@ -19,37 +19,11 @@ import {
   staff,
 } from "@/db/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
-import crypto from "crypto";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { getSignedDownloadUrl } from "@/lib/s3";
 import { notFound } from "next/navigation";
+import { decryptData } from "@/lib/encryption";
 import { Student360Client, Student360Data } from "./Student360Client";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
-
-function decryptData(encryptedText: string | null) {
-  if (!encryptedText) return null;
-  try {
-    const parts = encryptedText.split(":");
-    const ivStr = parts[0];
-    const encryptedStr = parts[1];
-    if (!ivStr || !encryptedStr) return encryptedText;
-
-    const iv = Buffer.from(ivStr, "hex");
-    const encrypted = Buffer.from(encryptedStr, "hex");
-    const decipher = crypto.createDecipheriv(
-      "aes-256-cbc",
-      Buffer.from(ENCRYPTION_KEY, "hex"),
-      iv,
-    );
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (e) {
-    return encryptedText;
-  }
-}
 
 export default async function StudentProfilePage({
   params,
@@ -74,38 +48,35 @@ export default async function StudentProfilePage({
     notFound();
   }
 
-  // 2. Role-Based Access Control Verification
+  // 2. Role-Based Access Control Verification for Teachers
   if (ctx.role === "TEACHER") {
-    // Check if teacher is class teacher of student's section
-    const isClassTeacher = student.currentSectionId
-      ? await db.query.sections.findFirst({
-          where: and(
-            eq(sections.id, student.currentSectionId),
-            eq(sections.classTeacherId, ctx.userId),
-          ),
-        })
-      : null;
-
-    // Check if teacher teaches any subject to this student's section
-    const isSubjectTeacher = student.currentSectionId
-      ? await db.query.sectionSubjectTeachers.findFirst({
-          where: and(
-            eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
-            eq(sectionSubjectTeachers.teacherId, ctx.userId),
-            eq(sectionSubjectTeachers.isActive, true),
-          ),
-        })
-      : null;
-
-    // Check if teacher is default teacher for any class subjects
-    const isClassSubjectTeacher = student.currentClassId
-      ? await db.query.classSubjects.findFirst({
-          where: and(
-            eq(classSubjects.classId, student.currentClassId),
-            eq(classSubjects.assignedTeacherId, ctx.userId),
-          ),
-        })
-      : null;
+    const [isClassTeacher, isSubjectTeacher, isClassSubjectTeacher] = await Promise.all([
+      student.currentSectionId
+        ? db.query.sections.findFirst({
+            where: and(
+              eq(sections.id, student.currentSectionId),
+              eq(sections.classTeacherId, ctx.userId),
+            ),
+          })
+        : Promise.resolve(null),
+      student.currentSectionId
+        ? db.query.sectionSubjectTeachers.findFirst({
+            where: and(
+              eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
+              eq(sectionSubjectTeachers.teacherId, ctx.userId),
+              eq(sectionSubjectTeachers.isActive, true),
+            ),
+          })
+        : Promise.resolve(null),
+      student.currentClassId
+        ? db.query.classSubjects.findFirst({
+            where: and(
+              eq(classSubjects.classId, student.currentClassId),
+              eq(classSubjects.assignedTeacherId, ctx.userId),
+            ),
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (!isClassTeacher && !isSubjectTeacher && !isClassSubjectTeacher) {
       return (
@@ -122,47 +93,158 @@ export default async function StudentProfilePage({
     }
   }
 
-  // 3. Resolve Current Placement
-  const currentClass = student.currentClassId
-    ? await db.query.classes.findFirst({
-        where: eq(classes.id, student.currentClassId),
-      })
-    : null;
+  const canViewFees = [
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+    "ACCOUNTANT",
+    "PARENT",
+  ].includes(ctx.role);
+  const canMutateFees = [
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "ACCOUNTANT",
+  ].includes(ctx.role);
 
-  const currentSection = student.currentSectionId
-    ? await db.query.sections.findFirst({
-        where: eq(sections.id, student.currentSectionId),
-      })
-    : null;
+  // 3. Parallel Execution: Run all independent queries simultaneously in a single Promise.all
+  const [
+    currentClass,
+    currentSection,
+    classSubjectsList,
+    sectionAllocations,
+    attendanceEntries,
+    feeStructuresList,
+    studentInvoicesList,
+    studentConcessionsList,
+    familyMembers,
+    documents,
+    history,
+    allClasses,
+    allSecs,
+  ] = await Promise.all([
+    // Current Class
+    student.currentClassId
+      ? db.query.classes.findFirst({
+          where: eq(classes.id, student.currentClassId),
+        })
+      : Promise.resolve(null),
 
-  const classTeacherUser = currentSection?.classTeacherId
-    ? await db.query.users.findFirst({
-        where: eq(users.id, currentSection.classTeacherId),
-      })
-    : null;
+    // Current Section with classTeacher relation
+    student.currentSectionId
+      ? db.query.sections.findFirst({
+          where: eq(sections.id, student.currentSectionId),
+          with: { classTeacher: true },
+        })
+      : Promise.resolve(null),
 
-  // 4. Resolve Subjects & Teachers
-  const classSubjectsList = student.currentClassId
-    ? await db.query.classSubjects.findMany({
-        where: eq(classSubjects.classId, student.currentClassId),
-        with: {
-          subject: true,
-          teacher: true,
-        },
-      })
-    : [];
+    // Class Subjects
+    student.currentClassId
+      ? db.query.classSubjects.findMany({
+          where: eq(classSubjects.classId, student.currentClassId),
+          with: {
+            subject: true,
+            teacher: true,
+          },
+        })
+      : Promise.resolve([]),
 
-  const sectionAllocations = student.currentSectionId
-    ? await db.query.sectionSubjectTeachers.findMany({
-        where: and(
-          eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
-          eq(sectionSubjectTeachers.isActive, true),
-        ),
-        with: {
-          teacher: true,
-        },
-      })
-    : [];
+    // Section Allocations
+    student.currentSectionId
+      ? db.query.sectionSubjectTeachers.findMany({
+          where: and(
+            eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
+            eq(sectionSubjectTeachers.isActive, true),
+          ),
+          with: {
+            teacher: true,
+          },
+        })
+      : Promise.resolve([]),
+
+    // Attendance
+    db.query.studentAttendance.findMany({
+      where: and(
+        eq(studentAttendance.studentId, student.id),
+        eq(studentAttendance.schoolId, school.id),
+      ),
+      orderBy: [desc(studentAttendance.attendanceDate)],
+      limit: 50,
+    }),
+
+    // Fee Structures
+    canViewFees && student.currentClassId
+      ? db.query.feeStructures.findMany({
+          where: and(
+            eq(feeStructures.classId, student.currentClassId),
+            eq(feeStructures.schoolId, school.id),
+          ),
+          with: { feeHead: true },
+        })
+      : Promise.resolve([]),
+
+    // Fee Invoices
+    canViewFees
+      ? db.query.feeInvoices.findMany({
+          where: and(
+            eq(feeInvoices.studentId, student.id),
+            eq(feeInvoices.schoolId, school.id),
+          ),
+          orderBy: [desc(feeInvoices.createdAt)],
+        })
+      : Promise.resolve([]),
+
+    // Fee Concessions
+    canViewFees
+      ? db.query.feeConcessions.findMany({
+          where: and(
+            eq(feeConcessions.studentId, student.id),
+            eq(feeConcessions.schoolId, school.id),
+          ),
+        })
+      : Promise.resolve([]),
+
+    // Family Members
+    db.query.studentFamilyMembers.findMany({
+      where: and(
+        eq(studentFamilyMembers.studentId, student.id),
+        eq(studentFamilyMembers.schoolId, school.id),
+      ),
+    }),
+
+    // Documents
+    db.query.studentDocuments.findMany({
+      where: and(
+        eq(studentDocuments.studentId, student.id),
+        eq(studentDocuments.schoolId, school.id),
+      ),
+      orderBy: [desc(studentDocuments.createdAt)],
+    }),
+
+    // Class History
+    db.query.studentClassHistory.findMany({
+      where: and(
+        eq(studentClassHistory.studentId, student.id),
+        eq(studentClassHistory.schoolId, school.id),
+      ),
+      with: {
+        academicYear: true,
+      },
+      orderBy: [desc(studentClassHistory.createdAt)],
+    }),
+
+    // All Classes (for history resolution)
+    db.query.classes.findMany({
+      where: eq(classes.schoolId, school.id),
+    }),
+
+    // All Sections (for history resolution)
+    db.query.sections.findMany({
+      where: eq(sections.schoolId, school.id),
+    }),
+  ]);
+
+  // 4. Resolve Subject Teachers & Staff Profiles
+  const classTeacherUser = currentSection?.classTeacher;
   const allocationMap = new Map(
     sectionAllocations.map((a) => [a.classSubjectId, a.teacher]),
   );
@@ -214,16 +296,7 @@ export default async function StudentProfilePage({
     };
   });
 
-  // 5. Resolve Attendance
-  const attendanceEntries = await db.query.studentAttendance.findMany({
-    where: and(
-      eq(studentAttendance.studentId, student.id),
-      eq(studentAttendance.schoolId, school.id),
-    ),
-    orderBy: [desc(studentAttendance.attendanceDate)],
-    limit: 50,
-  });
-
+  // 5. Compute Attendance Percentages
   const totalAtt = attendanceEntries.length;
   const presentCount = attendanceEntries.filter(
     (a) => a.status === "PRESENT",
@@ -235,86 +308,11 @@ export default async function StudentProfilePage({
   const attendancePercentage =
     totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
 
-  // 6. Resolve Fees (Accountant, Admin, Parent only)
-  const canViewFees = [
-    "SUPER_ADMIN",
-    "SCHOOL_ADMIN",
-    "PRINCIPAL",
-    "ACCOUNTANT",
-    "PARENT",
-  ].includes(ctx.role);
-  const canMutateFees = [
-    "SUPER_ADMIN",
-    "SCHOOL_ADMIN",
-    "ACCOUNTANT",
-  ].includes(ctx.role);
+  const applicableFeeStructures = feeStructuresList;
+  const studentInvoices = studentInvoicesList;
+  const studentConcessions = studentConcessionsList;
 
-  let applicableFeeStructures: any[] = [];
-  let studentInvoices: any[] = [];
-  let studentConcessions: any[] = [];
-
-  if (canViewFees && student.currentClassId) {
-    applicableFeeStructures = await db.query.feeStructures.findMany({
-      where: and(
-        eq(feeStructures.classId, student.currentClassId),
-        eq(feeStructures.schoolId, school.id),
-      ),
-      with: { feeHead: true },
-    });
-
-    studentInvoices = await db.query.feeInvoices.findMany({
-      where: and(
-        eq(feeInvoices.studentId, student.id),
-        eq(feeInvoices.schoolId, school.id),
-      ),
-      orderBy: [desc(feeInvoices.createdAt)],
-    });
-
-    studentConcessions = await db.query.feeConcessions.findMany({
-      where: and(
-        eq(feeConcessions.studentId, student.id),
-        eq(feeConcessions.schoolId, school.id),
-      ),
-    });
-  }
-
-  // 7. Resolve Family Members
-  const familyMembers = await db.query.studentFamilyMembers.findMany({
-    where: and(
-      eq(studentFamilyMembers.studentId, student.id),
-      eq(studentFamilyMembers.schoolId, school.id),
-    ),
-  });
-
-  // 8. Resolve Documents
-  const documents = await db.query.studentDocuments.findMany({
-    where: and(
-      eq(studentDocuments.studentId, student.id),
-      eq(studentDocuments.schoolId, school.id),
-    ),
-    orderBy: [desc(studentDocuments.createdAt)],
-  });
-
-  // 9. Resolve Academic Class History
-  const history = await db.query.studentClassHistory.findMany({
-    where: and(
-      eq(studentClassHistory.studentId, student.id),
-      eq(studentClassHistory.schoolId, school.id),
-    ),
-    with: {
-      academicYear: true,
-    },
-    orderBy: [desc(studentClassHistory.createdAt)],
-  });
-
-  const allClasses = await db.query.classes.findMany({
-    where: eq(classes.schoolId, school.id),
-  });
   const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
-
-  const allSecs = await db.query.sections.findMany({
-    where: eq(sections.schoolId, school.id),
-  });
   const secMap = new Map(allSecs.map((s) => [s.id, s.name]));
 
   const mappedHistory = history.map((h) => ({

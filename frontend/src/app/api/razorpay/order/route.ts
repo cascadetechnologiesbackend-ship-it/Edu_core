@@ -4,8 +4,16 @@ import { feeInvoices, paymentGatewayLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+import { auth } from "@/lib/auth";
+import { students } from "@/db/schema";
+
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { invoiceId, amount } = await req.json();
 
     if (!invoiceId || !amount) {
@@ -21,6 +29,28 @@ export async function POST(req: Request) {
 
     if (!invoice)
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+
+    const userSchoolId = (session.user as any).schoolId;
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    if (!isSuperAdmin && userSchoolId && invoice.schoolId !== userSchoolId) {
+      return NextResponse.json({ error: "Forbidden: cross-tenant access denied" }, { status: 403 });
+    }
+
+    if (session.user.role === "PARENT") {
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, invoice.studentId),
+      });
+      if (!student || student.primaryParentUserId !== session.user.id) {
+        return NextResponse.json({ error: "Forbidden: invoice does not belong to your ward" }, { status: 403 });
+      }
+    }
+
+    // Verify amount is valid and within invoice outstanding balance
+    const reqAmount = parseFloat(amount);
+    const balance = parseFloat(invoice.balanceAmount);
+    if (isNaN(reqAmount) || reqAmount <= 0 || reqAmount > balance + 0.01) {
+      return NextResponse.json({ error: "Invalid payment amount requested" }, { status: 400 });
+    }
 
     // Validate if keys exist
     if (

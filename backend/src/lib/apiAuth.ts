@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import type { Session } from "next-auth";
+import crypto from "crypto";
 
 export function withAuth(
   handler: (
@@ -29,14 +30,28 @@ export function withCronAuth(
   return async (req: Request) => {
     try {
       const authHeader = req.headers.get("Authorization");
-      const secret = process.env.CRON_SECRET;
+      const secret =
+        process.env.CRON_SECRET ||
+        (process.env.NODE_ENV !== "production"
+          ? "dev-cron-secret-fallback"
+          : null);
 
+      if (!secret || !authHeader) {
+        return NextResponse.json(
+          { error: "Unauthorized cron request: valid Bearer token required" },
+          { status: 401 },
+        );
+      }
+
+      const expectedHeader = `Bearer ${secret}`;
+      const expBuf = Buffer.from(expectedHeader, "utf8");
+      const authBuf = Buffer.from(authHeader, "utf8");
       if (
-        process.env.NODE_ENV === "production" &&
-        (!secret || authHeader !== `Bearer ${secret}`)
+        expBuf.length !== authBuf.length ||
+        !crypto.timingSafeEqual(expBuf, authBuf)
       ) {
         return NextResponse.json(
-          { error: "Unauthorized cron request" },
+          { error: "Unauthorized cron request: valid Bearer token required" },
           { status: 401 },
         );
       }

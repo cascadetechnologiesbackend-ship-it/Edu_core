@@ -12,6 +12,7 @@ const TEACHER_NAV_ITEMS = [
   { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck" },
   { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet" },
   { label: "My Classes", href: "/teacher/classes", icon: "BookOpen" },
+  { label: "Payroll", href: "/teacher/payroll", icon: "Receipt" },
 ];
 
 export default async function TeacherLayout({

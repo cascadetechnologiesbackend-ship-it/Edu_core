@@ -45,6 +45,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
 
   // Combine pathname and searchParams for matching
   const currentTab = searchParams.get("tab");
+  const currentStudentId = searchParams.get("studentId");
   const fullCurrentPath = currentTab ? `${pathname}?tab=${currentTab}` : pathname;
 
   return (
@@ -59,10 +60,16 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
             item.href === fullCurrentPath ||
             (!item.href.includes("?") && pathname === item.href && !currentTab);
 
+          let resolvedHref = item.href;
+          if (currentStudentId && resolvedHref.startsWith("/parent/dashboard")) {
+            const sep = resolvedHref.includes("?") ? "&" : "?";
+            resolvedHref = `${resolvedHref}${sep}studentId=${currentStudentId}`;
+          }
+
           return (
             <Link
               key={item.href}
-              href={item.href as any}
+              href={resolvedHref as any}
               className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative min-h-[44px] ${
                 isActive
                   ? "text-indigo-600 dark:text-indigo-400 font-bold"

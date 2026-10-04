@@ -5,7 +5,15 @@ import { users, userRoles, roles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { SignJWT } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(process.env.AUTH_SECRET!);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET must be configured in production");
+  }
+  return new TextEncoder().encode(
+    secret || "change-me-to-a-random-64-char-string-in-dev",
+  );
+}
 
 export async function POST(req: NextRequest) {
   const refreshToken = req.cookies.get("schoolmitra_refresh")?.value;
@@ -41,7 +49,7 @@ export async function POST(req: NextRequest) {
   })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("15m")
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 
   const res = NextResponse.json({ accessToken });
 

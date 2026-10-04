@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 
 export interface ClassSetupItem {
   gradeLevel: string;
@@ -152,17 +153,32 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
 
       if (!newYear) throw new Error("Failed to provision academic year.");
 
-      // 3. Create Classes & Sections
-      const defaultClasses: ClassSetupItem[] = classesSetup.length > 0 ? classesSetup : [
+      // 3. Create Classes & Sections (Strictly ordered by canonical educational hierarchy)
+      const rawClasses: ClassSetupItem[] = classesSetup.length > 0 ? classesSetup : [
+        { gradeLevel: "NURSERY", displayName: "Nursery", sections: ["A"] },
+        { gradeLevel: "LKG", displayName: "LKG", sections: ["A"] },
+        { gradeLevel: "UKG", displayName: "UKG", sections: ["A"] },
         { gradeLevel: "CLASS_1", displayName: "Class 1", sections: ["A"] },
         { gradeLevel: "CLASS_2", displayName: "Class 2", sections: ["A"] },
         { gradeLevel: "CLASS_3", displayName: "Class 3", sections: ["A"] },
         { gradeLevel: "CLASS_4", displayName: "Class 4", sections: ["A"] },
         { gradeLevel: "CLASS_5", displayName: "Class 5", sections: ["A"] },
+        { gradeLevel: "CLASS_6", displayName: "Class 6", sections: ["A"] },
+        { gradeLevel: "CLASS_7", displayName: "Class 7", sections: ["A"] },
+        { gradeLevel: "CLASS_8", displayName: "Class 8", sections: ["A"] },
+        { gradeLevel: "CLASS_9", displayName: "Class 9", sections: ["A"] },
+        { gradeLevel: "CLASS_10", displayName: "Class 10", sections: ["A"] },
       ];
 
-      for (let i = 0; i < defaultClasses.length; i++) {
-        const clsItem = defaultClasses[i]!;
+      // Sort classes canonically: Pre-Primary -> Primary -> Higher Primary -> High School -> Senior Sec
+      const sortedClasses = [...rawClasses].sort((a, b) => {
+        const orderA = getCanonicalSortOrder(a.gradeLevel, a.displayName);
+        const orderB = getCanonicalSortOrder(b.gradeLevel, b.displayName);
+        return orderA - orderB;
+      });
+
+      for (let i = 0; i < sortedClasses.length; i++) {
+        const clsItem = sortedClasses[i]!;
         const [cls] = await tx
           .insert(classes)
           .values({
@@ -379,7 +395,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
 
       return {
         success: true,
-        message: `School '${schoolName}' onboarded successfully! ${defaultClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, and 4 salary templates provisioned under tenant ${udiseCode}.`,
+        message: `School '${schoolName}' onboarded successfully! ${sortedClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, and 4 salary templates provisioned under tenant ${udiseCode}.`,
         schoolId: newSchool.id,
         adminEmail,
       };

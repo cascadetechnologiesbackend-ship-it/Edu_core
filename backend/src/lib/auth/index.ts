@@ -64,6 +64,24 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           const isValid = await bcrypt.compare(password, superAdmin.passwordHash);
           if (isValid) {
             await clearLockout(email);
+            // Mint refresh session cookie
+            try {
+              const { cookies, headers } = await import("next/headers");
+              const cookieStore = cookies();
+              const headerStore = headers();
+              const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "127.0.0.1";
+              const ua = headerStore.get("user-agent") ?? "unknown";
+              const { createRefreshSession } = await import("./refreshToken");
+              const rawToken = await createRefreshSession(superAdmin.id, ip, ua);
+              cookieStore.set("schoolmitra_refresh", rawToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge: 7 * 24 * 60 * 60,
+                path: "/api/auth/refresh",
+              });
+            } catch {}
+
             return {
               id: superAdmin.id,
               email: superAdmin.email,
@@ -71,6 +89,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
               schoolId: null, // Super admins have no school ID
               role: "SUPER_ADMIN",
             };
+          } else {
+            await recordFailedAttempt(email);
+            return null;
           }
         }
 
@@ -96,22 +117,56 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         // Clear lockout on success
         await clearLockout(email);
 
-        // Fetch user roles
+        // Fetch user roles and sort by privilege hierarchy
         const userRolesList = await db
           .select({ roleName: roles.name })
           .from(userRoles)
           .innerJoin(roles, eq(userRoles.roleId, roles.id))
           .where(eq(userRoles.userId, user.id));
 
-        const roleNames = userRolesList.map((r) => r.roleName);
+        const ROLE_HIERARCHY: Record<string, number> = {
+          SUPER_ADMIN: 100,
+          SCHOOL_ADMIN: 90,
+          PRINCIPAL: 80,
+          HR_MANAGER: 70,
+          ACCOUNTANT: 60,
+          TEACHER: 50,
+          LIBRARIAN: 40,
+          TRANSPORT_MANAGER: 30,
+          DRIVER: 20,
+          PARENT: 10,
+          STUDENT: 0,
+        };
+
+        const sortedRoles = userRolesList
+          .map((r) => r.roleName)
+          .sort((a, b) => (ROLE_HIERARCHY[b] ?? -1) - (ROLE_HIERARCHY[a] ?? -1));
+
+        // Mint refresh session cookie
+        try {
+          const { cookies, headers } = await import("next/headers");
+          const cookieStore = cookies();
+          const headerStore = headers();
+          const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "127.0.0.1";
+          const ua = headerStore.get("user-agent") ?? "unknown";
+          const { createRefreshSession } = await import("./refreshToken");
+          const rawToken = await createRefreshSession(user.id, ip, ua);
+          cookieStore.set("schoolmitra_refresh", rawToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60,
+            path: "/api/auth/refresh",
+          });
+        } catch {}
 
         // Return user object for NextAuth
         return {
           id: user.id,
           email: user.email,
-          name: email.split("@")[0] ?? "Unknown", // Simple fallback name
+          name: email.split("@")[0] ?? "Unknown",
           schoolId: user.schoolId,
-          role: roleNames[0] ?? "STUDENT",
+          role: sortedRoles[0] ?? "STUDENT",
           mustChangePassword: user.mustChangePassword ?? false,
         };
       },

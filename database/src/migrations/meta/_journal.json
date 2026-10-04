@@ -43,6 +43,13 @@
       "when": 1790800000000,
       "tag": "0005_hr_phase1_master_data",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1791114978995,
+      "tag": "0006_huge_ultimates",
+      "breakpoints": true
     }
   ]
 }

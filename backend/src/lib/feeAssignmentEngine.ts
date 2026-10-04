@@ -186,3 +186,103 @@ export async function autoAssignFeeStructuresForClass(
 
   return totalGenerated;
 }
+
+/**
+ * Recalculates discounts, taxes, net amounts, and balances for pending fee invoices
+ * of a student when concessions are granted, updated, or sibling discounts applied.
+ */
+export async function recalculateStudentInvoices(
+  studentId: string,
+  tx?: any
+): Promise<number> {
+  const dbOrTx = tx || db;
+
+  const student = await dbOrTx.query.students.findFirst({
+    where: eq(students.id, studentId),
+  });
+
+  if (!student || !student.isActive) return 0;
+
+  // Fetch all active concessions for this student
+  const concessions = await dbOrTx.query.feeConcessions.findMany({
+    where: and(
+      eq(feeConcessions.studentId, student.id),
+      eq(feeConcessions.isActive, true),
+    ),
+  });
+
+  // Fetch all pending / unpaid invoices
+  const invoices = await dbOrTx.query.feeInvoices.findMany({
+    where: and(
+      eq(feeInvoices.studentId, student.id),
+      eq(feeInvoices.schoolId, student.schoolId),
+    ),
+    with: {
+      feeStructure: {
+        with: { feeHead: true },
+      },
+    },
+  });
+
+  let updatedCount = 0;
+
+  for (const inv of invoices) {
+    // Only recalculate for invoices that haven't been fully paid or partially paid
+    const paidAmount = parseFloat(inv.paidAmount || "0");
+    if (paidAmount > 0) continue; // preserve already partially paid invoices
+
+    const grossAmount = parseFloat(inv.grossAmount || "0");
+    if (grossAmount <= 0) continue;
+
+    const structure = inv.feeStructure;
+    const feeHeadId = structure?.feeHeadId;
+
+    let discountAmount = 0;
+    const applicableConcession = concessions.find(
+      (c: any) => c.appliesTo === "ALL" || (feeHeadId && c.appliesTo === feeHeadId),
+    );
+
+    if (applicableConcession) {
+      if (applicableConcession.discountPercentage) {
+        discountAmount =
+          grossAmount *
+          (parseFloat(applicableConcession.discountPercentage) / 100);
+      } else if (applicableConcession.discountAmount) {
+        discountAmount = parseFloat(applicableConcession.discountAmount);
+      }
+    }
+
+    if (discountAmount > grossAmount) discountAmount = grossAmount;
+
+    const taxableAmount = grossAmount - discountAmount;
+    let taxAmount = 0;
+
+    if (
+      (structure?.feeHead as any)?.isTaxable &&
+      (structure?.feeHead as any)?.gstPercentage
+    ) {
+      taxAmount =
+        taxableAmount *
+        (parseFloat((structure?.feeHead as any).gstPercentage) / 100);
+    }
+
+    const lateFeeAmount = parseFloat(inv.lateFeeAmount || "0");
+    const netAmount = taxableAmount + taxAmount + lateFeeAmount;
+    const balanceAmount = netAmount - paidAmount;
+
+    await dbOrTx
+      .update(feeInvoices)
+      .set({
+        discountAmount: discountAmount.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        netAmount: netAmount.toFixed(2),
+        balanceAmount: balanceAmount.toFixed(2),
+        updatedAt: new Date(),
+      })
+      .where(eq(feeInvoices.id, inv.id));
+
+    updatedCount++;
+  }
+
+  return updatedCount;
+}

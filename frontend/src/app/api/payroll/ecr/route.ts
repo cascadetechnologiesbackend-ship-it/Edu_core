@@ -51,6 +51,11 @@ export async function GET(req: NextRequest) {
       return new NextResponse("Payroll run not found", { status: 404 });
     }
 
+    const user = session.user as { id: string; role: string; schoolId?: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.schoolId && run.schoolId !== user.schoolId) {
+      return new NextResponse("Access denied: cross-tenant access forbidden", { status: 403 });
+    }
+
     if (run.status !== "APPROVED") {
       return new NextResponse(
         "Payroll run must be locked and approved to export ECR",

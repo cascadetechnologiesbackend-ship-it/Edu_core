@@ -7,35 +7,9 @@ import {
   classSubjects,
 } from "@/db/schema";
 import { desc, eq, and, inArray } from "drizzle-orm";
-import crypto from "crypto";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { decryptData } from "@/lib/encryption";
 import { StudentDirectoryClient } from "./StudentDirectoryClient";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
-
-function decryptData(encryptedText: string | null) {
-  if (!encryptedText) return null;
-  try {
-    const parts = encryptedText.split(":");
-    const ivStr = parts[0];
-    const encryptedStr = parts[1];
-    if (!ivStr || !encryptedStr) return encryptedText;
-
-    const iv = Buffer.from(ivStr, "hex");
-    const encrypted = Buffer.from(encryptedStr, "hex");
-    const decipher = crypto.createDecipheriv(
-      "aes-256-cbc",
-      Buffer.from(ENCRYPTION_KEY, "hex"),
-      iv,
-    );
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (e) {
-    return encryptedText;
-  }
-}
 
 export default async function StudentsDirectoryPage() {
   const ctx = await requireAuth();
@@ -64,6 +38,17 @@ export default async function StudentsDirectoryPage() {
     isAdmin
       ? db.query.students.findMany({
           where: eq(students.schoolId, school.id),
+          columns: {
+            id: true,
+            admissionNumber: true,
+            firstNameEncrypted: true,
+            lastNameEncrypted: true,
+            gender: true,
+            currentClassId: true,
+            currentSectionId: true,
+            isActive: true,
+            createdAt: true,
+          },
           orderBy: [desc(students.createdAt)],
           limit: 200,
         })
@@ -119,7 +104,7 @@ export default async function StudentsDirectoryPage() {
     ]);
     const allowedSectionIds = Array.from(sectionIdSet);
 
-    // Query teacher's scoped students
+    // Query teacher's scoped students with column projection
     allStudents = await db.query.students.findMany({
       where: and(
         eq(students.schoolId, school.id),
@@ -127,6 +112,17 @@ export default async function StudentsDirectoryPage() {
           ? inArray(students.currentSectionId, allowedSectionIds)
           : eq(students.id, "00000000-0000-0000-0000-000000000000"), // no permitted sections
       ),
+      columns: {
+        id: true,
+        admissionNumber: true,
+        firstNameEncrypted: true,
+        lastNameEncrypted: true,
+        gender: true,
+        currentClassId: true,
+        currentSectionId: true,
+        isActive: true,
+        createdAt: true,
+      },
       orderBy: [desc(students.createdAt)],
       limit: 200,
     });

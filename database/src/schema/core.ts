@@ -78,6 +78,17 @@ export const schools = pgTable(
     subscriptionExpiresAt: timestamp("subscription_expires_at", {
       withTimezone: true,
     }),
+    // ─── Superadmin Platform Fields ───────────────────────────────────────────
+    // R-13: URL slug for path-prefix routing (e.g., schoolmitra.in/school/greenwood)
+    slug: text("slug").unique(),
+    // R-14: Lifecycle status — ACTIVE | SUSPENDED | ARCHIVED
+    status: text("status").notNull().default("ACTIVE"),
+    // R-06: School type used to match global template profile
+    schoolType: text("school_type"), // PRIMARY | SECONDARY | SENIOR_SECONDARY | INTEGRATED
+    // R-14: Free-text admin reason for suspension (generic, no billing language)
+    suspensionReason: text("suspension_reason"),
+    // R-18: JSON manifest of what was cloned from which template at provisioning time
+    provisioningManifest: jsonb("provisioning_manifest"),
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -90,6 +101,8 @@ export const schools = pgTable(
   (t) => ({
     udiseIdx: unique("schools_udise_unique").on(t.udiseCode),
     emailIdx: index("schools_email_idx").on(t.email),
+    slugIdx: index("schools_slug_idx").on(t.slug),
+    statusIdx: index("schools_status_idx").on(t.status),
   }),
 );
 
@@ -225,7 +238,7 @@ export const users = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => ({
-    emailUnique: unique("users_email_unique").on(t.email),
+    emailUnique: unique("users_school_email_unique").on(t.schoolId, t.email),
     schoolIdx: index("users_school_idx").on(t.schoolId),
     emailIdx: index("users_email_idx").on(t.email),
   }),
@@ -324,6 +337,7 @@ export const auditLogs = pgTable(
     userIdx: index("audit_logs_user_idx").on(t.userId),
     tableIdx: index("audit_logs_table_idx").on(t.tableName),
     dateIdx: index("audit_logs_date_idx").on(t.createdAt),
+    schoolDateIdx: index("audit_logs_school_date_idx").on(t.schoolId, t.createdAt),
   }),
 );
 
@@ -425,12 +439,30 @@ export const superAdminUsers = pgTable("super_admin_users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const platformAuditLogs = pgTable("platform_audit_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  superAdminId: uuid("super_admin_id").notNull(),
-  action: text("action").notNull(),
-  targetSchoolId: uuid("target_school_id"),
-  metadata: jsonb("metadata"),
-  ipAddress: text("ip_address").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const platformAuditLogs = pgTable(
+  "platform_audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    superAdminId: uuid("super_admin_id").notNull(),
+    superAdminEmail: text("super_admin_email").notNull(), // denormalized for readability
+    action: text("action").notNull(),
+    // R-19: Entity-level tracking
+    entityType: text("entity_type"),  // e.g., "school", "global_template_profile"
+    entityId: text("entity_id"),      // UUID of the affected record
+    targetSchoolId: uuid("target_school_id"),
+    // R-08: Before/after snapshots for full forensic traceability
+    beforeSnapshot: jsonb("before_snapshot"),
+    afterSnapshot: jsonb("after_snapshot"),
+    metadata: jsonb("metadata"),
+    ipAddress: text("ip_address").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // NO updatedAt — platform audit logs are append-only (immutable)
+  },
+  (t) => ({
+    superAdminIdx: index("pal_super_admin_idx").on(t.superAdminId),
+    targetSchoolIdx: index("pal_target_school_idx").on(t.targetSchoolId),
+    entityTypeIdx: index("pal_entity_type_idx").on(t.entityType),
+    dateIdx: index("pal_date_idx").on(t.createdAt),
+    targetSchoolDateIdx: index("pal_target_school_date_idx").on(t.targetSchoolId, t.createdAt),
+  }),
+);

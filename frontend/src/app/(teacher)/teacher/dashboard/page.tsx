@@ -11,9 +11,12 @@ import {
   timetablePeriods,
   exams,
   students,
+  salaryComponents,
+  payslips,
 } from "@/db/schema";
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, desc } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
+import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
 import Link from "next/link";
 import {
   BookOpen,
@@ -28,6 +31,8 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Info,
+  Receipt,
+  Percent,
 } from "lucide-react";
 
 export const metadata = {
@@ -220,6 +225,28 @@ export default async function TeacherDashboardPage() {
     limit: 3,
   });
 
+  // 9. Query Staff Salary Structure & Compensation
+  let salaryComponent: any = null;
+  let recentPayslips: any[] = [];
+  if (staffMember) {
+    const [sc, ps] = await Promise.all([
+      db.query.salaryComponents.findFirst({
+        where: eq(salaryComponents.staffId, staffMember.id),
+      }),
+      db.query.payslips.findMany({
+        where: eq(payslips.staffId, staffMember.id),
+        orderBy: [desc(payslips.month)],
+        limit: 3,
+      }),
+    ]);
+    salaryComponent = sc;
+    recentPayslips = ps;
+  }
+
+  const salaryBreakdown = salaryComponent
+    ? computeSalaryBreakdown(salaryComponent)
+    : null;
+
   const hasAllocations =
     classTeacherSections.length > 0 ||
     assignedMappings.length > 0 ||
@@ -367,6 +394,94 @@ export default async function TeacherDashboardPage() {
             {activeExams.length} active exam cycle(s)
           </p>
         </div>
+      </div>
+
+      {/* ─── 2.5. Educator Compensation & Monthly Take-Home Card ──────────────── */}
+      <div className="rounded-2xl border border-emerald-900/40 bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 p-5 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
+                  Faculty Payroll
+                </span>
+                <span className="text-xs text-slate-400">
+                  Direct Bank Credit
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white mt-0.5">
+                Compensation &amp; Salary Structure
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            {salaryBreakdown ? (
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block font-medium">
+                  Net Monthly Take-Home
+                </span>
+                <span className="text-lg sm:text-xl font-black text-emerald-400">
+                  ₹{Math.round(salaryBreakdown.netMonthlyPay).toLocaleString()}
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs text-amber-400 font-semibold">
+                Setup In Progress
+              </span>
+            )}
+
+            <Link
+              href="/teacher/payroll"
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span>View Payslip</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {salaryBreakdown ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 border-t border-slate-800/80 text-xs">
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block">Basic Pay</span>
+              <strong className="text-white font-bold text-sm">
+                ₹{Math.round(salaryBreakdown.basicSalary).toLocaleString()}
+              </strong>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block">
+                DA ({salaryBreakdown.daPercent}%)
+              </span>
+              <strong className="text-emerald-400 font-bold text-sm">
+                +₹{Math.round(salaryBreakdown.daAmount).toLocaleString()}
+              </strong>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block">
+                HRA ({salaryBreakdown.hraPercent}%)
+              </span>
+              <strong className="text-emerald-400 font-bold text-sm">
+                +₹{Math.round(salaryBreakdown.hraAmount).toLocaleString()}
+              </strong>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block">
+                PF + PT + TDS
+              </span>
+              <strong className="text-rose-400 font-bold text-sm">
+                -₹{Math.round(salaryBreakdown.deductionsTotal).toLocaleString()}
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400">
+            No salary structure components allocated to your faculty profile yet. Contact school administration to associate your wage template.
+          </div>
+        )}
       </div>
 
       {/* ─── 3. Today's Class Schedule ────────────────────────────────────────── */}

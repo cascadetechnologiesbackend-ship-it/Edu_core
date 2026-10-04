@@ -19,7 +19,7 @@ import {
   roles,
   userRoles,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { autoAssignFeeStructuresToStudent } from "@/lib/feeAssignmentEngine";
@@ -388,6 +388,71 @@ export async function enrollApplicant(
       });
     }
 
+    // 6.5. Automated Multi-Factor Sibling Detection
+    let isSiblingDetected = Boolean(application.hasSiblingInSchool);
+    let detectedSiblingId: string | null = application.siblingStudentId || null;
+
+    if (!isSiblingDetected && school.id) {
+      // Check 1: Other active students with matching primaryParentUserId
+      if (parentUserId) {
+        const existingSibling = await tx.query.students.findFirst({
+          where: and(
+            eq(students.schoolId, school.id),
+            eq(students.primaryParentUserId, parentUserId),
+            ne(students.id, newStudent.id),
+            eq(students.isActive, true),
+          ),
+        });
+        if (existingSibling) {
+          isSiblingDetected = true;
+          detectedSiblingId = existingSibling.id;
+        }
+      }
+
+      // Check 2: Matching phone or email in studentFamilyMembers
+      if (!isSiblingDetected && (primaryMobile || primaryEmail)) {
+        const allFamilyMembers = await tx.query.studentFamilyMembers.findMany({
+          where: and(
+            eq(studentFamilyMembers.schoolId, school.id),
+            ne(studentFamilyMembers.studentId, newStudent.id),
+          ),
+        });
+
+        for (const fam of allFamilyMembers) {
+          const famMobile = fam.mobileEncrypted ? decryptData(fam.mobileEncrypted) : null;
+          const famEmail = fam.emailEncrypted ? decryptData(fam.emailEncrypted) : null;
+
+          const phoneMatch =
+            primaryMobile &&
+            famMobile &&
+            primaryMobile.replace(/\D/g, "").slice(-10) ===
+              famMobile.replace(/\D/g, "").slice(-10);
+          const emailMatch =
+            primaryEmail &&
+            famEmail &&
+            primaryEmail.trim().toLowerCase() === famEmail.trim().toLowerCase();
+
+          if (phoneMatch || emailMatch) {
+            isSiblingDetected = true;
+            detectedSiblingId = fam.studentId;
+            break;
+          }
+        }
+      }
+
+      // If sibling was detected, update application record
+      if (isSiblingDetected) {
+        await tx
+          .update(admissionApplications)
+          .set({
+            hasSiblingInSchool: true,
+            siblingStudentId: detectedSiblingId,
+            updatedAt: new Date(),
+          })
+          .where(eq(admissionApplications.id, application.id));
+      }
+    }
+
     // 7. Automatic Fee Concession assignment
     if (application.isRteApplicant) {
       await tx.insert(feeConcessions).values({
@@ -401,18 +466,19 @@ export async function enrollApplicant(
         approvedById: ctx.userId,
       });
     }
-    if (application.hasSiblingInSchool) {
+    if (isSiblingDetected) {
       await tx.insert(feeConcessions).values({
         schoolId: school.id,
         academicYearId: application.academicYearId,
         studentId: newStudent.id,
         concessionType: "SIBLING",
-        concessionName: "Sibling Concession",
+        concessionName: "Sibling Concession (10%)",
         appliesTo: "ALL",
         discountPercentage: "10.00",
         approvedById: ctx.userId,
       });
     }
+
     if (application.isStaffWard) {
       await tx.insert(feeConcessions).values({
         schoolId: school.id,

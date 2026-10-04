@@ -4,6 +4,9 @@ import { Header } from "@/components/layout/Header";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getActiveTenant } from "@/lib/tenant";
+import { cookies } from "next/headers";
+import { ImpersonationBanner } from "@/components/platform/ImpersonationBanner";
+import { verifyImpersonationToken } from "@/lib/impersonation";
 
 export const metadata: Metadata = {
   title: {
@@ -26,6 +29,25 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
+  // Check if superadmin is impersonating a school (cryptographically verified)
+  const cookieStore = cookies();
+  const impCookie = cookieStore.get("sm_impersonation");
+  const verifiedImpersonation = session.user.role === "SUPER_ADMIN"
+    ? verifyImpersonationToken(impCookie?.value)
+    : null;
+
+  const impersonationData = verifiedImpersonation
+    ? {
+        schoolId: verifiedImpersonation.schoolId,
+        schoolName: verifiedImpersonation.schoolName,
+        role: "School Administrator",
+        expiresInMinutes: Math.max(
+          1,
+          Math.round((verifiedImpersonation.exp - Date.now()) / (60 * 1000)),
+        ),
+      }
+    : null;
+
   // Enforce layout-level security: parents/students belong in the /portal route group
   if (session.user.role === "PARENT" || session.user.role === "STUDENT") {
     redirect("/portal");
@@ -41,31 +63,51 @@ export default async function AdminLayout({
     redirect("/teacher/dashboard");
   }
 
-  // Super admins belong in the platform management group
-  if (session.user.role === "SUPER_ADMIN") {
-    redirect("/platform/dashboard");
+  // Super admins belong in the platform management group, UNLESS currently impersonating a school!
+  if (session.user.role === "SUPER_ADMIN" && !impersonationData?.schoolId) {
+    redirect("/super-admin/dashboard");
   }
 
+  // Effective role for sidebar and navigation
+  const effectiveRole = impersonationData ? "SCHOOL_ADMIN" : session.user.role;
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
-      <Sidebar userRole={session.user.role} />
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Impersonation Banner at top of School Admin Portal */}
+      {impersonationData && (
+        <ImpersonationBanner
+          schoolName={impersonationData.schoolName ?? "School Instance"}
+          impersonatingRole={impersonationData.role ?? "School Administrator"}
+          expiresInMinutes={impersonationData.expiresInMinutes ?? 60}
+        />
+      )}
 
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Sidebar */}
+        <Sidebar userRole={effectiveRole as any} />
 
-      {/* Main content */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header breadcrumbs={[{ label: "Admin", href: "/dashboard" }]} />
+        {/* Main content */}
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Header
+            breadcrumbs={[
+              {
+                label: impersonationData?.schoolName ? `${impersonationData.schoolName} Admin` : "Admin",
+                href: "/dashboard",
+              },
+            ]}
+          />
 
-        <main
-          className="flex-1 overflow-y-auto"
-          id="main-content"
-          role="main"
-          aria-label="Main content"
-        >
-          <div className="p-6 max-w-screen-2xl mx-auto animate-fade-in">
-            {children}
-          </div>
-        </main>
+          <main
+            className="flex-1 overflow-y-auto"
+            id="main-content"
+            role="main"
+            aria-label="Main content"
+          >
+            <div className="p-6 max-w-screen-2xl mx-auto animate-fade-in">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

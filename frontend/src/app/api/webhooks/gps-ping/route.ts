@@ -2,9 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { gpsPings, vehicles } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate IoT / hardware GPS device via API key
+    const expectedKey =
+      process.env.GPS_DEVICE_API_KEY ||
+      (process.env.NODE_ENV !== "production" ? "dev-gps-tracker-secret" : null);
+    const incomingKey = req.headers.get("x-device-api-key");
+
+    if (!expectedKey || !incomingKey) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized GPS tracker device" },
+        { status: 401 },
+      );
+    }
+
+    const expBuf = Buffer.from(expectedKey, "utf8");
+    const incBuf = Buffer.from(incomingKey, "utf8");
+    if (
+      expBuf.length !== incBuf.length ||
+      !crypto.timingSafeEqual(expBuf, incBuf)
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Invalid tracker API key" },
+        { status: 401 },
+      );
+    }
+
     const body = await req.json();
     const { vehicleId, latitude, longitude, speed } = body;
 
@@ -12,6 +38,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: "vehicleId, latitude, and longitude are required" },
         { status: 400 }
+      );
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lng) || lng < -180 || lng > 180) {
+      return NextResponse.json(
+        { success: false, error: "Invalid latitude or longitude range" },
+        { status: 400 },
       );
     }
 

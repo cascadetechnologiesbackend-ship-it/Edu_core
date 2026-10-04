@@ -26,6 +26,7 @@ import { deleteClass } from "../actions/class-setup.actions";
 import AcademicBlockTabs, {
   AcademicBlockKey,
   getGradeBlock,
+  getCanonicalSortOrder,
 } from "@/components/academics/AcademicBlockTabs";
 
 type Classroom = {
@@ -40,6 +41,15 @@ type Classroom = {
     classTeacherId: string | null;
     roomNumber: string | null;
   }>;
+};
+
+const sortClassroomsCanonically = (list: Classroom[]) => {
+  return [...list].sort((a, b) => {
+    const canonicalA = getCanonicalSortOrder(a.gradeLevel, a.displayName);
+    const canonicalB = getCanonicalSortOrder(b.gradeLevel, b.displayName);
+    if (canonicalA !== canonicalB) return canonicalA - canonicalB;
+    return (a.sortOrder || 0) - (b.sortOrder || 0);
+  });
 };
 
 type Subject = {
@@ -101,13 +111,15 @@ export default function AmsHubClient({
   const [showWizard, setShowWizard] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeBlock, setActiveBlock] = useState<AcademicBlockKey>("all");
-  const [classList, setClassList] = useState<Classroom[]>(classrooms);
+  const [classList, setClassList] = useState<Classroom[]>(() =>
+    sortClassroomsCanonically(classrooms),
+  );
   const [classToDelete, setClassToDelete] = useState<Classroom | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    setClassList(classrooms);
+    setClassList(sortClassroomsCanonically(classrooms));
   }, [classrooms]);
 
   const isTeacher = role === "TEACHER";

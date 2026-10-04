@@ -1,10 +1,15 @@
 import { type NextAuthConfig } from "next-auth";
 
+function resolveAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: AUTH_SECRET must be configured in production environments.");
+  }
+  return secret || "change-me-to-a-random-64-char-string-in-production";
+}
+
 export const authConfig: NextAuthConfig = {
-  secret:
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    "change-me-to-a-random-64-char-string-in-production",
+  secret: resolveAuthSecret(),
   providers: [], // Providers like Credentials with DB access go in index.ts
   session: {
     strategy: "jwt",
@@ -19,11 +24,24 @@ export const authConfig: NextAuthConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const pathname = nextUrl.pathname;
 
-      // Always allow Next.js internal assets, static files, and auth API endpoints
+      // Strictly match static asset extensions to prevent dot-truncation middleware auth bypass
+      const isStaticAsset =
+        /\.(ico|png|jpg|jpeg|svg|webp|gif|css|js|woff2?|ttf|eot|map|txt|webmanifest)$/i.test(
+          pathname,
+        );
+
       if (
         pathname.startsWith("/_next") ||
         pathname.startsWith("/api/auth") ||
-        pathname.includes(".")
+        isStaticAsset
+      ) {
+        return true;
+      }
+
+      // Webhook and health endpoints have internal cryptographic / key validation
+      if (
+        pathname.startsWith("/api/webhooks") ||
+        pathname === "/api/health"
       ) {
         return true;
       }

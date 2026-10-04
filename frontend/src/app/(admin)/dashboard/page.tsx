@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { db } from "@/db";
 import {
   books,
@@ -130,9 +131,10 @@ function QuickAction({
 // ─── Dashboard Component Renderers ──────────────────────────────────────────
 
 export default async function DashboardPage() {
+  const ctx = await requireAuth();
+  const role = ctx.role;
+  const schoolId = ctx.schoolId || "";
   const session = await auth();
-  const role = session?.user?.role || "STUDENT";
-  const schoolId = session?.user?.schoolId || "";
 
   // 1. Core Counts & Queries (cached/shared where appropriate)
   const totalStudentsCount = schoolId
@@ -397,9 +399,11 @@ export default async function DashboardPage() {
     999
   );
 
-  // Execute all dashboard database queries in parallel
+  // Re-use cached school from requireSchool (eliminates redundant round-trip)
+  const school = ctx.schoolId ? await requireSchool(ctx) : null;
+
+  // Execute remaining dashboard database queries in parallel
   const [
-    school,
     activeYear,
     todayAttendance,
     todayFeePayments,
@@ -408,12 +412,6 @@ export default async function DashboardPage() {
     pendingLeavesCount,
     pendingRightsCount,
   ] = await Promise.all([
-    schoolId
-      ? db.query.schools.findFirst({
-          where: eq(schools.id, schoolId),
-        })
-      : Promise.resolve(null),
-
     schoolId
       ? db.query.academicYears.findFirst({
           where: and(

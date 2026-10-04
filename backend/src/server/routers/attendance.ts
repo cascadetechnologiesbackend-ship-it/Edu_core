@@ -18,10 +18,20 @@ export const attendanceRouter = createTRPCRouter({
   getAssignedSections: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
     const userRole = ctx.session.user.role;
+    const schoolId = ctx.session.user.schoolId;
+
+    if (!schoolId && userRole !== "SUPER_ADMIN") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "No active school context found in session.",
+      });
+    }
 
     if (["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(userRole)) {
       return await ctx.db.query.sections.findMany({
-        where: eq(sections.isActive, true),
+        where: schoolId
+          ? and(eq(sections.isActive, true), eq(sections.schoolId, schoolId))
+          : eq(sections.isActive, true),
         with: {
           class: true,
         },
@@ -33,6 +43,7 @@ export const attendanceRouter = createTRPCRouter({
       where: and(
         eq(sections.isActive, true),
         eq(sections.classTeacherId, userId),
+        schoolId ? eq(sections.schoolId, schoolId) : undefined,
       ),
       with: {
         class: true,
@@ -54,9 +65,12 @@ export const attendanceRouter = createTRPCRouter({
       const startOfDay = new Date(parsedDate.setHours(0, 0, 0, 0));
       const endOfDay = new Date(parsedDate.setHours(23, 59, 59, 999));
 
-      // Resolve current active academic year
+      // Resolve current active academic year scoped to tenant school
+      const schoolId = ctx.session.user.schoolId;
       const activeYear = await ctx.db.query.academicYears.findFirst({
-        where: eq(academicYears.isActive, true),
+        where: schoolId
+          ? and(eq(academicYears.isActive, true), eq(academicYears.schoolId, schoolId))
+          : eq(academicYears.isActive, true),
       });
 
       if (!activeYear) {
@@ -147,12 +161,27 @@ export const attendanceRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
       const userRole = ctx.session.user.role;
-      const schoolId = ctx.session.user.schoolId;
+      let finalSchoolId = ctx.session.user.schoolId;
+      if (!finalSchoolId) {
+        const sec = await ctx.db.query.sections.findFirst({
+          where: eq(sections.id, input.sectionId),
+          columns: { schoolId: true },
+        });
+        finalSchoolId = sec?.schoolId ?? null;
+      }
 
-      if (!schoolId) {
+      if (!finalSchoolId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "User session does not specify schoolId.",
+          message: "Could not resolve valid school context for attendance marking.",
+        });
+      }
+
+      const ALLOWED_ATTENDANCE_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"];
+      if (!ALLOWED_ATTENDANCE_ROLES.includes(userRole)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Access Denied: You do not have permission to mark student attendance.",
         });
       }
 
@@ -162,6 +191,7 @@ export const attendanceRouter = createTRPCRouter({
           where: and(
             eq(sections.id, input.sectionId),
             eq(sections.classTeacherId, userId),
+            finalSchoolId ? eq(sections.schoolId, finalSchoolId) : undefined,
           ),
         });
 
@@ -174,9 +204,12 @@ export const attendanceRouter = createTRPCRouter({
         }
       }
 
-      // Resolve current active academic year
+      // Resolve current active academic year scoped to tenant school
       const activeYear = await ctx.db.query.academicYears.findFirst({
-        where: eq(academicYears.isActive, true),
+        where: and(
+          eq(academicYears.isActive, true),
+          eq(academicYears.schoolId, finalSchoolId),
+        ),
       });
 
       if (!activeYear) {
@@ -226,7 +259,7 @@ export const attendanceRouter = createTRPCRouter({
             const [newRecord] = await tx
               .insert(studentAttendance)
               .values({
-                schoolId,
+                schoolId: finalSchoolId,
                 studentId: record.studentId,
                 sectionId: input.sectionId,
                 academicYearId: activeYear.id,
@@ -245,7 +278,7 @@ export const attendanceRouter = createTRPCRouter({
             tableName: "student_attendance",
             recordId: markedRecordId,
             purposeId: "attendance",
-            schoolId,
+            schoolId: finalSchoolId,
             metadata: { studentId: record.studentId, status: record.status },
           });
         }

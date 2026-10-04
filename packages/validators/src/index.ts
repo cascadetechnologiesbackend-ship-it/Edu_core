@@ -74,6 +74,7 @@ export const ROLES = [
   "TRANSPORT_MANAGER",
   "PARENT",
   "STUDENT",
+  "DRIVER",
 ] as const;
 
 export type Role = (typeof ROLES)[number];

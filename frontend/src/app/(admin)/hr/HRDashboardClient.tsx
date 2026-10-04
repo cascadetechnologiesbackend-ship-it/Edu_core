@@ -2866,6 +2866,70 @@ export default function HRDashboardClient({
                 />
               </div>
 
+              {/* Live Calculation Preview */}
+              {(() => {
+                const selectedTemplate = salaryTemplates.find(
+                  (t) => t.id === associationForm.templateId,
+                );
+                if (!selectedTemplate || !associationForm.baseGrossSalary) return null;
+
+                const basic =
+                  (associationForm.baseGrossSalary *
+                    parseFloat(selectedTemplate.basicPercent || "0")) /
+                  100;
+                const da =
+                  basic *
+                  (parseFloat(selectedTemplate.daPercent || "0") / 100);
+                const hra =
+                  basic *
+                  (parseFloat(selectedTemplate.hraPercent || "0") / 100);
+                const gross = basic + da + hra;
+                const pf =
+                  basic *
+                  (parseFloat(selectedTemplate.pfEmployeePercent || "12") / 100);
+                const pt = 200;
+                const tds = associationForm.monthlyTds || 0;
+                const deductions = pf + pt + tds;
+                const net = Math.max(0, gross - deductions);
+
+                return (
+                  <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 space-y-2">
+                    <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-300">
+                      <span className="text-[11px]">Salary Calculation Preview</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                        Net: ₹{Math.round(net).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600 dark:text-slate-300">
+                      <div className="flex justify-between">
+                        <span>Basic ({selectedTemplate.basicPercent}%):</span>
+                        <strong className="text-slate-900 dark:text-white">
+                          ₹{Math.round(basic).toLocaleString()}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>DA ({selectedTemplate.daPercent}%):</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400">
+                          +₹{Math.round(da).toLocaleString()}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>HRA ({selectedTemplate.hraPercent}%):</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400">
+                          +₹{Math.round(hra).toLocaleString()}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>PF (12%):</span>
+                        <strong className="text-rose-600 dark:text-rose-400">
+                          -₹{Math.round(pf).toLocaleString()}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"

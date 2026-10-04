@@ -61,17 +61,41 @@ export async function requireAuth(
   }
 
   const role = session.user.role as Role;
+  let schoolId = (session.user as { schoolId?: string | null }).schoolId ?? null;
+  let effectiveRole = role;
 
-  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+  // If SUPER_ADMIN is impersonating a school tenant, resolve schoolId from cryptographically signed cookie
+  if (role === "SUPER_ADMIN" && !schoolId) {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = cookies();
+      const impCookie = cookieStore.get("sm_impersonation");
+      if (impCookie?.value) {
+        const { verifyImpersonationToken } = await import("./impersonation");
+        const impData = verifyImpersonationToken(impCookie.value);
+        if (impData?.schoolId && impData.superAdminId === session.user.id) {
+          schoolId = impData.schoolId;
+          effectiveRole = "SCHOOL_ADMIN" as Role;
+        }
+      }
+    } catch {}
+  }
+
+  if (
+    allowedRoles &&
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(effectiveRole) &&
+    role !== "SUPER_ADMIN"
+  ) {
     throw new Error(
-      `FORBIDDEN: requires roles [${allowedRoles.join(", ")}], got ${role}`,
+      `FORBIDDEN: requires roles [${allowedRoles.join(", ")}], got ${effectiveRole}`,
     );
   }
 
   return {
     userId: session.user.id,
-    schoolId: (session.user as { schoolId?: string | null }).schoolId ?? null,
-    role,
+    schoolId,
+    role: effectiveRole,
     email: session.user.email ?? "",
   };
 }

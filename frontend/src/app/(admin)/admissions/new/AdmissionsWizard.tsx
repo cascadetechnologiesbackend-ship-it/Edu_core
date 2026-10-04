@@ -42,6 +42,7 @@ export function AdmissionsWizard({
     isRteApplicant: false,
     optInTransport: false,
     optInHostel: false,
+    hasSiblingInSchool: false,
   });
 
   const [familyDetails, setFamilyDetails] = useState({
@@ -482,7 +483,7 @@ export function AdmissionsWizard({
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                   Quota & Facility Opt-Ins (Automated Fee Structure Assignments)
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
                     <input
                       type="checkbox"
@@ -525,6 +526,21 @@ export function AdmissionsWizard({
                     <div>
                       <span className="text-sm font-medium text-gray-900 dark:text-white block">Hostel / Boarding</span>
                       <span className="text-xs text-gray-500 dark:text-slate-400 block">Auto-assign Hostel Fee</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition">
+                    <input
+                      type="checkbox"
+                      checked={basicInfo.hasSiblingInSchool}
+                      onChange={(e) =>
+                        setBasicInfo({ ...basicInfo, hasSiblingInSchool: e.target.checked })
+                      }
+                      className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white block">Sibling in School</span>
+                      <span className="text-xs text-indigo-600 dark:text-indigo-400 block font-medium">10% Sibling Concession</span>
                     </div>
                   </label>
                 </div>
