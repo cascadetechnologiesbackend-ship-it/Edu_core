@@ -5,6 +5,7 @@
   "description": "SchoolMitra ERP — School Management for Nursery–Class 10 (DPDP Act 2023 Compliant)",
   "scripts": {
     "build": "turbo run build",
+    "start": "pnpm --filter @schoolmitra/frontend start",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
     "test": "turbo run test",
