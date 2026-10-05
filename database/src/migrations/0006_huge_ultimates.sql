@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS "global_template_classes" (
 	"name" text NOT NULL,
 	"numeric_level" integer NOT NULL,
 	"grade_level" "grade_level" NOT NULL,
-	"streams" text[] DEFAULT  NOT NULL,
-	"default_sections" text[] DEFAULT A NOT NULL,
+	"streams" text[] DEFAULT '{}'::text[] NOT NULL,
+	"default_sections" text[] DEFAULT '{"A"}'::text[] NOT NULL,
 	"sort_order" integer NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
