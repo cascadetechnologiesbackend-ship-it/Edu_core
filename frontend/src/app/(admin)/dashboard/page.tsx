@@ -1,6 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { db } from "@/db";
 import {
@@ -131,7 +134,13 @@ function QuickAction({
 // ─── Dashboard Component Renderers ──────────────────────────────────────────
 
 export default async function DashboardPage() {
-  const ctx = await requireAuth();
+  let ctx;
+  try {
+    ctx = await requireAuth();
+  } catch {
+    redirect("/login");
+  }
+
   const role = ctx.role;
   const schoolId = ctx.schoolId || "";
   const session = await auth();
