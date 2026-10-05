@@ -167,31 +167,31 @@ ALTER TABLE "platform_audit_logs" ADD COLUMN "super_admin_email" text NOT NULL;-
 ALTER TABLE "platform_audit_logs" ADD COLUMN "entity_type" text;--> statement-breakpoint
 ALTER TABLE "platform_audit_logs" ADD COLUMN "entity_id" text;--> statement-breakpoint
 ALTER TABLE "platform_audit_logs" ADD COLUMN "before_snapshot" jsonb;--> statement-breakpoint
-ALTER TABLE "platform_audit_logs" ADD COLUMN "after_snapshot" jsonb;--> statement-breakpoint
-ALTER TABLE "schools" ADD COLUMN "slug" text;--> statement-breakpoint
-ALTER TABLE "schools" ADD COLUMN "status" text DEFAULT 'ACTIVE' NOT NULL;--> statement-breakpoint
-ALTER TABLE "schools" ADD COLUMN "school_type" text;--> statement-breakpoint
-ALTER TABLE "schools" ADD COLUMN "suspension_reason" text;--> statement-breakpoint
-ALTER TABLE "schools" ADD COLUMN "provisioning_manifest" jsonb;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "must_change_password" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "admission_applications" ADD COLUMN "blood_group" "blood_group";--> statement-breakpoint
-ALTER TABLE "admission_applications" ADD COLUMN "opt_in_transport" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "admission_applications" ADD COLUMN "opt_in_hostel" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "admission_applications" ADD COLUMN "consent_preferences" jsonb;--> statement-breakpoint
-ALTER TABLE "students" ADD COLUMN "opt_in_transport" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "students" ADD COLUMN "opt_in_hostel" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "code" varchar(10);--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "priority" integer DEFAULT 99 NOT NULL;--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "description" text;--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "category" varchar(30) DEFAULT 'RECURRING' NOT NULL;--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "discount_eligible" boolean DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "late_fine_eligible" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "fee_heads" ADD COLUMN "is_refundable" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "designations" ADD COLUMN "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE "staff" ADD COLUMN "emergency_contact_encrypted" text;--> statement-breakpoint
-ALTER TABLE "staff" ADD COLUMN "relieving_date" timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "staff" ADD COLUMN "separation_type" text;--> statement-breakpoint
-ALTER TABLE "staff" ADD COLUMN "separation_reason" text;--> statement-breakpoint
+ALTER TABLE "platform_audit_logs" ADD COLUMN IF NOT EXISTS "after_snapshot" jsonb;--> statement-breakpoint
+ALTER TABLE "schools" ADD COLUMN IF NOT EXISTS "slug" text;--> statement-breakpoint
+ALTER TABLE "schools" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'ACTIVE' NOT NULL;--> statement-breakpoint
+ALTER TABLE "schools" ADD COLUMN IF NOT EXISTS "school_type" text;--> statement-breakpoint
+ALTER TABLE "schools" ADD COLUMN IF NOT EXISTS "suspension_reason" text;--> statement-breakpoint
+ALTER TABLE "schools" ADD COLUMN IF NOT EXISTS "provisioning_manifest" jsonb;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "must_change_password" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "admission_applications" ADD COLUMN IF NOT EXISTS "blood_group" "blood_group";--> statement-breakpoint
+ALTER TABLE "admission_applications" ADD COLUMN IF NOT EXISTS "opt_in_transport" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "admission_applications" ADD COLUMN IF NOT EXISTS "opt_in_hostel" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "admission_applications" ADD COLUMN IF NOT EXISTS "consent_preferences" jsonb;--> statement-breakpoint
+ALTER TABLE "students" ADD COLUMN IF NOT EXISTS "opt_in_transport" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "students" ADD COLUMN IF NOT EXISTS "opt_in_hostel" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "code" varchar(10);--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "priority" integer DEFAULT 99 NOT NULL;--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "description" text;--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "category" varchar(30) DEFAULT 'RECURRING' NOT NULL;--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "discount_eligible" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "late_fine_eligible" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "fee_heads" ADD COLUMN IF NOT EXISTS "is_refundable" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "designations" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "emergency_contact_encrypted" text;--> statement-breakpoint
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "relieving_date" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "separation_type" text;--> statement-breakpoint
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "separation_reason" text;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "drivers_school_idx" ON "drivers" ("school_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "drivers_vehicle_idx" ON "drivers" ("vehicle_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "drivers_user_idx" ON "drivers" ("user_id");--> statement-breakpoint
@@ -340,5 +340,14 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-ALTER TABLE "schools" ADD CONSTRAINT "schools_slug_unique" UNIQUE("slug");--> statement-breakpoint
-ALTER TABLE "designations" ADD CONSTRAINT "designations_school_name_unique" UNIQUE("school_id","name");
+DO $$ BEGIN
+  ALTER TABLE "schools" ADD CONSTRAINT "schools_slug_unique" UNIQUE("slug");
+EXCEPTION
+  WHEN duplicate_table OR duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "designations" ADD CONSTRAINT "designations_school_name_unique" UNIQUE("school_id","name");
+EXCEPTION
+  WHEN duplicate_table OR duplicate_object THEN null;
+END $$;
