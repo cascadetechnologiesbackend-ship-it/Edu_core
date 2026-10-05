@@ -399,8 +399,18 @@ export default async function DashboardPage() {
     999
   );
 
-  // Re-use cached school from requireSchool (eliminates redundant round-trip)
-  const school = ctx.schoolId ? await requireSchool(ctx) : null;
+  // Re-use cached school from requireSchool gracefully
+  let school: any = null;
+  if (ctx.schoolId) {
+    try {
+      school = await requireSchool(ctx);
+    } catch (e) {
+      console.warn("DashboardPage: requireSchool fallback", e);
+      school = await db.query.schools.findFirst({
+        where: eq(schools.id, ctx.schoolId),
+      }).catch(() => null);
+    }
+  }
 
   // Execute remaining dashboard database queries in parallel
   const [

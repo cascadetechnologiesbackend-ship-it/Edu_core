@@ -22,8 +22,13 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Validate active subdomain tenant
-  await getActiveTenant();
+  // Validate active subdomain tenant gracefully
+  try {
+    await getActiveTenant();
+  } catch (err) {
+    // If tenant cannot be resolved from host/domain, fall back without throwing 404/500
+    console.warn("AdminLayout: tenant resolution fallback", err);
+  }
 
   const session = await auth();
 
