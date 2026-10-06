@@ -28,7 +28,13 @@ export function Header({
   notificationCount = 0,
 }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { data: session } = useSession();
+  let session: any = null;
+  try {
+    const sessionContext = useSession();
+    session = sessionContext?.data;
+  } catch {
+    session = null;
+  }
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [mounted, setMounted] = useState(false);

@@ -85,15 +85,17 @@ export function Sidebar({
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = useSession();
-
-  // Clear pending state whenever pathname catches up
-  useEffect(() => {
-    setPendingHref(null);
-  }, [pathname]);
+  let sessionRole: string | undefined;
+  try {
+    const sessionContext = useSession();
+    sessionRole = sessionContext?.data?.user?.role;
+  } catch {
+    // If not wrapped in SessionProvider or during error boundary fallback, fail gracefully
+    sessionRole = undefined;
+  }
 
   // Fallback to SCHOOL_ADMIN if role is not yet loaded so menu items never disappear
-  const role = userRole || session?.user?.role || "SCHOOL_ADMIN";
+  const role = userRole || sessionRole || "SCHOOL_ADMIN";
 
   // Active route pre-warmer: in dev mode, real background fetch compiles routes on the server
   // ahead of time; in prod, router.prefetch prefetches the RSC bundle.

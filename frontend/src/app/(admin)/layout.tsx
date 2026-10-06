@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { getActiveTenant } from "@/lib/tenant";
 import { cookies } from "next/headers";
 import { ImpersonationBanner } from "@/components/platform/ImpersonationBanner";
+import { SessionProvider } from "next-auth/react";
 import { verifyImpersonationToken } from "@/lib/impersonation";
 
 export const metadata: Metadata = {
@@ -79,43 +80,45 @@ export default async function AdminLayout({
   const effectiveRole = impersonationData ? "SCHOOL_ADMIN" : session.user.role;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Impersonation Banner at top of School Admin Portal */}
-      {impersonationData && (
-        <ImpersonationBanner
-          schoolName={impersonationData.schoolName ?? "School Instance"}
-          impersonatingRole={impersonationData.role ?? "School Administrator"}
-          expiresInMinutes={impersonationData.expiresInMinutes ?? 60}
-        />
-      )}
-
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Sidebar */}
-        <Sidebar userRole={effectiveRole as any} />
-
-        {/* Main content */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Header
-            breadcrumbs={[
-              {
-                label: impersonationData?.schoolName ? `${impersonationData.schoolName} Admin` : "Admin",
-                href: "/dashboard",
-              },
-            ]}
+    <SessionProvider session={session}>
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        {/* Impersonation Banner at top of School Admin Portal */}
+        {impersonationData && (
+          <ImpersonationBanner
+            schoolName={impersonationData.schoolName ?? "School Instance"}
+            impersonatingRole={impersonationData.role ?? "School Administrator"}
+            expiresInMinutes={impersonationData.expiresInMinutes ?? 60}
           />
+        )}
 
-          <main
-            className="flex-1 overflow-y-auto"
-            id="main-content"
-            role="main"
-            aria-label="Main content"
-          >
-            <div className="p-6 max-w-screen-2xl mx-auto animate-fade-in">
-              {children}
-            </div>
-          </main>
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          {/* Sidebar */}
+          <Sidebar userRole={effectiveRole as any} />
+
+          {/* Main content */}
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <Header
+              breadcrumbs={[
+                {
+                  label: impersonationData?.schoolName ? `${impersonationData.schoolName} Admin` : "Admin",
+                  href: "/dashboard",
+                },
+              ]}
+            />
+
+            <main
+              className="flex-1 overflow-y-auto"
+              id="main-content"
+              role="main"
+              aria-label="Main content"
+            >
+              <div className="p-6 max-w-screen-2xl mx-auto animate-fade-in">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </SessionProvider>
   );
 }
