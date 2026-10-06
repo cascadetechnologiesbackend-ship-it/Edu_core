@@ -1,5 +1,11 @@
+import { Metadata } from "next";
 import { getActiveTenant } from "@/lib/tenant";
 import LoginForm from "./login-form";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description: "Sign in to SchoolMitra ERP — Your school, beautifully organized.",
+};
 
 export const revalidate = 0; // Disable server caching for login page to ensure dynamic subdomain check works on every hit
 
