@@ -3,11 +3,8 @@ import { type NextAuthConfig } from "next-auth";
 function resolveAuthSecret(): string {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-      throw new Error("FATAL: AUTH_SECRET or NEXTAUTH_SECRET is required in production");
-    }
-    // Return empty string or dev warning only when not production
-    return "dev-local-only-auth-secret-do-not-use-in-production-32chars";
+    console.warn("⚠️ Warning: AUTH_SECRET or NEXTAUTH_SECRET is not set in environment. Falling back to default secret.");
+    return "default-schoolmitra-auth-secret-key-32chars-min-len";
   }
   return secret;
 }

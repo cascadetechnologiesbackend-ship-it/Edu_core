@@ -3,6 +3,19 @@ export const dynamic = "force-dynamic";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+function getMetadataBase(): URL {
+  const rawUrl = process.env["NEXT_PUBLIC_APP_URL"] || process.env["VERCEL_URL"];
+  if (!rawUrl || rawUrl.trim() === "") {
+    return new URL("https://schoolmitra.in");
+  }
+  try {
+    const formatted = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
+    return new URL(formatted);
+  } catch {
+    return new URL("https://schoolmitra.in");
+  }
+}
+
 export const metadata: Metadata = {
   title: {
     default: "SchoolMitra ERP",
@@ -22,9 +35,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "SchoolMitra" }],
   creator: "SchoolMitra ERP",
-  metadataBase: new URL(
-    process.env["NEXT_PUBLIC_APP_URL"] ?? "https://schoolmitra.in",
-  ),
+  metadataBase: getMetadataBase(),
   openGraph: {
     type: "website",
     locale: "en_IN",

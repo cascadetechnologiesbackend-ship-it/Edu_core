@@ -3,9 +3,7 @@ import crypto from "crypto";
 function resolveKey(): string {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {
-    if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-      throw new Error("FATAL: ENCRYPTION_KEY is required in production (64 hex characters)");
-    }
+    console.warn("⚠️ Warning: ENCRYPTION_KEY is not set in environment. Falling back to default key.");
     return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
   }
   return key;

@@ -45,6 +45,9 @@ async function main() {
     }).returning();
     parentRole = cr;
   }
+  if (!parentRole) {
+    throw new Error("Could not find or create PARENT role");
+  }
   console.log(`PARENT role ID: ${parentRole.id}`);
 
   // 3. Find or insert user
@@ -73,6 +76,9 @@ async function main() {
       updatedAt: new Date(),
     }).returning();
     parentUser = nu;
+  }
+  if (!parentUser) {
+    throw new Error("Could not find or create parent user");
   }
   console.log(`Parent user ready: ${parentUser.id} (${parentUser.email})`);
 
