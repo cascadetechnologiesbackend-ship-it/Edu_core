@@ -18,14 +18,20 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  if (process.env.NODE_ENV === "development") {
-    console.log("[EMAIL DEV]", { to: options.to, subject: options.subject });
+  if (process.env.NODE_ENV === "development" && !process.env.SMTP_HOST) {
+    console.log("[EMAIL DEV MOCK]", { to: options.to, subject: options.subject });
     console.log("[EMAIL BODY]", options.text);
     return;
   }
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || "noreply@schoolmitra.in",
-    ...options,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || "noreply@schoolmitra.in",
+      ...options,
+    });
+    console.info(`[EMAIL SENT] ID: ${info.messageId} to: ${options.to}`);
+  } catch (error) {
+    console.error(`[EMAIL ERROR] Failed to send email to ${options.to}:`, error);
+    throw error;
+  }
 }

@@ -4,11 +4,10 @@ function resolveAuthSecret(): string {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-      console.warn(
-        "⚠️ Warning: Neither AUTH_SECRET nor NEXTAUTH_SECRET is set in environment variables. Using fallback secret.",
-      );
+      throw new Error("FATAL: AUTH_SECRET or NEXTAUTH_SECRET is required in production");
     }
-    return "schoolmitra-erp-auth-secret-fallback-key-min-64-characters-long-key!!";
+    // Return empty string or dev warning only when not production
+    return "dev-local-only-auth-secret-do-not-use-in-production-32chars";
   }
   return secret;
 }

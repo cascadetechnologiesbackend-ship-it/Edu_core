@@ -71,13 +71,14 @@ export async function submitAdmissionApplication(
     };
 
     const parsed = createAdmissionApplicationSchema.parse(payload);
+    const targetSchoolId = parsed.schoolId || defaultSchool.id;
 
     const admissionNum = `APP/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`;
 
     const [application] = await db
       .insert(admissionApplications)
       .values({
-        schoolId: parsed.schoolId,
+        schoolId: targetSchoolId,
         academicYearId: parsed.academicYearId,
         applicationNumber: admissionNum,
         applicantNameEncrypted: encryptData(parsed.applicantName),
@@ -113,7 +114,7 @@ export async function submitAdmissionApplication(
     if (application) {
       await db.insert(admissionWorkflowSteps).values({
         applicationId: application.id,
-        schoolId: parsed.schoolId,
+        schoolId: targetSchoolId,
         stepNumber: 1,
         stepName: "APPLICATION_SUBMITTED",
         status: "COMPLETED",
@@ -138,7 +139,7 @@ export async function submitAdmissionApplication(
       if (bc && bc.key) {
         documentsToInsert.push({
           applicationId: application.id,
-          schoolId: parsed.schoolId,
+          schoolId: targetSchoolId,
           documentType: "BIRTH_CERTIFICATE",
           s3Key: bc.key,
           originalFileName: bc.fileName,
@@ -150,7 +151,7 @@ export async function submitAdmissionApplication(
       if (aadhaar && aadhaar.key) {
         documentsToInsert.push({
           applicationId: application.id,
-          schoolId: parsed.schoolId,
+          schoolId: targetSchoolId,
           documentType: "AADHAAR_PHOTO_MASKED",
           s3Key: aadhaar.key,
           originalFileName: aadhaar.fileName,
@@ -162,7 +163,7 @@ export async function submitAdmissionApplication(
       if (photo && photo.key) {
         documentsToInsert.push({
           applicationId: application.id,
-          schoolId: parsed.schoolId,
+          schoolId: targetSchoolId,
           documentType: "PASSPORT_PHOTO",
           s3Key: photo.key,
           originalFileName: photo.fileName,

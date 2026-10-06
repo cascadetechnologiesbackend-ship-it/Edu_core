@@ -13,6 +13,7 @@ import { GraduationCap, Eye, EyeOff, Loader2, Shield } from "lucide-react";
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
+  totpCode: z.string().optional(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -22,10 +23,12 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [requiresTOTP, setRequiresTOTP] = useState(false);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -39,11 +42,20 @@ export default function LoginForm() {
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
+        totpCode: data.totpCode || undefined,
         redirect: false,
       });
 
       if (result?.error) {
-        setServerError("Invalid email or password. Please try again.");
+        if (result.error.includes("TOTP_REQUIRED") || result.error === "TOTP_REQUIRED") {
+          setRequiresTOTP(true);
+          setServerError("Two-factor authentication required. Please enter your 6-digit authenticator code.");
+        } else if (result.error.includes("INVALID_TOTP") || result.error === "INVALID_TOTP") {
+          setRequiresTOTP(true);
+          setServerError("Invalid 2FA code. Please verify your authenticator app and try again.");
+        } else {
+          setServerError("Invalid email or password. Please try again.");
+        }
       } else {
         const session = await getSession();
         const role = (session?.user as any)?.role;
@@ -201,6 +213,37 @@ export default function LoginForm() {
                 </p>
               )}
             </div>
+
+            {/* TOTP 2FA Input (Required for SUPER_ADMIN with 2FA) */}
+            {requiresTOTP && (
+              <div className="p-3 bg-white/10 rounded-lg border border-amber-400/30 animate-fade-in">
+                <label
+                  htmlFor="login-totp"
+                  className="block text-sm font-medium text-amber-200 mb-1.5 flex items-center gap-1.5"
+                >
+                  <Shield className="w-4 h-4 text-amber-400" />
+                  Two-Factor Authenticator Code (TOTP)
+                </label>
+                <input
+                  id="login-totp"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                  {...register("totpCode")}
+                  className="w-full px-4 py-2 bg-white/15 border border-amber-400/40 rounded-lg
+                             text-white text-center text-lg tracking-widest placeholder-white/30
+                             focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400
+                             transition-all"
+                  placeholder="000000"
+                  autoFocus
+                />
+                <p className="mt-1 text-xs text-white/60 text-center">
+                  Enter 6-digit code from Google Authenticator or 1Password
+                </p>
+              </div>
+            )}
 
             {/* Forgot password */}
             <div className="flex justify-end">

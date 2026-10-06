@@ -124,6 +124,69 @@ export async function updateVendorDpaStatus(
   }
 }
 
+// ─── Privacy Notice Actions (Requirement 18.3) ────────────────────────────────
+export async function publishPrivacyNoticeAction(input: {
+  version: string;
+  titleEn: string;
+  titleHi: string;
+  contentEn: string;
+  contentHi: string;
+  changedPurposeIds: string[];
+}) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+    const school = await requireSchool(ctx);
+
+    const { privacyNotices, consentRecords } = await import("@/db/schema");
+    const { and, inArray } = await import("drizzle-orm");
+
+    const now = new Date();
+
+    // 1. Deactivate older notices for this school
+    await db
+      .update(privacyNotices)
+      .set({ isActive: false })
+      .where(eq(privacyNotices.schoolId, school.id));
+
+    // 2. Insert new immutable privacy notice version
+    await db.insert(privacyNotices).values({
+      schoolId: school.id,
+      version: input.version,
+      titleEn: input.titleEn,
+      titleHi: input.titleHi,
+      contentEn: input.contentEn,
+      contentHi: input.contentHi,
+      publishedAt: now,
+      isActive: true,
+      changedPurposeIds: input.changedPurposeIds,
+      createdAt: now,
+    });
+
+    // 3. Re-consent trigger: When a new privacy notice updates purpose terms,
+    // expire/withdraw existing active consent records for those purposes so re-consent is required
+    if (input.changedPurposeIds && input.changedPurposeIds.length > 0) {
+      await db
+        .update(consentRecords)
+        .set({
+          withdrawnAt: now,
+          withdrawalReason: `Re-consent required due to updated Privacy Notice v${input.version}`,
+        })
+        .where(
+          and(
+            eq(consentRecords.schoolId, school.id),
+            inArray(consentRecords.purposeId, input.changedPurposeIds),
+          ),
+        );
+    }
+
+    revalidatePath("/dpdp");
+    revalidatePath("/portal/consent");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
 // ─── Data Breach Incident Log Actions ─────────────────────────────────────────
 export async function reportDataBreach(input: {
   description: string;
@@ -157,6 +220,18 @@ export async function reportDataBreach(input: {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Trigger immediate emergency admin alerts for HIGH or CRITICAL breaches (Req 18.5)
+    if (input.severity === "HIGH" || input.severity === "CRITICAL") {
+      const { triggerBreachEmergencyAlert } = await import("@/lib/dpdpEscalation");
+      await triggerBreachEmergencyAlert({
+        schoolId: school.id,
+        incidentReference: ref,
+        severity: input.severity,
+        description: input.description,
+        boardNotificationDeadline: boardDeadline,
+      });
+    }
 
     revalidatePath("/dpdp");
     return { success: true };

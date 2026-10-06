@@ -66,16 +66,36 @@ import { trpcLogger } from "@/lib/logger";
  * Logging middleware — PII-safe structured logging.
  * NEVER logs PII field values.
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
+const timingMiddleware = t.middleware(async ({ ctx, next, path }) => {
   const start = Date.now();
-  const result = await next();
-  const durationMs = Date.now() - start;
+  const requestId = ctx.req?.headers?.get("x-request-id") || crypto.randomUUID();
+  try {
+    const result = await next();
+    const durationMs = Date.now() - start;
 
-  if (process.env["NODE_ENV"] === "development") {
-    trpcLogger.info(`[tRPC] ${path} — ${durationMs}ms`);
+    trpcLogger.info({
+      requestId,
+      path,
+      durationMs,
+      timestamp: new Date().toISOString(),
+      schoolId: ctx.session?.user?.schoolId || null,
+      role: ctx.session?.user?.role || "ANONYMOUS",
+    });
+
+    return result;
+  } catch (error: any) {
+    const durationMs = Date.now() - start;
+    trpcLogger.error({
+      requestId,
+      path,
+      durationMs,
+      timestamp: new Date().toISOString(),
+      schoolId: ctx.session?.user?.schoolId || null,
+      errorCode: error?.code || "INTERNAL_SERVER_ERROR",
+      errorMessage: error?.message || "Unknown error",
+    });
+    throw error;
   }
-
-  return result;
 });
 
 /**
@@ -126,14 +146,29 @@ const isAuthed = t.middleware(({ ctx, next }) => {
  * Usage: withRole(["SCHOOL_ADMIN", "PRINCIPAL"])
  */
 export function withRole(allowedRoles: readonly Role[]) {
-  return t.middleware(({ ctx, next }) => {
+  return t.middleware(async ({ ctx, next }) => {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
 
     const userRole = ctx.session.user.role as Role | undefined;
+    let effectiveRole = userRole;
 
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    // Check if SUPER_ADMIN is impersonating a school
+    if (userRole === "SUPER_ADMIN") {
+      const impCookie = ctx.req?.cookies?.get("sm_impersonation")?.value;
+      if (impCookie) {
+        try {
+          const { verifyImpersonationToken } = await import("@/lib/impersonation");
+          const impData = verifyImpersonationToken(impCookie);
+          if (impData?.schoolId && impData.superAdminId === ctx.session.user.id) {
+            effectiveRole = "SCHOOL_ADMIN" as Role;
+          }
+        } catch {}
+      }
+    }
+
+    if (!effectiveRole || !allowedRoles.includes(effectiveRole)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: `Access denied. Required roles: ${allowedRoles.join(", ")}`,

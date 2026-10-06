@@ -1,0 +1,4 @@
+{
+    "kiroAgent.enableCodebaseIndexing": true,
+    "kiroAgent.enableDebugLogs": true
+}

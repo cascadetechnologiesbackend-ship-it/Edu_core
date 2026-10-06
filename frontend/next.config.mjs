@@ -3,9 +3,8 @@ const nextConfig = {
   // Standalone output for Docker
   ...(process.env.NEXT_OUTPUT_STANDALONE ? { output: "standalone" } : {}),
 
-  // Disable strict mode in dev to prevent double-rendering all Server Components
-  // (double-rendering doubles ALL DB query time in development)
-  reactStrictMode: false,
+  // Enabled per Requirement 17.6 for production readiness
+  reactStrictMode: true,
 
   // Trust internal package TypeScript
   transpilePackages: [
@@ -105,7 +104,7 @@ const nextConfig = {
       "bcryptjs",
       "bullmq",
       "@react-pdf/renderer",
-      "xlsx",
+      "exceljs",
       "aws-sdk",
       "@aws-sdk/client-s3",
       "@aws-sdk/s3-request-presigner",

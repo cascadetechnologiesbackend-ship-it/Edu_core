@@ -33,6 +33,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totpCode: { label: "TOTP Code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -41,6 +42,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         const email = String(credentials.email);
         const password = String(credentials.password);
+        const totpCode = credentials.totpCode ? String(credentials.totpCode).trim() : null;
 
         // Check for lockout before hitting DB
         const { isAccountLocked, recordFailedAttempt, clearLockout } =
@@ -63,6 +65,31 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         if (superAdmin && superAdmin.isActive) {
           const isValid = await bcrypt.compare(password, superAdmin.passwordHash);
           if (isValid) {
+            // Check TOTP enforcement for SUPER_ADMIN
+            if (superAdmin.totpEnabled) {
+              if (!totpCode) {
+                // Return partial credential signal or require TOTP
+                throw new Error("TOTP_REQUIRED");
+              }
+
+              // Verify TOTP token using otplib
+              const { authenticator } = await import("otplib");
+              const { decryptData } = await import("@/lib/encryption");
+              
+              let secret = superAdmin.totpSecret;
+              // Attempt decryption if secret was encrypted
+              if (secret && secret.includes(":")) {
+                const decrypted = decryptData(secret);
+                if (decrypted) secret = decrypted;
+              }
+
+              const isTotpValid = secret ? authenticator.check(totpCode, secret) : false;
+              if (!isTotpValid) {
+                await recordFailedAttempt(email);
+                throw new Error("INVALID_TOTP");
+              }
+            }
+
             await clearLockout(email);
             // Mint refresh session cookie
             try {

@@ -63,16 +63,17 @@ export async function generateInvoicesForStudent(studentId: string) {
 
     let generatedCount = 0;
 
-    for (const structure of allStructures) {
-      // Check if invoice already exists for this student + structure
-      const existingInvoice = await db.query.feeInvoices.findFirst({
-        where: and(
-          eq(feeInvoices.studentId, student.id),
-          eq(feeInvoices.feeStructureId, structure.id),
-        ),
-      });
+    // Pre-fetch all existing invoices for this student to eliminate loop queries
+    const existingInvoices = await db.query.feeInvoices.findMany({
+      where: eq(feeInvoices.studentId, student.id),
+      columns: { feeStructureId: true },
+    });
+    const existingStructureIds = new Set(existingInvoices.map((i) => i.feeStructureId));
 
-      if (existingInvoice) continue;
+    const invoicesToInsert: any[] = [];
+
+    for (const structure of allStructures) {
+      if (existingStructureIds.has(structure.id)) continue;
 
       // Calculate amounts
       const grossAmount = parseFloat(structure.amount);
@@ -107,10 +108,9 @@ export async function generateInvoicesForStudent(studentId: string) {
       }
 
       const netAmount = taxableAmount + taxAmount;
-
       const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-      await db.insert(feeInvoices).values({
+      invoicesToInsert.push({
         invoiceNumber,
         schoolId: student.schoolId,
         studentId: student.id,
@@ -126,8 +126,11 @@ export async function generateInvoicesForStudent(studentId: string) {
         status: "PENDING",
         term: structure.term,
       });
+    }
 
-      generatedCount++;
+    if (invoicesToInsert.length > 0) {
+      await db.insert(feeInvoices).values(invoicesToInsert);
+      generatedCount += invoicesToInsert.length;
     }
 
     safeRevalidate(`/students/${studentId}/fees`);

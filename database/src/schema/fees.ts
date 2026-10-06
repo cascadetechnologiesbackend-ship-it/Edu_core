@@ -174,7 +174,9 @@ export const feeConcessions = pgTable(
     schoolId: uuid("school_id")
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
-    studentId: uuid("student_id").notNull(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
     academicYearId: uuid("academic_year_id")
       .notNull()
       .references(() => academicYears.id, { onDelete: "restrict" }),
@@ -217,7 +219,9 @@ export const feeInvoices = pgTable(
     schoolId: uuid("school_id")
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
-    studentId: uuid("student_id").notNull(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
     academicYearId: uuid("academic_year_id")
       .notNull()
       .references(() => academicYears.id, { onDelete: "restrict" }),
@@ -283,7 +287,9 @@ export const feePayments = pgTable(
     schoolId: uuid("school_id")
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
-    studentId: uuid("student_id").notNull(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
     feeInvoiceId: uuid("fee_invoice_id")
       .notNull()
       .references(() => feeInvoices.id, { onDelete: "restrict" }),

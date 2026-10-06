@@ -22,6 +22,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { signImpersonationToken } from "@/lib/impersonation";
+import { logPlatformAuditEvent } from "@/lib/auditLogger";
 
 export const metadata = {
   title: "School Tenants Directory | Super Admin",
@@ -52,6 +53,19 @@ async function startImpersonationAction(formData: FormData) {
     60,
   );
 
+  await logPlatformAuditEvent({
+    superAdminId: session.user.id,
+    superAdminEmail: session.user.email ?? "",
+    action: "START_IMPERSONATION",
+    targetSchoolId: schoolId,
+    entityType: "school",
+    entityId: schoolId,
+    metadata: {
+      schoolName: schoolName || "School Instance",
+      ttlMinutes: 60,
+    },
+  });
+
   const cookieStore = cookies();
   cookieStore.set("sm_impersonation", token, {
     path: "/",
@@ -67,6 +81,11 @@ async function startImpersonationAction(formData: FormData) {
 // Server action for Status Lifecycle (R-14 Generic Administrative Suspension)
 async function toggleSchoolStatusAction(formData: FormData) {
   "use server";
+  const session = await auth();
+  if (session?.user?.role !== "SUPER_ADMIN") {
+    throw new Error("Unauthorized: Super Admin access required.");
+  }
+
   const schoolId = formData.get("schoolId") as string;
   const currentStatus = formData.get("currentStatus") as string;
   const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
@@ -84,6 +103,20 @@ async function toggleSchoolStatusAction(formData: FormData) {
       updatedAt: new Date(),
     })
     .where(eq(schools.id, schoolId));
+
+  await logPlatformAuditEvent({
+    superAdminId: session.user.id,
+    superAdminEmail: session.user.email ?? "",
+    action: newStatus === "SUSPENDED" ? "SUSPEND_SCHOOL" : "ACTIVATE_SCHOOL",
+    targetSchoolId: schoolId,
+    entityType: "school",
+    entityId: schoolId,
+    beforeSnapshot: { status: currentStatus },
+    afterSnapshot: { status: newStatus },
+  });
+
+  const { invalidateSchoolCache } = await import("@/lib/schoolCache");
+  await invalidateSchoolCache(schoolId);
 
   revalidatePath("/super-admin/schools");
 }

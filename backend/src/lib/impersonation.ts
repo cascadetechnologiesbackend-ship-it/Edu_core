@@ -10,11 +10,11 @@ export interface ImpersonationPayload {
 }
 
 function getSecret(): string {
-  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  const secret = process.env.IMPERSONATION_SECRET || process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-      console.warn(
-        "⚠️ Warning: Neither AUTH_SECRET nor NEXTAUTH_SECRET is set for impersonation token signing. Using fallback.",
+      throw new Error(
+        "FATAL: IMPERSONATION_SECRET (or AUTH_SECRET) is required for impersonation token signing in production.",
       );
     }
     return "local-schoolmitra-impersonation-signing-secret-key-32b";

@@ -1,6 +1,6 @@
 "use client";
 
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export function ExportButton({
   data,
@@ -9,16 +9,36 @@ export function ExportButton({
   data: any[];
   filename?: string;
 }) {
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!data || data.length === 0) {
       alert("No data available to export");
       return;
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-    XLSX.writeFile(workbook, filename);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Data");
+
+    const columns = Object.keys(data[0] || {}).map((key) => ({
+      header: key,
+      key: key,
+      width: 20,
+    }));
+    worksheet.columns = columns;
+
+    data.forEach((row) => {
+      worksheet.addRow(row);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
   };
 
   return (

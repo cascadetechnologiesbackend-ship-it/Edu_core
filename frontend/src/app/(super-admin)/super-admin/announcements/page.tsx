@@ -3,6 +3,7 @@ import { platformAnnouncements, schools, platformAnnouncementReads, superAdminUs
 import { count, eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Bell, Send, ShieldAlert, CheckCircle2, Clock, Trash2, Megaphone } from "lucide-react";
+import { auth } from "@/lib/auth";
 
 export const metadata = {
   title: "Broadcast Center | Super Admin",
@@ -11,6 +12,11 @@ export const metadata = {
 
 async function broadcastAnnouncementAction(formData: FormData) {
   "use server";
+  const session = await auth();
+  if (session?.user?.role !== "SUPER_ADMIN") {
+    throw new Error("Unauthorized: Super Admin access required.");
+  }
+
   const title = formData.get("title") as string;
   const body = formData.get("body") as string;
   const targetType = formData.get("targetType") as string; // ALL or SPECIFIC

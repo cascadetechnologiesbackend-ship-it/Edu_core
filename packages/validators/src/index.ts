@@ -172,7 +172,7 @@ export const BLOOD_GROUPS = [
 ] as const;
 
 export const createAdmissionApplicationSchema = z.object({
-  schoolId: uuidSchema,
+  schoolId: uuidSchema.optional(),
   academicYearId: uuidSchema,
   applicantName: z.string().min(2).max(200),
   dateOfBirth: dateSchema,

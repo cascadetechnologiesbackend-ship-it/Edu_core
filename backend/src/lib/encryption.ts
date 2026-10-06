@@ -1,17 +1,12 @@
 import crypto from "crypto";
 
-const DEFAULT_DEV_KEY =
-  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
 function resolveKey(): string {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {
     if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-      console.warn(
-        "⚠️ Warning: ENCRYPTION_KEY is not configured in environment variables. Using fallback key.",
-      );
+      throw new Error("FATAL: ENCRYPTION_KEY is required in production (64 hex characters)");
     }
-    return DEFAULT_DEV_KEY;
+    return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
   }
   return key;
 }

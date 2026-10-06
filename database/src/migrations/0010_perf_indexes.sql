@@ -1,3 +1,4 @@
+-- Provenance: Formerly 0001_perf_indexes.sql. Renumbered to 0010 to resolve sequence conflict with 0001_lame_shooting_star.sql.
 -- Custom Performance Indexes Migration
 -- This migration adds indexes to frequently queried columns and foreign keys
 -- to prevent sequential scans and optimize Next.js rendering speed.

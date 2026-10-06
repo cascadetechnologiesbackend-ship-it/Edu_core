@@ -18,30 +18,12 @@ export interface AuthContext {
 
 // Zero-arg cached session fetcher ensures 100% deduplication per RSC request
 const getCachedSession = cache(async () => {
-  let session: any = null;
-  if (process.env.NODE_ENV !== "production" && process.env.TEST_AUTH_USER) {
-    try {
-      session = JSON.parse(process.env.TEST_AUTH_USER);
-    } catch {
-      session = null;
-    }
-  }
-  if (!session) {
-    session = await auth();
-  }
-  return session;
+  return await auth();
 });
 
-// In-memory TTL cache for tenant school settings (infrequently mutated)
-const schoolCache = new Map<string, { data: any; expiresAt: number }>();
+import { getCachedSchool, invalidateSchoolCache } from "./schoolCache";
 
-export function invalidateSchoolCache(schoolId?: string) {
-  if (schoolId) {
-    schoolCache.delete(schoolId);
-  } else {
-    schoolCache.clear();
-  }
-}
+export { invalidateSchoolCache };
 
 /**
  * Validates the session and (optionally) enforces an allowed-roles list.
@@ -81,11 +63,27 @@ export async function requireAuth(
     } catch {}
   }
 
+  // When SUPER_ADMIN is impersonating, role enforcement applies against effectiveRole (e.g. SCHOOL_ADMIN).
+  // When SUPER_ADMIN is NOT impersonating, they have platform-level access unless allowedRoles explicitly excludes them.
+  const isImpersonating = role === "SUPER_ADMIN" && Boolean(schoolId);
+
   if (
     allowedRoles &&
     allowedRoles.length > 0 &&
     !allowedRoles.includes(effectiveRole) &&
-    role !== "SUPER_ADMIN"
+    (!isImpersonating && role !== "SUPER_ADMIN")
+  ) {
+    throw new Error(
+      `FORBIDDEN: requires roles [${allowedRoles.join(", ")}], got ${effectiveRole}`,
+    );
+  }
+
+  // If SUPER_ADMIN is impersonating, they MUST satisfy the allowedRoles list as effectiveRole
+  if (
+    isImpersonating &&
+    allowedRoles &&
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(effectiveRole)
   ) {
     throw new Error(
       `FORBIDDEN: requires roles [${allowedRoles.join(", ")}], got ${effectiveRole}`,
@@ -117,14 +115,7 @@ export const requireSchool = cache(async function requireSchoolImpl(
 
   const schoolId = ctx.schoolId;
   const now = Date.now();
-  const cached = schoolCache.get(schoolId);
-  if (cached && cached.expiresAt > now) {
-    return cached.data;
-  }
-
-  const school = await db.query.schools.findFirst({
-    where: eq(schools.id, schoolId),
-  });
+  const school = await getCachedSchool(schoolId);
 
   if (!school) {
     throw new Error(`School not found for id: ${schoolId}`);
@@ -134,7 +125,12 @@ export const requireSchool = cache(async function requireSchoolImpl(
     throw new Error("School account is suspended. Contact your platform administrator.");
   }
 
-  schoolCache.set(schoolId, { data: school, expiresAt: now + 60_000 });
+  if (school.subscriptionExpiresAt && new Date(school.subscriptionExpiresAt).getTime() < now) {
+    throw new Error(
+      "School subscription has expired. Please renew your subscription to continue accessing the portal.",
+    );
+  }
+
   return school;
 });
 

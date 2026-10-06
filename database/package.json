@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "pnpm exec tsx src/migrate.ts",
+    "db:check-migrations": "pnpm exec tsx src/check-migrations.ts",
     "db:seed": "tsx src/seed.ts",
     "db:reset": "tsx src/factory_reset.ts",
     "db:studio": "drizzle-kit studio"

@@ -11,6 +11,7 @@ import {
   pgEnum,
   index,
   unique,
+  bigint,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { schools, academicYears } from "./core";
@@ -284,7 +285,7 @@ export const studentDocuments = pgTable(
     s3Key: text("s3_key").notNull(), // Private S3 key — never public URL
     originalFileName: text("original_filename").notNull(),
     mimeType: text("mime_type").notNull(),
-    fileSizeBytes: text("file_size_bytes").notNull(),
+    fileSizeBytes: bigint("file_size_bytes", { mode: "number" }).notNull(),
     uploadedById: uuid("uploaded_by_id").notNull(),
     isVerified: boolean("is_verified").notNull().default(false),
     verifiedById: uuid("verified_by_id"),

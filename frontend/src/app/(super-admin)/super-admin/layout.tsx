@@ -8,6 +8,8 @@ import { PlatformHeader } from "@/components/platform/PlatformHeader";
 import { ImpersonationBanner } from "@/components/platform/ImpersonationBanner";
 import { cookies } from "next/headers";
 
+import { verifyImpersonationToken } from "@/lib/impersonation";
+
 export const metadata: Metadata = {
   title: {
     default: "Super Admin Platform Console",
@@ -31,15 +33,10 @@ export default async function SuperAdminLayout({
     redirect("/dashboard");
   }
 
-  // Check if impersonation session cookie exists
+  // Check if impersonation session cookie exists (cryptographically verified)
   const cookieStore = cookies();
   const impersonationCookie = cookieStore.get("sm_impersonation");
-  let impersonationData = null;
-  if (impersonationCookie?.value) {
-    try {
-      impersonationData = JSON.parse(impersonationCookie.value);
-    } catch {}
-  }
+  const impersonationData = verifyImpersonationToken(impersonationCookie?.value);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#090d16] text-slate-100 font-sans antialiased">

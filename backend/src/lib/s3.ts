@@ -60,8 +60,18 @@ export async function getSignedDownloadUrl(
   key: string,
   bucket: string,
   expiresIn = 900,
+  userSchoolId?: string,
 ) {
   if (!key) return null;
+
+  // Requirement 15: If the path contains schools/{schoolId}, validate against userSchoolId
+  if (userSchoolId && key.startsWith("schools/")) {
+    const parts = key.split("/");
+    const keySchoolId = parts[1];
+    if (keySchoolId && keySchoolId !== userSchoolId) {
+      throw new Error(`Access Denied: Cannot access documents from school ${keySchoolId}`);
+    }
+  }
 
   const command = new GetObjectCommand({
     Bucket: bucket,

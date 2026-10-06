@@ -15,16 +15,14 @@ export async function POST(req: Request) {
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret || secret === "change-me") {
-      if (process.env.NODE_ENV === "production") {
-        console.error("[Razorpay Webhook] CRITICAL: RAZORPAY_WEBHOOK_SECRET is not configured in production.");
-        return NextResponse.json({ error: "Webhook signature verification unavailable" }, { status: 500 });
-      }
-      console.warn("[Razorpay Webhook] Dev warning: RAZORPAY_WEBHOOK_SECRET is unconfigured.");
-    } else {
-      const expectedSignature = crypto
-        .createHmac("sha256", secret)
-        .update(rawBody)
-        .digest("hex");
+      console.error("[Razorpay Webhook] CRITICAL: RAZORPAY_WEBHOOK_SECRET is not configured.");
+      return NextResponse.json({ error: "Webhook signature verification service unavailable" }, { status: 503 });
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
 
       const expectedBuf = Buffer.from(expectedSignature, "utf8");
       const sigBuf = Buffer.from(signature, "utf8");
@@ -38,7 +36,6 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
-    }
 
     const event = JSON.parse(rawBody);
 

@@ -60,29 +60,41 @@ async function processReportCardJob(
 ): Promise<void> {
   const { studentId, examId, schoolId, jobId } = job.data;
 
+  workerLogger.info(
+    `[ReportCardWorker] Starting job ${job.id} for student=${studentId}, schoolId=${schoolId}`,
+  );
+
   // Mark job as processing
   await db
     .update(reportCardJobs)
     .set({ status: "PROCESSING", startedAt: new Date(), updatedAt: new Date() })
-    .where(eq(reportCardJobs.id, jobId));
+    .where(and(eq(reportCardJobs.id, jobId), eq(reportCardJobs.schoolId, schoolId)));
 
   // DPDP Consent Check
   await assertConsent(studentId, "academic_records");
 
-  // Fetch the student
+  // Fetch the student with strict tenant scoping
   const student = await db.query.students.findFirst({
-    where: eq(students.id, studentId),
+    where: and(eq(students.id, studentId), eq(students.schoolId, schoolId)),
   });
 
-  if (!student) throw new Error(`Student ${studentId} not found`);
+  if (!student) {
+    const errorMsg = `Security Tenant Violation / Not Found: Student ${studentId} does not belong to school ${schoolId}`;
+    workerLogger.error(`[ReportCardWorker] ABORTING JOB: ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
 
-  // Fetch the exam
+  // Fetch the exam with strict tenant scoping
   const exam = await db.query.exams.findFirst({
-    where: eq(exams.id, examId),
+    where: and(eq(exams.id, examId), eq(exams.schoolId, schoolId)),
     with: { examType: true, academicYear: true },
   });
 
-  if (!exam) throw new Error(`Exam ${examId} not found`);
+  if (!exam) {
+    const errorMsg = `Security Tenant Violation / Not Found: Exam ${examId} does not belong to school ${schoolId}`;
+    workerLogger.error(`[ReportCardWorker] ABORTING JOB: ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
 
   // Fetch the school
   const school = await db.query.schools.findFirst({

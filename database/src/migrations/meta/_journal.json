@@ -12,43 +12,85 @@
     {
       "idx": 1,
       "version": "5",
-      "when": 1784384755521,
+      "when": 1784458891444,
       "tag": "0001_lame_shooting_star",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "5",
-      "when": 1784388067997,
+      "when": 1784958891444,
       "tag": "0002_cuddly_colossus",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "5",
-      "when": 1785165332598,
+      "when": 1785458891444,
       "tag": "0003_watery_vapor",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "5",
-      "when": 1790785323538,
+      "when": 1785958891444,
       "tag": "0004_handy_major_mapleleaf",
       "breakpoints": true
     },
     {
       "idx": 5,
       "version": "5",
-      "when": 1790800000000,
+      "when": 1786458891444,
       "tag": "0005_hr_phase1_master_data",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "5",
-      "when": 1791114978995,
+      "when": 1786958891444,
       "tag": "0006_huge_ultimates",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787458891444,
+      "tag": "0007_fee_heads_priority_and_matrix",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1787958891444,
+      "tag": "0008_admission_transport_hostel_optin",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1788458891444,
+      "tag": "0009_core_module_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1788958891444,
+      "tag": "0010_perf_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1789458891444,
+      "tag": "0011_auth_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1789958891444,
+      "tag": "0012_admission_blood_group",
       "breakpoints": true
     }
   ]

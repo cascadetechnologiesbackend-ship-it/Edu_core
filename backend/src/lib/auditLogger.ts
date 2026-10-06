@@ -1,6 +1,36 @@
 import { db } from "@/db";
-import { auditLogs } from "@/db/schema";
+import { auditLogs, platformAuditLogs } from "@/db/schema";
 import type { TRPCContext } from "@/server/trpc";
+
+export async function logPlatformAuditEvent(params: {
+  superAdminId: string;
+  superAdminEmail: string;
+  action: string;
+  targetSchoolId?: string | null;
+  entityType?: string;
+  entityId?: string;
+  beforeSnapshot?: any;
+  afterSnapshot?: any;
+  metadata?: any;
+  ipAddress?: string;
+}) {
+  try {
+    await db.insert(platformAuditLogs).values({
+      superAdminId: params.superAdminId,
+      superAdminEmail: params.superAdminEmail,
+      action: params.action,
+      targetSchoolId: params.targetSchoolId ?? null,
+      entityType: params.entityType ?? null,
+      entityId: params.entityId ?? null,
+      beforeSnapshot: params.beforeSnapshot ?? null,
+      afterSnapshot: params.afterSnapshot ?? null,
+      metadata: params.metadata ?? {},
+      ipAddress: params.ipAddress ?? "127.0.0.1",
+    });
+  } catch (err) {
+    console.error("Failed to write platform audit log:", err);
+  }
+}
 
 export async function logAuditEvent(
   ctx: TRPCContext | any,

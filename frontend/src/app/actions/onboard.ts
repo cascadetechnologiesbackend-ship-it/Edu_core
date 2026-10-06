@@ -1,4 +1,5 @@
 "use server";
+// PUBLIC: Self-service tenant onboarding for prospective school administrators creating a new school instance.
 
 import { db } from "@/db";
 import {

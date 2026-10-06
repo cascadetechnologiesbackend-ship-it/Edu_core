@@ -347,7 +347,7 @@ export async function enrollApplicant(
         s3Key: doc.s3Key,
         originalFileName: doc.originalFileName,
         mimeType: doc.mimeType,
-        fileSizeBytes: "0",
+        fileSizeBytes: 0,
         uploadedById: ctx.userId,
         isVerified: doc.isVerified,
         verifiedById: doc.verifiedById,

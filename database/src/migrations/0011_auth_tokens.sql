@@ -1,3 +1,4 @@
+-- Provenance: Formerly 0002_auth_tokens.sql. Renumbered to 0011 to resolve sequence conflict with 0002_cuddly_colossus.sql.
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

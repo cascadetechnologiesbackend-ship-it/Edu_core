@@ -13,17 +13,7 @@ import { cache } from "react";
 // checkAuth is wrapped in React cache() so it only calls auth() ONCE per request,
 // even when called by multiple server actions during the same RSC render.
 export const checkAuth = cache(async function checkAuthImpl(allowedRoles?: string[]) {
-  let session = null;
-  if (process.env.NODE_ENV !== "production" && process.env.TEST_AUTH_USER) {
-    try {
-      session = JSON.parse(process.env.TEST_AUTH_USER);
-    } catch {
-      session = null;
-    }
-  }
-  if (!session) {
-    session = await auth();
-  }
+  const session = await auth();
   if (!session?.user?.id || !session?.user?.schoolId) {
     throw new Error("Unauthorized");
   }
