@@ -1,0 +1,159 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Fix hardcoded fallback secret in refresh token route (GAP-001 Â· P0)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291033369
+      }
+    ],
+    "2. Write preservation test for refresh route (before implementing fix)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291038371
+      }
+    ],
+    "3.1 Replace warn-and-fallback with throw in `frontend/src/app/api/auth/refresh/route.ts`": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291038896
+      }
+    ],
+    "3.2 Verify bug condition exploration test now passes": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291044213
+      }
+    ],
+    "3.3 Verify preservation tests still pass": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291044533
+      }
+    ],
+    "3. Implement GAP-001: throw-in-production for missing AUTH_SECRET": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291044621
+      }
+    ],
+    "4. Implement GAP-002 Part A: Complete CI pipeline in `ci.yml`": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291050559
+      }
+    ],
+    "5. Implement GAP-002 Part B: Create `deploy.yml` workflow": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291051076
+      }
+    ],
+    "6.1 Create `packages/eslint-plugin-schoolmitra` package": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291056296
+      }
+    ],
+    "6.3 Fix the three unguarded Server Action files": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291056875
+      }
+    ],
+    "7.1 Replace caller-controlled `prefix` with session-derived school prefix in `frontend/src/app/api/upload/route.ts`": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291062934
+      }
+    ],
+    "7.2 Add path-traversal guard and `validateSchoolScopedKey` to `backend/src/lib/storage.ts`": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291063546
+      }
+    ],
+    "7.3 Create `docs/runbooks/s3-key-migration.md`": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291386522
+      }
+    ],
+    "7. Implement GAP-006: School-scope the generic upload route": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291386785
+      }
+    ],
+    "8.2 Unit tests for Razorpay webhook (`frontend/src/app/api/webhooks/razorpay/route.ts`)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291396507
+      }
+    ],
+    "9. Write unit tests for S3 path scoping (GAP-006)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291396849
+      }
+    ],
+    "10. Verify TOTP enforcement and account lockout (REQ-12)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291412617
+      }
+    ],
+    "11. Verify SUPER_ADMIN impersonation role scoping (REQ-11)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291413045
+      }
+    ],
+    "12. Verify migration sequence integrity (REQ-3)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291418729
+      }
+    ],
+    "13. Verify E2E auth uses storageState (REQ-2 remaining gap)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291419395
+      }
+    ],
+    "14. Verify env validation and `.env.local.example` (REQ-1)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291425588
+      }
+    ],
+    "15. Verify Server Action authorization audit (REQ-9 final sign-off)": [
+      {
+        "executionId": "bd3ae9a2-1887-4c3a-9859-561e55431131",
+        "chatSessionId": "sess_b9ff61f5-758f-40c8-be1a-defb8d722005",
+        "timestamp": 1791291426011
+      }
+    ]
+  }
+}
