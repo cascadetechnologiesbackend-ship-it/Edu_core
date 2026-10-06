@@ -2,7 +2,7 @@
   "name": "@schoolmitra/backend",
   "version": "0.1.0",
   "private": true,
-  "description": "SchoolMitra ERP Backend — Domain Services, Calculation Engines, tRPC Routers & Workers",
+  "description": "SchoolMitra ERP Backend - Domain Services, Calculation Engines, tRPC Routers & Workers",
   "main": "./src/server/root.ts",
   "types": "./src/server/root.ts",
   "exports": {
@@ -25,6 +25,13 @@
     "@schoolmitra/dpdp": "workspace:*",
     "@schoolmitra/validators": "workspace:*",
     "@trpc/server": "^11.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^6.4.14",
+    "@types/node": "^20.12.7",
+    "@types/pg": "^8.11.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.4.2",
     "clsx": "^2.1.0",
@@ -46,16 +53,9 @@
     "superjson": "^2.2.1",
     "tailwind-merge": "^2.2.2",
     "zod": "^3.25.76",
-    "typescript": "^5.4.5",
-    "@types/node": "^20.12.7"
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/nodemailer": "^6.4.14",
-    "@types/pg": "^8.11.5",
-    "@types/qrcode": "^1.5.5",
-    "@types/react": "^18.2.79",
-    "@types/react-dom": "^18.2.25",
     "vitest": "^1.5.0"
   }
 }
