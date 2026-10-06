@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getJwtSecret } from "../route";
+import { getJwtSecret } from "@/lib/auth/jwtSecret";
 
 describe("GAP-001: getJwtSecret fail-fast vs preservation", () => {
   const originalEnv = { ...process.env };

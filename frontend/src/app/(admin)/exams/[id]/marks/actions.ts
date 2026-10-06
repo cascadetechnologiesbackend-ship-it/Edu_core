@@ -127,7 +127,7 @@ export async function saveMarkEntries(input: SaveMarksInput) {
         grade,
         gradePoint: gradePoint ?? null,
         status: "SUBMITTED" as const,
-        enteredById: session.user.id,
+        enteredById: ctx.userId,
         enteredAt: new Date(),
         updatedAt: new Date(),
       };
