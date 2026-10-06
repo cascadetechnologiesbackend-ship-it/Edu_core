@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { KeyRound, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { forceChangePassword } from "@/app/actions/changePassword";
-import { useSession } from "next-auth/react";
 
 export default function ForcePasswordChangePage() {
-  const { update } = useSession();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -36,12 +34,7 @@ export default function ForcePasswordChangePage() {
         setLoading(false);
       } else {
         setSuccess(res.message || "Password updated successfully!");
-        // Update the client session JWT cookie so middleware permits dashboard navigation
-        try {
-          await update({ mustChangePassword: false });
-        } catch (err) {
-          console.warn("Session update error:", err);
-        }
+        // Refresh session state so middleware permits dashboard navigation
         try {
           await fetch("/api/auth/session");
         } catch {}
