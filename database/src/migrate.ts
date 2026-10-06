@@ -13,6 +13,7 @@ const db = drizzle(pool);
 
 import path from "path";
 import { fileURLToPath } from "url";
+import { ensureSuperAdmin } from "./manage_super_admin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,14 @@ async function main() {
   console.log(`Using migrations folder: ${migrationsFolder}`);
   await migrate(db, { migrationsFolder });
   console.log("Migration completed");
+
+  try {
+    console.log("Checking and seeding default super admin if required...");
+    await ensureSuperAdmin();
+  } catch (seedErr) {
+    console.error("Warning: Failed to ensure super admin during migration:", seedErr);
+  }
+
   process.exit(0);
 }
 
