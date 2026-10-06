@@ -10,7 +10,7 @@ import {
   users,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 import { calculateGrade, type GradeRule } from "@/lib/gradeEngine";
 import { gradeToClassGroup } from "@/lib/pdf/ReportCardPDF";
@@ -32,11 +32,10 @@ interface SaveMarksInput {
 
 export async function saveMarkEntries(input: SaveMarksInput) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"] as const);
 
     const dbUser = await db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
+      where: eq(users.id, ctx.userId),
     });
     if (!dbUser) {
       return {

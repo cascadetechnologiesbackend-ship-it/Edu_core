@@ -1,90 +1,73 @@
 /**
- * ESLint Rule: require-server-auth
- * Enforces that any file starting with 'use server' must call requireAuth()
- * or requireSession() in its exported async functions, unless marked with // PUBLIC:
+ * ESLint Rule: no-unguarded-server-action
+ * Detects files where all four conditions are met (per GAP-003 spec):
+ * 1. "use server" directive is present
+ * 2. Database import is present (@/db or @schoolmitra/database)
+ * 3. No requireAuth / requireSession / auth import from serverAuth
+ * 4. No file-level // PUBLIC: <reason> comment
+ *
+ * Reports at line 1, column 0 with an actionable message.
  */
-const requireServerAuth = {
+const noUnguardedServerAction = {
   meta: {
     type: "problem",
     docs: {
-      description: "Ensure Server Actions in 'use server' files call requireAuth or requireSession",
+      description: "Enforce requireAuth in Server Action files accessing the database",
       category: "Security",
       recommended: true,
     },
     schema: [],
     messages: {
-      missingAuthCheck:
-        "Server Action '{{ name }}' in 'use server' file must call requireAuth() or requireSession() before DB operations, or be explicitly annotated with '// PUBLIC: <reason>'.",
+      missingAuthGuard:
+        "Server Action file accessing the database must import and call requireAuth() from serverAuth, or be explicitly annotated with '// PUBLIC: <reason>'.",
     },
   },
   create(context) {
     const sourceCode = context.getSourceCode ? context.getSourceCode() : context.sourceCode;
     const text = sourceCode.getText();
 
-    // Check if the file has 'use server'
+    // Condition 1: "use server" directive present
     const hasUseServer = /^["']use server["'];?/m.test(text);
-    if (!hasUseServer) {
-      return {};
-    }
+    if (!hasUseServer) return {};
 
-    // Check if entire file has a file-level public bypass comment
-    if (text.includes("// PUBLIC:")) {
-      return {};
-    }
+    // Condition 4: No // PUBLIC: comment
+    if (text.includes("// PUBLIC:")) return {};
 
-    return {
-      ExportNamedDeclaration(node) {
-        if (!node.declaration) return;
+    // Condition 2: Database import present
+    const hasDbImport =
+      /from\s+["']@\/db(?:["'\/]|$)/.test(text) ||
+      /from\s+["']@schoolmitra\/database(?:["'\/]|$)/.test(text) ||
+      /import\s+.*(?:db|provisionTenant).*\s+from/.test(text);
 
-        let fnNode = null;
-        let fnName = "anonymous";
+    if (!hasDbImport) return {};
 
-        if (node.declaration.type === "FunctionDeclaration") {
-          fnNode = node.declaration;
-          fnName = fnNode.id ? fnNode.id.name : "anonymous";
-        } else if (
-          node.declaration.type === "VariableDeclaration" &&
-          node.declaration.declarations.length > 0
-        ) {
-          const decl = node.declaration.declarations[0];
-          if (
-            decl.init &&
-            (decl.init.type === "ArrowFunctionExpression" ||
-              decl.init.type === "FunctionExpression")
-          ) {
-            fnNode = decl.init;
-            fnName = decl.id.name;
-          }
-        }
+    // Condition 3: No requireAuth/requireSession/auth import from serverAuth / auth / checkAuth
+    const hasAuthGuard =
+      /requireAuth/.test(text) ||
+      /requireSession/.test(text) ||
+      /checkAuth/.test(text) ||
+      /from\s+["'].*serverAuth["']/.test(text) ||
+      /from\s+["'].*auth-helper["']/.test(text);
 
-        if (!fnNode || !fnNode.body) return;
-
-        // Check if there is a function-level comment containing // PUBLIC:
-        const comments = sourceCode.getCommentsBefore(node);
-        const hasPublicComment = comments.some((c) => c.value.includes("PUBLIC:"));
-        if (hasPublicComment) return;
-
-        // Check body for requireAuth or requireSession or auth() check
-        const bodyText = sourceCode.getText(fnNode.body);
-        const hasAuthCall =
-          /requireAuth\s*\(/.test(bodyText) ||
-          /requireSession\s*\(/.test(bodyText) ||
-          /(?:await\s+)?auth\s*\(/.test(bodyText);
-
-        if (!hasAuthCall) {
+    if (!hasAuthGuard) {
+      return {
+        Program(node) {
           context.report({
             node,
-            messageId: "missingAuthCheck",
-            data: { name: fnName },
+            loc: { line: 1, column: 0 },
+            messageId: "missingAuthGuard",
           });
-        }
-      },
-    };
+        },
+      };
+    }
+
+    return {};
   },
 };
 
 module.exports = {
   rules: {
-    "require-server-auth": requireServerAuth,
+    "no-unguarded-server-action": noUnguardedServerAction,
+    "require-server-auth": noUnguardedServerAction,
   },
 };

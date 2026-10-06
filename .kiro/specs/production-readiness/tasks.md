@@ -79,7 +79,7 @@ All tasks ─► Task 16 (final checkpoint)
 
 ---
 
-- [ ] 1. Fix hardcoded fallback secret in refresh token route (GAP-001 Â· P0)
+- [x] 1. Fix hardcoded fallback secret in refresh token route (GAP-001 Â· P0)
   - **Property 1: Bug Condition** - Hardcoded JWT Secret Fallback in Production
   - **CRITICAL**: This test MUST FAIL on unfixed code â€” failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -98,7 +98,7 @@ All tasks ─► Task 16 (final checkpoint)
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 1.1, 1.3_
 
-- [ ] 2. Write preservation test for refresh route (before implementing fix)
+- [x] 2. Write preservation test for refresh route (before implementing fix)
   - **Property 2: Preservation** - Refresh Route Happy Path Behavior
   - **IMPORTANT**: Follow observation-first methodology â€” observe behavior on UNFIXED code first
   - Observe: `getJwtSecret()` returns a `Uint8Array` when `AUTH_SECRET` is set to a valid string
@@ -112,9 +112,9 @@ All tasks ─► Task 16 (final checkpoint)
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 1.7_
 
-- [ ] 3. Implement GAP-001: throw-in-production for missing AUTH_SECRET
+- [x] 3. Implement GAP-001: throw-in-production for missing AUTH_SECRET
 
-  - [ ] 3.1 Replace warn-and-fallback with throw in `frontend/src/app/api/auth/refresh/route.ts`
+  - [x] 3.1 Replace warn-and-fallback with throw in `frontend/src/app/api/auth/refresh/route.ts`
     - Open `getJwtSecret()` (lines 8â€“20)
     - Replace the `console.warn` + hardcoded fallback block with:
       ```typescript
@@ -138,7 +138,7 @@ All tasks ─► Task 16 (final checkpoint)
     - _Preservation: when `AUTH_SECRET` is set, `getJwtSecret()` encodes and returns it unchanged_
     - _Requirements: 1.1, 1.3, 1.7_
 
-  - [ ] 3.2 Verify bug condition exploration test now passes
+  - [x] 3.2 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - getJwtSecret throws in production without secrets
     - **IMPORTANT**: Re-run the SAME test from task 1 â€” do NOT write a new test
     - The test from task 1 asserts the function throws; this now confirms the fix
@@ -146,13 +146,13 @@ All tasks ─► Task 16 (final checkpoint)
     - **EXPECTED OUTCOME: Test PASSES** (confirms GAP-001 is resolved)
     - _Requirements: 1.1, 1.3_
 
-  - [ ] 3.3 Verify preservation tests still pass
+  - [x] 3.3 Verify preservation tests still pass
     - **Property 2: Preservation** - Refresh Route Happy Path Behavior
     - **IMPORTANT**: Re-run the SAME tests from task 2 â€” do NOT write new tests
     - Run both preservation tests (valid secret â†’ Uint8Array; dev mode â†’ fallback Uint8Array)
     - **EXPECTED OUTCOME: Tests PASS** (confirms no regressions in the happy path)
 
-- [ ] 4. Implement GAP-002 Part A: Complete CI pipeline in `ci.yml`
+- [x] 4. Implement GAP-002 Part A: Complete CI pipeline in `ci.yml`
   - Add service containers (`postgres:16`, `redis:7`) to the `validate` job in `.github/workflows/ci.yml`
   - Add Lint step after the existing type-check step:
     ```yaml
@@ -186,7 +186,7 @@ All tasks ─► Task 16 (final checkpoint)
   - Verify the `timeout-minutes: 10` budget is still met after additions
   - _Requirements: 6.1, 6.2, 6.6_
 
-- [ ] 5. Implement GAP-002 Part B: Create `deploy.yml` workflow
+- [x] 5. Implement GAP-002 Part B: Create `deploy.yml` workflow
   - Create `.github/workflows/deploy.yml` triggered on `push` to `main`
   - Steps: checkout â†’ Node 20 + pnpm 9 â†’ `pnpm install --frozen-lockfile` â†’
     `db:check-migrations` â†’ Render.com deploy API call â†’ health-check polling loop (12 Ã— 10s)
@@ -199,7 +199,7 @@ All tasks ─► Task 16 (final checkpoint)
 
 - [ ] 6. Implement GAP-003: ESLint rule enforcing requireAuth() on Server Actions
 
-  - [ ] 6.1 Create `packages/eslint-plugin-schoolmitra` package
+  - [x] 6.1 Create `packages/eslint-plugin-schoolmitra` package
     - Create `packages/eslint-plugin-schoolmitra/package.json`:
       ```json
       {
@@ -224,7 +224,7 @@ All tasks ─► Task 16 (final checkpoint)
     - Run `pnpm --filter @schoolmitra/frontend run lint` locally to confirm the rule loads
     - _Requirements: 9.3, 9.4_
 
-  - [ ] 6.3 Fix the three unguarded Server Action files
+  - [x] 6.3 Fix the three unguarded Server Action files
     - **`frontend/src/app/platform/schools/new/actions.ts`**: Replace `await auth()` + inline
       role check with `await requireAuth(["SUPER_ADMIN"] as const)` from `@/lib/serverAuth`.
       Remove the `import { auth }` line; add `import { requireAuth } from "@/lib/serverAuth"`.
@@ -238,9 +238,9 @@ All tasks ─► Task 16 (final checkpoint)
     - Re-run lint to confirm zero violations after all three fixes
     - _Requirements: 9.2, 9.5, 9.6_
 
-- [ ] 7. Implement GAP-006: School-scope the generic upload route
+- [x] 7. Implement GAP-006: School-scope the generic upload route
 
-  - [ ] 7.1 Replace caller-controlled `prefix` with session-derived school prefix in `frontend/src/app/api/upload/route.ts`
+  - [x] 7.1 Replace caller-controlled `prefix` with session-derived school prefix in `frontend/src/app/api/upload/route.ts`
     - Change the destructured request body from `{ filename, contentType, prefix = "uploads" }`
       to `{ filename, contentType, subPath = "uploads" }`
     - After `await requireAuth(...)`, extract `schoolId` from the returned context:
@@ -256,7 +256,7 @@ All tasks ─► Task 16 (final checkpoint)
       but can never escape the school-scoped prefix
     - _Requirements: 15.1, 15.2_
 
-  - [ ] 7.2 Add path-traversal guard and `validateSchoolScopedKey` to `backend/src/lib/storage.ts`
+  - [x] 7.2 Add path-traversal guard and `validateSchoolScopedKey` to `backend/src/lib/storage.ts`
     - At the top of `getPresignedUploadUrl()`, add:
       ```typescript
       if (key.includes("..") || key.startsWith("/")) {
@@ -271,7 +271,7 @@ All tasks ─► Task 16 (final checkpoint)
       ```
     - _Requirements: 15.1, 15.2_
 
-  - [ ] 7.3 Create `docs/runbooks/s3-key-migration.md`
+  - [x] 7.3 Create `docs/runbooks/s3-key-migration.md`
     - Document the current state: legacy files uploaded before the school-scoping fix have paths
       like `uploads/{timestamp}-{filename}` without a `schools/{schoolId}/` prefix
     - Document that legacy files remain accessible via presigned GET URLs (grandfathered)
@@ -292,7 +292,7 @@ All tasks ─► Task 16 (final checkpoint)
       secret; returns dev fallback in development
     - Run `pnpm --filter @schoolmitra/frontend run test --run` to verify all pass
 
-  - [ ] 8.2 Unit tests for Razorpay webhook (`frontend/src/app/api/webhooks/razorpay/route.ts`)
+  - [x] 8.2 Unit tests for Razorpay webhook (`frontend/src/app/api/webhooks/razorpay/route.ts`)
     - Create `frontend/src/app/api/webhooks/razorpay/__tests__/route.test.ts`
     - Test: missing signature header â†’ HTTP 400
     - Test: absent `RAZORPAY_WEBHOOK_SECRET` env var â†’ HTTP 503
@@ -321,7 +321,7 @@ All tasks ─► Task 16 (final checkpoint)
     - Test: response time < 500 ms (use `Date.now()` delta around the GET call)
     - _Requirements: 16.1, 16.2, 16.3, 16.4_
 
-- [ ] 9. Write unit tests for S3 path scoping (GAP-006)
+- [x] 9. Write unit tests for S3 path scoping (GAP-006)
   - Create `frontend/src/app/api/upload/__tests__/route.test.ts`
   - Test: authenticated POST with `schoolId = "school-123"` â†’ returned key starts with
     `schools/school-123/`
@@ -335,7 +335,7 @@ All tasks ─► Task 16 (final checkpoint)
     - `"../etc/passwd"` â†’ path traversal guard in `getPresignedUploadUrl` throws
   - _Requirements: 15.1, 15.2_
 
-- [ ] 10. Verify TOTP enforcement and account lockout (REQ-12)
+- [x] 10. Verify TOTP enforcement and account lockout (REQ-12)
   - Create `backend/src/lib/auth/__tests__/authorize.test.ts`
   - Test: `totpEnabled = true`, no `totpCode` provided â†’ throws `"TOTP_REQUIRED"`
   - Test: `totpEnabled = true`, wrong `totpCode` â†’ `recordFailedAttempt()` called, throws
@@ -346,7 +346,7 @@ All tasks ─► Task 16 (final checkpoint)
   - Test: `totpEnabled = false` â†’ TOTP check is skipped entirely, proceeds to session creation
   - _Requirements: 12.1, 12.2, 12.4_
 
-- [ ] 11. Verify SUPER_ADMIN impersonation role scoping (REQ-11)
+- [x] 11. Verify SUPER_ADMIN impersonation role scoping (REQ-11)
   - Create `backend/src/lib/__tests__/serverAuth.test.ts`
   - Test: SUPER_ADMIN session without `sm_impersonation` cookie + `allowedRoles = ["SCHOOL_ADMIN"]`
     â†’ NOT forbidden (platform bypass for non-impersonating SUPER_ADMIN)
@@ -358,7 +358,7 @@ All tasks ─► Task 16 (final checkpoint)
     stays `null`
   - _Requirements: 11.1, 11.2_
 
-- [ ] 12. Verify migration sequence integrity (REQ-3)
+- [x] 12. Verify migration sequence integrity (REQ-3)
   - Run `pnpm --filter @schoolmitra/database run db:check-migrations` locally and confirm exit 0
   - Verify the three renamed files have the correct prefixes: `0010_`, `0011_`, `0012_`
   - Verify `meta/_journal.json` lists all migration entries in numeric order with no gaps
@@ -366,7 +366,7 @@ All tasks ─► Task 16 (final checkpoint)
     positioned before `Type-Check Monorepo`
   - _Requirements: 3.1, 3.2, 3.5_
 
-- [ ] 13. Verify E2E auth uses storageState (REQ-2 remaining gap)
+- [x] 13. Verify E2E auth uses storageState (REQ-2 remaining gap)
   - **Current state:** `frontend/e2e/fixtures/auth.fixture.ts` performs live login for every
     test via `page.fill()` + `page.click()` â€” no `storageState` caching, no `globalSetup`
   - Migrate fixtures to the storageState pattern:
@@ -389,7 +389,7 @@ All tasks ─► Task 16 (final checkpoint)
   - Run all 13 E2E spec files to confirm they pass using the new auth mechanism
   - _Requirements: 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 14. Verify env validation and `.env.local.example` (REQ-1)
+- [x] 14. Verify env validation and `.env.local.example` (REQ-1)
   - Run `NODE_ENV=production AUTH_SECRET="" node -e "require('./backend/src/env')"` and confirm
     process exits with code 1 and names the missing variable
   - Verify `backend/src/env.ts` validates at minimum: `AUTH_SECRET` (min 32 chars),
@@ -401,7 +401,7 @@ All tasks ─► Task 16 (final checkpoint)
     starts without exit
   - _Requirements: 1.1, 1.2, 1.5, 1.6, 1.7_
 
-- [ ] 15. Verify Server Action authorization audit (REQ-9 final sign-off)
+- [x] 15. Verify Server Action authorization audit (REQ-9 final sign-off)
   - Run `pnpm --filter @schoolmitra/frontend run lint` after completing task 6 and confirm
     zero `schoolmitra/no-unguarded-server-action` violations
   - Create `docs/server-action-audit.md` listing every `"use server"` file, its guard type
