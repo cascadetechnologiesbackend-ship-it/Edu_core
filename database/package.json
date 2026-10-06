@@ -2,7 +2,7 @@
   "name": "@schoolmitra/database",
   "version": "0.1.0",
   "private": true,
-  "description": "SchoolMitra ERP Database — Drizzle Schemas, Migrations & Connection Pool",
+  "description": "SchoolMitra ERP Database - Drizzle Schemas, Migrations & Connection Pool",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -20,6 +20,8 @@
   },
   "dependencies": {
     "@schoolmitra/dpdp": "workspace:*",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/pg": "^8.11.6",
     "bcryptjs": "^2.4.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.30.10",
@@ -28,8 +30,6 @@
     "typescript": "^5.4.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/pg": "^8.11.6",
     "drizzle-kit": "^0.20.18"
   }
 }
