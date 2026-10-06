@@ -4,7 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users, userRoles, roles } from "@/db/schema/core";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
@@ -40,7 +40,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           return null;
         }
 
-        const email = String(credentials.email);
+        const email = String(credentials.email).trim().toLowerCase();
         const password = String(credentials.password);
         const totpCode = credentials.totpCode ? String(credentials.totpCode).trim() : null;
 
@@ -59,7 +59,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const [superAdmin] = await db
           .select()
           .from(superAdminUsers)
-          .where(eq(superAdminUsers.email, email))
+          .where(sql`lower(${superAdminUsers.email}) = ${email}`)
           .limit(1);
 
         if (superAdmin && superAdmin.isActive) {
@@ -126,7 +126,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const [user] = await db
           .select()
           .from(users)
-          .where(eq(users.email, email))
+          .where(sql`lower(${users.email}) = ${email}`)
           .limit(1);
 
         if (!user || !user.passwordHash || !user.isActive) {
