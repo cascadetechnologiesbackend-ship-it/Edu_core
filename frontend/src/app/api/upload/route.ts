@@ -7,7 +7,7 @@ import path from "path";
 export async function POST(req: Request) {
   try {
     // Only allow authenticated users to generate upload URLs
-    await requireAuth([
+    const session = await requireAuth([
       "SUPER_ADMIN",
       "SCHOOL_ADMIN",
       "PRINCIPAL",
@@ -29,10 +29,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate a unique S3 key
+    // Determine school namespace prefix: Super Admin without schoolId falls back to 'platform'
+    const schoolPrefix = session.schoolId ?? "platform";
+    const cleanPrefix = prefix.replace(/[^a-zA-Z0-9_\-]/g, "");
+
+    // Generate a unique, strictly school-scoped S3 key
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const sanitizedName = filename.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const key = `${prefix}/${uniqueSuffix}-${sanitizedName}`;
+    const key = `${schoolPrefix}/${cleanPrefix}/${uniqueSuffix}-${sanitizedName}`;
 
     const url = await getPresignedUploadUrl(key, contentType);
 
@@ -52,7 +56,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     // Only authenticated users can write uploads
-    await requireAuth();
+    const session = await requireAuth();
 
     const url = new URL(req.url);
     const key = url.searchParams.get("key");
@@ -60,6 +64,15 @@ export async function PUT(req: Request) {
       return NextResponse.json(
         { success: false, message: "Missing key parameter" },
         { status: 400 }
+      );
+    }
+
+    // Enforce tenant isolation: user's schoolId must match key prefix (unless SUPER_ADMIN)
+    const expectedPrefix = session.schoolId ?? "platform";
+    if (session.role !== "SUPER_ADMIN" && !key.startsWith(`${expectedPrefix}/`)) {
+      return NextResponse.json(
+        { success: false, message: "Cross-school storage access denied" },
+        { status: 403 }
       );
     }
 

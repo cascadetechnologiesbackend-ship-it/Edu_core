@@ -104,8 +104,7 @@ export async function updateVendorDpaStatus(
   expiry?: string,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
 
     await db
       .update(vendorRegister)
@@ -262,8 +261,7 @@ export async function markBreachBoardNotified(breachId: string) {
 
 export async function markBreachParentsNotified(breachId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
 
     await db
       .update(dataBreachLog)

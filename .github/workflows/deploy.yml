@@ -1,0 +1,60 @@
+name: Deploy Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Production Deployment & Health Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Deploy Hook
+        id: trigger_deploy
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "::warning ::RENDER_DEPLOY_HOOK_URL is not set. Skipping webhook trigger in dry-run mode."
+            exit 0
+          fi
+          echo "Triggering Render deployment webhook..."
+          curl -s -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || (echo "Deployment hook failed" && exit 1)
+
+      - name: Await Service Health Check
+        shell: bash
+        run: |
+          HEALTH_URL="${{ secrets.PRODUCTION_APP_URL || 'https://schoolmitra.onrender.com' }}/api/health"
+          echo "Polling health endpoint at: $HEALTH_URL"
+          
+          MAX_ATTEMPTS=30
+          ATTEMPT=1
+          
+          # If dry run without secret or unreachable in private test, allow graceful check
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "Skipping active remote health check polling since RENDER_DEPLOY_HOOK_URL is unset."
+            exit 0
+          fi
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Health check attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Production health endpoint returned HTTP 200 OK."
+              exit 0
+            fi
+            echo "Health status code: $STATUS. Sleeping 10 seconds..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "❌ Health check timed out after 5 minutes."
+          exit 1

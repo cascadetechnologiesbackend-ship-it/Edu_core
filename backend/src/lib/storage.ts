@@ -12,6 +12,21 @@ const s3Client = new S3Client({
 export const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || "schoolmitra-uploads";
 
 /**
+ * Validates that an S3 storage key starts with the tenant schoolId
+ * and contains no path traversal sequences (../, \).
+ */
+export function validateSchoolScopedKey(key: string, schoolId: string): boolean {
+  if (!key || !schoolId) return false;
+  // Disallow any path traversal characters
+  if (key.includes("..") || key.includes("\\")) return false;
+  // Disallow leading slashes
+  if (key.startsWith("/")) return false;
+  // Must strictly be prefixed with `${schoolId}/`
+  const prefix = `${schoolId}/`;
+  return key.startsWith(prefix);
+}
+
+/**
  * Generate a pre-signed URL for direct browser uploads to S3
  */
 export async function getPresignedUploadUrl(
@@ -19,6 +34,11 @@ export async function getPresignedUploadUrl(
   contentType: string,
   expiresIn = 3600
 ) {
+  // Reject traversal sequences before issuing presigned url
+  if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
+    throw new Error("Invalid storage key: path traversal sequences are disallowed.");
+  }
+
   if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === "") {
     // Local dev mode fallback: Direct upload endpoint
     return `/api/upload?key=${encodeURIComponent(key)}`;

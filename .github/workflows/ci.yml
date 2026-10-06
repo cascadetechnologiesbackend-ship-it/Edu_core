@@ -8,9 +8,41 @@ on:
 
 jobs:
   validate:
-    name: Build, Lint & Type Validation
+    name: Build, Lint, Test & Security Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: schoolmitra
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: schoolmitra_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
+      REDIS_URL: redis://localhost:6379
+      AUTH_SECRET: test-ci-secret-value-must-be-at-least-32-chars-long-here
+      NEXTAUTH_SECRET: test-ci-secret-value-must-be-at-least-32-chars-long-here
+      NODE_ENV: test
 
     steps:
       - name: Checkout Code
@@ -46,9 +78,32 @@ jobs:
       - name: Verify Migration Sequence & Journal
         run: pnpm --filter @schoolmitra/database run db:check-migrations
 
-      - name: Type-Check Monorepo
+      - name: Monorepo Type Check
         run: |
           pnpm --filter @schoolmitra/database run type-check
           pnpm --filter @schoolmitra/validators run type-check
           pnpm --filter @schoolmitra/backend run type-check
           pnpm --filter @schoolmitra/frontend run type-check
+
+      - name: Run Monorepo Lint
+        run: pnpm --filter @schoolmitra/frontend run lint
+
+      - name: Run Backend Unit & Integration Tests
+        run: pnpm --filter @schoolmitra/backend run test
+
+      - name: Run Frontend Unit Tests
+        run: pnpm --filter @schoolmitra/frontend run test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Container (Smoke Test)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: schoolmitra/erp:ci-test
+
+      - name: Dependency Security Audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true

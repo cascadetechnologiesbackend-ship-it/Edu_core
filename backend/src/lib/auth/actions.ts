@@ -1,4 +1,5 @@
 "use server";
+// PUBLIC: NextAuth sign-out — safe without pre-existing session and does not access tenant data
 
 import { signOut } from "@/lib/auth";
 

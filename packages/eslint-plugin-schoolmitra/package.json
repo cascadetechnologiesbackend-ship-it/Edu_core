@@ -1,0 +1,12 @@
+{
+  "name": "eslint-plugin-schoolmitra",
+  "version": "1.0.0",
+  "description": "Custom ESLint rules for SchoolMitra ERP security and isolation",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "peerDependencies": {
+    "eslint": ">=8.0.0"
+  }
+}

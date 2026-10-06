@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
 import { db, provisionTenant } from "@/db";
 import { schools, users, roles, userRoles } from "@/db/schema";
 import { revalidatePath } from "next/cache";
@@ -9,10 +9,7 @@ import { eq, and } from "drizzle-orm";
 
 export async function provisionNewSchool(formData: FormData) {
   try {
-    const session = await auth();
-    if (session?.user?.role !== "SUPER_ADMIN") {
-      throw new Error("Unauthorized");
-    }
+    await requireAuth(["SUPER_ADMIN"]);
 
     const name = formData.get("name") as string;
     const udiseCode = formData.get("udiseCode") as string;
