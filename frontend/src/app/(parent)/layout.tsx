@@ -10,6 +10,8 @@ import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+import { SessionProvider } from "next-auth/react";
+
 export const metadata: Metadata = {
   title: {
     default: "Parent Portal",
@@ -53,21 +55,24 @@ export default async function ParentLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
-      {/* Mobile-First Parent PWA Top Bar */}
-      <PwaHeader
-        role="PARENT"
-        roleLabel="Parent Companion"
-        accentColor="indigo"
-        schoolName={schoolName}
-        icon={<Users className="w-4 h-4 text-indigo-400" />}
-      />
+    <SessionProvider session={session}>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
+        {/* Mobile-First Parent PWA Top Bar */}
+        <PwaHeader
+          role="PARENT"
+          roleLabel="Parent Companion"
+          accentColor="indigo"
+          schoolName={schoolName}
+          icon={<Users className="w-4 h-4 text-indigo-400" />}
+          userSession={session}
+        />
 
-      {/* Main Content Area (Max-w-3xl for optimal mobile/tablet reading) */}
-      <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+        {/* Main Content Area (Max-w-3xl for optimal mobile/tablet reading) */}
+        <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
 
-      {/* Bottom Thumb-Zone Navigation */}
-      <BottomNav items={PARENT_NAV_ITEMS} />
-    </div>
+        {/* Bottom Thumb-Zone Navigation */}
+        <BottomNav items={PARENT_NAV_ITEMS} />
+      </div>
+    </SessionProvider>
   );
 }

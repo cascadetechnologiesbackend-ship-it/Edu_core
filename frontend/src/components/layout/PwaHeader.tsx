@@ -11,6 +11,7 @@ interface PwaHeaderProps {
   accentColor?: "emerald" | "indigo" | "amber";
   schoolName?: string;
   icon?: React.ReactNode;
+  userSession?: any;
 }
 
 export default function PwaHeader({
@@ -19,8 +20,17 @@ export default function PwaHeader({
   accentColor = "emerald",
   schoolName = "SchoolMitra ERP",
   icon,
+  userSession,
 }: PwaHeaderProps) {
-  const { data: session } = useSession();
+  let sessionData = userSession;
+  try {
+    const sessionContext = useSession();
+    sessionData = sessionContext?.data || userSession;
+  } catch (err) {
+    // Graceful fallback if SessionProvider is missing or unmounted
+    sessionData = userSession || null;
+  }
+  const session = sessionData;
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

@@ -9,6 +9,8 @@ import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+import { SessionProvider } from "next-auth/react";
+
 const TEACHER_NAV_ITEMS = [
   { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard" },
   { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck" },
@@ -46,21 +48,24 @@ export default async function TeacherLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
-      {/* Mobile-First PWA Header */}
-      <PwaHeader
-        role="TEACHER"
-        roleLabel="Educator Workspace"
-        accentColor="emerald"
-        schoolName={schoolName}
-        icon={<BookOpen className="w-4 h-4 text-emerald-400" />}
-      />
+    <SessionProvider session={session}>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
+        {/* Mobile-First PWA Header */}
+        <PwaHeader
+          role="TEACHER"
+          roleLabel="Educator Workspace"
+          accentColor="emerald"
+          schoolName={schoolName}
+          icon={<BookOpen className="w-4 h-4 text-emerald-400" />}
+          userSession={session}
+        />
 
-      {/* Main Content Area (Optimized for Mobile & Tablet Thumb Zone) */}
-      <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+        {/* Main Content Area (Optimized for Mobile & Tablet Thumb Zone) */}
+        <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
 
-      {/* Persistent Bottom Navigation */}
-      <BottomNav items={TEACHER_NAV_ITEMS} />
-    </div>
+        {/* Persistent Bottom Navigation */}
+        <BottomNav items={TEACHER_NAV_ITEMS} />
+      </div>
+    </SessionProvider>
   );
 }
