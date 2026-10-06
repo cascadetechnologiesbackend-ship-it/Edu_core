@@ -84,7 +84,14 @@
     "superjson": "^2.2.1",
     "tailwind-merge": "^2.2.2",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "autoprefixer": "^10.4.19"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
@@ -92,24 +99,17 @@
     "@testing-library/react": "^15.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/dompurify": "^3.0.5",
-    "@types/node": "^20.12.7",
     "@types/nodemailer": "^6.4.14",
     "@types/pg": "^8.11.5",
     "@types/qrcode": "^1.5.5",
-    "@types/react": "^18.2.79",
-    "@types/react-dom": "^18.2.25",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-v8": "^1.5.0",
-    "autoprefixer": "^10.4.19",
     "drizzle-kit": "^0.20.17",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.3",
     "eslint-plugin-schoolmitra": "workspace:*",
     "jsdom": "^24.0.0",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.3",
     "tsx": "^4.7.3",
-    "typescript": "^5.4.5",
     "vitest": "^1.5.0"
   }
 }
