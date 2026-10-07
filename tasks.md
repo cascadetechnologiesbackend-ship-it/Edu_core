@@ -430,3 +430,166 @@ All tasks ─► Task 16 (final checkpoint)
 - RENDER_API_KEY, RENDER_SERVICE_ID, and RENDER_SERVICE_HOSTNAME must be added to GitHub repo secrets before task 5 can be verified end-to-end.
 - The .auth/ directory (Playwright storageState files) must be added to .gitignore — these contain session tokens and must never be committed.
 
+---
+
+# Finance & Fees and Accounts Module Track
+
+## Task Dependency Graph
+
+```
+[Wave 1: DB Foundation]
+  ├── Task 17: Accounts Schemas (bankAccounts, incomeHeads, expenseHeads, vouchers, ledger)
+  ├── Task 18: Fees Schemas (feeGroups, feeDiscounts, feeChallans, feeDueSlips, carryForward, audit)
+  └── Task 19: Drizzle Migration & Check
+
+[Wave 2: Layer 1 - Setup & Structure]
+  ├── Task 20: Fee Types (/school/fee-types)
+  ├── Task 21: Fee Groups (/school/fee-groups)
+  ├── Task 22: Fees Discount (/school/fees-discount)
+  └── Task 23: Assign Fees (/school/assign-fees)
+
+[Wave 3: Layer 1 - Operations & Transactions]
+  ├── Task 24: Collect Fees (/school/collect-fees) + Thermal Receipt & PDF
+  ├── Task 25: Search Due Fees (/school/due-fees)
+  ├── Task 26: All Transactions (/school/transactions) + Reprint & Reversal
+  ├── Task 27: Online Payments (/school/online-payments) & Reconciliation
+  └── Task 28: Fee Challans (/school/fee-challans)
+
+[Wave 4: Layer 1 - Processing & Audit]
+  ├── Task 29: Generate Due Slip (/school/generate-due-slip) & History (/school/due-slip-history)
+  ├── Task 30: Fees Carry Forward (/school/fees-carry-forward)
+  ├── Task 31: Fee Data Audit (/school/fee-audit)
+  └── Task 32: Import Center (/school/import-center)
+
+[Wave 5: Layer 2 - Accounts Module]
+  ├── Task 33: Bank Accounts Master (/school/accounts/bank-accounts)
+  ├── Task 34: Income Heads & Expense Heads (/school/accounts/*-heads)
+  ├── Task 35: Income Management (/school/accounts/incomes) + Ledger Posting
+  └── Task 36: Expense Management (/school/accounts/expenses) + Approval Workflow
+
+[Wave 6: Layer 3 - Analytics & Dashboards]
+  ├── Task 37: Fees Analytics Dashboard (/school/fees-dashboard)
+  ├── Task 38: Accounts Financial Dashboard (/school/accounting/dashboard)
+  └── Task 39: Sidebar Navigation & Shared FinanceSubNav Tabs
+
+[Wave 7: Verification & Quality Assurance]
+  └── Task 40: Type-check, Lint, Test Suite & Build Verification
+```
+
+## Tasks
+
+- [x] 17. Implement Accounts Database Schema (`database/src/schema/accounts.ts`)
+  - Create `bankAccounts` table (bankName, accountName, accountNumber, ifscCode, branchName, balances)
+  - Create `incomeHeads` & `expenseHeads` tables (name, code, description, isActive)
+  - Create `incomeVouchers` table (voucherNumber, incomeHeadId, bankAccountId, amount, paymentMode, paymentSource, attachment)
+  - Create `expenseVouchers` table (voucherNumber, expenseHeadId, bankAccountId, vendorName, amount, status, approval)
+  - Create `accountLedgerTransactions` table (double-entry general ledger tracking)
+  - Export models in `database/src/schema/index.ts`
+
+- [x] 18. Extend Fees Database Schema (`database/src/schema/fees.ts`)
+  - Create `feeGroups` & `feeGroupHeads` tables
+  - Create `feeDiscounts` table (rules, codes, percentages, fixed amounts, approval flags)
+  - Create `feeChallans` table (challanNumber, studentId, bankAccountId, status, clearance)
+  - Create `feeDueSlips` table (batch demand note generation logs)
+  - Create `feeCarryForwards` table (session transition balances)
+  - Create `feeAuditLogs` table (cancellations, adjustments, overrides)
+
+- [x] 19. Generate and Verify Database Migration
+  - Generate migration script with Drizzle Kit
+  - Verify migration numbering and journal with `pnpm --filter @schoolmitra/database run db:check-migrations`
+
+- [x] 20. Implement Layer 1 — Setup: Fee Types (`/school/fee-types`)
+  - List fee heads with category, frequency, tax/GST percentage, and discount/fine eligibility
+  - Add/Edit modal with Server Actions guarded by `requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"])`
+
+- [x] 21. Implement Layer 1 — Setup: Fee Groups (`/school/fee-groups`)
+  - Multi-head grouping container interface
+  - Class and academic batch association manager
+
+- [x] 22. Implement Layer 1 — Setup: Fees Discount (`/school/fees-discount`)
+  - Policy management: Sibling, Merit, Staff Child, EWS
+  - Code generator, fixed amount vs. percentage calculation engine
+
+- [x] 23. Implement Layer 1 — Setup: Assign Fees (`/school/assign-fees`)
+  - Matrix interface linking Fee Groups/Types to Classes, Sections, or individual students
+  - Due date mapping, default late-fine rule attachment, and batch invoice generation
+
+- [x] 24. Implement Layer 1 — Operations: Collect Fees (`/school/collect-fees`)
+  - Fast student search (ID, Class, Section, Roll No, Name)
+  - Live ledger breakdown with paid vs. due invoices
+  - Multi-mode payment collection (Cash, Cheque, DD, Online Gateway, Bank Transfer, UPI)
+  - Dynamic fine/discount application at receipt level
+  - Instant PDF fee receipt generation and thermal printing view
+  - Automatic credit posting to the general ledger (`accountLedgerTransactions`)
+
+- [x] 25. Implement Layer 1 — Operations: Search Due Fees (`/school/due-fees`)
+  - Filterable due ledger by Class, Section, and Student
+  - Overdue age tracking brackets (0-30, 31-60, 60+ days)
+  - Automated payment reminder action triggers
+
+- [x] 26. Implement Layer 1 — Operations: All Transactions (`/school/transactions`)
+  - Searchable transaction ledger with filters (Date Range, Payment Method, Fee Head, Status)
+  - Receipt re-printing
+  - Cancellation/reversal management with reason capture and immutable audit log in `feeAuditLogs`
+
+- [x] 27. Implement Layer 1 — Operations: Online Transactions (`/school/online-payments`)
+  - Payment gateway logs (Razorpay, Paytm, Stripe)
+  - Status tracking (Success, Pending, Failed, Reconciled)
+  - Settlement reconciliation tool
+
+- [x] 28. Implement Layer 1 — Operations: Fee Challans (`/school/fee-challans`)
+  - Offline bank challan batch generator (3-part printable copy)
+  - Challan lifecycle tracking (Generated, Submitted, Cleared, Expired)
+  - Bulk challan clearance reconciliation
+
+- [x] 29. Implement Layer 1 — Processing: Generate Due Slip (`/school/generate-due-slip`) & History (`/school/due-slip-history`)
+  - Batch demand-note slip generator for classes/sections
+  - Archive of previously generated slips and delivery status logs
+
+- [x] 30. Implement Layer 1 — Processing: Fees Carry Forward (`/school/fees-carry-forward`)
+  - Academic year balance migration utility
+  - Rolls forward unpaid dues or advance payments into the new academic session
+
+- [x] 31. Implement Layer 1 — Processing: Fee Data Audit (`/school/fee-audit`)
+  - Discrepancy checker, manual adjustment logs, orphan transaction monitor
+
+- [x] 32. Implement Layer 1 — Processing: Import Center (`/school/import-center`)
+  - CSV batch importer for historical fee balances and external collection registers
+
+- [x] 33. Implement Layer 2 — Accounts: Bank Accounts Master (`/school/accounts/bank-accounts`)
+  - Bank account registry (Bank Name, Account Number, IFSC, Branch)
+  - Opening balance configuration and real-time bank balance calculation
+
+- [x] 34. Implement Layer 2 — Accounts: Income & Expense Heads (`/school/accounts/income-heads`, `/school/accounts/expense-heads`)
+  - Chart of Accounts setup for non-fee revenues and operational expenses
+
+- [x] 35. Implement Layer 2 — Accounts: Income Management (`/school/accounts/incomes`)
+  - Non-fee revenue entry form (Sponsorships, Canteen Rent, Asset Sale, Scrap Sale, Donations)
+  - Voucher generation, receipt attachment, payment source selection, and income head categorization
+  - Ledger credit posting to bank/cash accounts
+
+- [x] 36. Implement Layer 2 — Accounts: Expense Management (`/school/accounts/expenses`)
+  - Operational expense voucher entry (Salary, Utilities, Maintenance, Supplies)
+  - Vendor mapping, voucher number generation, payment mode recording, invoice file upload
+  - Multi-tier approval workflow (`PENDING` -> `APPROVED` -> `PAID`) with debit to bank/cash account
+
+- [x] 37. Implement Layer 3 — Analytics: Fees Dashboard (`/school/fees-dashboard`)
+  - Real-time metrics: Total Collections (Month/Year), Total Pending Dues, Overdue Summaries
+  - Payment mode distribution charts, class-wise collection performance
+
+- [x] 38. Implement Layer 3 — Analytics: Accounts Financial Dashboard (`/school/accounting/dashboard`)
+  - Net Cash Flow (Total Inflow vs. Total Outflow)
+  - Bank balance summaries across all registered banks
+  - Monthly ledger trends and recent voucher activity
+
+- [x] 39. Implement Navigation Integration & Reusable Sub-Navigation Bar
+  - Update `frontend/src/components/layout/Sidebar.tsx` with Fees & Accounts links
+  - Create `<FinanceSubNav />` component for seamless tabbed navigation between Operations, Setup, Audit, Accounts, and Dashboards
+
+- [x] 40. Monorepo Quality Assurance & Verification
+  - Run database migration integrity check
+  - Run TypeScript type checks across `@schoolmitra/database` and `@schoolmitra/frontend`
+  - Run ESLint to ensure all Server Actions adhere to `requireAuth()` guards
+  - Run turbo build to confirm zero production bundle errors
+
+

@@ -44,6 +44,26 @@ export default function FeesDashboardPage() {
 
   return (
     <div className="p-6 space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-2xl shadow-sm">
+        <div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white border border-white/20">
+            Enterprise Suite Active
+          </span>
+          <h2 className="text-xl font-bold tracking-tight mt-2">
+            Multi-Layer Finance & Accounting Suite
+          </h2>
+          <p className="text-sm text-blue-100 mt-1 max-w-xl">
+            Access the complete counter collection engine, challan batches, ledger reconciliation, non-fee income/expense vouchers, and financial dashboards.
+          </p>
+        </div>
+        <Link
+          href="/school/fees-dashboard"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-blue-600 font-bold text-xs hover:bg-blue-50 transition shadow-sm"
+        >
+          Open Finance Hub &rarr;
+        </Link>
+      </div>
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
           Fees Management

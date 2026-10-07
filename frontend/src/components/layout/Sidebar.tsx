@@ -51,7 +51,8 @@ const NAV_GROUPS = [
   {
     group: "Administration",
     items: [
-      { href: "/fees", label: "Fees", icon: IndianRupee },
+      { href: "/school/fees-dashboard", label: "Finance & Fees", icon: IndianRupee },
+      { href: "/school/accounting/dashboard", label: "Accounts", icon: Building2 },
       { href: "/hr", label: "HR & Payroll", icon: UserCog },
       { href: "/library", label: "Library", icon: Library },
       { href: "/transport", label: "Transport", icon: Bus },
@@ -121,6 +122,8 @@ export function Sidebar({
         "/academics",
         "/attendance",
         "/fees",
+        "/school/fees-dashboard",
+        "/school/accounting/dashboard",
         "/hr",
         "/exams",
         "/transport",
@@ -151,6 +154,8 @@ export function Sidebar({
       case "/students":
       case "/hr":
       case "/fees":
+      case "/school/fees-dashboard":
+      case "/school/accounting/dashboard":
       case "/settings":
         return [
           "SUPER_ADMIN",

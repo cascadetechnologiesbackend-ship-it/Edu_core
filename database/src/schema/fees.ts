@@ -396,6 +396,14 @@ export const feeInvoicesRelations = relations(feeInvoices, ({ one, many }) => ({
     fields: [feeInvoices.schoolId],
     references: [schools.id],
   }),
+  student: one(students, {
+    fields: [feeInvoices.studentId],
+    references: [students.id],
+  }),
+  academicYear: one(academicYears, {
+    fields: [feeInvoices.academicYearId],
+    references: [academicYears.id],
+  }),
   feeStructure: one(feeStructures, {
     fields: [feeInvoices.feeStructureId],
     references: [feeStructures.id],
@@ -439,9 +447,17 @@ export const feePaymentsRelations = relations(feePayments, ({ one, many }) => ({
     fields: [feePayments.schoolId],
     references: [schools.id],
   }),
+  student: one(students, {
+    fields: [feePayments.studentId],
+    references: [students.id],
+  }),
   invoice: one(feeInvoices, {
     fields: [feePayments.feeInvoiceId],
     references: [feeInvoices.id],
+  }),
+  collectedBy: one(users, {
+    fields: [feePayments.collectedById],
+    references: [users.id],
   }),
   refunds: many(feeRefunds),
 }));
@@ -485,3 +501,341 @@ export const feeConcessionsRelations = relations(feeConcessions, ({ one }) => ({
     references: [academicYears.id],
   }),
 }));
+
+// ─── fee_groups ───────────────────────────────────────────────────────────────
+
+export const feeGroups = pgTable(
+  "fee_groups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    academicYearId: uuid("academic_year_id")
+      .notNull()
+      .references(() => academicYears.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({
+    schoolIdx: index("fee_groups_school_idx").on(t.schoolId),
+    yearIdx: index("fee_groups_year_idx").on(t.academicYearId),
+  }),
+);
+
+// ─── fee_group_heads ──────────────────────────────────────────────────────────
+
+export const feeGroupHeads = pgTable(
+  "fee_group_heads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    feeGroupId: uuid("fee_group_id")
+      .notNull()
+      .references(() => feeGroups.id, { onDelete: "cascade" }),
+    feeHeadId: uuid("fee_head_id")
+      .notNull()
+      .references(() => feeHeads.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    groupIdx: index("fee_group_heads_group_idx").on(t.feeGroupId),
+    headIdx: index("fee_group_heads_head_idx").on(t.feeHeadId),
+  }),
+);
+
+// ─── fee_discounts ────────────────────────────────────────────────────────────
+
+export const feeDiscounts = pgTable(
+  "fee_discounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    code: varchar("code", { length: 20 }),
+    discountType: text("discount_type").notNull().default("PERCENTAGE"), // FIXED or PERCENTAGE
+    discountValue: numeric("discount_value", { precision: 10, scale: 2 }).notNull(),
+    appliesToFeeHeadId: uuid("applies_to_fee_head_id").references(
+      () => feeHeads.id,
+      { onDelete: "set null" },
+    ),
+    requiresApproval: boolean("requires_approval").notNull().default(false),
+    description: text("description"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({
+    schoolIdx: index("fee_discounts_school_idx").on(t.schoolId),
+    schoolCodeUnique: unique("fee_discounts_code_unique").on(
+      t.schoolId,
+      t.code,
+    ),
+  }),
+);
+
+// ─── fee_challans ─────────────────────────────────────────────────────────────
+
+export const feeChallans = pgTable(
+  "fee_challans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    challanNumber: text("challan_number").notNull(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+    feeInvoiceId: uuid("fee_invoice_id")
+      .notNull()
+      .references(() => feeInvoices.id, { onDelete: "restrict" }),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    dueDate: timestamp("due_date", { withTimezone: true }).notNull(),
+    status: text("status").notNull().default("GENERATED"), // GENERATED, SUBMITTED, CLEARED, EXPIRED
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+    referenceNumber: text("reference_number"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolIdx: index("fee_challans_school_idx").on(t.schoolId),
+    challanUnique: unique("fee_challans_number_unique").on(
+      t.schoolId,
+      t.challanNumber,
+    ),
+    studentIdx: index("fee_challans_student_idx").on(t.studentId),
+  }),
+);
+
+// ─── fee_due_slips ────────────────────────────────────────────────────────────
+
+export const feeDueSlips = pgTable(
+  "fee_due_slips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    batchNumber: text("batch_number").notNull(),
+    classId: uuid("class_id").references(() => classes.id, {
+      onDelete: "set null",
+    }),
+    academicYearId: uuid("academic_year_id")
+      .notNull()
+      .references(() => academicYears.id, { onDelete: "restrict" }),
+    slipCount: integer("slip_count").notNull().default(0),
+    status: text("status").notNull().default("GENERATED"), // GENERATED, PRINTED, SENT_SMS
+    generatedById: uuid("generated_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolIdx: index("fee_due_slips_school_idx").on(t.schoolId),
+    batchUnique: unique("fee_due_slips_batch_unique").on(
+      t.schoolId,
+      t.batchNumber,
+    ),
+  }),
+);
+
+// ─── fee_carry_forwards ───────────────────────────────────────────────────────
+
+export const feeCarryForwards = pgTable(
+  "fee_carry_forwards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    fromAcademicYearId: uuid("from_academic_year_id")
+      .notNull()
+      .references(() => academicYears.id, { onDelete: "restrict" }),
+    toAcademicYearId: uuid("to_academic_year_id")
+      .notNull()
+      .references(() => academicYears.id, { onDelete: "restrict" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+    previousDueAmount: numeric("previous_due_amount", {
+      precision: 12,
+      scale: 2,
+    })
+      .notNull()
+      .default("0"),
+    carriedAmount: numeric("carried_amount", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    status: text("status").notNull().default("APPLIED"), // DRAFT, APPLIED, REVERSED
+    appliedAt: timestamp("applied_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    appliedById: uuid("applied_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolIdx: index("fee_carry_forwards_school_idx").on(t.schoolId),
+    studentIdx: index("fee_carry_forwards_student_idx").on(t.studentId),
+  }),
+);
+
+// ─── fee_audit_logs ───────────────────────────────────────────────────────────
+
+export const feeAuditLogs = pgTable(
+  "fee_audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    action: text("action").notNull(), // RECEIPT_CANCELLED, MANUAL_ADJUSTMENT, DISCOUNT_OVERRIDE, FEE_WAIVED
+    entityType: text("entity_type").notNull(), // FEE_INVOICE, FEE_PAYMENT, FEE_DISCOUNT, LEDGER_ENTRY
+    entityId: uuid("entity_id").notNull(),
+    previousData: text("previous_data"),
+    newData: text("new_data"),
+    reason: text("reason").notNull(),
+    performedById: uuid("performed_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolIdx: index("fee_audit_logs_school_idx").on(t.schoolId),
+    entityIdx: index("fee_audit_logs_entity_idx").on(t.entityId),
+    dateIdx: index("fee_audit_logs_date_idx").on(t.createdAt),
+  }),
+);
+
+// ─── Extended Relations ───────────────────────────────────────────────────────
+
+export const feeGroupsRelations = relations(feeGroups, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [feeGroups.schoolId],
+    references: [schools.id],
+  }),
+  academicYear: one(academicYears, {
+    fields: [feeGroups.academicYearId],
+    references: [academicYears.id],
+  }),
+  groupHeads: many(feeGroupHeads),
+}));
+
+export const feeGroupHeadsRelations = relations(feeGroupHeads, ({ one }) => ({
+  feeGroup: one(feeGroups, {
+    fields: [feeGroupHeads.feeGroupId],
+    references: [feeGroups.id],
+  }),
+  feeHead: one(feeHeads, {
+    fields: [feeGroupHeads.feeHeadId],
+    references: [feeHeads.id],
+  }),
+}));
+
+export const feeDiscountsRelations = relations(feeDiscounts, ({ one }) => ({
+  school: one(schools, {
+    fields: [feeDiscounts.schoolId],
+    references: [schools.id],
+  }),
+  feeHead: one(feeHeads, {
+    fields: [feeDiscounts.appliesToFeeHeadId],
+    references: [feeHeads.id],
+  }),
+}));
+
+export const feeChallansRelations = relations(feeChallans, ({ one }) => ({
+  school: one(schools, {
+    fields: [feeChallans.schoolId],
+    references: [schools.id],
+  }),
+  student: one(students, {
+    fields: [feeChallans.studentId],
+    references: [students.id],
+  }),
+  invoice: one(feeInvoices, {
+    fields: [feeChallans.feeInvoiceId],
+    references: [feeInvoices.id],
+  }),
+}));
+
+export const feeCarryForwardsRelations = relations(feeCarryForwards, ({ one }) => ({
+  school: one(schools, {
+    fields: [feeCarryForwards.schoolId],
+    references: [schools.id],
+  }),
+  student: one(students, {
+    fields: [feeCarryForwards.studentId],
+    references: [students.id],
+  }),
+  fromAcademicYear: one(academicYears, {
+    fields: [feeCarryForwards.fromAcademicYearId],
+    references: [academicYears.id],
+  }),
+  toAcademicYear: one(academicYears, {
+    fields: [feeCarryForwards.toAcademicYearId],
+    references: [academicYears.id],
+  }),
+  appliedBy: one(users, {
+    fields: [feeCarryForwards.appliedById],
+    references: [users.id],
+  }),
+}));
+
+export const feeAuditLogsRelations = relations(feeAuditLogs, ({ one }) => ({
+  school: one(schools, {
+    fields: [feeAuditLogs.schoolId],
+    references: [schools.id],
+  }),
+  performedBy: one(users, {
+    fields: [feeAuditLogs.performedById],
+    references: [users.id],
+  }),
+}));
+
+export const feeDueSlipsRelations = relations(feeDueSlips, ({ one }) => ({
+  school: one(schools, {
+    fields: [feeDueSlips.schoolId],
+    references: [schools.id],
+  }),
+  class: one(classes, {
+    fields: [feeDueSlips.classId],
+    references: [classes.id],
+  }),
+  academicYear: one(academicYears, {
+    fields: [feeDueSlips.academicYearId],
+    references: [academicYears.id],
+  }),
+  generatedBy: one(users, {
+    fields: [feeDueSlips.generatedById],
+    references: [users.id],
+  }),
+}));
+
