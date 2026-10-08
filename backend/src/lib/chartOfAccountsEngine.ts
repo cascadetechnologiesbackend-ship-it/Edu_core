@@ -15,6 +15,7 @@ export const SYSTEM_ACCOUNT_CODES = {
   CASH_MAIN: "1000",
   STUDENT_RECEIVABLE: "1200",
   CAUTION_DEPOSIT: "2100",
+  STUDENT_FEE_ADVANCES: "2110",
   OPENING_BALANCE_EQUITY: "3000",
   FEE_REVENUE_CLEARING: "4000",
   GATEWAY_FEES_EXPENSE: "5200",
@@ -27,6 +28,7 @@ export interface EnsureAccountsResult {
   cashMainId: string;
   studentReceivableId: string;
   cautionDepositId: string;
+  studentFeeAdvancesId: string;
   openingBalanceEquityId: string;
   feeRevenueClearingId: string;
   gatewayFeesExpenseId: string;
@@ -60,6 +62,12 @@ export async function ensureSchoolChartOfAccounts(
     {
       code: SYSTEM_ACCOUNT_CODES.CAUTION_DEPOSIT,
       name: "Caution Deposit & Refund Liability",
+      type: "LIABILITY" as const,
+      isSystem: true,
+    },
+    {
+      code: SYSTEM_ACCOUNT_CODES.STUDENT_FEE_ADVANCES,
+      name: "Student Fee Advances",
       type: "LIABILITY" as const,
       isSystem: true,
     },
@@ -198,6 +206,7 @@ export async function ensureSchoolChartOfAccounts(
     cashMainId: getAccountId(SYSTEM_ACCOUNT_CODES.CASH_MAIN),
     studentReceivableId: getAccountId(SYSTEM_ACCOUNT_CODES.STUDENT_RECEIVABLE),
     cautionDepositId: getAccountId(SYSTEM_ACCOUNT_CODES.CAUTION_DEPOSIT),
+    studentFeeAdvancesId: getAccountId(SYSTEM_ACCOUNT_CODES.STUDENT_FEE_ADVANCES),
     openingBalanceEquityId: getAccountId(SYSTEM_ACCOUNT_CODES.OPENING_BALANCE_EQUITY),
     feeRevenueClearingId: getAccountId(SYSTEM_ACCOUNT_CODES.FEE_REVENUE_CLEARING),
     gatewayFeesExpenseId: getAccountId(SYSTEM_ACCOUNT_CODES.GATEWAY_FEES_EXPENSE),
@@ -438,6 +447,27 @@ export async function getCautionDepositChartAccountId(
   if (!acc) {
     const res = await ensureSchoolChartOfAccounts(schoolId, client);
     return res.cautionDepositId;
+  }
+  return acc.id;
+}
+
+/**
+ * Resolves the Chart of Accounts ID for Student Fee Advances (2110)
+ */
+export async function getStudentFeeAdvancesChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.STUDENT_FEE_ADVANCES),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.studentFeeAdvancesId;
   }
   return acc.id;
 }
