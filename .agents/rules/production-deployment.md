@@ -28,4 +28,7 @@ globs: ["frontend/**", "backend/**", "database/**", "package.json", "render.yaml
 ## 5. Container Network Port Binding (`0.0.0.0`)
 - In containerized production environments (Render, Docker, Kubernetes, Cloud Run), services MUST bind to `0.0.0.0` rather than `localhost` (127.0.0.1).
 - Binding to `localhost` makes the listening port unreachable from outside the container network namespace, causing container host port scan timeouts ("Port scan timeout reached, no open ports detected").
-- In Next.js, configure `"start": "next start -H 0.0.0.0"` and supply `HOSTNAME=0.0.0.0` in deployment specifications (e.g. `render.yaml`).
+- In Next.js:
+  - Configure `"start": "next start -H 0.0.0.0"` in `package.json`.
+  - Supply `HOSTNAME=0.0.0.0` in deployment specifications (e.g. `render.yaml`).
+  - Declare an explicit `healthCheckPath` (e.g., `/api/health`) that returns HTTP 200 to verify service readiness.
