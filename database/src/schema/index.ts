@@ -20,4 +20,5 @@ export * from "./inventory";
 export * from "./hostel";
 export * from "./people";
 export * from "./superadmin";
+export * from "./workerHeartbeats";
 

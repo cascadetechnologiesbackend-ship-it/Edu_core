@@ -93,7 +93,8 @@ describe("AZ-01: Production Indian DLT SMS & Retry Resilience", () => {
       expect(res.messageId).toBe("SM_test_message_sid");
       expect(res.attempts).toBe(1);
 
-      const [, callOptions] = fetchSpy.mock.calls[0];
+      const call = fetchSpy.mock.calls[0];
+      const callOptions = call ? call[1] : undefined;
       const bodyStr = callOptions?.body?.toString() || "";
       expect(bodyStr).toContain("To=%2B919876543210");
       expect(bodyStr).toContain("EntityId=110123456789012");

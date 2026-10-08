@@ -11,9 +11,9 @@
 export interface SmsDeliveryResult {
   delivered: boolean;
   unconfigured?: boolean;
-  messageId?: string;
+  messageId?: string | undefined;
   attempts?: number;
-  error?: string;
+  error?: string | undefined;
 }
 
 export interface DltTemplateParams {
@@ -172,7 +172,11 @@ export async function sendSMSWithStatus(
       console.info(
         `[SMS Service] [SENT] provider=TWILIO to=${formattedMobile} sid=${messageId} attempts=${result.attempts}`
       );
-      return { delivered: true, messageId, attempts: result.attempts };
+      return {
+        delivered: true,
+        ...(messageId ? { messageId } : {}),
+        attempts: result.attempts,
+      };
     } else if (provider === "MSG91") {
       const apiKey = process.env.SMS_API_KEY!;
       const flowId = templateId || process.env.SMS_FLOW_ID || "";

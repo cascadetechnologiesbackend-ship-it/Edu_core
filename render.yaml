@@ -14,3 +14,17 @@ services:
         value: 10000
       - key: HOSTNAME
         value: 0.0.0.0
+
+  - type: worker
+    name: educore-finance-worker
+    runtime: node
+    plan: starter
+    buildCommand: pnpm install --prod=false --ignore-scripts && pnpm exec turbo run build
+    startCommand: pnpm --filter @schoolmitra/backend run worker:finance
+    envVars:
+      - key: START_WORKERS
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: educore-db
+          property: connectionString

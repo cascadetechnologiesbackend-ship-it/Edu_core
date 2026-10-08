@@ -14,7 +14,8 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "worker:finance": "tsx src/workers/financeAutomation.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1085.0",

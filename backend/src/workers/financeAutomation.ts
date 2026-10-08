@@ -7,6 +7,7 @@ import {
   feePayments,
   bankAccounts,
   accountLedgerTransactions,
+  workerHeartbeats,
 } from "@/db/schema";
 import { eq, and, lt, lte, gt, inArray, sql } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
@@ -389,14 +390,81 @@ export async function runSchoolFinanceAutomations(schoolId: string) {
   };
 }
 
+/**
+ * AZ-02: Upsert background worker heartbeat timestamp and status
+ */
+export async function recordWorkerHeartbeat(
+  workerName = "educore-finance-worker",
+  status = "alive"
+) {
+  const now = new Date();
+  await db
+    .insert(workerHeartbeats)
+    .values({
+      workerName,
+      lastSeenAt: now,
+      status,
+    })
+    .onConflictDoUpdate({
+      target: workerHeartbeats.workerName,
+      set: {
+        lastSeenAt: now,
+        status,
+      },
+    });
+  return { workerName, lastSeenAt: now, status };
+}
+
+/**
+ * AZ-02: Inspect background worker liveness for telemetry / health checks
+ */
+export async function getWorkerHeartbeatStatus(
+  workerName = "educore-finance-worker"
+) {
+  const record = await db.query.workerHeartbeats.findFirst({
+    where: eq(workerHeartbeats.workerName, workerName),
+  });
+  if (!record) {
+    return { status: "not_started", isAlive: false, workerName };
+  }
+  const ageMs = Date.now() - new Date(record.lastSeenAt).getTime();
+  const isAlive = ageMs < 120_000; // 2 minutes window
+  return {
+    status: isAlive ? record.status : "stale",
+    isAlive,
+    lastSeenAt: record.lastSeenAt,
+    ageSeconds: Math.floor(ageMs / 1000),
+    workerName,
+  };
+}
+
 // ─── Worker Start ─────────────────────────────────────────────────────────────
 if (process.env["START_WORKERS"] === "true") {
+  // Record immediate startup heartbeat
+  recordWorkerHeartbeat("educore-finance-worker", "alive").catch((err) =>
+    console.error("[FinanceWorker] Failed to record initial heartbeat:", err)
+  );
+
+  // Periodic heartbeat interval every 30 seconds
+  const heartbeatTimer = setInterval(async () => {
+    try {
+      await recordWorkerHeartbeat("educore-finance-worker", "alive");
+    } catch (err) {
+      console.error("[FinanceWorker] Failed to tick heartbeat:", err);
+    }
+  }, 30_000);
+
+  if (typeof heartbeatTimer.unref === "function") {
+    heartbeatTimer.unref();
+  }
+
   const worker = new Worker<FinanceJobPayload>(
     "finance-automation",
     async (job) => {
       const { schoolId } = job.data;
       console.log(`[FinanceWorker] Processing automation routines for school: ${schoolId}`);
       await runSchoolFinanceAutomations(schoolId);
+      await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
     },
     {
       connection: {
