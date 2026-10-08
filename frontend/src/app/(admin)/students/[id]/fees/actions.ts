@@ -138,12 +138,12 @@ export async function generateInvoicesForStudent(studentId: string) {
     if (generatedCount === 0) {
       return {
         success: true,
-        message: "No missing invoices to generate. Ledger is up to date.",
+        message: "No missing fee bills to generate. Ledger is up to date.",
       };
     }
     return {
       success: true,
-      message: `Successfully generated ${generatedCount} missing invoice(s).`,
+      message: `Successfully generated ${generatedCount} missing fee bill(s).`,
     };
   } catch (error: any) {
     console.error("Action Error (generateInvoicesForStudent):", error);

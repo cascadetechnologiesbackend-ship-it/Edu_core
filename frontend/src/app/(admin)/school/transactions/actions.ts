@@ -1,28 +1,42 @@
 "use server";
 
 import { db } from "@/db";
-import { feePayments, feeInvoices, accountLedgerTransactions, feeAuditLogs } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  feePayments,
+  feeInvoices,
+  accountLedgerTransactions,
+  bankAccounts,
+} from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
 
-export async function cancelTransaction(formData: FormData) {
+export async function cancelTransaction(input: FormData | { paymentId: string; reason: string }) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
     const school = await requireSchool(ctx);
 
-    const paymentId = formData.get("paymentId") as string;
-    const reason = (formData.get("reason") as string)?.trim();
+    let paymentId = "";
+    let reason = "";
+
+    if (input instanceof FormData) {
+      paymentId = input.get("paymentId") as string;
+      reason = ((input.get("reason") as string) || "").trim();
+    } else {
+      paymentId = input.paymentId;
+      reason = (input.reason || "").trim();
+    }
 
     if (!paymentId || !reason) {
-      return { success: false, message: "Payment ID and cancellation reason are required." };
+      return { success: false, message: "Payment ID and a cancellation reason are required." };
     }
 
     const payment = await db.query.feePayments.findFirst({
       where: and(
         eq(feePayments.id, paymentId),
-        eq(feePayments.schoolId, school.id),
+        eq(feePayments.schoolId, school.id)
       ),
       with: {
         invoice: true,
@@ -34,19 +48,30 @@ export async function cancelTransaction(formData: FormData) {
     const invoice = payment.invoice;
     const amountToReverse = parseFloat(payment.amountPaid);
 
+    // Find the original ledger transaction to determine if a bank account was credited
+    const originalLedger = await db.query.accountLedgerTransactions.findFirst({
+      where: and(
+        eq(accountLedgerTransactions.schoolId, school.id),
+        eq(accountLedgerTransactions.sourceType, "FEE_COLLECTION"),
+        eq(accountLedgerTransactions.sourceId, payment.id)
+      ),
+    });
+
+    const bankAccountId = originalLedger?.bankAccountId || null;
+
     await db.transaction(async (tx) => {
-      // 1. Audit log
-      await tx.insert(feeAuditLogs).values({
+      // 1. Audit log write using uniform wrapper (GAP-04)
+      await logFeeAuditEvent(tx, {
         schoolId: school.id,
         action: "RECEIPT_CANCELLED",
         entityType: "FEE_PAYMENT",
         entityId: payment.id,
-        previousData: JSON.stringify({
+        previousData: {
           receiptNumber: payment.receiptNumber,
           amountPaid: payment.amountPaid,
           paymentMethod: payment.paymentMethod,
           invoiceId: payment.feeInvoiceId,
-        }),
+        },
         newData: null,
         reason,
         performedById: ctx.userId,
@@ -57,9 +82,10 @@ export async function cancelTransaction(formData: FormData) {
         const revertedPaidAmount = Math.max(0, parseFloat(invoice.paidAmount) - amountToReverse);
         const revertedBalance = Math.min(
           parseFloat(invoice.netAmount),
-          parseFloat(invoice.balanceAmount) + amountToReverse,
+          parseFloat(invoice.balanceAmount) + amountToReverse
         );
-        const revertedStatus = revertedBalance >= parseFloat(invoice.netAmount) ? "PENDING" : "PARTIAL";
+        const revertedStatus =
+          revertedBalance >= parseFloat(invoice.netAmount) ? "PENDING" : "PARTIAL";
 
         await tx
           .update(feeInvoices)
@@ -73,12 +99,17 @@ export async function cancelTransaction(formData: FormData) {
       }
 
       // 3. Post reversal DEBIT to general ledger
-      const txNumber = `REV-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+      const txNumber = `REV-${new Date().getFullYear()}-${crypto
+        .randomBytes(3)
+        .toString("hex")
+        .toUpperCase()}`;
+
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: txNumber,
         sourceType: "MANUAL_ADJUSTMENT",
         sourceId: payment.id,
+        bankAccountId,
         transactionType: "DEBIT",
         amount: amountToReverse.toFixed(2),
         description: `Reversal of Fee Receipt #${payment.receiptNumber}. Reason: ${reason}`,
@@ -86,7 +117,18 @@ export async function cancelTransaction(formData: FormData) {
         createdById: ctx.userId,
       });
 
-      // 4. Delete payment record
+      // 4. Update bank balance (GAP-14) if bank account was credited
+      if (bankAccountId) {
+        await tx
+          .update(bankAccounts)
+          .set({
+            currentBalance: sql`${bankAccounts.currentBalance} - ${amountToReverse}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(bankAccounts.id, bankAccountId));
+      }
+
+      // 5. Delete payment record
       await tx.delete(feePayments).where(eq(feePayments.id, payment.id));
     });
 
@@ -94,8 +136,12 @@ export async function cancelTransaction(formData: FormData) {
     revalidatePath("/school/collect-fees");
     revalidatePath("/school/due-fees");
     revalidatePath("/school/fee-audit");
+    revalidatePath("/school/accounting/dashboard");
 
-    return { success: true, message: `Receipt #${payment.receiptNumber} cancelled and refunded to dues.` };
+    return {
+      success: true,
+      message: `Receipt #${payment.receiptNumber} successfully cancelled and balance restored to invoice.`,
+    };
   } catch (error: any) {
     console.error("Cancel Transaction Error:", error);
     return { success: false, message: error.message || "Failed to cancel transaction." };

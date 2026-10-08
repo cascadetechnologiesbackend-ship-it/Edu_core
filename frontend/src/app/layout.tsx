@@ -72,6 +72,7 @@ export const viewport: Viewport = {
 import { Providers } from "@/components/providers/Providers";
 import { Suspense } from "react";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
+import { ClarityScript } from "@/components/analytics/ClarityScript";
 
 export default function RootLayout({
   children,
@@ -84,6 +85,7 @@ export default function RootLayout({
         <Providers>
           <Suspense fallback={null}>
             <TopProgressBar />
+            <ClarityScript />
           </Suspense>
           {children}
         </Providers>

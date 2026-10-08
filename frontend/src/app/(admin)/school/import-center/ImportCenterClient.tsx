@@ -9,8 +9,14 @@ import {
   AlertCircle,
   FileText,
   RefreshCw,
+  Eye,
+  XCircle,
 } from "lucide-react";
-import { importHistoricalFeeBalances } from "./actions";
+import {
+  importHistoricalFeeBalances,
+  validateHistoricalFeeBalances,
+  DryRunValidationResult,
+} from "./actions";
 
 interface ImportCenterClientProps {
   academicYears: { id: string; name: string; isActive: boolean }[];
@@ -19,7 +25,14 @@ interface ImportCenterClientProps {
 export function ImportCenterClient({ academicYears }: ImportCenterClientProps) {
   const [academicYearId, setAcademicYearId] = useState(academicYears[0]?.id || "");
   const [csvContent, setCsvContent] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dryRunResults, setDryRunResults] = useState<{
+    totalCount: number;
+    validCount: number;
+    invalidCount: number;
+    results: DryRunValidationResult[];
+  } | null>(null);
   const [result, setResult] = useState<{
     success: boolean;
     count: number;
@@ -49,21 +62,16 @@ ADM-2024-003,3250,2026-12-01`;
     reader.onload = (event) => {
       const text = event.target?.result as string;
       setCsvContent(text);
+      setDryRunResults(null);
     };
     reader.readAsText(file);
   };
 
-  const handleImport = async () => {
-    if (!academicYearId) {
-      alert("Please select an academic year.");
-      return;
-    }
+  const parseCsvRows = () => {
     if (!csvContent.trim()) {
       alert("Please upload or paste CSV content.");
-      return;
+      return null;
     }
-
-    // Parse CSV lines
     const lines = csvContent
       .trim()
       .split("\n")
@@ -72,11 +80,11 @@ ADM-2024-003,3250,2026-12-01`;
 
     if (lines.length <= 1) {
       alert("CSV must contain a header and at least one data row.");
-      return;
+      return null;
     }
 
     const firstLine = lines[0];
-    if (!firstLine) return;
+    if (!firstLine) return null;
     const header = firstLine.split(",").map((h) => h.trim().toLowerCase());
     const admIdx = header.indexOf("admissionnumber");
     const amountIdx = header.indexOf("grossamount");
@@ -84,7 +92,7 @@ ADM-2024-003,3250,2026-12-01`;
 
     if (admIdx === -1 || amountIdx === -1) {
       alert("CSV must contain 'admissionNumber' and 'grossAmount' columns.");
-      return;
+      return null;
     }
 
     const rows: { admissionNumber: string; grossAmount: number; dueDate?: string }[] = [];
@@ -106,11 +114,46 @@ ADM-2024-003,3250,2026-12-01`;
         });
       }
     }
+    return rows;
+  };
 
-    if (rows.length === 0) {
-      alert("No valid data rows found in the CSV.");
+  const handleDryRun = async () => {
+    if (!academicYearId) {
+      alert("Please select an academic year.");
       return;
     }
+    const rows = parseCsvRows();
+    if (!rows || rows.length === 0) return;
+
+    setIsValidating(true);
+    setResult(null);
+
+    try {
+      const res = await validateHistoricalFeeBalances(academicYearId, rows);
+      if (res.success) {
+        setDryRunResults({
+          totalCount: res.totalCount || 0,
+          validCount: res.validCount || 0,
+          invalidCount: res.invalidCount || 0,
+          results: res.results || [],
+        });
+      } else {
+        alert(res.message || "Failed to validate CSV rows.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Error running dry-run validation.");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!academicYearId) {
+      alert("Please select an academic year.");
+      return;
+    }
+    const rows = parseCsvRows();
+    if (!rows || rows.length === 0) return;
 
     setIsSubmitting(true);
     setResult(null);
@@ -120,6 +163,7 @@ ADM-2024-003,3250,2026-12-01`;
       setResult(res);
       if (res.success && res.errors.length === 0) {
         setCsvContent("");
+        setDryRunResults(null);
       }
     } catch (err: any) {
       setResult({
@@ -279,7 +323,96 @@ ADM-2024-003,3250,2026-12-01`;
           />
         </div>
 
-        <div className="flex justify-end">
+        {/* Dry-Run Preview Card */}
+        {dryRunResults && (
+          <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Dry-Run Validation Preview
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  Inspected {dryRunResults.totalCount} records against the school database.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+                  ✓ {dryRunResults.validCount} Valid
+                </span>
+                {dryRunResults.invalidCount > 0 && (
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400">
+                    ✕ {dryRunResults.invalidCount} Rejected
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto rounded-xl border border-gray-200 dark:border-slate-800">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 text-gray-600 dark:text-slate-400 font-semibold border-b border-gray-200 dark:border-slate-700">
+                  <tr>
+                    <th className="py-2.5 px-3">Row</th>
+                    <th className="py-2.5 px-3">Admission No</th>
+                    <th className="py-2.5 px-3">Matched Student</th>
+                    <th className="py-2.5 px-3 text-right">Amount</th>
+                    <th className="py-2.5 px-3">Status / Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                  {dryRunResults.results.map((res) => (
+                    <tr
+                      key={res.rowNumber}
+                      className={`hover:bg-gray-50/50 dark:hover:bg-slate-800/40 ${
+                        res.isValid ? "" : "bg-rose-50/30 dark:bg-rose-950/20"
+                      }`}
+                    >
+                      <td className="py-2.5 px-3 font-mono text-gray-400">#{res.rowNumber}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-gray-900 dark:text-white">
+                        {res.admissionNumber || "—"}
+                      </td>
+                      <td className="py-2.5 px-3 text-gray-700 dark:text-slate-300">
+                        {res.studentName || "—"}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-gray-900 dark:text-white">
+                        ₹{res.amount?.toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {res.isValid ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Ready to Import
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-medium">
+                            <XCircle className="w-3.5 h-3.5" /> {res.error}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+          <button
+            onClick={handleDryRun}
+            disabled={isValidating || !csvContent.trim()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            {isValidating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" /> Validating CSV...
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Preview & Validate (Dry Run)
+              </>
+            )}
+          </button>
+
           <button
             onClick={handleImport}
             disabled={isSubmitting || !csvContent.trim()}

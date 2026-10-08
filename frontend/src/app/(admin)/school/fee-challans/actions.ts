@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { feeChallans, feeInvoices, feePayments, accountLedgerTransactions } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { feeChallans, feeInvoices, feePayments, accountLedgerTransactions, bankAccounts } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
 
 export async function generateChallan(formData: FormData) {
@@ -111,22 +112,57 @@ export async function clearChallan(formData: FormData) {
           .where(eq(feeInvoices.id, invoice.id));
       }
 
-      // 4. Post Ledger Credit
+      // 4. Update Bank Account Balance
+      let primaryBankId: string | null = null;
+      let newBalance: string = "0";
+      const primaryBank = await tx.query.bankAccounts.findFirst({
+        where: and(eq(bankAccounts.schoolId, school.id), eq(bankAccounts.isActive, true)),
+      });
+
+      if (primaryBank) {
+        primaryBankId = primaryBank.id;
+        const [updatedBank] = await tx
+          .update(bankAccounts)
+          .set({
+            currentBalance: sql`${bankAccounts.currentBalance} + ${clearedAmount.toFixed(2)}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(bankAccounts.id, primaryBank.id))
+          .returning();
+        if (updatedBank) newBalance = updatedBank.currentBalance;
+      }
+
+      // 5. Post Ledger Credit
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: `TX-CHL-${crypto.randomBytes(3).toString("hex").toUpperCase()}`,
         sourceType: "FEE_COLLECTION",
         sourceId: payment.id,
+        bankAccountId: primaryBankId,
         transactionType: "CREDIT",
         amount: challan.amount,
+        balanceAfter: newBalance,
         description: `Bank Challan Clearance #${challan.challanNumber}`,
         transactionDate: new Date(),
         createdById: ctx.userId,
+      });
+
+      // 6. Fee Audit Log
+      await logFeeAuditEvent(tx, {
+        schoolId: school.id,
+        action: "CLEAR_BANK_CHALLAN",
+        entityType: "FEE_CHALLAN",
+        entityId: challan.id,
+        newData: { receiptNumber, clearedAmount, paymentId: payment.id, bankAccountId: primaryBankId },
+        reason: `Bank challan ${challan.challanNumber} cleared and credited to bank account`,
+        performedById: ctx.userId,
       });
     });
 
     revalidatePath("/school/fee-challans");
     revalidatePath("/school/transactions");
+    revalidatePath("/school/accounting/dashboard");
+    revalidatePath("/school/accounts/bank-accounts");
     return { success: true, message: `Challan #${challan.challanNumber} cleared successfully.` };
   } catch (error: any) {
     return { success: false, message: error.message };

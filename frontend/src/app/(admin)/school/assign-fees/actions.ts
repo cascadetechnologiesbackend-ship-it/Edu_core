@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { feeStructures, feeInvoices, students, academicYears } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { feeStructures, feeInvoices, students, academicYears, feeConcessions } from "@/db/schema";
+import { eq, and, inArray, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
 
 export async function assignFeeStructure(formData: FormData) {
@@ -81,6 +82,21 @@ export async function assignFeeStructure(formData: FormData) {
         ),
       });
 
+      const studentIds = classStudents.map((s) => s.id);
+      const studentConcessions =
+        studentIds.length > 0
+          ? await db.query.feeConcessions.findMany({
+              where: and(
+                eq(feeConcessions.schoolId, school.id),
+                eq(feeConcessions.academicYearId, academicYearId),
+                eq(feeConcessions.isActive, true),
+                isNotNull(feeConcessions.studentId),
+                isNotNull(feeConcessions.approvedAt),
+                inArray(feeConcessions.studentId, studentIds),
+              ),
+            })
+          : [];
+
       for (const st of classStudents) {
         // Check if invoice already exists for this student & structure
         const existingInv = await db.query.feeInvoices.findFirst({
@@ -91,6 +107,27 @@ export async function assignFeeStructure(formData: FormData) {
         });
 
         if (!existingInv) {
+          // AUTO-06: Calculate applicable student concessions
+          const studentConcessionList = studentConcessions.filter(
+            (c) => c.studentId === st.id,
+          );
+          const applicableConcession = studentConcessionList.find(
+            (c) => c.appliesTo === "ALL" || c.appliesTo === feeHeadId,
+          );
+
+          let discountAmount = 0;
+          if (applicableConcession) {
+            if (applicableConcession.discountPercentage) {
+              discountAmount =
+                amount *
+                (parseFloat(applicableConcession.discountPercentage) / 100);
+            } else if (applicableConcession.discountAmount) {
+              discountAmount = parseFloat(applicableConcession.discountAmount);
+            }
+          }
+          if (discountAmount > amount) discountAmount = amount;
+          const netAmount = Math.max(0, amount - discountAmount);
+
           const invNum = `INV-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
           await db.insert(feeInvoices).values({
             invoiceNumber: invNum,
@@ -99,12 +136,12 @@ export async function assignFeeStructure(formData: FormData) {
             academicYearId,
             feeStructureId: structureId,
             grossAmount: amount.toFixed(2),
-            discountAmount: "0.00",
+            discountAmount: discountAmount.toFixed(2),
             lateFeeAmount: "0.00",
             taxAmount: "0.00",
-            netAmount: amount.toFixed(2),
+            netAmount: netAmount.toFixed(2),
             paidAmount: "0.00",
-            balanceAmount: amount.toFixed(2),
+            balanceAmount: netAmount.toFixed(2),
             dueDate,
             term,
             status: "PENDING",

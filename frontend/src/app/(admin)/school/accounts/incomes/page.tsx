@@ -5,7 +5,7 @@ import { incomeVouchers, incomeHeads, bankAccounts } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FinanceSubNav } from "@/components/layout/FinanceSubNav";
+import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import {
   DollarSign,
   Plus,
@@ -52,7 +52,7 @@ export default async function IncomesPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceSubNav activeSection="accounts" />
+      <FinanceTabs activeSection="accounts" />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">

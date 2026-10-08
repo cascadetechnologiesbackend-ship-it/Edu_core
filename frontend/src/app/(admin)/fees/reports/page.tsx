@@ -4,6 +4,8 @@ import { eq, desc, inArray, and } from "drizzle-orm";
 import { ExportButton } from "./ExportButton";
 import { decryptData } from "@/lib/encryption";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { FinanceTabs } from "@/components/finance/FinanceTabs";
+import { QuickActionBar } from "@/components/finance/QuickActionBar";
 
 export default async function FeeReportsPage() {
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"] as const);
@@ -113,20 +115,25 @@ export default async function FeeReportsPage() {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <FinanceTabs activeSection="finance" />
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Fee Reports & Analytics
           </h1>
-          <p className="text-sm text-gray-500">
-            Monitor collections, outstanding dues, and defaulters.
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+            Monitor daily collections, aging defaulter queues, and fiscal recovery ledgers.
           </p>
         </div>
-        <ExportButton
-          data={defaulterListForExport}
-          filename="Defaulter_List.xlsx"
-        />
+        <div className="flex items-center gap-3">
+          <ExportButton
+            data={defaulterListForExport}
+            filename="Defaulter_List.xlsx"
+          />
+          <QuickActionBar userRole={ctx.role} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

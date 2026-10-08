@@ -5,9 +5,11 @@ import { feeDueSlips } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FinanceSubNav } from "@/components/layout/FinanceSubNav";
-import { History, Printer, FileText, CheckCircle2 } from "lucide-react";
+import { FinanceTabs } from "@/components/finance/FinanceTabs";
+import { QuickActionBar } from "@/components/finance/QuickActionBar";
+import { History, FileText, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import PrintSlipButton from "./PrintSlipButton";
 
 export default async function DueSlipHistoryPage() {
   const session = await auth();
@@ -25,13 +27,13 @@ export default async function DueSlipHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceSubNav activeSection="audit" />
+      <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <History className="w-3.5 h-3.5" /> Processing & Audit
+            <History className="w-3.5 h-3.5" /> Operations & Due Slips
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
             Due Slip Batch History
@@ -41,12 +43,15 @@ export default async function DueSlipHistoryPage() {
           </p>
         </div>
 
-        <Link
-          href="/school/generate-due-slip"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition"
-        >
-          <FileText className="w-4 h-4" /> Generate New Batch
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/school/generate-due-slip"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition"
+          >
+            <FileText className="w-4 h-4" /> Generate Batch &rarr;
+          </Link>
+          <QuickActionBar userRole={session.user.role} />
+        </div>
       </div>
 
       {/* Slips History Table */}
@@ -104,13 +109,7 @@ export default async function DueSlipHistoryPage() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => window.print()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-700 dark:text-slate-200 font-medium transition"
-                      >
-                        <Printer className="w-3.5 h-3.5" /> Print Batch
-                      </button>
+                      <PrintSlipButton />
                     </td>
                   </tr>
                 ))

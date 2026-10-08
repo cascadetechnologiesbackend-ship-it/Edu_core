@@ -66,6 +66,42 @@ const nextConfig = {
     ];
   },
 
+  // Canonical redirects from legacy fees routes to unified finance suite
+  async redirects() {
+    return [
+      {
+        source: "/fees/collect",
+        destination: "/school/collect-fees",
+        permanent: true,
+      },
+      {
+        source: "/fees/structures",
+        destination: "/school/fee-structures",
+        permanent: true,
+      },
+      {
+        source: "/school/fees/structures",
+        destination: "/school/fee-structures",
+        permanent: true,
+      },
+      {
+        source: "/fees/concessions",
+        destination: "/school/fees-discount",
+        permanent: true,
+      },
+      {
+        source: "/fees",
+        destination: "/school/fees-dashboard",
+        permanent: true,
+      },
+      {
+        source: "/accountant/dashboard",
+        destination: "/school/fees-dashboard",
+        permanent: true,
+      },
+    ];
+  },
+
   // Image optimization — student photos served via signed S3 URLs
   images: {
     remotePatterns: [

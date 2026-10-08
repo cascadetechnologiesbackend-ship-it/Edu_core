@@ -5,7 +5,7 @@ import { academicYears, feeInvoices, feeCarryForwards, classes, sections } from 
 import { eq, and, gt, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FinanceSubNav } from "@/components/layout/FinanceSubNav";
+import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { RefreshCw, ShieldCheck } from "lucide-react";
 import { CarryForwardClient } from "./CarryForwardClient";
 import { decryptData } from "@/lib/encryption";
@@ -13,6 +13,11 @@ import { decryptData } from "@/lib/encryption";
 export default async function FeesCarryForwardPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
+
+  const role = session.user.role;
+  if (role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
+    redirect("/school/finance");
+  }
 
   const schoolId = session.user.schoolId;
 
@@ -124,7 +129,7 @@ export default async function FeesCarryForwardPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceSubNav activeSection="audit" />
+      <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">

@@ -8,7 +8,7 @@ type AuthFixtures = {
   teacherPage: Page;
 };
 
-const AUTH_DIR = path.resolve(__dirname, "../../../playwright/.auth");
+const AUTH_DIR = path.resolve(process.cwd(), "playwright/.auth");
 
 export const test = base.extend<AuthFixtures>({
   adminPage: async ({ browser }, use) => {
@@ -24,8 +24,8 @@ export const test = base.extend<AuthFixtures>({
       await page.goto("/login");
       await page.fill('input[id="login-email"]', "school_admin1@school.edu.in");
       await page.fill('input[id="login-password"]', "schoolmitra_dev");
-      await page.click('button[type="submit"]');
-      await page.waitForURL("/dashboard");
+      await page.press('input[id="login-password"]', "Enter");
+      await page.waitForURL(/\/dashboard|\/school/, { timeout: 15000 });
     }
 
     await use(page);

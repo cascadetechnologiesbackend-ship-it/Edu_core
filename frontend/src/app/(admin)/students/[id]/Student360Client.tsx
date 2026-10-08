@@ -2,12 +2,28 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   PromoteStudentModal,
   ClassOption,
   YearOption,
 } from "./class-history/PromoteStudentModal";
 import { generateInvoicesForStudent } from "./fees/actions";
+
+function formatDisplayDate(val: string | Date | null | undefined): string {
+  if (!val) return "N/A";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "N/A";
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[d.getUTCMonth()];
+    const year = d.getUTCFullYear();
+    return `${day} ${month} ${year}`;
+  } catch {
+    return "N/A";
+  }
+}
 
 export interface Student360Data {
   id: string;
@@ -74,6 +90,7 @@ export interface Student360Data {
   invoices: Array<{
     id: string;
     invoiceNumber: string;
+    feeTypeName?: string;
     netAmount: string;
     paidAmount: string;
     balanceAmount: string;
@@ -126,6 +143,7 @@ export function Student360Client({
   availableClasses: ClassOption[];
   availableYears: YearOption[];
 }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     | "OVERVIEW"
     | "ACADEMICS"
@@ -155,7 +173,7 @@ export function Student360Client({
     setGeneratingInvoices(false);
     if (res.success) {
       setInvoiceMessage(res.message || "Invoices generated successfully.");
-      window.location.reload();
+      router.refresh();
     } else {
       setInvoiceMessage("Error: " + res.message);
     }
@@ -266,7 +284,7 @@ export function Student360Client({
           </div>
           <div className="text-xs text-gray-500 mt-1">
             {data.canViewFees
-              ? `${data.invoices.filter((i) => i.status === "PENDING").length} pending invoices`
+              ? `${data.invoices.filter((i) => i.status === "PENDING").length} pending fee bills`
               : "Financial role required"}
           </div>
         </div>
@@ -339,10 +357,8 @@ export function Student360Client({
             </h3>
             <div className="grid grid-cols-2 gap-y-3 text-sm">
               <span className="text-gray-400">Date of Birth:</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {data.dateOfBirth
-                  ? new Date(data.dateOfBirth).toLocaleDateString()
-                  : "N/A"}
+              <span className="font-medium text-gray-900 dark:text-white" suppressHydrationWarning>
+                {formatDisplayDate(data.dateOfBirth)}
               </span>
 
               <span className="text-gray-400">Gender:</span>
@@ -366,8 +382,8 @@ export function Student360Client({
               </span>
 
               <span className="text-gray-400">Admission Date:</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {new Date(data.admissionDate).toLocaleDateString()}
+              <span className="font-medium text-gray-900 dark:text-white" suppressHydrationWarning>
+                {formatDisplayDate(data.admissionDate)}
               </span>
             </div>
           </div>
@@ -482,8 +498,8 @@ export function Student360Client({
                 ) : (
                   data.attendanceLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                        {new Date(log.date).toLocaleDateString()}
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white" suppressHydrationWarning>
+                        {formatDisplayDate(log.date)}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -522,10 +538,10 @@ export function Student360Client({
               <div className="flex flex-wrap justify-between items-center gap-4 border-b pb-4">
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white">
-                    Fee Structures & Invoices
+                    Fee Structures & Fee Types
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Applicable billing plans and invoices for {data.className}
+                    Applicable billing plans and fee schedules for {data.className}
                   </p>
                 </div>
 
@@ -536,7 +552,7 @@ export function Student360Client({
                       disabled={generatingInvoices}
                       className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs shadow-sm transition-colors disabled:opacity-50"
                     >
-                      {generatingInvoices ? "Generating..." : "Generate Invoices"}
+                      {generatingInvoices ? "Generating..." : "Generate Fee Bills"}
                     </button>
                     <Link
                       href={`/students/${data.id}/fees`}
@@ -581,13 +597,13 @@ export function Student360Client({
               {/* Invoices Table */}
               <div>
                 <h4 className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-2">
-                  Generated Invoices
+                  Generated Fee Types & Bills
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-xs uppercase font-semibold">
                       <tr>
-                        <th className="px-4 py-3">Invoice No</th>
+                        <th className="px-4 py-3">Fee Type</th>
                         <th className="px-4 py-3">Term</th>
                         <th className="px-4 py-3">Net Amount</th>
                         <th className="px-4 py-3">Balance</th>
@@ -599,20 +615,25 @@ export function Student360Client({
                       {data.invoices.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                            No invoices generated yet. Click "Generate Invoices" to initialize fee bills.
+                            No fee bills generated yet. Click "Generate Fee Bills" to initialize fee schedules.
                           </td>
                         </tr>
                       ) : (
                         data.invoices.map((inv) => (
                           <tr key={inv.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">
-                              {inv.invoiceNumber}
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-gray-900 dark:text-white">
+                                {inv.feeTypeName || "Tuition / General Fee"}
+                              </div>
+                              <div className="font-mono text-[11px] text-gray-400">
+                                #{inv.invoiceNumber}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-xs">{inv.term}</td>
                             <td className="px-4 py-3 font-semibold">₹{inv.netAmount}</td>
                             <td className="px-4 py-3 font-semibold text-red-600">₹{inv.balanceAmount}</td>
-                            <td className="px-4 py-3 text-xs text-gray-500">
-                              {new Date(inv.dueDate).toLocaleDateString()}
+                            <td className="px-4 py-3 text-xs text-gray-500" suppressHydrationWarning>
+                              {formatDisplayDate(inv.dueDate)}
                             </td>
                             <td className="px-4 py-3">
                               <span
@@ -737,8 +758,8 @@ export function Student360Client({
                           {doc.isVerified ? "✓ Verified" : "Pending Review"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
-                        {new Date(doc.createdAt).toLocaleDateString()}
+                      <td className="px-4 py-3 text-xs text-gray-500" suppressHydrationWarning>
+                        {formatDisplayDate(doc.createdAt)}
                       </td>
                     </tr>
                   ))
@@ -796,8 +817,8 @@ export function Student360Client({
                     <span className="px-2.5 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                       {h.promotionStatus || "ACTIVE"}
                     </span>
-                    <span className="block text-xs text-gray-400 mt-1">
-                      {new Date(h.createdAt).toLocaleDateString()}
+                    <span className="block text-xs text-gray-400 mt-1" suppressHydrationWarning>
+                      {formatDisplayDate(h.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -823,8 +844,8 @@ export function Student360Client({
             {data.timelineEvents.map((evt) => (
               <div key={evt.id} className="relative pl-6">
                 <div className="absolute -left-2 top-1.5 w-4 h-4 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900" />
-                <div className="text-xs text-gray-400">
-                  {new Date(evt.date).toLocaleDateString()}
+                <div className="text-xs text-gray-400" suppressHydrationWarning>
+                  {formatDisplayDate(evt.date)}
                 </div>
                 <div className="font-semibold text-sm text-gray-900 dark:text-white">
                   {evt.title}

@@ -51,6 +51,7 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "DD",
   "NEFT",
   "RTGS",
+  "UPI",
 ]);
 
 export const feeInvoiceStatusEnum = pgEnum("fee_invoice_status", [
@@ -71,7 +72,11 @@ export const concessionTypeEnum = pgEnum("concession_type", [
   "MANAGEMENT_QUOTA",
 ]);
 
-export const lateFeeTypeEnum = pgEnum("late_fee_type", ["FLAT", "PERCENTAGE"]);
+export const lateFeeTypeEnum = pgEnum("late_fee_type", [
+  "FLAT",
+  "PERCENTAGE",
+  "PER_DAY",
+]);
 
 // ─── fee_heads ────────────────────────────────────────────────────────────────
 
@@ -137,6 +142,8 @@ export const feeStructures = pgTable(
     dueDate: timestamp("due_date", { withTimezone: true }).notNull(),
     lateFeeType: lateFeeTypeEnum("late_fee_type"),
     lateFeeAmount: numeric("late_fee_amount", { precision: 10, scale: 2 }),
+    dailyLateFeeAmount: numeric("daily_late_fee_amount", { precision: 10, scale: 2 }),
+    lateFeeCap: numeric("late_fee_cap", { precision: 10, scale: 2 }),
     lateFeeStartAfterDays: integer("late_fee_start_after_days"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -175,10 +182,8 @@ export const feeConcessions = pgTable(
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
     studentId: uuid("student_id")
-      .notNull()
       .references(() => students.id, { onDelete: "restrict" }),
     academicYearId: uuid("academic_year_id")
-      .notNull()
       .references(() => academicYears.id, { onDelete: "restrict" }),
     concessionType: concessionTypeEnum("concession_type").notNull(),
     concessionName: text("concession_name").notNull(),
@@ -189,8 +194,8 @@ export const feeConcessions = pgTable(
     }),
     discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }),
     approvedById: uuid("approved_by_id")
-      .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -302,6 +307,8 @@ export const feePayments = pgTable(
     }),
     remarks: text("remarks"),
     receiptS3Key: text("receipt_s3_key"),
+    receiptGroupId: text("receipt_group_id"),
+    idempotencyKey: text("idempotency_key"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -317,6 +324,14 @@ export const feePayments = pgTable(
     invoiceIdx: index("fee_payments_invoice_idx").on(t.feeInvoiceId),
     studentIdx: index("fee_payments_student_idx").on(t.studentId),
     dateIdx: index("fee_payments_date_idx").on(t.paymentDate),
+    receiptGroupIdx: index("fee_payments_receipt_group_idx").on(
+      t.schoolId,
+      t.receiptGroupId,
+    ),
+    idempotencyIdx: index("fee_payments_idempotency_idx").on(
+      t.schoolId,
+      t.idempotencyKey,
+    ),
   }),
 );
 
@@ -373,6 +388,9 @@ export const paymentGatewayLogs = pgTable(
     gatewayPaymentId: text("gateway_payment_id"),
     gatewaySignature: text("gateway_signature"),
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    feeAmount: numeric("fee_amount", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0.00"),
     currency: text("currency").notNull().default("INR"),
     status: text("status").notNull(), // CREATED, ATTEMPTED, PAID, FAILED, REFUNDED
     webhookPayload: text("webhook_payload"), // Sanitised — no card data

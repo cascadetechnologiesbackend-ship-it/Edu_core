@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { auditLogs, platformAuditLogs } from "@/db/schema";
+import { auditLogs, platformAuditLogs, feeAuditLogs } from "@/db/schema";
 import type { TRPCContext } from "@/server/trpc";
 
 export async function logPlatformAuditEvent(params: {
@@ -83,3 +83,36 @@ export async function logAuditEvent(
     metadata: params.metadata || {},
   });
 }
+
+export async function logFeeAuditEvent(
+  txOrDb: any,
+  params: {
+    schoolId: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    previousData?: any;
+    newData?: any;
+    reason?: string | null;
+    performedById: string;
+    ipAddress?: string | null;
+  },
+) {
+  try {
+    const client = txOrDb || db;
+    await client.insert(feeAuditLogs).values({
+      schoolId: params.schoolId,
+      action: params.action,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      previousData: params.previousData ? JSON.stringify(params.previousData) : null,
+      newData: params.newData ? JSON.stringify(params.newData) : null,
+      reason: params.reason || null,
+      performedById: params.performedById,
+      ipAddress: params.ipAddress || "127.0.0.1",
+    });
+  } catch (err) {
+    console.error("Failed to write fee audit log:", err);
+  }
+}
+

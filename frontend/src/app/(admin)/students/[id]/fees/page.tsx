@@ -75,6 +75,7 @@ export default async function StudentFeeLedgerPage({
         </div>
       </div>
 
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800">
           <p className="text-sm text-gray-500 font-medium">Total Billed</p>
@@ -107,12 +108,12 @@ export default async function StudentFeeLedgerPage({
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
           <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
             <h2 className="font-semibold text-gray-900 dark:text-white">
-              Fee Invoices
+              Fee Types & Billing
             </h2>
           </div>
           <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
             {studentInvoices.length === 0 ? (
-              <p className="p-4 text-gray-500 text-sm">No invoices found.</p>
+              <p className="p-4 text-gray-500 text-sm">No fee items found.</p>
             ) : (
               studentInvoices.map((inv) => (
                 <div
@@ -120,12 +121,16 @@ export default async function StudentFeeLedgerPage({
                   className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium text-sm">
-                      {inv.invoiceNumber}
-                    </span>
+                    <div>
+                      <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                        {inv.feeStructure?.feeHead?.name || "Fee Type"}
+                      </span>
+                      <span className="block text-xs font-mono text-gray-400">
+                        #{inv.invoiceNumber} • {inv.term}
+                      </span>
+                    </div>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium
-                      ${
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         inv.status === "PAID"
                           ? "bg-green-100 text-green-800"
                           : inv.status === "PARTIAL"
@@ -138,12 +143,9 @@ export default async function StudentFeeLedgerPage({
                       {inv.status}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {inv.feeStructure?.feeHead?.name} ({inv.term})
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">
-                      Due: {new Date(inv.dueDate).toLocaleDateString()}
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-gray-500" suppressHydrationWarning>
+                      Due: {new Date(inv.dueDate).toLocaleDateString("en-IN", { timeZone: "UTC" })}
                     </span>
                     <span className="font-semibold">Net: ₹{inv.netAmount}</span>
                   </div>
@@ -155,48 +157,48 @@ export default async function StudentFeeLedgerPage({
                 </div>
               ))
             )}
-          </div>
+                </div>
         </div>
 
-        {/* Payments */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-            <h2 className="font-semibold text-gray-900 dark:text-white">
-              Payment History
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
-            {studentPayments.length === 0 ? (
-              <p className="p-4 text-gray-500 text-sm">No payments recorded.</p>
-            ) : (
-              studentPayments.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium text-sm">
-                      {p.receiptNumber}
-                    </span>
-                    <span className="font-semibold text-green-600">
-                      ₹{p.amountPaid}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>{new Date(p.paymentDate).toLocaleDateString()}</span>
-                    <span className="uppercase">{p.paymentMethod}</span>
-                  </div>
-                  {p.transactionReference && (
-                    <div className="text-xs text-gray-400 mt-1 font-mono">
-                      Txn: {p.transactionReference}
+          {/* Payments */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
+              <h2 className="font-semibold text-gray-900 dark:text-white">
+                Payment History
+              </h2>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
+              {studentPayments.length === 0 ? (
+                <p className="p-4 text-gray-500 text-sm">No payments recorded.</p>
+              ) : (
+                studentPayments.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-sm">
+                        {p.receiptNumber}
+                      </span>
+                      <span className="font-semibold text-green-600">
+                        ₹{p.amountPaid}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))
-            )}
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span suppressHydrationWarning>{new Date(p.paymentDate).toLocaleDateString("en-IN", { timeZone: "UTC" })}</span>
+                      <span className="uppercase">{p.paymentMethod}</span>
+                    </div>
+                    {p.transactionReference && (
+                      <div className="text-xs text-gray-400 mt-1 font-mono">
+                        Txn: {p.transactionReference}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+      );
 }

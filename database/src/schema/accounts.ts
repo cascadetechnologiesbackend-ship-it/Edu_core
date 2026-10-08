@@ -12,9 +12,52 @@ import {
   varchar,
   index,
   unique,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { schools, users } from "./core";
+
+// ─── chart_of_accounts ────────────────────────────────────────────────────────
+
+export const accountClassificationTypeEnum = pgEnum("account_classification_type", [
+  "ASSET",
+  "LIABILITY",
+  "EQUITY",
+  "REVENUE",
+  "EXPENSE",
+]);
+
+export const chartOfAccounts = pgTable(
+  "chart_of_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    code: varchar("code", { length: 50 }).notNull(),
+    name: text("name").notNull(),
+    type: accountClassificationTypeEnum("type").notNull(),
+    parentCode: varchar("parent_code", { length: 50 }),
+    isActive: boolean("is_active").notNull().default(true),
+    isSystem: boolean("is_system").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolCodeUnique: unique("chart_of_accounts_school_code_unique").on(
+      t.schoolId,
+      t.code,
+    ),
+    schoolTypeIdx: index("chart_of_accounts_school_type_idx").on(
+      t.schoolId,
+      t.type,
+    ),
+  }),
+);
 
 // ─── bank_accounts ────────────────────────────────────────────────────────────
 
@@ -230,6 +273,14 @@ export const accountLedgerTransactions = pgTable(
     balanceAfter: numeric("balance_after", { precision: 14, scale: 2 })
       .notNull()
       .default("0"),
+    debitAccountId: uuid("debit_account_id").references(
+      () => chartOfAccounts.id,
+      { onDelete: "set null" },
+    ),
+    creditAccountId: uuid("credit_account_id").references(
+      () => chartOfAccounts.id,
+      { onDelete: "set null" },
+    ),
     description: text("description"),
     transactionDate: timestamp("transaction_date", { withTimezone: true })
       .notNull()
@@ -245,6 +296,8 @@ export const accountLedgerTransactions = pgTable(
     schoolIdx: index("ledger_tx_school_idx").on(t.schoolId),
     dateIdx: index("ledger_tx_date_idx").on(t.transactionDate),
     bankAccIdx: index("ledger_tx_bank_acc_idx").on(t.bankAccountId),
+    debitAccIdx: index("ledger_tx_debit_acc_idx").on(t.debitAccountId),
+    creditAccIdx: index("ledger_tx_credit_acc_idx").on(t.creditAccountId),
   }),
 );
 
@@ -318,6 +371,19 @@ export const expenseVouchersRelations = relations(expenseVouchers, ({ one }) => 
   }),
 }));
 
+export const chartOfAccountsRelations = relations(chartOfAccounts, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [chartOfAccounts.schoolId],
+    references: [schools.id],
+  }),
+  debitTransactions: many(accountLedgerTransactions, {
+    relationName: "debitAccount",
+  }),
+  creditTransactions: many(accountLedgerTransactions, {
+    relationName: "creditAccount",
+  }),
+}));
+
 export const accountLedgerTransactionsRelations = relations(
   accountLedgerTransactions,
   ({ one }) => ({
@@ -328,6 +394,16 @@ export const accountLedgerTransactionsRelations = relations(
     bankAccount: one(bankAccounts, {
       fields: [accountLedgerTransactions.bankAccountId],
       references: [bankAccounts.id],
+    }),
+    debitAccount: one(chartOfAccounts, {
+      fields: [accountLedgerTransactions.debitAccountId],
+      references: [chartOfAccounts.id],
+      relationName: "debitAccount",
+    }),
+    creditAccount: one(chartOfAccounts, {
+      fields: [accountLedgerTransactions.creditAccountId],
+      references: [chartOfAccounts.id],
+      relationName: "creditAccount",
     }),
     createdBy: one(users, {
       fields: [accountLedgerTransactions.createdById],

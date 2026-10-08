@@ -119,6 +119,12 @@ export const academicYears = pgTable(
     startDate: timestamp("start_date", { withTimezone: true }).notNull(),
     endDate: timestamp("end_date", { withTimezone: true }).notNull(),
     isActive: boolean("is_active").notNull().default(false),
+    isLocked: boolean("is_locked").notNull().default(false),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedById: uuid("locked_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    lockReason: text("lock_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

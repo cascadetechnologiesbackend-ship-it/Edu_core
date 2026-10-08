@@ -101,13 +101,16 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   ACCOUNTANT: {
     role: "ACCOUNTANT",
     displayName: "Accountant",
-    defaultDashboard: "/accountant/dashboard",
+    defaultDashboard: "/school/fees-dashboard",
     navItems: [
-      { label: "Finance Dashboard", href: "/accountant/dashboard", icon: "LayoutDashboard" },
-      { label: "Fee Collection", href: "/fees/collect", icon: "CreditCard" },
-      { label: "Class Pricing Matrix", href: "/fees/structures", icon: "Receipt" },
-      { label: "Concessions & Waivers", href: "/fees/concessions", icon: "Percent" },
-      { label: "Financial Reports", href: "/fees/reports", icon: "BarChart3" },
+      { label: "Finance Hub", href: "/school/fees-dashboard", icon: "TrendingUp" },
+      { label: "Collect Fee", href: "/school/collect-fees", icon: "CreditCard" },
+      { label: "Dues Work List", href: "/school/due-fees", icon: "FileText" },
+      { label: "Day Book", href: "/school/transactions", icon: "Receipt" },
+      { label: "Accounts Hub", href: "/school/accounting/dashboard", icon: "Building2" },
+      { label: "Discounts & Concessions", href: "/school/fees-discount", icon: "Percent" },
+      { label: "Refunds", href: "/school/refunds", icon: "RotateCcw" },
+      { label: "Pricing Matrix", href: "/school/fee-structures", icon: "Receipt" },
     ],
   },
   LIBRARIAN: {

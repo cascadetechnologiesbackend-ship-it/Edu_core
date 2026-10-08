@@ -2,7 +2,7 @@ import { test as setup } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
-const AUTH_DIR = path.resolve(__dirname, "../../playwright/.auth");
+const AUTH_DIR = path.resolve(process.cwd(), "playwright/.auth");
 
 setup("authenticate users and save storageState", async ({ browser }) => {
   if (!fs.existsSync(AUTH_DIR)) {
@@ -15,8 +15,8 @@ setup("authenticate users and save storageState", async ({ browser }) => {
   await adminPage.goto("/login");
   await adminPage.fill('input[id="login-email"]', "school_admin1@school.edu.in");
   await adminPage.fill('input[id="login-password"]', "schoolmitra_dev");
-  await adminPage.click('button[type="submit"]');
-  await adminPage.waitForURL(/\/dashboard|\/login/);
+  await adminPage.press('input[id="login-password"]', "Enter");
+  await adminPage.waitForURL(/\/dashboard|\/school/, { timeout: 15000 });
   await adminContext.storageState({ path: path.join(AUTH_DIR, "admin.json") });
   await adminContext.close();
 

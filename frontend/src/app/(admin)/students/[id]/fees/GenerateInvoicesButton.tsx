@@ -31,7 +31,7 @@ export function GenerateInvoicesButton({ studentId }: { studentId: string }) {
       disabled={loading}
       className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50"
     >
-      {loading ? "Generating..." : "Generate Missing Invoices"}
+      {loading ? "Generating..." : "Generate Missing Fee Bills"}
     </button>
   );
 }

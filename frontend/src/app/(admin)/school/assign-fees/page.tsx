@@ -5,7 +5,7 @@ import { feeStructures, feeHeads, classes, academicYears } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FinanceSubNav } from "@/components/layout/FinanceSubNav";
+import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { UserCheck, Plus, Calendar, IndianRupee, Layers } from "lucide-react";
 import { assignFeeStructure } from "./actions";
 
@@ -40,7 +40,7 @@ export default async function AssignFeesPage() {
   if (!activeYear) {
     return (
       <div className="space-y-6">
-        <FinanceSubNav activeSection="setup" />
+        <FinanceTabs activeSection="finance" />
         <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800">
           <p className="text-gray-500">No active academic session found. Please activate an academic year first.</p>
         </div>
@@ -50,7 +50,7 @@ export default async function AssignFeesPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceSubNav activeSection="setup" />
+      <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">

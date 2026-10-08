@@ -189,6 +189,13 @@ export default async function StudentProfilePage({
             eq(feeInvoices.studentId, student.id),
             eq(feeInvoices.schoolId, school.id),
           ),
+          with: {
+            feeStructure: {
+              with: {
+                feeHead: true,
+              },
+            },
+          },
           orderBy: [desc(feeInvoices.createdAt)],
         })
       : Promise.resolve([]),
@@ -470,9 +477,10 @@ export default async function StudentProfilePage({
       amount: fs.amount,
       dueDate: fs.dueDate.toISOString(),
     })),
-    invoices: studentInvoices.map((inv) => ({
+    invoices: studentInvoices.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
+      feeTypeName: inv.feeStructure?.feeHead?.name || "Tuition / General Fee",
       netAmount: inv.netAmount,
       paidAmount: inv.paidAmount,
       balanceAmount: inv.balanceAmount,

@@ -5,7 +5,8 @@ import { classes, academicYears } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FinanceSubNav } from "@/components/layout/FinanceSubNav";
+import { FinanceTabs } from "@/components/finance/FinanceTabs";
+import { QuickActionBar } from "@/components/finance/QuickActionBar";
 import { FileText, Printer, CheckCircle2, History } from "lucide-react";
 import Link from "next/link";
 import { createDueSlipBatch } from "./actions";
@@ -30,13 +31,13 @@ export default async function GenerateDueSlipPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceSubNav activeSection="audit" />
+      <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <FileText className="w-3.5 h-3.5" /> Processing & Audit
+            <FileText className="w-3.5 h-3.5" /> Operations & Due Slips
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
             Generate Fee Due Slips (Demand Notes)
@@ -46,12 +47,15 @@ export default async function GenerateDueSlipPage() {
           </p>
         </div>
 
-        <Link
-          href="/school/due-slip-history"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-800 dark:text-slate-200 text-xs font-semibold transition"
-        >
-          <History className="w-4 h-4" /> View Batch Slip History &rarr;
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/school/due-slip-history"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-800 dark:text-slate-200 text-xs font-semibold transition"
+          >
+            <History className="w-4 h-4" /> Batch History &rarr;
+          </Link>
+          <QuickActionBar userRole={session.user.role} />
+        </div>
       </div>
 
       <div className="max-w-2xl bg-white dark:bg-slate-900 p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-6">

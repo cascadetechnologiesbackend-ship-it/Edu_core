@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import ClassroomsTab from "./ClassroomsTab";
 import SubjectsTab from "./SubjectsTab";
