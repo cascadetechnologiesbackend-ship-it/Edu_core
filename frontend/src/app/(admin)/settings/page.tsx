@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Settings, Award, Percent, Building2, ShieldCheck } from "lucide-react";
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/serverAuth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 
 export const metadata: Metadata = {
   title: "Settings Dashboard | SchoolMitra ERP",
@@ -45,7 +48,13 @@ const SETTINGS_CARDS = [
   },
 ] as const;
 
-export default function SettingsDashboardPage() {
+export default async function SettingsDashboardPage() {
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/settings", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       <div>

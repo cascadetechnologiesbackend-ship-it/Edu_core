@@ -56,12 +56,29 @@ export const DEFAULT_ACCOUNTS_OVERFLOW_TABS: FinanceTabItem[] = [
   { id: "expense-heads", label: "Expense Heads", href: "/school/accounts/expense-heads" },
 ];
 
+export const ACCOUNTANT_FINANCE_PRIMARY_TABS: FinanceTabItem[] = [
+  { id: "hub", label: "Finance Hub", href: "/school/fees-dashboard" },
+  { id: "collect", label: "Collect Fee", href: "/school/collect-fees" },
+  { id: "dues", label: "Dues Work List", href: "/school/due-fees" },
+  { id: "daybook", label: "Day Book", href: "/school/transactions" },
+  { id: "concessions", label: "Discounts & Concessions", href: "/school/fees-discount" },
+  { id: "refunds", label: "Refunds", href: "/school/refunds" },
+  { id: "pricing-matrix", label: "Pricing Matrix", href: "/school/fee-structures" },
+];
+
+export const ACCOUNTANT_ACCOUNTS_PRIMARY_TABS: FinanceTabItem[] = [
+  { id: "accounts-hub", label: "Accounts Hub", href: "/school/accounting/dashboard" },
+  { id: "concession-summary", label: "Concession Summary", href: "/school/accounting/reports/concessions" },
+  { id: "brs", label: "BRS Reconcile", href: "/school/accounts/bank-reconciliation" },
+];
+
 export interface FinanceTabsProps {
   primaryTabs?: FinanceTabItem[];
   overflowTabs?: FinanceTabItem[];
   activeSection?: "finance" | "accounts";
   storageKey?: string;
   className?: string;
+  userRole?: string;
 }
 
 export function FinanceTabs({
@@ -70,16 +87,27 @@ export function FinanceTabs({
   activeSection = "finance",
   storageKey = "finance_active_tab",
   className,
+  userRole,
 }: FinanceTabsProps) {
+  const isAccountant = userRole === "ACCOUNTANT";
+
   const effectivePrimary =
     primaryTabs ||
-    (activeSection === "accounts"
+    (isAccountant
+      ? activeSection === "accounts"
+        ? ACCOUNTANT_ACCOUNTS_PRIMARY_TABS
+        : ACCOUNTANT_FINANCE_PRIMARY_TABS
+      : activeSection === "accounts"
       ? DEFAULT_ACCOUNTS_PRIMARY_TABS
       : DEFAULT_FINANCE_PRIMARY_TABS);
 
   const effectiveOverflow =
     overflowTabs ||
-    (activeSection === "accounts" ? DEFAULT_ACCOUNTS_OVERFLOW_TABS : DEFAULT_FINANCE_OVERFLOW_TABS);
+    (isAccountant
+      ? []
+      : activeSection === "accounts"
+      ? DEFAULT_ACCOUNTS_OVERFLOW_TABS
+      : DEFAULT_FINANCE_OVERFLOW_TABS);
 
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);

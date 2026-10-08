@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { db } from "@/db";
 import {
   books,
@@ -21,8 +23,15 @@ export const metadata: Metadata = {
 
 export default async function LibraryPage() {
   const session = await auth();
-  const role = session?.user?.role || "STUDENT";
-  const userId = session?.user?.id || "";
+  if (!session?.user?.id) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/library", { id: session.user.id, email: session.user.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
+  const role = session.user.role || "STUDENT";
+  const userId = session.user.id || "";
   const schoolId = session?.user?.schoolId || "";
 
   // Run all 4 queries in parallel — previously sequential (~2.5s), now concurrent

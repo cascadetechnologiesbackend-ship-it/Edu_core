@@ -1,4 +1,7 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/serverAuth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import AttendanceManager from "./AttendanceManager";
 import { getAssignedSections, getSectionStudents } from "./actions";
 
@@ -8,6 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AttendancePage() {
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/attendance", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const todayStr = new Date().toISOString().split("T")[0] || "";
   let initialSections: any[] = [];
   let initialStudents: any[] = [];

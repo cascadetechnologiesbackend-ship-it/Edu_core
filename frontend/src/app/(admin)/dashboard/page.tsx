@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { db } from "@/db";
 import {
   books,
@@ -142,6 +143,11 @@ export default async function DashboardPage() {
   }
 
   const role = ctx.role;
+  const access = assertRouteAccess(role, "/dashboard", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const schoolId = ctx.schoolId || "";
   const session = await auth();
 

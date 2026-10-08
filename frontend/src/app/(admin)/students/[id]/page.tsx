@@ -21,7 +21,8 @@ import {
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { getSignedDownloadUrl } from "@/lib/s3";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { decryptData } from "@/lib/encryption";
 import { Student360Client, Student360Data } from "./Student360Client";
 
@@ -31,6 +32,11 @@ export default async function StudentProfilePage({
   params: { id: string };
 }) {
   const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, `/students/${params.id}`, { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const school = await requireSchool(ctx);
 
   // 1. Fetch Student Record scoped strictly to school

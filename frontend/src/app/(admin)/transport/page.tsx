@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { db } from "@/db";
 import {
   vehicles,
@@ -21,8 +23,15 @@ export const metadata: Metadata = {
 
 export default async function TransportPage() {
   const session = await auth();
-  const role = session?.user?.role || "STUDENT";
-  const userId = session?.user?.id || "";
+  if (!session?.user?.id) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/transport", { id: session.user.id, email: session.user.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
+  const role = session.user.role || "STUDENT";
+  const userId = session.user.id || "";
   const schoolId = session?.user?.schoolId || "";
   const isAdmin = [
     "SUPER_ADMIN",

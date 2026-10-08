@@ -9,6 +9,7 @@ import {
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import DpdpDashboardClient from "./DpdpDashboardClient";
 
 export const metadata = {
@@ -20,23 +21,12 @@ export const metadata = {
 export default async function DpdpPage() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/api/auth/signin");
+    redirect("/login");
   }
 
-  // Authorize HR_MANAGER or SUPER_ADMIN / SCHOOL_ADMIN
-  const isAuthorized = ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"].includes(
-    session.user.role,
-  );
-  if (!isAuthorized) {
-    return (
-      <div className="p-12 text-center">
-        <h2 className="text-xl font-bold text-red-650">Access Denied</h2>
-        <p className="text-slate-500 mt-2">
-          You do not have administrative permissions to view the compliance
-          centre.
-        </p>
-      </div>
-    );
+  const access = assertRouteAccess(session.user.role, "/dpdp", { id: session.user.id, email: session.user.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
   }
 
   // 1. Consent coverage dynamic calculations

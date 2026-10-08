@@ -51,4 +51,27 @@ test.describe("Role-Based Access Control (RBAC) & Redirection Workflows", () => 
     await parentPage.waitForURL("**/portal");
     await expect(parentPage.locator("h1")).toContainText("Fee Management");
   });
+
+  test("accountant role lands on /school/fees-dashboard and direct-navigation redirects server-side (AM-04)", async ({
+    accountantPage,
+  }) => {
+    // 1. Visit default landing
+    await accountantPage.goto("/school/fees-dashboard");
+    await expect(accountantPage).toHaveURL(/\/school\/fees-dashboard/);
+
+    // Assert only finance navigation is visible, non-finance modules are absent
+    await expect(accountantPage.locator('nav a:has-text("Admissions")')).toBeHidden();
+    await expect(accountantPage.locator('nav a:has-text("Students")')).toBeHidden();
+    await expect(accountantPage.locator('nav a:has-text("HR & Payroll")')).toBeHidden();
+    await expect(accountantPage.locator('nav a:has-text("Settings")')).toBeHidden();
+
+    // 2. Direct-navigate to unauthorized routes: /students, /exams, /hr, /settings/roles
+    const unauthorizedRoutes = ["/students", "/exams", "/hr", "/settings/roles"];
+    for (const route of unauthorizedRoutes) {
+      await accountantPage.goto(route);
+      // Server guard redirects to defaultDashboard
+      await accountantPage.waitForURL(/\/school\/fees-dashboard/, { timeout: 10000 });
+      await expect(accountantPage).toHaveURL(/\/school\/fees-dashboard/);
+    }
+  });
 });

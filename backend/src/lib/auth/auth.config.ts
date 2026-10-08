@@ -1,4 +1,6 @@
 import { type NextAuthConfig } from "next-auth";
+import { canRoleAccessRoute } from "../routeGuards";
+import { ROLE_CONFIGS, type UserRole } from "../roleConfig";
 
 function resolveAuthSecret(): string {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
@@ -86,6 +88,30 @@ export const authConfig: NextAuthConfig = {
           return Response.redirect(new URL("/dashboard", nextUrl));
         }
         return true;
+      }
+
+      if (isLoggedIn) {
+        const userRole = (auth?.user as any)?.role as UserRole | undefined;
+        if (userRole && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
+          const isAdminRoute =
+            pathname.startsWith("/students") ||
+            pathname.startsWith("/exams") ||
+            pathname.startsWith("/admissions") ||
+            pathname.startsWith("/academics") ||
+            pathname.startsWith("/attendance") ||
+            pathname.startsWith("/hr") ||
+            pathname.startsWith("/library") ||
+            pathname.startsWith("/transport") ||
+            pathname.startsWith("/dpdp") ||
+            pathname.startsWith("/settings") ||
+            pathname.startsWith("/school/") ||
+            pathname === "/dashboard";
+
+          if (isAdminRoute && !canRoleAccessRoute(userRole, pathname)) {
+            const redirectPath = ROLE_CONFIGS[userRole]?.defaultDashboard || "/login";
+            return Response.redirect(new URL(redirectPath, nextUrl));
+          }
+        }
       }
 
       return isLoggedIn;

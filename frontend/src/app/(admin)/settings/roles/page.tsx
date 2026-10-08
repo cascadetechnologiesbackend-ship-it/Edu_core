@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/serverAuth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { getRolesAndUserAccess } from "./actions";
 import { RolesManagementClient } from "./RolesManagementClient";
 
@@ -9,6 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RolesManagementPage() {
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/settings/roles", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const result = await getRolesAndUserAccess();
 
   if (!result.success) {

@@ -11,11 +11,18 @@ export const metadata: Metadata = {
 };
 
 import { requireAuth } from "@/lib/serverAuth";
+import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { getActiveAcademicYear } from "../academics/actions/auth-helper";
 import { examTypes } from "@/db/schema";
 
 export default async function ExamsPage() {
   const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/exams", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const schoolId = ctx.schoolId || "";
 
   // Fetch active academic year and exam types concurrently

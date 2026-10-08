@@ -41,4 +41,15 @@ setup("authenticate users and save storageState", async ({ browser }) => {
   await teacherPage.waitForURL(/\/dashboard|\/login/);
   await teacherContext.storageState({ path: path.join(AUTH_DIR, "teacher.json") });
   await teacherContext.close();
+
+  // 4. Setup Accountant storageState
+  const accountantContext = await browser.newContext();
+  const accountantPage = await accountantContext.newPage();
+  await accountantPage.goto("/login");
+  await accountantPage.fill('input[id="login-email"]', "accountant1@school.edu.in");
+  await accountantPage.fill('input[id="login-password"]', "schoolmitra_dev");
+  await accountantPage.click('button[type="submit"]');
+  await accountantPage.waitForURL(/\/school\/fees-dashboard|\/dashboard/, { timeout: 15000 });
+  await accountantContext.storageState({ path: path.join(AUTH_DIR, "accountant.json") });
+  await accountantContext.close();
 });

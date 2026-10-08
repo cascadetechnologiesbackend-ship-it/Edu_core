@@ -20,6 +20,10 @@ export interface NavItem {
   label: string;
   href: string;
   icon: string;
+  group?: string;
+  tier?: string;
+  access?: "read-only" | "full";
+  kbdHint?: boolean;
   badge?: string;
 }
 
@@ -36,10 +40,10 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Super Admin",
     defaultDashboard: "/super-admin/dashboard",
     navItems: [
-      { label: "Platform Overview", href: "/super-admin/dashboard", icon: "LayoutDashboard" },
-      { label: "School Tenants", href: "/super-admin/schools", icon: "Building2" },
-      { label: "System Health & Logs", href: "/super-admin/audit", icon: "Activity" },
-      { label: "DPDP Governance", href: "/dpdp", icon: "ShieldCheck" },
+      { label: "Platform Overview", href: "/super-admin/dashboard", icon: "LayoutDashboard", group: "PLATFORM" },
+      { label: "School Tenants", href: "/super-admin/schools", icon: "Building2", group: "PLATFORM" },
+      { label: "System Health & Logs", href: "/super-admin/audit", icon: "Activity", group: "PLATFORM" },
+      { label: "DPDP Governance", href: "/dpdp", icon: "ShieldCheck", group: "PLATFORM" },
     ],
   },
   SCHOOL_ADMIN: {
@@ -47,19 +51,21 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "School Administrator",
     defaultDashboard: "/dashboard",
     navItems: [
-      { label: "Command Center", href: "/dashboard", icon: "LayoutDashboard" },
-      { label: "Admissions & Intake", href: "/admissions", icon: "UserPlus" },
-      { label: "Student Information", href: "/students", icon: "Users" },
-      { label: "Academics & Classes", href: "/academics", icon: "GraduationCap" },
-      { label: "Fee Structure & Matrix", href: "/school/fee-structures", icon: "Receipt" },
-      { label: "Fee Collection", href: "/school/collect-fees", icon: "CreditCard" },
-      { label: "HR & Staff Management", href: "/hr", icon: "UserCheck" },
-      { label: "Exams & Evaluation", href: "/exams", icon: "Award" },
-      { label: "Attendance Control", href: "/attendance", icon: "CalendarCheck" },
-      { label: "Transport Operations", href: "/transport", icon: "Bus" },
-      { label: "Library Catalog", href: "/library", icon: "BookOpen" },
-      { label: "DPDP Compliance", href: "/dpdp", icon: "ShieldCheck" },
-      { label: "School Settings", href: "/settings", icon: "Settings" },
+      { label: "Command Center", href: "/dashboard", icon: "LayoutDashboard", group: "Core" },
+      { label: "Admissions & Intake", href: "/admissions", icon: "UserPlus", group: "Core" },
+      { label: "Student Information", href: "/students", icon: "Users", group: "Core" },
+      { label: "Academics & Classes", href: "/academics", icon: "GraduationCap", group: "Academic" },
+      { label: "Exams & Evaluation", href: "/exams", icon: "Award", group: "Academic" },
+      { label: "Attendance Control", href: "/attendance", icon: "CalendarCheck", group: "Academic" },
+      { label: "Finance Hub", href: "/school/fees-dashboard", icon: "TrendingUp", group: "Finance & Accounts" },
+      { label: "Fee Collection", href: "/school/collect-fees", icon: "CreditCard", group: "Finance & Accounts" },
+      { label: "Fee Matrix", href: "/school/fee-structures", icon: "Receipt", group: "Finance & Accounts" },
+      { label: "Accounts Hub", href: "/school/accounting/dashboard", icon: "Building2", group: "Finance & Accounts" },
+      { label: "HR & Staff Management", href: "/hr", icon: "UserCheck", group: "Administration" },
+      { label: "Transport Operations", href: "/transport", icon: "Bus", group: "Administration" },
+      { label: "Library Catalog", href: "/library", icon: "BookOpen", group: "Administration" },
+      { label: "DPDP Compliance", href: "/dpdp", icon: "ShieldCheck", group: "Insights" },
+      { label: "School Settings", href: "/settings", icon: "Settings", group: "Insights" },
     ],
   },
   PRINCIPAL: {
@@ -67,12 +73,14 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Principal",
     defaultDashboard: "/principal/dashboard",
     navItems: [
-      { label: "Academic Oversight", href: "/principal/dashboard", icon: "LayoutDashboard" },
-      { label: "Class & Subject Hub", href: "/academics", icon: "GraduationCap" },
-      { label: "Teacher Evaluations", href: "/hr", icon: "UserCheck" },
-      { label: "Exam Approvals", href: "/exams", icon: "Award" },
-      { label: "Attendance Insights", href: "/attendance", icon: "CalendarCheck" },
-      { label: "Admissions Review", href: "/admissions", icon: "UserPlus" },
+      { label: "Academic Oversight", href: "/principal/dashboard", icon: "LayoutDashboard", group: "OVERSIGHT" },
+      { label: "Class & Subject Hub", href: "/academics", icon: "GraduationCap", group: "ACADEMICS" },
+      { label: "Attendance Insights", href: "/attendance", icon: "CalendarCheck", group: "ACADEMICS" },
+      { label: "Exam Approvals", href: "/exams", icon: "Award", group: "ACADEMICS" },
+      { label: "Admissions Review", href: "/admissions", icon: "UserPlus", group: "ADMINISTRATION" },
+      { label: "Teacher Evaluations", href: "/hr", icon: "UserCheck", group: "ADMINISTRATION" },
+      { label: "Dues & Reports", href: "/school/due-fees", icon: "FileText", group: "FINANCE OVERSIGHT", access: "read-only" },
+      { label: "Concession Summary", href: "/school/accounting/reports/concessions", icon: "BarChart3", group: "FINANCE OVERSIGHT", access: "read-only" },
     ],
   },
   HR_MANAGER: {
@@ -80,11 +88,12 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "HR & Payroll Manager",
     defaultDashboard: "/hr/dashboard",
     navItems: [
-      { label: "HR Dashboard", href: "/hr/dashboard", icon: "LayoutDashboard" },
-      { label: "Staff Directory", href: "/hr", icon: "Users" },
-      { label: "Leave Approvals", href: "/hr?tab=leaves", icon: "CalendarOff" },
-      { label: "Payroll & ECR Export", href: "/hr?tab=payroll", icon: "Banknote" },
-      { label: "Staff Attendance", href: "/attendance?tab=staff", icon: "Clock" },
+      { label: "HR Dashboard", href: "/hr/dashboard", icon: "LayoutDashboard", group: "HR & PAYROLL" },
+      { label: "Staff Directory", href: "/hr", icon: "Users", group: "HR & PAYROLL" },
+      { label: "Leave Approvals", href: "/hr?tab=leaves", icon: "CalendarOff", group: "HR & PAYROLL" },
+      { label: "Payroll & ECR Export", href: "/hr?tab=payroll", icon: "Banknote", group: "HR & PAYROLL" },
+      { label: "Staff Attendance", href: "/attendance?tab=staff", icon: "Clock", group: "HR & PAYROLL" },
+      { label: "DPDP Staff Records", href: "/dpdp", icon: "ShieldCheck", group: "COMPLIANCE" },
     ],
   },
   TEACHER: {
@@ -92,10 +101,10 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Educator / Teacher",
     defaultDashboard: "/teacher/dashboard",
     navItems: [
-      { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard" },
-      { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck" },
-      { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet" },
-      { label: "My Classes", href: "/teacher/classes", icon: "BookOpen" },
+      { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard", group: "WORKSPACE" },
+      { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck", group: "WORKSPACE" },
+      { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet", group: "WORKSPACE" },
+      { label: "My Classes", href: "/teacher/classes", icon: "BookOpen", group: "WORKSPACE" },
     ],
   },
   ACCOUNTANT: {
@@ -103,16 +112,16 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Accountant",
     defaultDashboard: "/school/fees-dashboard",
     navItems: [
-      { label: "Finance Hub", href: "/school/fees-dashboard", icon: "TrendingUp" },
-      { label: "Collect Fee", href: "/school/collect-fees", icon: "CreditCard" },
-      { label: "Dues Work List", href: "/school/due-fees", icon: "FileText" },
-      { label: "Day Book", href: "/school/transactions", icon: "Receipt" },
-      { label: "Accounts Hub", href: "/school/accounting/dashboard", icon: "Building2" },
-      { label: "Discounts & Concessions", href: "/school/fees-discount", icon: "Percent" },
-      { label: "Refunds", href: "/school/refunds", icon: "RotateCcw" },
-      { label: "Concession Summary", href: "/school/accounting/reports/concessions", icon: "BarChart3" },
-      { label: "BRS Preview", href: "/school/accounts/bank-reconciliation", icon: "CheckSquare" },
-      { label: "Pricing Matrix", href: "/school/fee-structures", icon: "Receipt" },
+      { label: "Finance Hub", href: "/school/fees-dashboard", icon: "LayoutDashboard", group: "OVERVIEW", tier: "hub" },
+      { label: "Collect Fee", href: "/school/collect-fees", icon: "IndianRupee", group: "OPERATIONS", tier: "tier1_daily", kbdHint: true },
+      { label: "Dues Work List", href: "/school/due-fees", icon: "AlertCircle", group: "OPERATIONS", tier: "tier1_daily" },
+      { label: "Day Book", href: "/school/transactions", icon: "BookOpen", group: "OPERATIONS", tier: "tier1_daily" },
+      { label: "Accounts Hub", href: "/school/accounting/dashboard", icon: "Landmark", group: "ACCOUNTS", tier: "tier2_weekly" },
+      { label: "Concession Summary", href: "/school/accounting/reports/concessions", icon: "Percent", group: "ACCOUNTS", tier: "tier2_weekly", access: "read-only" },
+      { label: "BRS Reconcile", href: "/school/accounts/bank-reconciliation", icon: "ArrowLeftRight", group: "ACCOUNTS", tier: "tier2_weekly", access: "read-only" },
+      { label: "Discounts & Concessions", href: "/school/fees-discount", icon: "BadgePercent", group: "LEDGER WORK", tier: "tier2_weekly" },
+      { label: "Refunds", href: "/school/refunds", icon: "Undo2", group: "LEDGER WORK", tier: "tier2_weekly" },
+      { label: "Pricing Matrix", href: "/school/fee-structures", icon: "Grid3x3", group: "LEDGER WORK", tier: "tier3_termly" },
     ],
   },
   LIBRARIAN: {
@@ -120,10 +129,10 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Librarian",
     defaultDashboard: "/librarian/dashboard",
     navItems: [
-      { label: "Library Dashboard", href: "/librarian/dashboard", icon: "LayoutDashboard" },
-      { label: "Book Catalog", href: "/library", icon: "BookOpen" },
-      { label: "Issue & Return Log", href: "/library?tab=issues", icon: "ArrowLeftRight" },
-      { label: "Overdue Fines", href: "/library?tab=fines", icon: "AlertCircle" },
+      { label: "Library Dashboard", href: "/librarian/dashboard", icon: "LayoutDashboard", group: "LIBRARY" },
+      { label: "Book Catalog", href: "/library", icon: "BookOpen", group: "LIBRARY" },
+      { label: "Issue & Return Log", href: "/library?tab=issues", icon: "ArrowLeftRight", group: "LIBRARY" },
+      { label: "Overdue Fines", href: "/library?tab=fines", icon: "AlertCircle", group: "LIBRARY" },
     ],
   },
   TRANSPORT_MANAGER: {
@@ -131,9 +140,9 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Transport Operations",
     defaultDashboard: "/transport/dashboard",
     navItems: [
-      { label: "Transport Dashboard", href: "/transport/dashboard", icon: "LayoutDashboard" },
-      { label: "Bus Routes & Stops", href: "/transport", icon: "Bus" },
-      { label: "Student Allocations", href: "/transport?tab=allocations", icon: "Users" },
+      { label: "Transport Dashboard", href: "/transport/dashboard", icon: "LayoutDashboard", group: "TRANSPORT" },
+      { label: "Bus Routes & Stops", href: "/transport", icon: "Bus", group: "TRANSPORT" },
+      { label: "Student Allocations", href: "/transport?tab=allocations", icon: "Users", group: "TRANSPORT" },
     ],
   },
   PARENT: {

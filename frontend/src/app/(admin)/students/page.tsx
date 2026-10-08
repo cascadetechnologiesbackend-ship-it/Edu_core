@@ -9,10 +9,17 @@ import {
 import { desc, eq, and, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
+import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { StudentDirectoryClient } from "./StudentDirectoryClient";
 
 export default async function StudentsDirectoryPage() {
   const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const school = await requireSchool(ctx);
 
   // Fetch classes and all sections in parallel with role-specific section checks

@@ -15,13 +15,20 @@ import { getCanonicalTeachingStaff } from "../hr/teachingStaff";
 import AmsHubClient from "./components/AmsHubClient";
 
 export const metadata: Metadata = {
-  title: "Academic Management System",
   description:
     "Class-centric academic hub for classes, sections, subjects, timetables, and curriculum.",
 };
 
+import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
+
 export default async function AcademicsPage() {
   const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/academics", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const schoolId = ctx.schoolId || "";
   const role = ctx.role;
   const userId = ctx.userId;

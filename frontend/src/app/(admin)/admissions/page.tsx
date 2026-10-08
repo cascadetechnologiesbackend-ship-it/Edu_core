@@ -4,9 +4,16 @@ import { desc, count, eq, and } from "drizzle-orm";
 import Link from "next/link";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
+import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 
 export default async function AdmissionsDashboard() {
   const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/admissions", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const school = await requireSchool(ctx);
 
   const applicationsPromise = db.query.admissionApplications.findMany({

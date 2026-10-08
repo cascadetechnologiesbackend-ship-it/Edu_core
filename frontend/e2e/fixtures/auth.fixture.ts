@@ -6,6 +6,7 @@ type AuthFixtures = {
   adminPage: Page;
   parentPage: Page;
   teacherPage: Page;
+  accountantPage: Page;
 };
 
 const AUTH_DIR = path.resolve(process.cwd(), "playwright/.auth");
@@ -66,6 +67,26 @@ export const test = base.extend<AuthFixtures>({
       await page.fill('input[id="login-password"]', "schoolmitra_dev");
       await page.click('button[type="submit"]');
       await page.waitForURL("/dashboard");
+    }
+
+    await use(page);
+    await context.close();
+  },
+
+  accountantPage: async ({ browser }, use) => {
+    const storageStatePath = path.join(AUTH_DIR, "accountant.json");
+    const context = fs.existsSync(storageStatePath)
+      ? await browser.newContext({ storageState: storageStatePath })
+      : await browser.newContext();
+
+    const page = await context.newPage();
+
+    if (!fs.existsSync(storageStatePath)) {
+      await page.goto("/login");
+      await page.fill('input[id="login-email"]', "accountant1@school.edu.in");
+      await page.fill('input[id="login-password"]', "schoolmitra_dev");
+      await page.click('button[type="submit"]');
+      await page.waitForURL(/\/school\/fees-dashboard|\/dashboard/, { timeout: 15000 });
     }
 
     await use(page);
