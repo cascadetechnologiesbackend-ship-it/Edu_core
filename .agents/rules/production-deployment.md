@@ -24,3 +24,8 @@ globs: ["frontend/**", "backend/**", "database/**", "package.json", "render.yaml
 ## 4. Git Hooks (`husky`) Guard
 - Always safeguard the root `"prepare"` script in `package.json` so that cloud production builds do not fail when husky is excluded:
   `"prepare": "node -e \"if (process.env.NODE_ENV !== 'production') try { require('husky')() } catch {}\""`
+
+## 5. Container Network Port Binding (`0.0.0.0`)
+- In containerized production environments (Render, Docker, Kubernetes, Cloud Run), services MUST bind to `0.0.0.0` rather than `localhost` (127.0.0.1).
+- Binding to `localhost` makes the listening port unreachable from outside the container network namespace, causing container host port scan timeouts ("Port scan timeout reached, no open ports detected").
+- In Next.js, configure `"start": "next start -H 0.0.0.0"` and supply `HOSTNAME=0.0.0.0` in deployment specifications (e.g. `render.yaml`).

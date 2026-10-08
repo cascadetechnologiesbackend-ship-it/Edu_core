@@ -9,6 +9,17 @@
 - **NEVER manually manipulate `drizzle.__drizzle_migrations`**:
   - No `UPDATE drizzle.__drizzle_migrations SET hash = ...`.
   - No manual `INSERT` or `DELETE` on migration ledger records.
+- **Strict Monotonic Migration Timestamps (`_journal.json`)**:
+  - Migration timestamps (`when` / `folderMillis`) in `_journal.json` MUST be strictly monotonically increasing.
+  - NEVER lower or renumber existing timestamps in `_journal.json`. Drizzle's migrator uses `lastDbMigration.created_at < migration.folderMillis` from the single highest record in `drizzle.__drizzle_migrations`. Lowering historical timestamps causes Drizzle to silently skip all intermediate migrations on persistent staging/production databases.
+- **Pre-Migration Ledger Sanitization in `migrate.ts`**:
+  - The migration entrypoint (`migrate.ts`) must detect and normalize known legacy or out-of-order timestamps in `drizzle.__drizzle_migrations` before invoking `migrate()`.
+  - If core relations expected from earlier migrations are missing, sanitize false future ledger records so unapplied migrations execute in sequence.
+- **Mandatory Statement Breakpoints (`--> statement-breakpoint`)**:
+  - Every migration file configured with `"breakpoints": true` in `_journal.json` MUST separate individual DDL statements with `--> statement-breakpoint`.
+  - Without breakpoints, Drizzle executes the entire file as one query block, triggering transaction limitations on PostgreSQL enum alterations (`ALTER TYPE ... ADD VALUE`) and masking granular failure lines.
+- **Relation Existence Guards in Multi-Step Migrations**:
+  - When a migration alters a table or enum introduced in an earlier migration (e.g., `ALTER TABLE "account_ledger_transactions" ADD COLUMN ...`), ensure the base relation exists (`CREATE TABLE IF NOT EXISTS` or conditional execution) as defense-in-depth against out-of-order execution.
 - **Clean Database Reproducibility**:
   - Every migration file and sequence must be 100% reproducible from scratch on a clean, disposable PostgreSQL database.
   - If a migration fails or is renamed, investigate and resolve the root schema difference rather than forcing hashes in the database ledger.

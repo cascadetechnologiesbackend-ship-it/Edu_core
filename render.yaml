@@ -6,8 +6,11 @@ services:
     buildCommand: pnpm install --prod=false --ignore-scripts && pnpm --filter @schoolmitra/database db:migrate && pnpm exec turbo run build
     preDeployCommand: pnpm --filter @schoolmitra/database db:migrate
     startCommand: pnpm -w run start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
       - key: PORT
         value: 10000
+      - key: HOSTNAME
+        value: 0.0.0.0
