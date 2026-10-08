@@ -15,6 +15,12 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getStudentReceivableChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export interface InvoiceCollectionItem {
   invoiceId: string;
@@ -255,6 +261,9 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
       return { success: false, message: "Total payment amount must be greater than zero." };
     }
 
+    // Enforce fiscal lock invariant (ACC-06)
+    await assertAcademicYearNotLocked(school.id, new Date(), db);
+
     // FIX-02: Idempotency check (within last 24 hours)
     if (idempotencyKey) {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -469,13 +478,20 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
         });
       }
 
-      // 4. Post Single Consolidated Credit Entry to General Ledger
+      // 4. Resolve Chart of Accounts & Post Consolidated Credit Entry to General Ledger
+      const debitAccountId = bankAccountId && bankAccountId !== "CASH"
+        ? await getBankAccountChartAccountId(school.id, bankAccountId, tx)
+        : await getCashMainChartAccountId(school.id, tx);
+      const creditAccountId = await getStudentReceivableChartAccountId(school.id, tx);
+
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: txNumber,
         sourceType: "FEE_COLLECTION",
         sourceId: primaryPaymentId,
         bankAccountId: bankAccountId === "CASH" ? null : bankAccountId,
+        debitAccountId,
+        creditAccountId,
         transactionType: "CREDIT",
         amount: totalAmountPaid.toFixed(2),
         description: `Fee Collection Receipt #${baseReceiptNumber} (${paymentMethod})`,

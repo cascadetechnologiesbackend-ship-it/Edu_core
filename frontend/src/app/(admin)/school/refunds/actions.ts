@@ -16,6 +16,12 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import { decryptData } from "@/lib/encryption";
 import crypto from "crypto";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getCautionDepositChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export interface RefundRequestPayload {
   feePaymentId: string;
@@ -323,6 +329,9 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
     const payment = refund.payment;
     const invoice = payment.invoice;
 
+    // Enforce fiscal lock invariant (ACC-06)
+    await assertAcademicYearNotLocked(school.id, new Date(), db);
+
     // Resolve bank account to debit
     let resolvedBankId = bankAccountId || null;
     if (!resolvedBankId) {
@@ -379,7 +388,12 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
         if (updatedBank) bankBalanceAfter = updatedBank.currentBalance;
       }
 
-      // 4. Post reversal ledger DEBIT entry
+      // 4. Post reversal ledger DEBIT entry with double-entry IDs
+      const debitAccountId = await getCautionDepositChartAccountId(school.id, tx);
+      const creditAccountId = resolvedBankId
+        ? await getBankAccountChartAccountId(school.id, resolvedBankId, tx)
+        : await getCashMainChartAccountId(school.id, tx);
+
       const txNumber = `RFD-TX-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
@@ -387,6 +401,8 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
         sourceType: "FEE_COLLECTION",
         sourceId: refund.id,
         bankAccountId: resolvedBankId,
+        debitAccountId,
+        creditAccountId,
         transactionType: "DEBIT",
         amount: refundAmountNum.toFixed(2),
         balanceAfter: bankBalanceAfter,

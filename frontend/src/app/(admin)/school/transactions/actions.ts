@@ -12,6 +12,12 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getStudentReceivableChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function cancelTransaction(input: FormData | { paymentId: string; reason: string }) {
   try {
@@ -47,6 +53,9 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
 
     const invoice = payment.invoice;
     const amountToReverse = parseFloat(payment.amountPaid);
+
+    // Enforce fiscal lock invariant (ACC-06)
+    await assertAcademicYearNotLocked(school.id, new Date(), db);
 
     // Find the original ledger transaction to determine if a bank account was credited
     const originalLedger = await db.query.accountLedgerTransactions.findFirst({
@@ -98,7 +107,12 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
           .where(eq(feeInvoices.id, invoice.id));
       }
 
-      // 3. Post reversal DEBIT to general ledger
+      // 3. Post reversal DEBIT to general ledger with double-entry IDs
+      const debitAccountId = await getStudentReceivableChartAccountId(school.id, tx);
+      const creditAccountId = bankAccountId
+        ? await getBankAccountChartAccountId(school.id, bankAccountId, tx)
+        : await getCashMainChartAccountId(school.id, tx);
+
       const txNumber = `REV-${new Date().getFullYear()}-${crypto
         .randomBytes(3)
         .toString("hex")
@@ -110,6 +124,8 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
         sourceType: "MANUAL_ADJUSTMENT",
         sourceId: payment.id,
         bankAccountId,
+        debitAccountId,
+        creditAccountId,
         transactionType: "DEBIT",
         amount: amountToReverse.toFixed(2),
         description: `Reversal of Fee Receipt #${payment.receiptNumber}. Reason: ${reason}`,

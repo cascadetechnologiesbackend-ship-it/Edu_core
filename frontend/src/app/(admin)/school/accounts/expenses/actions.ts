@@ -6,6 +6,12 @@ import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getExpenseHeadChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function createExpenseVoucher(formData: FormData) {
   // vouchers_create: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT
@@ -35,6 +41,9 @@ export async function createExpenseVoucher(formData: FormData) {
   }
 
   const entryDate = entryDateStr ? new Date(entryDateStr) : new Date();
+
+  // Enforce fiscal lock invariant (ACC-06)
+  await assertAcademicYearNotLocked(school.id, entryDate, db);
 
   const randSuffix = Math.floor(1000 + Math.random() * 9000);
   const voucherNumber = `EXP-${Date.now().toString().slice(-6)}-${randSuffix}`;
@@ -83,12 +92,19 @@ export async function createExpenseVoucher(formData: FormData) {
         }
       }
 
+      const debitAccountId = await getExpenseHeadChartAccountId(school.id, expenseHeadId, tx);
+      const creditAccountId = bankAccountId
+        ? await getBankAccountChartAccountId(school.id, bankAccountId, tx)
+        : await getCashMainChartAccountId(school.id, tx);
+
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: `TX-${voucherNumber}`,
         sourceType: "EXPENSE_VOUCHER",
         sourceId: voucher.id,
         bankAccountId: bankAccountId || null,
+        debitAccountId,
+        creditAccountId,
         transactionType: "DEBIT",
         amount: amount.toFixed(2),
         balanceAfter: newBalance,
@@ -142,6 +158,9 @@ export async function approveExpenseVoucher(voucherId: string) {
     throw new Error("Separation of duties: Voucher submitter cannot approve their own expense voucher.");
   }
 
+  // Enforce fiscal lock invariant (ACC-06)
+  await assertAcademicYearNotLocked(school.id, voucher.entryDate, db);
+
   const amount = parseFloat(voucher.amount);
 
   await db.transaction(async (tx) => {
@@ -170,12 +189,19 @@ export async function approveExpenseVoucher(voucherId: string) {
       }
     }
 
+    const debitAccountId = await getExpenseHeadChartAccountId(school.id, voucher.expenseHeadId, tx);
+    const creditAccountId = voucher.bankAccountId
+      ? await getBankAccountChartAccountId(school.id, voucher.bankAccountId, tx)
+      : await getCashMainChartAccountId(school.id, tx);
+
     await tx.insert(accountLedgerTransactions).values({
       schoolId: school.id,
       transactionNumber: `TX-${voucher.voucherNumber}`,
       sourceType: "EXPENSE_VOUCHER",
       sourceId: voucher.id,
       bankAccountId: voucher.bankAccountId || null,
+      debitAccountId,
+      creditAccountId,
       transactionType: "DEBIT",
       amount: amount.toFixed(2),
       balanceAfter: newBalance,

@@ -6,6 +6,12 @@ import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import { revalidatePath } from "next/cache";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getIncomeHeadChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function createIncomeVoucher(formData: FormData) {
   // vouchers_create: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT
@@ -31,6 +37,9 @@ export async function createIncomeVoucher(formData: FormData) {
   }
 
   const entryDate = entryDateStr ? new Date(entryDateStr) : new Date();
+
+  // Enforce fiscal lock invariant (ACC-06)
+  await assertAcademicYearNotLocked(school.id, entryDate, db);
 
   const randSuffix = Math.floor(1000 + Math.random() * 9000);
   const voucherNumber = `INC-${Date.now().toString().slice(-6)}-${randSuffix}`;
@@ -75,13 +84,20 @@ export async function createIncomeVoucher(formData: FormData) {
       }
     }
 
-    // 3. Post credit entry to general ledger
+    // 3. Post double-entry credit entry to general ledger
+    const debitAccountId = bankAccountId
+      ? await getBankAccountChartAccountId(school.id, bankAccountId, tx)
+      : await getCashMainChartAccountId(school.id, tx);
+    const creditAccountId = await getIncomeHeadChartAccountId(school.id, incomeHeadId, tx);
+
     await tx.insert(accountLedgerTransactions).values({
       schoolId: school.id,
       transactionNumber: `TX-${voucherNumber}`,
       sourceType: "INCOME_VOUCHER",
       sourceId: voucher.id,
       bankAccountId: bankAccountId || null,
+      debitAccountId,
+      creditAccountId,
       transactionType: "CREDIT",
       amount: amount.toFixed(2),
       balanceAfter: newBalance,

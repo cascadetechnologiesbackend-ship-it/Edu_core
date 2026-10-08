@@ -7,6 +7,12 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getStudentReceivableChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function generateChallan(formData: FormData) {
   try {
@@ -62,6 +68,9 @@ export async function clearChallan(formData: FormData) {
 
     if (!challan) return { success: false, message: "Challan not found" };
     if (challan.status === "CLEARED") return { success: false, message: "Challan already cleared" };
+
+    // Enforce fiscal lock invariant (ACC-06)
+    await assertAcademicYearNotLocked(school.id, new Date(), db);
 
     const invoice = challan.invoice;
     const clearedAmount = parseFloat(challan.amount);
@@ -132,13 +141,20 @@ export async function clearChallan(formData: FormData) {
         if (updatedBank) newBalance = updatedBank.currentBalance;
       }
 
-      // 5. Post Ledger Credit
+      // 5. Post Ledger Credit with Double-Entry Account IDs
+      const debitAccountId = primaryBankId
+        ? await getBankAccountChartAccountId(school.id, primaryBankId, tx)
+        : await getCashMainChartAccountId(school.id, tx);
+      const creditAccountId = await getStudentReceivableChartAccountId(school.id, tx);
+
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: `TX-CHL-${crypto.randomBytes(3).toString("hex").toUpperCase()}`,
         sourceType: "FEE_COLLECTION",
         sourceId: payment.id,
         bankAccountId: primaryBankId,
+        debitAccountId,
+        creditAccountId,
         transactionType: "CREDIT",
         amount: challan.amount,
         balanceAfter: newBalance,

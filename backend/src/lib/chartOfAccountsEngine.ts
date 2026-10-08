@@ -5,6 +5,9 @@ import {
   incomeHeads,
   expenseHeads,
   academicYears,
+  accountLedgerTransactions,
+  incomeVouchers,
+  expenseVouchers,
 } from "@/db/schema";
 import { eq, and, sql, or } from "drizzle-orm";
 
@@ -396,3 +399,276 @@ export async function assertAcademicYearNotLocked(
     );
   }
 }
+
+/**
+ * Resolves the Chart of Accounts ID for Student Receivable (1200)
+ */
+export async function getStudentReceivableChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.STUDENT_RECEIVABLE),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.studentReceivableId;
+  }
+  return acc.id;
+}
+
+/**
+ * Resolves the Chart of Accounts ID for Caution Deposit & Refund Liability (2100)
+ */
+export async function getCautionDepositChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.CAUTION_DEPOSIT),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.cautionDepositId;
+  }
+  return acc.id;
+}
+
+/**
+ * Resolves the Chart of Accounts ID for Opening Balance Equity (3000)
+ */
+export async function getOpeningBalanceEquityChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.OPENING_BALANCE_EQUITY),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.openingBalanceEquityId;
+  }
+  return acc.id;
+}
+
+/**
+ * Resolves the Chart of Accounts ID for Gateway & Payment Processing Fees (5200)
+ */
+export async function getGatewayFeesExpenseChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.GATEWAY_FEES_EXPENSE),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.gatewayFeesExpenseId;
+  }
+  return acc.id;
+}
+
+/**
+ * Resolves the Chart of Accounts ID for Main Cash-in-Hand (1000)
+ */
+export async function getCashMainChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.CASH_MAIN),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.cashMainId;
+  }
+  return acc.id;
+}
+
+/**
+ * Resolves the Chart of Accounts ID for Fee Revenue Clearing (4000)
+ */
+export async function getFeeRevenueClearingChartAccountId(
+  schoolId: string,
+  executor?: any,
+): Promise<string> {
+  const client = executor || db;
+  const acc = await client.query.chartOfAccounts.findFirst({
+    where: and(
+      eq(chartOfAccounts.schoolId, schoolId),
+      eq(chartOfAccounts.code, SYSTEM_ACCOUNT_CODES.FEE_REVENUE_CLEARING),
+    ),
+  });
+  if (!acc) {
+    const res = await ensureSchoolChartOfAccounts(schoolId, client);
+    return res.feeRevenueClearingId;
+  }
+  return acc.id;
+}
+
+/**
+ * One-time backfill helper for DECIDE-12 Option A:
+ * Populates debitAccountId and creditAccountId for existing legacy ledger transactions
+ * while leaving existing columns intact.
+ */
+export async function backfillDoubleEntryLedger(
+  schoolId?: string,
+  executor?: any,
+): Promise<{ updatedCount: number }> {
+  const client = executor || db;
+
+  const conditions = [
+    or(
+      sql`${accountLedgerTransactions.debitAccountId} IS NULL`,
+      sql`${accountLedgerTransactions.creditAccountId} IS NULL`,
+    ),
+  ];
+  if (schoolId) {
+    conditions.push(eq(accountLedgerTransactions.schoolId, schoolId));
+  }
+
+  const pendingRows = await client.query.accountLedgerTransactions.findMany({
+    where: and(...conditions),
+  });
+
+  let updatedCount = 0;
+
+  for (const row of pendingRows) {
+    const sys = await ensureSchoolChartOfAccounts(row.schoolId, client);
+
+    let bankCashChartId: string;
+    if (row.bankAccountId) {
+      bankCashChartId = await getBankAccountChartAccountId(
+        row.schoolId,
+        row.bankAccountId,
+        client,
+      );
+    } else {
+      bankCashChartId = sys.cashMainId;
+    }
+
+    let debitId: string = "";
+    let creditId: string = "";
+
+    switch (row.sourceType) {
+      case "FEE_COLLECTION": {
+        if (row.transactionType === "DEBIT") {
+          // Fee Refund Payout
+          debitId = sys.cautionDepositId;
+          creditId = bankCashChartId;
+        } else {
+          // Fee Collection Deposit
+          debitId = bankCashChartId;
+          creditId = sys.studentReceivableId;
+        }
+        break;
+      }
+      case "INCOME_VOUCHER": {
+        debitId = bankCashChartId;
+        if (row.sourceId) {
+          const voucher = await client.query.incomeVouchers.findFirst({
+            where: and(
+              eq(incomeVouchers.schoolId, row.schoolId),
+              eq(incomeVouchers.id, row.sourceId),
+            ),
+          });
+          if (voucher?.incomeHeadId) {
+            creditId = await getIncomeHeadChartAccountId(
+              row.schoolId,
+              voucher.incomeHeadId,
+              client,
+            );
+          } else {
+            creditId = sys.feeRevenueClearingId;
+          }
+        } else {
+          creditId = sys.feeRevenueClearingId;
+        }
+        break;
+      }
+      case "EXPENSE_VOUCHER": {
+        creditId = bankCashChartId;
+        if (row.sourceId) {
+          const voucher = await client.query.expenseVouchers.findFirst({
+            where: and(
+              eq(expenseVouchers.schoolId, row.schoolId),
+              eq(expenseVouchers.id, row.sourceId),
+            ),
+          });
+          if (voucher?.expenseHeadId) {
+            debitId = await getExpenseHeadChartAccountId(
+              row.schoolId,
+              voucher.expenseHeadId,
+              client,
+            );
+          } else {
+            debitId = sys.gatewayFeesExpenseId;
+          }
+        } else {
+          debitId = sys.gatewayFeesExpenseId;
+        }
+        break;
+      }
+      case "OPENING_BALANCE": {
+        debitId = bankCashChartId;
+        creditId = sys.openingBalanceEquityId;
+        break;
+      }
+      case "MANUAL_ADJUSTMENT": {
+        if (row.transactionType === "DEBIT") {
+          // Cancellation reversal
+          debitId = sys.studentReceivableId;
+          creditId = bankCashChartId;
+        } else {
+          debitId = bankCashChartId;
+          creditId = sys.studentReceivableId;
+        }
+        break;
+      }
+      default: {
+        if (row.transactionType === "CREDIT") {
+          debitId = bankCashChartId;
+          creditId = sys.feeRevenueClearingId;
+        } else {
+          debitId = sys.feeRevenueClearingId;
+          creditId = bankCashChartId;
+        }
+        break;
+      }
+    }
+
+    if (debitId && creditId) {
+      await client
+        .update(accountLedgerTransactions)
+        .set({
+          debitAccountId: debitId,
+          creditAccountId: creditId,
+        })
+        .where(eq(accountLedgerTransactions.id, row.id));
+      updatedCount++;
+    }
+  }
+
+  return { updatedCount };
+}
+

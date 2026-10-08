@@ -6,6 +6,11 @@ import { eq, and } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import { revalidatePath } from "next/cache";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getOpeningBalanceEquityChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function createBankAccount(formData: FormData) {
   // bank_accounts_manage: SUPER_ADMIN, SCHOOL_ADMIN (ACCOUNTANT receives 403 / auth error)
@@ -28,6 +33,9 @@ export async function createBankAccount(formData: FormData) {
     throw new Error("Opening balance must be a valid non-negative number.");
   }
 
+  // Enforce fiscal lock invariant (ACC-06)
+  await assertAcademicYearNotLocked(school.id, new Date(), db);
+
   let createdId = "";
 
   await db.transaction(async (tx) => {
@@ -49,14 +57,19 @@ export async function createBankAccount(formData: FormData) {
     if (!created) throw new Error("Failed to create bank account.");
     createdId = created.id;
 
-    // If opening balance > 0, post initial opening balance ledger transaction
+    // If opening balance > 0, post initial opening balance ledger transaction with double-entry IDs
     if (parsedOpening > 0) {
+      const debitAccountId = await getBankAccountChartAccountId(school.id, created.id, tx);
+      const creditAccountId = await getOpeningBalanceEquityChartAccountId(school.id, tx);
+
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: `OB-${Date.now().toString().slice(-6)}`,
         sourceType: "OPENING_BALANCE",
         sourceId: created.id,
         bankAccountId: created.id,
+        debitAccountId,
+        creditAccountId,
         transactionType: "CREDIT",
         amount: parsedOpening.toFixed(2),
         balanceAfter: parsedOpening.toFixed(2),

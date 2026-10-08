@@ -12,6 +12,13 @@ import { eq, and, lt, lte, gt, inArray, sql } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getStudentReceivableChartAccountId,
+  getGatewayFeesExpenseChartAccountId,
+} from "@/lib/chartOfAccountsEngine";
 
 export interface FinanceJobPayload {
   schoolId: string;
@@ -206,6 +213,9 @@ export async function autoMatchGatewayPayments(schoolId: string) {
     ),
   });
 
+  // Enforce fiscal lock invariant (ACC-06)
+  await assertAcademicYearNotLocked(schoolId, new Date(), db);
+
   let settledCount = 0;
 
   for (const log of unpaidLogs) {
@@ -225,12 +235,16 @@ export async function autoMatchGatewayPayments(schoolId: string) {
       let primaryBankId: string | null = null;
       let newBalance = "0";
 
+      const totalAmount = parseFloat(log.amount);
+      const feeAmount = parseFloat((log as any).feeAmount || "0");
+      const netAmount = Math.max(0, totalAmount - feeAmount);
+
       if (primaryBank) {
         primaryBankId = primaryBank.id;
         const [updatedBank] = await tx
           .update(bankAccounts)
           .set({
-            currentBalance: sql`${bankAccounts.currentBalance} + ${parseFloat(log.amount).toFixed(2)}`,
+            currentBalance: sql`${bankAccounts.currentBalance} + ${netAmount.toFixed(2)}`,
             updatedAt: new Date(),
           })
           .where(eq(bankAccounts.id, primaryBank.id))
@@ -239,27 +253,78 @@ export async function autoMatchGatewayPayments(schoolId: string) {
       }
 
       const txNumber = `REC-GW-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
-      await tx.insert(accountLedgerTransactions).values({
-        schoolId,
-        transactionNumber: txNumber,
-        sourceType: "FEE_COLLECTION",
-        sourceId: log.id,
-        bankAccountId: primaryBankId,
-        transactionType: "CREDIT",
-        amount: log.amount,
-        balanceAfter: newBalance,
-        description: `AUTO-04 Gateway Auto-Match (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
-        transactionDate: new Date(),
-        createdById: "00000000-0000-0000-0000-000000000000",
-      });
+      const bankChartAccountId = primaryBankId
+        ? await getBankAccountChartAccountId(schoolId, primaryBankId, tx)
+        : await getCashMainChartAccountId(schoolId, tx);
+      const studentReceivableAccountId = await getStudentReceivableChartAccountId(schoolId, tx);
+      const gatewayFeesExpenseAccountId = await getGatewayFeesExpenseChartAccountId(schoolId, tx);
+
+      if (feeAmount > 0) {
+        // ACC-05: Net deposit (Debit Bank, Credit Student Receivable)
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId,
+          transactionNumber: `${txNumber}-NET`,
+          sourceType: "FEE_COLLECTION",
+          sourceId: log.id,
+          bankAccountId: primaryBankId,
+          debitAccountId: bankChartAccountId,
+          creditAccountId: studentReceivableAccountId,
+          transactionType: "CREDIT",
+          amount: netAmount.toFixed(2),
+          balanceAfter: newBalance,
+          description: `AUTO-04 Gateway Auto-Match Net (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+          transactionDate: new Date(),
+          createdById: "00000000-0000-0000-0000-000000000000",
+        });
+
+        // ACC-05: Gateway Processing Fee (Debit Gateway Expense 5200, Credit Student Receivable)
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId,
+          transactionNumber: `${txNumber}-FEE`,
+          sourceType: "EXPENSE_VOUCHER",
+          sourceId: log.id,
+          bankAccountId: primaryBankId,
+          debitAccountId: gatewayFeesExpenseAccountId,
+          creditAccountId: studentReceivableAccountId,
+          transactionType: "CREDIT",
+          amount: feeAmount.toFixed(2),
+          balanceAfter: newBalance,
+          description: `AUTO-04 Gateway Fee Split (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+          transactionDate: new Date(),
+          createdById: "00000000-0000-0000-0000-000000000000",
+        });
+      } else {
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId,
+          transactionNumber: txNumber,
+          sourceType: "FEE_COLLECTION",
+          sourceId: log.id,
+          bankAccountId: primaryBankId,
+          debitAccountId: bankChartAccountId,
+          creditAccountId: studentReceivableAccountId,
+          transactionType: "CREDIT",
+          amount: totalAmount.toFixed(2),
+          balanceAfter: newBalance,
+          description: `AUTO-04 Gateway Auto-Match (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+          transactionDate: new Date(),
+          createdById: "00000000-0000-0000-0000-000000000000",
+        });
+      }
 
       await logFeeAuditEvent(tx, {
         schoolId,
         action: "RECONCILE_GATEWAY_PAYMENT",
         entityType: "PAYMENT_GATEWAY_LOG",
         entityId: log.id,
-        newData: { txNumber, gateway: log.gateway, amount: log.amount, bankAccountId: primaryBankId },
-        reason: `AUTO-04 Online payment auto-settled to general ledger and bank vault`,
+        newData: {
+          txNumber,
+          gateway: log.gateway,
+          totalAmount: totalAmount.toFixed(2),
+          netAmount: netAmount.toFixed(2),
+          feeAmount: feeAmount.toFixed(2),
+          bankAccountId: primaryBankId,
+        },
+        reason: `AUTO-04 Online payment auto-settled with ACC-05 gateway fee split`,
         performedById: "00000000-0000-0000-0000-000000000000",
       });
     });

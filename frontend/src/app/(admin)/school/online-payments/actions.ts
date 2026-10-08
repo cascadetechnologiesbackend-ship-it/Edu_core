@@ -7,6 +7,13 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
+import {
+  assertAcademicYearNotLocked,
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getStudentReceivableChartAccountId,
+  getGatewayFeesExpenseChartAccountId,
+} from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function reconcileOnlinePayment(logId: string) {
   try {
@@ -38,8 +45,15 @@ export async function reconcileOnlinePayment(logId: string) {
       return { success: false, message: "Transaction already reconciled in ledger" };
     }
 
+    // Enforce fiscal lock invariant (ACC-06)
+    await assertAcademicYearNotLocked(school.id, new Date(), db);
+
     let primaryBankId: string | null = null;
     let newBalance: string = "0";
+
+    const totalAmount = parseFloat(log.amount);
+    const feeAmount = parseFloat((log as any).feeAmount || "0");
+    const netAmount = Math.max(0, totalAmount - feeAmount);
 
     await db.transaction(async (tx) => {
       const primaryBank = await tx.query.bankAccounts.findFirst({
@@ -51,7 +65,7 @@ export async function reconcileOnlinePayment(logId: string) {
         const [updatedBank] = await tx
           .update(bankAccounts)
           .set({
-            currentBalance: sql`${bankAccounts.currentBalance} + ${parseFloat(log.amount).toFixed(2)}`,
+            currentBalance: sql`${bankAccounts.currentBalance} + ${netAmount.toFixed(2)}`,
             updatedAt: new Date(),
           })
           .where(eq(bankAccounts.id, primaryBank.id))
@@ -60,27 +74,79 @@ export async function reconcileOnlinePayment(logId: string) {
       }
 
       const txNumber = `REC-GW-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
-      await tx.insert(accountLedgerTransactions).values({
-        schoolId: school.id,
-        transactionNumber: txNumber,
-        sourceType: "FEE_COLLECTION",
-        sourceId: log.id,
-        bankAccountId: primaryBankId,
-        transactionType: "CREDIT",
-        amount: log.amount,
-        balanceAfter: newBalance,
-        description: `Online Gateway Settlement (${log.gateway}) - Payment ID: ${log.gatewayPaymentId}`,
-        transactionDate: new Date(),
-        createdById: ctx.userId,
-      });
+      const bankChartAccountId = primaryBankId
+        ? await getBankAccountChartAccountId(school.id, primaryBankId, tx)
+        : await getCashMainChartAccountId(school.id, tx);
+      const studentReceivableAccountId = await getStudentReceivableChartAccountId(school.id, tx);
+      const gatewayFeesExpenseAccountId = await getGatewayFeesExpenseChartAccountId(school.id, tx);
+
+      if (feeAmount > 0) {
+        // ACC-05: Net deposit (Debit Bank, Credit Student Receivable)
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId: school.id,
+          transactionNumber: `${txNumber}-NET`,
+          sourceType: "FEE_COLLECTION",
+          sourceId: log.id,
+          bankAccountId: primaryBankId,
+          debitAccountId: bankChartAccountId,
+          creditAccountId: studentReceivableAccountId,
+          transactionType: "CREDIT",
+          amount: netAmount.toFixed(2),
+          balanceAfter: newBalance,
+          description: `Online Gateway Net Settlement (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+          transactionDate: new Date(),
+          createdById: ctx.userId,
+        });
+
+        // ACC-05: Gateway Processing Fee (Debit Gateway Expense 5200, Credit Student Receivable)
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId: school.id,
+          transactionNumber: `${txNumber}-FEE`,
+          sourceType: "EXPENSE_VOUCHER",
+          sourceId: log.id,
+          bankAccountId: primaryBankId,
+          debitAccountId: gatewayFeesExpenseAccountId,
+          creditAccountId: studentReceivableAccountId,
+          transactionType: "CREDIT",
+          amount: feeAmount.toFixed(2),
+          balanceAfter: newBalance,
+          description: `Gateway Processing Fee (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+          transactionDate: new Date(),
+          createdById: ctx.userId,
+        });
+      } else {
+        // Standard settlement without deduction
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId: school.id,
+          transactionNumber: txNumber,
+          sourceType: "FEE_COLLECTION",
+          sourceId: log.id,
+          bankAccountId: primaryBankId,
+          debitAccountId: bankChartAccountId,
+          creditAccountId: studentReceivableAccountId,
+          transactionType: "CREDIT",
+          amount: totalAmount.toFixed(2),
+          balanceAfter: newBalance,
+          description: `Online Gateway Settlement (${log.gateway}) - Payment ID: ${log.gatewayPaymentId}`,
+          transactionDate: new Date(),
+          createdById: ctx.userId,
+        });
+      }
 
       await logFeeAuditEvent(tx, {
         schoolId: school.id,
         action: "RECONCILE_GATEWAY_PAYMENT",
         entityType: "PAYMENT_GATEWAY_LOG",
         entityId: log.id,
-        newData: { txNumber, gateway: log.gateway, amount: log.amount, bankAccountId: primaryBankId },
-        reason: `Settled online payment ${log.gatewayPaymentId} to general ledger and bank vault`,
+        newData: {
+          txNumber,
+          gateway: log.gateway,
+          totalAmount: totalAmount.toFixed(2),
+          netAmount: netAmount.toFixed(2),
+          feeAmount: feeAmount.toFixed(2),
+          bankAccountId: primaryBankId,
+        },
+        reason: `Settled online payment ${log.gatewayPaymentId} with ACC-05 gateway fee split`,
         performedById: ctx.userId,
       });
     });
