@@ -502,6 +502,89 @@ export const fileUploadRequestSchema = z.object({
   purpose: z.string().max(100),
 });
 
+// ─── Phase A3: StudentFeeCard Field Projection Contract (GT-06) ─────────────
+
+export const FeeCardInvoiceSummarySchema = z.object({
+  id: z.string().optional(),
+  invoiceNumber: z.string(),
+  feeHeadName: z.string().optional(),
+  term: z.string().optional(),
+  grossAmount: z.number(),
+  discountAmount: z.number().default(0),
+  lateFeeAmount: z.number().default(0),
+  taxAmount: z.number().default(0),
+  netAmount: z.number(),
+  paidAmount: z.number().default(0),
+  balanceAmount: z.number(),
+  dueDate: z.string(),
+  status: z.string(),
+});
+
+export const FeeCardPaymentSummarySchema = z.object({
+  receiptNumber: z.string(),
+  receiptGroupId: z.string().nullable().optional(),
+  amountPaid: z.number(),
+  paymentMode: z.string(),
+  paymentDate: z.string(),
+});
+
+export const FeeCardConcessionSummarySchema = z.object({
+  policy: z.string(),
+  status: z.string(),
+  approvedBy: z.string().nullable().optional(),
+});
+
+export const FeeCardReminderSummarySchema = z.object({
+  d7SentAt: z.union([z.string(), z.boolean()]).nullable().optional(),
+  d15SentAt: z.union([z.string(), z.boolean()]).nullable().optional(),
+  d30SentAt: z.union([z.string(), z.boolean()]).nullable().optional(),
+});
+
+export const StudentFeeCardSchema = z.object({
+  id: z.string(),
+  admissionNumber: z.string(),
+  fullName: z.string(),
+  name: z.string().default(""),
+  className: z.string(),
+  sectionName: z.string().nullable().optional(),
+  academicYearId: z.string().optional(),
+  enrollmentStatus: z.string().optional(),
+  creditBalance: z.number().default(0),
+  advanceBalance: z.number().default(0),
+  totalDue: z.number().optional(),
+  pendingInvoiceCount: z.number().optional(),
+  invoices: z.array(FeeCardInvoiceSummarySchema).optional().default([]),
+  payments: z.array(FeeCardPaymentSummarySchema).optional().default([]),
+  concessions: z.array(FeeCardConcessionSummarySchema).optional().default([]),
+  reminders: z.array(FeeCardReminderSummarySchema).optional().default([]),
+});
+
+export const PROHIBITED_STUDENT_FEE_CARD_KEYS = [
+  "parentMobile",
+  "parentEmail",
+  "parentOccupation",
+  "dateOfBirth",
+  "dob",
+  "gender",
+  "bloodGroup",
+  "healthData",
+  "aadhaar",
+  "pan",
+  "examMarks",
+  "attendanceRecords",
+  "transportStop",
+  "firstNameEncrypted",
+  "lastNameEncrypted",
+  "parentMobileEncrypted",
+  "parentEmailEncrypted",
+] as const;
+
+export type StudentFeeCard = z.infer<typeof StudentFeeCardSchema>;
+export type FeeCardInvoiceSummary = z.infer<typeof FeeCardInvoiceSummarySchema>;
+export type FeeCardPaymentSummary = z.infer<typeof FeeCardPaymentSummarySchema>;
+export type FeeCardConcessionSummary = z.infer<typeof FeeCardConcessionSummarySchema>;
+export type FeeCardReminderSummary = z.infer<typeof FeeCardReminderSummarySchema>;
+
 // ─── Re-exports ───────────────────────────────────────────────────────────────
 
 export type { z };

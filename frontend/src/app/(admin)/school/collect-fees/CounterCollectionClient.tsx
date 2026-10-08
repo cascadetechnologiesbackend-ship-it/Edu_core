@@ -28,15 +28,9 @@ import {
 } from "./actions";
 import { ReceiptSheet, ReceiptData } from "@/components/finance/ReceiptSheet";
 import { cn } from "@/lib/utils";
+import type { StudentFeeCard } from "@schoolmitra/validators";
 
-interface StudentSearchResult {
-  id: string;
-  admissionNumber: string;
-  name: string;
-  className: string;
-  totalDue?: number;
-  pendingInvoiceCount?: number;
-}
+type StudentSearchResult = StudentFeeCard;
 
 interface InvoiceDetail {
   id: string;

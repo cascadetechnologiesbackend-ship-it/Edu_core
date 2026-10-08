@@ -21,6 +21,10 @@ import {
   getCashMainChartAccountId,
   getStudentReceivableChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
+import {
+  projectToStudentFeeCard,
+  fetchStudentFeeCard,
+} from "@/lib/studentFeeCard";
 
 export interface InvoiceCollectionItem {
   invoiceId: string;
@@ -116,17 +120,46 @@ export async function searchStudentsAction(query?: string) {
 
     const result = matchedStudents.map((s) => {
       const dueInfo = duesMap.get(s.id) || { totalDue: 0, count: 0 };
-      return {
-        ...s,
+      return projectToStudentFeeCard({
+        id: s.id,
+        admissionNumber: s.admissionNumber,
+        fullName: s.name,
+        name: s.name,
+        className: s.className,
         totalDue: dueInfo.totalDue,
         pendingInvoiceCount: dueInfo.count,
-      };
+      });
     });
 
     return { success: true, students: result };
   } catch (error: any) {
     console.error("searchStudentsAction error:", error);
     return { success: false, message: error.message || "Failed to search students", students: [] };
+  }
+}
+
+/**
+ * GT-06: Fetch authoritative StudentFeeCard projection.
+ * Sanitizes and strips all non-finance PII data server-side.
+ */
+export async function getStudentFeeCardAction(studentId: string) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
+    if (!studentId) {
+      return { success: false, message: "Student ID is required", feeCard: null };
+    }
+
+    const feeCard = await fetchStudentFeeCard(db, school.id, studentId);
+    if (!feeCard) {
+      return { success: false, message: "Student not found", feeCard: null };
+    }
+
+    return { success: true, feeCard };
+  } catch (error: any) {
+    console.error("getStudentFeeCardAction error:", error);
+    return { success: false, message: error.message || "Failed to load student fee card", feeCard: null };
   }
 }
 

@@ -20,7 +20,10 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { sendDueReminder } from "@/app/(admin)/school/due-fees/actions";
-import { getStudentInvoicesAction } from "@/app/(admin)/school/collect-fees/actions";
+import {
+  getStudentInvoicesAction,
+  getStudentFeeCardAction,
+} from "@/app/(admin)/school/collect-fees/actions";
 
 export interface StudentLedgerDrawerProps {
   open: boolean;
@@ -49,14 +52,25 @@ export function StudentLedgerDrawer({
   useEffect(() => {
     if (open && studentId) {
       setLoading(true);
-      getStudentInvoicesAction(studentId)
+      getStudentFeeCardAction(studentId)
         .then((res) => {
           setLoading(false);
-          if (res.success && res.invoices) {
-            setInvoices(res.invoices);
+          if (res.success && res.feeCard) {
+            setInvoices(res.feeCard.invoices);
+          } else {
+            getStudentInvoicesAction(studentId).then((r) => {
+              if (r.success && r.invoices) setInvoices(r.invoices);
+            });
           }
         })
-        .catch(() => setLoading(false));
+        .catch(() => {
+          getStudentInvoicesAction(studentId)
+            .then((r) => {
+              setLoading(false);
+              if (r.success && r.invoices) setInvoices(r.invoices);
+            })
+            .catch(() => setLoading(false));
+        });
     }
   }, [open, studentId]);
 
