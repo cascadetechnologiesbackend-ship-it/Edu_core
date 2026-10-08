@@ -20,22 +20,36 @@ import { createExpenseVoucher } from "@/app/(admin)/school/accounts/expenses/act
 
 export interface VoucherModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  type: "INCOME" | "EXPENSE";
-  heads: Array<{ id: string; name: string }>;
-  bankAccounts: Array<{ id: string; bankName: string; accountName: string; accountNumber?: string }>;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
+  type?: "INCOME" | "EXPENSE";
+  isIncome?: boolean;
+  heads?: Array<{ id: string; name: string }>;
+  bankAccounts?: Array<{ id: string; bankName: string; accountName: string; accountNumber?: string }>;
   onSuccess?: () => void;
 }
 
 export function VoucherModal({
   open,
   onOpenChange,
-  type,
-  heads,
-  bankAccounts,
+  onClose,
+  type = "INCOME",
+  isIncome: isIncomeProp,
+  heads = [
+    { id: "misc-fee-head", name: "Miscellaneous Fee Income" },
+    { id: "canteen-income", name: "Canteen & Cafeteria Revenue" },
+    { id: "library-fines", name: "Library Fines & Late Charges" },
+    { id: "alumni-donations", name: "Alumni & Voluntary Donations" },
+  ],
+  bankAccounts = [],
   onSuccess,
 }: VoucherModalProps) {
-  const isIncome = type === "INCOME";
+  const isIncome = isIncomeProp !== undefined ? isIncomeProp : type === "INCOME";
+
+  const handleClose = () => {
+    if (onClose) onClose();
+    if (onOpenChange) onOpenChange(false);
+  };
 
   // Form State with smart defaults (AUTO-10)
   const [headId, setHeadId] = useState("");
@@ -88,19 +102,33 @@ export function VoucherModal({
       if (isIncome) {
         const res = await createIncomeVoucher(formData);
         if (res.success) {
-          toast.success(`Income Voucher #${res.voucherNumber} created successfully!`);
+          toast.success(`Income Voucher #${res.voucherNumber} created successfully!`, {
+            action: {
+              label: "View",
+              onClick: () => {
+                window.location.href = "/school/transactions";
+              },
+            },
+          });
           saveSmartDefaults();
           handleReset();
-          onOpenChange(false);
+          handleClose();
           if (onSuccess) onSuccess();
         }
       } else {
         const res = await createExpenseVoucher(formData);
         if (res.success) {
-          toast.success(`Expense Voucher #${res.voucherNumber} recorded successfully!`);
+          toast.success(`Expense Voucher #${res.voucherNumber} recorded successfully!`, {
+            action: {
+              label: "View",
+              onClick: () => {
+                window.location.href = "/school/transactions";
+              },
+            },
+          });
           saveSmartDefaults();
           handleReset();
-          onOpenChange(false);
+          handleClose();
           if (onSuccess) onSuccess();
         }
       }
@@ -126,7 +154,16 @@ export function VoucherModal({
   };
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(val) => {
+        if (!val) {
+          handleClose();
+        } else if (onOpenChange) {
+          onOpenChange(val);
+        }
+      }}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
@@ -165,146 +202,99 @@ export function VoucherModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Head Selection */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                  {isIncome ? "Income Category Head *" : "Expense Category Head *"}
-                </label>
-                <select
-                  required
-                  value={headId}
-                  onChange={(e) => setHeadId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                >
-                  <option value="">Select Category Head</option>
-                  {heads.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                  Amount (₹) *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 text-sm font-bold font-mono text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Payment Mode */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                  Payment Mode *
-                </label>
-                <select
-                  value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                >
-                  <option value="CASH">Cash in Hand</option>
-                  <option value="UPI">UPI / QR Code</option>
-                  <option value="CHEQUE">Cheque</option>
-                  <option value="DD">Demand Draft (DD)</option>
-                  <option value="NEFT">Bank Transfer (NEFT/RTGS)</option>
-                  <option value="ONLINE">Online Card / Gateway</option>
-                </select>
-              </div>
-
-              {/* Deposit/Disbursal Bank */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                  {isIncome ? "Deposit Account" : "Paid From Account"}
-                </label>
-                <select
-                  value={bankAccountId}
-                  onChange={(e) => setBankAccountId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                >
-                  <option value="CASH">Cash in Hand</option>
-                  {bankAccounts.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.bankName} - {b.accountName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Party / Vendor */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                  {isIncome ? "Received From (Party / Donor)" : "Paid To (Vendor / Payee)"}
-                </label>
-                <input
-                  type="text"
-                  placeholder={isIncome ? "e.g. Canteen Contractor" : "e.g. Acme Stationery"}
-                  value={partyName}
-                  onChange={(e) => setPartyName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Entry Date */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                  Transaction Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Reference Number */}
+            {/* Field 1: Transaction Date (Defaults to today) */}
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                Reference / Cheque / UTR Number
+                1. Transaction Date *
               </label>
               <input
-                type="text"
-                placeholder="e.g. UTR12345678 or Cheque 009823"
-                value={transactionReference}
-                onChange={(e) => setTransactionReference(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                type="date"
+                required
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
               />
             </div>
 
-            {/* Remarks */}
+            {/* Field 2: Account Head (Select) */}
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
-                Voucher Remarks / Particulars
+                2. Account Head *
+              </label>
+              <select
+                required
+                value={headId}
+                onChange={(e) => setHeadId(e.target.value)}
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              >
+                <option value="">Select Fee / Miscellaneous Income Head</option>
+                {heads.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Field 3: Amount (font-mono INR) */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                3. Amount (₹) *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full min-h-[44px] pl-7 pr-3 py-2 text-sm font-bold font-mono text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Field 4: Payer / Description */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                4. Payer / Description *
               </label>
               <input
                 type="text"
-                placeholder="Brief description of the transaction"
+                required
+                placeholder="e.g. Canteen Operator, Alumni Donation, Library Fine"
+                value={partyName}
+                onChange={(e) => setPartyName(e.target.value)}
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* Field 5: Narration */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                5. Narration / Particulars
+              </label>
+              <input
+                type="text"
+                placeholder="Voucher narrative and settlement particulars"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
+            </div>
+
+            {/* Live Double-Entry Preview Line */}
+            <div className="p-3 rounded-2xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700/60 text-xs font-mono space-y-1">
+              <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">
+                Live Double-Entry Preview (AM-03)
+              </span>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400">
+                Dr Cash/Bank INR {parseFloat(amount || "0") > 0 ? parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "0.00"} — Cr {heads.find((h) => h.id === headId)?.name || "Selected Head"} INR {parseFloat(amount || "0") > 0 ? parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "0.00"}
+              </p>
             </div>
 
             {/* Submit Button */}
@@ -313,7 +303,7 @@ export function VoucherModal({
                 type="submit"
                 disabled={submitting}
                 className={cn(
-                  "w-full py-3 px-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+                  "w-full min-h-[44px] py-3 px-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2",
                   isIncome
                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                     : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20"
@@ -324,8 +314,8 @@ export function VoucherModal({
                   {submitting
                     ? "Posting Voucher to Ledger..."
                     : isIncome
-                    ? "Save Income Voucher"
-                    : "Save Expense Voucher"}
+                    ? "Post Income Voucher"
+                    : "Post Expense Voucher"}
                 </span>
               </button>
             </div>

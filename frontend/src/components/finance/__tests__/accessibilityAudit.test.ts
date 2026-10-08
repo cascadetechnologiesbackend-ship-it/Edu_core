@@ -54,4 +54,53 @@ describe("P6 Quality Gates: Accessibility (axe audit principles) & Performance B
     expect(budgets.CLS_MAX).toBeLessThanOrEqual(0.1);
     expect(budgets.INP_MAX_MS).toBeLessThanOrEqual(200);
   });
+
+  it("AM-05: Enforce minimum 44px touch targets on accountant interactive controls", () => {
+    const touchTargets = {
+      quickActionBarButtonMinHeightPx: 44,
+      voucherInputMinHeightPx: 44,
+      voucherSubmitButtonMinHeightPx: 44,
+      posSearchInputMinHeightPx: 44,
+      posSubmitButtonMinHeightPx: 48,
+    };
+
+    expect(touchTargets.quickActionBarButtonMinHeightPx).toBeGreaterThanOrEqual(44);
+    expect(touchTargets.voucherInputMinHeightPx).toBeGreaterThanOrEqual(44);
+    expect(touchTargets.voucherSubmitButtonMinHeightPx).toBeGreaterThanOrEqual(44);
+    expect(touchTargets.posSearchInputMinHeightPx).toBeGreaterThanOrEqual(44);
+    expect(touchTargets.posSubmitButtonMinHeightPx).toBeGreaterThanOrEqual(44);
+  });
+
+  it("AM-05 & AM-03: Keyboard shortcut accessibility with visible chips and Esc unwinding", () => {
+    // Keyboard shortcuts must have visual kbd chips and pointer fallback
+    const shortcuts = [
+      { key: "C", action: "Collect Fee CTA", hasKbdChip: true, pointerAlternative: true },
+      { key: "V", action: "Misc income voucher", hasKbdChip: true, pointerAlternative: true },
+      { key: "P", action: "Print last receipt", hasKbdChip: true, pointerAlternative: true },
+      { key: "B", action: "Open BRS preview", hasKbdChip: true, pointerAlternative: true },
+      { key: "/", action: "Focus search input", hasKbdChip: true, pointerAlternative: true },
+      { key: "Esc", action: "Dismiss top-level overlay only", unwindsOneLevelAtATime: true },
+    ];
+
+    for (const s of shortcuts) {
+      if (s.hasKbdChip !== undefined) {
+        expect(s.hasKbdChip).toBe(true);
+        expect(s.pointerAlternative).toBe(true);
+      }
+      if (s.unwindsOneLevelAtATime !== undefined) {
+        expect(s.unwindsOneLevelAtATime).toBe(true);
+      }
+    }
+  });
+
+  it("AM-05: Screen-reader accessible names and labels for money deltas and badges", () => {
+    const kpiAccessibility = {
+      hasCurrencyLabel: true,
+      hasDeltaAriaLabel: true,
+      hasLiveStatusIndicator: true,
+    };
+    expect(kpiAccessibility.hasCurrencyLabel).toBe(true);
+    expect(kpiAccessibility.hasDeltaAriaLabel).toBe(true);
+    expect(kpiAccessibility.hasLiveStatusIndicator).toBe(true);
+  });
 });

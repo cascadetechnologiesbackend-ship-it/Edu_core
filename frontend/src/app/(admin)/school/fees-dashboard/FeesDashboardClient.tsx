@@ -172,6 +172,28 @@ export function FeesDashboardClient({
     router.push(`/school/fees-dashboard?ayId=${encodeURIComponent(ayId)}` as any);
   };
 
+  // Keyboard shortcut: Press 'C' to jump directly to Collect Fee POS Terminal (Spec 4.1.0 SCR-HUB)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key.toLowerCase() === "c" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !(
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          e.target instanceof HTMLSelectElement
+        )
+      ) {
+        e.preventDefault();
+        router.push("/school/collect-fees");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
+
   return (
     <div className="space-y-8">
       {/* Session / Academic Year Selector Bar */}
@@ -299,7 +321,7 @@ export function FeesDashboardClient({
           </h2>
           <span className="text-xs text-gray-400">Click any card to inspect underlying ledger</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <MoneyKpi
             title="Today's Collections"
             amount={kpis.todayCollected}
@@ -334,6 +356,34 @@ export function FeesDashboardClient({
             delta={{ value: "Target", label: "Billed Total", isNeutral: true }}
             href="/school/fees-dashboard"
           />
+
+          {/* Slot 5: Collect Fee CTA Card (Spec 4.1.0 SCR-HUB) */}
+          <Link
+            href="/school/collect-fees"
+            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] transition-all duration-200 border border-indigo-500/30 min-h-[140px]"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">
+                  Quick Action
+                </span>
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-white/20 text-[11px] font-mono font-bold text-white shadow-inner">
+                  C
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-white mt-2 flex items-center gap-1.5">
+                <CreditCard className="w-5 h-5 text-indigo-200" />
+                Collect Fee
+              </h3>
+              <p className="text-xs text-indigo-100/80 mt-1">
+                Open Counter POS terminal
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-between text-xs font-semibold text-indigo-200 group-hover:text-white">
+              <span>Launch Terminal</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
         </div>
       </div>
 
