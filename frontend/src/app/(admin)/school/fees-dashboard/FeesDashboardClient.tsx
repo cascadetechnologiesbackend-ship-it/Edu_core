@@ -17,7 +17,13 @@ import {
   ExternalLink,
   Receipt,
   FileSpreadsheet,
+  Lock,
+  Unlock,
+  AlertTriangle,
 } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDestructive } from "@/components/finance/ConfirmDestructive";
+import { toggleAcademicYearFiscalLockAction } from "./actions";
 import { MoneyKpi } from "@/components/finance/MoneyKpi";
 import { AgingBadge, StatusBadge } from "@/components/finance/StatusBadge";
 import { StudentLedgerDrawer } from "@/components/finance/StudentLedgerDrawer";
@@ -76,9 +82,20 @@ export interface ClassStatItem {
   rate: number;
 }
 
+export interface AcademicYearItem {
+  id: string;
+  label: string;
+  isActive: boolean;
+  isLocked: boolean;
+  startDate?: string;
+  endDate?: string;
+  lockReason?: string | null;
+}
+
 export interface FeesDashboardClientProps {
-  academicYearsList: Array<{ id: string; label: string; isActive: boolean }>;
+  academicYearsList: AcademicYearItem[];
   selectedAyId: string;
+  userRole?: string;
   kpis: DashboardKPIs;
   aging: AgingSummary;
   topDefaulters: DefaulterItem[];
@@ -90,6 +107,7 @@ export interface FeesDashboardClientProps {
 export function FeesDashboardClient({
   academicYearsList,
   selectedAyId,
+  userRole,
   kpis,
   aging,
   topDefaulters,
@@ -106,6 +124,49 @@ export function FeesDashboardClient({
     className: string;
   } | null>(null);
 
+  const selectedAy =
+    academicYearsList.find((ay) => ay.id === selectedAyId) || academicYearsList[0];
+
+  const [fiscalLockModal, setFiscalLockModal] = useState<{
+    isOpen: boolean;
+    isLocked: boolean;
+  }>({
+    isOpen: false,
+    isLocked: false,
+  });
+  const [isLockPending, setIsLockPending] = useState(false);
+
+  // ACC-06: Dashboard Nudge for expired unlocked academic years
+  const now = new Date();
+  const daysSinceEnd =
+    selectedAy?.endDate && new Date(selectedAy.endDate) < now && !selectedAy.isLocked
+      ? Math.floor((now.getTime() - new Date(selectedAy.endDate).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+  const handleToggleLock = async (reason: string) => {
+    if (!selectedAy) return;
+    setIsLockPending(true);
+    try {
+      const targetLockState = !selectedAy.isLocked;
+      const res = await toggleAcademicYearFiscalLockAction({
+        academicYearId: selectedAy.id,
+        isLocked: targetLockState,
+        reason,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        router.refresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle fiscal lock.");
+    } finally {
+      setIsLockPending(false);
+      setFiscalLockModal({ isOpen: false, isLocked: false });
+    }
+  };
+
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const ayId = e.target.value;
     router.push(`/school/fees-dashboard?ayId=${encodeURIComponent(ayId)}` as any);
@@ -115,7 +176,7 @@ export function FeesDashboardClient({
     <div className="space-y-8">
       {/* Session / Academic Year Selector Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/80 dark:bg-slate-900/40 p-4 rounded-2xl border border-gray-200 dark:border-slate-800">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-slate-400">
             Active Scope
@@ -127,10 +188,51 @@ export function FeesDashboardClient({
           >
             {academicYearsList.map((ay) => (
               <option key={ay.id} value={ay.id}>
-                Session {ay.label} {ay.isActive ? "(Current)" : ""}
+                Session {ay.label} {ay.isLocked ? "🔒 [Locked]" : ay.isActive ? "(Current)" : ""}
               </option>
             ))}
           </select>
+
+          {/* Lock Badge */}
+          {selectedAy?.isLocked ? (
+            <span
+              title={`Locked on ${selectedAy.label}. Ledger mutations are strictly immutable.`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
+            >
+              <Lock className="w-3 h-3" /> Fiscal Locked
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              <Unlock className="w-3 h-3" /> Fiscal Open
+            </span>
+          )}
+
+          {/* SUPER_ADMIN Lock/Unlock Management Button (Hidden for ACCOUNTANT / PRINCIPAL) */}
+          {userRole === "SUPER_ADMIN" && selectedAy && (
+            <button
+              onClick={() =>
+                setFiscalLockModal({
+                  isOpen: true,
+                  isLocked: selectedAy.isLocked,
+                })
+              }
+              className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1 ${
+                selectedAy.isLocked
+                  ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                  : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+              }`}
+            >
+              {selectedAy.isLocked ? (
+                <>
+                  <Unlock className="w-3 h-3" /> Unlock Fiscal Period
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3" /> Manage Fiscal Lock
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
@@ -138,6 +240,56 @@ export function FeesDashboardClient({
           Real-Time SQL Aggregated Telemetry
         </div>
       </div>
+
+      {/* ACC-06: Dashboard Nudge for Expired Academic Year */}
+      {daysSinceEnd > 0 && selectedAy && (
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Fiscal Governance Nudge:</strong> Academic Year <strong>{selectedAy.label}</strong> ended <strong>{daysSinceEnd} days ago</strong>. Consider locking this period to ensure balance sheet and ledger immutability against backdated mutations.
+            </span>
+          </div>
+          {userRole === "SUPER_ADMIN" && (
+            <button
+              onClick={() =>
+                setFiscalLockModal({
+                  isOpen: true,
+                  isLocked: false,
+                })
+              }
+              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 shrink-0 shadow-sm transition-colors flex items-center gap-1.5"
+            >
+              <Lock className="w-3 h-3" /> Lock Academic Year
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ConfirmDestructive Modal for Fiscal Lock/Unlock */}
+      {selectedAy && (
+        <ConfirmDestructive
+          isOpen={fiscalLockModal.isOpen}
+          onClose={() => setFiscalLockModal({ isOpen: false, isLocked: false })}
+          title={
+            selectedAy.isLocked
+              ? `Unlock Academic Year ${selectedAy.label}`
+              : `Lock Academic Year ${selectedAy.label}`
+          }
+          description={
+            selectedAy.isLocked
+              ? `Unlocking academic year ${selectedAy.label} temporarily permits backdated journal vouchers and transactions. A mandatory audit justification is required.`
+              : `Locking academic year ${selectedAy.label} freezes the ledger. All backdated collections, cancellations, refunds, and journal entries will be strictly blocked (403).`
+          }
+          confirmLabel={
+            selectedAy.isLocked ? "Unlock Period" : "Enforce Fiscal Lock"
+          }
+          requireReason={true}
+          reasonPlaceholder="Mandatory fiscal governance justification (e.g. Annual Audit Complete)..."
+          isPending={isLockPending}
+          onConfirm={handleToggleLock}
+        />
+      )}
 
       {/* Band 1: Money KPIs (Every KPI is a Clickable Link to prefiltered worklists) */}
       <div>

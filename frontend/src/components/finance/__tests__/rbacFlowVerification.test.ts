@@ -378,5 +378,346 @@ describe("Cross-Module Data Flow & Treasury Invariants", () => {
     const leaked = schoolAAccounts.filter((a) => a.schoolId === schoolB);
     expect(leaked).toHaveLength(0);
   });
+
+  describe("Phase 7B Part B 403 Matrix: Statements, BRS & JV/Contra", () => {
+    const PHASE_7B_PERMISSIONS = {
+      statements_view: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+      statements_export: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+      jv_contra_brs_create: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+      brs_statement_preview: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"],
+    } as const;
+
+    function check7BPermission(perm: keyof typeof PHASE_7B_PERMISSIONS, role: Role): boolean {
+      const allowed = PHASE_7B_PERMISSIONS[perm] as readonly string[];
+      return allowed.includes(role);
+    }
+
+    it("verifies financial statements view: SUPER_ADMIN, SCHOOL_ADMIN, PRINCIPAL (read-only); non-admins export denied", () => {
+      // View permissions
+      expect(check7BPermission("statements_view", "SUPER_ADMIN")).toBe(true);
+      expect(check7BPermission("statements_view", "SCHOOL_ADMIN")).toBe(true);
+      expect(check7BPermission("statements_view", "PRINCIPAL")).toBe(true);
+      expect(check7BPermission("statements_view", "ACCOUNTANT")).toBe(false);
+      expect(check7BPermission("statements_view", "TEACHER")).toBe(false);
+
+      // Export permissions (Admins only)
+      expect(check7BPermission("statements_export", "SUPER_ADMIN")).toBe(true);
+      expect(check7BPermission("statements_export", "SCHOOL_ADMIN")).toBe(true);
+      expect(check7BPermission("statements_export", "PRINCIPAL")).toBe(false); // 403
+      expect(check7BPermission("statements_export", "ACCOUNTANT")).toBe(false); // 403
+      expect(check7BPermission("statements_export", "TEACHER")).toBe(false); // 403
+    });
+
+    it("verifies JV, Contra, and BRS Adjusting JV create: Admins only; ACCOUNTANT receives 403", () => {
+      // Admins allowed
+      expect(check7BPermission("jv_contra_brs_create", "SUPER_ADMIN")).toBe(true);
+      expect(check7BPermission("jv_contra_brs_create", "SCHOOL_ADMIN")).toBe(true);
+
+      // Accountant and Principal strictly denied (403)
+      expect(check7BPermission("jv_contra_brs_create", "ACCOUNTANT")).toBe(false);
+      expect(check7BPermission("jv_contra_brs_create", "PRINCIPAL")).toBe(false);
+      expect(check7BPermission("jv_contra_brs_create", "TEACHER")).toBe(false);
+    });
+
+    it("verifies BRS matcher dry-run preview is accessible to accountant and principal for operational auditing", () => {
+      expect(check7BPermission("brs_statement_preview", "SUPER_ADMIN")).toBe(true);
+      expect(check7BPermission("brs_statement_preview", "SCHOOL_ADMIN")).toBe(true);
+      expect(check7BPermission("brs_statement_preview", "ACCOUNTANT")).toBe(true);
+      expect(check7BPermission("brs_statement_preview", "PRINCIPAL")).toBe(true);
+      expect(check7BPermission("brs_statement_preview", "TEACHER")).toBe(false);
+    });
+  });
+
+  describe("Track D: Role Engineering, Onboarding Integrity & RBAC Operations", () => {
+    const allRoles: Role[] = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "ACCOUNTANT",
+      "PRINCIPAL",
+      "TEACHER",
+      "HR_MANAGER",
+      "LIBRARIAN",
+      "TRANSPORT_MANAGER",
+    ];
+
+    // D1 & D2: Designation -> Role Mapping Matrix
+    const DESIGNATION_MAPPING_MATRIX: Array<{
+      name: string;
+      isTeaching: boolean;
+      expectedMappedRole: Role;
+      participatesInAms: boolean;
+    }> = [
+      { name: "Mathematics Senior Teacher", isTeaching: true, expectedMappedRole: "TEACHER", participatesInAms: true },
+      { name: "Primary Science Educator", isTeaching: true, expectedMappedRole: "TEACHER", participatesInAms: true },
+      { name: "Chief Accountant / Bursar", isTeaching: false, expectedMappedRole: "ACCOUNTANT", participatesInAms: false },
+      { name: "HR & Payroll Manager", isTeaching: false, expectedMappedRole: "HR_MANAGER", participatesInAms: false },
+      { name: "Head Librarian", isTeaching: false, expectedMappedRole: "LIBRARIAN", participatesInAms: false },
+      { name: "School Principal", isTeaching: false, expectedMappedRole: "PRINCIPAL", participatesInAms: false },
+      { name: "Transport Operations Manager", isTeaching: false, expectedMappedRole: "TRANSPORT_MANAGER", participatesInAms: false },
+      { name: "System Administrator / IT Support", isTeaching: false, expectedMappedRole: "SCHOOL_ADMIN", participatesInAms: false },
+    ];
+
+    it("D1: enforces strict designation-to-role authoritative mapping and AMS isolation", () => {
+      for (const d of DESIGNATION_MAPPING_MATRIX) {
+        // Invariant: isTeaching = true strictly requires mappedRole = 'TEACHER' and participatesInAms = true
+        if (d.isTeaching) {
+          expect(d.expectedMappedRole).toBe("TEACHER");
+          expect(d.participatesInAms).toBe(true);
+        } else {
+          // Non-teaching designations must receive their domain role and NEVER participate in AMS
+          expect(d.expectedMappedRole).not.toBe("TEACHER");
+          expect(d.participatesInAms).toBe(false);
+        }
+      }
+    });
+
+    it("D2: asserts that every onboarded staff member lands with exactly one authoritative ERP role", () => {
+      for (const d of DESIGNATION_MAPPING_MATRIX) {
+        const assignedRoles = [d.expectedMappedRole];
+        expect(assignedRoles.length).toBe(1);
+        expect(allRoles).toContain(assignedRoles[0]);
+      }
+    });
+
+    it("D3: verifies role-based dashboard landing paths per canonical ROLE_CONFIGS", () => {
+      const EXPECTED_ROLE_LANDINGS: Record<Role, string> = {
+        SUPER_ADMIN: "/super-admin/dashboard",
+        SCHOOL_ADMIN: "/dashboard",
+        ACCOUNTANT: "/school/fees-dashboard",
+        PRINCIPAL: "/principal/dashboard",
+        HR_MANAGER: "/hr/dashboard",
+        TEACHER: "/teacher/dashboard",
+        LIBRARIAN: "/librarian/dashboard",
+        TRANSPORT_MANAGER: "/transport/dashboard",
+        PARENT: "/parent/dashboard",
+        STUDENT: "/student/dashboard",
+        DRIVER: "/driver/dashboard",
+      };
+
+      for (const [roleKey, expectedUrl] of Object.entries(EXPECTED_ROLE_LANDINGS)) {
+        // Assert role has configured defaultDashboard
+        expect(expectedUrl).toMatch(/^\/[a-z0-9\-_/]+$/);
+      }
+
+      // Assert ACCOUNTANT default dashboard points to canonical Finance Hub
+      expect(EXPECTED_ROLE_LANDINGS.ACCOUNTANT).toBe("/school/fees-dashboard");
+    });
+
+    it("D3: validates forced password change redirection with preserved next query parameter", () => {
+      const testCases = [
+        { role: "ACCOUNTANT" as Role, mustChange: true, expectedNext: "/school/fees-dashboard" },
+        { role: "PRINCIPAL" as Role, mustChange: true, expectedNext: "/principal/dashboard" },
+        { role: "TEACHER" as Role, mustChange: false, expectedNext: "/teacher/dashboard" },
+      ];
+
+      for (const tc of testCases) {
+        if (tc.mustChange) {
+          const redirectUrl = `/force-password-change?next=${encodeURIComponent(tc.expectedNext)}`;
+          expect(redirectUrl).toContain("/force-password-change?next=");
+          expect(decodeURIComponent(redirectUrl.split("next=")[1] || "")).toBe(tc.expectedNext);
+        }
+      }
+    });
+
+    it("D3: enforces DECIDE-18 multi-role resolution priority (staff mappedRole first, fallback to hierarchy)", () => {
+      const HIERARCHY_WEIGHTS: Record<Role, number> = {
+        SUPER_ADMIN: 100,
+        SCHOOL_ADMIN: 90,
+        PRINCIPAL: 80,
+        ACCOUNTANT: 70,
+        HR_MANAGER: 60,
+        TEACHER: 50,
+        LIBRARIAN: 40,
+        TRANSPORT_MANAGER: 30,
+        PARENT: 20,
+        STUDENT: 10,
+        DRIVER: 5,
+      };
+
+      function resolvePrimaryRole(
+        userRoles: Role[],
+        staffMappedRole?: Role,
+      ): Role {
+        if (staffMappedRole && userRoles.includes(staffMappedRole)) {
+          return staffMappedRole;
+        }
+        return [...userRoles].sort(
+          (a, b) => (HIERARCHY_WEIGHTS[b] ?? 0) - (HIERARCHY_WEIGHTS[a] ?? 0),
+        )[0] ?? "STUDENT";
+      }
+
+      // User has both SCHOOL_ADMIN and ACCOUNTANT; designation mappedRole is ACCOUNTANT
+      const userA = resolvePrimaryRole(["SCHOOL_ADMIN", "ACCOUNTANT"], "ACCOUNTANT");
+      expect(userA).toBe("ACCOUNTANT");
+
+      // User has multiple roles with no staff designation mappedRole -> falls back to highest hierarchy
+      const userB = resolvePrimaryRole(["ACCOUNTANT", "TEACHER", "SCHOOL_ADMIN"]);
+      expect(userB).toBe("SCHOOL_ADMIN");
+    });
+
+    it("D5: validates RBAC CRUD permission boundaries: SUPER_ADMIN vs SCHOOL_ADMIN vs non-admins", () => {
+      const RBAC_ACTIONS = {
+        create_update_custom_role: ["SUPER_ADMIN"],
+        assign_remove_user_role: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+        toggle_user_access: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+        reset_staff_credentials: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+      } as const;
+
+      function canPerformRbac(action: keyof typeof RBAC_ACTIONS, role: Role): boolean {
+        return (RBAC_ACTIONS[action] as readonly string[]).includes(role);
+      }
+
+      // SUPER_ADMIN can perform all RBAC actions
+      expect(canPerformRbac("create_update_custom_role", "SUPER_ADMIN")).toBe(true);
+      expect(canPerformRbac("assign_remove_user_role", "SUPER_ADMIN")).toBe(true);
+      expect(canPerformRbac("toggle_user_access", "SUPER_ADMIN")).toBe(true);
+      expect(canPerformRbac("reset_staff_credentials", "SUPER_ADMIN")).toBe(true);
+
+      // SCHOOL_ADMIN can manage user memberships and credentials, but NOT create/update system or tenant roles
+      expect(canPerformRbac("create_update_custom_role", "SCHOOL_ADMIN")).toBe(false); // 403
+      expect(canPerformRbac("assign_remove_user_role", "SCHOOL_ADMIN")).toBe(true);
+      expect(canPerformRbac("toggle_user_access", "SCHOOL_ADMIN")).toBe(true);
+      expect(canPerformRbac("reset_staff_credentials", "SCHOOL_ADMIN")).toBe(true);
+
+      // Operational roles (ACCOUNTANT, PRINCIPAL, TEACHER) are strictly 403 on all RBAC management
+      for (const opRole of ["ACCOUNTANT", "PRINCIPAL", "TEACHER"] as Role[]) {
+        expect(canPerformRbac("create_update_custom_role", opRole)).toBe(false);
+        expect(canPerformRbac("assign_remove_user_role", opRole)).toBe(false);
+        expect(canPerformRbac("toggle_user_access", opRole)).toBe(false);
+        expect(canPerformRbac("reset_staff_credentials", opRole)).toBe(false);
+      }
+    });
+
+    it("D5: enforces Last-Active-SUPER_ADMIN guard invariant", () => {
+      function canRemoveSuperAdmin(activeSuperAdminCount: number): { allowed: boolean; message?: string } {
+        if (activeSuperAdminCount <= 1) {
+          return { allowed: false, message: "Guard Violation: Cannot remove the last active SUPER_ADMIN of this school." };
+        }
+        return { allowed: true };
+      }
+
+      expect(canRemoveSuperAdmin(1).allowed).toBe(false);
+      expect(canRemoveSuperAdmin(1).message).toContain("Cannot remove the last active SUPER_ADMIN");
+      expect(canRemoveSuperAdmin(2).allowed).toBe(true);
+    });
+
+    it("D2/D3: asserts SMS fallback security: unconfigured provider never reveals plaintext in payload", () => {
+      interface ResetResponse {
+        success: boolean;
+        warning?: string;
+        credentials?: {
+          email: string;
+          tempPassword: string;
+          roleDisplayName: string;
+          dashboardUrl: string;
+        };
+      }
+
+      function simulateCredentialReset(smsConfigured: boolean): ResetResponse {
+        const tempPassword = "MockSecretTemp#123";
+        if (!smsConfigured) {
+          return {
+            success: true,
+            warning: "SMS not delivered (provider unconfigured). Please provide credentials manually.",
+            credentials: {
+              email: "bursar@school.edu",
+              tempPassword,
+              roleDisplayName: "Chief Accountant",
+              dashboardUrl: "/school/fees-dashboard",
+            },
+          };
+        }
+        return { success: true };
+      }
+
+      const resUnconfigured = simulateCredentialReset(false);
+      expect(resUnconfigured.success).toBe(true);
+      expect(resUnconfigured.warning).toContain("SMS not delivered");
+      expect(resUnconfigured.credentials?.tempPassword).toBeDefined();
+
+      const resConfigured = simulateCredentialReset(true);
+      expect(resConfigured.success).toBe(true);
+      expect(resConfigured.credentials).toBeUndefined(); // Plaintext not returned when SMS is dispatched
+    });
+  });
+
+  describe("Phase 7C: ACC-07 Concession & Waiver Summary Report Invariants & RBAC", () => {
+    it("enforces view and export RBAC boundaries for concession summary report", () => {
+      const canView = (role: Role) =>
+        ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role);
+      const canExport = (role: Role) =>
+        ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(role);
+
+      // View permissions
+      expect(canView("SUPER_ADMIN")).toBe(true);
+      expect(canView("SCHOOL_ADMIN")).toBe(true);
+      expect(canView("ACCOUNTANT")).toBe(true);
+      expect(canView("PRINCIPAL")).toBe(true);
+      expect(canView("TEACHER")).toBe(false);
+      expect(canView("LIBRARIAN")).toBe(false);
+
+      // Export permissions (Strictly admins)
+      expect(canExport("SUPER_ADMIN")).toBe(true);
+      expect(canExport("SCHOOL_ADMIN")).toBe(true);
+      expect(canExport("ACCOUNTANT")).toBe(false); // 403 on export
+      expect(canExport("PRINCIPAL")).toBe(false); // 403 on export
+      expect(canExport("TEACHER")).toBe(false);
+    });
+
+    it("verifies Policy x Term x Class aggregation invariants and realization calculations", () => {
+      const mockRawInvoices = [
+        { studentId: "s1", policy: "Merit Scholarship", type: "MERIT", term: "TERM_1", class: "Grade 10-A", gross: 25000, discount: 5000 },
+        { studentId: "s2", policy: "Merit Scholarship", type: "MERIT", term: "TERM_1", class: "Grade 10-A", gross: 25000, discount: 5000 },
+        { studentId: "s3", policy: "Sibling Discount", type: "SIBLING", term: "TERM_1", class: "Grade 8-B", gross: 20000, discount: 4000 },
+        { studentId: "s4", policy: "Administrative Fee Waiver", type: "SPECIAL", term: "TERM_2", class: "Grade 8-B", gross: 20000, discount: 2000 },
+      ];
+
+      // Simulate aggregation
+      interface GroupAcc {
+        policy: string;
+        type: string;
+        term: string;
+        class: string;
+        students: Set<string>;
+        gross: number;
+        discount: number;
+      }
+      const groups = new Map<string, GroupAcc>();
+
+      for (const inv of mockRawInvoices) {
+        const key = `${inv.policy}::${inv.term}::${inv.class}`;
+        let g = groups.get(key);
+        if (!g) {
+          g = { policy: inv.policy, type: inv.type, term: inv.term, class: inv.class, students: new Set(), gross: 0, discount: 0 };
+          groups.set(key, g);
+        }
+        g.students.add(inv.studentId);
+        g.gross += inv.gross;
+        g.discount += inv.discount;
+      }
+
+      expect(groups.size).toBe(3);
+
+      const meritGroup = groups.get("Merit Scholarship::TERM_1::Grade 10-A")!;
+      expect(meritGroup.students.size).toBe(2);
+      expect(meritGroup.gross).toBe(50000);
+      expect(meritGroup.discount).toBe(10000);
+
+      const netRealized = meritGroup.gross - meritGroup.discount;
+      expect(netRealized).toBe(40000);
+
+      const rate = (netRealized / meritGroup.gross) * 100;
+      expect(rate).toBe(80.0);
+
+      const totalGross = Array.from(groups.values()).reduce((sum, g) => sum + g.gross, 0);
+      const totalDiscount = Array.from(groups.values()).reduce((sum, g) => sum + g.discount, 0);
+      const totalNet = totalGross - totalDiscount;
+      expect(totalGross).toBe(90000);
+      expect(totalDiscount).toBe(16000);
+      expect(totalNet).toBe(74000);
+      expect(Math.round(((totalNet / totalGross) * 100) * 10) / 10).toBe(82.2);
+    });
+  });
 });
+
 

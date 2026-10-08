@@ -31,6 +31,7 @@ export interface DueFeeRow {
   feeHeadName: string;
   dueDate: string;
   balanceAmount: number;
+  lateFeeAmount: number;
   daysOverdue: number;
   ageBracket: "0-30" | "31-60" | "60+";
   reminderSent: boolean;
@@ -159,9 +160,16 @@ export function DueFeesClient({
       accessorKey: "balanceAmount",
       sortable: true,
       cell: (row) => (
-        <span className="font-bold font-mono text-rose-600 dark:text-rose-400 text-sm">
-          ₹{row.balanceAmount.toLocaleString("en-IN")}
-        </span>
+        <div>
+          <span className="font-bold font-mono text-rose-600 dark:text-rose-400 text-sm">
+            ₹{row.balanceAmount.toLocaleString("en-IN")}
+          </span>
+          {row.lateFeeAmount > 0 && (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">
+              (incl. ₹{row.lateFeeAmount.toLocaleString("en-IN")} fine)
+            </p>
+          )}
+        </div>
       ),
     },
   ];

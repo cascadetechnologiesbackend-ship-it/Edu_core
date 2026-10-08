@@ -55,3 +55,21 @@ export async function sendSMS(mobileNumber: string, message: string) {
     return false;
   }
 }
+export function isSmsConfigured(): boolean {
+  return Boolean(
+    (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) ||
+    process.env.SMS_API_KEY
+  );
+}
+
+export async function sendSMSWithStatus(
+  mobileNumber: string,
+  message: string,
+): Promise<{ delivered: boolean; unconfigured?: boolean; error?: string }> {
+  if (!isSmsConfigured()) {
+    console.warn(`[SMS Service] No API keys configured. Would have sent: "${message}" to ${mobileNumber}`);
+    return { delivered: false, unconfigured: true };
+  }
+  const ok = await sendSMS(mobileNumber, message);
+  return { delivered: ok };
+}

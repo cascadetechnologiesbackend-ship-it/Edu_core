@@ -167,8 +167,18 @@ export async function getStudentInvoicesAction(studentId: string) {
           (now.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24)
         );
         const graceDays = inv.feeStructure?.lateFeeStartAfterDays || 0;
-        if (daysOverdue > graceDays && inv.feeStructure?.lateFeeAmount) {
-          suggestedLateFee = parseFloat(inv.feeStructure.lateFeeAmount) || 0;
+        if (daysOverdue > graceDays) {
+          const daysPastGrace = daysOverdue - graceDays;
+          const fixedAmt = parseFloat(inv.feeStructure?.lateFeeAmount || "0");
+          const dailyAmt = parseFloat(inv.feeStructure?.dailyLateFeeAmount || "0");
+          const capAmt = inv.feeStructure?.lateFeeCap ? parseFloat(inv.feeStructure.lateFeeCap) : Infinity;
+
+          let calculated = fixedAmt;
+          if (dailyAmt > 0) {
+            calculated += daysPastGrace * dailyAmt;
+          }
+          // ABSOLUTE cap semantics (ACC-08)
+          suggestedLateFee = Math.min(calculated, capAmt);
         }
       }
 
@@ -204,9 +214,13 @@ export async function getStudentInvoicesAction(studentId: string) {
  * and immutable fee audit logging.
  */
 export async function processCounterCollection(input: FormData | MultiInvoiceCollectionPayload) {
+  let ctx: any = null;
+  let school: any = null;
+  let idempotencyKey: string | null = null;
+
   try {
-    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
-    const school = await requireSchool(ctx);
+    ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    school = await requireSchool(ctx);
 
     let studentId = "";
     let items: InvoiceCollectionItem[] = [];
@@ -214,7 +228,6 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
     let bankAccountId: string | null = null;
     let transactionReference: string | null = null;
     let remarks: string | null = null;
-    let idempotencyKey: string | null = null;
 
     if (input instanceof FormData) {
       const payloadStr = input.get("payload") as string;
@@ -528,6 +541,91 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
       items: receiptItems,
     };
   } catch (error: any) {
+    // Catch 0017 unique-violation (23505) on (school_id, collected_by_id, idempotency_key) and return original receipt
+    if (
+      error?.code === "23505" ||
+      error?.message?.includes("fee_payments_idempotency_unique_idx") ||
+      error?.message?.includes("23505")
+    ) {
+      if (idempotencyKey && school?.id) {
+        try {
+          const existingPayments = await db.query.feePayments.findMany({
+            where: and(
+              eq(feePayments.schoolId, school.id),
+              eq(feePayments.idempotencyKey, idempotencyKey),
+            ),
+            with: {
+              invoice: {
+                with: {
+                  feeStructure: {
+                    with: {
+                      feeHead: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+          if (existingPayments.length > 0 && existingPayments[0]) {
+            const firstPayment = existingPayments[0];
+            const student = await db.query.students.findFirst({
+              where: eq(students.id, firstPayment.studentId),
+            });
+            const firstName = decryptData(student?.firstNameEncrypted || null) || "";
+            const lastName = decryptData(student?.lastNameEncrypted || null) || "";
+            const studentName = `${firstName} ${lastName}`.trim() || "Student";
+            const totalPaid = existingPayments.reduce(
+              (acc, p) => acc + parseFloat(p.amountPaid),
+              0,
+            );
+
+            return {
+              success: true,
+              message: "Idempotent response: payment was already processed.",
+              receiptNumber: firstPayment.receiptGroupId || firstPayment.receiptNumber,
+              paymentId: firstPayment.id,
+              totalAmountPaid: totalPaid,
+              paymentMethod: firstPayment.paymentMethod,
+              transactionReference: firstPayment.transactionReference || undefined,
+              date: firstPayment.paymentDate.toLocaleString("en-IN"),
+              items: existingPayments.map((p) => ({
+                feeHeadName: p.invoice?.feeStructure?.feeHead?.name || "Fee Invoice",
+                invoiceNumber: p.invoice?.invoiceNumber || "N/A",
+                term: p.invoice?.term || "ANNUAL",
+                grossAmount: parseFloat(p.invoice?.grossAmount || p.amountPaid),
+                amountPaid: parseFloat(p.amountPaid),
+                balanceRemaining: parseFloat(p.invoice?.balanceAmount || "0"),
+              })),
+              receiptData: {
+                schoolName: school?.name || "SchoolMitra Campus",
+                receiptNumber: firstPayment.receiptGroupId || firstPayment.receiptNumber,
+                date: firstPayment.paymentDate.toISOString(),
+                cashierName: ctx?.email || "Cashier",
+                student: {
+                  name: studentName,
+                  admissionNumber: student?.admissionNumber || "N/A",
+                  className: "Enrolled",
+                },
+                items: existingPayments.map((p) => ({
+                  feeHeadName: p.invoice?.feeStructure?.feeHead?.name || "Fee Invoice",
+                  invoiceNumber: p.invoice?.invoiceNumber || "N/A",
+                  term: p.invoice?.term || "ANNUAL",
+                  grossAmount: parseFloat(p.invoice?.grossAmount || p.amountPaid),
+                  amountPaid: parseFloat(p.amountPaid),
+                  balanceRemaining: parseFloat(p.invoice?.balanceAmount || "0"),
+                })),
+                totalAmountPaid: totalPaid,
+                paymentMethod: firstPayment.paymentMethod,
+                paymentId: firstPayment.id,
+              },
+            };
+          }
+        } catch (fetchErr) {
+          console.error("Failed to recover original receipt after 23505:", fetchErr);
+        }
+      }
+    }
+
     console.error("processCounterCollection error:", error);
     return { success: false, message: error.message || "Failed to process payment." };
   }

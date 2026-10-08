@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings, Award, Percent, Building2 } from "lucide-react";
+import { Settings, Award, Percent, Building2, ShieldCheck } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,6 +15,15 @@ const SETTINGS_CARDS = [
     icon: Building2,
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
+  },
+  {
+    title: "Role & Access Management",
+    description:
+      "Configure tenant roles, staff role memberships, account status, and credentials.",
+    href: "/settings/roles",
+    icon: ShieldCheck,
+    color: "text-indigo-500",
+    bgColor: "bg-indigo-500/10",
   },
   {
     title: "Exam Types & Weightages",

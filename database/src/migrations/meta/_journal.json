@@ -120,6 +120,27 @@
       "when": 1791200000000,
       "tag": "0016_accounting_expansion_part_c",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1791300000000,
+      "tag": "0017_idempotency_partial_unique_idx",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1791400000000,
+      "tag": "0018_fee_structures_daily_late_fine_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1791500000000,
+      "tag": "0019_designations_mapped_role",
+      "breakpoints": true
     }
   ]
 }

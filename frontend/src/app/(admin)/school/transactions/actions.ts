@@ -6,8 +6,9 @@ import {
   feeInvoices,
   accountLedgerTransactions,
   bankAccounts,
+  paymentGatewayLogs,
 } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
@@ -17,6 +18,7 @@ import {
   getBankAccountChartAccountId,
   getCashMainChartAccountId,
   getStudentReceivableChartAccountId,
+  getGatewayFeesExpenseChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export async function cancelTransaction(input: FormData | { paymentId: string; reason: string }) {
@@ -108,40 +110,103 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
       }
 
       // 3. Post reversal DEBIT to general ledger with double-entry IDs
+      let gatewayLog = null;
+      if (payment.transactionReference) {
+        gatewayLog = await tx.query.paymentGatewayLogs.findFirst({
+          where: and(
+            eq(paymentGatewayLogs.schoolId, school.id),
+            or(
+              eq(paymentGatewayLogs.gatewayPaymentId, payment.transactionReference),
+              eq(paymentGatewayLogs.gatewayOrderId, payment.transactionReference),
+            ),
+          ),
+        });
+      }
+
+      const feeAmount = gatewayLog ? parseFloat((gatewayLog as any).feeAmount || "0") : 0;
+      const netAmount = Math.max(0, amountToReverse - feeAmount);
+
       const debitAccountId = await getStudentReceivableChartAccountId(school.id, tx);
       const creditAccountId = bankAccountId
         ? await getBankAccountChartAccountId(school.id, bankAccountId, tx)
         : await getCashMainChartAccountId(school.id, tx);
+      const gatewayFeesExpenseAccountId = await getGatewayFeesExpenseChartAccountId(school.id, tx);
 
       const txNumber = `REV-${new Date().getFullYear()}-${crypto
         .randomBytes(3)
         .toString("hex")
         .toUpperCase()}`;
 
-      await tx.insert(accountLedgerTransactions).values({
-        schoolId: school.id,
-        transactionNumber: txNumber,
-        sourceType: "MANUAL_ADJUSTMENT",
-        sourceId: payment.id,
-        bankAccountId,
-        debitAccountId,
-        creditAccountId,
-        transactionType: "DEBIT",
-        amount: amountToReverse.toFixed(2),
-        description: `Reversal of Fee Receipt #${payment.receiptNumber}. Reason: ${reason}`,
-        transactionDate: new Date(),
-        createdById: ctx.userId,
-      });
+      if (feeAmount > 0) {
+        // ACC-05 Mirrored Reversal:
+        // Entry 1: Reversal of Net amount against Bank
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId: school.id,
+          transactionNumber: `${txNumber}-NET`,
+          sourceType: "MANUAL_ADJUSTMENT",
+          sourceId: payment.id,
+          bankAccountId,
+          debitAccountId,
+          creditAccountId,
+          transactionType: "DEBIT",
+          amount: netAmount.toFixed(2),
+          description: `Mirrored Reversal (Net) of Fee Receipt #${payment.receiptNumber}. Reason: ${reason}`,
+          transactionDate: new Date(),
+          createdById: ctx.userId,
+        });
 
-      // 4. Update bank balance (GAP-14) if bank account was credited
-      if (bankAccountId) {
-        await tx
-          .update(bankAccounts)
-          .set({
-            currentBalance: sql`${bankAccounts.currentBalance} - ${amountToReverse}`,
-            updatedAt: new Date(),
-          })
-          .where(eq(bankAccounts.id, bankAccountId));
+        // Entry 2: Reversal of Fee amount against Gateway Fees Expense
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId: school.id,
+          transactionNumber: `${txNumber}-FEE`,
+          sourceType: "MANUAL_ADJUSTMENT",
+          sourceId: payment.id,
+          bankAccountId,
+          debitAccountId,
+          creditAccountId: gatewayFeesExpenseAccountId,
+          transactionType: "DEBIT",
+          amount: feeAmount.toFixed(2),
+          description: `Mirrored Reversal (Fee) of Fee Receipt #${payment.receiptNumber}. Reason: ${reason}`,
+          transactionDate: new Date(),
+          createdById: ctx.userId,
+        });
+
+        // Update bank balance by net amount only (since only net was deposited)
+        if (bankAccountId) {
+          await tx
+            .update(bankAccounts)
+            .set({
+              currentBalance: sql`${bankAccounts.currentBalance} - ${netAmount.toFixed(2)}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(bankAccounts.id, bankAccountId));
+        }
+      } else {
+        // Standard Reversal
+        await tx.insert(accountLedgerTransactions).values({
+          schoolId: school.id,
+          transactionNumber: txNumber,
+          sourceType: "MANUAL_ADJUSTMENT",
+          sourceId: payment.id,
+          bankAccountId,
+          debitAccountId,
+          creditAccountId,
+          transactionType: "DEBIT",
+          amount: amountToReverse.toFixed(2),
+          description: `Reversal of Fee Receipt #${payment.receiptNumber}. Reason: ${reason}`,
+          transactionDate: new Date(),
+          createdById: ctx.userId,
+        });
+
+        if (bankAccountId) {
+          await tx
+            .update(bankAccounts)
+            .set({
+              currentBalance: sql`${bankAccounts.currentBalance} - ${amountToReverse}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(bankAccounts.id, bankAccountId));
+        }
       }
 
       // 5. Delete payment record

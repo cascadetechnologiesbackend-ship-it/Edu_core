@@ -39,9 +39,19 @@ export const DEFAULT_FINANCE_OVERFLOW_TABS: FinanceTabItem[] = [
 
 export const DEFAULT_ACCOUNTS_PRIMARY_TABS: FinanceTabItem[] = [
   { id: "accounts-hub", label: "Accounts Hub", href: "/school/accounting/dashboard" },
+  { id: "reports", label: "Financial Reports", href: "/school/accounting/reports" },
   { id: "incomes", label: "Incomes", href: "/school/accounts/incomes" },
   { id: "expenses", label: "Expenses", href: "/school/accounts/expenses" },
   { id: "bank-accounts", label: "Bank Accounts", href: "/school/accounts/bank-accounts" },
+  { id: "brs", label: "Bank Reconciliation", href: "/school/accounts/bank-reconciliation" },
+  { id: "vouchers", label: "Journal & Contra", href: "/school/accounts/journal-vouchers" },
+];
+
+export const DEFAULT_ACCOUNTS_OVERFLOW_TABS: FinanceTabItem[] = [
+  { id: "trial-balance", label: "Trial Balance", href: "/school/accounting/reports/trial-balance" },
+  { id: "income-expenditure", label: "Income & Expenditure", href: "/school/accounting/reports/income-expenditure" },
+  { id: "balance-sheet", label: "Balance Sheet", href: "/school/accounting/reports/balance-sheet" },
+  { id: "concession-summary", label: "Concession Summary", href: "/school/accounting/reports/concessions" },
   { id: "income-heads", label: "Income Heads", href: "/school/accounts/income-heads" },
   { id: "expense-heads", label: "Expense Heads", href: "/school/accounts/expense-heads" },
 ];
@@ -69,7 +79,7 @@ export function FinanceTabs({
 
   const effectiveOverflow =
     overflowTabs ||
-    (activeSection === "accounts" ? [] : DEFAULT_FINANCE_OVERFLOW_TABS);
+    (activeSection === "accounts" ? DEFAULT_ACCOUNTS_OVERFLOW_TABS : DEFAULT_FINANCE_OVERFLOW_TABS);
 
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);

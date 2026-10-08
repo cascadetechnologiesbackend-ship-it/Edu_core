@@ -39,7 +39,9 @@ export default function ForcePasswordChangePage() {
           await fetch("/api/auth/session");
         } catch {}
 
-        const destination = res.redirectUrl || "/dashboard";
+        const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const nextParam = urlParams?.get("next");
+        const destination = nextParam || res.redirectUrl || "/dashboard";
         setTimeout(() => {
           window.location.href = destination;
         }, 800);

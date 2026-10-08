@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
+import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
 
 // ─── Form schema ──────────────────────────────────────────────────────────────
 
@@ -72,22 +73,16 @@ export default function LoginForm() {
         }
       } else {
         const session = await getSession();
-        const role = (session?.user as any)?.role;
+        const role = (session?.user as any)?.role as UserRole;
+        const mustChangePassword = (session?.user as any)?.mustChangePassword;
 
-        let target = "/dashboard";
-        if (role === "SUPER_ADMIN") {
-          target = "/super-admin/dashboard";
-        } else if (role === "TEACHER") {
-          target = "/teacher/dashboard";
-        } else if (role === "PARENT" || role === "STUDENT") {
-          target = "/portal";
-        } else if (role === "DRIVER") {
-          target = "/driver/dashboard";
-        } else if (role === "PRINCIPAL") {
-          target = "/principal/dashboard";
+        const defaultDashboard = (role && ROLE_CONFIGS[role]?.defaultDashboard) || "/dashboard";
+
+        if (mustChangePassword) {
+          window.location.href = `/force-password-change?next=${encodeURIComponent(defaultDashboard)}`;
+        } else {
+          window.location.href = defaultDashboard;
         }
-
-        window.location.href = target;
       }
     } catch {
       setServerError("Something went wrong. Please check your network connection and try again.");

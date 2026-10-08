@@ -80,6 +80,7 @@ export const designations = pgTable(
       .notNull()
       .references(() => departments.id, { onDelete: "restrict" }),
     name: text("name").notNull(),
+    mappedRole: text("mapped_role"),
     isTeaching: boolean("is_teaching").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -96,6 +97,7 @@ export const designations = pgTable(
     ),
     schoolIdx: index("designations_school_idx").on(t.schoolId),
     deptIdx: index("designations_dept_idx").on(t.departmentId),
+    mappedRoleIdx: index("designations_mapped_role_idx").on(t.schoolId, t.mappedRole),
   }),
 );
 

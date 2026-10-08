@@ -196,6 +196,54 @@ export function FinanceCommandPalette({
               </Command.Item>
 
               <Command.Item
+                onSelect={() => runCommand(() => router.push("/school/accounting/reports/trial-balance"))}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <span>Trial Balance Statement</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push("/school/accounting/reports/income-expenditure"))}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <span>Income & Expenditure Statement</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push("/school/accounting/reports/balance-sheet"))}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4 text-violet-600" />
+                <span>Balance Sheet Report</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push("/school/accounting/reports/concessions"))}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <Percent className="w-4 h-4 text-purple-600" />
+                <span>Concession & Waiver Summary Report</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push("/school/accounts/bank-reconciliation"))}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <FileCheck className="w-4 h-4 text-blue-600" />
+                <span>Bank Statement Reconciliation (BRS)</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push("/school/accounts/journal-vouchers"))}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <Receipt className="w-4 h-4 text-amber-600" />
+                <span>Journal Vouchers & Contra Entries</span>
+              </Command.Item>
+
+              <Command.Item
                 onSelect={() => runCommand(() => router.push("/school/accounts/bank-accounts"))}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
               >

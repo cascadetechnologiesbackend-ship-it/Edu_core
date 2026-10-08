@@ -58,7 +58,7 @@ export async function recomputeAgingAndOverdue(schoolId: string) {
 }
 
 /**
- * AUTO-02: Apply late fee penalties based on fee structure policy
+ * AUTO-02: Apply late fee penalties based on fee structure policy (ACC-08 per-day fine & absolute cap)
  */
 export async function applyLateFees(schoolId: string) {
   const now = new Date();
@@ -66,7 +66,6 @@ export async function applyLateFees(schoolId: string) {
     where: and(
       eq(feeInvoices.schoolId, schoolId),
       eq(feeInvoices.status, "OVERDUE"),
-      eq(feeInvoices.lateFeeAmount, "0"),
       gt(sql`CAST(${feeInvoices.balanceAmount} AS numeric)`, 0)
     ),
     with: {
@@ -79,28 +78,42 @@ export async function applyLateFees(schoolId: string) {
   for (const inv of overdueInvoices) {
     if (!inv.feeStructure) continue;
     const struct = inv.feeStructure;
-    const lateFeeAmt = parseFloat(struct.lateFeeAmount || "0");
+    const fixedLateFee = parseFloat(struct.lateFeeAmount || "0");
+    const dailyLateFee = parseFloat(struct.dailyLateFeeAmount || "0");
+    const lateFeeCap = struct.lateFeeCap ? parseFloat(struct.lateFeeCap) : Infinity;
     const graceDays = struct.lateFeeStartAfterDays || 0;
 
-    if (lateFeeAmt <= 0) continue;
+    if (fixedLateFee <= 0 && dailyLateFee <= 0) continue;
 
     const daysOverdue = Math.floor(
       (now.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (daysOverdue >= graceDays) {
+    if (daysOverdue > graceDays) {
+      const daysPastGrace = daysOverdue - graceDays;
+      let calculatedFine = fixedLateFee;
+      if (dailyLateFee > 0) {
+        calculatedFine += daysPastGrace * dailyLateFee;
+      }
+
+      // ABSOLUTE cap semantics (ACC-08)
+      const targetLateFee = Math.min(calculatedFine, lateFeeCap);
+
+      const existingLateFee = parseFloat(inv.lateFeeAmount || "0");
+      if (targetLateFee <= existingLateFee) continue; // Already up to date
+
       const gross = parseFloat(inv.grossAmount);
       const discount = parseFloat(inv.discountAmount);
       const tax = parseFloat(inv.taxAmount);
       const paid = parseFloat(inv.paidAmount);
 
-      const newNet = gross - discount + lateFeeAmt + tax;
+      const newNet = gross - discount + targetLateFee + tax;
       const newBal = newNet - paid;
 
       await db
         .update(feeInvoices)
         .set({
-          lateFeeAmount: lateFeeAmt.toFixed(2),
+          lateFeeAmount: targetLateFee.toFixed(2),
           netAmount: newNet.toFixed(2),
           balanceAmount: newBal.toFixed(2),
           updatedAt: now,
@@ -113,8 +126,8 @@ export async function applyLateFees(schoolId: string) {
         entityType: "FEE_INVOICE",
         entityId: inv.id,
         previousData: { lateFeeAmount: inv.lateFeeAmount, balanceAmount: inv.balanceAmount },
-        newData: { lateFeeAmount: lateFeeAmt.toFixed(2), balanceAmount: newBal.toFixed(2) },
-        reason: `AUTO-02 Late fee applied past ${graceDays} days grace period`,
+        newData: { lateFeeAmount: targetLateFee.toFixed(2), balanceAmount: newBal.toFixed(2) },
+        reason: `AUTO-02 Accrued capped late fine applied (${daysPastGrace} days past grace, daily ${dailyLateFee}, cap ${struct.lateFeeCap || "none"})`,
         performedById: "00000000-0000-0000-0000-000000000000",
       });
 

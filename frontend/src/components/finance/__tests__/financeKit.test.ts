@@ -30,14 +30,15 @@ describe("Finance Design System & Navigation Contracts", () => {
   });
 
   it("defines clear accounts primary tabs covering chart of accounts and treasury", () => {
-    expect(DEFAULT_ACCOUNTS_PRIMARY_TABS.length).toBe(6);
+    expect(DEFAULT_ACCOUNTS_PRIMARY_TABS.length).toBe(7);
     expect(DEFAULT_ACCOUNTS_PRIMARY_TABS.map((t) => t.id)).toEqual([
       "accounts-hub",
+      "reports",
       "incomes",
       "expenses",
       "bank-accounts",
-      "income-heads",
-      "expense-heads",
+      "brs",
+      "vouchers",
     ]);
   });
 });

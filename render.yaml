@@ -3,8 +3,8 @@ services:
     name: educore-app
     runtime: node
     plan: starter
-    buildCommand: pnpm install --prod=false --ignore-scripts && pnpm --filter @schoolmitra/database db:migrate && pnpm exec turbo run build
-    preDeployCommand: pnpm --filter @schoolmitra/database db:migrate
+    buildCommand: pnpm install --prod=false --ignore-scripts && pnpm --filter @schoolmitra/database db:migrate && pnpm --filter @schoolmitra/database db:seed-coa && pnpm exec turbo run build
+    preDeployCommand: pnpm --filter @schoolmitra/database db:migrate && pnpm --filter @schoolmitra/database db:seed-coa
     startCommand: pnpm -w run start
     healthCheckPath: /api/health
     envVars:

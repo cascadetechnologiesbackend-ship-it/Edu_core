@@ -51,8 +51,8 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
       { label: "Admissions & Intake", href: "/admissions", icon: "UserPlus" },
       { label: "Student Information", href: "/students", icon: "Users" },
       { label: "Academics & Classes", href: "/academics", icon: "GraduationCap" },
-      { label: "Fee Structure & Matrix", href: "/fees/structures", icon: "Receipt" },
-      { label: "Fee Collection", href: "/fees/collect", icon: "CreditCard" },
+      { label: "Fee Structure & Matrix", href: "/school/fee-structures", icon: "Receipt" },
+      { label: "Fee Collection", href: "/school/collect-fees", icon: "CreditCard" },
       { label: "HR & Staff Management", href: "/hr", icon: "UserCheck" },
       { label: "Exams & Evaluation", href: "/exams", icon: "Award" },
       { label: "Attendance Control", href: "/attendance", icon: "CalendarCheck" },
@@ -101,13 +101,18 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   ACCOUNTANT: {
     role: "ACCOUNTANT",
     displayName: "Accountant",
-    defaultDashboard: "/accountant/dashboard",
+    defaultDashboard: "/school/fees-dashboard",
     navItems: [
-      { label: "Finance Dashboard", href: "/accountant/dashboard", icon: "LayoutDashboard" },
-      { label: "Fee Collection", href: "/fees/collect", icon: "CreditCard" },
-      { label: "Class Pricing Matrix", href: "/fees/structures", icon: "Receipt" },
-      { label: "Concessions & Waivers", href: "/fees/concessions", icon: "Percent" },
-      { label: "Financial Reports", href: "/fees/reports", icon: "BarChart3" },
+      { label: "Finance Hub", href: "/school/fees-dashboard", icon: "TrendingUp" },
+      { label: "Collect Fee", href: "/school/collect-fees", icon: "CreditCard" },
+      { label: "Dues Work List", href: "/school/due-fees", icon: "FileText" },
+      { label: "Day Book", href: "/school/transactions", icon: "Receipt" },
+      { label: "Accounts Hub", href: "/school/accounting/dashboard", icon: "Building2" },
+      { label: "Discounts & Concessions", href: "/school/fees-discount", icon: "Percent" },
+      { label: "Refunds", href: "/school/refunds", icon: "RotateCcw" },
+      { label: "Concession Summary", href: "/school/accounting/reports/concessions", icon: "BarChart3" },
+      { label: "BRS Preview", href: "/school/accounts/bank-reconciliation", icon: "CheckSquare" },
+      { label: "Pricing Matrix", href: "/school/fee-structures", icon: "Receipt" },
     ],
   },
   LIBRARIAN: {
@@ -137,9 +142,9 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     defaultDashboard: "/parent/dashboard",
     navItems: [
       { label: "Overview", href: "/parent/dashboard", icon: "LayoutDashboard" },
-      { label: "Attendance", href: "/parent/dashboard?tab=attendance", icon: "CalendarCheck" },
-      { label: "Fee Portal", href: "/parent/dashboard?tab=fees", icon: "Receipt" },
-      { label: "Bus Tracker", href: "/parent/dashboard?tab=bus", icon: "Bus" },
+      { label: "Attendance", href: "/parent/attendance", icon: "CalendarCheck" },
+      { label: "Fee Portal", href: "/parent/fees", icon: "Receipt" },
+      { label: "Bus Tracker", href: "/parent/bus", icon: "Bus" },
     ],
   },
   STUDENT: {
@@ -171,3 +176,91 @@ export function getRoleConfig(role?: string): RoleConfig {
   const normalizedRole = (role?.toUpperCase() as UserRole) || "SCHOOL_ADMIN";
   return ROLE_CONFIGS[normalizedRole] || ROLE_CONFIGS.SCHOOL_ADMIN;
 }
+
+export interface PermissionMatrixRow {
+  module: string;
+  action: string;
+  description: string;
+  allowedRoles: UserRole[];
+}
+
+export const BASELINE_PERMISSION_MATRIX: PermissionMatrixRow[] = [
+  {
+    module: "Finance & Fee Collection",
+    action: "View Finance Hub & Dashboards",
+    description: "Access fee summary KPIs, collection graphs, and overdue lists",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"],
+  },
+  {
+    module: "Finance & Fee Collection",
+    action: "Collect Fees & Generate Receipts",
+    description: "Counter collection, payment mode recording, fee challan settlements",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"],
+  },
+  {
+    module: "Finance & Fee Collection",
+    action: "Fee Structure Management",
+    description: "Define fee heads, groups, annual fee matrices, and term slabs",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"],
+  },
+  {
+    module: "Finance & Accounts",
+    action: "Transaction Cancellation & Split Reversal",
+    description: "Cancel settled receipts and issue mirror ledger split reversals",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  },
+  {
+    module: "Accounting & Vouchers",
+    action: "Journal Voucher (JV) & Contra Create",
+    description: "Post manual double-entry adjustments and cash-bank contra entries",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  },
+  {
+    module: "Accounting & Banking",
+    action: "Bank Reconciliation (BRS) Adjusting JV",
+    description: "Import bank statements, match transactions, and post adjusting JVs",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  },
+  {
+    module: "Financial Reporting",
+    action: "Statements View (Trial Balance, P&L, BS)",
+    description: "View financial reports with discrepancy indicators",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+  },
+  {
+    module: "Financial Reporting",
+    action: "Statements Export (XLSX)",
+    description: "Download verified trial balances and financial statements",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  },
+  {
+    module: "Financial Reporting",
+    action: "Concession & Waiver Summary Report",
+    description: "View revenue foregone grouped by Policy x Term x Class",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"],
+  },
+  {
+    module: "Finance Governance",
+    action: "Academic Year Fiscal Lock / Unlock",
+    description: "Enforce ledger immutability and lock backdated fiscal periods",
+    allowedRoles: ["SUPER_ADMIN"],
+  },
+  {
+    module: "HR & Staff Management",
+    action: "Staff Onboarding & Directory",
+    description: "Onboard teaching & non-teaching staff with authoritative roles",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER", "PRINCIPAL"],
+  },
+  {
+    module: "RBAC & Security",
+    action: "Assign / Remove User Roles & Access Toggle",
+    description: "Manage user account status, credentials reset, and role memberships",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  },
+  {
+    module: "RBAC & Security",
+    action: "System Role Definition CRUD",
+    description: "Define custom role permissions and platform-level schemas",
+    allowedRoles: ["SUPER_ADMIN"],
+  },
+];

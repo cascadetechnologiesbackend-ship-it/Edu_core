@@ -169,6 +169,22 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           .map((r) => r.roleName)
           .sort((a, b) => (ROLE_HIERARCHY[b] ?? -1) - (ROLE_HIERARCHY[a] ?? -1));
 
+        // DECIDE-18: Resolve primary role by staff.designation.mappedRole first; fall back to highest privilege
+        let resolvedRole = sortedRoles[0] ?? "STUDENT";
+        try {
+          const { staff, designations } = await import("@/db/schema/hr");
+          const [staffInfo] = await db
+            .select({ mappedRole: designations.mappedRole })
+            .from(staff)
+            .innerJoin(designations, eq(staff.designationId, designations.id))
+            .where(eq(staff.userId, user.id))
+            .limit(1);
+
+          if (staffInfo?.mappedRole && userRolesList.some((r) => r.roleName === staffInfo.mappedRole)) {
+            resolvedRole = staffInfo.mappedRole as typeof resolvedRole;
+          }
+        } catch {}
+
         // Mint refresh session cookie
         try {
           const { cookies, headers } = await import("next/headers");
@@ -193,7 +209,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           email: user.email,
           name: email.split("@")[0] ?? "Unknown",
           schoolId: user.schoolId,
-          role: sortedRoles[0] ?? "STUDENT",
+          role: resolvedRole,
           mustChangePassword: user.mustChangePassword ?? false,
         };
       },

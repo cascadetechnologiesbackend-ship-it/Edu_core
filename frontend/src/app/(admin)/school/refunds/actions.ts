@@ -20,7 +20,7 @@ import {
   assertAcademicYearNotLocked,
   getBankAccountChartAccountId,
   getCashMainChartAccountId,
-  getCautionDepositChartAccountId,
+  getStudentReceivableChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 
 export interface RefundRequestPayload {
@@ -388,8 +388,8 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
         if (updatedBank) bankBalanceAfter = updatedBank.currentBalance;
       }
 
-      // 4. Post reversal ledger DEBIT entry with double-entry IDs
-      const debitAccountId = await getCautionDepositChartAccountId(school.id, tx);
+      // 4. Post reversal ledger DEBIT entry restoring student receivable
+      const debitAccountId = await getStudentReceivableChartAccountId(school.id, tx);
       const creditAccountId = resolvedBankId
         ? await getBankAccountChartAccountId(school.id, resolvedBankId, tx)
         : await getCashMainChartAccountId(school.id, tx);

@@ -88,6 +88,7 @@ export default async function DueFeesPage({
       feeHeadName: inv.feeStructure?.feeHead?.name || "Tuition / General Fee",
       dueDate: inv.dueDate.toISOString(),
       balanceAmount: balance,
+      lateFeeAmount: parseFloat(inv.lateFeeAmount || "0"),
       daysOverdue,
       ageBracket,
       reminderSent: inv.reminderSentD7 || false,

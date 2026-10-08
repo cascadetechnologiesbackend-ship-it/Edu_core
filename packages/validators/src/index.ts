@@ -433,6 +433,15 @@ export const createStaffSchema = z.object({
   // PAN is server-side only, encrypted — not exposed in shared schema
 });
 
+export const designationSchema = z.object({
+  id: uuidSchema.optional(),
+  name: z.string().min(2).max(100),
+  departmentId: uuidSchema.optional(),
+  mappedRole: roleSchema.nullable().optional(),
+  isTeaching: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+});
+
 export const leaveRequestSchema = z.object({
   staffId: uuidSchema,
   leaveType: z.enum(LEAVE_TYPES),

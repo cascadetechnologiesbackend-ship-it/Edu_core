@@ -33,8 +33,10 @@ import { encryptData, decryptData } from "@/lib/encryption";
 import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
 import bcrypt from "bcryptjs";
-import { sendSMS } from "@/lib/sms";
+import { sendSMS, sendSMSWithStatus } from "@/lib/sms";
 import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
+import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
+import { generateRandomTempPassword } from "@/lib/tempPassword";
 
 function safeRevalidate(path: string) {
   try {
@@ -373,6 +375,7 @@ export async function getDesignations(departmentId?: string) {
         name: d.name,
         departmentId: d.departmentId,
         departmentName: d.department?.name || "—",
+        mappedRole: d.mappedRole,
         isTeaching: d.isTeaching,
         isActive: d.isActive,
         staffCount: d.staff.filter((s) => s.isActive).length,
@@ -391,10 +394,12 @@ export async function createDesignation(
         name: string;
         departmentId?: string;
         isTeaching?: boolean;
+        mappedRole?: string;
       }
     | string,
   departmentId?: string,
   isTeaching?: boolean,
+  mappedRole?: string,
 ) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
@@ -406,6 +411,7 @@ export async function createDesignation(
             name: input,
             departmentId: departmentId || undefined,
             isTeaching: Boolean(isTeaching),
+            mappedRole: mappedRole || undefined,
           }
         : input;
 
@@ -447,12 +453,17 @@ export async function createDesignation(
       return { success: false, message: `Designation "${name}" already exists in this school.` };
     }
 
+    const finalMappedRole = payload.isTeaching
+      ? "TEACHER"
+      : payload.mappedRole || null;
+
     const [desig] = await db
       .insert(designations)
       .values({
         schoolId: school.id,
         departmentId: targetDeptId,
         name,
+        mappedRole: finalMappedRole,
         isTeaching: Boolean(payload.isTeaching),
         isActive: true,
       })
@@ -467,6 +478,7 @@ export async function createDesignation(
       name,
       departmentId: targetDeptId,
       isTeaching: payload.isTeaching,
+      mappedRole: finalMappedRole,
     });
     safeRevalidate("/hr");
     return { success: true, designation: desig };
@@ -481,6 +493,7 @@ export async function updateDesignation(
     name?: string | undefined;
     departmentId?: string | undefined;
     isTeaching?: boolean | undefined;
+    mappedRole?: string | undefined;
     isActive?: boolean | undefined;
   },
 ) {
@@ -530,6 +543,13 @@ export async function updateDesignation(
 
     if (input.isTeaching !== undefined) {
       updates.isTeaching = Boolean(input.isTeaching);
+      if (updates.isTeaching) {
+        updates.mappedRole = "TEACHER";
+      }
+    }
+
+    if (input.mappedRole !== undefined && !updates.isTeaching && !desig.isTeaching) {
+      updates.mappedRole = input.mappedRole;
     }
 
     if (input.isActive !== undefined) {
@@ -680,124 +700,151 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
     }
 
-    // 5. Create user credential with default password and force change
-    const defaultPassword = `School@${parsed.mobile.trim().slice(-4)}`;
+    // 5. Generate secure random temp password (DECIDE-17) and resolve authoritative role
+    const authoritativeRole = (desig.isTeaching ? "TEACHER" : (desig.mappedRole || "STAFF")) as UserRole;
+    const defaultPassword = generateRandomTempPassword();
     const passwordHash = await bcrypt.hash(defaultPassword, 12);
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        schoolId: school.id,
-        email: emailNormalized,
-        passwordHash,
-        mustChangePassword: true,
-        isActive: true,
-        isEmailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
 
-    // Send credentials via SMS/WhatsApp
-    const formattedMobile = parsed.mobile.trim().startsWith("+91")
-      ? parsed.mobile.trim()
-      : `+91${parsed.mobile.trim()}`;
-    const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3002";
-    await sendSMS(
-      formattedMobile,
-      `Welcome to ${school.name}!\n` +
-        `Your ERP login credentials:\n` +
-        `Email: ${emailNormalized}\n` +
-        `Password: ${defaultPassword}\n` +
-        `App: ${pwaUrl}\n` +
-        `Please change your password on first login.`
-    );
-
-    if (!newUser) {
-      return { success: false, message: "Failed to create user login credential." };
-    }
-
-    // 6. Role Assignment: ONLY assign TEACHER if designation is authoritative for teaching!
-    if (desig.isTeaching) {
-      const teacherRole = await db.query.roles.findFirst({
-        where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
-      });
-      if (teacherRole) {
-        await db.insert(userRoles).values({
-          userId: newUser.id,
-          roleId: teacherRole.id,
+    const { newUser, newStaff } = await db.transaction(async (tx) => {
+      // 5a. Create user credential with default password and force change
+      const [u] = await tx
+        .insert(users)
+        .values({
           schoolId: school.id,
-        });
-      }
-    } else {
-      // Check for administrative non-teaching roles
-      const desigLower = desig.name.toLowerCase();
-      let nonTeachingRoleName: any = null;
-      if (desigLower.includes("accountant")) nonTeachingRoleName = "ACCOUNTANT";
-      else if (desigLower.includes("librarian")) nonTeachingRoleName = "LIBRARIAN";
-      else if (desigLower.includes("transport")) nonTeachingRoleName = "TRANSPORT_MANAGER";
-      else if (desigLower.includes("hr")) nonTeachingRoleName = "HR_MANAGER";
+          email: emailNormalized,
+          passwordHash,
+          mustChangePassword: true,
+          isActive: true,
+          isEmailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
 
-      if (nonTeachingRoleName) {
-        const foundRole = await db.query.roles.findFirst({
-          where: and(eq(roles.schoolId, school.id), eq(roles.name, nonTeachingRoleName)),
-        });
-        if (foundRole) {
-          await db.insert(userRoles).values({
-            userId: newUser.id,
-            roleId: foundRole.id,
+      if (!u) {
+        throw new Error("Failed to create user login credential.");
+      }
+
+      // 6. Role Assignment: find-or-create per-school role row
+      let targetRole = await tx.query.roles.findFirst({
+        where: and(eq(roles.schoolId, school.id), eq(roles.name, authoritativeRole as any)),
+      });
+      if (!targetRole) {
+        const [createdRole] = await tx
+          .insert(roles)
+          .values({
             schoolId: school.id,
-          });
-        }
+            name: authoritativeRole as any,
+            displayName: ROLE_CONFIGS[authoritativeRole]?.displayName || String(authoritativeRole),
+            description: `System role for ${authoritativeRole}`,
+            isSystemRole: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        targetRole = createdRole;
       }
-    }
 
-    // 7. Insert staff record with encrypted PII
-    const [newStaff] = await db
-      .insert(staff)
-      .values({
-        schoolId: school.id,
-        userId: newUser.id,
-        employeeCode: parsed.employeeCode.trim(),
-        departmentId: parsed.departmentId,
-        designationId: parsed.designationId,
-        contractType: parsed.contractType,
-        joiningDate: new Date(parsed.joiningDate),
-        firstNameEncrypted: encryptData(parsed.firstName.trim()),
-        lastNameEncrypted: encryptData(parsed.lastName.trim()),
-        dateOfBirthEncrypted: encryptData(parsed.dateOfBirth),
-        genderEncrypted: encryptData(parsed.gender),
-        mobileEncrypted: encryptData(parsed.mobile.trim()),
-        emailEncrypted: encryptData(emailNormalized),
-        addressEncrypted: parsed.address ? encryptData(parsed.address.trim()) : null,
-        emergencyContactEncrypted: parsed.emergencyContact
-          ? encryptData(parsed.emergencyContact.trim())
-          : null,
-        aadhaarLast4: parsed.aadhaarLast4,
-        panEncrypted: parsed.pan ? encryptData(parsed.pan.trim().toUpperCase()) : null,
-        bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName.trim()) : null,
-        bankAccountEncrypted: parsed.bankAccount ? encryptData(parsed.bankAccount.trim()) : null,
-        bankIfscEncrypted: parsed.bankIfsc ? encryptData(parsed.bankIfsc.trim().toUpperCase()) : null,
-        qualification: parsed.qualification || null,
-        experience: parsed.experience || null,
-        isActive: true,
-        legalHold: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+      if (targetRole) {
+        await tx.insert(userRoles).values({
+          userId: u.id,
+          roleId: targetRole.id,
+          schoolId: school.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
-    if (!newStaff) {
-      return { success: false, message: "Failed to create staff record." };
-    }
+      // 7. Insert staff record with encrypted PII
+      const [s] = await tx
+        .insert(staff)
+        .values({
+          schoolId: school.id,
+          userId: u.id,
+          employeeCode: parsed.employeeCode.trim(),
+          departmentId: parsed.departmentId,
+          designationId: parsed.designationId,
+          contractType: parsed.contractType,
+          joiningDate: new Date(parsed.joiningDate),
+          firstNameEncrypted: encryptData(parsed.firstName.trim()),
+          lastNameEncrypted: encryptData(parsed.lastName.trim()),
+          dateOfBirthEncrypted: encryptData(parsed.dateOfBirth),
+          genderEncrypted: encryptData(parsed.gender),
+          mobileEncrypted: encryptData(parsed.mobile.trim()),
+          emailEncrypted: encryptData(emailNormalized),
+          addressEncrypted: parsed.address ? encryptData(parsed.address.trim()) : null,
+          emergencyContactEncrypted: parsed.emergencyContact
+            ? encryptData(parsed.emergencyContact.trim())
+            : null,
+          aadhaarLast4: parsed.aadhaarLast4,
+          panEncrypted: parsed.pan ? encryptData(parsed.pan.trim().toUpperCase()) : null,
+          bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName.trim()) : null,
+          bankAccountEncrypted: parsed.bankAccount ? encryptData(parsed.bankAccount.trim()) : null,
+          bankIfscEncrypted: parsed.bankIfsc ? encryptData(parsed.bankIfsc.trim().toUpperCase()) : null,
+          qualification: parsed.qualification || null,
+          experience: parsed.experience || null,
+          isActive: true,
+          legalHold: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      if (!s) {
+        throw new Error("Failed to create staff record.");
+      }
+
+      return { newUser: u, newStaff: s };
+    });
 
     await logHrAudit(ctx, "WRITE", "staff", newStaff.id, {
       action: "CREATE_STAFF",
       employeeCode: parsed.employeeCode,
       isTeaching: desig.isTeaching,
+      assignedRole: authoritativeRole,
     });
 
+    // 8. Dispatch credentials via SMS (carrying role-specific dashboard link)
+    const formattedMobile = parsed.mobile.trim().startsWith("+91")
+      ? parsed.mobile.trim()
+      : `+91${parsed.mobile.trim()}`;
+    const defaultDashboard = ROLE_CONFIGS[authoritativeRole]?.defaultDashboard || "/dashboard";
+    const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3000";
+    const fullDashboardUrl = `${pwaUrl}${defaultDashboard}`;
+    const roleDisplayName = ROLE_CONFIGS[authoritativeRole]?.displayName || authoritativeRole;
+
+    const smsBody =
+      `Welcome to ${school.name}!\n` +
+      `Role: ${roleDisplayName}\n` +
+      `Login: ${emailNormalized}\n` +
+      `Temp password: ${defaultPassword}\n` +
+      `Dashboard: ${fullDashboardUrl}\n` +
+      `Please change your password on first login.`;
+
+    const smsRes = await sendSMSWithStatus(formattedMobile, smsBody);
+
     safeRevalidate("/hr");
-    return { success: true, staffId: newStaff.id };
+
+    if (!smsRes.delivered) {
+      return {
+        success: true,
+        staffId: newStaff.id,
+        assignedRole: authoritativeRole,
+        warning: "SMS not delivered — share credentials manually",
+        credentials: {
+          email: emailNormalized,
+          tempPassword: defaultPassword,
+          dashboardUrl: defaultDashboard,
+          roleDisplayName,
+        },
+      };
+    }
+
+    return {
+      success: true,
+      staffId: newStaff.id,
+      assignedRole: authoritativeRole,
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -895,62 +942,87 @@ export async function updateStaff(
       updates.departmentId = input.departmentId;
     }
 
-    // Handle designation change and teaching role synchronization
-    if (input.designationId && input.designationId !== staffRecord.designationId) {
-      const newDesig = await db.query.designations.findFirst({
-        where: and(eq(designations.id, input.designationId), eq(designations.schoolId, school.id)),
-      });
-      if (!newDesig || !newDesig.isActive) {
-        return { success: false, message: "Selected designation is invalid or archived." };
-      }
-      updates.designationId = input.designationId;
+      // Handle designation change and authoritative role synchronization
+      if (input.designationId && input.designationId !== staffRecord.designationId) {
+        const newDesig = await db.query.designations.findFirst({
+          where: and(eq(designations.id, input.designationId), eq(designations.schoolId, school.id)),
+        });
+        if (!newDesig || !newDesig.isActive) {
+          return { success: false, message: "Selected designation is invalid or archived." };
+        }
+        updates.designationId = input.designationId;
 
-      // Check if transitioning from Teaching -> Non-Teaching
-      if (staffRecord.designation.isTeaching && !newDesig.isTeaching && staffRecord.userId) {
-        // Academic safety check: Verify no active class allocations
-        const [csCount, sstCount, tpCount, secCount] = await Promise.all([
-          db.query.classSubjects.findMany({ where: eq(classSubjects.assignedTeacherId, staffRecord.userId) }),
-          db.query.sectionSubjectTeachers.findMany({ where: eq(sectionSubjectTeachers.teacherId, staffRecord.userId) }),
-          db.query.timetablePeriods.findMany({ where: eq(timetablePeriods.teacherId, staffRecord.userId) }),
-          db.query.sections.findMany({ where: eq(sections.classTeacherId, staffRecord.userId) }),
-        ]);
+        const oldRoleName = staffRecord.designation.isTeaching ? "TEACHER" : staffRecord.designation.mappedRole;
+        const newRoleName = newDesig.isTeaching ? "TEACHER" : newDesig.mappedRole;
 
-        const totalActive = csCount.length + sstCount.length + tpCount.length + secCount.length;
-        if (totalActive > 0) {
-          return {
-            success: false,
-            message: `Cannot change staff to non-teaching. This teacher has ${totalActive} active academic allocation(s). Reassign classes and timetable periods first.`,
-          };
+        // Check if transitioning from Teaching -> Non-Teaching
+        if (staffRecord.designation.isTeaching && !newDesig.isTeaching && staffRecord.userId) {
+          // Academic safety check: Verify no active class allocations
+          const [csCount, sstCount, tpCount, secCount] = await Promise.all([
+            db.query.classSubjects.findMany({ where: eq(classSubjects.assignedTeacherId, staffRecord.userId) }),
+            db.query.sectionSubjectTeachers.findMany({ where: eq(sectionSubjectTeachers.teacherId, staffRecord.userId) }),
+            db.query.timetablePeriods.findMany({ where: eq(timetablePeriods.teacherId, staffRecord.userId) }),
+            db.query.sections.findMany({ where: eq(sections.classTeacherId, staffRecord.userId) }),
+          ]);
+
+          const totalActive = csCount.length + sstCount.length + tpCount.length + secCount.length;
+          if (totalActive > 0) {
+            return {
+              success: false,
+              message: `Cannot change staff to non-teaching. This teacher has ${totalActive} active academic allocation(s). Reassign classes and timetable periods first.`,
+            };
+          }
         }
 
-        // Remove TEACHER role
-        const teacherRole = await db.query.roles.findFirst({
-          where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
-        });
-        if (teacherRole) {
-          await db.delete(userRoles).where(
-            and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, teacherRole.id)),
-          );
-        }
-      } else if (!staffRecord.designation.isTeaching && newDesig.isTeaching && staffRecord.userId) {
-        // Transitioning from Non-Teaching -> Teaching: Add TEACHER role
-        const teacherRole = await db.query.roles.findFirst({
-          where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
-        });
-        if (teacherRole) {
-          const hasRole = await db.query.userRoles.findFirst({
-            where: and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, teacherRole.id)),
-          });
-          if (!hasRole) {
-            await db.insert(userRoles).values({
-              userId: staffRecord.userId,
-              roleId: teacherRole.id,
-              schoolId: school.id,
+        if (staffRecord.userId && oldRoleName !== newRoleName && newRoleName) {
+          // Remove old role
+          if (oldRoleName) {
+            const oldRole = await db.query.roles.findFirst({
+              where: and(eq(roles.schoolId, school.id), eq(roles.name, oldRoleName as any)),
             });
+            if (oldRole) {
+              await db.delete(userRoles).where(
+                and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, oldRole.id)),
+              );
+            }
+          }
+
+          // Find-or-create new role
+          let targetRole = await db.query.roles.findFirst({
+            where: and(eq(roles.schoolId, school.id), eq(roles.name, newRoleName as any)),
+          });
+          if (!targetRole) {
+            const [created] = await db
+              .insert(roles)
+              .values({
+                schoolId: school.id,
+                name: newRoleName as any,
+                displayName: ROLE_CONFIGS[newRoleName as UserRole]?.displayName || newRoleName,
+                description: `System role for ${newRoleName}`,
+                isSystemRole: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .returning();
+            targetRole = created;
+          }
+
+          if (targetRole) {
+            const existingUserRole = await db.query.userRoles.findFirst({
+              where: and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, targetRole.id)),
+            });
+            if (!existingUserRole) {
+              await db.insert(userRoles).values({
+                userId: staffRecord.userId,
+                roleId: targetRole.id,
+                schoolId: school.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
+            }
           }
         }
       }
-    }
 
     await db.update(staff).set(updates).where(eq(staff.id, staffId));
     await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "UPDATE_STAFF" });

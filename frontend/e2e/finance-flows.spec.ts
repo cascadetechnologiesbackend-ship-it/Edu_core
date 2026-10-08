@@ -65,4 +65,20 @@ test.describe("P6 Quality Gates: Finance E2E & Legacy Redirects", () => {
       await expect(requestRefundBtn).toBeEnabled();
     }
   });
+
+  test("ACC-06 Fiscal Lock UI: Fees Hub loads with AY switcher and fiscal period status", async ({ adminPage }) => {
+    await adminPage.goto("/school/fees-dashboard");
+    await expect(adminPage.locator("h1")).toContainText("Finance & Fees Analytics Hub");
+    const aySelect = adminPage.locator("select").first();
+    await expect(aySelect).toBeVisible();
+  });
+
+  test("ACC-07 Concession & Waiver Summary Report: loads report view with KPIs and export control", async ({ adminPage }) => {
+    await adminPage.goto("/school/accounting/reports/concessions");
+    await expect(adminPage.locator("h1")).toContainText("Concession & Waiver Summary Report");
+    await expect(adminPage.locator("text=Revenue Foregone").first()).toBeVisible();
+    await expect(adminPage.locator("text=Gross Tuition Billed").first()).toBeVisible();
+    await expect(adminPage.locator("text=Realization Rate").first()).toBeVisible();
+  });
 });
+

@@ -27,7 +27,10 @@ import {
   Archive,
   Trash2,
   ExternalLink,
+  Copy,
+  KeyRound,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   createStaff,
   updateStaff,
@@ -95,6 +98,14 @@ export default function HRDashboardClient({
 
   // Dialog open/close toggles
   const [openModal, setOpenModal] = useState<string | null>(null);
+
+  // Fallback modal for unconfigured/undelivered SMS credentials
+  const [manualCredentials, setManualCredentials] = useState<{
+    email: string;
+    tempPassword: string;
+    dashboardUrl: string;
+    roleDisplayName: string;
+  } | null>(null);
 
   // Search & Filter state for Staff
   const [staffSearchQuery, setStaffSearchQuery] = useState("");
@@ -336,7 +347,21 @@ export default function HRDashboardClient({
     const res = await createStaff(staffForm);
     setLoading(false);
     if (res.success) {
-      setSuccessMsg("Staff member added successfully!");
+      const assignedRole = (res as any).assignedRole || "STAFF";
+      const creds = (res as any).credentials;
+      if ((res as any).warning && creds) {
+        setManualCredentials(creds);
+        toast.warning(
+          `Staff onboarded with role ${assignedRole}! SMS not delivered — please share credentials manually.`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success(
+          `Staff onboarded successfully! Assigned role: ${assignedRole} (Dashboard: ${creds?.dashboardUrl || "/dashboard"})`,
+          { duration: 5000 }
+        );
+      }
+      setSuccessMsg(`Staff member added successfully with authoritative role: ${assignedRole}!`);
       setOpenModal(null);
       router.refresh();
     } else {
@@ -1970,14 +1995,14 @@ export default function HRDashboardClient({
                   className={`p-3 rounded-xl flex items-center gap-2 text-xs ${
                     selectedCreateDesig.isTeaching
                       ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                      : "bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                      : "bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                   }`}
                 >
                   <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span>
                     {selectedCreateDesig.isTeaching
                       ? "Authoritative Teaching Designation: Staff will be assigned the TEACHER role and participate in AMS teacher allocation."
-                      : "Authoritative Non-Teaching Designation: Staff will NOT be granted academic privileges and will not appear in teacher selectors."}
+                      : `Authoritative Non-Teaching Designation: Staff will be assigned the ${selectedCreateDesig.mappedRole || "STAFF"} role and land on its dedicated dashboard.`}
                   </span>
                 </div>
               )}
@@ -2090,6 +2115,71 @@ export default function HRDashboardClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: MANUAL CREDENTIALS FALLBACK (When SMS fails or unconfigured) ─── */}
+      {manualCredentials && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <KeyRound className="w-5 h-5 shrink-0" />
+                <h3 className="font-bold text-base text-slate-800 dark:text-white">
+                  Staff Login Credentials
+                </h3>
+              </div>
+              <button
+                onClick={() => setManualCredentials(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
+              <span className="font-semibold">Notice:</span> SMS gateway is unconfigured or failed delivery. Please copy and manually share these credentials with the staff member.
+            </div>
+
+            <div className="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
+              <div>
+                <span className="text-slate-500 block">Assigned ERP Role:</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{manualCredentials.roleDisplayName}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Login Email:</span>
+                <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 select-all">{manualCredentials.email}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Temporary Password (One-Time):</span>
+                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm select-all">{manualCredentials.tempPassword}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Target Dashboard:</span>
+                <span className="font-mono text-slate-700 dark:text-slate-300">{manualCredentials.dashboardUrl}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => {
+                  const txt = `ERP Login Credentials\nEmail: ${manualCredentials.email}\nTemp Password: ${manualCredentials.tempPassword}\nDashboard: ${manualCredentials.dashboardUrl}\nMust change password on first login.`;
+                  navigator.clipboard.writeText(txt);
+                  toast.success("Credentials copied to clipboard!");
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy Credentials
+              </button>
+              <button
+                onClick={() => setManualCredentials(null)}
+                className="px-4 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

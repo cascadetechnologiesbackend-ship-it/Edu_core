@@ -573,8 +573,8 @@ export async function backfillDoubleEntryLedger(
     switch (row.sourceType) {
       case "FEE_COLLECTION": {
         if (row.transactionType === "DEBIT") {
-          // Fee Refund Payout
-          debitId = sys.cautionDepositId;
+          // Fee Refund Payout restores Student Receivable
+          debitId = sys.studentReceivableId;
           creditId = bankCashChartId;
         } else {
           // Fee Collection Deposit
@@ -667,6 +667,26 @@ export async function backfillDoubleEntryLedger(
         .where(eq(accountLedgerTransactions.id, row.id));
       updatedCount++;
     }
+  }
+
+  // Corrective pass: Ensure any fee refunds previously mapped to Caution Deposit (2100) are remapped to 1200
+  const schoolsToFix: string[] = schoolId
+    ? [schoolId]
+    : Array.from(new Set(pendingRows.map((r: any) => r.schoolId as string).filter(Boolean)));
+  for (const sId of schoolsToFix) {
+    if (!sId) continue;
+    const sys = await ensureSchoolChartOfAccounts(sId, client);
+    await client
+      .update(accountLedgerTransactions)
+      .set({ debitAccountId: sys.studentReceivableId })
+      .where(
+        and(
+          eq(accountLedgerTransactions.schoolId, sId),
+          eq(accountLedgerTransactions.sourceType, "FEE_COLLECTION"),
+          eq(accountLedgerTransactions.transactionType, "DEBIT"),
+          eq(accountLedgerTransactions.debitAccountId, sys.cautionDepositId),
+        ),
+      );
   }
 
   return { updatedCount };

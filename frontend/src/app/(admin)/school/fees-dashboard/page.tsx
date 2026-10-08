@@ -292,6 +292,10 @@ export default async function FeesDashboardPage({
     id: ay.id,
     label: ay.label,
     isActive: ay.isActive,
+    isLocked: ay.isLocked || false,
+    startDate: ay.startDate.toISOString(),
+    endDate: ay.endDate.toISOString(),
+    lockReason: ay.lockReason,
   }));
 
   return (
@@ -320,6 +324,7 @@ export default async function FeesDashboardPage({
       <FeesDashboardClient
         academicYearsList={academicYearsList}
         selectedAyId={selectedAyId}
+        userRole={session.user.role}
         kpis={kpis}
         aging={aging}
         topDefaulters={topDefaulters}

@@ -175,7 +175,8 @@ async function seedChartOfAccounts() {
       switch (txRow.sourceType) {
         case "FEE_COLLECTION": {
           if (txRow.transactionType === "DEBIT") {
-            debitId = cautionDepositId;
+            // Fee Refund Payout restores Student Receivable
+            debitId = studentReceivableId;
             creditId = bankCashChartId;
           } else {
             debitId = bankCashChartId;
@@ -259,6 +260,32 @@ async function seedChartOfAccounts() {
           })
           .where(eq(accountLedgerTransactions.id, txRow.id));
         backfilledCount++;
+      }
+    }
+
+    // Corrective pass: If any fee refunds posted before the fix were mapped to 2100 (Caution Deposit),
+    // reclassify debit_account_id to Student Receivable (1200)
+    const cautionAcc = await db.query.chartOfAccounts.findFirst({
+      where: and(
+        eq(chartOfAccounts.schoolId, schoolId),
+        eq(chartOfAccounts.code, "2100"),
+      ),
+    });
+    if (cautionAcc) {
+      const corrected = await db
+        .update(accountLedgerTransactions)
+        .set({ debitAccountId: studentReceivableId })
+        .where(
+          and(
+            eq(accountLedgerTransactions.schoolId, schoolId),
+            eq(accountLedgerTransactions.sourceType, "FEE_COLLECTION"),
+            eq(accountLedgerTransactions.transactionType, "DEBIT"),
+            eq(accountLedgerTransactions.debitAccountId, cautionAcc.id),
+          ),
+        )
+        .returning();
+      if (corrected.length > 0) {
+        console.log(`  ✓ Corrected ${corrected.length} refund transactions from 2100 to 1200 for ${school.name}.`);
       }
     }
 
