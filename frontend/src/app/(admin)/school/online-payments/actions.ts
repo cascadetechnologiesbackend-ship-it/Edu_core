@@ -52,7 +52,7 @@ export async function reconcileOnlinePayment(logId: string) {
     let newBalance: string = "0";
 
     const totalAmount = parseFloat(log.amount);
-    const feeAmount = parseFloat((log as any).feeAmount || "0");
+    const feeAmount = parseFloat(log.feeAmount || "0");
     const netAmount = Math.max(0, totalAmount - feeAmount);
 
     await db.transaction(async (tx) => {
@@ -192,7 +192,7 @@ export async function reverseOnlinePayment(logId: string, reason: string) {
     await assertAcademicYearNotLocked(school.id, new Date(), db);
 
     const totalAmount = parseFloat(log.amount);
-    const feeAmount = parseFloat((log as any).feeAmount || "0");
+    const feeAmount = parseFloat(log.feeAmount || "0");
     const netAmount = Math.max(0, totalAmount - feeAmount);
 
     await db.transaction(async (tx) => {

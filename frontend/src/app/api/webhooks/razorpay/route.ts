@@ -3,6 +3,7 @@ import { feeInvoices, feePayments, paymentGatewayLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { archiveReceiptPdfToS3 } from "@/workers/financeAutomation";
 
 export async function POST(req: Request) {
   try {
@@ -81,32 +82,64 @@ export async function POST(req: Request) {
         newStatus = "PARTIAL";
       }
 
+      // Extract gateway processing fee and tax (AZ-04)
+      // Razorpay provides fee in paise (which includes tax)
+      let feeAmount = 0;
+      if (typeof payment.fee === "number" && !isNaN(payment.fee)) {
+        feeAmount = payment.fee / 100;
+      } else if (typeof payment.fee_amount === "number" && !isNaN(payment.fee_amount)) {
+        feeAmount = payment.fee_amount;
+      }
+
+      if (feeAmount === 0 && typeof payment.tax === "number" && !isNaN(payment.tax)) {
+        feeAmount = payment.tax / 100;
+      }
+
       const receiptNumber = `RZR-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+      let createdPaymentId: string | null = null;
 
       await db.transaction(async (tx) => {
-        // Update Log
+        // Update Log with feeAmount and sanitized webhookPayload (AZ-04)
         await tx
           .update(paymentGatewayLogs)
           .set({
             status: "PAID",
             gatewayPaymentId: payment.id,
             gatewaySignature: signature,
+            feeAmount: feeAmount.toFixed(2),
+            webhookPayload: JSON.stringify({
+              id: payment.id,
+              order_id: payment.order_id,
+              amount: payment.amount,
+              fee: payment.fee,
+              tax: payment.tax,
+              method: payment.method,
+              currency: payment.currency,
+            }),
+            updatedAt: new Date(),
           })
           .where(eq(paymentGatewayLogs.id, log.id));
 
         // Create Payment
-        await tx.insert(feePayments).values({
-          receiptNumber,
-          schoolId: invoice.schoolId,
-          studentId: invoice.studentId,
-          feeInvoiceId: invoice.id,
-          amountPaid: amountPaid.toFixed(2),
-          paymentMethod: "ONLINE",
-          transactionReference: payment.id,
-          paymentDate: new Date(),
-          remarks: "Online Payment via Razorpay",
-          collectedById: null, // Online payment
-        });
+        const [insertedPayment] = await tx
+          .insert(feePayments)
+          .values({
+            receiptNumber,
+            schoolId: invoice.schoolId,
+            studentId: invoice.studentId,
+            feeInvoiceId: invoice.id,
+            amountPaid: amountPaid.toFixed(2),
+            paymentMethod: "ONLINE",
+            transactionReference: payment.id,
+            paymentDate: new Date(),
+            remarks: "Online Payment via Razorpay",
+            collectedById: null, // Online payment
+          })
+          .returning();
+
+        if (insertedPayment) {
+          createdPaymentId = insertedPayment.id;
+        }
 
         // Update Invoice
         await tx
@@ -118,6 +151,13 @@ export async function POST(req: Request) {
           })
           .where(eq(feeInvoices.id, invoice.id));
       });
+
+      // Asynchronously trigger S3 PDF archival (AZ-03)
+      if (createdPaymentId) {
+        archiveReceiptPdfToS3(invoice.schoolId, createdPaymentId).catch((err) => {
+          console.error("[Razorpay Webhook] Async S3 receipt archival failed:", err);
+        });
+      }
     }
 
     return NextResponse.json({ success: true });
