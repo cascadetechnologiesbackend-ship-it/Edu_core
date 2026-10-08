@@ -3,6 +3,7 @@ import { feeInvoices, students, feePayments, auditLogs } from "@/db/schema";
 import { eq, desc, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
+import { getStudentAdvanceBalance } from "@/lib/advanceFeesEngine";
 import { CheckoutButton } from "./CheckoutButton";
 import Link from "next/link";
 import {
@@ -15,9 +16,14 @@ import {
   ChevronRight,
   ShieldCheck,
   Award,
+  Wallet,
 } from "lucide-react";
 
-export default async function ParentFeesPage() {
+export default async function ParentFeesPage({
+  searchParams,
+}: {
+  searchParams?: { tab?: string; invoiceId?: string };
+}) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -92,6 +98,16 @@ export default async function ParentFeesPage() {
     allPayments.push(...studentPayments.map((p) => ({ ...p, student })));
   }
 
+  let totalAdvanceBalance = 0;
+  for (const student of myStudents) {
+    try {
+      const adv = await getStudentAdvanceBalance(student.schoolId, student.id, db);
+      totalAdvanceBalance += adv.creditBalance;
+    } catch {
+      // ignore
+    }
+  }
+
   const pendingInvoices = allInvoices.filter((i) =>
     ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status)
   );
@@ -135,6 +151,31 @@ export default async function ParentFeesPage() {
         </div>
       </div>
 
+      {/* ─── Wallet / Advance Credit Card ──────────────────────────────────── */}
+      {totalAdvanceBalance > 0 && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">
+              <Wallet className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white">Unallocated Fee Advance / Wallet</div>
+              <div className="text-[11px] text-slate-400">
+                Available credit automatically applied to upcoming term fees
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-base sm:text-lg font-black text-emerald-400">
+              ₹{totalAdvanceBalance.toFixed(2)}
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">
+              Credit Active
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ─── 2. Outstanding Invoices & Dues ─────────────────────────────────── */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4">
         <div className="flex items-center justify-between">
@@ -156,11 +197,16 @@ export default async function ParentFeesPage() {
               const fName = decryptData(inv.student.firstNameEncrypted) || "Student";
               const feeHeadName = (inv.feeStructure?.feeHead as any)?.name || "Academic Fee";
               const balanceAmt = parseFloat(inv.balanceAmount || "0");
+              const isTargeted = Boolean(searchParams?.invoiceId && searchParams.invoiceId === inv.id);
 
               return (
                 <div
                   key={inv.id}
-                  className="rounded-2xl border border-slate-800/90 bg-slate-950/60 p-4 space-y-3 transition hover:border-slate-700"
+                  className={`rounded-2xl border ${
+                    isTargeted
+                      ? "border-indigo-500 ring-2 ring-indigo-500/50 bg-indigo-950/20"
+                      : "border-slate-800/90 bg-slate-950/60"
+                  } p-4 space-y-3 transition hover:border-slate-700`}
                 >
                   {/* Top Row: Ward name, Fee Head, and Amount */}
                   <div className="flex items-start justify-between gap-3">
@@ -170,6 +216,11 @@ export default async function ParentFeesPage() {
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
                           {inv.term}
                         </span>
+                        {isTargeted && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                            Deep-Link Target
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
                         <span>Invoice: <strong className="text-slate-300">{inv.invoiceNumber}</strong></span>

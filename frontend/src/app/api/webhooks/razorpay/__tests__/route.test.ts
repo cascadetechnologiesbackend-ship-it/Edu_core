@@ -153,6 +153,9 @@ describe("Razorpay Webhook Handler", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
+    expect(body.receiptAvailable).toBe(true);
+    expect(body.downloadUrl).toBe("/api/receipt/mock-payment-uuid");
+    expect(body.paymentId).toBe("mock-payment-uuid");
 
     // Verify feeAmount is wired correctly to 23.60
     expect(mockSet).toHaveBeenCalledWith(

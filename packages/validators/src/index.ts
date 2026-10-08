@@ -585,6 +585,58 @@ export type FeeCardPaymentSummary = z.infer<typeof FeeCardPaymentSummarySchema>;
 export type FeeCardConcessionSummary = z.infer<typeof FeeCardConcessionSummarySchema>;
 export type FeeCardReminderSummary = z.infer<typeof FeeCardReminderSummarySchema>;
 
+// ─── Phase B1 AZ-07: ParentStudentFeeLedger Field Projection Contract ─────────
+
+export const ParentInvoiceSummarySchema = z.object({
+  invoiceId: z.string(),
+  invoiceNumber: z.string(),
+  term: z.string().optional(),
+  feeHeadName: z.string().optional(),
+  dueDate: z.string(),
+  grossAmount: z.number(),
+  discountAmount: z.number().default(0),
+  lateFeeAmount: z.number().default(0),
+  paidAmount: z.number().default(0),
+  balanceAmount: z.number(),
+  status: z.string(),
+  isAvailableForPayment: z.boolean(),
+});
+
+export const ParentPaymentSummarySchema = z.object({
+  paymentId: z.string(),
+  receiptNumber: z.string(),
+  amountPaid: z.number(),
+  paymentDate: z.string(),
+  paymentMethod: z.string(),
+  receiptUrl: z.string(),
+  receiptAvailable: z.boolean().default(true),
+});
+
+export const ParentStudentFeeLedgerSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  admissionNumber: z.string(),
+  className: z.string().optional(),
+  sectionName: z.string().nullable().optional(),
+  totalOutstanding: z.number(),
+  creditBalance: z.number().default(0),
+  invoices: z.array(ParentInvoiceSummarySchema).default([]),
+  payments: z.array(ParentPaymentSummarySchema).default([]),
+});
+
+export const PROHIBITED_PARENT_LEDGER_KEYS = [
+  ...PROHIBITED_STUDENT_FEE_CARD_KEYS,
+  "internalRemarks",
+  "accountantNotes",
+  "staffRemarks",
+  "auditMetadata",
+] as const;
+
+export type ParentStudentFeeLedger = z.infer<typeof ParentStudentFeeLedgerSchema>;
+export type ParentInvoiceSummary = z.infer<typeof ParentInvoiceSummarySchema>;
+export type ParentPaymentSummary = z.infer<typeof ParentPaymentSummarySchema>;
+
 // ─── Re-exports ───────────────────────────────────────────────────────────────
 
 export type { z };
+

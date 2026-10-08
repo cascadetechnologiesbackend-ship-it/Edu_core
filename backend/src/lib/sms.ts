@@ -311,19 +311,74 @@ export async function sendSMS(
 }
 
 /**
+ * Generates an authenticated or portal deep-link for student fee payment (AZ-07).
+ */
+export function generateFeePaymentDeepLink(
+  schoolDomain: string,
+  invoiceId: string,
+  token?: string
+): string {
+  const cleanDomain = schoolDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const base = `https://${cleanDomain}/portal?tab=fees&invoiceId=${encodeURIComponent(invoiceId)}`;
+  return token ? `${base}&token=${encodeURIComponent(token)}` : base;
+}
+
+/**
  * High-level helper for DLT-registered transactional reminders / OTPs
+ * Supports both DLT variable syntax styles: {#variable#} and {variable} (e.g. {payment_link}).
  */
 export async function sendDLTTransactionalSMS(
   mobileNumber: string,
   templateId: string,
-  variables: Record<string, string>
+  variables: Record<string, string>,
+  templateBody?: string
 ): Promise<SmsDeliveryResult> {
+  const baseTemplate = templateBody || `DLT Template ${templateId}`;
   const renderedMessage = Object.entries(variables).reduce(
-    (acc, [k, v]) => acc.replace(new RegExp(`{#${k}#}`, "g"), v),
-    `DLT Template ${templateId}`
+    (acc, [k, v]) =>
+      acc
+        .replace(new RegExp(`{#${k}#}`, "g"), v)
+        .replace(new RegExp(`{${k}}`, "g"), v),
+    baseTemplate
   );
   return sendSMSWithStatus(mobileNumber, renderedMessage, {
     templateId,
     variables,
   });
 }
+
+/**
+ * Helper to dispatch DLT-registered fee payment reminders with secure deep-links (AZ-07).
+ */
+export async function sendFeeReminderSMS({
+  mobileNumber,
+  studentName,
+  amountDue,
+  dueDate,
+  schoolDomain,
+  invoiceId,
+  templateId = "DLT_FEE_REMINDER_01",
+}: {
+  mobileNumber: string;
+  studentName: string;
+  amountDue: string | number;
+  dueDate: string;
+  schoolDomain: string;
+  invoiceId: string;
+  templateId?: string;
+}): Promise<SmsDeliveryResult> {
+  const paymentLink = generateFeePaymentDeepLink(schoolDomain, invoiceId);
+  const variables: Record<string, string> = {
+    student_name: studentName,
+    amount: String(amountDue),
+    due_date: dueDate,
+    payment_link: paymentLink,
+  };
+  return sendDLTTransactionalSMS(
+    mobileNumber,
+    templateId,
+    variables,
+    "Dear Parent, fee of Rs.{amount} for {student_name} is due on {due_date}. Pay online: {payment_link}"
+  );
+}
+

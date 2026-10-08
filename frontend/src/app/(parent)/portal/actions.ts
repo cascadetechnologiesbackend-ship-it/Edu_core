@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import { sendSMS } from "@/lib/sms";
+import { fetchParentStudentFeeLedger } from "@/lib/parentStudentFeeLedger";
 
 // ─── OTP Generator Stub ──────────────────────────────────────────────────────
 export async function generateConsentChangeOtp(
@@ -316,6 +317,7 @@ export async function fetchStudentCompleteData(studentId: string) {
         isAbsent: m.isAbsent,
       })),
       recentInvoices: invoices.map((i) => ({
+        invoiceId: i.id,
         invoiceNumber: i.invoiceNumber,
         term: i.term,
         dueDate: i.dueDate.toLocaleDateString(),
@@ -323,13 +325,19 @@ export async function fetchStudentCompleteData(studentId: string) {
         discountAmount: i.discountAmount,
         balanceAmount: i.balanceAmount,
         status: i.status,
+        isAvailableForPayment:
+          ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status) &&
+          parseFloat(i.balanceAmount || "0") > 0,
       })),
       recentPayments: payments.map((p) => ({
+        paymentId: p.id,
         receiptNumber: p.receiptNumber,
         amountPaid: p.amountPaid,
         paymentDate: p.paymentDate.toLocaleDateString(),
         paymentMethod: p.paymentMethod,
         transactionReference: p.transactionReference,
+        receiptUrl: `/api/receipt/${p.id}`,
+        receiptAvailable: true,
       })),
     };
 
@@ -338,3 +346,32 @@ export async function fetchStudentCompleteData(studentId: string) {
     return { success: false, message: error.message };
   }
 }
+
+// ─── Phase B1 AZ-07: Parent Student Fee Ledger ───────────────────────────────
+export async function getParentStudentFeeLedgerAction(studentId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+
+    const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
+      session.user.role
+    );
+
+    const ledger = await fetchParentStudentFeeLedger(
+      db,
+      session.user.schoolId || "",
+      studentId,
+      session.user.id,
+      isAdmin
+    );
+
+    if (!ledger) {
+      return { success: false, message: "Ward record not found" };
+    }
+
+    return { success: true, data: ledger };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+

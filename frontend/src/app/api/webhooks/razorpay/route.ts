@@ -158,6 +158,14 @@ export async function POST(req: Request) {
           console.error("[Razorpay Webhook] Async S3 receipt archival failed:", err);
         });
       }
+
+      return NextResponse.json({
+        success: true,
+        paymentId: createdPaymentId,
+        receiptNumber,
+        receiptAvailable: true,
+        downloadUrl: createdPaymentId ? `/api/receipt/${createdPaymentId}` : undefined,
+      });
     }
 
     return NextResponse.json({ success: true });
