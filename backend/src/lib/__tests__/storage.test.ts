@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { validateSchoolScopedKey, getPresignedUploadUrl } from "../storage";
+import {
+  validateSchoolScopedKey,
+  getPresignedUploadUrl,
+  uploadBufferToS3,
+  getPresignedDownloadUrl,
+} from "../storage";
 
 describe("GAP-006: S3 Tenant Isolation & Path Traversal Guards", () => {
   const schoolId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
@@ -56,6 +61,36 @@ describe("GAP-006: S3 Tenant Isolation & Path Traversal Guards", () => {
         const url = await getPresignedUploadUrl(validKey, "image/png");
         expect(url).toContain("/api/upload?key=");
         expect(url).toContain(encodeURIComponent(validKey));
+      } finally {
+        if (originalKeyId) process.env.AWS_ACCESS_KEY_ID = originalKeyId;
+      }
+    });
+  });
+
+  describe("AZ-03: uploadBufferToS3 & getPresignedDownloadUrl Archival Operations", () => {
+    it("rejects path traversal keys on uploadBufferToS3 and getPresignedDownloadUrl", async () => {
+      const badKey = "../evil.pdf";
+      await expect(
+        uploadBufferToS3(badKey, Buffer.from("dummy"))
+      ).rejects.toThrow(/path traversal/);
+
+      await expect(
+        getPresignedDownloadUrl(badKey)
+      ).rejects.toThrow(/path traversal/);
+    });
+
+    it("simulates successful archival and returns local download URL when AWS is unconfigured", async () => {
+      const originalKeyId = process.env.AWS_ACCESS_KEY_ID;
+      try {
+        delete process.env.AWS_ACCESS_KEY_ID;
+        const receiptKey = `${schoolId}/receipts/RCP-2026-0001.pdf`;
+        const uploadResult = await uploadBufferToS3(receiptKey, Buffer.from("PDF content"));
+        expect(uploadResult.success).toBe(true);
+        expect(uploadResult.s3Key).toBe(receiptKey);
+
+        const downloadUrl = await getPresignedDownloadUrl(receiptKey);
+        expect(downloadUrl).toContain("/api/receipt/download?key=");
+        expect(downloadUrl).toContain(encodeURIComponent(receiptKey));
       } finally {
         if (originalKeyId) process.env.AWS_ACCESS_KEY_ID = originalKeyId;
       }

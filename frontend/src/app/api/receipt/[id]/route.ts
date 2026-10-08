@@ -6,6 +6,7 @@ import { renderToStream } from "@react-pdf/renderer";
 import React from "react";
 import { ReceiptPDF } from "@/lib/pdf/templates/ReceiptPDF";
 import { auth } from "@/lib/auth";
+import { getPresignedDownloadUrl } from "@/lib/storage";
 
 export async function GET(
   request: Request,
@@ -63,6 +64,18 @@ export async function GET(
 
   if (!school) {
     return NextResponse.json({ error: "School not found" }, { status: 404 });
+  }
+
+  // AZ-03: If archived in S3 and storage is active, redirect to presigned S3 URL
+  if (payment.receiptS3Key && process.env.AWS_ACCESS_KEY_ID) {
+    try {
+      const downloadUrl = await getPresignedDownloadUrl(payment.receiptS3Key);
+      if (downloadUrl && !downloadUrl.startsWith("/api/receipt/download")) {
+        return NextResponse.redirect(downloadUrl);
+      }
+    } catch (s3Err) {
+      console.warn("[ReceiptAPI] S3 presigned URL lookup failed, falling back to dynamic render:", s3Err);
+    }
   }
 
   const stream = await renderToStream(

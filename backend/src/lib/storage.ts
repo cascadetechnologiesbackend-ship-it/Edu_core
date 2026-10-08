@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -52,3 +52,59 @@ export async function getPresignedUploadUrl(
 
   return await getSignedUrl(s3Client, command, { expiresIn });
 }
+
+/**
+ * Upload an in-memory buffer (such as generated PDF receipt) directly to S3
+ */
+export async function uploadBufferToS3(
+  key: string,
+  buffer: Buffer,
+  contentType = "application/pdf"
+): Promise<{ success: boolean; s3Key: string; error?: string }> {
+  if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
+    throw new Error("Invalid storage key: path traversal sequences are disallowed.");
+  }
+
+  if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === "") {
+    // Local / unconfigured fallback: simulate successful archival
+    return { success: true, s3Key: key };
+  }
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    });
+    await s3Client.send(command);
+    return { success: true, s3Key: key };
+  } catch (err: any) {
+    console.error("[Storage] Failed to upload buffer to S3:", err);
+    return { success: false, s3Key: key, error: err.message };
+  }
+}
+
+/**
+ * Generate pre-signed URL for downloading or viewing archived S3 objects
+ */
+export async function getPresignedDownloadUrl(
+  key: string,
+  expiresIn = 3600
+): Promise<string> {
+  if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
+    throw new Error("Invalid storage key: path traversal sequences are disallowed.");
+  }
+
+  if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === "") {
+    return `/api/receipt/download?key=${encodeURIComponent(key)}`;
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  return await getSignedUrl(s3Client, command, { expiresIn });
+}
+

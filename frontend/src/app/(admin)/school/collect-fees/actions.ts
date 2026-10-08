@@ -25,6 +25,7 @@ import {
   projectToStudentFeeCard,
   fetchStudentFeeCard,
 } from "@/lib/studentFeeCard";
+import { archiveReceiptPdfToS3 } from "@/workers/financeAutomation";
 
 export interface InvoiceCollectionItem {
   invoiceId: string;
@@ -556,6 +557,13 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
           .where(eq(bankAccounts.id, bankAccountId));
       }
     });
+
+    // AZ-03: Asynchronously archive receipt PDF to S3 in the background
+    if (primaryPaymentId && school?.id) {
+      archiveReceiptPdfToS3(school.id, primaryPaymentId).catch((err) => {
+        console.error("[ReceiptArchival] Background S3 archival error:", err);
+      });
+    }
 
     revalidatePath("/school/collect-fees");
     revalidatePath("/school/transactions");
