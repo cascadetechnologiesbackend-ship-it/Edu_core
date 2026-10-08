@@ -138,3 +138,62 @@ This document tracks the resolution status of all requirements defined in [requi
   - [x] 20.1 Established and benchmarked p50/p95/p99 for top routes (login, student list 1000, fee generation, report card PDF, health check) in [performance-baselines.md](file:///V:/Cascade/Edu_core/Edu_core/docs/architecture/performance-baselines.md).
   - [x] 20.2 Batched fee assignment loop in `cron/generate-invoices/route.ts` and `students/[id]/fees/actions.ts`; reviewed top 10 query execution plans with `EXPLAIN ANALYZE`.
   - [x] 20.3 Benchmarked cold start latency (2.8s on Render Standard tier) and documented sizing.
+
+---
+
+## Spec 4.0.0 & Spec 4.1.0: Role Isolation, Finance Core & A2Z Completion `[STATUS: COMPLETED]`
+
+- [x] **Phase A1 & A2 (PR 1 - Commit `499d1cb`): Shell & Server Route Guards**
+  - [x] Role-scoped sidebar rendering with fail-closed skeleton during role resolution.
+  - [x] Server-side route assertion middleware (`assertRouteAccess`) protecting all non-finance routes from `ACCOUNTANT` and logging `UNAUTHORIZED_ROUTE_ATTEMPT` audit records.
+  - [x] Symmetric isolation across `HR_MANAGER`, `LIBRARIAN`, `TRANSPORT_MANAGER`.
+
+- [x] **Phase A3 (PR 2 - Commit `772fd16`): StudentFeeCard Field Projections & Data Scope Isolation (GT-06)**
+  - [x] `StudentFeeCardSchema` and `projectToStudentFeeCard` field-level projection.
+  - [x] Invariant runtime guard `assertNoProhibitedStudentKeys` barring 17 PII fields (`parentMobile`, `dob`, `aadhaar`, `marks`, etc.).
+
+- [x] **Phase A4 (PR 3 - Commit `68da3e0`): Accountant Workspace UI/UX & Dual Postures (Spec 4.1.0)**
+  - [x] Dual posture support: Counter POS Terminal (<= 8s interaction budget) and Finance Hub cockpit.
+  - [x] 5 authoritative MoneyKPI cards, Aging Pills, Collect CTA, `StudentLedgerDrawer`, and `ReceiptSheet`.
+  - [x] Quick Voucher Entry modal (`SCR-VCH`) supporting Contra, Income, and Expense vouchers.
+
+- [x] **Phase B1 AZ-01 (PR 4 - Commit `06c3f7b`): Production Indian DLT SMS Engine**
+  - [x] Strict zero silent fake-success guard: unconfigured credentials return false immediately.
+  - [x] Indian DLT routing (Twilio, MSG91, Fast2SMS, Generic Gateway) with 3x retry and exponential backoff.
+
+- [x] **Phase B1 AZ-02 (PR 5 - Commit `d7b48bb`): Automation Worker Deployment & Telemetry**
+  - [x] Migration `0021_worker_heartbeats.sql` and heartbeat tracking in `financeAutomation.ts`.
+  - [x] Health monitoring endpoint `/api/health/worker` checking worker freshness (< 90s).
+
+- [x] **Phase B1 AZ-03 (PR 6 - Commit `3edb31f`): S3 Receipt Archival & Reprint Fallback**
+  - [x] S3 PDF upload with pre-signed download URL generation.
+  - [x] Local PDF generator fallback when S3 is unavailable or unconfigured.
+
+- [x] **Phase B1 AZ-04 (PR 7 - Commit `7483587`): Gateway Live Settlement & Fee Split**
+  - [x] Wired `feeAmount` and `taxAmount` from Razorpay webhook payloads into `payment_gateway_logs`.
+  - [x] Sanitized webhook payloads (removing customer card/auth details).
+  - [x] Double-entry `ACC-05` bank/fee split posting in `reconcileOnlinePayment`.
+
+- [x] **Phase B1 AZ-05 (PR 8 - Commit `7052fd7`): Advance Fees Engine & Double-Entry Invariants (AM-02)**
+  - [x] Migration `0020_student_fee_advances.sql` and `student_fee_advances` / `student_fee_advance_allocations` tables.
+  - [x] Chart of Accounts liability head `2110 Student Fee Advances`.
+  - [x] Advance fees engine with in-transaction invariant `sum(allocations) <= sum(advance)`.
+
+- [x] **Phase B1 AZ-06 (PR 9 - Commit `80ffe32`): Go-Live Data Readiness Audit & Fiscal Lock Runbook (AM-01)**
+  - [x] Migration sequence audit verifying migrations `0014..0021` in `__drizzle_migrations`.
+  - [x] Chart of Accounts 8 system accounts backfill with zero null-account transactions.
+  - [x] Opening balance posting for active bank accounts.
+  - [x] Operational runbook `docs/fiscal_lock_procedure.md` for Super Admin fiscal year locking.
+
+- [x] **Phase B1 AZ-07 (PR 10 - Commit `2a2cbcb`): Parent Finance Readiness & Receipt Deep-Links**
+  - [x] `ParentStudentFeeLedger` projection schema and `assertNoProhibitedParentLedgerKeys` zero-PII security guard.
+  - [x] Payment success invoice and receipt availability flags (`receiptAvailable: true`, download URLs).
+  - [x] Secure fee payment deep-link generator `generateFeePaymentDeepLink` and `{payment_link}` DLT template support.
+  - [x] Unallocated advance credit balance / wallet card in parent portal.
+
+- [x] **Phase B1 AZ-08 (PR 11 - Commit `f587d97`): Release Runbook & Operational Verification**
+  - [x] Production release runbook `docs/release_runbook.md`.
+  - [x] Automated DB backup schedules and quarterly restore drill SOP.
+  - [x] Telemetry, P1/P2 alerting thresholds for money-action failures, and `/api/health` monitoring.
+  - [x] Zero-downtime deployment sequence for Render monorepo services.
+
