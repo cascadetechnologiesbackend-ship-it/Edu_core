@@ -57,28 +57,43 @@ export default async function FeesDashboardPage({
   const data = await withDataPhaseTiming("/school/fees-dashboard", async () => {
     return assertQueryBudget(
       async () => {
-        // 1. Parallel fetch of master configuration: Active School, Academic Years & Classes
-        const [activeSchool, allAcademicYears, allClasses] = await Promise.all([
-          db.query.schools.findFirst({
-            where: eq(schools.id, schoolId),
-          }),
-          db.query.academicYears.findMany({
-            where: eq(academicYears.schoolId, schoolId),
-            orderBy: [desc(academicYears.startDate)],
-          }),
-          db.query.classes.findMany({
-            where: eq(classes.schoolId, schoolId),
-          }),
-        ]);
+        // 1. S3 Reference Cache: Master configuration (School, Academic Years & Classes)
+        let masterConfig = await getCachedFinanceData<{
+          activeSchool: any;
+          allAcademicYears: any[];
+          allClasses: any[];
+        }>(schoolId, "hub_master_config");
 
-        if (!activeSchool) return null;
+        if (!masterConfig) {
+          const [activeSchool, allAcademicYears, allClasses] = await Promise.all([
+            db.query.schools.findFirst({
+              where: eq(schools.id, schoolId),
+            }),
+            db.query.academicYears.findMany({
+              where: eq(academicYears.schoolId, schoolId),
+              orderBy: [desc(academicYears.startDate)],
+            }),
+            db.query.classes.findMany({
+              where: eq(classes.schoolId, schoolId),
+            }),
+          ]);
+
+          if (!activeSchool) return null;
+          masterConfig = { activeSchool, allAcademicYears, allClasses };
+          await setCachedFinanceData(schoolId, "hub_master_config", masterConfig, {
+            ttlSeconds: 3600,
+            tags: [`school:${schoolId}`],
+          });
+        }
+
+        const { activeSchool, allAcademicYears, allClasses } = masterConfig;
 
         // Resolve selected academic year
         const selectedYear =
           (searchParams.ayId
-            ? allAcademicYears.find((ay) => ay.id === searchParams.ayId)
+            ? allAcademicYears.find((ay: any) => ay.id === searchParams.ayId)
             : null) ||
-          allAcademicYears.find((ay) => ay.isActive) ||
+          allAcademicYears.find((ay: any) => ay.isActive) ||
           allAcademicYears[0];
 
         const selectedAyId = selectedYear?.id || "";
@@ -87,18 +102,7 @@ export default async function FeesDashboardPage({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // 2. Band 1: S1 Live Counter - Fetch today's payments (1 scoped indexed query)
-        const todayPaymentsPromise = db.query.feePayments.findMany({
-          where: and(
-            eq(feePayments.schoolId, schoolId),
-            gte(feePayments.paymentDate, today)
-          ),
-          columns: {
-            amountPaid: true,
-          },
-        });
-
-        // 3. Band 2 & 3: Check S2 Cache (Jittered 270s-330s)
+        // 2. Band 2 & 3: Check S2 Cache (Jittered 270s-330s)
         const cachedBands23 = await getCachedFinanceData<CachedBands23Payload>(
           schoolId,
           "hub_bands23",
@@ -108,8 +112,16 @@ export default async function FeesDashboardPage({
         let bands23Data: CachedBands23Payload;
 
         if (cachedBands23) {
-          // Cache HIT: 0 queries for Bands 2 & 3!
-          const todayPayments = await todayPaymentsPromise;
+          // Cache HIT: Only 1 fresh query for Band 1 S1 Live Counter! (0 queries for Bands 2 & 3)
+          const todayPayments = await db.query.feePayments.findMany({
+            where: and(
+              eq(feePayments.schoolId, schoolId),
+              gte(feePayments.paymentDate, today)
+            ),
+            columns: {
+              amountPaid: true,
+            },
+          });
           let todayCollected = 0;
           for (const p of todayPayments) {
             todayCollected += parseFloat(p.amountPaid || "0");
@@ -126,9 +138,8 @@ export default async function FeesDashboardPage({
           };
         }
 
-        // Cache MISS: Run remaining queries to populate Band 2 & 3
-        const [todayPayments, invoices, payments, dailyRollup] = await Promise.all([
-          todayPaymentsPromise,
+        // Cache MISS: Run invoices and payments in parallel (2 queries) to populate Band 1, 2, & 3
+        const [invoices, payments, dailyRollup] = await Promise.all([
           db.query.feeInvoices.findMany({
             where: selectedAyId
               ? and(
@@ -147,17 +158,21 @@ export default async function FeesDashboardPage({
               student: true,
             },
             orderBy: [desc(feePayments.paymentDate)],
-            limit: 10,
+            limit: 100,
           }),
           getCachedFinanceData<any>(schoolId, "rollups_daily"),
         ]);
 
         let todayCollected = 0;
-        for (const p of todayPayments) {
-          todayCollected += parseFloat(p.amountPaid || "0");
+        let todayPaymentsCount = 0;
+        for (const p of payments) {
+          if (new Date(p.paymentDate) >= today) {
+            todayCollected += parseFloat(p.amountPaid || "0");
+            todayPaymentsCount++;
+          }
         }
 
-        const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
+        const classMap = new Map(allClasses.map((c: any) => [c.id, c.displayName]));
 
         // Calculate Bands 2 & 3 metrics
         let totalBilled = 0;
@@ -335,7 +350,7 @@ export default async function FeesDashboardPage({
           allClasses,
           selectedAyId,
           todayCollected,
-          todayPaymentsCount: todayPayments.length,
+          todayPaymentsCount,
           ...bands23Data,
         };
       },
