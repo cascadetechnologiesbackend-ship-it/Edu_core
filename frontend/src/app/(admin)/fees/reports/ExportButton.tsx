@@ -1,7 +1,5 @@
 "use client";
 
-import ExcelJS from "exceljs";
-
 export function ExportButton({
   data,
   filename = "export.xlsx",
@@ -15,6 +13,7 @@ export function ExportButton({
       return;
     }
 
+    const { default: ExcelJS } = await import("exceljs");
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Data");
 

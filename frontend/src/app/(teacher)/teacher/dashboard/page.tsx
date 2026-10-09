@@ -1,4 +1,6 @@
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 import { db } from "@/db";
 import {
   staff,
@@ -51,206 +53,245 @@ export default async function TeacherDashboardPage() {
   const schoolId = school.id;
   const userId = ctx.userId;
 
-  // 1. Fetch Staff/Teacher details
-  const staffMember = await db.query.staff.findFirst({
-    where: and(eq(staff.userId, userId), eq(staff.schoolId, schoolId)),
-  });
-
-  const teacherName = staffMember
-    ? `${decryptData(staffMember.firstNameEncrypted)} ${decryptData(staffMember.lastNameEncrypted)}`.trim()
-    : ctx.role === "TEACHER"
-    ? "Teacher"
-    : "Administrator";
-
-  // 2. Query Teacher's Designated Class Teacher Sections
-  const classTeacherSections = await db.query.sections.findMany({
-    where: and(
-      eq(sections.schoolId, schoolId),
-      eq(sections.classTeacherId, userId),
-      eq(sections.isActive, true)
-    ),
-    with: {
-      class: true,
-    },
-  });
-
-  // 3. Query Teacher's Assigned Class-Subjects
-  const assignedMappings = await db.query.classSubjects.findMany({
-    where: and(
-      eq(classSubjects.schoolId, schoolId),
-      eq(classSubjects.assignedTeacherId, userId)
-    ),
-    with: {
-      class: true,
-      subject: true,
-    },
-  });
-
-  // 4. Query Section-Subject Overrides
-  const sectionSubjectAllocations = await db.query.sectionSubjectTeachers.findMany({
-    where: and(
-      eq(sectionSubjectTeachers.schoolId, schoolId),
-      eq(sectionSubjectTeachers.teacherId, userId),
-      eq(sectionSubjectTeachers.isActive, true)
-    ),
-    with: {
-      section: {
-        with: {
-          class: true,
-        },
-      },
-      classSubject: {
-        with: {
-          subject: true,
-        },
-      },
-    },
-  });
-
-  // Aggregate all unique assigned section IDs
-  const sectionIdSet = new Set<string>();
-  classTeacherSections.forEach((s) => sectionIdSet.add(s.id));
-  sectionSubjectAllocations.forEach((ssa) => {
-    if (ssa.section?.id) sectionIdSet.add(ssa.section.id);
-  });
-
-  // For class-level subject mappings, also include sections of those classes
-  const assignedClassIds = assignedMappings.map((m) => m.classId).filter(Boolean);
-  if (assignedClassIds.length > 0) {
-    const classSections = await db.query.sections.findMany({
-      where: and(
-        eq(sections.schoolId, schoolId),
-        inArray(sections.classId, assignedClassIds),
-        eq(sections.isActive, true)
-      ),
-    });
-    classSections.forEach((s) => sectionIdSet.add(s.id));
-  }
-
-  const assignedSectionIds = Array.from(sectionIdSet);
-
-  // Aggregate distinct class names
-  const assignedClassNames = new Set<string>();
-  classTeacherSections.forEach((s) => {
-    if (s.class?.displayName) assignedClassNames.add(s.class.displayName);
-  });
-  assignedMappings.forEach((m) => {
-    if (m.class?.displayName) assignedClassNames.add(m.class.displayName);
-  });
-  sectionSubjectAllocations.forEach((ssa) => {
-    if (ssa.section?.class?.displayName) {
-      assignedClassNames.add(ssa.section.class.displayName);
-    }
-  });
-
-  const totalAssignedClassesCount = assignedClassNames.size;
-  const totalSubjectAllocations =
-    assignedMappings.length + sectionSubjectAllocations.length;
-
-  // 5. Count Total Students in Assigned Sections ONLY (Zero if unassigned)
-  let totalStudents = 0;
-  if (assignedSectionIds.length > 0) {
-    const studentCountRes = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(students)
-      .where(
-        and(
-          eq(students.schoolId, schoolId),
-          inArray(students.currentSectionId, assignedSectionIds),
-          eq(students.isActive, true)
-        )
-      );
-    totalStudents = Number(studentCountRes[0]?.count || 0);
-  }
-
-  // 6. Check Today's Attendance in Assigned Sections
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const todayAttendanceLogs = assignedSectionIds.length > 0
-    ? await db.query.studentAttendance.findMany({
-        where: and(
-          eq(studentAttendance.schoolId, schoolId),
-          inArray(studentAttendance.sectionId, assignedSectionIds),
-          sql`${studentAttendance.attendanceDate} >= ${today} AND ${studentAttendance.attendanceDate} < ${tomorrow}`
-        ),
-      })
-    : [];
-
-  const isAttendanceMarkedToday = todayAttendanceLogs.length > 0;
-  const presentCount = todayAttendanceLogs.filter((a) => a.status === "PRESENT").length;
-  const absentCount = todayAttendanceLogs.filter((a) => a.status === "ABSENT").length;
-
-  // 7. Query Today's Timetable Periods
-  const dayNames = [
-    "SUNDAY",
-    "MONDAY",
-    "TUESDAY",
-    "WEDNESDAY",
-    "THURSDAY",
-    "FRIDAY",
-    "SATURDAY",
-  ] as const;
-  const currentDayOfWeek = dayNames[new Date().getDay()] || "MONDAY";
-
-  // Sunday is a weekend; timetable day_of_week enum only accepts MONDAY-SATURDAY
-  const isSunday = currentDayOfWeek === "SUNDAY";
-  const todayPeriods = isSunday || assignedSectionIds.length === 0
-    ? []
-    : await db.query.timetablePeriods.findMany({
-        where: and(
-          eq(timetablePeriods.schoolId, schoolId),
-          eq(timetablePeriods.dayOfWeek, currentDayOfWeek as any),
-          inArray(timetablePeriods.sectionId, assignedSectionIds),
-          eq(timetablePeriods.isActive, true)
-        ),
-        with: {
-          subject: true,
-          section: {
+  const {
+    teacherName,
+    classTeacherSections,
+    assignedMappings,
+    sectionSubjectAllocations,
+    assignedClassNames,
+    totalAssignedClassesCount,
+    totalSubjectAllocations,
+    totalStudents,
+    isAttendanceMarkedToday,
+    presentCount,
+    absentCount,
+    currentDayOfWeek,
+    isSunday,
+    todayPeriods,
+    activeExams,
+    salaryBreakdown,
+    hasAllocations,
+  } = await withDataPhaseTiming("/teacher/dashboard", () =>
+    assertQueryBudget(
+      async () => {
+        // Phase 1: Parallel fetch of staff, class teacher sections, subject mappings, section allocations, and active exams
+        const [
+          staffMember,
+          classTeacherSections,
+          assignedMappings,
+          sectionSubjectAllocations,
+          activeExams,
+        ] = await Promise.all([
+          db.query.staff.findFirst({
+            where: and(eq(staff.userId, userId), eq(staff.schoolId, schoolId)),
+          }),
+          db.query.sections.findMany({
+            where: and(
+              eq(sections.schoolId, schoolId),
+              eq(sections.classTeacherId, userId),
+              eq(sections.isActive, true)
+            ),
             with: {
               class: true,
             },
-          },
-        },
-        orderBy: [timetablePeriods.periodNumber],
-        limit: 8,
-      });
+          }),
+          db.query.classSubjects.findMany({
+            where: and(
+              eq(classSubjects.schoolId, schoolId),
+              eq(classSubjects.assignedTeacherId, userId)
+            ),
+            with: {
+              class: true,
+              subject: true,
+            },
+          }),
+          db.query.sectionSubjectTeachers.findMany({
+            where: and(
+              eq(sectionSubjectTeachers.schoolId, schoolId),
+              eq(sectionSubjectTeachers.teacherId, userId),
+              eq(sectionSubjectTeachers.isActive, true)
+            ),
+            with: {
+              section: {
+                with: {
+                  class: true,
+                },
+              },
+              classSubject: {
+                with: {
+                  subject: true,
+                },
+              },
+            },
+          }),
+          db.query.exams.findMany({
+            where: and(eq(exams.schoolId, schoolId), isNull(exams.deletedAt)),
+            orderBy: [exams.startDate],
+            limit: 3,
+          }),
+        ]);
 
-  // 8. Query Active / Upcoming Exams
-  const activeExams = await db.query.exams.findMany({
-    where: and(eq(exams.schoolId, schoolId), isNull(exams.deletedAt)),
-    orderBy: [exams.startDate],
-    limit: 3,
-  });
+        // Aggregate section IDs
+        const sectionIdSet = new Set<string>();
+        classTeacherSections.forEach((s) => sectionIdSet.add(s.id));
+        sectionSubjectAllocations.forEach((ssa) => {
+          if (ssa.section?.id) sectionIdSet.add(ssa.section.id);
+        });
 
-  // 9. Query Staff Salary Structure & Compensation
-  let salaryComponent: any = null;
-  let recentPayslips: any[] = [];
-  if (staffMember) {
-    const [sc, ps] = await Promise.all([
-      db.query.salaryComponents.findFirst({
-        where: eq(salaryComponents.staffId, staffMember.id),
-      }),
-      db.query.payslips.findMany({
-        where: eq(payslips.staffId, staffMember.id),
-        orderBy: [desc(payslips.month)],
-        limit: 3,
-      }),
-    ]);
-    salaryComponent = sc;
-    recentPayslips = ps;
-  }
+        const assignedClassIds = assignedMappings.map((m) => m.classId).filter(Boolean);
+        if (assignedClassIds.length > 0) {
+          const classSections = await db.query.sections.findMany({
+            where: and(
+              eq(sections.schoolId, schoolId),
+              inArray(sections.classId, assignedClassIds),
+              eq(sections.isActive, true)
+            ),
+          });
+          classSections.forEach((s) => sectionIdSet.add(s.id));
+        }
 
-  const salaryBreakdown = salaryComponent
-    ? computeSalaryBreakdown(salaryComponent)
-    : null;
+        const assignedSectionIds = Array.from(sectionIdSet);
 
-  const hasAllocations =
-    classTeacherSections.length > 0 ||
-    assignedMappings.length > 0 ||
-    sectionSubjectAllocations.length > 0;
+        // Phase 2: Parallel fetch of students count, attendance logs, timetable, salary & payslips
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const dayNames = [
+          "SUNDAY",
+          "MONDAY",
+          "TUESDAY",
+          "WEDNESDAY",
+          "THURSDAY",
+          "FRIDAY",
+          "SATURDAY",
+        ] as const;
+        const currentDayOfWeek = dayNames[new Date().getDay()] || "MONDAY";
+        const isSunday = currentDayOfWeek === "SUNDAY";
+
+        const [
+          studentCountRes,
+          todayAttendanceLogs,
+          todayPeriods,
+          salaryComponent,
+          recentPayslips,
+        ] = await Promise.all([
+          assignedSectionIds.length > 0
+            ? db
+                .select({ count: sql<number>`count(*)` })
+                .from(students)
+                .where(
+                  and(
+                    eq(students.schoolId, schoolId),
+                    inArray(students.currentSectionId, assignedSectionIds),
+                    eq(students.isActive, true)
+                  )
+                )
+            : Promise.resolve([{ count: 0 }]),
+          assignedSectionIds.length > 0
+            ? db.query.studentAttendance.findMany({
+                where: and(
+                  eq(studentAttendance.schoolId, schoolId),
+                  inArray(studentAttendance.sectionId, assignedSectionIds),
+                  sql`${studentAttendance.attendanceDate} >= ${today} AND ${studentAttendance.attendanceDate} < ${tomorrow}`
+                ),
+              })
+            : Promise.resolve([]),
+          isSunday || assignedSectionIds.length === 0
+            ? Promise.resolve([])
+            : db.query.timetablePeriods.findMany({
+                where: and(
+                  eq(timetablePeriods.schoolId, schoolId),
+                  eq(timetablePeriods.dayOfWeek, currentDayOfWeek as any),
+                  inArray(timetablePeriods.sectionId, assignedSectionIds),
+                  eq(timetablePeriods.isActive, true)
+                ),
+                with: {
+                  subject: true,
+                  section: {
+                    with: {
+                      class: true,
+                    },
+                  },
+                },
+                orderBy: [timetablePeriods.periodNumber],
+                limit: 8,
+              }),
+          staffMember
+            ? db.query.salaryComponents.findFirst({
+                where: eq(salaryComponents.staffId, staffMember.id),
+              })
+            : Promise.resolve(null),
+          staffMember
+            ? db.query.payslips.findMany({
+                where: eq(payslips.staffId, staffMember.id),
+                orderBy: [desc(payslips.month)],
+                limit: 3,
+              })
+            : Promise.resolve([]),
+        ]);
+
+        const totalStudents = Number(studentCountRes[0]?.count || 0);
+        const isAttendanceMarkedToday = todayAttendanceLogs.length > 0;
+        const presentCount = todayAttendanceLogs.filter((a) => a.status === "PRESENT").length;
+        const absentCount = todayAttendanceLogs.filter((a) => a.status === "ABSENT").length;
+
+        const teacherName = staffMember
+          ? `${decryptData(staffMember.firstNameEncrypted)} ${decryptData(staffMember.lastNameEncrypted)}`.trim()
+          : ctx.role === "TEACHER"
+          ? "Teacher"
+          : "Administrator";
+
+        const assignedClassNames = new Set<string>();
+        classTeacherSections.forEach((s) => {
+          if (s.class?.displayName) assignedClassNames.add(s.class.displayName);
+        });
+        assignedMappings.forEach((m) => {
+          if (m.class?.displayName) assignedClassNames.add(m.class.displayName);
+        });
+        sectionSubjectAllocations.forEach((ssa) => {
+          if (ssa.section?.class?.displayName) {
+            assignedClassNames.add(ssa.section.class.displayName);
+          }
+        });
+
+        const totalAssignedClassesCount = assignedClassNames.size;
+        const totalSubjectAllocations =
+          assignedMappings.length + sectionSubjectAllocations.length;
+
+        const salaryBreakdown = salaryComponent
+          ? computeSalaryBreakdown(salaryComponent)
+          : null;
+
+        const hasAllocations =
+          classTeacherSections.length > 0 ||
+          assignedMappings.length > 0 ||
+          sectionSubjectAllocations.length > 0;
+
+        return {
+          teacherName,
+          classTeacherSections,
+          assignedMappings,
+          sectionSubjectAllocations,
+          assignedClassNames,
+          totalAssignedClassesCount,
+          totalSubjectAllocations,
+          totalStudents,
+          isAttendanceMarkedToday,
+          presentCount,
+          absentCount,
+          currentDayOfWeek,
+          isSunday,
+          todayPeriods,
+          activeExams,
+          salaryBreakdown,
+          hasAllocations,
+        };
+      },
+      { maxQueries: 10, label: "Teacher Workspace" },
+    ),
+  );
 
   return (
     <div className="space-y-6">

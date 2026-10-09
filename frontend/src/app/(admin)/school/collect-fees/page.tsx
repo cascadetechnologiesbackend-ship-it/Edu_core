@@ -3,18 +3,17 @@ export const dynamic = "force-dynamic";
 import { db } from "@/db";
 import { schools, bankAccounts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { QuickActionBar } from "@/components/finance/QuickActionBar";
 import { CounterCollectionClient } from "./CounterCollectionClient";
-import { searchStudentsAction } from "./actions";
 import { CreditCard } from "lucide-react";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import { assertQueryBudget } from "@schoolmitra/database";
 
 export default async function CollectFeesPage() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.schoolId) redirect("/login");
 
   const schoolId = session.user.schoolId;
@@ -22,14 +21,13 @@ export default async function CollectFeesPage() {
   const data = await withDataPhaseTiming("/school/collect-fees", async () => {
     return assertQueryBudget(
       async () => {
-        const [activeSchool, schoolBanks, initialStudentsRes] = await Promise.all([
+        const [activeSchool, schoolBanks] = await Promise.all([
           db.query.schools.findFirst({
             where: eq(schools.id, schoolId),
           }),
           db.query.bankAccounts.findMany({
             where: and(eq(bankAccounts.schoolId, schoolId), eq(bankAccounts.isActive, true)),
           }),
-          searchStudentsAction(""), // Initial first batch of students with dues summary
         ]);
 
         if (!activeSchool) return null;
@@ -41,14 +39,10 @@ export default async function CollectFeesPage() {
           accountNumber: b.accountNumber,
         }));
 
-        const initialStudents = initialStudentsRes.success && initialStudentsRes.students
-          ? initialStudentsRes.students
-          : [];
-
         return {
           activeSchool,
           mappedBanks,
-          initialStudents,
+          initialStudents: [],
         };
       },
       { maxQueries: 5, label: "POS Landing (PF 1.2 <= 5 queries)" }

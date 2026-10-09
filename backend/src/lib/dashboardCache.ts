@@ -12,7 +12,19 @@ export interface MemoryCacheEntry<T> {
 }
 
 // In-memory L1 cache for sub-millisecond process-level reads
+const MAX_MEMORY_ENTRIES = 500;
 const memoryL1Cache = new Map<string, MemoryCacheEntry<any>>();
+
+function trimDashboardMemoryCache(): void {
+  if (memoryL1Cache.size >= MAX_MEMORY_ENTRIES) {
+    const now = Date.now();
+    for (const [key, entry] of memoryL1Cache.entries()) {
+      if (entry.expiresAt <= now || memoryL1Cache.size >= MAX_MEMORY_ENTRIES) {
+        memoryL1Cache.delete(key);
+      }
+    }
+  }
+}
 
 /**
  * Computes deterministic yet jittered TTL for S2 entries.
@@ -58,7 +70,7 @@ export async function getCachedDashboardSummary<T>(schoolId: string): Promise<T 
     const raw = await redis.get(key);
     if (raw) {
       const parsed = JSON.parse(raw) as T;
-      // Populate L1 memory for 60s
+      trimDashboardMemoryCache();
       memoryL1Cache.set(key, {
         data: parsed,
         expiresAt: Date.now() + 60_000,
@@ -80,7 +92,8 @@ export async function setCachedDashboardSummary<T>(schoolId: string, data: T): P
   const key = getDashboardCacheKey(schoolId);
   const ttlSeconds = computeJitteredTtlSeconds();
 
-  // Populate L1
+  // Populate L1 with 60s TTL for fast process-level warm hits (PF-R80)
+  trimDashboardMemoryCache();
   memoryL1Cache.set(key, {
     data,
     expiresAt: Date.now() + Math.min(60, ttlSeconds) * 1000,

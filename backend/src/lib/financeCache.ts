@@ -13,10 +13,25 @@ export interface MemoryCacheEntry<T> {
 }
 
 // In-memory L1 cache for sub-millisecond process-level reads
+const MAX_MEMORY_ENTRIES = 1000;
 const financeMemoryL1 = new Map<string, MemoryCacheEntry<any>>();
 
 // Tag tracking for in-memory L1 invalidation: tag -> Set of cache keys
 const memoryTagIndex = new Map<string, Set<string>>();
+
+/**
+ * Trims in-memory cache to bound heap consumption (PF-R80).
+ */
+function trimMemoryCacheIfNeeded(): void {
+  if (financeMemoryL1.size >= MAX_MEMORY_ENTRIES) {
+    const now = Date.now();
+    for (const [key, entry] of financeMemoryL1.entries()) {
+      if (entry.expiresAt <= now || financeMemoryL1.size >= MAX_MEMORY_ENTRIES) {
+        financeMemoryL1.delete(key);
+      }
+    }
+  }
+}
 
 /**
  * Computes deterministic yet jittered TTL for S2 entries (270s - 330s).
@@ -88,12 +103,12 @@ export async function getCachedFinanceData<T>(
     financeMemoryL1.delete(key);
   }
 
-  // 2. Redis L2 Check
+  // 2. Redis L2 Check (if configured)
   try {
     const raw = await redis.get(key);
     if (raw) {
       const parsed = JSON.parse(raw) as T;
-      // Populate L1 memory for up to 60s
+      trimMemoryCacheIfNeeded();
       financeMemoryL1.set(key, {
         data: parsed,
         expiresAt: Date.now() + 60_000,
@@ -126,10 +141,11 @@ export async function setCachedFinanceData<T>(
   const ttlSeconds = options?.ttlSeconds ?? computeFinanceJitteredTtl();
   const tags = options?.tags || [`school:${schoolId}`];
 
-  // 1. Populate Memory L1
+  // 1. Populate Memory L1 with full TTL for process-level fallback (PF-R80)
+  trimMemoryCacheIfNeeded();
   financeMemoryL1.set(key, {
     data,
-    expiresAt: Date.now() + Math.min(60, ttlSeconds) * 1000,
+    expiresAt: Date.now() + ttlSeconds * 1000,
     tags,
   });
 

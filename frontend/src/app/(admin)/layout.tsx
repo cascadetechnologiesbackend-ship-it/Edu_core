@@ -133,6 +133,33 @@ export default async function AdminLayout({
           </div>
         </div>
       </div>
+      <script
+        type="speculationrules"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            prefetch: [
+              {
+                source: "list",
+                urls: [
+                  "/dashboard",
+                  "/students",
+                  "/admissions",
+                  "/academics",
+                  "/attendance",
+                  "/exams",
+                  "/hr",
+                  "/library",
+                  "/transport",
+                  "/settings",
+                  "/dpdp",
+                  "/profile",
+                ],
+                eagerness: "moderate",
+              },
+            ],
+          }),
+        }}
+      />
     </SessionProvider>
   );
 }

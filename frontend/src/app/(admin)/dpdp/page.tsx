@@ -5,12 +5,18 @@ import {
   vendorRegister,
   students,
   staff,
+  rightsRequests,
+  dpdpGrievances,
+  dataBreachLog,
+  auditLogs,
 } from "@/db/schema";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { eq, and, isNull, isNotNull, sql } from "drizzle-orm";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import DpdpDashboardClient from "./DpdpDashboardClient";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export const metadata = {
   title: "DPDP Compliance Centre | SchoolMitra ERP",
@@ -19,7 +25,7 @@ export const metadata = {
 };
 
 export default async function DpdpPage() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) {
     redirect("/login");
   }
@@ -29,81 +35,123 @@ export default async function DpdpPage() {
     redirect(access.redirectUrl || "/login");
   }
 
-  // 1. Consent coverage dynamic calculations
-  const allStudents = await db.query.students.findMany({
-    where: eq(students.isActive, true),
-  });
-  const totalStudentsCount = allStudents.length;
-
-  const purposes = await db.query.consentPurposes.findMany({
-    where: eq(consentPurposes.isActive, true),
-  });
-
-  const consentMetrics = [];
-  for (const p of purposes) {
-    let grantedCount = 0;
-    for (const student of allStudents) {
-      const latest = await db.query.consentRecords.findFirst({
-        where: and(
-          eq(consentRecords.studentId, student.id),
-          eq(consentRecords.purposeId, p.purposeId),
-        ),
-        orderBy: (t, { desc }) => [desc(t.grantedAt)],
-      });
-      if (latest && latest.granted) {
-        grantedCount++;
-      }
-    }
-
-    const percentage =
-      totalStudentsCount > 0
-        ? Math.round((grantedCount / totalStudentsCount) * 100)
-        : 0;
-    consentMetrics.push({
-      purposeId: p.purposeId,
-      labelEn: p.labelEn,
-      mandatory: p.mandatory,
-      grantedCount,
-      percentage,
-    });
+  const schoolId = session.user.schoolId;
+  if (!schoolId) {
+    redirect("/login");
   }
 
-  // 2. Pending rights requests queue
-  const pendingRequests = await db.query.rightsRequests.findMany({
-    orderBy: (t, { asc }) => [asc(t.dueAt)],
-  });
+  const data = await withDataPhaseTiming("/dpdp", async () => {
+    return assertQueryBudget(
+      async () => {
+        // Run all queries concurrently in a single Promise.all (PF-R125)
+        const [
+          purposes,
+          [studentCountRes],
+          consentCounts,
+          pendingRequests,
+          pendingGrievances,
+          softDeletedStudents,
+          softDeletedStaff,
+          vendors,
+          breaches,
+          logs,
+        ] = await Promise.all([
+          db.query.consentPurposes.findMany({
+            where: eq(consentPurposes.isActive, true),
+          }),
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(students)
+            .where(
+              and(
+                eq(students.schoolId, schoolId),
+                eq(students.isActive, true),
+                isNull(students.deletedAt)
+              )
+            ),
+          db
+            .select({
+              purposeId: consentRecords.purposeId,
+              grantedCount: sql<number>`count(distinct ${consentRecords.studentId})::int`,
+            })
+            .from(consentRecords)
+            .where(
+              and(
+                eq(consentRecords.schoolId, schoolId),
+                eq(consentRecords.granted, true),
+                isNull(consentRecords.withdrawnAt)
+              )
+            )
+            .groupBy(consentRecords.purposeId),
+          db.query.rightsRequests.findMany({
+            where: eq(rightsRequests.schoolId, schoolId),
+            orderBy: (t, { asc }) => [asc(t.dueAt)],
+            limit: 50,
+          }),
+          db.query.dpdpGrievances.findMany({
+            where: eq(dpdpGrievances.schoolId, schoolId),
+            orderBy: (t, { asc }) => [asc(t.dueAt)],
+            limit: 50,
+          }),
+          db.query.students.findMany({
+            where: and(eq(students.schoolId, schoolId), isNotNull(students.deletedAt)),
+            limit: 50,
+          }),
+          db.query.staff.findMany({
+            where: and(eq(staff.schoolId, schoolId), isNotNull(staff.deletedAt)),
+            limit: 50,
+          }),
+          db.query.vendorRegister.findMany({
+            where: and(eq(vendorRegister.schoolId, schoolId), isNull(vendorRegister.deletedAt)),
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+            limit: 50,
+          }),
+          db.query.dataBreachLog.findMany({
+            where: eq(dataBreachLog.schoolId, schoolId),
+            orderBy: (t, { desc }) => [desc(t.detectedAt)],
+            limit: 50,
+          }),
+          db.query.auditLogs.findMany({
+            where: eq(auditLogs.schoolId, schoolId),
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+            limit: 100,
+          }),
+        ]);
 
-  // 3. DPDP Grievances queue
-  const pendingGrievances = await db.query.dpdpGrievances.findMany({
-    orderBy: (t, { asc }) => [asc(t.dueAt)],
-  });
+        const totalStudentsCount = Number(studentCountRes?.count ?? 0);
+        const consentCountMap = new Map(
+          consentCounts.map((c) => [c.purposeId, Number(c.grantedCount)])
+        );
 
-  // 4. Upcoming data purge schedule (records that are soft-deleted but not hard-purged yet)
-  const softDeletedStudents = await db.query.students.findMany({
-    where: isNotNull(students.deletedAt),
-    limit: 50,
-  });
+        const consentMetrics = purposes.map((p) => {
+          const grantedCount = consentCountMap.get(p.purposeId) || 0;
+          const percentage =
+            totalStudentsCount > 0
+              ? Math.round((grantedCount / totalStudentsCount) * 100)
+              : 0;
+          return {
+            purposeId: p.purposeId,
+            labelEn: p.labelEn,
+            mandatory: p.mandatory,
+            grantedCount,
+            percentage,
+          };
+        });
 
-  const softDeletedStaff = await db.query.staff.findMany({
-    where: isNotNull(staff.deletedAt),
-    limit: 50,
-  });
-
-  // 5. Vendor DPA Register
-  const vendors = await db.query.vendorRegister.findMany({
-    where: isNull(vendorRegister.deletedAt),
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  });
-
-  // 6. Data breaches logs
-  const breaches = await db.query.dataBreachLog.findMany({
-    orderBy: (t, { desc }) => [desc(t.detectedAt)],
-  });
-
-  // 7. Last 100 DPDP Audit Logs
-  const logs = await db.query.auditLogs.findMany({
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-    limit: 100,
+        return {
+          totalStudentsCount,
+          consentMetrics,
+          pendingRequests,
+          pendingGrievances,
+          softDeletedStudents,
+          softDeletedStaff,
+          vendors,
+          breaches,
+          logs,
+        };
+      },
+      { maxQueries: 10, label: "DPDP Compliance Centre" }
+    );
   });
 
   return (
@@ -119,15 +167,15 @@ export default async function DpdpPage() {
       </div>
 
       <DpdpDashboardClient
-        totalStudentsCount={totalStudentsCount}
-        consentMetrics={consentMetrics}
-        initialRequests={pendingRequests}
-        initialGrievances={pendingGrievances}
-        softDeletedStudents={softDeletedStudents}
-        softDeletedStaff={softDeletedStaff}
-        vendors={vendors}
-        breaches={breaches}
-        auditLogs={logs}
+        totalStudentsCount={data.totalStudentsCount}
+        consentMetrics={data.consentMetrics}
+        initialRequests={data.pendingRequests}
+        initialGrievances={data.pendingGrievances}
+        softDeletedStudents={data.softDeletedStudents}
+        softDeletedStaff={data.softDeletedStaff}
+        vendors={data.vendors}
+        breaches={data.breaches}
+        auditLogs={data.logs}
       />
     </div>
   );

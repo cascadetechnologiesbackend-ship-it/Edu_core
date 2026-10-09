@@ -12,6 +12,8 @@ import { decryptData } from "@/lib/encryption";
 import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import { StudentDirectoryClient } from "./StudentDirectoryClient";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export default async function StudentsDirectoryPage() {
   const ctx = await requireAuth();
@@ -22,22 +24,24 @@ export default async function StudentsDirectoryPage() {
 
   const school = await requireSchool(ctx);
 
-  // Fetch classes and all sections in parallel with role-specific section checks
-  let classTeacherSections: { id: string }[] = [];
-  let subjectAllocations: { sectionId: string }[] = [];
-  let defaultTeacherClasses: { classId: string }[] = [];
+  const { schoolClasses, mappedStudents } = await withDataPhaseTiming("/students", async () => {
+    return assertQueryBudget(
+      async () => {
+        // Fetch classes and all sections in parallel with role-specific section checks
+        let classTeacherSections: { id: string }[] = [];
+        let subjectAllocations: { sectionId: string }[] = [];
+        let defaultTeacherClasses: { classId: string }[] = [];
 
-  const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role);
+        const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role);
 
-  // For admins, allStudents has no teacher section filter — run it concurrently with classes and sections
-  const [schoolClasses, allSections, adminStudents, roleQueryResults] = await Promise.all([
-    db.query.classes.findMany({
-      where: and(
-        eq(classes.schoolId, school.id),
-        eq(classes.isActive, true),
-      ),
-      orderBy: [classes.sortOrder, classes.displayName],
-    }),
+        const [classesList, allSections, adminStudents, roleQueryResults] = await Promise.all([
+          db.query.classes.findMany({
+            where: and(
+              eq(classes.schoolId, school.id),
+              eq(classes.isActive, true),
+            ),
+            orderBy: [classes.sortOrder, classes.displayName],
+          }),
     db.query.sections.findMany({
       where: eq(sections.schoolId, school.id),
       with: { class: true },
@@ -161,6 +165,15 @@ export default async function StudentsDirectoryPage() {
       createdAt: s.createdAt.toISOString(),
     };
   });
+
+  return {
+    schoolClasses: classesList,
+    mappedStudents,
+  };
+},
+{ maxQueries: 5, label: "Students SIS Directory" }
+);
+});
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">

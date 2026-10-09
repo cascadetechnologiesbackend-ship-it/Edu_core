@@ -6,6 +6,8 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
 import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export default async function AdmissionsDashboard() {
   const ctx = await requireAuth();
@@ -16,32 +18,41 @@ export default async function AdmissionsDashboard() {
 
   const school = await requireSchool(ctx);
 
-  const applicationsPromise = db.query.admissionApplications.findMany({
-    where: eq(admissionApplications.schoolId, school.id),
-    orderBy: [desc(admissionApplications.createdAt)],
-    limit: 50,
-  });
+  const [applications, [totalResult], [rteResult]] = await withDataPhaseTiming(
+    "/admissions",
+    () =>
+      assertQueryBudget(
+        async () => {
+          const applicationsPromise = db.query.admissionApplications.findMany({
+            where: eq(admissionApplications.schoolId, school.id),
+            orderBy: [desc(admissionApplications.createdAt)],
+            limit: 50,
+          });
 
-  const totalPromise = db
-    .select({ value: count() })
-    .from(admissionApplications)
-    .where(eq(admissionApplications.schoolId, school.id));
+          const totalPromise = db
+            .select({ value: count() })
+            .from(admissionApplications)
+            .where(eq(admissionApplications.schoolId, school.id));
 
-  const rtePromise = db
-    .select({ value: count() })
-    .from(admissionApplications)
-    .where(
-      and(
-        eq(admissionApplications.schoolId, school.id),
-        eq(admissionApplications.isRteApplicant, true)
-      )
-    );
+          const rtePromise = db
+            .select({ value: count() })
+            .from(admissionApplications)
+            .where(
+              and(
+                eq(admissionApplications.schoolId, school.id),
+                eq(admissionApplications.isRteApplicant, true)
+              )
+            );
 
-  const [applications, [totalResult], [rteResult]] = await Promise.all([
-    applicationsPromise,
-    totalPromise,
-    rtePromise,
-  ]);
+          return Promise.all([
+            applicationsPromise,
+            totalPromise,
+            rtePromise,
+          ]);
+        },
+        { maxQueries: 5, label: "Admissions Dashboard" },
+      ),
+  );
 
   const totalApps = totalResult?.value ?? 0;
   const rteApps = rteResult?.value ?? 0;

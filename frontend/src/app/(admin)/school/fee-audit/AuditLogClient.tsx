@@ -11,7 +11,6 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
-import ExcelJS from "exceljs";
 import { FilterBar } from "@/components/finance/FilterBar";
 import { DataTable, ColumnDef } from "@/components/finance/DataTable";
 
@@ -53,6 +52,7 @@ export function AuditLogClient({
   // Export to Excel / CSV
   const handleExport = async (format: "xlsx" | "csv") => {
     try {
+      const { default: ExcelJS } = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Audit Event Logs");
 

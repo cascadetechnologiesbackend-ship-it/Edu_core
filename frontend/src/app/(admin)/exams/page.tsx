@@ -16,6 +16,9 @@ import { assertRouteAccess } from "@/lib/routeGuards";
 import { getActiveAcademicYear } from "../academics/actions/auth-helper";
 import { examTypes } from "@/db/schema";
 
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
+
 export default async function ExamsPage() {
   const ctx = await requireAuth();
   const access = assertRouteAccess(ctx.role, "/exams", { id: ctx.userId, email: ctx.email });
@@ -25,25 +28,33 @@ export default async function ExamsPage() {
 
   const schoolId = ctx.schoolId || "";
 
-  // Fetch active academic year and exam types concurrently
-  const [activeYear, allExamTypes] = await Promise.all([
-    schoolId
-      ? getActiveAcademicYear(schoolId).catch(() => null)
-      : db.query.academicYears.findFirst({
-          where: eq(academicYears.isActive, true),
-        }),
-    db.query.examTypes.findMany({
-      where: schoolId ? eq(examTypes.schoolId, schoolId) : undefined,
-    }),
-  ]);
+  const { activeYear, allExamTypes, allExams } = await withDataPhaseTiming("/exams", async () => {
+    return assertQueryBudget(
+      async () => {
+        const [year, examTypeList] = await Promise.all([
+          schoolId
+            ? getActiveAcademicYear(schoolId).catch(() => null)
+            : db.query.academicYears.findFirst({
+                where: eq(academicYears.isActive, true),
+              }),
+          db.query.examTypes.findMany({
+            where: schoolId ? eq(examTypes.schoolId, schoolId) : undefined,
+          }),
+        ]);
 
-  const allExams = activeYear
-    ? await db.query.exams.findMany({
-        where: eq(exams.academicYearId, activeYear.id),
-        with: { examType: true },
-        orderBy: (t, { desc }) => [desc(t.startDate)],
-      })
-    : [];
+        const examsList = year
+          ? await db.query.exams.findMany({
+              where: eq(exams.academicYearId, year.id),
+              with: { examType: true },
+              orderBy: (t, { desc }) => [desc(t.startDate)],
+            })
+          : [];
+
+        return { activeYear: year, allExamTypes: examTypeList, allExams: examsList };
+      },
+      { maxQueries: 5, label: "Exams Management" }
+    );
+  });
 
   const statusBadge = (locked: boolean) =>
     locked ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800";

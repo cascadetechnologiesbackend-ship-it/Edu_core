@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import { db } from "@/db";
 import {
@@ -15,6 +15,8 @@ import { eq, and, isNull } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import TransportClientTabs from "./TransportClientTabs";
 import { getDrivers } from "./actions";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export const metadata: Metadata = {
   title: "Transport Management",
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TransportPage() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) redirect("/login");
 
   const access = assertRouteAccess(session.user.role, "/transport", { id: session.user.id, email: session.user.email });
@@ -40,48 +42,63 @@ export default async function TransportPage() {
     "TRANSPORT_MANAGER",
   ].includes(role);
 
-  // Run all queries in parallel — previously 4 sequential round-trips
-  const [rawVehicles, routesList, rawPasses, rawStudents, consentRecordsList, driversList] =
-    await Promise.all([
-      db.query.vehicles.findMany({
-        where: and(eq(vehicles.schoolId, schoolId), isNull(vehicles.deletedAt)),
-        orderBy: [vehicles.busNumber],
-      }),
-      db.query.routes.findMany({
-        where: and(eq(routes.schoolId, schoolId), isNull(routes.deletedAt)),
-        with: {
-          stops: true,
-          vehicle: true,
+  // Run all queries in parallel with timing and budget assertion (PF-R125)
+  const { rawVehicles, routesList, rawPasses, rawStudents, consentRecordsList, driversList } =
+    await withDataPhaseTiming("/transport", async () => {
+      return assertQueryBudget(
+        async () => {
+          const [v, r, p, s, c, d] = await Promise.all([
+            db.query.vehicles.findMany({
+              where: and(eq(vehicles.schoolId, schoolId), isNull(vehicles.deletedAt)),
+              orderBy: [vehicles.busNumber],
+            }),
+            db.query.routes.findMany({
+              where: and(eq(routes.schoolId, schoolId), isNull(routes.deletedAt)),
+              with: {
+                stops: true,
+                vehicle: true,
+              },
+            }),
+            db.query.studentBusPasses.findMany({
+              where: eq(studentBusPasses.schoolId, schoolId),
+              with: {
+                route: true,
+                stop: true,
+                student: true,
+              },
+            }),
+            db.query.students.findMany({
+              where: eq(students.schoolId, schoolId),
+              columns: {
+                id: true,
+                firstNameEncrypted: true,
+                lastNameEncrypted: true,
+              },
+              limit: 200,
+            }),
+            db.query.consentRecords.findMany({
+              where: and(
+                eq(consentRecords.schoolId, schoolId),
+                eq(consentRecords.purposeId, "transport"),
+                eq(consentRecords.granted, true),
+                isNull(consentRecords.withdrawnAt),
+              ),
+              columns: { studentId: true },
+            }),
+            getDrivers().catch(() => []),
+          ]);
+          return {
+            rawVehicles: v,
+            routesList: r,
+            rawPasses: p,
+            rawStudents: s,
+            consentRecordsList: c,
+            driversList: d,
+          };
         },
-      }),
-      db.query.studentBusPasses.findMany({
-        where: eq(studentBusPasses.schoolId, schoolId),
-        with: {
-          route: true,
-          stop: true,
-          student: true,
-        },
-      }),
-      db.query.students.findMany({
-        where: eq(students.schoolId, schoolId),
-        columns: {
-          id: true,
-          firstNameEncrypted: true,
-          lastNameEncrypted: true,
-        },
-        limit: 200,
-      }),
-      db.query.consentRecords.findMany({
-        where: and(
-          eq(consentRecords.schoolId, schoolId),
-          eq(consentRecords.purposeId, "transport"),
-          eq(consentRecords.granted, true),
-          isNull(consentRecords.withdrawnAt),
-        ),
-        columns: { studentId: true },
-      }),
-      getDrivers().catch(() => []),
-    ]);
+        { maxQueries: 6, label: "Transport Management" }
+      );
+    });
 
   const vehiclesList = rawVehicles.map((v) => ({
     ...v,

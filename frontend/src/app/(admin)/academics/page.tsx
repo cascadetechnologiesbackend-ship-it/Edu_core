@@ -22,6 +22,9 @@ export const metadata: Metadata = {
 import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
 
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
+
 export default async function AcademicsPage() {
   const ctx = await requireAuth();
   const access = assertRouteAccess(ctx.role, "/academics", { id: ctx.userId, email: ctx.email });
@@ -33,76 +36,92 @@ export default async function AcademicsPage() {
   const role = ctx.role;
   const userId = ctx.userId;
 
-  // Fetch all School Data in parallel with strict tenant scoping
-  const [activeYear, classroomsList, subjectsList, mappingsList, teachersList, pendingSubsResult] =
-    await Promise.all([
-      schoolId
-        ? getActiveAcademicYear(schoolId).catch(() => null)
-        : Promise.resolve(null),
+  const data = await withDataPhaseTiming("/academics", async () => {
+    return assertQueryBudget(
+      async () => {
+        // Fetch all School Data in parallel with strict tenant scoping
+        const [activeYear, classroomsList, subjectsList, mappingsList, teachersList, pendingSubsResult] =
+          await Promise.all([
+            schoolId
+              ? getActiveAcademicYear(schoolId).catch(() => null)
+              : Promise.resolve(null),
 
-      db.query.classes.findMany({
-        where: and(
-          eq(classes.schoolId, schoolId),
-          eq(classes.isActive, true),
-        ),
-        orderBy: [classes.sortOrder],
-        with: {
-          sections: {
-            where: and(
-              eq(sections.schoolId, schoolId),
-              eq(sections.isActive, true),
-            ),
-          },
-        },
-      }),
+            db.query.classes.findMany({
+              where: and(
+                eq(classes.schoolId, schoolId),
+                eq(classes.isActive, true),
+              ),
+              orderBy: [classes.sortOrder],
+              with: {
+                sections: {
+                  where: and(
+                    eq(sections.schoolId, schoolId),
+                    eq(sections.isActive, true),
+                  ),
+                },
+              },
+            }),
 
-      db.query.subjects.findMany({
-        where: and(
-          eq(subjects.schoolId, schoolId),
-          eq(subjects.isActive, true),
-        ),
-        orderBy: [subjects.name],
-      }),
+            db.query.subjects.findMany({
+              where: and(
+                eq(subjects.schoolId, schoolId),
+                eq(subjects.isActive, true),
+              ),
+              orderBy: [subjects.name],
+            }),
 
-      db.query.classSubjects.findMany({
-        where: eq(classSubjects.schoolId, schoolId),
-        with: {
-          class: true,
-          subject: true,
-        },
-      }),
+            db.query.classSubjects.findMany({
+              where: eq(classSubjects.schoolId, schoolId),
+              with: {
+                class: true,
+                subject: true,
+              },
+            }),
 
-      getCanonicalTeachingStaff(schoolId).catch(() => []),
+            getCanonicalTeachingStaff(schoolId).catch(() => []),
 
-      db
-        .select({ c: count() })
-        .from(timetableSubstitutions)
-        .where(
-          and(
-            eq(timetableSubstitutions.schoolId, schoolId),
-            eq(timetableSubstitutions.status, "PENDING"),
-          ),
-        )
-        .catch(() => [{ c: 0 }]),
-    ]);
+            db
+              .select({ c: count() })
+              .from(timetableSubstitutions)
+              .where(
+                and(
+                  eq(timetableSubstitutions.schoolId, schoolId),
+                  eq(timetableSubstitutions.status, "PENDING"),
+                ),
+              )
+              .catch(() => [{ c: 0 }]),
+          ]);
+
+        return {
+          activeYear,
+          classroomsList,
+          subjectsList,
+          mappingsList,
+          teachersList,
+          pendingSubsResult,
+        };
+      },
+      { maxQueries: 10, label: "Academics Hub" }
+    );
+  });
 
   const isTeacher = role === "TEACHER";
   const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(role);
 
   // Filter mappings for teachers if needed
   const filteredMappings = isTeacher
-    ? mappingsList.filter((m) => m.assignedTeacherId === userId)
-    : mappingsList;
+    ? data.mappingsList.filter((m) => m.assignedTeacherId === userId)
+    : data.mappingsList;
 
   return (
     <div className="space-y-6">
       <AmsHubClient
-        activeYear={activeYear as any}
-        classrooms={classroomsList as any}
-        subjects={subjectsList as any}
+        activeYear={data.activeYear as any}
+        classrooms={data.classroomsList as any}
+        subjects={data.subjectsList as any}
         mappings={filteredMappings as any}
-        teachers={teachersList as any}
-        pendingSubstitutionsCount={Number(pendingSubsResult[0]?.c ?? 0)}
+        teachers={data.teachersList as any}
+        pendingSubstitutionsCount={Number(data.pendingSubsResult[0]?.c ?? 0)}
         role={role}
         userId={userId}
         isAdmin={isAdmin}

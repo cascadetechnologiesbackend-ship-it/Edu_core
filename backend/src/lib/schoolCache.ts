@@ -7,7 +7,7 @@ const SCHOOL_CACHE_PREFIX = "cache:school:";
 const SCHOOL_INVALIDATE_CHANNEL = "channel:school:invalidate";
 const REDIS_TTL_SECONDS = 300; // 5 minutes in Redis
 const MEMORY_TTL_MS = 60_000; // 1 minute in memory
-const DB_FALLBACK_TTL_MS = 10_000; // 10 seconds fallback TTL when Redis is offline
+const DB_FALLBACK_TTL_MS = 60_000; // 1 minute fallback TTL when Redis is offline (prevents 10s thrashing locally)
 
 // Local memory L1 cache
 interface MemoryCacheEntry {

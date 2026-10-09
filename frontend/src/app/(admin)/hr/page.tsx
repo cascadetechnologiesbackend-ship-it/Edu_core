@@ -13,12 +13,13 @@ import {
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import HRDashboardClient from "./HRDashboardClient";
-
 import { decryptData } from "@/lib/encryption";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export const metadata: Metadata = {
   title: "HR & Payroll | SchoolMitra ERP",
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HRPage() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.schoolId) redirect("/login");
 
   const access = assertRouteAccess(session.user.role, "/hr", { id: session.user.id, email: session.user.email });
@@ -37,106 +38,89 @@ export default async function HRPage() {
 
   const schoolId = session.user.schoolId;
 
-  // Run all independent queries in parallel for high performance
-  const [
-    activeYear,
-    school,
-    allStaff,
-    allDepartments,
-    allDesignations,
-    allLeaveTypes,
-    allLeaveRequests,
-    allSalaryTemplates,
-    allPayrollRuns,
-  ] = await Promise.all([
-    db.query.academicYears.findFirst({
-      where: and(
-        eq(academicYears.isActive, true),
-        eq(academicYears.schoolId, schoolId),
-      ),
-    }),
-    db.query.schools.findFirst({
-      where: eq(schools.id, schoolId),
-    }),
-    db.query.staff.findMany({
-      where: eq(staff.schoolId, schoolId),
-      with: {
-        user: true,
-        department: true,
-        designation: true,
-        salaryComponents: true,
-        loans: true,
-        documents: true,
-        leaveBalances: true,
-      },
-      orderBy: (t, { desc }) => [desc(t.createdAt)],
-    }),
-    db.query.departments.findMany({
-      where: eq(departments.schoolId, schoolId),
-      with: {
-        staff: true,
-        hod: true,
-      },
-      orderBy: (t, { asc }) => [asc(t.name)],
-    }),
-    db.query.designations.findMany({
-      where: eq(designations.schoolId, schoolId),
-      with: {
-        department: true,
-        staff: true,
-      },
-      orderBy: (t, { asc }) => [asc(t.name)],
-    }),
-    db.query.leaveTypes.findMany({
-      where: eq(leaveTypes.schoolId, schoolId),
-    }),
-    db.query.leaveRequests.findMany({
-      where: eq(leaveRequests.schoolId, schoolId),
-      with: {
-        staff: true,
-        leaveType: true,
-      },
-      orderBy: (t, { desc }) => [desc(t.createdAt)],
-    }),
-    db.query.salaryTemplates.findMany({
-      where: eq(salaryTemplates.schoolId, schoolId),
-      orderBy: (t, { desc }) => [desc(t.createdAt)],
-    }),
-    db.query.payrollRuns.findMany({
-      where: eq(payrollRuns.schoolId, schoolId),
-      orderBy: (t, { desc }) => [desc(t.month)],
-    }),
-  ]);
+  const data = await withDataPhaseTiming("/hr", async () => {
+    return assertQueryBudget(
+      async () => {
+        // Run all independent queries in parallel for high performance (PF-R125)
+        const [
+          activeYear,
+          school,
+          allStaff,
+          allDepartments,
+          allDesignations,
+          allLeaveTypes,
+          allLeaveRequests,
+          allSalaryTemplates,
+          allPayrollRuns,
+        ] = await Promise.all([
+          db.query.academicYears.findFirst({
+            where: and(
+              eq(academicYears.isActive, true),
+              eq(academicYears.schoolId, schoolId),
+            ),
+          }),
+          db.query.schools.findFirst({
+            where: eq(schools.id, schoolId),
+          }),
+          db.query.staff.findMany({
+            where: eq(staff.schoolId, schoolId),
+            with: {
+              user: true,
+              department: true,
+              designation: true,
+            },
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+          }),
+          db.query.departments.findMany({
+            where: eq(departments.schoolId, schoolId),
+            with: {
+              hod: true,
+            },
+            orderBy: (t, { asc }) => [asc(t.name)],
+          }),
+          db.query.designations.findMany({
+            where: eq(designations.schoolId, schoolId),
+            with: {
+              department: true,
+            },
+            orderBy: (t, { asc }) => [asc(t.name)],
+          }),
+          db.query.leaveTypes.findMany({
+            where: eq(leaveTypes.schoolId, schoolId),
+          }),
+          db.query.leaveRequests.findMany({
+            where: eq(leaveRequests.schoolId, schoolId),
+            with: {
+              staff: true,
+              leaveType: true,
+            },
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+          }),
+          db.query.salaryTemplates.findMany({
+            where: eq(salaryTemplates.schoolId, schoolId),
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+          }),
+          db.query.payrollRuns.findMany({
+            where: eq(payrollRuns.schoolId, schoolId),
+            orderBy: (t, { desc }) => [desc(t.month)],
+          }),
+        ]);
 
-  // Auto-carry forward check on page load if academic year has rolled over
-  if (activeYear && school) {
-    const activeBalancesExist = await db.query.leaveBalances.findFirst({
-      where: eq(leaveBalances.academicYearId, activeYear.id),
-    });
-
-    if (!activeBalancesExist) {
-      const prevYear = await db.query.academicYears.findFirst({
-        where: and(
-          eq(academicYears.isActive, false),
-          eq(academicYears.schoolId, school.id),
-        ),
-        orderBy: (t, { desc }) => [desc(t.endDate)],
-      });
-
-      if (prevYear) {
-        try {
-          const { carryForwardLeaveBalances } = await import("@/lib/leaveEngine");
-          await carryForwardLeaveBalances(
-            school.id,
-            prevYear.id,
-            activeYear.id,
-          );
-        } catch (e) {
-          console.error("Auto carry-forward leaves failed:", e);
-        }
-      }
-    }
-  }
+        return {
+          activeYear,
+          school,
+          allStaff,
+          allDepartments,
+          allDesignations,
+          allLeaveTypes,
+          allLeaveRequests,
+          allSalaryTemplates,
+          allPayrollRuns,
+        };
+      },
+      { maxQueries: 10, label: "HR & Payroll" }
+    );
+  });
 
   // Decrypt staff names on the server side securely for authorized users
   const decryptField = (val: string | null) => {
@@ -148,7 +132,7 @@ export default async function HRPage() {
     }
   };
 
-  const decryptedStaff = allStaff.map((s) => ({
+  const decryptedStaff = data.allStaff.map((s) => ({
     ...s,
     firstName: decryptField(s.firstNameEncrypted),
     lastName: decryptField(s.lastNameEncrypted),
@@ -159,15 +143,15 @@ export default async function HRPage() {
   return (
     <HRDashboardClient
       session={session}
-      activeYear={activeYear ?? null}
-      school={school ?? null}
+      activeYear={data.activeYear ?? null}
+      school={data.school ?? null}
       staffList={decryptedStaff}
-      departments={allDepartments}
-      designations={allDesignations}
-      leaveTypes={allLeaveTypes}
-      leaveRequests={allLeaveRequests}
-      salaryTemplates={allSalaryTemplates}
-      payrollRuns={allPayrollRuns}
+      departments={data.allDepartments}
+      designations={data.allDesignations}
+      leaveTypes={data.allLeaveTypes}
+      leaveRequests={data.allLeaveRequests}
+      salaryTemplates={data.allSalaryTemplates}
+      payrollRuns={data.allPayrollRuns}
     />
   );
 }

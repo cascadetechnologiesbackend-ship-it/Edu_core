@@ -1,4 +1,6 @@
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { drivers, vehicles, routes, routeStops, schools } from "@/db/schema";
@@ -7,7 +9,7 @@ import { decryptData } from "@/lib/encryption";
 import DriverDashboardClient from "./DriverDashboardClient";
 
 export default async function DriverDashboardPage() {
-  const session = await auth();
+  const session = await getCachedSession();
 
   if (!session?.user) {
     redirect("/login");
@@ -16,53 +18,63 @@ export default async function DriverDashboardPage() {
   const userId = session.user.id;
   const schoolId = session.user.schoolId;
 
-  // 1. Fetch driver profile
-  let driverRecord = await db.query.drivers.findFirst({
-    where: and(eq(drivers.userId, userId), isNull(drivers.deletedAt)),
-    with: {
-      vehicle: true,
-      school: true,
-    },
-  });
+  const { driverRecord, assignedVehicle, assignedRoute } =
+    await withDataPhaseTiming("/driver/dashboard", () =>
+      assertQueryBudget(
+        async () => {
+          // 1. Fetch driver profile
+          let driverRecord = await db.query.drivers.findFirst({
+            where: and(eq(drivers.userId, userId), isNull(drivers.deletedAt)),
+            with: {
+              vehicle: true,
+              school: true,
+            },
+          });
 
-  // Fallback for Admins testing the driver dashboard
-  if (!driverRecord && schoolId) {
-    driverRecord = await db.query.drivers.findFirst({
-      where: and(eq(drivers.schoolId, schoolId), isNull(drivers.deletedAt)),
-      with: {
-        vehicle: true,
-        school: true,
-      },
-    });
-  }
+          // Fallback for Admins testing the driver dashboard
+          if (!driverRecord && schoolId) {
+            driverRecord = await db.query.drivers.findFirst({
+              where: and(eq(drivers.schoolId, schoolId), isNull(drivers.deletedAt)),
+              with: {
+                vehicle: true,
+                school: true,
+              },
+            });
+          }
 
-  // 2. Fetch assigned vehicle & routes
-  let assignedVehicle: any = driverRecord?.vehicle || null;
-  let assignedRoute: any = null;
+          // 2. Fetch assigned vehicle & routes
+          let assignedVehicle: any = driverRecord?.vehicle || null;
+          let assignedRoute: any = null;
 
-  if (driverRecord?.vehicleId) {
-    assignedRoute = await db.query.routes.findFirst({
-      where: and(
-        eq(routes.vehicleId, driverRecord.vehicleId),
-        isNull(routes.deletedAt)
+          if (driverRecord?.vehicleId) {
+            assignedRoute = await db.query.routes.findFirst({
+              where: and(
+                eq(routes.vehicleId, driverRecord.vehicleId),
+                isNull(routes.deletedAt)
+              ),
+              with: {
+                stops: true,
+              },
+            });
+          } else if (schoolId) {
+            // Fallback: pick first available route for demonstration
+            assignedRoute = await db.query.routes.findFirst({
+              where: and(eq(routes.schoolId, schoolId), isNull(routes.deletedAt)),
+              with: {
+                stops: true,
+                vehicle: true,
+              },
+            });
+            if (assignedRoute?.vehicle) {
+              assignedVehicle = assignedRoute.vehicle;
+            }
+          }
+
+          return { driverRecord, assignedVehicle, assignedRoute };
+        },
+        { maxQueries: 5, label: "Driver Dashboard" },
       ),
-      with: {
-        stops: true,
-      },
-    });
-  } else if (schoolId) {
-    // Fallback: pick first available route for demonstration
-    assignedRoute = await db.query.routes.findFirst({
-      where: and(eq(routes.schoolId, schoolId), isNull(routes.deletedAt)),
-      with: {
-        stops: true,
-        vehicle: true,
-      },
-    });
-    if (assignedRoute?.vehicle) {
-      assignedVehicle = assignedRoute.vehicle;
-    }
-  }
+    );
 
   const decryptedDriver = driverRecord
     ? {

@@ -1,4 +1,6 @@
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 import { db } from "@/db";
 import {
   students,
@@ -163,42 +165,115 @@ export default async function ParentDashboardPage({
   const siblingWards = wards.filter((w) => w.id !== activeStudent.id);
   const primarySibling = siblingWards.length > 0 ? siblingWards[0] : null;
 
-  // 2. Fetch class and section for the active student
-  const [currentClass, currentSection] = await Promise.all([
-    activeStudent.currentClassId
-      ? db.query.classes.findFirst({
-          where: eq(classes.id, activeStudent.currentClassId),
-        })
-      : null,
-    activeStudent.currentSectionId
-      ? db.query.sections.findFirst({
-          where: eq(sections.id, activeStudent.currentSectionId),
-        })
-      : null,
-  ]);
+  // 2. Fetch class, section, concessions, attendance, invoices, bus pass, report cards in parallel
+  const {
+    currentClass,
+    currentSection,
+    studentConcessions,
+    attendanceLogs,
+    invoices,
+    allWardInvoices,
+    busPass,
+    childReportCards,
+  } = await withDataPhaseTiming("/parent/dashboard", () =>
+    assertQueryBudget(
+      async () => {
+        const [
+          currentClass,
+          currentSection,
+          studentConcessions,
+          attendanceLogs,
+          invoices,
+          allWardInvoices,
+          busPass,
+          childReportCards,
+        ] = await Promise.all([
+          activeStudent.currentClassId
+            ? db.query.classes.findFirst({
+                where: eq(classes.id, activeStudent.currentClassId),
+              })
+            : Promise.resolve(null),
+          activeStudent.currentSectionId
+            ? db.query.sections.findFirst({
+                where: eq(sections.id, activeStudent.currentSectionId),
+              })
+            : Promise.resolve(null),
+          db.query.feeConcessions.findMany({
+            where: and(
+              eq(feeConcessions.studentId, activeStudent.id),
+              eq(feeConcessions.isActive, true),
+            ),
+          }),
+          db.query.studentAttendance.findMany({
+            where: eq(studentAttendance.studentId, activeStudent.id),
+            orderBy: [desc(studentAttendance.attendanceDate)],
+            limit: 60,
+          }),
+          db.query.feeInvoices.findMany({
+            where: eq(feeInvoices.studentId, activeStudent.id),
+            with: {
+              feeStructure: {
+                with: {
+                  feeHead: true,
+                },
+              },
+            },
+            orderBy: [desc(feeInvoices.dueDate)],
+            limit: 10,
+          }),
+          db.query.feeInvoices.findMany({
+            where: inArray(
+              feeInvoices.studentId,
+              wards.map((w) => w.id),
+            ),
+          }),
+          db.query.studentBusPasses.findFirst({
+            where: and(
+              eq(studentBusPasses.studentId, activeStudent.id),
+              eq(studentBusPasses.isActive, true),
+            ),
+            with: {
+              route: {
+                with: {
+                  stops: true,
+                  vehicle: true,
+                },
+              },
+              stop: true,
+            },
+          }),
+          db.query.reportCards.findMany({
+            where: eq(reportCards.studentId, activeStudent.id),
+            with: {
+              exam: true,
+            },
+            orderBy: [desc(reportCards.createdAt)],
+            limit: 5,
+          }),
+        ]);
+
+        return {
+          currentClass,
+          currentSection,
+          studentConcessions,
+          attendanceLogs,
+          invoices,
+          allWardInvoices,
+          busPass,
+          childReportCards,
+        };
+      },
+      { maxQueries: 10, label: "Parent Portal Dashboard" },
+    ),
+  );
 
   const childName = `${decryptData(activeStudent.firstNameEncrypted)} ${decryptData(activeStudent.lastNameEncrypted)}`.trim();
   const className = currentClass?.displayName || "Standard Class";
   const sectionName = currentSection?.name || "A";
 
-  // 3. Fetch Concessions for active student (e.g. Sibling Discount)
-  const studentConcessions = await db.query.feeConcessions.findMany({
-    where: and(
-      eq(feeConcessions.studentId, activeStudent.id),
-      eq(feeConcessions.isActive, true),
-    ),
-  });
-
   const siblingConcession = studentConcessions.find(
     (c) => c.concessionType === "SIBLING",
   );
-
-  // 4. Fetch Attendance Records for active student
-  const attendanceLogs = await db.query.studentAttendance.findMany({
-    where: eq(studentAttendance.studentId, activeStudent.id),
-    orderBy: [desc(studentAttendance.attendanceDate)],
-    limit: 60,
-  });
 
   const totalAttendance = attendanceLogs.length;
   const presentCount = attendanceLogs.filter(
@@ -221,20 +296,6 @@ export default async function ParentDashboardPage({
     return d >= today && d < tomorrow;
   });
 
-  // 5. Fetch Invoices for active student
-  const invoices = await db.query.feeInvoices.findMany({
-    where: eq(feeInvoices.studentId, activeStudent.id),
-    with: {
-      feeStructure: {
-        with: {
-          feeHead: true,
-        },
-      },
-    },
-    orderBy: [desc(feeInvoices.dueDate)],
-    limit: 10,
-  });
-
   let totalDue = 0;
   let totalPaid = 0;
   let totalDiscount = 0;
@@ -242,14 +303,6 @@ export default async function ParentDashboardPage({
     totalDue += parseFloat(inv.balanceAmount || "0");
     totalPaid += parseFloat(inv.paidAmount || "0");
     totalDiscount += parseFloat(inv.discountAmount || "0");
-  });
-
-  // 6. Compute Family-Wide Consolidated Fee Stats
-  const allWardInvoices = await db.query.feeInvoices.findMany({
-    where: inArray(
-      feeInvoices.studentId,
-      wards.map((w) => w.id),
-    ),
   });
 
   let familyTotalDue = 0;
@@ -263,23 +316,6 @@ export default async function ParentDashboardPage({
     familyTotalPaid += parseFloat(inv.paidAmount || "0");
     familyTotalDiscount += parseFloat(inv.discountAmount || "0");
     wardDueBreakdown[inv.studentId] = (wardDueBreakdown[inv.studentId] || 0) + bal;
-  });
-
-  // 7. Fetch Bus Pass & Transit for active student
-  const busPass = await db.query.studentBusPasses.findFirst({
-    where: and(
-      eq(studentBusPasses.studentId, activeStudent.id),
-      eq(studentBusPasses.isActive, true),
-    ),
-    with: {
-      route: {
-        with: {
-          stops: true,
-          vehicle: true,
-        },
-      },
-      stop: true,
-    },
   });
 
   let latestBusPing: any = null;
@@ -303,16 +339,6 @@ export default async function ParentDashboardPage({
         speed: 0,
       }
     : null;
-
-  // 8. Fetch Report Cards for active student
-  const childReportCards = await db.query.reportCards.findMany({
-    where: eq(reportCards.studentId, activeStudent.id),
-    with: {
-      exam: true,
-    },
-    orderBy: [desc(reportCards.createdAt)],
-    limit: 5,
-  });
 
   const activeTab = searchParams?.tab || "overview";
 

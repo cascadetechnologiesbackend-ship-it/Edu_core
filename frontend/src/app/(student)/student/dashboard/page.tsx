@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 import { db } from "@/db";
 import {
   students,
@@ -37,84 +39,114 @@ export default async function StudentDashboardPage() {
   const schoolId = school.id;
   const userId = ctx.userId;
 
-  // 1. Fetch current student record
-  let student = await db.query.students.findFirst({
-    where: and(
-      eq(students.userId, userId),
-      eq(students.schoolId, schoolId),
-    ),
-  });
+  const {
+    student,
+    className,
+    sectionName,
+    studentName,
+    invoices,
+    payments,
+    totalDue,
+    totalPaid,
+    attendanceRate,
+  } = await withDataPhaseTiming("/student/dashboard", () =>
+    assertQueryBudget(
+      async () => {
+        // 1. Fetch current student record
+        let studentRecord = await db.query.students.findFirst({
+          where: and(
+            eq(students.userId, userId),
+            eq(students.schoolId, schoolId),
+          ),
+        });
 
-  // Fallback for school administrators previewing student dashboard
-  if (!student && ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(ctx.role)) {
-    student = await db.query.students.findFirst({
-      where: eq(students.schoolId, schoolId),
-    });
-  }
+        // Fallback for school administrators previewing student dashboard
+        if (!studentRecord && ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(ctx.role)) {
+          studentRecord = await db.query.students.findFirst({
+            where: eq(students.schoolId, schoolId),
+          });
+        }
 
-  // 2. Class & Section
-  let className = "Assigned Class";
-  let sectionName = "A";
-  if (student?.currentClassId) {
-    const c = await db.query.classes.findFirst({
-      where: eq(classes.id, student.currentClassId),
-    });
-    if (c?.displayName) className = c.displayName;
-  }
-  if (student?.currentSectionId) {
-    const s = await db.query.sections.findFirst({
-      where: eq(sections.id, student.currentSectionId),
-    });
-    if (s?.name) sectionName = s.name;
-  }
+        if (!studentRecord) {
+          return {
+            student: null,
+            className: "Assigned Class",
+            sectionName: "A",
+            studentName: ctx.email,
+            invoices: [],
+            payments: [],
+            totalDue: 0,
+            totalPaid: 0,
+            attendanceRate: "100.0%",
+          };
+        }
 
-  const studentName = student
-    ? `${decryptData(student.firstNameEncrypted) || ""} ${decryptData(student.lastNameEncrypted) || ""}`.trim()
-    : ctx.email;
+        // 2. Fetch class, section, invoices, payments, attendance concurrently
+        const [c, s, invs, pmts, attendanceLogs] = await Promise.all([
+          studentRecord.currentClassId
+            ? db.query.classes.findFirst({
+                where: eq(classes.id, studentRecord.currentClassId),
+              })
+            : Promise.resolve(null),
+          studentRecord.currentSectionId
+            ? db.query.sections.findFirst({
+                where: eq(sections.id, studentRecord.currentSectionId),
+              })
+            : Promise.resolve(null),
+          db.query.feeInvoices.findMany({
+            where: eq(feeInvoices.studentId, studentRecord.id),
+            with: {
+              feeStructure: {
+                with: {
+                  feeHead: true,
+                },
+              },
+            },
+            orderBy: [desc(feeInvoices.dueDate)],
+          }),
+          db.query.feePayments.findMany({
+            where: eq(feePayments.studentId, studentRecord.id),
+            orderBy: [desc(feePayments.paymentDate)],
+            limit: 5,
+          }),
+          db.query.studentAttendance.findMany({
+            where: eq(studentAttendance.studentId, studentRecord.id),
+            limit: 60,
+          }),
+        ]);
 
-  // 3. Fee Invoices & Payments for this student
-  let invoices: any[] = [];
-  let payments: any[] = [];
-  let totalDue = 0;
-  let totalPaid = 0;
+        const clsName = c?.displayName || "Assigned Class";
+        const secName = s?.name || "A";
+        const stdName = `${decryptData(studentRecord.firstNameEncrypted) || ""} ${decryptData(studentRecord.lastNameEncrypted) || ""}`.trim() || ctx.email;
 
-  if (student) {
-    invoices = await db.query.feeInvoices.findMany({
-      where: eq(feeInvoices.studentId, student.id),
-      with: {
-        feeStructure: {
-          with: {
-            feeHead: true,
-          },
-        },
+        let totDue = 0;
+        let totPaid = 0;
+        invs.forEach((inv) => {
+          totDue += parseFloat(inv.balanceAmount || "0");
+          totPaid += parseFloat(inv.paidAmount || "0");
+        });
+
+        let attRate = "96.5%";
+        if (attendanceLogs.length > 0) {
+          const presentCount = attendanceLogs.filter((a) => a.status === "PRESENT").length;
+          attRate = `${((presentCount / attendanceLogs.length) * 100).toFixed(1)}%`;
+        }
+
+        return {
+          student: studentRecord,
+          className: clsName,
+          sectionName: secName,
+          studentName: stdName,
+          invoices: invs,
+          payments: pmts,
+          totalDue: totDue,
+          totalPaid: totPaid,
+          attendanceRate: attRate,
+        };
       },
-      orderBy: [desc(feeInvoices.dueDate)],
-    });
-
-    payments = await db.query.feePayments.findMany({
-      where: eq(feePayments.studentId, student.id),
-      orderBy: [desc(feePayments.paymentDate)],
-      limit: 5,
-    });
-
-    invoices.forEach((inv) => {
-      totalDue += parseFloat(inv.balanceAmount || "0");
-      totalPaid += parseFloat(inv.paidAmount || "0");
-    });
-  }
-
-  // 4. Attendance
-  let attendanceRate = "96.5%";
-  if (student) {
-    const attendanceLogs = await db.query.studentAttendance.findMany({
-      where: eq(studentAttendance.studentId, student.id),
-      limit: 60,
-    });
-    if (attendanceLogs.length > 0) {
-      const presentCount = attendanceLogs.filter((a) => a.status === "PRESENT").length;
-      attendanceRate = `${((presentCount / attendanceLogs.length) * 100).toFixed(1)}%`;
-    }
-  }
+      { maxQueries: 6, label: "Student Dashboard" },
+    ),
+  );
 
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">

@@ -21,6 +21,7 @@ const pool =
     max: Number(process.env["DATABASE_POOL_MAX"] ?? 25),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
+    statement_timeout: 5000, // 5s statement timeout (PF-R100)
   });
 
 if (process.env["NODE_ENV"] !== "production") {

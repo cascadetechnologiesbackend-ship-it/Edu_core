@@ -1,7 +1,9 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { assertRouteAccess } from "@/lib/routeGuards";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 import { db } from "@/db";
 import {
   books,
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LibraryPage() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) redirect("/login");
 
   const access = assertRouteAccess(session.user.role, "/library", { id: session.user.id, email: session.user.email });
@@ -34,9 +36,12 @@ export default async function LibraryPage() {
   const userId = session.user.id || "";
   const schoolId = session?.user?.schoolId || "";
 
-  // Run all 4 queries in parallel — previously sequential (~2.5s), now concurrent
+  // Run queries concurrently with timing & query budget wrappers
   const [rawBooks, studentsListRaw, staffListRaw, rawMembers, rawIssues] =
-    await Promise.all([
+    await withDataPhaseTiming("/library", () =>
+      assertQueryBudget(
+        async () =>
+          Promise.all([
       db.query.books.findMany({
         where: and(eq(books.schoolId, schoolId), isNull(books.deletedAt)),
         with: {
@@ -70,7 +75,10 @@ export default async function LibraryPage() {
         },
         orderBy: [desc(bookIssues.issuedAt)],
       }),
-    ]);
+    ]),
+        { maxQueries: 10, label: "Library Management" },
+      ),
+    );
 
   const booksList = rawBooks.map((b) => ({
     id: b.id,

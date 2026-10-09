@@ -4,6 +4,8 @@ import { requireAuth } from "@/lib/serverAuth";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import AttendanceManager from "./AttendanceManager";
 import { getAssignedSections, getSectionStudents } from "./actions";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export const metadata: Metadata = {
   title: "Student Attendance",
@@ -18,17 +20,25 @@ export default async function AttendancePage() {
   }
 
   const todayStr = new Date().toISOString().split("T")[0] || "";
-  let initialSections: any[] = [];
-  let initialStudents: any[] = [];
 
-  try {
-    initialSections = await getAssignedSections();
-    if (initialSections.length > 0 && initialSections[0]?.id) {
-      initialStudents = await getSectionStudents(initialSections[0].id, todayStr);
-    }
-  } catch (e) {
-    // If not authenticated or error, client will handle gracefully
-  }
+  const { initialSections, initialStudents } = await withDataPhaseTiming("/attendance", async () => {
+    return assertQueryBudget(
+      async () => {
+        let sectionsRes: any[] = [];
+        let studentsRes: any[] = [];
+        try {
+          sectionsRes = await getAssignedSections();
+          if (sectionsRes.length > 0 && sectionsRes[0]?.id) {
+            studentsRes = await getSectionStudents(sectionsRes[0].id, todayStr);
+          }
+        } catch (e) {
+          // Gracefully fallback
+        }
+        return { initialSections: sectionsRes, initialStudents: studentsRes };
+      },
+      { maxQueries: 6, label: "Student Attendance Page" }
+    );
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
