@@ -141,6 +141,34 @@
       "when": 1791500000000,
       "tag": "0019_designations_mapped_role",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1791600000000,
+      "tag": "0020_student_fee_advances",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1791700000000,
+      "tag": "0021_worker_heartbeats",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "5",
+      "when": 1791800000000,
+      "tag": "0022_school_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1791900000000,
+      "tag": "0023_profile_completion",
+      "breakpoints": true
     }
   ]
 }

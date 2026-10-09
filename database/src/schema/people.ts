@@ -11,7 +11,8 @@ import {
   pgEnum,
   index,
 } from "drizzle-orm/pg-core";
-import { schools } from "./core";
+import { relations } from "drizzle-orm";
+import { schools, users } from "./core";
 
 export const personTypeEnum = pgEnum("person_type", [
   "STUDENT",
@@ -29,9 +30,11 @@ export const persons = pgTable(
   "persons",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // Nullable to support platform superadmins who have no specific schoolId
     schoolId: uuid("school_id")
-      .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "set null" }),
     primaryType: personTypeEnum("primary_type").notNull(),
 
     // Personal — PII encrypted at application layer (AES-256-CBC)
@@ -70,6 +73,8 @@ export const persons = pgTable(
   },
   (t) => ({
     schoolIdx: index("persons_school_idx").on(t.schoolId),
+    userIdIdx: index("persons_user_idx").on(t.userId),
+    schoolUserIdx: index("persons_school_user_idx").on(t.schoolId, t.userId),
     searchHashIdx: index("persons_search_hash_idx").on(
       t.firstNameSearchHash,
       t.lastNameSearchHash,
@@ -77,3 +82,14 @@ export const persons = pgTable(
     typeIdx: index("persons_type_idx").on(t.schoolId, t.primaryType),
   }),
 );
+
+export const personsRelations = relations(persons, ({ one }) => ({
+  school: one(schools, {
+    fields: [persons.schoolId],
+    references: [schools.id],
+  }),
+  user: one(users, {
+    fields: [persons.userId],
+    references: [users.id],
+  }),
+}));

@@ -24,12 +24,13 @@ import {
   sectionSubjectTeachers,
   timetablePeriods,
   sections,
+  persons,
 } from "@/db/schema";
 import { eq, and, gte, lte, sql, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { encryptData, decryptData } from "@/lib/encryption";
+import { encryptData, decryptData, computeSearchHash } from "@/lib/encryption";
 import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
 import bcrypt from "bcryptjs";
@@ -712,6 +713,7 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
         .values({
           schoolId: school.id,
           email: emailNormalized,
+          mobileEncrypted: encryptData(parsed.mobile.trim()),
           passwordHash,
           mustChangePassword: true,
           isActive: true,
@@ -724,6 +726,25 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       if (!u) {
         throw new Error("Failed to create user login credential.");
       }
+
+      // 5b. Create canonical person record
+      await tx.insert(persons).values({
+        schoolId: school.id,
+        userId: u.id,
+        primaryType: "STAFF",
+        firstNameEncrypted: encryptData(parsed.firstName.trim()),
+        lastNameEncrypted: encryptData(parsed.lastName.trim()),
+        firstNameSearchHash: computeSearchHash(parsed.firstName.trim()),
+        lastNameSearchHash: computeSearchHash(parsed.lastName.trim()),
+        gender: parsed.gender,
+        dateOfBirth: parsed.dateOfBirth ? new Date(parsed.dateOfBirth) : null,
+        primaryEmailEncrypted: encryptData(emailNormalized),
+        primaryMobileEncrypted: encryptData(parsed.mobile.trim()),
+        aadhaarLast4: parsed.aadhaarLast4 || null,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
       // 6. Role Assignment: find-or-create per-school role row
       let targetRole = await tx.query.roles.findFirst({

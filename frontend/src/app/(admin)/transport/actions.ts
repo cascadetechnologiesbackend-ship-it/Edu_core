@@ -13,9 +13,10 @@ import {
   users,
   roles,
   userRoles,
+  persons,
 } from "@/db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
-import { encryptData, decryptData } from "@/lib/encryption";
+import { encryptData, decryptData, computeSearchHash } from "@/lib/encryption";
 import { assertConsent } from "@/server/middleware/consent";
 import { logAuditEvent } from "@/lib/auditLogger";
 import bcrypt from "bcryptjs";
@@ -124,6 +125,100 @@ export async function saveVehicle(data: {
   });
 
   return { success: true, recordId };
+}
+
+export async function registerDriver(data: {
+  firstName: string;
+  lastName: string;
+  mobile: string;
+  licenceNumber: string;
+  vehicleId?: string;
+}) {
+  const { ctx, school } = await checkAuth();
+  const schoolId = school.id;
+
+  const mobileClean = data.mobile.trim();
+  const emailDerived = `driver.${mobileClean.slice(-4)}@${school.id.slice(0, 8)}.edu`;
+
+  return await db.transaction(async (tx) => {
+    // 1. Check or create User
+    let driverUser = await tx.query.users.findFirst({
+      where: and(eq(users.schoolId, schoolId), eq(users.email, emailDerived)),
+    });
+
+    if (!driverUser) {
+      const defaultPassword = `Driver@${mobileClean.slice(-4)}`;
+      const passwordHash = await bcrypt.hash(defaultPassword, 12);
+      const [u] = await tx
+        .insert(users)
+        .values({
+          schoolId,
+          email: emailDerived,
+          mobileEncrypted: encryptData(mobileClean),
+          passwordHash,
+          mustChangePassword: true,
+          isActive: true,
+        })
+        .returning();
+      driverUser = u;
+
+      // Ensure DRIVER role
+      let driverRole = await tx.query.roles.findFirst({
+        where: and(eq(roles.schoolId, schoolId), eq(roles.name, "DRIVER")),
+      });
+      if (!driverRole) {
+        const [r] = await tx
+          .insert(roles)
+          .values({
+            schoolId,
+            name: "DRIVER",
+            displayName: "Bus Driver",
+            isSystemRole: true,
+          })
+          .returning();
+        driverRole = r;
+      }
+      if (driverRole && driverUser) {
+        await tx.insert(userRoles).values({
+          userId: driverUser.id,
+          roleId: driverRole.id,
+          schoolId,
+        });
+      }
+    }
+
+    if (!driverUser) throw new Error("Failed to create driver user account");
+
+    // 2. Create canonical person row
+    await tx.insert(persons).values({
+      schoolId,
+      userId: driverUser.id,
+      primaryType: "DRIVER",
+      firstNameEncrypted: encryptData(data.firstName.trim()),
+      lastNameEncrypted: encryptData(data.lastName.trim()),
+      firstNameSearchHash: computeSearchHash(data.firstName.trim()),
+      lastNameSearchHash: computeSearchHash(data.lastName.trim()),
+      gender: "OTHER",
+      primaryMobileEncrypted: encryptData(mobileClean),
+      isActive: true,
+    });
+
+    // 3. Create driver record
+    const [d] = await tx
+      .insert(drivers)
+      .values({
+        schoolId,
+        userId: driverUser.id,
+        vehicleId: data.vehicleId || null,
+        nameEncrypted: encryptData(`${data.firstName} ${data.lastName}`.trim()),
+        mobileEncrypted: encryptData(mobileClean),
+        licenceEncrypted: encryptData(data.licenceNumber.trim()),
+        isActive: true,
+      })
+      .returning();
+
+    return { success: true, driverId: d?.id };
+  });
 }
 
 export async function getVehicles() {

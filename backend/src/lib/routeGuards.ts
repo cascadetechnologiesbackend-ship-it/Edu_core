@@ -8,6 +8,7 @@ import { type UserRole, ROLE_CONFIGS } from "./roleConfig";
 
 export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
   ACCOUNTANT: [
+    "/profile",
     "/school/fees-dashboard",
     "/school/collect-fees",
     "/school/due-fees",
@@ -20,7 +21,9 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/school/accounts/bank-reconciliation",
   ],
   PRINCIPAL: [
+    "/profile",
     "/principal/dashboard",
+    "/settings/school-setup",
     "/school/fees-dashboard",
     "/school/due-fees",
     "/school/accounting/reports/concessions",
@@ -32,6 +35,7 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/hr",
   ],
   HR_MANAGER: [
+    "/profile",
     "/hr",
     "/hr/dashboard",
     "/hr/payroll",
@@ -39,14 +43,17 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/attendance",
   ],
   LIBRARIAN: [
+    "/profile",
     "/library",
     "/librarian/dashboard",
   ],
   TRANSPORT_MANAGER: [
+    "/profile",
     "/transport",
     "/transport/dashboard",
   ],
   TEACHER: [
+    "/profile",
     "/teacher",
     "/teacher/dashboard",
     "/teacher/attendance",
@@ -58,6 +65,7 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/exams",
   ],
   SCHOOL_ADMIN: [
+    "/profile",
     "/dashboard",
     "/admissions",
     "/students",
@@ -92,10 +100,12 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/hostel",
     "/dpdp",
     "/settings",
+    "/settings/school-setup",
     "/settings/roles",
     "/analytics",
   ],
   SUPER_ADMIN: [
+    "/profile",
     "/super-admin",
     "/dashboard",
     "/admissions",
@@ -112,12 +122,13 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/hostel",
     "/dpdp",
     "/settings",
+    "/settings/school-setup",
     "/settings/roles",
     "/analytics",
   ],
-  PARENT: ["/portal", "/parent/dashboard", "/parent"],
-  STUDENT: ["/portal", "/student/dashboard", "/student"],
-  DRIVER: ["/driver/dashboard", "/driver"],
+  PARENT: ["/profile", "/portal", "/parent/dashboard", "/parent"],
+  STUDENT: ["/profile", "/portal", "/student/dashboard", "/student"],
+  DRIVER: ["/profile", "/driver/dashboard", "/driver"],
 };
 
 /** Full student profile (/students/[id]) allowed roles */
@@ -127,6 +138,22 @@ export const FULL_STUDENT_PROFILE_ALLOWED_ROLES: readonly UserRole[] = [
   "PRINCIPAL",
   "TEACHER",
 ];
+
+/**
+ * Inverted mapping from route prefix to allowed UserRoles.
+ * Generated from ROLE_MODULE_ACCESS_MATRIX for quick O(1) route validation.
+ */
+export const ADMIN_ROUTE_ROLES: Record<string, readonly UserRole[]> = Object.entries(
+  ROLE_MODULE_ACCESS_MATRIX
+).reduce((acc, [role, routes]) => {
+  for (const r of routes) {
+    if (!acc[r]) acc[r] = [];
+    if (!acc[r].includes(role as UserRole)) {
+      acc[r].push(role as UserRole);
+    }
+  }
+  return acc;
+}, {} as Record<string, UserRole[]>);
 
 export interface RouteAccessAuditRecord {
   route: string;

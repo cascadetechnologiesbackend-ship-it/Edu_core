@@ -5,11 +5,11 @@ import { getSelfProfileAction } from "@/app/actions/profile";
 import { UserProfileView } from "@/components/profile/UserProfileView";
 
 export const metadata = {
-  title: "Driver Profile | SchoolMitra ERP",
-  description: "View and manage bus driver credentials, vehicle allocation and contact information.",
+  title: "Parent / Guardian Profile | SchoolMitra ERP",
+  description: "View and manage guardian contact information and profile completeness.",
 };
 
-export default async function DriverProfilePage() {
+export default async function ParentProfilePage() {
   const result = await getSelfProfileAction();
 
   if (!result.success || !result.profile) {
@@ -17,7 +17,7 @@ export default async function DriverProfilePage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-8">
       <UserProfileView
         initialProfile={result.profile}
         initialCompleteness={result.completeness!}

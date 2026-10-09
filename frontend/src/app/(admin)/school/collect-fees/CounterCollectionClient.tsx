@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Script from "next/script";
 import {
   CreditCard,
   Search,
@@ -100,6 +101,7 @@ export function CounterCollectionClient({
 
   // UPI QR Code state
   const [upiQrUrl, setUpiQrUrl] = useState<string | null>(null);
+  const [isOpeningRzp, setIsOpeningRzp] = useState(false);
 
   // Receipt Modal State
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
@@ -261,6 +263,111 @@ export function CounterCollectionClient({
       setUpiQrUrl(null);
     }
   }, [paymentMethod, grandTotalPayable, selectedStudent, schoolName]);
+
+  // Handle Razorpay Online Counter Modal
+  const handleLaunchRazorpayCounter = async () => {
+    const itemsToSubmit = Object.values(selectedItems).filter((it) => it.amountToPay > 0);
+    if (itemsToSubmit.length === 0 || !selectedStudent) {
+      toast.error("Please select at least one invoice to collect.");
+      return;
+    }
+
+    const firstInvoice = itemsToSubmit[0]?.invoiceId;
+    if (!firstInvoice) return;
+
+    setIsOpeningRzp(true);
+    try {
+      const res = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: firstInvoice,
+          amount: grandTotalPayable,
+        }),
+      });
+
+      const order = await res.json();
+      if (!res.ok || order.error) {
+        toast.error("Error creating gateway order: " + (order.error || "Unknown"));
+        setIsOpeningRzp(false);
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TlW4pDX3FlFmRx",
+        amount: order.amount,
+        currency: order.currency || "INR",
+        name: schoolName,
+        description: `Counter Collection - Adm #${selectedStudent.admissionNumber}`,
+        order_id: order.id,
+        handler: async function (response: any) {
+          toast.loading("Verifying online counter collection with bank...", { id: "rzp-counter-verify" });
+          const verifyRes = await fetch("/api/razorpay/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          toast.dismiss("rzp-counter-verify");
+
+          if (verifyRes.ok && verifyData.success) {
+            toast.success(`Online Payment verified! Receipt #${verifyData.receiptNumber}`);
+            setTransactionReference(response.razorpay_payment_id);
+
+            // Record multi-invoice collection
+            const payload: MultiInvoiceCollectionPayload = {
+              studentId: selectedStudent.id,
+              items: itemsToSubmit.map((it) => ({
+                invoiceId: it.invoiceId,
+                amountPaid: it.amountToPay,
+                discountAdjustment: it.discountAdjustment > 0 ? it.discountAdjustment : undefined,
+                lateFeeAdjustment: it.lateFeeAdjustment > 0 ? it.lateFeeAdjustment : undefined,
+              })),
+              paymentMethod: "ONLINE",
+              bankAccountId: bankAccountId === "CASH" ? null : bankAccountId,
+              transactionReference: response.razorpay_payment_id,
+              remarks: remarks.trim() || `Razorpay Counter Settlement: ${response.razorpay_payment_id}`,
+            };
+            const colRes = await processCounterCollection(payload);
+            if (colRes.success && colRes.receiptNumber) {
+              setReceiptData(colRes.receiptData as any);
+              setReceiptModalOpen(true);
+              handleNextStudent();
+            }
+          } else {
+            toast.error("Signature verification failed: " + (verifyData.error || "Unknown error"));
+          }
+        },
+        prefill: {
+          name: selectedStudent.name,
+          contact: (selectedStudent as any).primaryParentMobile || (selectedStudent as any).parentPhone || "9999999999",
+        },
+        theme: {
+          color: "#4f46e5",
+        },
+        modal: {
+          ondismiss: function () {
+            setIsOpeningRzp(false);
+          },
+        },
+      };
+
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        toast.error("Razorpay SDK is loading, please try again in a moment.");
+      }
+    } catch (err: any) {
+      toast.error("Gateway error: " + err.message);
+    } finally {
+      setIsOpeningRzp(false);
+    }
+  };
 
   // Handle counter submit
   const handleSubmitCollection = async (e: React.FormEvent) => {
@@ -804,6 +911,36 @@ export function CounterCollectionClient({
                   </div>
                 )}
 
+                {/* Razorpay Online Counter Modal Trigger */}
+                {paymentMethod === "ONLINE" && (
+                  <div className="p-3.5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5" /> Razorpay Gateway Integration
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                        Test Mode Ready
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
+                      Launch Razorpay Checkout to let parent or student pay via Credit/Debit Card, NetBanking, or Wallet directly at the counter.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={grandTotalPayable <= 0 || isOpeningRzp}
+                      onClick={handleLaunchRazorpayCounter}
+                      className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>
+                        {isOpeningRzp
+                          ? "Connecting to Gateway..."
+                          : `Launch Razorpay (₹${grandTotalPayable.toLocaleString("en-IN")})`}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Bank Account Selection (for Non-Cash) */}
                 {paymentMethod !== "CASH" && (
                   <div>
@@ -886,6 +1023,7 @@ export function CounterCollectionClient({
         data={receiptData}
         onCollectNext={handleNextStudent}
       />
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
     </>
   );
 }

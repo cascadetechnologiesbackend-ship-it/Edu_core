@@ -15,6 +15,7 @@ out
 .env.production
 .env.staging
 *.env
+*api_keys*.csv
 
 # Turbo
 .turbo

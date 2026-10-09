@@ -24,6 +24,7 @@ import {
   leaveRequests,
   rightsRequests,
 } from "@/db/schema";
+import { calculateSchoolProfileCompleteness } from "@/lib/profileCompleteness";
 import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import {
   Users,
@@ -649,6 +650,28 @@ export default async function DashboardPage() {
     },
   ];
 
+  const schoolCompleteness = school
+    ? calculateSchoolProfileCompleteness({
+        name: school.name,
+        address: school.address,
+        city: school.city,
+        state: school.state,
+        pincode: school.pincode,
+        phone: school.phone,
+        email: school.email,
+        principalName: school.principalName,
+        establishedYear: school.establishedYear,
+        board: school.board,
+        udiseCode: school.udiseCode,
+        logoS3Key: school.logoS3Key,
+        themeColors: school.themeColors,
+        website: school.website,
+        motto: school.motto,
+        about: school.about,
+        socialHandles: school.socialHandles,
+      })
+    : null;
+
   return (
     <div className="space-y-8">
       {/* Page header */}
@@ -679,6 +702,38 @@ export default async function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* School Profile Completeness Alert Card */}
+      {schoolCompleteness && schoolCompleteness.percent < 90 && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 flex items-center justify-center font-extrabold text-base shrink-0">
+              {schoolCompleteness.percent}%
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>School Profile Incomplete ({schoolCompleteness.percent}%)</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+                  Action Required
+                </span>
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-slate-400 mt-0.5">
+                Missing: {schoolCompleteness.missing.slice(0, 2).join(", ")}
+                {schoolCompleteness.missing.length > 2
+                  ? ` and ${schoolCompleteness.missing.length - 2} more`
+                  : ""}
+                . Setup your official logo, digital presence, and accreditation.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/settings/school-setup"
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-sm transition whitespace-nowrap self-stretch sm:self-auto text-center"
+          >
+            Complete Profile →
+          </a>
+        </div>
+      )}
 
       {/* Metric Cards */}
       <section aria-labelledby="metrics-heading">

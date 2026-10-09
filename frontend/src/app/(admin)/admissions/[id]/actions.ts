@@ -218,6 +218,7 @@ export async function enrollApplicant(
           .values({
             schoolId: school.id,
             email: emailNormalized,
+            mobileEncrypted: primaryMobile ? encryptData(primaryMobile.trim()) : null,
             passwordHash,
             mustChangePassword: true,
             isActive: true,
@@ -226,7 +227,30 @@ export async function enrollApplicant(
             updatedAt: new Date(),
           })
           .returning();
-        parentUser = nu;
+        if (nu) {
+          parentUser = nu;
+
+          // Insert canonical person row for parent
+          const parentNameDecrypted = fatherName || motherName || guardianName || "Parent Guardian";
+          const pNameParts = parentNameDecrypted.trim().split(/\s+/);
+          const pFirstName = pNameParts[0] || "Parent";
+          const pLastName = pNameParts.slice(1).join(" ") || "Guardian";
+
+          await tx.insert(persons).values({
+            schoolId: school.id,
+            userId: nu.id,
+            primaryType: "PARENT",
+            firstNameEncrypted: encryptData(pFirstName),
+            lastNameEncrypted: encryptData(pLastName),
+            firstNameSearchHash: computeSearchHash(pFirstName),
+            lastNameSearchHash: computeSearchHash(pLastName),
+            gender: "OTHER",
+            primaryEmailEncrypted: encryptData(emailNormalized),
+            primaryMobileEncrypted: primaryMobile ? encryptData(primaryMobile.trim()) : null,
+            createdBy: ctx.userId,
+            isActive: true,
+          });
+        }
 
         // Send SMS with credentials
         if (primaryMobile) {

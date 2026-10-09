@@ -122,6 +122,84 @@ export const createSchoolSchema = z.object({
 
 export const updateSchoolSchema = createSchoolSchema.partial();
 
+export const schoolProfileUpdateSchema = z.object({
+  name: z.string().min(3).max(200).optional(),
+  board: z.enum(BOARDS).optional(),
+  udiseCode: z.string().regex(/^\d{11}$/, "UDISE code must be 11 digits").optional(),
+  address: z.string().min(10).max(500).optional(),
+  city: z.string().min(2).max(100).optional(),
+  state: z.string().min(2).max(100).optional(),
+  pincode: pincodeSchema.optional(),
+  phone: indianMobileSchema.optional(),
+  email: z.string().email().optional(),
+  principalName: z.string().min(2).max(200).optional(),
+  establishedYear: z.number().int().min(1800).max(new Date().getFullYear()).optional(),
+  website: z.string().url().or(z.literal("")).nullable().optional(),
+  motto: z.string().max(250).nullable().optional(),
+  about: z.string().max(2000).nullable().optional(),
+  socialHandles: z.record(z.string()).nullable().optional(),
+  themeColors: z
+    .object({
+      light: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid hex color").optional(),
+      dark: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid hex color").optional(),
+    })
+    .nullable()
+    .optional(),
+});
+export type SchoolProfileUpdateInput = z.infer<typeof schoolProfileUpdateSchema>;
+
+export const createSchoolWithAdminSchema = createSchoolSchema.extend({
+  adminFirstName: z.string().min(1).max(100),
+  adminLastName: z.string().min(1).max(100),
+  adminEmail: z.string().email(),
+  adminPassword: z.string().min(8),
+  adminMobile: indianMobileSchema.optional(),
+  adminGender: z.enum(["MALE", "FEMALE", "OTHER"]).default("OTHER"),
+});
+
+export const createStaffInputSchema = z.object({
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]),
+  dateOfBirth: z.string().optional(),
+  email: z.string().email(),
+  mobile: indianMobileSchema,
+  employeeCode: z.string().min(1).max(50),
+  departmentId: uuidSchema,
+  designationId: uuidSchema,
+  contractType: z.enum(["PERMANENT", "CONTRACT", "PROBATION", "VISITING"]),
+  joiningDate: z.string(),
+  address: z.string().optional(),
+  emergencyContact: indianMobileSchema.optional(),
+  aadhaarLast4: aadhaarLast4Schema.optional(),
+  pan: panSchema.optional(),
+  qualification: z.string().optional(),
+  experience: z.string().optional(),
+});
+
+export const createDriverInputSchema = z.object({
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  mobile: indianMobileSchema,
+  licenceNumber: z.string().min(5).max(30),
+  vehicleId: uuidSchema.optional(),
+});
+
+export const selfProfileUpdateSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  middleName: z.string().max(100).nullable().optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  preferredLanguage: z.enum(["en", "hi"]).optional(),
+  themePreference: z.enum(["light", "dark", "system"]).optional(),
+  mobile: indianMobileSchema.optional(),
+  email: z.string().email().optional(),
+  address: z.string().max(500).nullable().optional(),
+  emergencyContact: indianMobileSchema.nullable().optional(),
+  bloodGroup: z.string().max(10).nullable().optional(),
+  hasGivenDpdpConsent: z.boolean().optional(),
+});
+export type SelfProfileUpdateInput = z.infer<typeof selfProfileUpdateSchema>;
+
 // ─── Academic Year ────────────────────────────────────────────────────────────
 
 export const createAcademicYearSchema = z.object({

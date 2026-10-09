@@ -48,6 +48,7 @@ export default async function ParentLayout({
   if (session.user.schoolId) {
     const school = await db.query.schools.findFirst({
       where: eq(schools.id, session.user.schoolId),
+      columns: { name: true },
     });
     if (school?.name) {
       schoolName = school.name;

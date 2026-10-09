@@ -15,10 +15,12 @@ import {
   users,
   roles,
   userRoles,
+  persons,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getCanonicalSortOrder } from "@/lib/academicOrdering";
+import { encryptData, computeSearchHash } from "@/lib/encryption";
 
 export interface ClassSetupItem {
   gradeLevel: string;
@@ -386,12 +388,32 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         })
         .returning();
 
-      if (adminUser && schoolAdminRole) {
-        await tx.insert(userRoles).values({
-          userId: adminUser.id,
-          roleId: schoolAdminRole.id,
+      if (adminUser) {
+        const nameParts = adminName.trim().split(/\s+/);
+        const adminFirstName = nameParts[0] || "School";
+        const adminLastName = nameParts.slice(1).join(" ") || "Admin";
+
+        await tx.insert(persons).values({
           schoolId: newSchool.id,
+          userId: adminUser.id,
+          primaryType: "STAFF",
+          firstNameEncrypted: encryptData(adminFirstName),
+          lastNameEncrypted: encryptData(adminLastName),
+          firstNameSearchHash: computeSearchHash(adminFirstName),
+          lastNameSearchHash: computeSearchHash(adminLastName),
+          gender: "OTHER",
+          primaryEmailEncrypted: encryptData(adminEmail.toLowerCase().trim()),
+          primaryMobileEncrypted: phone ? encryptData(phone) : null,
+          isActive: true,
         });
+
+        if (schoolAdminRole) {
+          await tx.insert(userRoles).values({
+            userId: adminUser.id,
+            roleId: schoolAdminRole.id,
+            schoolId: newSchool.id,
+          });
+        }
       }
 
       return {

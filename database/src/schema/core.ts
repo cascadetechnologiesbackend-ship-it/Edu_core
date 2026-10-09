@@ -71,6 +71,11 @@ export const schools = pgTable(
     principalName: text("principal_name").notNull(),
     logoS3Key: text("logo_s3_key"),
     establishedYear: integer("established_year").notNull(),
+    website: text("website"),
+    motto: text("motto"),
+    about: text("about"),
+    socialHandles: jsonb("social_handles").default({}),
+    themeColors: jsonb("theme_colors").default({ light: "#4f46e5", dark: "#6366f1" }),
     isActive: boolean("is_active").notNull().default(true),
     featureFlags: jsonb("feature_flags").default({}).notNull(),
     // Subscription

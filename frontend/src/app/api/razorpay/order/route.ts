@@ -43,6 +43,13 @@ export async function POST(req: Request) {
       if (!student || student.primaryParentUserId !== session.user.id) {
         return NextResponse.json({ error: "Forbidden: invoice does not belong to your ward" }, { status: 403 });
       }
+    } else if (session.user.role === "STUDENT") {
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, invoice.studentId),
+      });
+      if (!student || student.userId !== session.user.id) {
+        return NextResponse.json({ error: "Forbidden: invoice does not belong to your student account" }, { status: 403 });
+      }
     }
 
     // Verify amount is valid and within invoice outstanding balance

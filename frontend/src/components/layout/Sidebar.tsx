@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -46,6 +46,12 @@ import {
   Activity,
   AlertOctagon,
   LogOut,
+  User,
+  Moon,
+  Sun,
+  Languages,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
@@ -58,6 +64,7 @@ const ICON_MAP: Record<string, LucideIcon | React.ComponentType<any>> = {
   UserPlus,
   Users,
   BookOpen,
+  User,
   CalendarCheck,
   Award,
   IndianRupee,
@@ -131,18 +138,65 @@ export function Sidebar({
   };
 
   let sessionRole: string | undefined;
+  let sessionUser: any = null;
   let isSessionLoading = false;
   try {
     const sessionContext = useSession();
     sessionRole = sessionContext?.data?.user?.role;
+    sessionUser = sessionContext?.data?.user || null;
     isSessionLoading = sessionContext?.status === "loading";
   } catch {
     sessionRole = undefined;
+    sessionUser = null;
     isSessionLoading = false;
   }
 
   // FAIL-CLOSED: Determine role strictly without falling back to a privileged role (GT-01)
   const role = (userRole as UserRole) || (sessionRole as UserRole) || undefined;
+
+  // Compute profile destination per role
+  const profileHref =
+    role === "TEACHER"
+      ? "/teacher/profile"
+      : role === "PARENT"
+        ? "/parent/profile"
+        : role === "STUDENT"
+          ? "/student/profile"
+          : role === "DRIVER"
+            ? "/driver/profile"
+            : role === "SUPER_ADMIN"
+              ? "/super-admin/profile"
+              : "/profile";
+
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  // Global keyboard shortcut: Cmd/Ctrl + , to open profile
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        router.push(profileHref as any);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router, profileHref]);
+
+  // Click outside to close account menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    if (accountMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [accountMenuOpen]);
 
   // Active route pre-warmer
   const warmRoute = (href: string) => {
@@ -329,6 +383,143 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      {/* Fixed 64px Account Section (Spec 5.0.0 Phase 3) */}
+      {(() => {
+        const userName = sessionUser?.name || "User";
+        const userInitials =
+          userName
+            .split(" ")
+            .map((s: string) => s.charAt(0))
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "U";
+        const avatarColors = [
+          "bg-indigo-600",
+          "bg-violet-600",
+          "bg-emerald-600",
+          "bg-blue-600",
+          "bg-rose-600",
+          "bg-amber-600",
+          "bg-teal-600",
+        ];
+        const charSum = userName
+          .split("")
+          .reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
+        const avatarBg = avatarColors[charSum % avatarColors.length];
+
+        return (
+          <div
+            ref={accountRef}
+            className="relative flex-shrink-0 h-16 border-t border-white/10 px-2 flex items-center"
+          >
+            <button
+              type="button"
+              onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+              className={cn(
+                "w-full flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/5 transition text-left focus:outline-none focus:ring-1 focus:ring-indigo-500/50",
+                collapsed && "justify-center"
+              )}
+              aria-expanded={accountMenuOpen}
+              aria-haspopup="true"
+              title={collapsed ? `${userName} (${roleConfig.displayName})` : undefined}
+            >
+              {/* Avatar with Online Status */}
+              <div className="relative flex-shrink-0">
+                {sessionUser?.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={sessionUser.image}
+                    alt={userName}
+                    className="w-8 h-8 rounded-lg object-cover border border-white/20"
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white/20",
+                      avatarBg
+                    )}
+                  >
+                    {userInitials}
+                  </div>
+                )}
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900"
+                  title="Online"
+                />
+              </div>
+
+              {/* User Name & Role Chip */}
+              {!collapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-white font-medium text-xs truncate leading-tight">
+                    {userName}
+                  </p>
+                  <p className="text-[10px] text-sidebar-text/70 truncate mt-0.5">
+                    {roleConfig.displayName}
+                  </p>
+                </div>
+              )}
+
+              {!collapsed && (
+                <div className="text-sidebar-text/60 flex-shrink-0">
+                  {accountMenuOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  )}
+                </div>
+              )}
+            </button>
+
+            {/* Quick-Action Popover */}
+            {accountMenuOpen && (
+              <div
+                className={cn(
+                  "absolute bottom-full mb-2 z-50 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 w-56 text-xs divide-y divide-slate-800",
+                  collapsed ? "left-14" : "left-2"
+                )}
+                role="menu"
+              >
+                <div className="px-3 py-2">
+                  <p className="font-semibold text-white truncate">{userName}</p>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    {sessionUser?.email || ""}
+                  </p>
+                </div>
+
+                <div className="py-1 space-y-0.5">
+                  <Link
+                    href={profileHref as any}
+                    prefetch={true}
+                    onClick={() => setAccountMenuOpen(false)}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 transition font-medium"
+                    role="menuitem"
+                  >
+                    <span className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-indigo-400" /> My Profile
+                    </span>
+                    <kbd className="px-1 py-0.5 text-[9px] font-mono text-slate-400 bg-white/5 rounded border border-white/10">
+                      ⌘,
+                    </kbd>
+                  </Link>
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition font-medium text-left"
+                    role="menuitem"
+                  >
+                    <LogOut className="w-3.5 h-3.5" /> Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Collapse Toggle */}
       <div className="flex-shrink-0 p-2 border-t border-white/10">
