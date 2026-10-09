@@ -12,6 +12,10 @@
 - **Strict Monotonic Migration Timestamps (`_journal.json`)**:
   - Migration timestamps (`when` / `folderMillis`) in `_journal.json` MUST be strictly monotonically increasing.
   - NEVER lower or renumber existing timestamps in `_journal.json`. Drizzle's migrator uses `lastDbMigration.created_at < migration.folderMillis` from the single highest record in `drizzle.__drizzle_migrations`. Lowering historical timestamps causes Drizzle to silently skip all intermediate migrations on persistent staging/production databases.
+- **Mandatory Migration Journal Synchronization (`_journal.json`)**:
+  - Creating a `.sql` file in `database/src/migrations/` is INSUFFICIENT on its own. Drizzle's migration engine reads `meta/_journal.json` to determine the execution sequence and unapplied migrations.
+  - Every migration file MUST have a corresponding entry in `database/src/migrations/meta/_journal.json` with correct `idx`, `version: "7"`, `when: <timestamp>`, `tag: <filename_without_ext>`, and `breakpoints: true`.
+  - Run and verify `pnpm db:check-migrations` to guarantee the journal and filesystem remain 100% synchronized before committing.
 - **Pre-Migration Ledger Sanitization in `migrate.ts`**:
   - The migration entrypoint (`migrate.ts`) must detect and normalize known legacy or out-of-order timestamps in `drizzle.__drizzle_migrations` before invoking `migrate()`.
   - If core relations expected from earlier migrations are missing, sanitize false future ledger records so unapplied migrations execute in sequence.
