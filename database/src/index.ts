@@ -27,11 +27,15 @@ if (process.env["NODE_ENV"] !== "production") {
   globalForDb.pool = pool;
 }
 
+import { BudgetQueryLogger } from "./queryLogger";
+
 // ─── Drizzle Client ───────────────────────────────────────────────────────────
+
+export const budgetQueryLogger = new BudgetQueryLogger();
 
 export const db = drizzle(pool, {
   schema,
-  logger: process.env["DEBUG_DB"] === "true",
+  logger: budgetQueryLogger,
 });
 
 export type Db = typeof db;
@@ -82,6 +86,7 @@ export async function getTenantDb(schoolId?: string) {
   return { tenantDb: db, tenantSlug, schoolId: school.id };
 }
 
-// ─── Re-export schema for convenience ────────────────────────────────────────
+// ─── Re-export schema and query logger for convenience ───────────────────────
 
 export * from "./schema";
+export * from "./queryLogger";

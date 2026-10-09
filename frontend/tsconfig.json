@@ -17,7 +17,7 @@
       "@/*": ["./src/*"],
       "@/db": ["../database/src/index.ts"],
       "@/db/*": ["../database/src/*"],
-      "@/lib/*": ["../backend/src/lib/*"],
+      "@/lib/*": ["./src/lib/*", "../backend/src/lib/*"],
       "@/server/*": ["../backend/src/server/*"],
       "@/workers/*": ["../backend/src/workers/*"],
       "@schoolmitra/database": ["../database/src/index.ts"],

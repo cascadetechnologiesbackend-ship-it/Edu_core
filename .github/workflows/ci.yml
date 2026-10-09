@@ -94,6 +94,11 @@ jobs:
       - name: Run Frontend Unit Tests
         run: pnpm --filter @schoolmitra/frontend run test
 
+      - name: Next.js Bundle Analysis & Budget Enforcement (PF-R02)
+        run: |
+          pnpm --filter @schoolmitra/frontend run build:analyze
+          node frontend/scripts/check-bundle-budgets.mjs
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

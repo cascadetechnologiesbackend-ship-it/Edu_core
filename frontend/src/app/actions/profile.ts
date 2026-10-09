@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAuth } from "@/lib/serverAuth";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import {
