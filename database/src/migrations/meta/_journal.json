@@ -169,6 +169,13 @@
       "when": 1791900000000,
       "tag": "0023_profile_completion",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1792000000000,
+      "tag": "0024_finance_perf_indexes",
+      "breakpoints": true
     }
   ]
 }

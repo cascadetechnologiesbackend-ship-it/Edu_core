@@ -47,7 +47,7 @@ export const authConfig: NextAuthConfig = {
       // Webhook and health endpoints have internal cryptographic / key validation
       if (
         pathname.startsWith("/api/webhooks") ||
-        pathname === "/api/health"
+        pathname.startsWith("/api/health")
       ) {
         return true;
       }

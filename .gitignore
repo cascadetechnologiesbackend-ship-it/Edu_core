@@ -16,6 +16,10 @@ out
 .env.staging
 *.env
 *api_keys*.csv
+*.pem
+*.key
+*.cert
+*.crt
 
 # Turbo
 .turbo

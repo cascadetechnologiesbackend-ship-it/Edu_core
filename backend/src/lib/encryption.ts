@@ -3,6 +3,11 @@ import crypto from "crypto";
 function resolveKey(): string {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "CRITICAL: ENCRYPTION_KEY environment variable is missing in production. Refusing to boot with default key.",
+      );
+    }
     console.warn("⚠️ Warning: ENCRYPTION_KEY is not set in environment. Falling back to default key.");
     return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
   }
