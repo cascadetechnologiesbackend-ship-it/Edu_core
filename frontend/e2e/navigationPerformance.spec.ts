@@ -20,6 +20,7 @@ interface NavigationMetrics {
   route: string;
   journey: string;
   profile: string;
+  isCold?: boolean;
   ttfbMs: number;
   domContentLoadedMs: number;
   totalDurationMs: number;
@@ -66,7 +67,54 @@ async function measureRoute(
   const metric: NavigationMetrics = {
     route,
     journey,
-    profile,
+    profile: `${profile} (Warm)`,
+    isCold: false,
+    ttfbMs,
+    domContentLoadedMs,
+    totalDurationMs: wallClockMs,
+    status,
+  };
+
+  collectedMetrics.push(metric);
+  return metric;
+}
+
+/**
+ * Cold-First-Click Measurement (OPEN-2 & PF-R125)
+ * Measures the true cold navigation without any prior page.goto warmup.
+ */
+async function measureRouteCold(
+  page: Page,
+  route: string,
+  journey: string,
+  profile: string,
+  targetTtfbMs = 1200
+): Promise<NavigationMetrics> {
+  const start = Date.now();
+  await page.goto(route, { waitUntil: "domcontentloaded" });
+  const wallClockMs = Date.now() - start;
+
+  const navTiming = await page.evaluate(() => {
+    const entries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+    if (entries.length > 0) {
+      const e = entries[0];
+      return {
+        ttfb: Math.max(0, Math.round(e.responseStart - e.startTime)),
+        domContentLoaded: Math.max(0, Math.round(e.domContentLoadedEventEnd - e.startTime)),
+      };
+    }
+    return { ttfb: 0, domContentLoaded: 0 };
+  });
+
+  const ttfbMs = navTiming.ttfb > 0 ? navTiming.ttfb : wallClockMs;
+  const domContentLoadedMs = navTiming.domContentLoaded > 0 ? navTiming.domContentLoaded : wallClockMs;
+  const status: "PASS" | "WARN" = ttfbMs <= targetTtfbMs ? "PASS" : "WARN";
+
+  const metric: NavigationMetrics = {
+    route,
+    journey,
+    profile: `${profile} (Cold)`,
+    isCold: true,
     ttfbMs,
     domContentLoadedMs,
     totalDurationMs: wallClockMs,
@@ -269,5 +317,34 @@ test.describe("Whole-ERP Latency Baselines: 5 Key Journeys (Spec 6.0.0 & PF-R125
     );
     expect(brsMetric.status).toBe("PASS");
     await expect(adminPage.locator("h1, h2, div").first()).toBeVisible({ timeout: 5000 });
+  });
+
+  // =========================================================================
+  // COLD FIRST-CLICK LATENCY BASELINES (OPEN-2 & PF-R125 - NO WARMUP)
+  // =========================================================================
+
+  test("Cold First Click: User Login (/login)", async ({ page }) => {
+    const metric = await measureRouteCold(page, "/login", "Cold 1. Login Shell", "Desktop Anonymous", 1000);
+    expect(metric.status).toBe("PASS");
+  });
+
+  test("Cold First Click: Admin Command Dashboard (/dashboard)", async ({ adminPage }) => {
+    const metric = await measureRouteCold(adminPage, "/dashboard", "Cold 2. Admin Dashboard", "Desktop Admin", 1200);
+    expect(metric.status).toBe("PASS");
+  });
+
+  test("Cold First Click: Attendance Management (/attendance)", async ({ adminPage }) => {
+    const metric = await measureRouteCold(adminPage, "/attendance", "Cold 3. Attendance Shell", "Desktop Admin", 1200);
+    expect(metric.status).toBe("PASS");
+  });
+
+  test("Cold First Click: Fee Counter POS (/school/collect-fees)", async ({ adminPage }) => {
+    const metric = await measureRouteCold(adminPage, "/school/collect-fees", "Cold 4. Fee POS Terminal", "Desktop Accountant", 1200);
+    expect(metric.status).toBe("PASS");
+  });
+
+  test("Cold First Click: Parent Student Portal (/portal)", async ({ parentPage }) => {
+    const metric = await measureRouteCold(parentPage, "/portal", "Cold 5. Parent Portal", "Mobile Parent", 1200);
+    expect(metric.status).toBe("PASS");
   });
 });

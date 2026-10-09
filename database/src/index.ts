@@ -21,7 +21,7 @@ const pool =
     max: Number(process.env["DATABASE_POOL_MAX"] ?? 25),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
-    statement_timeout: 5000, // 5s statement timeout (PF-R100)
+    statement_timeout: 2000, // 2s statement timeout for OLTP (PF-R100). Analytical reports and background workers override up to 30s.
   });
 
 if (process.env["NODE_ENV"] !== "production") {
@@ -41,10 +41,21 @@ export const db = drizzle(pool, {
 
 export type Db = typeof db;
 
-// ─── Multi-Tenancy Architecture ───────────────────────────────────────────────
-// SchoolMitra ERP operates on a high-efficiency Shared-Schema model where every
-// tenant entity is strictly partitioned and row-scoped by `school_id`.
-// Data isolation is enforced via foreign keys, application guards, and DPDP audit logs.
+// ─── Multi-Tenancy & Query Timeout Helpers ────────────────────────────────────
+
+/**
+ * Runs queries inside a dedicated analytical session with extended statement_timeout (up to 30s).
+ * Normative PF-R100: Normal OLTP statements budget 2s; report queries on replica budget 30s.
+ */
+export async function withReportSession<T>(
+  cb: (tx: Db) => Promise<T>,
+  timeoutMs = 30000,
+): Promise<T> {
+  return await db.transaction(async (tx) => {
+    await tx.execute(sql.raw(`SET LOCAL statement_timeout = '${timeoutMs}ms'`));
+    return await cb(tx as any);
+  });
+}
 
 /**
  * Runs queries inside a transaction scoped to the tenant context.

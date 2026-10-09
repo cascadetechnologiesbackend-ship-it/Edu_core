@@ -35,6 +35,7 @@ const ReceiptSheet = dynamic(
   { ssr: false }
 );
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/finance/EmptyState";
 import type { StudentFeeCard } from "@schoolmitra/validators";
 
 type StudentSearchResult = StudentFeeCard;
@@ -113,7 +114,7 @@ export function CounterCollectionClient({
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
-  // Focus search on mount for POS keyboard posture
+  // Focus search on mount for POS keyboard posture & register keyboard map (PF 4.1.0)
   useEffect(() => {
     searchInputRef.current?.focus();
     // Load recent students from localStorage
@@ -123,6 +124,22 @@ export function CounterCollectionClient({
     } catch (e) {
       // ignore
     }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === "Escape") {
+        if (document.activeElement === searchInputRef.current) {
+          setSearchTerm("");
+          searchInputRef.current?.blur();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Debounced server-side student search
@@ -511,9 +528,16 @@ export function CounterCollectionClient({
             {!selectedStudent && (
               <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800/80 border border-gray-100 dark:border-slate-800 rounded-xl">
                 {searchResults.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-gray-400">
-                    No students match your query. Try searching by admission number or full name.
-                  </div>
+                  <EmptyState
+                    icon={Search}
+                    title={searchTerm.trim() ? "No Students Found" : "Search Student Roster"}
+                    description={
+                      searchTerm.trim()
+                        ? `No students match "${searchTerm}". Check admission number or spelling.`
+                        : "Type an admission number or student name above to look up ledger dues and collect fees."
+                    }
+                    className="p-6 md:p-6"
+                  />
                 ) : (
                   searchResults.map((stu) => (
                     <button
