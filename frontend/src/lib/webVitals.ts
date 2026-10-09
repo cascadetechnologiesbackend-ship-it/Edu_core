@@ -13,7 +13,7 @@ export const vitalsLogger = pino({
 
 export const metricItemSchema = z.object({
   id: z.string(),
-  name: z.enum(["LCP", "INP", "CLS", "TTFB", "FCP", "FID"]),
+  name: z.enum(["LCP", "INP", "CLS", "TTFB", "FCP"]),
   value: z.number(),
   route: z.string(),
   timestamp: z.number(),

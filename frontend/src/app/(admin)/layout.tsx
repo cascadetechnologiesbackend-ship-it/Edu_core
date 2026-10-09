@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import { getActiveTenant } from "@/lib/tenant";
 import { cookies } from "next/headers";
@@ -31,7 +31,8 @@ export default async function AdminLayout({
     console.warn("AdminLayout: tenant resolution fallback", err);
   }
 
-  const session = await auth();
+  // React cache() memoized session guarantees single fetch across RSC layout and child pages
+  const session = await getCachedSession();
 
   if (!session?.user) {
     redirect("/login");
@@ -79,6 +80,14 @@ export default async function AdminLayout({
   // Effective role for sidebar and navigation
   const effectiveRole = impersonationData ? "SCHOOL_ADMIN" : session.user.role;
 
+  const currentUser = {
+    id: session.user.id,
+    name: session.user.name ?? null,
+    email: session.user.email ?? null,
+    role: effectiveRole,
+    image: session.user.image ?? null,
+  };
+
   return (
     <SessionProvider session={session}>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -93,11 +102,16 @@ export default async function AdminLayout({
 
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Sidebar */}
-          <Sidebar userRole={effectiveRole as any} />
+          <Sidebar
+            userRole={effectiveRole as any}
+            currentUser={currentUser}
+            schoolName={impersonationData?.schoolName}
+          />
 
           {/* Main content */}
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
             <Header
+              currentUser={currentUser}
               breadcrumbs={[
                 {
                   label: impersonationData?.schoolName ? `${impersonationData.schoolName} Admin` : "Admin",

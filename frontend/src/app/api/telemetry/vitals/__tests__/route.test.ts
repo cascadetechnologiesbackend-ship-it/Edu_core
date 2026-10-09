@@ -115,4 +115,64 @@ describe("Web Vitals Ingest API (/api/telemetry/vitals)", () => {
     expect(containsProhibitedPii({ studentName: "Rahul" })).toBe(true);
     expect(containsProhibitedPii({ schoolId: "sch_01", role: "ADMIN", route: "/dashboard" })).toBe(false);
   });
+
+  it("accepts INP metric with interaction attribution (PF-R26)", async () => {
+    const inpBatch = {
+      ...validBatch,
+      metrics: [
+        {
+          id: "v1-inp-1",
+          name: "INP" as const,
+          value: 78.5,
+          route: "/dashboard",
+          timestamp: Date.now(),
+          attribution: {
+            interactionTarget: "button#save-attendance",
+            interactionType: "pointerdown",
+          },
+        },
+      ],
+    };
+
+    const req = new NextRequest("http://localhost:3002/api/telemetry/vitals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(inpBatch),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
+
+    const inpStats = getFieldMetricStats("/dashboard", "INP");
+    expect(inpStats).not.toBeNull();
+    expect(inpStats?.p75).toBe(78.5);
+  });
+
+  it("rejects legacy FID metric per performance rulebook (INP, never FID)", async () => {
+    const fidBatch = {
+      ...validBatch,
+      metrics: [
+        {
+          id: "v1-fid-1",
+          name: "FID", // Dropped from enum
+          value: 12.0,
+          route: "/dashboard",
+          timestamp: Date.now(),
+        },
+      ],
+    };
+
+    const req = new NextRequest("http://localhost:3002/api/telemetry/vitals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fidBatch),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid web vitals payload");
+  });
 });

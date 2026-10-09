@@ -3,112 +3,48 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
-  LayoutDashboard,
-  UserPlus,
-  Users,
-  BookOpen,
-  CalendarCheck,
-  Award,
-  IndianRupee,
-  UserCog,
-  Library,
-  Bus,
-  Bell,
-  Package,
-  Building2,
-  BarChart3,
-  Shield,
-  ShieldCheck,
-  Settings,
+  GraduationCap,
   ChevronLeft,
   ChevronRight,
-  GraduationCap,
-  Sparkles,
-  TrendingUp,
-  CreditCard,
-  Receipt,
-  UserCheck,
-  CalendarOff,
-  Banknote,
-  Clock,
-  FileSpreadsheet,
-  FileText,
-  Percent,
-  BadgePercent,
-  RotateCcw,
-  Undo2,
-  CheckSquare,
-  ArrowLeftRight,
-  AlertCircle,
-  Landmark,
-  Grid3x3,
-  Activity,
-  AlertOctagon,
-  LogOut,
-  User,
-  Moon,
-  Sun,
-  Languages,
   ChevronUp,
   ChevronDown,
+  LogOut,
+  User,
+  AlertOctagon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
 import { getRoleConfig, type UserRole, type NavItem } from "../../lib/roleConfig";
-import type { LucideIcon } from "lucide-react";
 
-// ─── Dynamic Icon Resolver Map ────────────────────────────────────────────────
-const ICON_MAP: Record<string, LucideIcon | React.ComponentType<any>> = {
-  LayoutDashboard,
-  UserPlus,
-  Users,
-  BookOpen,
-  User,
-  CalendarCheck,
-  Award,
-  IndianRupee,
-  UserCog,
-  Library,
-  Bus,
-  Bell,
-  Package,
-  Building2,
-  BarChart3,
-  Shield,
-  ShieldCheck,
-  Settings,
-  GraduationCap,
-  Sparkles,
-  TrendingUp,
-  CreditCard,
-  Receipt,
-  UserCheck,
-  CalendarOff,
-  Banknote,
-  Clock,
-  FileSpreadsheet,
-  FileText,
-  Percent,
-  BadgePercent,
-  RotateCcw,
-  Undo2,
-  CheckSquare,
-  ArrowLeftRight,
-  AlertCircle,
-  Landmark,
-  Grid3x3,
-  Activity,
-};
+// Split heavy navigation icon map into dynamic chunk for shell leanliness (<= 100KB gzip)
+const SidebarIcon = dynamic(
+  () => import("./SidebarIcon").then((m) => m.SidebarIcon),
+  {
+    ssr: true,
+    loading: () => <span className="w-4 h-4 flex-shrink-0 inline-block bg-white/10 rounded" />,
+  }
+);
+
+export interface SidebarCurrentUser {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  image?: string | null;
+}
 
 interface SidebarProps {
-  schoolName?: string;
-  userRole?: string;
+  schoolName?: string | undefined;
+  userRole?: string | undefined;
+  currentUser?: SidebarCurrentUser | null | undefined;
 }
 
 export function Sidebar({
   schoolName = "SchoolMitra ERP",
   userRole,
+  currentUser,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -137,18 +73,16 @@ export function Sidebar({
     }
   };
 
-  let sessionRole: string | undefined;
-  let sessionUser: any = null;
+  let sessionRole: string | undefined = currentUser?.role || undefined;
+  let sessionUser: any = currentUser || null;
   let isSessionLoading = false;
-  try {
-    const sessionContext = useSession();
+
+  // React cache() and server-side currentUser resolution bypass client fetch waterfall
+  const sessionContext = useSession();
+  if (!currentUser) {
     sessionRole = sessionContext?.data?.user?.role;
     sessionUser = sessionContext?.data?.user || null;
     isSessionLoading = sessionContext?.status === "loading";
-  } catch {
-    sessionRole = undefined;
-    sessionUser = null;
-    isSessionLoading = false;
   }
 
   // FAIL-CLOSED: Determine role strictly without falling back to a privileged role (GT-01)
@@ -335,7 +269,6 @@ export function Sidebar({
                       item.href !== "/school/fees-dashboard" &&
                       pathname.startsWith(item.href));
                   const isPending = pendingHref === item.href;
-                  const IconComponent = ICON_MAP[item.icon] || LayoutDashboard;
 
                   return (
                     <li key={item.href}>
@@ -355,7 +288,8 @@ export function Sidebar({
                         aria-current={isActive ? "page" : undefined}
                         title={collapsed ? item.label : undefined}
                       >
-                        <IconComponent
+                        <SidebarIcon
+                          name={item.icon}
                           className={cn(
                             "w-4 h-4 flex-shrink-0 transition-transform",
                             isActive ? "text-indigo-400" : "text-sidebar-text/80",

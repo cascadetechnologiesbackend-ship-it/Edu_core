@@ -99,7 +99,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Inter", "Noto Sans Devanagari", ...fontFamily.sans],
+        sans: ["var(--font-inter)", "Inter", "Noto Sans Devanagari", ...fontFamily.sans],
         mono: ["JetBrains Mono", ...fontFamily.mono],
       },
       borderRadius: {

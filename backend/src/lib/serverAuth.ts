@@ -17,7 +17,7 @@ export interface AuthContext {
 }
 
 // Zero-arg cached session fetcher ensures 100% deduplication per RSC request
-const getCachedSession = cache(async () => {
+export const getCachedSession = cache(async () => {
   return await auth();
 });
 

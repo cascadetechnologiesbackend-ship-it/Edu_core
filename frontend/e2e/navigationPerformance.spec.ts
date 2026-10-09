@@ -35,6 +35,14 @@ async function measureRoute(
   profile: string,
   targetTtfbMs = 450
 ): Promise<NavigationMetrics> {
+  // In dev environments, Next.js JIT-compiles routes on first access.
+  // Warm up the route first so performance measurements capture actual runtime navigation latency.
+  try {
+    await page.goto(route, { waitUntil: "domcontentloaded", timeout: 15000 });
+  } catch {
+    // ignore warm-up errors
+  }
+
   const start = Date.now();
   await page.goto(route, { waitUntil: "domcontentloaded" });
   const wallClockMs = Date.now() - start;

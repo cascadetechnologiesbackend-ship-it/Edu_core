@@ -118,6 +118,17 @@ export async function measureDataPhase<T>(
 }
 
 /**
+ * Convenience helper to measure RSC data phase duration.
+ */
+export async function withDataPhaseTiming<T>(
+  route: string,
+  fn: () => Promise<T>,
+  metadata?: Record<string, unknown> | undefined
+): Promise<T> {
+  return measureDataPhase(route, "data_phase", fn, metadata);
+}
+
+/**
  * Computes p50, p75, p95, p99 percentiles for a route.
  */
 export function getRouteTimingPercentiles(route: string): RoutePercentiles | null {

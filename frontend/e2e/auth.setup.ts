@@ -16,7 +16,7 @@ setup("authenticate users and save storageState", async ({ browser }) => {
   await adminPage.fill('input[id="login-email"]', "school_admin1@school.edu.in");
   await adminPage.fill('input[id="login-password"]', "schoolmitra_dev");
   await adminPage.press('input[id="login-password"]', "Enter");
-  await adminPage.waitForURL(/\/dashboard|\/school/, { timeout: 15000 });
+  await adminPage.waitForURL(/\/dashboard|\/school/, { timeout: 15000, waitUntil: "domcontentloaded" });
   await adminContext.storageState({ path: path.join(AUTH_DIR, "admin.json") });
   await adminContext.close();
 
@@ -27,7 +27,7 @@ setup("authenticate users and save storageState", async ({ browser }) => {
   await parentPage.fill('input[id="login-email"]', "parent_1001@school.edu.in");
   await parentPage.fill('input[id="login-password"]', "schoolmitra_dev");
   await parentPage.click('button[type="submit"]');
-  await parentPage.waitForURL(/\/portal|\/login/);
+  await parentPage.waitForURL(/\/parent\/dashboard|\/portal|\/dashboard/, { timeout: 15000, waitUntil: "domcontentloaded" });
   await parentContext.storageState({ path: path.join(AUTH_DIR, "parent.json") });
   await parentContext.close();
 
@@ -38,7 +38,7 @@ setup("authenticate users and save storageState", async ({ browser }) => {
   await teacherPage.fill('input[id="login-email"]', "teacher1@school.edu.in");
   await teacherPage.fill('input[id="login-password"]', "schoolmitra_dev");
   await teacherPage.click('button[type="submit"]');
-  await teacherPage.waitForURL(/\/dashboard|\/login/);
+  await teacherPage.waitForURL(/\/dashboard|\/teacher|\/login/, { timeout: 15000, waitUntil: "domcontentloaded" });
   await teacherContext.storageState({ path: path.join(AUTH_DIR, "teacher.json") });
   await teacherContext.close();
 
@@ -49,7 +49,7 @@ setup("authenticate users and save storageState", async ({ browser }) => {
   await accountantPage.fill('input[id="login-email"]', "accountant1@school.edu.in");
   await accountantPage.fill('input[id="login-password"]', "schoolmitra_dev");
   await accountantPage.click('button[type="submit"]');
-  await accountantPage.waitForURL(/\/school\/fees-dashboard|\/dashboard/, { timeout: 15000 });
+  await accountantPage.waitForURL(/\/school\/fees-dashboard|\/dashboard/, { timeout: 15000, waitUntil: "domcontentloaded" });
   await accountantContext.storageState({ path: path.join(AUTH_DIR, "accountant.json") });
   await accountantContext.close();
 });

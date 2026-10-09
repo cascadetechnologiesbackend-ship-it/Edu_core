@@ -13,7 +13,7 @@ export const vitalsLogger = pino({
 
 export const metricItemSchema = z.object({
   id: z.string(),
-  name: z.enum(["LCP", "INP", "CLS", "TTFB", "FCP", "FID"]),
+  name: z.enum(["LCP", "INP", "CLS", "TTFB", "FCP"]),
   value: z.number(),
   route: z.string(),
   timestamp: z.number(),
@@ -28,6 +28,8 @@ export const batchSchema = z.object({
   schoolId: z.string(),
   metrics: z.array(metricItemSchema).min(1).max(100),
 });
+
+export const webVitalsBatchSchema = batchSchema;
 
 export type WebVitalsBatchPayload = z.infer<typeof batchSchema>;
 

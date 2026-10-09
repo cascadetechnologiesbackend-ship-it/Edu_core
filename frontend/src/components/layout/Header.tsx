@@ -18,23 +18,27 @@ interface BreadcrumbItem {
   href?: string;
 }
 
+export interface HeaderCurrentUser {
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  image?: string | null;
+}
+
 interface HeaderProps {
-  breadcrumbs?: BreadcrumbItem[];
-  notificationCount?: number;
+  breadcrumbs?: BreadcrumbItem[] | undefined;
+  notificationCount?: number | undefined;
+  currentUser?: HeaderCurrentUser | null | undefined;
 }
 
 export function Header({
   breadcrumbs = [],
   notificationCount = 0,
+  currentUser,
 }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  let session: any = null;
-  try {
-    const sessionContext = useSession();
-    session = sessionContext?.data;
-  } catch {
-    session = null;
-  }
+  const sessionContext = useSession();
+  const user = currentUser || sessionContext?.data?.user;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -150,14 +154,14 @@ export function Header({
                         text-white text-sm font-semibold flex-shrink-0"
             aria-hidden="true"
           >
-            {session?.user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+            {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
           </div>
           <div className="hidden md:block text-left min-w-0">
             <p className="text-sm font-medium truncate max-w-[120px]">
-              {session?.user?.name ?? "User"}
+              {user?.name ?? "User"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {(session?.user as { role?: string })?.role ?? "Admin"}
+              {(user as { role?: string })?.role ?? "Admin"}
             </p>
           </div>
         </button>

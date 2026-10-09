@@ -96,7 +96,10 @@ export function WebVitalsReporter() {
   }, [appVersion, role, schoolId]);
 
   useReportWebVitals((metric) => {
-    // Collect Core Web Vitals: LCP, INP, CLS, TTFB, FCP, FID
+    // Drop deprecated FID per performance rulebook (PF-R26: INP, never FID)
+    if ((metric.name as string) === "FID") return;
+
+    // Collect Core Web Vitals: LCP, INP, CLS, TTFB, FCP
     const payload: MetricPayload = {
       id: metric.id,
       name: metric.name,

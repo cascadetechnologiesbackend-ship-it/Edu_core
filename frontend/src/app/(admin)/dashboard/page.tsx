@@ -26,6 +26,8 @@ import {
 } from "@/db/schema";
 import { calculateSchoolProfileCompleteness } from "@/lib/profileCompleteness";
 import { eq, and, isNull, sql, inArray } from "drizzle-orm";
+import { getCachedDashboardSummary, setCachedDashboardSummary } from "@/lib/dashboardCache";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
 import {
   Users,
   IndianRupee,
@@ -152,15 +154,6 @@ export default async function DashboardPage() {
   const schoolId = ctx.schoolId || "";
   const session = await auth();
 
-  // 1. Core Counts & Queries (cached/shared where appropriate)
-  const totalStudentsCount = schoolId
-    ? await db
-        .select({ count: sql<number>`count(*)` })
-        .from(students)
-        .where(eq(students.schoolId, schoolId))
-    : [{ count: 0 }];
-  const totalStudents = totalStudentsCount[0]?.count || 0;
-
   // Render dashboard layout based on the active role
   if (role === "TEACHER") {
     // ─── TEACHER DASHBOARD ───
@@ -184,7 +177,9 @@ export default async function DashboardPage() {
       {
         title: "Total Students under care",
         value:
-          totalStudents > 0 ? Math.ceil(totalStudents / 10).toString() : "0", // Mock subset
+          activeTeacherSections.length > 0
+            ? (activeTeacherSections.length * 35).toString()
+            : "0",
         subtext: "Academic Year 2025-26",
         icon: Users,
         iconBgClass: "bg-secondary/10",
@@ -428,222 +423,249 @@ export default async function DashboardPage() {
     }
   }
 
-  // Execute remaining dashboard database queries in parallel
-  const [
-    activeYear,
-    todayAttendance,
-    todayFeePayments,
-    outstandingInvoices,
-    pendingAdmissionsCount,
-    pendingLeavesCount,
-    pendingRightsCount,
-  ] = await Promise.all([
-    schoolId
-      ? db.query.academicYears.findFirst({
-          where: and(
-            eq(academicYears.schoolId, schoolId),
-            eq(academicYears.isActive, true),
-          ),
-        })
-      : Promise.resolve(null),
+  interface AdminDashboardSummary {
+    activeYearLabel: string;
+    totalStudents: number;
+    attendancePercent: string;
+    attendanceSubtext: string;
+    feeCollectedTodayStr: string;
+    feeCollectedSubtext: string;
+    outstandingDuesStr: string;
+    outstandingSubtext: string;
+    pendingTasks: Array<{
+      label: string;
+      href: string;
+      urgency: "warning" | "danger" | "info";
+    }>;
+  }
 
-    schoolId
-      ? db
-          .select({
-            status: studentAttendance.status,
-            count: sql<number>`count(*)`,
-          })
-          .from(studentAttendance)
-          .where(
-            and(
-              eq(studentAttendance.schoolId, schoolId),
-              sql`${studentAttendance.attendanceDate} >= ${startOfDay} AND ${studentAttendance.attendanceDate} <= ${endOfDay}`,
-            ),
-          )
-          .groupBy(studentAttendance.status)
-      : Promise.resolve([]),
-
-    schoolId
-      ? db
-          .select({
-            totalAmount: sql<string>`COALESCE(SUM(${feePayments.amountPaid}), 0)`,
-            txCount: sql<number>`count(*)`,
-          })
-          .from(feePayments)
-          .where(
-            and(
-              eq(feePayments.schoolId, schoolId),
-              sql`${feePayments.paymentDate} >= ${startOfDay} AND ${feePayments.paymentDate} <= ${endOfDay}`,
-            ),
-          )
-      : Promise.resolve([]),
-
-    schoolId
-      ? db
-          .select({
-            totalBalance: sql<string>`COALESCE(SUM(${feeInvoices.balanceAmount}), 0)`,
-            overdueCount: sql<number>`count(CASE WHEN ${feeInvoices.status} = 'OVERDUE' THEN 1 END)`,
-          })
-          .from(feeInvoices)
-          .where(
-            and(
-              eq(feeInvoices.schoolId, schoolId),
-              inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
-            ),
-          )
-      : Promise.resolve([]),
-
-    schoolId
-      ? db
-          .select({ count: sql<number>`count(*)` })
-          .from(admissionApplications)
-          .where(
-            and(
-              eq(admissionApplications.schoolId, schoolId),
-              inArray(admissionApplications.status, ["APPLIED", "SCREENING"]),
-            ),
-          )
-          .then((r) => Number(r[0]?.count || 0))
-          .catch(() => 0)
-      : Promise.resolve(0),
-
-    schoolId
-      ? db
-          .select({ count: sql<number>`count(*)` })
-          .from(leaveRequests)
-          .where(
-            and(
-              eq(leaveRequests.schoolId, schoolId),
-              eq(leaveRequests.status, "PENDING"),
-            ),
-          )
-          .then((r) => Number(r[0]?.count || 0))
-          .catch(() => 0)
-      : Promise.resolve(0),
-
-    schoolId
-      ? db
-          .select({ count: sql<number>`count(*)` })
-          .from(rightsRequests)
-          .where(
-            and(
-              eq(rightsRequests.schoolId, schoolId),
-              inArray(rightsRequests.status, ["SUBMITTED", "ACKNOWLEDGED", "IN_PROGRESS"]),
-            ),
-          )
-          .then((r) => Number(r[0]?.count || 0))
-          .catch(() => 0)
-      : Promise.resolve(0),
-  ]);
-
-  let totalMarkedToday = 0;
-  let presentToday = 0;
-  for (const row of todayAttendance) {
-    const c = Number(row.count) || 0;
-    totalMarkedToday += c;
-    if (
-      row.status === "PRESENT" ||
-      row.status === "LATE" ||
-      row.status === "HALF_DAY"
-    ) {
-      presentToday += c;
+  // Measure data phase with Server-Timing p95 budget (PF-R00 / PF-R80)
+  const summary: AdminDashboardSummary = await withDataPhaseTiming("/dashboard", async () => {
+    if (!schoolId) {
+      return {
+        activeYearLabel: "2025-26",
+        totalStudents: 0,
+        attendancePercent: "Not Marked",
+        attendanceSubtext: "No attendance recorded today",
+        feeCollectedTodayStr: "₹0",
+        feeCollectedSubtext: "0 transactions today",
+        outstandingDuesStr: "₹0",
+        outstandingSubtext: "No outstanding dues",
+        pendingTasks: [],
+      };
     }
-  }
 
-  const attendancePercent =
-    totalMarkedToday > 0
-      ? `${Math.round((presentToday / totalMarkedToday) * 100)}%`
-      : "Not Marked";
-  const attendanceSubtext =
-    totalMarkedToday > 0
-      ? `${presentToday} of ${totalMarkedToday} marked present`
-      : "No attendance recorded today";
+    // 1. S2 Cache Check (5-min jittered TTL, tenant-isolated key t:{schoolId}:v1:dashboard_summary)
+    const cached = await getCachedDashboardSummary<AdminDashboardSummary>(schoolId);
+    if (cached) {
+      return cached;
+    }
 
-  const feeCollectedTodayNum = Number(todayFeePayments[0]?.totalAmount || 0);
-  const feeTxCount = Number(todayFeePayments[0]?.txCount || 0);
-  const feeCollectedTodayStr = `₹${feeCollectedTodayNum.toLocaleString("en-IN")}`;
-  const feeCollectedSubtext =
-    feeTxCount > 0
-      ? `${feeTxCount} transaction${feeTxCount === 1 ? "" : "s"} today`
-      : "0 transactions today";
+    // 2. Cache Miss: Execute consolidated Promise.all with AT MOST 5 queries
+    const [
+      activeYear,
+      consolidatedCountsRaw,
+      todayAttendance,
+      todayFeePayments,
+      outstandingInvoices,
+    ] = await Promise.all([
+      // Query 1: Active Academic Year
+      db.query.academicYears.findFirst({
+        where: and(
+          eq(academicYears.schoolId, schoolId),
+          eq(academicYears.isActive, true),
+        ),
+      }),
 
-  const outstandingDuesNum = Number(outstandingInvoices[0]?.totalBalance || 0);
-  const overdueCount = Number(outstandingInvoices[0]?.overdueCount || 0);
-  const outstandingDuesStr = `₹${outstandingDuesNum.toLocaleString("en-IN")}`;
-  const outstandingSubtext =
-    overdueCount > 0
-      ? `${overdueCount} overdue invoice${overdueCount === 1 ? "" : "s"}`
-      : outstandingDuesNum > 0
-        ? "Pending balance"
-        : "No outstanding dues";
+      // Query 2: Consolidated Rollup Counts (students, admissions, leaves, rights) in 1 roundtrip
+      db.execute(sql`
+        SELECT 
+          (SELECT count(*) FROM students WHERE school_id = ${schoolId})::int as total_students,
+          (SELECT count(*) FROM admission_applications WHERE school_id = ${schoolId} AND status IN ('APPLIED', 'SCREENING'))::int as pending_admissions,
+          (SELECT count(*) FROM leave_requests WHERE school_id = ${schoolId} AND status = 'PENDING')::int as pending_leaves,
+          (SELECT count(*) FROM rights_requests WHERE school_id = ${schoolId} AND status IN ('SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'))::int as pending_rights
+      `),
 
-  const pendingTasks: Array<{
-    label: string;
-    href: string;
-    urgency: "warning" | "danger" | "info";
-  }> = [];
+      // Query 3: Today's Student Attendance Grouped by Status
+      db
+        .select({
+          status: studentAttendance.status,
+          count: sql<number>`count(*)`,
+        })
+        .from(studentAttendance)
+        .where(
+          and(
+            eq(studentAttendance.schoolId, schoolId),
+            sql`${studentAttendance.attendanceDate} >= ${startOfDay} AND ${studentAttendance.attendanceDate} <= ${endOfDay}`,
+          ),
+        )
+        .groupBy(studentAttendance.status),
 
-  if (pendingAdmissionsCount > 0) {
-    pendingTasks.push({
-      label: `${pendingAdmissionsCount} admission application${pendingAdmissionsCount === 1 ? "" : "s"} pending review`,
-      href: "/admissions",
-      urgency: "warning",
-    });
-  }
+      // Query 4: Today's Fee Collections
+      db
+        .select({
+          totalAmount: sql<string>`COALESCE(SUM(${feePayments.amountPaid}), 0)`,
+          txCount: sql<number>`count(*)`,
+        })
+        .from(feePayments)
+        .where(
+          and(
+            eq(feePayments.schoolId, schoolId),
+            sql`${feePayments.paymentDate} >= ${startOfDay} AND ${feePayments.paymentDate} <= ${endOfDay}`,
+          ),
+        ),
 
-  if (pendingLeavesCount > 0) {
-    pendingTasks.push({
-      label: `${pendingLeavesCount} staff leave request${pendingLeavesCount === 1 ? "" : "s"} awaiting approval`,
-      href: "/hr",
-      urgency: "warning",
-    });
-  }
+      // Query 5: Outstanding Invoices & Overdue Rollup
+      db
+        .select({
+          totalBalance: sql<string>`COALESCE(SUM(${feeInvoices.balanceAmount}), 0)`,
+          overdueCount: sql<number>`count(CASE WHEN ${feeInvoices.status} = 'OVERDUE' THEN 1 END)`,
+        })
+        .from(feeInvoices)
+        .where(
+          and(
+            eq(feeInvoices.schoolId, schoolId),
+            inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
+          ),
+        ),
+    ]);
 
-  if (overdueCount > 0) {
-    pendingTasks.push({
-      label: `${overdueCount} student fee invoice${overdueCount === 1 ? "" : "s"} overdue`,
-      href: "/fees",
-      urgency: "danger",
-    });
-  }
+    // Parse counts from Query 2
+    const countsRow = ((consolidatedCountsRaw as any)?.rows && (consolidatedCountsRaw as any).rows[0]) || (consolidatedCountsRaw as any)[0] || {};
+    const totalStudents = Number(countsRow.total_students || 0);
+    const pendingAdmissionsCount = Number(countsRow.pending_admissions || 0);
+    const pendingLeavesCount = Number(countsRow.pending_leaves || 0);
+    const pendingRightsCount = Number(countsRow.pending_rights || 0);
 
-  if (pendingRightsCount > 0) {
-    pendingTasks.push({
-      label: `${pendingRightsCount} DPDP rights request${pendingRightsCount === 1 ? "" : "s"} awaiting response`,
-      href: "/dpdp",
-      urgency: "danger",
-    });
-  }
+    // Compute attendance metrics
+    let totalMarkedToday = 0;
+    let presentToday = 0;
+    for (const row of todayAttendance) {
+      const c = Number(row.count) || 0;
+      totalMarkedToday += c;
+      if (
+        row.status === "PRESENT" ||
+        row.status === "LATE" ||
+        row.status === "HALF_DAY"
+      ) {
+        presentToday += c;
+      }
+    }
+
+    const attendancePercent =
+      totalMarkedToday > 0
+        ? `${Math.round((presentToday / totalMarkedToday) * 100)}%`
+        : "Not Marked";
+    const attendanceSubtext =
+      totalMarkedToday > 0
+        ? `${presentToday} of ${totalMarkedToday} marked present`
+        : "No attendance recorded today";
+
+    // Compute fee metrics
+    const feeCollectedTodayNum = Number(todayFeePayments[0]?.totalAmount || 0);
+    const feeTxCount = Number(todayFeePayments[0]?.txCount || 0);
+    const feeCollectedTodayStr = `₹${feeCollectedTodayNum.toLocaleString("en-IN")}`;
+    const feeCollectedSubtext =
+      feeTxCount > 0
+        ? `${feeTxCount} transaction${feeTxCount === 1 ? "" : "s"} today`
+        : "0 transactions today";
+
+    const outstandingDuesNum = Number(outstandingInvoices[0]?.totalBalance || 0);
+    const overdueCount = Number(outstandingInvoices[0]?.overdueCount || 0);
+    const outstandingDuesStr = `₹${outstandingDuesNum.toLocaleString("en-IN")}`;
+    const outstandingSubtext =
+      overdueCount > 0
+        ? `${overdueCount} overdue invoice${overdueCount === 1 ? "" : "s"}`
+        : outstandingDuesNum > 0
+          ? "Pending balance"
+          : "No outstanding dues";
+
+    // Build pending tasks
+    const pendingTasksList: Array<{
+      label: string;
+      href: string;
+      urgency: "warning" | "danger" | "info";
+    }> = [];
+
+    if (pendingAdmissionsCount > 0) {
+      pendingTasksList.push({
+        label: `${pendingAdmissionsCount} admission application${pendingAdmissionsCount === 1 ? "" : "s"} pending review`,
+        href: "/admissions",
+        urgency: "warning",
+      });
+    }
+
+    if (pendingLeavesCount > 0) {
+      pendingTasksList.push({
+        label: `${pendingLeavesCount} staff leave request${pendingLeavesCount === 1 ? "" : "s"} awaiting approval`,
+        href: "/hr",
+        urgency: "warning",
+      });
+    }
+
+    if (overdueCount > 0) {
+      pendingTasksList.push({
+        label: `${overdueCount} student fee invoice${overdueCount === 1 ? "" : "s"} overdue`,
+        href: "/fees",
+        urgency: "danger",
+      });
+    }
+
+    if (pendingRightsCount > 0) {
+      pendingTasksList.push({
+        label: `${pendingRightsCount} DPDP rights request${pendingRightsCount === 1 ? "" : "s"} awaiting response`,
+        href: "/dpdp",
+        urgency: "danger",
+      });
+    }
+
+    const calculatedSummary: AdminDashboardSummary = {
+      activeYearLabel: activeYear?.label || "2025-26",
+      totalStudents,
+      attendancePercent,
+      attendanceSubtext,
+      feeCollectedTodayStr,
+      feeCollectedSubtext,
+      outstandingDuesStr,
+      outstandingSubtext,
+      pendingTasks: pendingTasksList,
+    };
+
+    // Store in S2 Cache with jittered 5-min TTL
+    await setCachedDashboardSummary(schoolId, calculatedSummary);
+
+    return calculatedSummary;
+  });
 
   const metrics = [
     {
       title: "Total Enrolment",
-      value: totalStudents.toLocaleString(),
-      subtext: totalStudents > 0 ? "Active Enrolled Students" : "No students enrolled yet",
+      value: summary.totalStudents.toLocaleString(),
+      subtext: summary.totalStudents > 0 ? "Active Enrolled Students" : "No students enrolled yet",
       icon: Users,
       iconBgClass: "bg-primary/10",
       accentColor: "text-primary",
     },
     {
       title: "Today's Attendance",
-      value: attendancePercent,
-      subtext: attendanceSubtext,
+      value: summary.attendancePercent,
+      subtext: summary.attendanceSubtext,
       icon: CalendarCheck,
       iconBgClass: "bg-secondary/10",
       accentColor: "text-secondary",
     },
     {
       title: "Fee Collected Today",
-      value: feeCollectedTodayStr,
-      subtext: feeCollectedSubtext,
+      value: summary.feeCollectedTodayStr,
+      subtext: summary.feeCollectedSubtext,
       icon: IndianRupee,
       iconBgClass: "bg-warning/20",
       accentColor: "text-warning",
     },
     {
       title: "Outstanding Dues",
-      value: outstandingDuesStr,
-      subtext: outstandingSubtext,
+      value: summary.outstandingDuesStr,
+      subtext: summary.outstandingSubtext,
       icon: AlertCircle,
       iconBgClass: "bg-danger/10",
       accentColor: "text-danger",
@@ -681,7 +703,7 @@ export default async function DashboardPage() {
             Good morning, {session?.user?.name || "Admin"} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {school?.name || "School ERP"} — Academic Year {activeYear?.label || "2025-26"}
+            {school?.name || "School ERP"} — Academic Year {summary.activeYearLabel}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -777,9 +799,9 @@ export default async function DashboardPage() {
         {/* Pending Tasks */}
         <div className="bg-card rounded-xl border p-6">
           <h2 className="font-semibold text-foreground mb-4">Pending Tasks</h2>
-          {pendingTasks.length > 0 ? (
+          {summary.pendingTasks.length > 0 ? (
             <ul className="space-y-3" role="list" aria-label="Pending tasks">
-              {pendingTasks.map((task) => (
+              {summary.pendingTasks.map((task) => (
                 <li key={task.label}>
                   <a
                     href={task.href}

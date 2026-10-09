@@ -69,10 +69,18 @@ export const viewport: Viewport = {
   ],
 };
 
+import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { Suspense } from "react";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { ClarityScript } from "@/components/analytics/ClarityScript";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  adjustFontFallback: true,
+  variable: "--font-inter",
+});
 
 export default function RootLayout({
   children,
@@ -80,8 +88,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background antialiased">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body className={`min-h-screen bg-background antialiased ${inter.className}`}>
         <Providers>
           <Suspense fallback={null}>
             <TopProgressBar />

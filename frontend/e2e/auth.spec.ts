@@ -4,7 +4,8 @@ test.describe("Authentication Flows", () => {
   test("should login as admin using adminPage fixture", async ({
     adminPage,
   }) => {
-    // Already logged in via fixture
+    // Navigate with authenticated session from fixture
+    await adminPage.goto("/dashboard");
     await expect(adminPage).toHaveURL(/\/dashboard/);
     const headerText = await adminPage.locator("h1").textContent();
     expect(headerText).toBeDefined();
@@ -13,8 +14,9 @@ test.describe("Authentication Flows", () => {
   test("should login as parent using parentPage fixture", async ({
     parentPage,
   }) => {
-    // Already logged in via fixture
-    await expect(parentPage).toHaveURL(/\/dashboard/);
+    // Navigate with authenticated session from fixture
+    await parentPage.goto("/portal");
+    await expect(parentPage).toHaveURL(/\/portal/);
   });
 
   test("should block login with wrong password", async ({ page }) => {
@@ -36,7 +38,7 @@ test.describe("Authentication Flows", () => {
       await page.fill('input[id="login-email"]', email);
       await page.fill('input[id="login-password"]', "wrongpassword");
       await page.click('button[type="submit"]');
-      await page.waitForTimeout(500); // Give it time to process
+      await expect(page.locator('[role="alert"]')).toBeVisible({ timeout: 8000 });
     }
 
     // 6th attempt should hit lockout
@@ -47,6 +49,7 @@ test.describe("Authentication Flows", () => {
     const errorMsg = page.locator('[role="alert"]').first();
     await expect(errorMsg).toContainText(
       "locked due to too many failed attempts",
+      { timeout: 8000 }
     );
   });
 

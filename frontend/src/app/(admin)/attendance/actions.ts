@@ -15,6 +15,7 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { decryptData } from "@/lib/encryption";
 import { assertConsent } from "@/server/middleware/consent";
+import { invalidateDashboardCache } from "@/lib/dashboardCache";
 import { headers } from "next/headers";
 import type { Session } from "next-auth";
 
@@ -338,6 +339,9 @@ export async function markSectionAttendance(
       },
     });
   });
+
+  // Tag-invalidate dashboard counters on attendance writes (PF-R41 / PF-R80)
+  await invalidateDashboardCache(schoolId);
 
   return { success: true };
 }
