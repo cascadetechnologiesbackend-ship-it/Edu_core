@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import { decryptData } from "@/lib/encryption";
+import { invalidateFinanceTags } from "@/lib/financeCache";
 
 export async function createFeeDiscount(formData: FormData) {
   try {
@@ -129,6 +130,8 @@ export async function allocateStudentConcessionAction(payload: {
       performedById: ctx.userId,
     });
 
+    await invalidateFinanceTags(school.id, [`school:${school.id}`, `fin:concessions:${school.id}`]);
+
     revalidatePath("/school/fees-discount");
     revalidatePath(`/students/${payload.studentId}`);
     return {
@@ -180,6 +183,8 @@ export async function approveStudentConcessionAction(concessionId: string) {
       reason: `Concession assignment approved by ${ctx.role}`,
       performedById: ctx.userId,
     });
+
+    await invalidateFinanceTags(school.id, [`school:${school.id}`, `fin:concessions:${school.id}`]);
 
     revalidatePath("/school/fees-discount");
     return { success: true, message: "Concession assignment approved." };

@@ -9,7 +9,9 @@ import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { QuickActionBar } from "@/components/finance/QuickActionBar";
 import { CounterCollectionClient } from "./CounterCollectionClient";
 import { searchStudentsAction } from "./actions";
-import { CreditCard, Sparkles } from "lucide-react";
+import { CreditCard } from "lucide-react";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export default async function CollectFeesPage() {
   const session = await auth();
@@ -17,28 +19,43 @@ export default async function CollectFeesPage() {
 
   const schoolId = session.user.schoolId;
 
-  const [activeSchool, schoolBanks, initialStudentsRes] = await Promise.all([
-    db.query.schools.findFirst({
-      where: eq(schools.id, schoolId),
-    }),
-    db.query.bankAccounts.findMany({
-      where: and(eq(bankAccounts.schoolId, schoolId), eq(bankAccounts.isActive, true)),
-    }),
-    searchStudentsAction(""), // Initial first batch of students with dues summary
-  ]);
+  const data = await withDataPhaseTiming("/school/collect-fees", async () => {
+    return assertQueryBudget(
+      async () => {
+        const [activeSchool, schoolBanks, initialStudentsRes] = await Promise.all([
+          db.query.schools.findFirst({
+            where: eq(schools.id, schoolId),
+          }),
+          db.query.bankAccounts.findMany({
+            where: and(eq(bankAccounts.schoolId, schoolId), eq(bankAccounts.isActive, true)),
+          }),
+          searchStudentsAction(""), // Initial first batch of students with dues summary
+        ]);
 
-  if (!activeSchool) return <div>School not found</div>;
+        if (!activeSchool) return null;
 
-  const mappedBanks = schoolBanks.map((b) => ({
-    id: b.id,
-    accountName: b.accountName,
-    bankName: b.bankName,
-    accountNumber: b.accountNumber,
-  }));
+        const mappedBanks = schoolBanks.map((b) => ({
+          id: b.id,
+          accountName: b.accountName,
+          bankName: b.bankName,
+          accountNumber: b.accountNumber,
+        }));
 
-  const initialStudents = initialStudentsRes.success && initialStudentsRes.students
-    ? initialStudentsRes.students
-    : [];
+        const initialStudents = initialStudentsRes.success && initialStudentsRes.students
+          ? initialStudentsRes.students
+          : [];
+
+        return {
+          activeSchool,
+          mappedBanks,
+          initialStudents,
+        };
+      },
+      { maxQueries: 5, label: "POS Landing (PF 1.2 <= 5 queries)" }
+    );
+  });
+
+  if (!data?.activeSchool) return <div>School not found</div>;
 
   return (
     <div className="space-y-6">
@@ -64,9 +81,9 @@ export default async function CollectFeesPage() {
 
       {/* Interactive POS Counter Terminal */}
       <CounterCollectionClient
-        initialStudents={initialStudents}
-        bankAccounts={mappedBanks}
-        schoolName={activeSchool.name}
+        initialStudents={data.initialStudents}
+        bankAccounts={data.mappedBanks}
+        schoolName={data.activeSchool.name}
       />
     </div>
   );

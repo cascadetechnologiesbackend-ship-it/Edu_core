@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Percent, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Percent } from "lucide-react";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { db } from "@/db";
 import { academicYears } from "@/db/schema";
@@ -10,6 +10,9 @@ import { eq, desc } from "drizzle-orm";
 import { generateConcessionSummaryReport } from "@schoolmitra/backend/lib/financialReportsEngine";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { ConcessionSummaryClient } from "./ConcessionSummaryClient";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
+import { getCachedFinanceData, setCachedFinanceData } from "@/lib/financeCache";
 
 interface ConcessionSummaryPageProps {
   searchParams?: {
@@ -28,15 +31,40 @@ export default async function ConcessionSummaryReportPage({
   ] as const);
   const school = await requireSchool(ctx);
 
-  const [allYears, initialReport] = await Promise.all([
-    db.query.academicYears.findMany({
-      where: eq(academicYears.schoolId, school.id),
-      orderBy: [desc(academicYears.startDate)],
-    }),
-    generateConcessionSummaryReport(school.id, searchParams?.academicYearId || null),
-  ]);
+  const data = await withDataPhaseTiming("/school/accounting/reports/concessions", async () => {
+    return assertQueryBudget(
+      async () => {
+        const ayParam = searchParams?.academicYearId || "all";
+        const filterKey = { academicYearId: ayParam };
 
-  const yearOptions = allYears.map((y) => ({
+        // 1. Fetch academic years list (S3 reference/master)
+        const allYears = await db.query.academicYears.findMany({
+          where: eq(academicYears.schoolId, school.id),
+          orderBy: [desc(academicYears.startDate)],
+        });
+
+        // 2. Check S2 cache for concession summary matrix (PF-R41 / PF-R45)
+        let report = await getCachedFinanceData<any>(school.id, "concessions_summary", filterKey);
+
+        if (!report) {
+          report = await generateConcessionSummaryReport(
+            school.id,
+            searchParams?.academicYearId || null
+          );
+
+          await setCachedFinanceData(school.id, "concessions_summary", report, {
+            tags: [`school:${school.id}`, `fin:concessions:${school.id}`],
+            params: filterKey,
+          });
+        }
+
+        return { allYears, report };
+      },
+      { maxQueries: 10, label: "/school/accounting/reports/concessions" }
+    );
+  });
+
+  const yearOptions = data.allYears.map((y) => ({
     id: y.id,
     label: y.label,
     isActive: y.isActive,
@@ -85,7 +113,7 @@ export default async function ConcessionSummaryReportPage({
 
       {/* Interactive Report View */}
       <ConcessionSummaryClient
-        initialReport={initialReport}
+        initialReport={data.report}
         academicYears={yearOptions}
         userRole={ctx.role}
       />

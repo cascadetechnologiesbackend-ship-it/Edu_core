@@ -20,6 +20,7 @@ import {
   getStudentReceivableChartAccountId,
   getGatewayFeesExpenseChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
+import { invalidateFinanceOnPayment } from "@/lib/financeCache";
 
 export async function cancelTransaction(input: FormData | { paymentId: string; reason: string }) {
   try {
@@ -212,6 +213,9 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
       // 5. Delete payment record
       await tx.delete(feePayments).where(eq(feePayments.id, payment.id));
     });
+
+    // Invalidate tenant S2 finance caches matching payment, dues, and accounts tags
+    await invalidateFinanceOnPayment(school.id, invoice?.id ? [invoice.id] : undefined);
 
     revalidatePath("/school/transactions");
     revalidatePath("/school/collect-fees");

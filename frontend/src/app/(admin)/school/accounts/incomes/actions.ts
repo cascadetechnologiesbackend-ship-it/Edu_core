@@ -12,6 +12,7 @@ import {
   getCashMainChartAccountId,
   getIncomeHeadChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
+import { invalidateFinanceTags } from "@/lib/financeCache";
 
 export async function createIncomeVoucher(formData: FormData) {
   // vouchers_create: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT
@@ -117,6 +118,9 @@ export async function createIncomeVoucher(formData: FormData) {
       performedById: ctx.userId,
     });
   });
+
+  // Invalidate tenant S2 finance caches for accounts
+  await invalidateFinanceTags(school.id, [`fin:accounts:${school.id}`]);
 
   revalidatePath("/school/accounts/incomes");
   revalidatePath("/school/accounting/dashboard");

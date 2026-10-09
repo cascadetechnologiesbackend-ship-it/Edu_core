@@ -2,6 +2,8 @@ import React from "react";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { getBankReconciliationDataAction } from "./actions";
 import { BankReconciliationClient } from "./BankReconciliationClient";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 
 export const metadata = {
   title: "Bank Statement Reconciliation (BRS) | SchoolMitra",
@@ -19,7 +21,14 @@ export default async function BankReconciliationPage({ searchParams }: PageProps
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"] as const);
   const school = await requireSchool(ctx);
 
-  const res = await getBankReconciliationDataAction(searchParams.bankAccountId);
+  const res = await withDataPhaseTiming("/school/accounts/bank-reconciliation", async () => {
+    return assertQueryBudget(
+      async () => {
+        return getBankReconciliationDataAction(searchParams.bankAccountId);
+      },
+      { maxQueries: 10, label: "/school/accounts/bank-reconciliation" }
+    );
+  });
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6 max-w-7xl">

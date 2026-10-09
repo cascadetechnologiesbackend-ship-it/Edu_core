@@ -8,7 +8,7 @@ import {
   academicYears,
   schools,
 } from "@/db/schema";
-import { eq, and, desc, gte, inArray } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { decryptData } from "@/lib/encryption";
@@ -24,6 +24,24 @@ import {
   ClassStatItem,
 } from "./FeesDashboardClient";
 import { BarChart3 } from "lucide-react";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
+import { getCachedFinanceData, setCachedFinanceData } from "@/lib/financeCache";
+
+interface CachedBands23Payload {
+  kpisBands23: {
+    totalBilled: number;
+    totalCollected: number;
+    totalDues: number;
+    recoveryRate: number;
+    overdue60Plus: number;
+  };
+  aging: AgingSummary;
+  topDefaulters: DefaulterItem[];
+  recentPayments: RecentPaymentItem[];
+  modeBreakdown: ModeBreakdownItem[];
+  classStats: ClassStatItem[];
+}
 
 export default async function FeesDashboardPage({
   searchParams,
@@ -35,258 +53,317 @@ export default async function FeesDashboardPage({
 
   const schoolId = session.user.schoolId;
 
-  // 1. Fetch Academic Years & Classes
-  const [activeSchool, allAcademicYears, allClasses] = await Promise.all([
-    db.query.schools.findFirst({
-      where: eq(schools.id, schoolId),
-    }),
-    db.query.academicYears.findMany({
-      where: eq(academicYears.schoolId, schoolId),
-      orderBy: [desc(academicYears.startDate)],
-    }),
-    db.query.classes.findMany({
-      where: eq(classes.schoolId, schoolId),
-    }),
-  ]);
+  // Execute consolidated data phase with server timing spans and query budget assert (limit <= 5)
+  const data = await withDataPhaseTiming("/school/fees-dashboard", async () => {
+    return assertQueryBudget(
+      async () => {
+        // 1. Parallel fetch of master configuration: Active School, Academic Years & Classes
+        const [activeSchool, allAcademicYears, allClasses] = await Promise.all([
+          db.query.schools.findFirst({
+            where: eq(schools.id, schoolId),
+          }),
+          db.query.academicYears.findMany({
+            where: eq(academicYears.schoolId, schoolId),
+            orderBy: [desc(academicYears.startDate)],
+          }),
+          db.query.classes.findMany({
+            where: eq(classes.schoolId, schoolId),
+          }),
+        ]);
 
-  if (!activeSchool) return <div>School not found</div>;
+        if (!activeSchool) return null;
 
-  // Resolve selected academic year
-  const selectedYear =
-    (searchParams.ayId
-      ? allAcademicYears.find((ay) => ay.id === searchParams.ayId)
-      : null) ||
-    allAcademicYears.find((ay) => ay.isActive) ||
-    allAcademicYears[0];
+        // Resolve selected academic year
+        const selectedYear =
+          (searchParams.ayId
+            ? allAcademicYears.find((ay) => ay.id === searchParams.ayId)
+            : null) ||
+          allAcademicYears.find((ay) => ay.isActive) ||
+          allAcademicYears[0];
 
-  const selectedAyId = selectedYear?.id || "";
+        const selectedAyId = selectedYear?.id || "";
 
-  // 2. Fetch AY-scoped invoices & payments
-  const [invoices, payments] = await Promise.all([
-    db.query.feeInvoices.findMany({
-      where: selectedAyId
-        ? and(
-            eq(feeInvoices.schoolId, schoolId),
-            eq(feeInvoices.academicYearId, selectedAyId)
-          )
-        : eq(feeInvoices.schoolId, schoolId),
-      with: {
-        student: true,
-      },
-    }),
-    db.query.feePayments.findMany({
-      where: eq(feePayments.schoolId, schoolId),
-      with: {
-        student: true,
-      },
-      orderBy: [desc(feePayments.paymentDate)],
-      limit: 200,
-    }),
-  ]);
+        // Today's boundaries for S1 live counter
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-  const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
+        // 2. Band 1: S1 Live Counter - Fetch today's payments (1 scoped indexed query)
+        const todayPaymentsPromise = db.query.feePayments.findMany({
+          where: and(
+            eq(feePayments.schoolId, schoolId),
+            gte(feePayments.paymentDate, today)
+          ),
+          columns: {
+            amountPaid: true,
+          },
+        });
 
-  // Today's collections calculation
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTimestamp = today.getTime();
+        // 3. Band 2 & 3: Check S2 Cache (Jittered 270s-330s)
+        const cachedBands23 = await getCachedFinanceData<CachedBands23Payload>(
+          schoolId,
+          "hub_bands23",
+          selectedAyId
+        );
 
-  let todayCollected = 0;
-  let todayPaymentsCount = 0;
+        let bands23Data: CachedBands23Payload;
 
-  // Mode Map for payments
-  const modeMap: Record<string, number> = {
-    CASH: 0,
-    UPI: 0,
-    ONLINE: 0,
-    CHEQUE: 0,
-    DD: 0,
-    NEFT: 0,
-  };
+        if (cachedBands23) {
+          // Cache HIT: 0 queries for Bands 2 & 3!
+          const todayPayments = await todayPaymentsPromise;
+          let todayCollected = 0;
+          for (const p of todayPayments) {
+            todayCollected += parseFloat(p.amountPaid || "0");
+          }
 
-  for (const p of payments) {
-    const amt = parseFloat(p.amountPaid || "0");
-    const pDate = new Date(p.paymentDate).getTime();
-    if (pDate >= todayTimestamp) {
-      todayCollected += amt;
-      todayPaymentsCount++;
-    }
+          return {
+            activeSchool,
+            allAcademicYears,
+            allClasses,
+            selectedAyId,
+            todayCollected,
+            todayPaymentsCount: todayPayments.length,
+            ...cachedBands23,
+          };
+        }
 
-    const mode = p.paymentMethod || "CASH";
-    modeMap[mode] = (modeMap[mode] || 0) + amt;
-  }
+        // Cache MISS: Run remaining queries to populate Band 2 & 3
+        const [todayPayments, invoices, payments, dailyRollup] = await Promise.all([
+          todayPaymentsPromise,
+          db.query.feeInvoices.findMany({
+            where: selectedAyId
+              ? and(
+                  eq(feeInvoices.schoolId, schoolId),
+                  eq(feeInvoices.academicYearId, selectedAyId)
+                )
+              : eq(feeInvoices.schoolId, schoolId),
+            with: {
+              student: true,
+            },
+            limit: 500,
+          }),
+          db.query.feePayments.findMany({
+            where: eq(feePayments.schoolId, schoolId),
+            with: {
+              student: true,
+            },
+            orderBy: [desc(feePayments.paymentDate)],
+            limit: 10,
+          }),
+          getCachedFinanceData<any>(schoolId, "rollups_daily"),
+        ]);
 
-  // Invoice calculations
-  let totalBilled = 0;
-  let totalCollected = 0;
-  let totalDues = 0;
-  let overdue60Plus = 0;
+        let todayCollected = 0;
+        for (const p of todayPayments) {
+          todayCollected += parseFloat(p.amountPaid || "0");
+        }
 
-  const now = Date.now();
-  const aging: AgingSummary = {
-    current: 0,
-    days0to30: 0,
-    days31to60: 0,
-    days60plus: 0,
-  };
+        const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
 
-  // Student defaulters aggregation
-  const defaulterMap = new Map<
-    string,
-    {
-      studentId: string;
-      studentName: string;
-      admissionNumber: string;
-      className: string;
-      dueAmount: number;
-      maxDaysOverdue: number;
-      invoiceCount: number;
-    }
-  >();
+        // Calculate Bands 2 & 3 metrics
+        let totalBilled = 0;
+        let totalCollected = 0;
+        let totalDues = 0;
+        let overdue60Plus = 0;
 
-  // Class stat aggregation
-  const classStatsMap = new Map<
-    string,
-    { className: string; billed: number; collected: number; due: number }
-  >();
+        const now = Date.now();
+        const aging: AgingSummary = {
+          current: 0,
+          days0to30: 0,
+          days31to60: 0,
+          days60plus: 0,
+        };
 
-  for (const c of allClasses) {
-    classStatsMap.set(c.id, {
-      className: c.displayName,
-      billed: 0,
-      collected: 0,
-      due: 0,
-    });
-  }
+        const defaulterMap = new Map<
+          string,
+          {
+            studentId: string;
+            studentName: string;
+            admissionNumber: string;
+            className: string;
+            dueAmount: number;
+            maxDaysOverdue: number;
+            invoiceCount: number;
+          }
+        >();
 
-  for (const inv of invoices) {
-    const net = parseFloat(inv.netAmount || "0");
-    const paid = parseFloat(inv.paidAmount || "0");
-    const bal = parseFloat(inv.balanceAmount || "0");
+        const classStatsMap = new Map<
+          string,
+          { className: string; billed: number; collected: number; due: number }
+        >();
 
-    totalBilled += net;
-    totalCollected += paid;
-    totalDues += bal;
-
-    const dueTime = new Date(inv.dueDate).getTime();
-    const daysOverdue = Math.max(0, Math.floor((now - dueTime) / (1000 * 60 * 60 * 24)));
-
-    if (bal > 0) {
-      if (daysOverdue === 0) {
-        aging.current += bal;
-      } else if (daysOverdue <= 30) {
-        aging.days0to30 += bal;
-      } else if (daysOverdue <= 60) {
-        aging.days31to60 += bal;
-      } else {
-        aging.days60plus += bal;
-        overdue60Plus += bal;
-      }
-
-      // Aggregate Defaulters
-      if (inv.studentId) {
-        const existing = defaulterMap.get(inv.studentId);
-        if (existing) {
-          existing.dueAmount += bal;
-          existing.invoiceCount += 1;
-          existing.maxDaysOverdue = Math.max(existing.maxDaysOverdue, daysOverdue);
-        } else {
-          const fn = decryptData(inv.student?.firstNameEncrypted) || "";
-          const ln = decryptData(inv.student?.lastNameEncrypted) || "";
-          const sName = `${fn} ${ln}`.trim() || "Student";
-          const cName = inv.student?.currentClassId
-            ? classMap.get(inv.student.currentClassId) || "Class"
-            : "Class";
-
-          defaulterMap.set(inv.studentId, {
-            studentId: inv.studentId,
-            studentName: sName,
-            admissionNumber: inv.student?.admissionNumber || "N/A",
-            className: cName,
-            dueAmount: bal,
-            maxDaysOverdue: daysOverdue,
-            invoiceCount: 1,
+        for (const c of allClasses) {
+          classStatsMap.set(c.id, {
+            className: c.displayName,
+            billed: 0,
+            collected: 0,
+            due: 0,
           });
         }
-      }
-    }
 
-    // Class Stats
-    const cId = inv.student?.currentClassId;
-    if (cId && classStatsMap.has(cId)) {
-      const stat = classStatsMap.get(cId)!;
-      stat.billed += net;
-      stat.collected += paid;
-      stat.due += bal;
-    }
-  }
+        for (const inv of invoices) {
+          const net = parseFloat(inv.netAmount || "0");
+          const paid = parseFloat(inv.paidAmount || "0");
+          const bal = parseFloat(inv.balanceAmount || "0");
 
-  const recoveryRate =
-    totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
+          totalBilled += net;
+          totalCollected += paid;
+          totalDues += bal;
+
+          const dueTime = new Date(inv.dueDate).getTime();
+          const daysOverdue = Math.max(0, Math.floor((now - dueTime) / (1000 * 60 * 60 * 24)));
+
+          if (bal > 0) {
+            if (daysOverdue === 0) {
+              aging.current += bal;
+            } else if (daysOverdue <= 30) {
+              aging.days0to30 += bal;
+            } else if (daysOverdue <= 60) {
+              aging.days31to60 += bal;
+            } else {
+              aging.days60plus += bal;
+              overdue60Plus += bal;
+            }
+
+            if (inv.studentId) {
+              const existing = defaulterMap.get(inv.studentId);
+              if (existing) {
+                existing.dueAmount += bal;
+                existing.invoiceCount += 1;
+                existing.maxDaysOverdue = Math.max(existing.maxDaysOverdue, daysOverdue);
+              } else {
+                const fn = decryptData(inv.student?.firstNameEncrypted) || "";
+                const ln = decryptData(inv.student?.lastNameEncrypted) || "";
+                const sName = `${fn} ${ln}`.trim() || "Student";
+                const cName = inv.student?.currentClassId
+                  ? classMap.get(inv.student.currentClassId) || "Class"
+                  : "Class";
+
+                defaulterMap.set(inv.studentId, {
+                  studentId: inv.studentId,
+                  studentName: sName,
+                  admissionNumber: inv.student?.admissionNumber || "N/A",
+                  className: cName,
+                  dueAmount: bal,
+                  maxDaysOverdue: daysOverdue,
+                  invoiceCount: 1,
+                });
+              }
+            }
+          }
+
+          const cId = inv.student?.currentClassId;
+          if (cId && classStatsMap.has(cId)) {
+            const stat = classStatsMap.get(cId)!;
+            stat.billed += net;
+            stat.collected += paid;
+            stat.due += bal;
+          }
+        }
+
+        const recoveryRate =
+          totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
+
+        const topDefaulters: DefaulterItem[] = Array.from(defaulterMap.values())
+          .sort((a, b) => b.dueAmount - a.dueAmount)
+          .slice(0, 10)
+          .map((d) => ({
+            studentId: d.studentId,
+            studentName: d.studentName,
+            admissionNumber: d.admissionNumber,
+            className: d.className,
+            dueAmount: d.dueAmount,
+            daysOverdue: d.maxDaysOverdue,
+            invoiceCount: d.invoiceCount,
+          }));
+
+        const recentPayments: RecentPaymentItem[] = payments.map((p) => {
+          const fn = decryptData(p.student?.firstNameEncrypted) || "";
+          const ln = decryptData(p.student?.lastNameEncrypted) || "";
+          const sName = `${fn} ${ln}`.trim() || "Student";
+
+          return {
+            id: p.id,
+            receiptNumber: p.receiptNumber,
+            studentId: p.studentId,
+            studentName: sName,
+            admissionNumber: p.student?.admissionNumber || "N/A",
+            amount: parseFloat(p.amountPaid || "0"),
+            paymentMethod: p.paymentMethod,
+            paymentDate: p.paymentDate.toISOString(),
+          };
+        });
+
+        // Mode breakdown from pre-aggregated rollups or default map (PF-R91)
+        const modeBreakdown: ModeBreakdownItem[] = dailyRollup?.modeBreakdown || [
+          { mode: "CASH", amount: 0, percentage: 0 },
+        ];
+
+        const classStats: ClassStatItem[] = Array.from(classStatsMap.values())
+          .filter((s) => s.billed > 0 || s.collected > 0)
+          .map((s) => ({
+            className: s.className,
+            billed: s.billed,
+            collected: s.collected,
+            due: s.due,
+            rate: s.billed > 0 ? Math.round((s.collected / s.billed) * 100) : 0,
+          }));
+
+        bands23Data = {
+          kpisBands23: {
+            totalBilled,
+            totalCollected,
+            totalDues,
+            recoveryRate,
+            overdue60Plus,
+          },
+          aging,
+          topDefaulters,
+          recentPayments,
+          modeBreakdown,
+          classStats,
+        };
+
+        // Populate S2 cache with tenant isolation and tags (PF-R45, PF-R41)
+        await setCachedFinanceData(schoolId, "hub_bands23", bands23Data, {
+          params: selectedAyId,
+          tags: [`school:${schoolId}`, `fin:payments:${schoolId}`, `fin:dues:${schoolId}`],
+        });
+
+        return {
+          activeSchool,
+          allAcademicYears,
+          allClasses,
+          selectedAyId,
+          todayCollected,
+          todayPaymentsCount: todayPayments.length,
+          ...bands23Data,
+        };
+      },
+      { maxQueries: 5, label: "Finance Hub Landing (PF 1.2 <= 5 queries)" }
+    );
+  });
+
+  if (!data?.activeSchool) return <div>School not found</div>;
+
+  const {
+    activeSchool,
+    allAcademicYears,
+    selectedAyId,
+    todayCollected,
+    todayPaymentsCount,
+    kpisBands23,
+    aging,
+    topDefaulters,
+    recentPayments,
+    modeBreakdown,
+    classStats,
+  } = data;
 
   const kpis: DashboardKPIs = {
     todayCollected,
     todayPaymentsCount,
-    totalBilled,
-    totalCollected,
-    totalDues,
-    recoveryRate,
-    overdue60Plus,
+    ...kpisBands23,
   };
-
-  // Top 10 Defaulters sorted by balance descending
-  const topDefaulters: DefaulterItem[] = Array.from(defaulterMap.values())
-    .sort((a, b) => b.dueAmount - a.dueAmount)
-    .slice(0, 10)
-    .map((d) => ({
-      studentId: d.studentId,
-      studentName: d.studentName,
-      admissionNumber: d.admissionNumber,
-      className: d.className,
-      dueAmount: d.dueAmount,
-      daysOverdue: d.maxDaysOverdue,
-      invoiceCount: d.invoiceCount,
-    }));
-
-  // Recent 10 Payments
-  const recentPayments: RecentPaymentItem[] = payments.slice(0, 10).map((p) => {
-    const fn = decryptData(p.student?.firstNameEncrypted) || "";
-    const ln = decryptData(p.student?.lastNameEncrypted) || "";
-    const sName = `${fn} ${ln}`.trim() || "Student";
-
-    return {
-      id: p.id,
-      receiptNumber: p.receiptNumber,
-      studentId: p.studentId,
-      studentName: sName,
-      admissionNumber: p.student?.admissionNumber || "N/A",
-      amount: parseFloat(p.amountPaid || "0"),
-      paymentMethod: p.paymentMethod,
-      paymentDate: p.paymentDate.toISOString(),
-    };
-  });
-
-  // Mode breakdown
-  const totalModeAmt = Object.values(modeMap).reduce((a, b) => a + b, 0);
-  const modeBreakdown: ModeBreakdownItem[] = Object.entries(modeMap)
-    .filter(([_, amt]) => amt > 0)
-    .map(([mode, amt]) => ({
-      mode,
-      amount: amt,
-      percentage: totalModeAmt > 0 ? Math.round((amt / totalModeAmt) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // Class Stats
-  const classStats: ClassStatItem[] = Array.from(classStatsMap.values())
-    .filter((s) => s.billed > 0 || s.collected > 0)
-    .map((s) => ({
-      className: s.className,
-      billed: s.billed,
-      collected: s.collected,
-      due: s.due,
-      rate: s.billed > 0 ? Math.round((s.collected / s.billed) * 100) : 0,
-    }));
 
   const academicYearsList = allAcademicYears.map((ay) => ({
     id: ay.id,

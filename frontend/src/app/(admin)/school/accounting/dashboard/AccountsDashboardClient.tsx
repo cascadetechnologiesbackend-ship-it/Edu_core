@@ -72,6 +72,7 @@ export interface AccountsDashboardClientProps {
   banks: BankVaultItem[];
   ledgerEntries: LedgerJournalItem[];
   userRole: string;
+  asOf?: string | undefined;
 }
 
 export function AccountsDashboardClient({
@@ -87,6 +88,7 @@ export function AccountsDashboardClient({
   banks,
   ledgerEntries,
   userRole,
+  asOf,
 }: AccountsDashboardClientProps) {
   const router = useRouter();
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -116,7 +118,9 @@ export function AccountsDashboardClient({
           <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
             Band 1: Institutional Cash Position & Liquidity
           </h2>
-          <span className="text-xs text-gray-400">Real-time synchronized across fee & accounting ledgers</span>
+          <span className="text-xs text-gray-400 font-mono">
+            {asOf ? `Snapshot as of ${asOf}` : "Real-time synchronized across fee & accounting ledgers"}
+          </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MoneyKpi

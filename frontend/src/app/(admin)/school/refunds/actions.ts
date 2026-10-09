@@ -22,6 +22,7 @@ import {
   getCashMainChartAccountId,
   getStudentReceivableChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
+import { invalidateFinanceOnPayment } from "@/lib/financeCache";
 
 export interface RefundRequestPayload {
   feePaymentId: string;
@@ -431,6 +432,9 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
         },
       });
     });
+
+    // Invalidate tenant S2 finance caches matching payment, dues, and accounts tags
+    await invalidateFinanceOnPayment(school.id, invoice?.id ? [invoice.id] : undefined);
 
     revalidatePath("/school/refunds");
     revalidatePath("/school/fees-dashboard");

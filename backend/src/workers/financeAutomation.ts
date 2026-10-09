@@ -9,8 +9,9 @@ import {
   accountLedgerTransactions,
   workerHeartbeats,
 } from "@/db/schema";
-import { eq, and, lt, lte, gt, inArray, sql } from "drizzle-orm";
+import { eq, and, lt, lte, gt, inArray, sql, desc } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
+import { setCachedFinanceData } from "@/lib/financeCache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
 import {
@@ -386,6 +387,77 @@ export async function archiveReceiptPdfToS3(
 }
 
 /**
+ * PF-R91: Compute pre-aggregated finance rollups for Hub Band 3 and Day Book sticky footers.
+ * Pre-computes mode breakdown, today's collections, and payment summary without live GROUP BYs at request time.
+ */
+export async function computeFinanceRollups(schoolId: string) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // 1. Rollup fee_payments by paymentMethod & today's collection
+  const payments = await db.query.feePayments.findMany({
+    where: eq(feePayments.schoolId, schoolId),
+    columns: {
+      id: true,
+      amountPaid: true,
+      paymentMethod: true,
+      paymentDate: true,
+    },
+    orderBy: [desc(feePayments.paymentDate)],
+    limit: 500,
+  });
+
+  const modeTotals: Record<string, number> = {
+    CASH: 0,
+    UPI: 0,
+    ONLINE: 0,
+    CHEQUE: 0,
+    DD: 0,
+    NEFT: 0,
+  };
+  let todayCollected = 0;
+  let todayPaymentsCount = 0;
+  let totalPaymentsAllTime = 0;
+
+  for (const p of payments) {
+    const amt = parseFloat(p.amountPaid || "0");
+    totalPaymentsAllTime += amt;
+    const method = p.paymentMethod || "CASH";
+    modeTotals[method] = (modeTotals[method] || 0) + amt;
+    if (new Date(p.paymentDate) >= today) {
+      todayCollected += amt;
+      todayPaymentsCount++;
+    }
+  }
+
+  const totalModeAmt = Object.values(modeTotals).reduce((a, b) => a + b, 0);
+  const modeBreakdown = Object.entries(modeTotals)
+    .filter(([_, amt]) => amt > 0)
+    .map(([mode, amount]) => ({
+      mode,
+      amount,
+      percentage: totalModeAmt > 0 ? Math.round((amount / totalModeAmt) * 100) : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const rollups = {
+    schoolId,
+    computedAt: now.toISOString(),
+    todayCollected,
+    todayPaymentsCount,
+    totalPaymentsAllTime,
+    modeBreakdown,
+  };
+
+  // Cache in S2 with tag sets
+  await setCachedFinanceData(schoolId, "rollups_daily", rollups, {
+    tags: [`school:${schoolId}`, `fin:payments:${schoolId}`],
+  });
+
+  return { success: true, schoolId, rollups };
+}
+
+/**
  * Execute all automated finance routines for a tenant school
  */
 export async function runSchoolFinanceAutomations(schoolId: string) {
@@ -394,6 +466,7 @@ export async function runSchoolFinanceAutomations(schoolId: string) {
   const reminderResult = await processReminderLadder(schoolId);
   const challanResult = await expireOutdatedChallans(schoolId);
   const gatewayMatchResult = await autoMatchGatewayPayments(schoolId);
+  const rollupResult = await computeFinanceRollups(schoolId);
 
   return {
     success: true,
@@ -402,6 +475,7 @@ export async function runSchoolFinanceAutomations(schoolId: string) {
     reminderResult,
     challanResult,
     gatewayMatchResult,
+    rollupResult,
   };
 }
 

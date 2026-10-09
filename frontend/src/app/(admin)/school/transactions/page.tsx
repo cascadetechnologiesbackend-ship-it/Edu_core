@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { db } from "@/db";
 import { feePayments, schools } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, lt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { decryptData } from "@/lib/encryption";
@@ -10,73 +10,165 @@ import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { QuickActionBar } from "@/components/finance/QuickActionBar";
 import { DayBookClient, TransactionRow } from "./DayBookClient";
 import { ListOrdered } from "lucide-react";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
+import { getCachedFinanceData, setCachedFinanceData } from "@/lib/financeCache";
+
+interface CachedDayBookPayload {
+  mappedTransactions: TransactionRow[];
+  totalCollected: number;
+  schoolName: string;
+  asOf: string;
+}
 
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: { method?: string; q?: string };
+  searchParams: { method?: string; q?: string; cursor?: string };
 }) {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
 
   const schoolId = session.user.schoolId;
 
-  const [activeSchool, payments] = await Promise.all([
-    db.query.schools.findFirst({
-      where: eq(schools.id, schoolId),
-    }),
-    db.query.feePayments.findMany({
-      where: eq(feePayments.schoolId, schoolId),
-      with: {
-        student: true,
-        invoice: {
-          with: {
-            feeStructure: {
-              with: {
-                feeHead: true,
+  const data = await withDataPhaseTiming("/school/transactions", async () => {
+    return assertQueryBudget(
+      async () => {
+        const isFirstPage = !searchParams.cursor;
+        const filterKey = { method: searchParams.method || "all" };
+
+        if (isFirstPage) {
+          const cached = await getCachedFinanceData<CachedDayBookPayload>(
+            schoolId,
+            "day_book_page_1",
+            filterKey
+          );
+          if (cached) {
+            return {
+              schoolName: cached.schoolName,
+              mappedTransactions: cached.mappedTransactions,
+              totalCollected: cached.totalCollected,
+              asOf: cached.asOf,
+            };
+          }
+        }
+
+        // Keyset paging conditions (PF-R82: keyset on created_at/paymentDate, id)
+        const whereClauses = [eq(feePayments.schoolId, schoolId)];
+        if (searchParams.method) {
+          whereClauses.push(eq(feePayments.paymentMethod, searchParams.method as any));
+        }
+        if (searchParams.cursor) {
+          whereClauses.push(lt(feePayments.id, searchParams.cursor));
+        }
+
+        // Query activeSchool and feePayments in parallel
+        const [activeSchool, payments, rollups] = await Promise.all([
+          db.query.schools.findFirst({
+            where: eq(schools.id, schoolId),
+          }),
+          db.query.feePayments.findMany({
+            where: and(...whereClauses),
+            with: {
+              student: true,
+              invoice: {
+                with: {
+                  feeStructure: {
+                    with: {
+                      feeHead: true,
+                    },
+                  },
+                },
               },
+              collectedBy: true,
             },
-          },
-        },
-        collectedBy: true,
+            orderBy: [desc(feePayments.paymentDate), desc(feePayments.id)],
+            limit: 100,
+          }),
+          getCachedFinanceData<any>(schoolId, "rollups_daily"),
+        ]);
+
+        if (!activeSchool) {
+          return null;
+        }
+
+        // Sticky footer totals from daily rollup (PF-R91 / PF-R82)
+        let totalCollected = 0;
+        if (rollups) {
+          if (searchParams.method) {
+            const modeEntry = rollups.modeBreakdown?.find(
+              (m: any) => m.mode === searchParams.method
+            );
+            totalCollected = modeEntry ? modeEntry.amount : 0;
+          } else {
+            totalCollected = rollups.todayCollected ?? 0;
+          }
+        }
+
+        // Fallback to page window sum if rollups not yet populated
+        if (totalCollected === 0 && payments.length > 0) {
+          totalCollected = payments.reduce((acc, p) => acc + parseFloat(p.amountPaid || "0"), 0);
+        }
+
+        const mappedTransactions: TransactionRow[] = payments.map((p) => {
+          const firstName = decryptData(p.student?.firstNameEncrypted) || "";
+          const lastName = decryptData(p.student?.lastNameEncrypted) || "";
+          const studentName = `${firstName} ${lastName}`.trim() || "Student";
+
+          return {
+            id: p.id,
+            receiptNumber: p.receiptNumber,
+            invoiceNumber: p.invoice?.invoiceNumber || "N/A",
+            studentId: p.studentId,
+            studentName,
+            admissionNumber: p.student?.admissionNumber || "N/A",
+            feeHeadName: p.invoice?.feeStructure?.feeHead?.name || "Tuition Fee",
+            term: p.invoice?.term || "ANNUAL",
+            paymentMethod: p.paymentMethod,
+            transactionReference: p.transactionReference,
+            paymentDate: p.paymentDate.toISOString(),
+            amountPaid: parseFloat(p.amountPaid),
+            remarks: p.remarks,
+            collectedByName: p.collectedBy?.email || undefined,
+            grossAmount: p.invoice ? parseFloat(p.invoice.grossAmount) : undefined,
+            balanceRemaining: p.invoice ? parseFloat(p.invoice.balanceAmount) : undefined,
+          };
+        });
+
+        const asOf = new Date().toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        if (isFirstPage) {
+          await setCachedFinanceData(
+            schoolId,
+            "day_book_page_1",
+            {
+              mappedTransactions,
+              totalCollected,
+              schoolName: activeSchool.name,
+              asOf,
+            },
+            {
+              tags: [`school:${schoolId}`, `fin:payments:${schoolId}`],
+              params: filterKey,
+            }
+          );
+        }
+
+        return {
+          schoolName: activeSchool.name,
+          mappedTransactions,
+          totalCollected,
+          asOf,
+        };
       },
-      orderBy: [desc(feePayments.paymentDate)],
-      limit: 200,
-    }),
-  ]);
-
-  if (!activeSchool) return <div>School not found</div>;
-
-  const filtered = searchParams.method
-    ? payments.filter((p) => p.paymentMethod === searchParams.method)
-    : payments;
-
-  const totalCollected = filtered.reduce((acc, p) => acc + parseFloat(p.amountPaid), 0);
-
-  const mappedTransactions: TransactionRow[] = filtered.map((p) => {
-    const firstName = decryptData(p.student?.firstNameEncrypted) || "";
-    const lastName = decryptData(p.student?.lastNameEncrypted) || "";
-    const studentName = `${firstName} ${lastName}`.trim() || "Student";
-
-    return {
-      id: p.id,
-      receiptNumber: p.receiptNumber,
-      invoiceNumber: p.invoice?.invoiceNumber || "N/A",
-      studentId: p.studentId,
-      studentName,
-      admissionNumber: p.student?.admissionNumber || "N/A",
-      feeHeadName: p.invoice?.feeStructure?.feeHead?.name || "Tuition Fee",
-      term: p.invoice?.term || "ANNUAL",
-      paymentMethod: p.paymentMethod,
-      transactionReference: p.transactionReference,
-      paymentDate: p.paymentDate.toISOString(),
-      amountPaid: parseFloat(p.amountPaid),
-      remarks: p.remarks,
-      collectedByName: p.collectedBy?.email || undefined,
-      grossAmount: p.invoice ? parseFloat(p.invoice.grossAmount) : undefined,
-      balanceRemaining: p.invoice ? parseFloat(p.invoice.balanceAmount) : undefined,
-    };
+      { maxQueries: 10, label: "/school/transactions" }
+    );
   });
+
+  if (!data) return <div>School not found</div>;
 
   return (
     <div className="space-y-6">
@@ -103,7 +195,7 @@ export default async function TransactionsPage({
               Filtered Collection Total
             </p>
             <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-300">
-              ₹{totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              ₹{data.totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </p>
           </div>
 
@@ -113,10 +205,11 @@ export default async function TransactionsPage({
 
       {/* Day Book Client */}
       <DayBookClient
-        transactions={mappedTransactions}
-        schoolName={activeSchool.name}
+        transactions={data.mappedTransactions}
+        schoolName={data.schoolName}
         userRole={session.user.role}
         activeMethod={searchParams.method}
+        asOf={data.asOf}
       />
     </div>
   );

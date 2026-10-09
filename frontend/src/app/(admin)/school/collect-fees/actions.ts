@@ -26,6 +26,7 @@ import {
   fetchStudentFeeCard,
 } from "@/lib/studentFeeCard";
 import { archiveReceiptPdfToS3 } from "@/workers/financeAutomation";
+import { invalidateFinanceOnPayment } from "@/lib/financeCache";
 
 export interface InvoiceCollectionItem {
   invoiceId: string;
@@ -563,6 +564,11 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
       archiveReceiptPdfToS3(school.id, primaryPaymentId).catch((err) => {
         console.error("[ReceiptArchival] Background S3 archival error:", err);
       });
+    }
+
+    // Invalidate tenant S2 finance caches matching payment, dues, and accounts tags
+    if (school?.id) {
+      await invalidateFinanceOnPayment(school.id, items.map((i) => i.invoiceId));
     }
 
     revalidatePath("/school/collect-fees");

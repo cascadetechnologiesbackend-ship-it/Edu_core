@@ -21,13 +21,19 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
 import {
   searchStudentsAction,
   getStudentInvoicesAction,
   processCounterCollection,
   MultiInvoiceCollectionPayload,
 } from "./actions";
-import { ReceiptSheet, ReceiptData } from "@/components/finance/ReceiptSheet";
+import type { ReceiptData } from "@/components/finance/ReceiptSheet";
+
+const ReceiptSheet = dynamic(
+  () => import("@/components/finance/ReceiptSheet").then((mod) => mod.ReceiptSheet),
+  { ssr: false }
+);
 import { cn } from "@/lib/utils";
 import type { StudentFeeCard } from "@schoolmitra/validators";
 
@@ -132,7 +138,7 @@ export function CounterCollectionClient({
       if (res.success && res.students) {
         setSearchResults(res.students);
       }
-    }, 280);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [searchTerm, initialStudents]);
@@ -617,7 +623,12 @@ export function CounterCollectionClient({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div
+                  className={cn(
+                    "space-y-3",
+                    studentInvoices.length > 50 && "max-h-[640px] overflow-y-auto pr-1"
+                  )}
+                >
                   {studentInvoices.map((inv) => {
                     const isSelected = !!selectedItems[inv.id];
                     const selectedItem = selectedItems[inv.id];

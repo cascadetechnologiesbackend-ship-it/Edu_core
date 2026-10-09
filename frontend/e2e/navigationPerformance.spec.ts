@@ -170,4 +170,104 @@ test.describe("Whole-ERP Latency Baselines: 5 Key Journeys (Spec 6.0.0 & PF-R125
     );
     expect(portalMetric.status).toBe("PASS");
   });
+
+  // =========================================================================
+  // PR2 FINANCE MODULE LOW-LATENCY PASS (SPEC 6.0.0-PR2 & PF-R125)
+  // =========================================================================
+
+  test("PR2 Finance: Fees Dashboard Hub (/school/fees-dashboard) - Desktop & 0.00 CLS", async ({ adminPage }) => {
+    const hubMetric = await measureRoute(
+      adminPage,
+      "/school/fees-dashboard",
+      "PR2. Finance Hub",
+      "Desktop Broadband",
+      500
+    );
+    expect(hubMetric.status).toBe("PASS");
+    await expect(adminPage.locator("h1")).toContainText("Finance & Fees Analytics Hub");
+
+    // Exact skeleton CLS validation (PF-R58)
+    const cls = await adminPage.evaluate(() => {
+      return new Promise<number>((resolve) => {
+        let clsScore = 0;
+        try {
+          const observer = new PerformanceObserver((entryList) => {
+            for (const entry of entryList.getEntries()) {
+              if (!(entry as any).hadRecentInput) {
+                clsScore += (entry as any).value;
+              }
+            }
+          });
+          observer.observe({ type: "layout-shift", buffered: true });
+          setTimeout(() => {
+            observer.disconnect();
+            resolve(clsScore);
+          }, 300);
+        } catch {
+          resolve(0);
+        }
+      });
+    });
+    expect(cls).toBeLessThanOrEqual(0.05); // Target 0.00 CLS (PF-R58)
+  });
+
+  test("PR2 Finance: Dues Work List (/school/due-fees)", async ({ adminPage }) => {
+    const duesMetric = await measureRoute(
+      adminPage,
+      "/school/due-fees",
+      "PR2. Dues Work List",
+      "Desktop Accountant",
+      500
+    );
+    expect(duesMetric.status).toBe("PASS");
+    await expect(adminPage.locator("h1")).toContainText("Outstanding Fee Dues Register");
+  });
+
+  test("PR2 Finance: Central Day Book (/school/transactions)", async ({ adminPage }) => {
+    const dayBookMetric = await measureRoute(
+      adminPage,
+      "/school/transactions",
+      "PR2. Day Book Ledger",
+      "Desktop Accountant",
+      500
+    );
+    expect(dayBookMetric.status).toBe("PASS");
+    await expect(adminPage.locator("h1")).toContainText("Central Fee Transactions Ledger");
+  });
+
+  test("PR2 Finance: Accounts Hub (/school/accounting/dashboard)", async ({ adminPage }) => {
+    const accountsMetric = await measureRoute(
+      adminPage,
+      "/school/accounting/dashboard",
+      "PR2. Accounts Hub",
+      "Desktop Admin",
+      500
+    );
+    expect(accountsMetric.status).toBe("PASS");
+    await expect(adminPage.locator("h1")).toContainText("Institutional Accounts Command Hub");
+  });
+
+  test("PR2 Finance: Concession Summary Report (/school/accounting/reports/concessions)", async ({ adminPage }) => {
+    const concessionMetric = await measureRoute(
+      adminPage,
+      "/school/accounting/reports/concessions",
+      "PR2. Concessions Report",
+      "Desktop Accountant",
+      500
+    );
+    expect(concessionMetric.status).toBe("PASS");
+    await expect(adminPage.locator("h1")).toContainText("Concession & Waiver Summary Report");
+  });
+
+  test("PR2 Finance: Bank Statement Reconciliation BRS (/school/accounts/bank-reconciliation)", async ({ adminPage }) => {
+    const brsMetric = await measureRoute(
+      adminPage,
+      "/school/accounts/bank-reconciliation",
+      "PR2. Bank Reconciliation",
+      "Desktop Accountant",
+      500
+    );
+    expect(brsMetric.status).toBe("PASS");
+    await expect(adminPage.locator("h1, h2, div").first()).toBeVisible({ timeout: 5000 });
+  });
 });

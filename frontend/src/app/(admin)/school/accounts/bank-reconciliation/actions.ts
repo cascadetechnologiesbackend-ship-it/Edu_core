@@ -12,6 +12,7 @@ import {
   getGatewayFeesExpenseChartAccountId,
 } from "@schoolmitra/backend/lib/chartOfAccountsEngine";
 import crypto from "crypto";
+import { getCachedFinanceData, setCachedFinanceData } from "@/lib/financeCache";
 
 export interface BankStatementRowInput {
   id: string;
@@ -53,10 +54,16 @@ export async function getBankReconciliationDataAction(bankAccountId?: string) {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    const accounts = await db.query.bankAccounts.findMany({
-      where: and(eq(bankAccounts.schoolId, school.id), eq(bankAccounts.isActive, true)),
-      orderBy: [desc(bankAccounts.createdAt)],
-    });
+    let accounts = await getCachedFinanceData<any[]>(school.id, "brs_bank_accounts");
+    if (!accounts) {
+      accounts = await db.query.bankAccounts.findMany({
+        where: and(eq(bankAccounts.schoolId, school.id), eq(bankAccounts.isActive, true)),
+        orderBy: [desc(bankAccounts.createdAt)],
+      });
+      await setCachedFinanceData(school.id, "brs_bank_accounts", accounts, {
+        tags: [`school:${school.id}`, `fin:accounts:${school.id}`],
+      });
+    }
 
     const activeBankId = bankAccountId || accounts[0]?.id;
     if (!activeBankId) {

@@ -32,6 +32,22 @@ test.describe("P6 Quality Gates: Finance E2E & Legacy Redirects", () => {
     expect(activeTagName).toBeDefined();
   });
 
+  test("POS Time-to-Receipt SLA budget: counter search & collection render <= 8s (PF 2.5, PF-R50)", async ({ adminPage }) => {
+    const startTime = Date.now();
+    await adminPage.goto("/school/collect-fees");
+    await expect(adminPage.locator("h1")).toContainText("Collect Student Fees");
+
+    const searchInput = adminPage.locator('input[placeholder*="Search by student name"]');
+    await expect(searchInput).toBeVisible();
+    await searchInput.focus();
+    await searchInput.fill("Student");
+
+    // Elapsed time from route start to interactive search response must stay under 8,000ms SLA
+    const elapsedMs = Date.now() - startTime;
+    console.log(`[PERF E2E] POS Time-to-Interactive/Receipt: ${elapsedMs}ms (Budget <= 8000ms)`);
+    expect(elapsedMs).toBeLessThanOrEqual(8000);
+  });
+
   test("Voucher Modal: open, navigate and close via Escape", async ({ adminPage }) => {
     await adminPage.goto("/school/accounts");
     

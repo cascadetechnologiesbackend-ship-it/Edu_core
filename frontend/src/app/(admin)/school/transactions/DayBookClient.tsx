@@ -16,13 +16,18 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
-import ExcelJS from "exceljs";
+import dynamic from "next/dynamic";
 import { FilterBar } from "@/components/finance/FilterBar";
 import { DataTable, ColumnDef } from "@/components/finance/DataTable";
 import { ConfirmDestructive } from "@/components/finance/ConfirmDestructive";
-import { ReceiptSheet, ReceiptData } from "@/components/finance/ReceiptSheet";
+import type { ReceiptData } from "@/components/finance/ReceiptSheet";
 import { cancelTransaction } from "./actions";
 import { cn } from "@/lib/utils";
+
+const ReceiptSheet = dynamic(
+  () => import("@/components/finance/ReceiptSheet").then((mod) => mod.ReceiptSheet),
+  { ssr: false }
+);
 
 export interface TransactionRow {
   id: string;
@@ -48,11 +53,13 @@ export function DayBookClient({
   schoolName,
   userRole,
   activeMethod,
+  asOf,
 }: {
   transactions: TransactionRow[];
   schoolName: string;
   userRole: string;
   activeMethod?: string | undefined;
+  asOf?: string | undefined;
 }) {
   const router = useRouter();
 
@@ -135,6 +142,9 @@ export function DayBookClient({
   // Excel Export
   const handleExportExcel = async () => {
     try {
+      toast.info("Preparing Excel export...");
+      const ExcelJSModule = await import("exceljs");
+      const ExcelJS = (ExcelJSModule as any).default || ExcelJSModule;
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Day Book Transactions");
 
@@ -288,8 +298,13 @@ export function DayBookClient({
       <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center">
               Fee Collections Day Book ({filteredTransactions.length})
+              {asOf && (
+                <span className="text-[11px] font-mono text-gray-400 font-normal ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800">
+                  as of {asOf}
+                </span>
+              )}
             </h2>
             <p className="text-xs text-gray-500 dark:text-slate-400">
               Audited transaction receipts with instant thermal reprint and reversal guard.
