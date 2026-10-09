@@ -11,10 +11,21 @@ const mockValues = vi.fn().mockReturnValue({ returning: mockReturning });
 const mockTx = {
   update: vi.fn().mockReturnValue({ set: mockSet, where: mockWhere }),
   insert: vi.fn().mockReturnValue({ values: mockValues }),
+  query: {
+    bankAccounts: {
+      findFirst: vi.fn().mockResolvedValue({ id: "bank_01", currentBalance: "1000.00" }),
+    },
+  },
 };
 
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
+}));
+
+vi.mock("@/lib/chartOfAccountsEngine", () => ({
+  getBankAccountChartAccountId: vi.fn().mockResolvedValue("coa-bank-acc-id"),
+  getCashMainChartAccountId: vi.fn().mockResolvedValue("coa-cash-acc-id"),
+  getStudentReceivableChartAccountId: vi.fn().mockResolvedValue("coa-rec-acc-id"),
 }));
 
 vi.mock("@/db", () => ({
@@ -28,6 +39,9 @@ vi.mock("@/db", () => ({
       },
       feeInvoices: {
         findFirst: vi.fn(),
+      },
+      bankAccounts: {
+        findFirst: vi.fn().mockResolvedValue({ id: "bank_01", currentBalance: "1000.00" }),
       },
     },
     transaction: vi.fn(async (cb: any) => cb(mockTx)),

@@ -180,12 +180,58 @@ export function canRoleAccessRoute(role: string | undefined | null, pathname: st
 }
 
 /**
+ * Persists an UNAUTHORIZED_ROUTE_ATTEMPT event to the append-only audit_logs table (GT-03 / OPEN-8).
+ */
+export async function persistUnauthorizedRouteAudit(params: {
+  userId?: string | null | undefined;
+  userEmail?: string | null | undefined;
+  userRole?: string | null | undefined;
+  schoolId?: string | null | undefined;
+  pathname: string;
+}): Promise<void> {
+  try {
+    const { db } = await import("@/db");
+    const { auditLogs } = await import("@/db/schema");
+    const now = new Date();
+
+    const isUuid = (val?: string | null) =>
+      typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    const safeUserId = isUuid(params.userId) ? params.userId! : "00000000-0000-0000-0000-000000000000";
+    const safeSchoolId = isUuid(params.schoolId) ? params.schoolId! : "00000000-0000-0000-0000-000000000000";
+
+    await db.insert(auditLogs).values({
+      userId: safeUserId,
+      userEmail: params.userEmail || "anonymous@schoolmitra.internal",
+      userRole: params.userRole || "UNKNOWN",
+      schoolId: safeSchoolId,
+      action: "READ",
+      tableName: "routes",
+      recordId: params.pathname,
+      purposeId: "rbac_security_enforcement",
+      ipAddress: "127.0.0.1",
+      userAgent: "RouteGuard",
+      metadata: {
+        event: "UNAUTHORIZED_ROUTE_ATTEMPT",
+        pathname: params.pathname,
+        attemptedRole: params.userRole,
+        timestamp: now.toISOString(),
+      },
+    });
+  } catch (err) {
+    if (process.env.NODE_ENV !== "test") {
+      console.error("[SECURITY AUDIT] Failed to persist UNAUTHORIZED_ROUTE_ATTEMPT:", err);
+    }
+  }
+}
+
+/**
  * Asserts route access for a user and triggers UNAUTHORIZED_ROUTE_ATTEMPT logging on rejection.
  */
 export function assertRouteAccess(
   role: string | undefined | null,
   pathname: string,
-  user?: { id?: string; email?: string }
+  user?: { id?: string; email?: string; schoolId?: string }
 ): { allowed: boolean; redirectUrl?: string } {
   const allowed = canRoleAccessRoute(role, pathname);
 
@@ -206,6 +252,17 @@ export function assertRouteAccess(
       `[SECURITY AUDIT] UNAUTHORIZED_ROUTE_ATTEMPT: route=${pathname} actor=${actor} role=${userRole} timestamp=${auditRecord.timestamp}`
     );
 
+    // Persist UNAUTHORIZED_ROUTE_ATTEMPT to audit_logs (append-only) (closes OPEN-8)
+    if (typeof window === "undefined") {
+      persistUnauthorizedRouteAudit({
+        userId: user?.id,
+        userEmail: user?.email,
+        userRole: userRole,
+        schoolId: user?.schoolId,
+        pathname,
+      }).catch(() => {});
+    }
+
     const redirectUrl =
       role && ROLE_CONFIGS[role as UserRole]
         ? ROLE_CONFIGS[role as UserRole].defaultDashboard
@@ -219,3 +276,4 @@ export function assertRouteAccess(
 
   return { allowed: true };
 }
+

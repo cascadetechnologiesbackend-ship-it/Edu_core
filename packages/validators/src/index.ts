@@ -412,7 +412,7 @@ export const collectFeeSchema = z.object({
   studentId: uuidSchema,
   feeInvoiceId: uuidSchema,
   amountPaid: z.number().positive(),
-  paymentMethod: z.enum(["CASH", "CHEQUE", "ONLINE", "DD", "NEFT"]),
+  paymentMethod: z.enum(["CASH", "CHEQUE", "ONLINE", "DD", "NEFT", "RTGS", "UPI"]),
   transactionReference: z.string().max(200).optional(),
   paymentDate: dateSchema,
   remarks: z.string().max(500).optional(),

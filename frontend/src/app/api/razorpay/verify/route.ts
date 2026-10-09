@@ -1,10 +1,21 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { feeInvoices, feePayments, paymentGatewayLogs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  feeInvoices,
+  feePayments,
+  paymentGatewayLogs,
+  accountLedgerTransactions,
+  bankAccounts,
+} from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { archiveReceiptPdfToS3 } from "@/workers/financeAutomation";
+import {
+  getBankAccountChartAccountId,
+  getCashMainChartAccountId,
+  getStudentReceivableChartAccountId,
+} from "@/lib/chartOfAccountsEngine";
 
 export async function POST(req: Request) {
   try {
@@ -152,6 +163,44 @@ export async function POST(req: Request) {
           status: newStatus,
         })
         .where(eq(feeInvoices.id, invoice.id));
+
+      // 4. Resolve Chart of Accounts & Post Consolidated Credit Entry to General Ledger (P2-T1 S0 Invariant)
+      const primaryBank = await tx.query.bankAccounts.findFirst({
+        where: and(eq(bankAccounts.schoolId, invoice.schoolId), eq(bankAccounts.isActive, true)),
+      });
+
+      const primaryBankId = primaryBank ? primaryBank.id : null;
+      const bankChartAccountId = primaryBankId
+        ? await getBankAccountChartAccountId(invoice.schoolId, primaryBankId, tx)
+        : await getCashMainChartAccountId(invoice.schoolId, tx);
+      const studentReceivableAccountId = await getStudentReceivableChartAccountId(invoice.schoolId, tx);
+
+      const txNumber = `TX-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+
+      await tx.insert(accountLedgerTransactions).values({
+        schoolId: invoice.schoolId,
+        transactionNumber: txNumber,
+        sourceType: "FEE_COLLECTION",
+        sourceId: createdPaymentId || log.id,
+        bankAccountId: primaryBankId,
+        debitAccountId: bankChartAccountId,
+        creditAccountId: studentReceivableAccountId,
+        transactionType: "CREDIT",
+        amount: amountPaid.toFixed(2),
+        description: `Online Gateway Settlement (Razorpay) - Payment ID: ${razorpay_payment_id}`,
+        transactionDate: new Date(),
+        createdById: session.user.id || null,
+      });
+
+      if (primaryBankId) {
+        await tx
+          .update(bankAccounts)
+          .set({
+            currentBalance: sql`${bankAccounts.currentBalance} + ${amountPaid.toFixed(2)}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(bankAccounts.id, primaryBankId));
+      }
     });
 
     // Asynchronously archive PDF to S3
