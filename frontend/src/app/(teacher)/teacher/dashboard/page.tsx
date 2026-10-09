@@ -14,9 +14,8 @@ import {
   exams,
   students,
   salaryComponents,
-  payslips,
 } from "@/db/schema";
-import { eq, and, isNull, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, desc, or } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
 import Link from "next/link";
@@ -74,10 +73,32 @@ export default async function TeacherDashboardPage() {
   } = await withDataPhaseTiming("/teacher/dashboard", () =>
     assertQueryBudget(
       async () => {
-        // Phase 1: Parallel fetch of staff, class teacher sections, subject mappings, section allocations, and active exams
+        // Pre-construct subqueries for classes and sections assigned to this educator
+        const teacherClassIdsSubquery = db
+          .select({ classId: classSubjects.classId })
+          .from(classSubjects)
+          .where(
+            and(
+              eq(classSubjects.schoolId, schoolId),
+              eq(classSubjects.assignedTeacherId, userId)
+            )
+          );
+
+        const teacherSectionIdsSubquery = db
+          .select({ sectionId: sectionSubjectTeachers.sectionId })
+          .from(sectionSubjectTeachers)
+          .where(
+            and(
+              eq(sectionSubjectTeachers.schoolId, schoolId),
+              eq(sectionSubjectTeachers.teacherId, userId),
+              eq(sectionSubjectTeachers.isActive, true)
+            )
+          );
+
+        // Phase 1: Parallel fetch of staff, all teacher-linked sections, subject mappings, section allocations, and active exams
         const [
           staffMember,
-          classTeacherSections,
+          allTeacherSections,
           assignedMappings,
           sectionSubjectAllocations,
           activeExams,
@@ -88,8 +109,12 @@ export default async function TeacherDashboardPage() {
           db.query.sections.findMany({
             where: and(
               eq(sections.schoolId, schoolId),
-              eq(sections.classTeacherId, userId),
-              eq(sections.isActive, true)
+              eq(sections.isActive, true),
+              or(
+                eq(sections.classTeacherId, userId),
+                inArray(sections.classId, teacherClassIdsSubquery),
+                inArray(sections.id, teacherSectionIdsSubquery)
+              )
             ),
             with: {
               class: true,
@@ -131,28 +156,12 @@ export default async function TeacherDashboardPage() {
           }),
         ]);
 
-        // Aggregate section IDs
-        const sectionIdSet = new Set<string>();
-        classTeacherSections.forEach((s) => sectionIdSet.add(s.id));
-        sectionSubjectAllocations.forEach((ssa) => {
-          if (ssa.section?.id) sectionIdSet.add(ssa.section.id);
-        });
+        const classTeacherSections = allTeacherSections.filter(
+          (s) => s.classTeacherId === userId
+        );
+        const assignedSectionIds = allTeacherSections.map((s) => s.id);
 
-        const assignedClassIds = assignedMappings.map((m) => m.classId).filter(Boolean);
-        if (assignedClassIds.length > 0) {
-          const classSections = await db.query.sections.findMany({
-            where: and(
-              eq(sections.schoolId, schoolId),
-              inArray(sections.classId, assignedClassIds),
-              eq(sections.isActive, true)
-            ),
-          });
-          classSections.forEach((s) => sectionIdSet.add(s.id));
-        }
-
-        const assignedSectionIds = Array.from(sectionIdSet);
-
-        // Phase 2: Parallel fetch of students count, attendance logs, timetable, salary & payslips
+        // Phase 2: Parallel fetch of students count, attendance logs, timetable & salary
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
@@ -175,7 +184,6 @@ export default async function TeacherDashboardPage() {
           todayAttendanceLogs,
           todayPeriods,
           salaryComponent,
-          recentPayslips,
         ] = await Promise.all([
           assignedSectionIds.length > 0
             ? db
@@ -223,13 +231,6 @@ export default async function TeacherDashboardPage() {
                 where: eq(salaryComponents.staffId, staffMember.id),
               })
             : Promise.resolve(null),
-          staffMember
-            ? db.query.payslips.findMany({
-                where: eq(payslips.staffId, staffMember.id),
-                orderBy: [desc(payslips.month)],
-                limit: 3,
-              })
-            : Promise.resolve([]),
         ]);
 
         const totalStudents = Number(studentCountRes[0]?.count || 0);
@@ -289,7 +290,7 @@ export default async function TeacherDashboardPage() {
           hasAllocations,
         };
       },
-      { maxQueries: 10, label: "Teacher Workspace" },
+      { maxQueries: 10, label: "Teacher Workspace (PF 1.2 <= 10 queries)" },
     ),
   );
 
