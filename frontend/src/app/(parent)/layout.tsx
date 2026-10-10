@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import BottomNav from "@/components/layout/BottomNav";
 import PwaHeader from "@/components/layout/PwaHeader";
@@ -31,7 +31,7 @@ export default async function ParentLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getCachedSession();
 
   if (!session?.user) {
     redirect("/login");
@@ -40,7 +40,13 @@ export default async function ParentLayout({
   // Ensure role is parent or school administrator previewing parent portal
   const allowed = ["PARENT", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"];
   if (!allowed.includes(session.user.role)) {
-    redirect("/dashboard");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/portal", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/dashboard");
   }
 
   // Fetch school name if available

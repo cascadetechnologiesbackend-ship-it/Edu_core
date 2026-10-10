@@ -304,6 +304,12 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
       return { success: false, message: "At least one invoice must be selected for payment." };
     }
 
+    for (const item of items) {
+      if (!item || typeof item.amountPaid !== "number" || isNaN(item.amountPaid) || item.amountPaid <= 0) {
+        return { success: false, message: "Payment amount must be greater than zero." };
+      }
+    }
+
     const totalAmountPaid = items.reduce((sum, item) => sum + (item.amountPaid || 0), 0);
     if (totalAmountPaid <= 0) {
       return { success: false, message: "Total payment amount must be greater than zero." };
@@ -441,7 +447,14 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
           0,
           currentGross - currentDiscount + currentLateFee + currentTax
         );
-        const newPaidAmount = parseFloat(invoice.paidAmount || "0") + item.amountPaid;
+        const currentPaid = parseFloat(invoice.paidAmount || "0");
+        const outstandingBalance = Math.max(0, newNetAmount - currentPaid);
+        if (item.amountPaid > outstandingBalance) {
+          throw new Error(
+            `Payment amount ₹${item.amountPaid} exceeds outstanding invoice balance of ₹${outstandingBalance.toFixed(2)}.`
+          );
+        }
+        const newPaidAmount = currentPaid + item.amountPaid;
         const newBalanceAmount = Math.max(0, newNetAmount - newPaidAmount);
 
         let newStatus: any = invoice.status;

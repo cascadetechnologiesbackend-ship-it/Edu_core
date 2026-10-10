@@ -5,11 +5,11 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
-import { getActiveTenant } from "@/lib/tenant";
 import { cookies } from "next/headers";
 import { ImpersonationBanner } from "@/components/platform/ImpersonationBanner";
 import { SessionProvider } from "next-auth/react";
 import { verifyImpersonationToken } from "@/lib/impersonation";
+import { FpsOverlay } from "@/components/dev/FpsOverlay";
 
 export const metadata: Metadata = {
   title: {
@@ -23,19 +23,11 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Validate active subdomain tenant gracefully
-  try {
-    await getActiveTenant();
-  } catch (err) {
-    // If tenant cannot be resolved from host/domain, fall back without throwing 404/500
-    console.warn("AdminLayout: tenant resolution fallback", err);
-  }
-
   // React cache() memoized session guarantees single fetch across RSC layout and child pages
   const session = await getCachedSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login?error=AccountDeactivated");
   }
 
   // Check if superadmin is impersonating a school (cryptographically verified)
@@ -59,17 +51,35 @@ export default async function AdminLayout({
 
   // Enforce layout-level security: parents/students belong in the /portal route group
   if (session.user.role === "PARENT" || session.user.role === "STUDENT") {
-    redirect("/portal");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/admin", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/portal");
   }
 
   // Drivers belong in the driver hub
   if (session.user.role === "DRIVER") {
-    redirect("/driver/dashboard");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/admin", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/driver/dashboard");
   }
 
   // Teachers belong in the educator PWA workspace
   if (session.user.role === "TEACHER") {
-    redirect("/teacher/dashboard");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/admin", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/teacher/dashboard");
   }
 
   // Super admins belong in the platform management group, UNLESS currently impersonating a school!
@@ -132,34 +142,8 @@ export default async function AdminLayout({
             </main>
           </div>
         </div>
+        <FpsOverlay />
       </div>
-      <script
-        type="speculationrules"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            prefetch: [
-              {
-                source: "list",
-                urls: [
-                  "/dashboard",
-                  "/students",
-                  "/admissions",
-                  "/academics",
-                  "/attendance",
-                  "/exams",
-                  "/hr",
-                  "/library",
-                  "/transport",
-                  "/settings",
-                  "/dpdp",
-                  "/profile",
-                ],
-                eagerness: "moderate",
-              },
-            ],
-          }),
-        }}
-      />
     </SessionProvider>
   );
 }

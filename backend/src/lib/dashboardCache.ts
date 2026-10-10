@@ -1,4 +1,4 @@
-import { redis } from "./rateLimiter";
+import { redis, isRedisAvailable, recordRedisFailure } from "./rateLimiter";
 
 // ─── S2 Dashboard Cache Configuration ──────────────────────────────────────────
 // S2 Freshness Class: 5 minutes TTL (Normative from Spec 4.1 / WS2 / PF-R80)
@@ -66,19 +66,22 @@ export async function getCachedDashboardSummary<T>(schoolId: string): Promise<T 
   }
 
   // 2. Redis L2 Check
-  try {
-    const raw = await redis.get(key);
-    if (raw) {
-      const parsed = JSON.parse(raw) as T;
-      trimDashboardMemoryCache();
-      memoryL1Cache.set(key, {
-        data: parsed,
-        expiresAt: Date.now() + 60_000,
-      });
-      return parsed;
+  if (isRedisAvailable()) {
+    try {
+      const raw = await redis.get(key);
+      if (raw) {
+        const parsed = JSON.parse(raw) as T;
+        trimDashboardMemoryCache();
+        memoryL1Cache.set(key, {
+          data: parsed,
+          expiresAt: Date.now() + 60_000,
+        });
+        return parsed;
+      }
+    } catch (err) {
+      recordRedisFailure(err);
+      // Redis down or unreachable — fallback gracefully to DB query
     }
-  } catch (err) {
-    // Redis down or unreachable — fallback gracefully to DB query
   }
 
   return null;
@@ -100,10 +103,13 @@ export async function setCachedDashboardSummary<T>(schoolId: string, data: T): P
   });
 
   // Populate L2 Redis
-  try {
-    await redis.setex(key, ttlSeconds, JSON.stringify(data));
-  } catch (err) {
-    // Redis offline — L1 memory still serves request
+  if (isRedisAvailable()) {
+    try {
+      await redis.setex(key, ttlSeconds, JSON.stringify(data));
+    } catch (err) {
+      recordRedisFailure(err);
+      // Redis offline — L1 memory still serves request
+    }
   }
 }
 
@@ -118,10 +124,13 @@ export async function invalidateDashboardCache(schoolId: string): Promise<void> 
   memoryL1Cache.delete(key);
 
   // Invalidate Redis L2
-  try {
-    await redis.del(key);
-  } catch (err) {
-    // Fallback ignored
+  if (isRedisAvailable()) {
+    try {
+      await redis.del(key);
+    } catch (err) {
+      recordRedisFailure(err);
+      // Fallback ignored
+    }
   }
 }
 

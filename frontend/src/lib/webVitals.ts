@@ -84,3 +84,49 @@ export function getFieldMetricStats(route: string, metricName: string) {
 export function resetFieldMetrics(): void {
   fieldMetricsStore.clear();
 }
+
+/**
+ * Long Animation Frames (LoAF) API Observer (Spec 2.1)
+ * Tracks dropped frames (>50ms) and breaks down script duration, style/layout, and paint.
+ */
+export function initLongAnimationFrameObserver(onReport?: (loaf: any) => void) {
+  if (typeof window === "undefined" || !("PerformanceObserver" in window)) return;
+
+  try {
+    const supportedTypes = PerformanceObserver.supportedEntryTypes || [];
+    if (!supportedTypes.includes("long-animation-frame")) {
+      return;
+    }
+
+    const observer = new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        const loaf = entry as any;
+        const record = {
+          duration: loaf.duration,
+          blockingDuration: loaf.blockingDuration,
+          renderStart: loaf.renderStart,
+          styleAndLayoutStart: loaf.styleAndLayoutStart,
+          scripts: loaf.scripts?.map((s: any) => ({
+            invoker: s.invoker,
+            duration: s.duration,
+            sourceURL: s.sourceURL,
+            sourceFunctionName: s.sourceFunctionName,
+          })),
+          route: window.location.pathname,
+          timestamp: Date.now(),
+        };
+
+        if (onReport) {
+          onReport(record);
+        } else if (process.env.NODE_ENV === "development") {
+          console.warn(`[LoAF Dropped Frame] ${record.duration.toFixed(1)}ms on ${record.route}`, record);
+        }
+      }
+    });
+
+    observer.observe({ type: "long-animation-frame", buffered: true });
+  } catch (err) {
+    // Graceful fallback for browsers without LoAF
+  }
+}
+

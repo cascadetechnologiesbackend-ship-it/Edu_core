@@ -74,9 +74,9 @@ export const queryBudgetStorage = new AsyncLocalStorage<QueryBudgetScope>();
 export class BudgetQueryLogger implements Logger {
   logQuery(query: string, params: unknown[]): void {
     const store = queryBudgetStorage.getStore();
-    const normalized = normalizeSql(query);
 
     if (store) {
+      const normalized = normalizeSql(query);
       const record: RecordedQuery = {
         sql: query,
         params,

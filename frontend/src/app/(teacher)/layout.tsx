@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import BottomNav from "@/components/layout/BottomNav";
 import PwaHeader from "@/components/layout/PwaHeader";
@@ -24,7 +24,7 @@ export default async function TeacherLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getCachedSession();
 
   if (!session?.user) {
     redirect("/login");
@@ -33,7 +33,13 @@ export default async function TeacherLayout({
   // Ensure role is teacher or administrator previewing teacher portal
   const allowed = ["TEACHER", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"];
   if (!allowed.includes(session.user.role)) {
-    redirect("/dashboard");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/teacher", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/dashboard");
   }
 
   // Fetch school name if available

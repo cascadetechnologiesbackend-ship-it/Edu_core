@@ -1,4 +1,4 @@
-import { redis } from "./rateLimiter";
+import { redis, isRedisAvailable, recordRedisFailure } from "./rateLimiter";
 
 // ─── S2 Finance Cache Engine Configuration ─────────────────────────────────────
 // Governing Spec: SCHOOL-ERP-PERFORMANCE-SPEC.md v2.0 (PF-R41, PF-R45, PF-R47, PF-R80)
@@ -103,21 +103,24 @@ export async function getCachedFinanceData<T>(
     financeMemoryL1.delete(key);
   }
 
-  // 2. Redis L2 Check (if configured)
-  try {
-    const raw = await redis.get(key);
-    if (raw) {
-      const parsed = JSON.parse(raw) as T;
-      trimMemoryCacheIfNeeded();
-      financeMemoryL1.set(key, {
-        data: parsed,
-        expiresAt: Date.now() + 60_000,
-        tags: [],
-      });
-      return parsed;
+  // 2. Redis L2 Check (if configured and available)
+  if (isRedisAvailable()) {
+    try {
+      const raw = await redis.get(key);
+      if (raw) {
+        const parsed = JSON.parse(raw) as T;
+        trimMemoryCacheIfNeeded();
+        financeMemoryL1.set(key, {
+          data: parsed,
+          expiresAt: Date.now() + 60_000,
+          tags: [],
+        });
+        return parsed;
+      }
+    } catch (err) {
+      recordRedisFailure(err);
+      // Redis down or unreachable — fallback gracefully to fresh DB query
     }
-  } catch (err) {
-    // Redis down or unreachable — fallback gracefully to fresh DB query
   }
 
   return null;
@@ -158,17 +161,20 @@ export async function setCachedFinanceData<T>(
   }
 
   // 2. Populate Redis L2
-  try {
-    await redis.setex(key, ttlSeconds, JSON.stringify(data));
+  if (isRedisAvailable()) {
+    try {
+      await redis.setex(key, ttlSeconds, JSON.stringify(data));
 
-    // Register key in Redis sets for each tag (with 10-minute TTL to automatically sweep)
-    for (const tag of tags) {
-      const tagKey = `t:${schoolId}:v1:tag:${tag}`;
-      await redis.sadd(tagKey, key);
-      await redis.expire(tagKey, ttlSeconds + 300);
+      // Register key in Redis sets for each tag (with 10-minute TTL to automatically sweep)
+      for (const tag of tags) {
+        const tagKey = `t:${schoolId}:v1:tag:${tag}`;
+        await redis.sadd(tagKey, key);
+        await redis.expire(tagKey, ttlSeconds + 300);
+      }
+    } catch (err) {
+      recordRedisFailure(err);
+      // Redis offline — L1 memory still serves request
     }
-  } catch (err) {
-    // Redis offline — L1 memory still serves request
   }
 }
 
@@ -197,20 +203,23 @@ export async function invalidateFinanceTags(
   }
 
   // 2. Resolve keys from Redis Tag Sets
-  try {
-    for (const tag of tags) {
-      const tagKey = `t:${schoolId}:v1:tag:${tag}`;
-      const redisKeys = await redis.smembers(tagKey);
-      if (redisKeys && redisKeys.length > 0) {
-        for (const rk of redisKeys) {
-          keysToDelete.add(rk);
+  if (isRedisAvailable()) {
+    try {
+      for (const tag of tags) {
+        const tagKey = `t:${schoolId}:v1:tag:${tag}`;
+        const redisKeys = await redis.smembers(tagKey);
+        if (redisKeys && redisKeys.length > 0) {
+          for (const rk of redisKeys) {
+            keysToDelete.add(rk);
+          }
+          await redis.del(...redisKeys);
         }
-        await redis.del(...redisKeys);
+        await redis.del(tagKey);
       }
-      await redis.del(tagKey);
+    } catch (err) {
+      recordRedisFailure(err);
+      // Redis error handled gracefully
     }
-  } catch (err) {
-    // Redis error handled gracefully
   }
 
   // Also clean up any lingering memory entries found in Redis

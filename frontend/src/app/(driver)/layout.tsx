@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import BottomNav from "@/components/layout/BottomNav";
 import PwaHeader from "@/components/layout/PwaHeader";
@@ -22,7 +22,7 @@ export default async function DriverLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getCachedSession();
 
   if (!session?.user) {
     redirect("/login");
@@ -31,7 +31,13 @@ export default async function DriverLayout({
   // Ensure role is driver or administrator previewing driver portal
   const allowed = ["DRIVER", "SUPER_ADMIN", "SCHOOL_ADMIN", "TRANSPORT_MANAGER"];
   if (!allowed.includes(session.user.role)) {
-    redirect("/dashboard");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/driver/dashboard", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/dashboard");
   }
 
   // Fetch school name if available

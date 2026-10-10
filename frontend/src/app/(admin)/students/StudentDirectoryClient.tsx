@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useDeferredValue, useTransition } from "react";
 import Link from "next/link";
+import { searchStudentsAction } from "./actions";
 
 export interface StudentListItem {
   id: string;
@@ -21,19 +22,33 @@ interface ClassOption {
   name: string;
 }
 
-export function StudentDirectoryClient({
-  students,
-  classes,
-}: {
-  students: StudentListItem[];
+interface StudentDirectoryClientProps {
+  initialStudents?: StudentListItem[];
+  students?: StudentListItem[]; // Backward compatibility
+  initialNextCursor?: string | null;
   classes: ClassOption[];
-}) {
+}
+
+export function StudentDirectoryClient({
+  initialStudents,
+  students: legacyStudents,
+  initialNextCursor = null,
+  classes,
+}: StudentDirectoryClientProps) {
+  const [studentList, setStudentList] = useState<StudentListItem[]>(
+    initialStudents || legacyStudents || []
+  );
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedClassId, setSelectedClassId] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [isPending, startTransition] = useTransition();
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  // Filter in-memory for instant feedback on active page
   const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
+    return studentList.filter((s) => {
       // Class filter
       if (selectedClassId !== "ALL" && s.classId !== selectedClassId) {
         return false;
@@ -42,16 +57,54 @@ export function StudentDirectoryClient({
       if (selectedStatus === "ACTIVE" && !s.isActive) return false;
       if (selectedStatus === "INACTIVE" && s.isActive) return false;
 
-      // Text search (name or admission number)
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase();
+      // Text search (name or admission number) using deferred value
+      if (deferredSearchTerm.trim()) {
+        const term = deferredSearchTerm.toLowerCase();
         const matchesName = s.fullName.toLowerCase().includes(term);
         const matchesAdm = s.admissionNumber.toLowerCase().includes(term);
         if (!matchesName && !matchesAdm) return false;
       }
       return true;
     });
-  }, [students, searchTerm, selectedClassId, selectedStatus]);
+  }, [studentList, deferredSearchTerm, selectedClassId, selectedStatus]);
+
+  // Server-side search trigger when filter changes or user presses enter
+  const handleServerSearch = () => {
+    startTransition(async () => {
+      try {
+        const res = await searchStudentsAction({
+          search: searchTerm,
+          classId: selectedClassId,
+          status: selectedStatus,
+          limit: 30,
+        });
+        setStudentList(res.students);
+        setNextCursor(res.nextCursor);
+      } catch (err) {
+        console.error("Failed to search students:", err);
+      }
+    });
+  };
+
+  const handleLoadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await searchStudentsAction({
+        search: searchTerm,
+        classId: selectedClassId,
+        status: selectedStatus,
+        cursor: nextCursor,
+        limit: 30,
+      });
+      setStudentList((prev) => [...prev, ...res.students]);
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      console.error("Failed to load more students:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -67,7 +120,10 @@ export function StudentDirectoryClient({
               placeholder="Search by student name or admission number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleServerSearch();
+              }}
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             />
             <span className="absolute left-3 top-2.5 text-gray-400 text-sm">
               🔍
@@ -82,7 +138,7 @@ export function StudentDirectoryClient({
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           >
             <option value="ALL">All Classes</option>
             {classes.map((c) => (
@@ -100,7 +156,7 @@ export function StudentDirectoryClient({
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           >
             <option value="ALL">All Status</option>
             <option value="ACTIVE">Active</option>
@@ -113,11 +169,15 @@ export function StudentDirectoryClient({
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/20">
           <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-            Showing <strong className="text-gray-900 dark:text-white">{filteredStudents.length}</strong> of {students.length} students
+            Showing <strong className="text-gray-900 dark:text-white">{filteredStudents.length}</strong> loaded students
+            {isPending && <span className="ml-2 text-xs text-blue-500 animate-pulse">(Searching…)</span>}
           </span>
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={() => {
+                setSearchTerm("");
+                handleServerSearch();
+              }}
               className="text-xs text-blue-600 hover:underline"
             >
               Clear Search
@@ -140,7 +200,7 @@ export function StudentDirectoryClient({
             {filteredStudents.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                  No students found matching your criteria.
+                  {isPending ? "Searching student records..." : "No students found matching your criteria."}
                 </td>
               </tr>
             ) : (
@@ -183,6 +243,7 @@ export function StudentDirectoryClient({
                   <td className="px-6 py-4 text-right">
                     <Link
                       href={`/students/${student.id}`}
+                      prefetch={false}
                       className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs shadow-sm transition-colors"
                     >
                       View Student 360 →
@@ -193,6 +254,19 @@ export function StudentDirectoryClient({
             )}
           </tbody>
         </table>
+
+        {/* Load More Pagination */}
+        {nextCursor && (
+          <div className="p-4 border-t border-gray-100 dark:border-slate-800 text-center bg-gray-50/50 dark:bg-slate-800/20">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? "Loading more..." : "Load More Students ↓"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

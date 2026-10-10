@@ -17,9 +17,12 @@ export function withAuth(
       }
       return await handler(req, session as Session);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return NextResponse.json({ error: message }, { status: 500 });
+      const errorId = crypto.randomUUID();
+      console.error(`[API_AUTH_ERROR] [ID:${errorId}]`, error);
+      return NextResponse.json(
+        { error: "Internal Server Error", errorId },
+        { status: 500 }
+      );
     }
   };
 }
@@ -58,9 +61,12 @@ export function withCronAuth(
 
       return await handler(req);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return NextResponse.json({ error: message }, { status: 500 });
+      const errorId = crypto.randomUUID();
+      console.error(`[CRON_AUTH_ERROR] [ID:${errorId}]`, error);
+      return NextResponse.json(
+        { error: "Internal Server Error", errorId },
+        { status: 500 }
+      );
     }
   };
 }

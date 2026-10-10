@@ -30,7 +30,13 @@ export default async function SuperAdminLayout({
   }
 
   if (session.user.role !== "SUPER_ADMIN") {
-    redirect("/dashboard");
+    const { assertRouteAccess } = await import("@/lib/routeGuards");
+    const access = assertRouteAccess(session.user.role, "/super-admin/dashboard", {
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      schoolId: session.user.schoolId ?? undefined,
+    });
+    redirect(access.redirectUrl || "/dashboard");
   }
 
   // Check if impersonation session cookie exists (cryptographically verified)

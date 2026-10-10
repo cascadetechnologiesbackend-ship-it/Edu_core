@@ -12,9 +12,20 @@ import { CreditCard } from "lucide-react";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import { assertQueryBudget } from "@schoolmitra/database";
 
+import { assertRouteAccess } from "@/lib/routeGuards";
+
 export default async function CollectFeesPage() {
   const session = await getCachedSession();
   if (!session?.user?.schoolId) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/school/collect-fees", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
 
   const schoolId = session.user.schoolId;
 

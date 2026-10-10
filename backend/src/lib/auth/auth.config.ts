@@ -5,6 +5,11 @@ import { ROLE_CONFIGS, type UserRole } from "../roleConfig";
 function resolveAuthSecret(): string {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "FATAL: AUTH_SECRET or NEXTAUTH_SECRET is required in production environment to prevent session forgery."
+      );
+    }
     console.warn("⚠️ Warning: AUTH_SECRET or NEXTAUTH_SECRET is not set in environment. Falling back to default secret.");
     return "default-schoolmitra-auth-secret-key-32chars-min-len";
   }
@@ -62,7 +67,7 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
-      const isLoggedIn = !!auth?.user;
+      const isLoggedIn = !!auth?.user && !(auth?.user as any)?.isDeactivated;
       const mustChangePassword = (auth?.user as any)?.mustChangePassword;
       const isForcePasswordRoute = pathname.startsWith("/force-password-change");
 
@@ -81,6 +86,9 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/forgot-password");
 
       if (isAuthRoute) {
+        if (nextUrl.searchParams.has("error") || nextUrl.searchParams.has("deactivated")) {
+          return true;
+        }
         if (isLoggedIn) {
           if (mustChangePassword) {
             return Response.redirect(new URL("/force-password-change", nextUrl));
@@ -90,29 +98,8 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
-      if (isLoggedIn) {
-        const userRole = (auth?.user as any)?.role as UserRole | undefined;
-        if (userRole && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
-          const isAdminRoute =
-            pathname.startsWith("/students") ||
-            pathname.startsWith("/exams") ||
-            pathname.startsWith("/admissions") ||
-            pathname.startsWith("/academics") ||
-            pathname.startsWith("/attendance") ||
-            pathname.startsWith("/hr") ||
-            pathname.startsWith("/library") ||
-            pathname.startsWith("/transport") ||
-            pathname.startsWith("/dpdp") ||
-            pathname.startsWith("/settings") ||
-            pathname.startsWith("/school/") ||
-            pathname === "/dashboard";
-
-          if (isAdminRoute && !canRoleAccessRoute(userRole, pathname)) {
-            const redirectPath = ROLE_CONFIGS[userRole]?.defaultDashboard || "/login";
-            return Response.redirect(new URL(redirectPath, nextUrl));
-          }
-        }
-      }
+      // Logged-in requests proceed to server layout and page guards where assertRouteAccess
+      // securely enforces role permissions and persists UNAUTHORIZED_ROUTE_ATTEMPT to audit_logs.
 
       return isLoggedIn;
     },

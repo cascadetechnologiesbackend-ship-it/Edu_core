@@ -3,10 +3,8 @@ import {
   students,
   classes,
   sections,
-  sectionSubjectTeachers,
-  classSubjects,
 } from "@/db/schema";
-import { desc, eq, and, inArray } from "drizzle-orm";
+import { desc, eq, and, sql } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
 import { redirect } from "next/navigation";
@@ -14,6 +12,8 @@ import { assertRouteAccess } from "@/lib/routeGuards";
 import { StudentDirectoryClient } from "./StudentDirectoryClient";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import { assertQueryBudget } from "@schoolmitra/database";
+
+const INITIAL_PAGE_SIZE = 30;
 
 export default async function StudentsDirectoryPage() {
   const ctx = await requireAuth();
@@ -24,156 +24,97 @@ export default async function StudentsDirectoryPage() {
 
   const school = await requireSchool(ctx);
 
-  const { schoolClasses, mappedStudents } = await withDataPhaseTiming("/students", async () => {
-    return assertQueryBudget(
-      async () => {
-        // Fetch classes and all sections in parallel with role-specific section checks
-        let classTeacherSections: { id: string }[] = [];
-        let subjectAllocations: { sectionId: string }[] = [];
-        let defaultTeacherClasses: { classId: string }[] = [];
+  const { schoolClasses, mappedStudents, initialNextCursor } = await withDataPhaseTiming(
+    "/students",
+    async () => {
+      return assertQueryBudget(
+        async () => {
+          const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role);
 
-        const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role);
+          // Build student filter condition: admins see all school students;
+          // teachers are scoped to sections where they are class teacher, subject teacher, or default class teacher.
+          const studentCondition = isAdmin
+            ? eq(students.schoolId, school.id)
+            : and(
+                eq(students.schoolId, school.id),
+                sql`${students.currentSectionId} IN (
+                  SELECT s.id FROM sections s WHERE s.school_id = ${school.id} AND s.is_active = true AND (
+                    s.class_teacher_id = ${ctx.userId}
+                    OR s.id IN (SELECT sst.section_id FROM section_subject_teachers sst WHERE sst.school_id = ${school.id} AND sst.teacher_id = ${ctx.userId} AND sst.is_active = true)
+                    OR s.class_id IN (SELECT cs.class_id FROM class_subjects cs WHERE cs.school_id = ${school.id} AND cs.assigned_teacher_id = ${ctx.userId})
+                  )
+                )`
+              );
 
-        const [classesList, allSections, adminStudents, roleQueryResults] = await Promise.all([
-          db.query.classes.findMany({
-            where: and(
-              eq(classes.schoolId, school.id),
-              eq(classes.isActive, true),
-            ),
-            orderBy: [classes.sortOrder, classes.displayName],
-          }),
-    db.query.sections.findMany({
-      where: eq(sections.schoolId, school.id),
-      with: { class: true },
-    }),
-    isAdmin
-      ? db.query.students.findMany({
-          where: eq(students.schoolId, school.id),
-          columns: {
-            id: true,
-            admissionNumber: true,
-            firstNameEncrypted: true,
-            lastNameEncrypted: true,
-            gender: true,
-            currentClassId: true,
-            currentSectionId: true,
-            isActive: true,
-            createdAt: true,
-          },
-          orderBy: [desc(students.createdAt)],
-          limit: 200,
-        })
-      : Promise.resolve(null),
-    ctx.role === "TEACHER"
-      ? Promise.all([
-          db.query.sections.findMany({
-            where: and(
-              eq(sections.schoolId, school.id),
-              eq(sections.classTeacherId, ctx.userId),
-              eq(sections.isActive, true),
-            ),
-            columns: { id: true },
-          }),
-          db.query.sectionSubjectTeachers.findMany({
-            where: and(
-              eq(sectionSubjectTeachers.schoolId, school.id),
-              eq(sectionSubjectTeachers.teacherId, ctx.userId),
-              eq(sectionSubjectTeachers.isActive, true),
-            ),
-            columns: { sectionId: true },
-          }),
-          db.query.classSubjects.findMany({
-            where: and(
-              eq(classSubjects.schoolId, school.id),
-              eq(classSubjects.assignedTeacherId, ctx.userId),
-            ),
-            columns: { classId: true },
-          }),
-        ])
-      : Promise.resolve(null),
-  ]);
+          // Run classes, sections, and initial students in a single parallel Promise.all (zero sequential roundtrip)
+          const [classesList, allSections, initialStudentRows] = await Promise.all([
+            db.query.classes.findMany({
+              where: and(
+                eq(classes.schoolId, school.id),
+                eq(classes.isActive, true),
+              ),
+              orderBy: [classes.sortOrder, classes.displayName],
+            }),
+            db.query.sections.findMany({
+              where: eq(sections.schoolId, school.id),
+              with: { class: true },
+            }),
+            db.query.students.findMany({
+              where: studentCondition,
+              columns: {
+                id: true,
+                admissionNumber: true,
+                firstNameEncrypted: true,
+                lastNameEncrypted: true,
+                gender: true,
+                currentClassId: true,
+                currentSectionId: true,
+                isActive: true,
+                createdAt: true,
+              },
+              orderBy: [desc(students.createdAt)],
+              limit: INITIAL_PAGE_SIZE + 1, // +1 for cursor computation
+            }),
+          ]);
 
-  let allStudents = adminStudents;
+          const hasNextPage = initialStudentRows.length > INITIAL_PAGE_SIZE;
+          const pagedRows = hasNextPage ? initialStudentRows.slice(0, INITIAL_PAGE_SIZE) : initialStudentRows;
+          const nextCursor = hasNextPage && pagedRows.length > 0
+            ? pagedRows[pagedRows.length - 1]!.createdAt.toISOString()
+            : null;
 
-  if (ctx.role === "TEACHER" && roleQueryResults) {
-    const [ctSections, saSections, dtClasses] = roleQueryResults;
-    classTeacherSections = ctSections;
-    subjectAllocations = saSections;
-    defaultTeacherClasses = dtClasses;
+          const sectionMap = new Map(allSections.map((s) => [s.id, s]));
 
-    let defaultTeacherSections: { id: string }[] = [];
-    if (defaultTeacherClasses.length > 0) {
-      defaultTeacherSections = allSections.filter((s) =>
-        defaultTeacherClasses.some((c) => c.classId === s.classId) && s.isActive,
-      ).map((s) => ({ id: s.id }));
+          const mapped = pagedRows.map((s) => {
+            const sec = s.currentSectionId ? sectionMap.get(s.currentSectionId) : null;
+            const firstName = decryptData(s.firstNameEncrypted) || "Unknown";
+            const lastName = decryptData(s.lastNameEncrypted) || "";
+            const fullName = `${firstName} ${lastName}`.trim();
+
+            return {
+              id: s.id,
+              admissionNumber: s.admissionNumber,
+              fullName,
+              gender: s.gender,
+              className: sec?.class?.displayName || "",
+              sectionName: sec?.name || "",
+              classId: s.currentClassId || null,
+              sectionId: s.currentSectionId || null,
+              isActive: s.isActive,
+              createdAt: s.createdAt.toISOString(),
+            };
+          });
+
+          return {
+            schoolClasses: classesList,
+            mappedStudents: mapped,
+            initialNextCursor: nextCursor,
+          };
+        },
+        { maxQueries: 5, label: "Students SIS Directory" }
+      );
     }
-
-    const sectionIdSet = new Set<string>([
-      ...classTeacherSections.map((s) => s.id),
-      ...subjectAllocations.map((s) => s.sectionId),
-      ...defaultTeacherSections.map((s) => s.id),
-    ]);
-    const allowedSectionIds = Array.from(sectionIdSet);
-
-    // Query teacher's scoped students with column projection
-    allStudents = await db.query.students.findMany({
-      where: and(
-        eq(students.schoolId, school.id),
-        allowedSectionIds.length > 0
-          ? inArray(students.currentSectionId, allowedSectionIds)
-          : eq(students.id, "00000000-0000-0000-0000-000000000000"), // no permitted sections
-      ),
-      columns: {
-        id: true,
-        admissionNumber: true,
-        firstNameEncrypted: true,
-        lastNameEncrypted: true,
-        gender: true,
-        currentClassId: true,
-        currentSectionId: true,
-        isActive: true,
-        createdAt: true,
-      },
-      orderBy: [desc(students.createdAt)],
-      limit: 200,
-    });
-  }
-
-  if (!allStudents) {
-    allStudents = [];
-  }
-
-  // allSections already fetched above in the parallel block
-  const sectionMap = new Map(allSections.map((s) => [s.id, s]));
-
-  const mappedStudents = allStudents.map((s) => {
-    const sec = s.currentSectionId ? sectionMap.get(s.currentSectionId) : null;
-    const firstName = decryptData(s.firstNameEncrypted) || "Unknown";
-    const lastName = decryptData(s.lastNameEncrypted) || "";
-    const fullName = `${firstName} ${lastName}`.trim();
-
-    return {
-      id: s.id,
-      admissionNumber: s.admissionNumber,
-      fullName,
-      gender: s.gender,
-      className: sec?.class?.displayName || "",
-      sectionName: sec?.name || "",
-      classId: s.currentClassId || null,
-      sectionId: s.currentSectionId || null,
-      isActive: s.isActive,
-      createdAt: s.createdAt.toISOString(),
-    };
-  });
-
-  return {
-    schoolClasses: classesList,
-    mappedStudents,
-  };
-},
-{ maxQueries: 5, label: "Students SIS Directory" }
-);
-});
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -189,7 +130,8 @@ export default async function StudentsDirectoryPage() {
       </div>
 
       <StudentDirectoryClient
-        students={mappedStudents}
+        initialStudents={mappedStudents}
+        initialNextCursor={initialNextCursor}
         classes={schoolClasses.map((c) => ({ id: c.id, name: c.displayName }))}
       />
     </div>

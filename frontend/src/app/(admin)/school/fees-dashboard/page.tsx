@@ -43,6 +43,8 @@ interface CachedBands23Payload {
   classStats: ClassStatItem[];
 }
 
+import { assertRouteAccess } from "@/lib/routeGuards";
+
 export default async function FeesDashboardPage({
   searchParams,
 }: {
@@ -50,6 +52,15 @@ export default async function FeesDashboardPage({
 }) {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/school/fees-dashboard", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
 
   const schoolId = session.user.schoolId;
 

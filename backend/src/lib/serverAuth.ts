@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { schools } from "@/db/schema";
+import { schools, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { Role } from "@schoolmitra/validators";
 import { cache } from "react";
@@ -17,8 +17,31 @@ export interface AuthContext {
 }
 
 // Zero-arg cached session fetcher ensures 100% deduplication per RSC request
+// and enforces live account active status verification (P3-T1 live drill)
 export const getCachedSession = cache(async () => {
-  return await auth();
+  const session = await auth();
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  // Super admins skip school-level active checks unless impersonating
+  if (session.user.role !== "SUPER_ADMIN") {
+    try {
+      const [u] = await db
+        .select({ isActive: users.isActive })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
+
+      if (!u || !u.isActive) {
+        return null;
+      }
+    } catch (err) {
+      console.warn("getCachedSession: user active status check failed", err);
+    }
+  }
+
+  return session;
 });
 
 import { getCachedSchool, invalidateSchoolCache } from "./schoolCache";

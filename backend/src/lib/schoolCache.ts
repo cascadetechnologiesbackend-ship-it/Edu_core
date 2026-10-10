@@ -1,4 +1,4 @@
-import { redis } from "./rateLimiter";
+import { redis, isRedisAvailable, recordRedisFailure } from "./rateLimiter";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -24,9 +24,11 @@ let isSubscriberInitialized = false;
  */
 function initSubscriberIfNeeded() {
   if (isSubscriberInitialized || typeof window !== "undefined") return;
+  if (!isRedisAvailable()) return;
   try {
     const sub = redis.duplicate();
-    sub.on("error", () => {
+    sub.on("error", (err) => {
+      recordRedisFailure(err);
       // Ignore Redis connection errors on subscriber
     });
     sub.subscribe(SCHOOL_INVALIDATE_CHANNEL, (err) => {
@@ -55,22 +57,28 @@ export async function invalidateSchoolCache(schoolId?: string): Promise<void> {
   initSubscriberIfNeeded();
   if (schoolId) {
     memoryCache.delete(schoolId);
-    try {
-      await redis.del(`${SCHOOL_CACHE_PREFIX}${schoolId}`);
-      await redis.publish(SCHOOL_INVALIDATE_CHANNEL, schoolId);
-    } catch (err) {
-      // Redis unavailable, memory cleared
+    if (isRedisAvailable()) {
+      try {
+        await redis.del(`${SCHOOL_CACHE_PREFIX}${schoolId}`);
+        await redis.publish(SCHOOL_INVALIDATE_CHANNEL, schoolId);
+      } catch (err) {
+        recordRedisFailure(err);
+        // Redis unavailable, memory cleared
+      }
     }
   } else {
     memoryCache.clear();
-    try {
-      const keys = await redis.keys(`${SCHOOL_CACHE_PREFIX}*`);
-      if (keys.length > 0) {
-        await redis.del(...keys);
+    if (isRedisAvailable()) {
+      try {
+        const keys = await redis.keys(`${SCHOOL_CACHE_PREFIX}*`);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+        await redis.publish(SCHOOL_INVALIDATE_CHANNEL, "*");
+      } catch (err) {
+        recordRedisFailure(err);
+        // Redis unavailable
       }
-      await redis.publish(SCHOOL_INVALIDATE_CHANNEL, "*");
-    } catch (err) {
-      // Redis unavailable
     }
   }
 }
@@ -91,17 +99,20 @@ export async function getCachedSchool(schoolId: string) {
     return local.data;
   }
 
-  // 2. Try Redis L2 cache
-  let redisAvailable = true;
-  try {
-    const raw = await redis.get(`${SCHOOL_CACHE_PREFIX}${schoolId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      memoryCache.set(schoolId, { data: parsed, expiresAt: now + MEMORY_TTL_MS });
-      return parsed;
+  // 2. Try Redis L2 cache if circuit breaker allows
+  let redisAvailable = isRedisAvailable();
+  if (redisAvailable) {
+    try {
+      const raw = await redis.get(`${SCHOOL_CACHE_PREFIX}${schoolId}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        memoryCache.set(schoolId, { data: parsed, expiresAt: now + MEMORY_TTL_MS });
+        return parsed;
+      }
+    } catch (err) {
+      recordRedisFailure(err);
+      redisAvailable = false;
     }
-  } catch (err) {
-    redisAvailable = false;
   }
 
   // 3. Fallback to direct DB query
@@ -114,7 +125,7 @@ export async function getCachedSchool(schoolId: string) {
   }
 
   // 4. Update caches
-  if (redisAvailable) {
+  if (redisAvailable && isRedisAvailable()) {
     try {
       await redis.set(
         `${SCHOOL_CACHE_PREFIX}${schoolId}`,
@@ -126,7 +137,8 @@ export async function getCachedSchool(schoolId: string) {
         data: school,
         expiresAt: now + MEMORY_TTL_MS,
       });
-    } catch {
+    } catch (err) {
+      recordRedisFailure(err);
       // Redis write failure - use fallback TTL
       memoryCache.set(schoolId, {
         data: school,
@@ -135,7 +147,7 @@ export async function getCachedSchool(schoolId: string) {
       });
     }
   } else {
-    // Redis unavailable: Reduced TTL (10s) with staleness flag
+    // Redis unavailable: Reduced TTL with staleness flag
     memoryCache.set(schoolId, {
       data: school,
       expiresAt: now + DB_FALLBACK_TTL_MS,

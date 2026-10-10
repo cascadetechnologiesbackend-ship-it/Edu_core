@@ -5,55 +5,38 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 /**
  * TopProgressBar — zero-delay visual navigation indicator.
- * Provides immediate feedback (0ms) the moment any internal link is clicked,
- * eliminating the perception of lag/freeze during Next.js App Router transitions.
+ * Provides immediate feedback (0ms) the moment any internal link is clicked.
+ * GPU-accelerated using `transform: scaleX()` with zero layout reflows (FPS-compliant).
  */
 export function TopProgressBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [progress, setProgress] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [navState, setNavState] = useState<"idle" | "loading" | "finishing">("idle");
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const start = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    setNavState("loading");
 
-    setVisible(true);
-    setProgress(15);
-
-    // Incrementally increase progress to show active loading
-    let current = 15;
-    timerRef.current = setInterval(() => {
-      current += Math.random() * 15;
-      if (current >= 85) {
-        current = 85;
-        if (timerRef.current) clearInterval(timerRef.current);
-      }
-      setProgress(current);
-    }, 120);
-
-    // Safety timeout in case navigation is cancelled or errors
+    // Safety timeout in case navigation stalls or errors
     safetyTimerRef.current = setTimeout(() => {
-      complete();
-    }, 5000);
+      setNavState("idle");
+    }, 6000);
   };
 
   const complete = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-
-    setProgress(100);
+    setNavState("finishing");
     setTimeout(() => {
-      setVisible(false);
-      setProgress(0);
+      setNavState("idle");
     }, 250);
   };
 
   // When pathname or search params change, the page transition is finished!
   useEffect(() => {
-    complete();
+    if (navState !== "idle") {
+      complete();
+    }
   }, [pathname, searchParams]);
 
   // Intercept all internal link clicks for 0ms instantaneous feedback
@@ -82,7 +65,7 @@ export function TopProgressBar() {
         return;
       }
 
-      // If clicking the current path without query change, ignore
+      // If clicking current path without query change, ignore
       const currentUrl = window.location.pathname + window.location.search;
       if (href === currentUrl) return;
 
@@ -92,23 +75,26 @@ export function TopProgressBar() {
     document.addEventListener("click", handleClick, { capture: true });
     return () => {
       document.removeEventListener("click", handleClick, { capture: true });
-      if (timerRef.current) clearInterval(timerRef.current);
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     };
   }, []);
 
-  if (!visible && progress === 0) return null;
+  if (navState === "idle") return null;
 
   return (
     <div
       aria-hidden="true"
-      className="fixed top-0 left-0 right-0 z-[99999] pointer-events-none transition-opacity duration-300"
-      style={{ opacity: visible ? 1 : 0 }}
+      className="fixed top-0 left-0 right-0 z-[99999] pointer-events-none transition-opacity duration-200"
+      style={{ opacity: navState === "finishing" ? 0 : 1 }}
     >
       <div
-        className="h-[3px] bg-gradient-to-r from-indigo-500 via-primary to-blue-400 shadow-[0_0_10px_rgba(99,102,241,0.7)] transition-all duration-200 ease-out"
+        className="h-[3px] w-full bg-gradient-to-r from-indigo-500 via-primary to-blue-400 shadow-[0_0_10px_rgba(99,102,241,0.7)]"
         style={{
-          width: `${progress}%`,
+          transformOrigin: "left center",
+          willChange: "transform",
+          transform: navState === "finishing" ? "scaleX(1)" : undefined,
+          transition: navState === "finishing" ? "transform 150ms ease-out" : undefined,
+          animation: navState === "loading" ? "top-progress-indeterminate 3s cubic-bezier(0.1, 0.4, 0.1, 1) forwards" : undefined,
         }}
       />
     </div>

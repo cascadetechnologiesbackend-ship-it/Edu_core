@@ -717,4 +717,30 @@ export type ParentPaymentSummary = z.infer<typeof ParentPaymentSummarySchema>;
 // ─── Re-exports ───────────────────────────────────────────────────────────────
 
 export type { z };
+export * from "./roleConfig";
+
+// ─── Web Push Notification Schemas (Spec 3.5) ─────────────────────────────────
+
+export const webPushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+  expirationTime: z.number().nullable().optional(),
+});
+
+export const pushNotificationPayloadSchema = z.object({
+  title: z.string().min(1).max(100),
+  body: z.string().min(1).max(300),
+  icon: z.string().optional().default("/icon.svg"),
+  badge: z.string().optional().default("/icon.svg"),
+  url: z.string().optional().default("/dashboard"),
+  tag: z.string().optional(),
+  data: z.record(z.unknown()).optional(),
+});
+
+export type WebPushSubscription = z.infer<typeof webPushSubscriptionSchema>;
+export type PushNotificationPayload = z.infer<typeof pushNotificationPayloadSchema>;
+
 

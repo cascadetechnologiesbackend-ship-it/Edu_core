@@ -132,12 +132,6 @@ export function Sidebar({
     };
   }, [accountMenuOpen]);
 
-  // Active route pre-warmer
-  const warmRoute = (href: string) => {
-    try {
-      router.prefetch(href as any);
-    } catch {}
-  };
 
   // 1. Loading State: Render a skeleton shell while role is resolving (GT-01)
   if (!role && isSessionLoading) {
@@ -224,7 +218,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
+        "flex flex-col h-full bg-sidebar border-r border-white/10",
         collapsed ? "w-16" : "w-64"
       )}
       aria-label="Main navigation"
@@ -274,9 +268,8 @@ export function Sidebar({
                     <li key={item.href}>
                       <Link
                         href={item.href as any}
-                        prefetch={true}
+                        prefetch={false}
                         onClick={() => setPendingHref(item.href)}
-                        onMouseEnter={() => warmRoute(item.href)}
                         className={cn(
                           "sidebar-nav-item transition-all relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium",
                           isActive
@@ -425,7 +418,7 @@ export function Sidebar({
                 <div className="py-1 space-y-0.5">
                   <Link
                     href={profileHref as any}
-                    prefetch={true}
+                    prefetch={false}
                     onClick={() => setAccountMenuOpen(false)}
                     className="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 transition font-medium"
                     role="menuitem"

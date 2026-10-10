@@ -1,18 +1,51 @@
 {
-  "name": "SchoolMitra ERP",
+  "id": "/",
+  "name": "SchoolMitra ERP - Cloud School Management",
   "short_name": "SchoolMitra",
-  "description": "Smart, secure school management PWA for educators, parents, and transport teams.",
-  "start_url": "/",
+  "description": "Unified, compliant, and lightning-fast school ERP system for administrators, educators, parents, and transport operations.",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
   "background_color": "#090d16",
-  "theme_color": "#4f46e5",
+  "theme_color": "#1e40af",
+  "categories": ["education", "productivity", "finance"],
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mark Attendance",
+      "short_name": "Attendance",
+      "description": "Quickly mark and view student attendance",
+      "url": "/attendance",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Fee Collection",
+      "short_name": "Fees",
+      "description": "Counter fee collection and receipt generation",
+      "url": "/school/collect-fees",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Student Directory",
+      "short_name": "Students",
+      "description": "Search and manage student profiles in SIS",
+      "url": "/students",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     }
   ]
 }

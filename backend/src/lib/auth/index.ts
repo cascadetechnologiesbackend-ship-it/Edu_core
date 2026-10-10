@@ -12,19 +12,48 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig.callbacks,
     async jwt(params) {
       let token = await (authConfig.callbacks?.jwt ? authConfig.callbacks.jwt(params) : params.token);
-      if (token?.id && token.mustChangePassword) {
+      if (token?.id) {
         try {
           const [dbUser] = await db
-            .select({ mustChangePassword: users.mustChangePassword })
+            .select({ mustChangePassword: users.mustChangePassword, isActive: users.isActive })
             .from(users)
             .where(eq(users.id, token.id as string))
             .limit(1);
-          if (dbUser && !dbUser.mustChangePassword) {
-            token.mustChangePassword = false;
+          if (dbUser) {
+            if (!dbUser.isActive) {
+              token.isDeactivated = true;
+              delete token.id;
+              delete token.email;
+              delete token.role;
+              delete token.schoolId;
+              return token;
+            }
+            if (token.mustChangePassword && !dbUser.mustChangePassword) {
+              token.mustChangePassword = false;
+            }
           }
         } catch {}
       }
       return token;
+    },
+    async session(params) {
+      if (params.token?.isDeactivated) {
+        return null as any;
+      }
+      let session = await (authConfig.callbacks?.session ? authConfig.callbacks.session(params) : params.session);
+      if (session?.user?.id && session.user.role !== "SUPER_ADMIN") {
+        try {
+          const [dbUser] = await db
+            .select({ isActive: users.isActive })
+            .from(users)
+            .where(eq(users.id, session.user.id))
+            .limit(1);
+          if (!dbUser || !dbUser.isActive) {
+            return null as any;
+          }
+        } catch {}
+      }
+      return session;
     },
   },
   providers: [
@@ -44,6 +73,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const password = String(credentials.password);
         const totpCode = credentials.totpCode ? String(credentials.totpCode).trim() : null;
 
+        // Check rate limiting on login endpoint
+        const { checkRateLimit, RATE_LIMITS } = await import("@/lib/rateLimiter");
+        const isRateAllowed = await checkRateLimit(`login:${email}`, RATE_LIMITS.LOGIN.max, RATE_LIMITS.LOGIN.windowMs);
+        if (!isRateAllowed) {
+          throw new Error("RATE_LIMIT_EXCEEDED");
+        }
+
         // Check for lockout before hitting DB
         const { isAccountLocked, recordFailedAttempt, clearLockout } =
           await import("@/lib/accountLockout");
@@ -54,10 +90,56 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           );
         }
 
-        // 1. Check super_admin_users first
+        const logFailedLogin = async (reason: string, targetUser?: { id?: string; schoolId?: string | null; role?: string }) => {
+          try {
+            const { auditLogs } = await import("@/db/schema/core");
+            let ip = "127.0.0.1";
+            let ua = "Unknown";
+            try {
+              const { headers } = await import("next/headers");
+              const headerStore = headers();
+              ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+              ua = headerStore.get("user-agent") || "Unknown";
+            } catch {}
+
+            const isUuid = (val?: string | null) =>
+              typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+            await db.insert(auditLogs).values({
+              userId: isUuid(targetUser?.id) ? targetUser!.id! : "00000000-0000-0000-0000-000000000000",
+              userEmail: email,
+              userRole: targetUser?.role || "UNKNOWN",
+              schoolId: isUuid(targetUser?.schoolId) ? targetUser!.schoolId! : "00000000-0000-0000-0000-000000000000",
+              action: "FAILED_LOGIN",
+              tableName: "users",
+              recordId: targetUser?.id || email,
+              purposeId: "auth_security",
+              ipAddress: ip,
+              userAgent: ua,
+              metadata: {
+                event: "FAILED_LOGIN",
+                email,
+                reason,
+                timestamp: new Date().toISOString(),
+              },
+            });
+          } catch (err) {
+            console.error("[AUTH AUDIT] Failed to record FAILED_LOGIN:", err);
+          }
+        };
+
+        // 1. Check super_admin_users first (Project only necessary columns - Flaw Audit P1 #10)
         const { superAdminUsers } = await import("@/db/schema/core");
         const [superAdmin] = await db
-          .select()
+          .select({
+            id: superAdminUsers.id,
+            email: superAdminUsers.email,
+            fullName: superAdminUsers.fullName,
+            passwordHash: superAdminUsers.passwordHash,
+            isActive: superAdminUsers.isActive,
+            totpEnabled: superAdminUsers.totpEnabled,
+            totpSecret: superAdminUsers.totpSecret,
+          })
           .from(superAdminUsers)
           .where(sql`lower(${superAdminUsers.email}) = ${email}`)
           .limit(1);
@@ -72,7 +154,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 throw new Error("TOTP_REQUIRED");
               }
 
-              // Verify TOTP token using otplib
+              // Verify TOTP token using otplib with 1-step window skew tolerance (Flaw Audit P1 #11)
               const { authenticator } = await import("otplib");
               const { decryptData } = await import("@/lib/encryption");
               
@@ -83,9 +165,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 if (decrypted) secret = decrypted;
               }
 
+              authenticator.options = { ...authenticator.options, window: 1 };
               const isTotpValid = secret ? authenticator.check(totpCode, secret) : false;
               if (!isTotpValid) {
                 await recordFailedAttempt(email);
+                await logFailedLogin("INVALID_TOTP", { id: superAdmin.id, role: "SUPER_ADMIN" });
                 throw new Error("INVALID_TOTP");
               }
             }
@@ -118,19 +202,28 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             };
           } else {
             await recordFailedAttempt(email);
+            await logFailedLogin("INVALID_PASSWORD", { id: superAdmin.id, role: "SUPER_ADMIN" });
             return null;
           }
         }
 
-        // 2. Fetch regular user
+        // 2. Fetch regular user (Project only necessary columns - Flaw Audit P1 #10)
         const [user] = await db
-          .select()
+          .select({
+            id: users.id,
+            email: users.email,
+            passwordHash: users.passwordHash,
+            isActive: users.isActive,
+            mustChangePassword: users.mustChangePassword,
+            schoolId: users.schoolId,
+          })
           .from(users)
           .where(sql`lower(${users.email}) = ${email}`)
           .limit(1);
 
         if (!user || !user.passwordHash || !user.isActive) {
           await recordFailedAttempt(email);
+          await logFailedLogin(user ? (user.isActive ? "NO_PASSWORD" : "USER_INACTIVE") : "USER_NOT_FOUND", user ? { id: user.id, schoolId: user.schoolId } : undefined);
           return null;
         }
 
@@ -138,6 +231,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) {
           await recordFailedAttempt(email);
+          await logFailedLogin("INVALID_PASSWORD", { id: user.id, schoolId: user.schoolId });
           return null;
         }
 

@@ -1,12 +1,15 @@
 import Redis from "ioredis";
 
 // Connect to Redis using connection URL or host/port configuration
-const redisUrl = process.env.educore_REDIS_URL || process.env.REDIS_URL;
+const redisUrl = process.env.REDIS_URL || process.env.educore_REDIS_URL;
 
 const redisOptions = {
   lazyConnect: true,
-  maxRetriesPerRequest: 2,
+  maxRetriesPerRequest: 1,
   enableOfflineQueue: false,
+  connectTimeout: 1000,
+  commandTimeout: 1000,
+  keepAlive: 10000,
   retryStrategy: (times: number) => {
     if (times > 3) return null; // Stop retrying after 3 attempts
     return Math.min(times * 200, 1000);
@@ -22,7 +25,30 @@ export const redis = redisUrl
       ...redisOptions,
     });
 
+// ─── Module-Level Redis Circuit Breaker (Flaw Audit P0 #2) ───────────────────
+let lastRedisAttempt = 0;
+const REDIS_RETRY_INTERVAL_MS = 30_000;
+
+export function recordRedisFailure(err?: unknown): void {
+  lastRedisAttempt = Date.now();
+}
+
+export function isRedisAvailable(): boolean {
+  if (redis.status === "ready") {
+    return true;
+  }
+  const now = Date.now();
+  // If not ready and within the 30s cooldown window, skip immediately
+  if (now - lastRedisAttempt < REDIS_RETRY_INTERVAL_MS) {
+    return false;
+  }
+  // Allow an attempt every 30s (or initial 'wait' status)
+  lastRedisAttempt = now;
+  return true;
+}
+
 redis.on("error", (_err) => {
+  recordRedisFailure(_err);
   // Gracefully handle redis connection issues without throwing unhandled exceptions
 });
 
@@ -64,18 +90,24 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const now = Date.now();
 
-  try {
-    const result = await redis.eval(
-      SLIDING_WINDOW_SCRIPT,
-      1,
-      key,
-      windowMs,
-      maxRequests,
-      now,
-    );
-    return result === 1;
-  } catch (err) {
-    // In-memory sliding window fallback
+  if (isRedisAvailable()) {
+    try {
+      const result = await redis.eval(
+        SLIDING_WINDOW_SCRIPT,
+        1,
+        key,
+        windowMs,
+        maxRequests,
+        now,
+      );
+      return result === 1;
+    } catch (err) {
+      recordRedisFailure(err);
+      // Fall through to in-memory sliding window fallback
+    }
+  }
+
+  // In-memory sliding window fallback
     const timestamps = memoryRateLimitMap.get(key) || [];
     const validTimestamps = timestamps.filter((t) => t > now - windowMs);
 
@@ -93,7 +125,6 @@ export async function checkRateLimit(
 
     return true;
   }
-}
 
 export const RATE_LIMITS = {
   UNAUTHENTICATED: { max: 100, windowMs: 60 * 1000 },

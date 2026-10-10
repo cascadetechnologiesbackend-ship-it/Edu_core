@@ -27,12 +27,12 @@ export function validateSchoolScopedKey(key: string, schoolId: string): boolean 
 }
 
 /**
- * Generate a pre-signed URL for direct browser uploads to S3
+ * Generate a pre-signed URL for direct browser uploads to S3 (TTL: 300s / 5 minutes)
  */
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn = 3600
+  expiresIn = 300
 ) {
   // Reject traversal sequences before issuing presigned url
   if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
@@ -86,11 +86,11 @@ export async function uploadBufferToS3(
 }
 
 /**
- * Generate pre-signed URL for downloading or viewing archived S3 objects
+ * Generate pre-signed URL for downloading or viewing archived S3 objects (TTL: 900s / 15 minutes)
  */
 export async function getPresignedDownloadUrl(
   key: string,
-  expiresIn = 3600
+  expiresIn = 900
 ): Promise<string> {
   if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
     throw new Error("Invalid storage key: path traversal sequences are disallowed.");

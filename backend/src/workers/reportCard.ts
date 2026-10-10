@@ -31,7 +31,7 @@ export interface ReportCardJobPayload {
 }
 
 // ─── Queue Definition ─────────────────────────────────────────────────────────
-const redisUrl = process.env["educore_REDIS_URL"] || process.env["REDIS_URL"];
+const redisUrl = process.env.REDIS_URL || process.env.educore_REDIS_URL;
 const redisConnection: any = redisUrl
   ? { url: redisUrl }
   : {

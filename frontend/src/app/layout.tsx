@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
@@ -74,6 +72,7 @@ import { Providers } from "@/components/providers/Providers";
 import { Suspense } from "react";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { ClarityScript } from "@/components/analytics/ClarityScript";
+import { PwaManager } from "@/components/pwa/PwaManager";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -95,6 +94,7 @@ export default function RootLayout({
             <TopProgressBar />
             <ClarityScript />
           </Suspense>
+          <PwaManager />
           {children}
         </Providers>
       </body>

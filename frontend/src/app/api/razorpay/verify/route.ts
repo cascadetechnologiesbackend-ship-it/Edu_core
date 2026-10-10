@@ -24,6 +24,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Rate limiting: max 15 requests per minute per user
+    const { checkRateLimit } = await import("@/lib/rateLimiter");
+    const allowed = await checkRateLimit(`rate:razorpay:${session.user.id}`, 15, 60000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many payment verification requests. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+
     const {
       razorpay_order_id,
       razorpay_payment_id,

@@ -47,12 +47,21 @@ export async function GET(
     if (!student)
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
+    const userRole = session.user.role as string;
+    const isSuperAdmin = userRole === "SUPER_ADMIN";
+    const userSchoolId = session.user.schoolId;
+
+    // Strict cross-tenant boundary: staff must belong to the report card's school
+    if (!isSuperAdmin && userSchoolId && reportCard.schoolId !== userSchoolId) {
+      return NextResponse.json({ error: "Forbidden: cross-tenant access denied" }, { status: 403 });
+    }
+
     const isAdmin = [
       "SUPER_ADMIN",
       "SCHOOL_ADMIN",
       "PRINCIPAL",
       "TEACHER",
-    ].includes(session.user.role as string);
+    ].includes(userRole);
     const isParent = session.user.id === student.primaryParentUserId;
 
     if (!isAdmin && !isParent) {

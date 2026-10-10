@@ -21,7 +21,10 @@ export async function initiateTotpSetup(
   issuer = "SchoolMitra ERP",
 ): Promise<TotpSetupResult> {
   const [admin] = await db
-    .select()
+    .select({
+      id: superAdminUsers.id,
+      email: superAdminUsers.email,
+    })
     .from(superAdminUsers)
     .where(eq(superAdminUsers.id, superAdminId))
     .limit(1);
@@ -59,7 +62,10 @@ export async function confirmTotpSetup(
   totpCode: string,
 ): Promise<boolean> {
   const [admin] = await db
-    .select()
+    .select({
+      id: superAdminUsers.id,
+      totpSecret: superAdminUsers.totpSecret,
+    })
     .from(superAdminUsers)
     .where(eq(superAdminUsers.id, superAdminId))
     .limit(1);

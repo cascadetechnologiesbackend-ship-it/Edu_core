@@ -171,6 +171,63 @@
 
   /* Smooth transitions */
   .transition-smooth {
-    @apply transition-all duration-300 ease-in-out;
+    @apply transition-colors duration-200 ease-in-out;
   }
 }
+
+/* ── 120 FPS & PWA Rules (Spec Part 2 & Part 3) ────────────────────────────── */
+
+/* Indeterminate scaleX navigation animation running on compositor thread */
+@keyframes top-progress-indeterminate {
+  0% { transform: scaleX(0.08); }
+  25% { transform: scaleX(0.38); }
+  50% { transform: scaleX(0.65); }
+  75% { transform: scaleX(0.84); }
+  100% { transform: scaleX(0.92); }
+}
+
+/* Eliminate 300ms double-tap delay and tap jank on mobile */
+a, button, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Scroll containment to prevent rubber-band chaining */
+main {
+  overscroll-behavior: contain;
+}
+
+/* Disable browser pull-to-refresh when running as standalone PWA */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Desktop PWA Window Controls Overlay (titlebar integration) */
+@media (display-mode: window-controls-overlay) {
+  .pwa-titlebar {
+    position: fixed;
+    top: 0;
+    left: env(titlebar-area-x, 0);
+    width: env(titlebar-area-width, 100%);
+    height: env(titlebar-area-height, 36px);
+    app-region: drag;
+    -webkit-app-region: drag;
+    z-index: 100;
+  }
+  .pwa-non-draggable {
+    app-region: no-drag;
+    -webkit-app-region: no-drag;
+  }
+}
+
+/* Respect user accessibility motion settings (Spec 2.2) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

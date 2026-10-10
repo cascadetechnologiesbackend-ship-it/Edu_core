@@ -24,7 +24,10 @@ async function broadcastAnnouncementAction(formData: FormData) {
 
   if (!title || !body) return;
 
-  const [superAdmin] = await db.select().from(superAdminUsers).limit(1);
+  const [superAdmin] = await db
+    .select({ id: superAdminUsers.id })
+    .from(superAdminUsers)
+    .limit(1);
   if (!superAdmin) return;
 
   const target_school_ids = targetType === "SPECIFIC" && targetSchoolId ? [targetSchoolId] : null;
