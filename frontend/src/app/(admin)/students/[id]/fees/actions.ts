@@ -134,6 +134,8 @@ export async function generateInvoicesForStudent(studentId: string) {
     }
 
     safeRevalidate(`/students/${studentId}/fees`);
+    safeRevalidate("/school/collect-fees");
+    safeRevalidate("/school/due-fees");
 
     if (generatedCount === 0) {
       return {

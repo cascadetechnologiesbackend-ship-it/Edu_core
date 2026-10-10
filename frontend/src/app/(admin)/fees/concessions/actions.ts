@@ -32,6 +32,8 @@ export async function createFeeConcession(formData: FormData) {
     });
 
     revalidatePath("/fees/concessions");
+    revalidatePath("/school/fees-discount");
+    revalidatePath("/school/collect-fees");
     return { success: true };
   } catch (err: any) {
     return { success: false, message: err.message };

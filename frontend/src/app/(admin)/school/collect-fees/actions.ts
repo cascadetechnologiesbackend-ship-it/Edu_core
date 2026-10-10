@@ -9,10 +9,10 @@ import {
   students,
   classes,
 } from "@/db/schema";
-import { eq, and, inArray, desc, sql, gt } from "drizzle-orm";
+import { eq, and, or, inArray, desc, sql, gt, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { decryptData } from "@/lib/encryption";
+import { decryptData, computeSearchHash, computeLegacySearchHash } from "@/lib/encryption";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
 import {
@@ -45,9 +45,40 @@ export interface MultiInvoiceCollectionPayload {
   idempotencyKey?: string;
 }
 
+interface CachedClasses {
+  expiresAt: number;
+  classMap: Map<string, string>;
+}
+const classCache = new Map<string, CachedClasses>();
+const CLASS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export async function getCachedClassMap(schoolId: string): Promise<Map<string, string>> {
+  const now = Date.now();
+  const cached = classCache.get(schoolId);
+  if (cached && cached.expiresAt > now) {
+    return cached.classMap;
+  }
+  const schoolClasses = await db.query.classes.findMany({
+    where: eq(classes.schoolId, schoolId),
+    columns: { id: true, displayName: true },
+  });
+  const map = new Map(schoolClasses.map((c) => [c.id, c.displayName]));
+  classCache.set(schoolId, { expiresAt: now + CLASS_CACHE_TTL_MS, classMap: map });
+  return map;
+}
+
+export async function clearClassCache(schoolId?: string) {
+  if (schoolId) {
+    classCache.delete(schoolId);
+  } else {
+    classCache.clear();
+  }
+}
+
 /**
  * GAP-05: Server-side debounced student search.
- * Decrypts student names server-side only; scopes by tenant schoolId.
+ * High-performance indexed lookup using dual search hashes and admission number prefix.
+ * Decrypts student names server-side only for matched rows (<= 20); scopes by tenant schoolId.
  * Returns matching students with aggregated dues summaries.
  */
 export async function searchStudentsAction(query?: string) {
@@ -55,54 +86,99 @@ export async function searchStudentsAction(query?: string) {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
     const school = await requireSchool(ctx);
 
-    const cleanQuery = (query || "").trim().toLowerCase();
+    const cleanQuery = (query || "").trim();
 
-    // Fetch classes for class name mapping
-    const schoolClasses = await db.query.classes.findMany({
-      where: eq(classes.schoolId, school.id),
-    });
-    const classMap = new Map(schoolClasses.map((c) => [c.id, c.displayName]));
+    // 1. Fetch cached classes for class name mapping (zero DB round-trip on warm searches)
+    const classMap = await getCachedClassMap(school.id);
 
-    // Fetch active students for this school
-    const allStudents = await db.query.students.findMany({
-      where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
-    });
-
-    const matchedStudents: Array<{
+    // 2. Query students matching search hash or admission prefix, capped at LIMIT 20 at DB level
+    let studentRows: Array<{
       id: string;
       admissionNumber: string;
-      name: string;
-      className: string;
+      firstNameEncrypted: string;
+      lastNameEncrypted: string;
+      currentClassId: string | null;
     }> = [];
 
-    for (const s of allStudents) {
+    if (!cleanQuery) {
+      // Empty query: fetch first 20 active students for this school
+      studentRows = await db.query.students.findMany({
+        where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
+        columns: {
+          id: true,
+          admissionNumber: true,
+          firstNameEncrypted: true,
+          lastNameEncrypted: true,
+          currentClassId: true,
+        },
+        limit: 20,
+      });
+    } else {
+      // Indexed dual search hash (HKDF + legacy) and admission number prefix match
+      const hash = computeSearchHash(cleanQuery);
+      const legacyHash = computeLegacySearchHash(cleanQuery);
+
+      const searchConditions = [
+        ilike(students.admissionNumber, `${cleanQuery}%`),
+        eq(students.firstNameSearchHash, hash),
+        eq(students.lastNameSearchHash, hash),
+        eq(students.firstNameSearchHash, legacyHash),
+        eq(students.lastNameSearchHash, legacyHash),
+      ];
+
+      // Multi-word name support (e.g. "Rahul Sharma")
+      const parts = cleanQuery.split(/\s+/).filter(Boolean);
+      if (parts.length > 1) {
+        for (const part of parts) {
+          const pHash = computeSearchHash(part);
+          const pLegacy = computeLegacySearchHash(part);
+          searchConditions.push(
+            eq(students.firstNameSearchHash, pHash),
+            eq(students.lastNameSearchHash, pHash),
+            eq(students.firstNameSearchHash, pLegacy),
+            eq(students.lastNameSearchHash, pLegacy)
+          );
+        }
+      }
+
+      studentRows = await db.query.students.findMany({
+        where: and(
+          eq(students.schoolId, school.id),
+          eq(students.isActive, true),
+          or(...searchConditions)
+        ),
+        columns: {
+          id: true,
+          admissionNumber: true,
+          firstNameEncrypted: true,
+          lastNameEncrypted: true,
+          currentClassId: true,
+        },
+        limit: 20,
+      });
+    }
+
+    if (studentRows.length === 0) {
+      return { success: true, students: [] };
+    }
+
+    // 3. Decrypt ONLY returned rows (<= 20 rows, at most 40 decrypts instead of full table)
+    const matchedStudents = studentRows.map((s) => {
       const firstName = decryptData(s.firstNameEncrypted) || "";
       const lastName = decryptData(s.lastNameEncrypted) || "";
       const fullName = `${firstName} ${lastName}`.trim();
       const admNo = s.admissionNumber || "";
       const className = s.currentClassId ? classMap.get(s.currentClassId) || "Class" : "Unassigned";
 
-      if (
-        !cleanQuery ||
-        admNo.toLowerCase().includes(cleanQuery) ||
-        fullName.toLowerCase().includes(cleanQuery) ||
-        className.toLowerCase().includes(cleanQuery)
-      ) {
-        matchedStudents.push({
-          id: s.id,
-          admissionNumber: admNo,
-          name: fullName || "Student",
-          className,
-        });
-        if (matchedStudents.length >= 20) break;
-      }
-    }
+      return {
+        id: s.id,
+        admissionNumber: admNo,
+        name: fullName || "Student",
+        className,
+      };
+    });
 
-    if (matchedStudents.length === 0) {
-      return { success: true, students: [] };
-    }
-
-    // Fetch pending/overdue invoices for matched students to compute total dues
+    // 4. Fetch pending/overdue invoices for matched students to compute total dues
     const matchedIds = matchedStudents.map((s) => s.id);
     const studentInvoices = await db.query.feeInvoices.findMany({
       where: and(

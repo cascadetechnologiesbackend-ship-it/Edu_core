@@ -22,7 +22,7 @@
 | **OPEN-2** | Cold Navigation (PF-R125) | Cold first click measured without warmup | **VERIFIED** | `CODE_PROOF`: Added `measureRouteCold` to `frontend/e2e/navigationPerformance.spec.ts`. |
 | **OPEN-3** | Statement Timeout Alignment | Pool timeout set to 2s; reports session override | **VERIFIED** | `CODE_PROOF`: Configured `statement_timeout: 2000` in `database/src/index.ts` with documentation. |
 | **OPEN-4** | POS 4.1.0 UX Contract | Search autofocus, recents strip, keyboard map (`/`), `EmptyState` component | **VERIFIED** | `CODE_PROOF`: `CounterCollectionClient.tsx` updated with autofocus, `/` & `Escape` shortcuts, and `<EmptyState>`. |
-| **OPEN-5** | Speculation Rules Scope (PF-R52) | Prefetch URLs strictly idempotent GETs; zero POST/payments (Superseded in P4 by OPEN-12: blanket speculationrules removed to avoid pool exhaustion) | **VERIFIED (REFINED)** | `CODE_PROOF`: Blanket speculation rules removed from `(admin)/layout.tsx` in P3/P4 flaw audit to prevent DB saturation; replaced with intentional debounced hover prefetch. |
+| **OPEN-5** | Speculation Rules Scope (PF-R52) | Prefetch URLs strictly idempotent GETs; zero POST/payments (Superseded in P4 by OPEN-12; Implemented in S1-T1 via debounced pointerenter prefetch in Sidebar.tsx, closing OPEN-14) | **VERIFIED (REFINED & IMPLEMENTED)** | `CODE_PROOF`: Blanket speculation rules replaced by debounced (150ms) hover prefetch with in-flight concurrency cap of 2 in `frontend/src/components/layout/Sidebar.tsx`. Verified in S1-T1 (`latency-s1-prefetch.md`). |
 
 ---
 
@@ -153,10 +153,10 @@ Added `withReportSession(cb, timeoutMs = 30000)` helper for analytical and repor
 3. Keyboard shortcuts registered: `/` focuses search; `Escape` clears active query.
 4. Empty state renders `<EmptyState icon={Search} ... />` rather than unstyled text.
 
-### Proof OPEN-5: Speculation Rules GET-Only Routes & Subsequent Refinement (OPEN-12)
-Initial verification in P0 ensured all 12 prefetch URLs were read-only GET endpoints with zero mutations.
-Subsequent Flaw Audit in Phase P3/P4 identified that firing 12 concurrent `force-dynamic` SSR prefetch requests across all admin links saturated the PostgreSQL connection pool (causing 7–10s route delays).
-Per **OPEN-12**, blanket speculation rules were removed from `frontend/src/app/(admin)/layout.tsx` and replaced by intentional, debounced (`onMouseEnter`) hover prefetching. This preserves sub-100ms warm client transitions while preventing database pool exhaustion.
+### Proof OPEN-5: Speculation Rules GET-Only Routes, Flaw Audit Refinement & S1-T1 Implementation (OPEN-14 Closure)
+1. **Initial Phase P0**: Verified all 12 prefetch URLs were read-only GET endpoints with zero mutations.
+2. **Phase P3/P4 Flaw Audit (OPEN-12)**: Identified that firing 12 concurrent `force-dynamic` SSR prefetch requests across all admin links saturated the PostgreSQL connection pool (causing 7–10s route delays). Blanket speculation rules were removed.
+3. **Sprint S1 Task S1-T1 (OPEN-14 Closure)**: Implemented intentional, debounced (**150ms**) hover prefetch (`onPointerEnter`/`onFocus`) with an in-flight concurrency cap of **2** in `frontend/src/components/layout/Sidebar.tsx`. A hover-sweep drill of 20 rapid hovers confirmed active PostgreSQL connections stayed at 1 (well below the 12.5 pool safety cap). Hover-then-click navigation latency dropped from ~1,000ms down to sub-300ms. See `docs/release-evidence/latency-s1-prefetch.md`.
 
 ---
 

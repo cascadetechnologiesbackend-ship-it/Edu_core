@@ -51,6 +51,42 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
 
+  // Safe Debounced Hover Prefetch (S1-T1 / Closes OPEN-14)
+  // Max 2 in-flight prefetches with 150ms debounce prevents hover-sweep connection storms
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inFlightPrefetchesRef = useRef<Set<string>>(new Set());
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+
+  const handlePointerEnter = (href: string) => {
+    if (prefetchedRoutesRef.current.has(href)) return;
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      // In-flight cap: maximum 2 concurrent prefetches
+      if (inFlightPrefetchesRef.current.size >= 2) return;
+      inFlightPrefetchesRef.current.add(href);
+      prefetchedRoutesRef.current.add(href);
+      try {
+        router.prefetch(href as any);
+      } catch {}
+      setTimeout(() => {
+        inFlightPrefetchesRef.current.delete(href);
+      }, 800);
+    }, 150);
+  };
+
+  const handlePointerLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, []);
+
   // Load persisted collapse state
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -270,6 +306,10 @@ export function Sidebar({
                         href={item.href as any}
                         prefetch={false}
                         onClick={() => setPendingHref(item.href)}
+                        onPointerEnter={() => handlePointerEnter(item.href)}
+                        onPointerLeave={handlePointerLeave}
+                        onFocus={() => handlePointerEnter(item.href)}
+                        onBlur={handlePointerLeave}
                         className={cn(
                           "sidebar-nav-item transition-all relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium",
                           isActive

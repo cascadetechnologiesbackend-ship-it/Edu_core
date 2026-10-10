@@ -104,6 +104,7 @@ export default async function ParentDashboardPage({
       eq(studentFamilyMembers.userId, userId),
       eq(studentFamilyMembers.schoolId, schoolId),
     ),
+    columns: { studentId: true },
   });
   const linkedStudentIds = famLinks.map((f) => f.studentId);
 

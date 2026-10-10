@@ -133,6 +133,7 @@ export async function allocateStudentConcessionAction(payload: {
     await invalidateFinanceTags(school.id, [`school:${school.id}`, `fin:concessions:${school.id}`]);
 
     revalidatePath("/school/fees-discount");
+    revalidatePath("/school/collect-fees");
     revalidatePath(`/students/${payload.studentId}`);
     return {
       success: true,
@@ -187,6 +188,7 @@ export async function approveStudentConcessionAction(concessionId: string) {
     await invalidateFinanceTags(school.id, [`school:${school.id}`, `fin:concessions:${school.id}`]);
 
     revalidatePath("/school/fees-discount");
+    revalidatePath("/school/collect-fees");
     return { success: true, message: "Concession assignment approved." };
   } catch (error: any) {
     return { success: false, message: error.message };

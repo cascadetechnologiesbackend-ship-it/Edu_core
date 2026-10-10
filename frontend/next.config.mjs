@@ -187,10 +187,10 @@ const nextConfig = {
       "@radix-ui/react-toast",
       "@radix-ui/react-tooltip",
     ],
-    // Router cache: keep RSC payloads for 30s on dynamic pages, 180s on static
-    // This makes Back/Forward navigation instant and repeated module clicks instant
+    // Router cache: keep RSC payloads for 300s (5min) on dynamic pages, 180s on static
+    // Combined with revalidatePath on mutations, this gives instant Back/Forward and repeated navigation
     staleTimes: {
-      dynamic: 30,
+      dynamic: 300,
       static: 180,
     },
   },

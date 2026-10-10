@@ -144,6 +144,18 @@ export const students = pgTable(
       t.firstNameSearchHash,
       t.lastNameSearchHash,
     ),
+    schoolFirstNameSearchIdx: index("students_school_first_name_search_hash_idx").on(
+      t.schoolId,
+      t.firstNameSearchHash,
+    ),
+    schoolLastNameSearchIdx: index("students_school_last_name_search_hash_idx").on(
+      t.schoolId,
+      t.lastNameSearchHash,
+    ),
+    schoolAdmissionNumberIdx: index("students_school_admission_number_idx").on(
+      t.schoolId,
+      t.admissionNumber,
+    ),
   }),
 );
 
