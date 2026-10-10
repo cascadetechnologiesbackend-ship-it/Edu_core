@@ -175,4 +175,52 @@ describe("Web Vitals Ingest API (/api/telemetry/vitals)", () => {
     const json = await res.json();
     expect(json.error).toBe("Invalid web vitals payload");
   });
+
+  it("enforces batch-size cap: rejects batches with more than 20 metrics (HTTP 400)", async () => {
+    const oversizedMetrics = Array.from({ length: 25 }, (_, i) => ({
+      id: `v1-over-${i}`,
+      name: "LCP" as const,
+      value: 1000 + i,
+      route: "/dashboard",
+      timestamp: Date.now(),
+    }));
+
+    const oversizedBatch = {
+      ...validBatch,
+      metrics: oversizedMetrics,
+    };
+
+    const req = new NextRequest("http://localhost:3002/api/telemetry/vitals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(oversizedBatch),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid web vitals payload");
+  });
+
+  it("enforces per-IP rate limiting: returns 429 when IP exceeds rate limit", async () => {
+    const testIp = "203.0.113.42";
+    let lastRes: any;
+
+    // Send 35 requests with the same IP
+    for (let i = 0; i < 35; i++) {
+      const req = new NextRequest("http://localhost:3002/api/telemetry/vitals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": testIp,
+        },
+        body: JSON.stringify(validBatch),
+      });
+      lastRes = await POST(req);
+    }
+
+    expect(lastRes.status).toBe(429);
+    const json = await lastRes.json();
+    expect(json.error).toContain("Rate limit exceeded");
+  });
 });

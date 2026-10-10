@@ -39,6 +39,8 @@ A complete AST/regex scan of all source files across the monorepo identified **6
 | **`DEBUG_DB`** | `database` | Optional | `"false"` | No | Yes | UNKNOWN | Degraded-with-warning (query logging disabled) |
 | **`EMAIL_FROM`** | `backend` | Optional | `"noreply@schoolmitra.in"` | Yes | Yes | UNKNOWN | Degraded-with-warning (uses default sender) |
 | **`ENCRYPTION_KEY`** | `backend`, `database` | **Required (Prod)** | None (Prod throws) | Yes (`sync: false`) | Yes | UNKNOWN | **Crash** (fatal error thrown at startup) |
+| **`ENCRYPTION_KEY_ID`** | `backend` | Optional | `"k1"` | No | Yes | UNKNOWN | Degraded-with-warning (uses primary key k1) |
+| **`ENCRYPTION_KEYRING`** | `backend` | Optional | `""` | No | Yes | UNKNOWN | Degraded-with-warning (keyring empty, no retired keys) |
 | **`GPS_DEVICE_API_KEY`** | `frontend` | Optional (Dev) | Dev fallback in dev | No | No (Module-only) | UNKNOWN | Degraded-with-warning (rejects unsigned pings) |
 | **`HOSTNAME`** | `render.yaml` | Optional | `0.0.0.0` | Yes (`value: 0.0.0.0`)| Yes | UNKNOWN | Degraded-with-warning (listens on default host) |
 | **`IMPERSONATION_SECRET`**| `backend` | Optional | Falls back to `AUTH_SECRET` | Yes (`sync: false`) | Yes | UNKNOWN | Degraded-with-warning (uses AUTH_SECRET) |
@@ -49,8 +51,10 @@ A complete AST/regex scan of all source files across the monorepo identified **6
 | **`NEXT_PUBLIC_APP_URL`** | `frontend` | Optional | `http://localhost:3000` | No | Yes | UNKNOWN | Degraded-with-warning (falls back to VERCEL_URL) |
 | **`NEXT_PUBLIC_APP_VERSION`** | `frontend` | Optional | `"0.1.0"` | No | Yes | UNKNOWN | Degraded-with-warning (uses default version) |
 | **`NEXT_PUBLIC_CLARITY_PROJECT_ID`** | `frontend` | Optional | `"sm_clarity_baseline"` | No | No | UNKNOWN | Degraded-with-warning (disables analytics) |
+| **`NEXT_PUBLIC_PWA_ENABLED`** | `frontend` | Optional | `"true"` | No | Yes | UNKNOWN | Degraded-with-warning (defaults to enabled in prod) |
 | **`NEXT_PUBLIC_PWA_URL`** | `frontend` | Optional | `http://localhost:3002` | No | No | UNKNOWN | Degraded-with-warning (falls back to local port) |
 | **`NEXT_PUBLIC_RAZORPAY_KEY_ID`** | `frontend` | Optional (Dev) | `"rzp_test_TlW4pDX3FlFmRx"` | No | Yes | UNKNOWN | Degraded-with-warning (client payment disabled) |
+| **`NEXT_PUBLIC_VAPID_PUBLIC_KEY`** | `frontend` | Optional (Push) | `""` | No | Yes | UNKNOWN | Degraded-with-warning (push notifications disabled) |
 | **`NODE_ENV`** | All | Optional | `"development"` | Yes (`value: production`)| Yes | UNKNOWN | Degraded-with-warning (defaults to dev mode) |
 | **`PORT`** | `render.yaml` | Optional | `3000` | Yes (`value: 10000`)| Yes | UNKNOWN | Degraded-with-warning (falls back to 3000) |
 | **`RAZORPAY_KEY_ID`** | `frontend` | Required (Prod Pay) | None | Yes (`sync: false`) | Yes | UNKNOWN | Degraded-with-warning (payment creation 400) |
@@ -86,6 +90,8 @@ A complete AST/regex scan of all source files across the monorepo identified **6
 | **`TWILIO_AUTH_TOKEN`** | `backend` | Required (Twilio) | None | No | Yes | UNKNOWN | Degraded-with-warning (Twilio SMS disabled) |
 | **`TWILIO_FROM_NUMBER`** | `backend` | Required (Twilio) | None | No | Yes | UNKNOWN | Degraded-with-warning (Twilio SMS disabled) |
 | **`VERCEL_URL`** | `frontend` | Platform provided | None | Vercel native | Vercel native | UNKNOWN | Degraded-with-warning (uses fallback URL) |
+| **`VAPID_PRIVATE_KEY`** | `backend`, `frontend` | Optional (Push) | `""` | No | Yes | UNKNOWN | Degraded-with-warning (web push send disabled) |
+| **`VAPID_SUBJECT`** | `backend`, `frontend` | Optional (Push) | `"mailto:support@schoolmitra.in"` | No | Yes | UNKNOWN | Degraded-with-warning (uses default mailto) |
 
 ---
 

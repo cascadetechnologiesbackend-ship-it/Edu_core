@@ -176,6 +176,13 @@
       "when": 1792000000000,
       "tag": "0024_finance_perf_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1792100000000,
+      "tag": "0025_push_subscriptions",
+      "breakpoints": true
     }
   ]
 }

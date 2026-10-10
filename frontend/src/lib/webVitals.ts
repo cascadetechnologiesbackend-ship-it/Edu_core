@@ -12,21 +12,21 @@ export const vitalsLogger = pino({
 }).child({ context: "web-vitals" });
 
 export const metricItemSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1).max(100),
   name: z.enum(["LCP", "INP", "CLS", "TTFB", "FCP"]),
-  value: z.number(),
-  route: z.string(),
-  timestamp: z.number(),
+  value: z.number().nonnegative(),
+  route: z.string().min(1).max(200),
+  timestamp: z.number().positive(),
   attribution: z.any().optional(),
 });
 
 export const batchSchema = z.object({
-  appVersion: z.string(),
+  appVersion: z.string().min(1).max(50),
   deviceTier: z.enum(["low", "mid", "high", "unknown"]),
-  connectionType: z.string(),
-  role: z.string(),
-  schoolId: z.string(),
-  metrics: z.array(metricItemSchema).min(1).max(100),
+  connectionType: z.string().min(1).max(50),
+  role: z.string().min(1).max(50),
+  schoolId: z.string().nullable().optional(),
+  metrics: z.array(metricItemSchema).min(1).max(20),
 });
 
 export type WebVitalsBatchPayload = z.infer<typeof batchSchema>;

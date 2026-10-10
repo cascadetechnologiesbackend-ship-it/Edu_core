@@ -49,10 +49,11 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
-      // Webhook and health endpoints have internal cryptographic / key validation
+      // Webhook, health, and telemetry endpoints have internal validation or public ingress
       if (
         pathname.startsWith("/api/webhooks") ||
-        pathname.startsWith("/api/health")
+        pathname.startsWith("/api/health") ||
+        pathname.startsWith("/api/telemetry")
       ) {
         return true;
       }

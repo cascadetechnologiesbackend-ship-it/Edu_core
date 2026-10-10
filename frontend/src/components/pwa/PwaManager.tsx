@@ -21,8 +21,34 @@ export function PwaManager() {
       window.addEventListener("offline", handleOffline);
     }
 
-    // 2. Register Service Worker
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    // 2. Register Service Worker (Production Only)
+    const isDev =
+      process.env.NODE_ENV !== "production" ||
+      (typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1" ||
+          window.location.hostname === "[::1]"));
+
+    if (isDev) {
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister().then((unregistered) => {
+              if (unregistered) {
+                console.info("[PWA] Unregistered development Service Worker:", registration.scope);
+              }
+            });
+          }
+        });
+        if ("caches" in window) {
+          caches.keys().then((keys) => {
+            for (const key of keys) {
+              caches.delete(key);
+            }
+          });
+        }
+      }
+    } else if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {

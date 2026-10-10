@@ -5,12 +5,27 @@ import {
   recordFieldMetric,
   vitalsLogger,
 } from "@/lib/webVitals";
+import { checkRateLimit } from "@/lib/rateLimiter";
 
 export async function POST(req: NextRequest) {
   try {
+    // Enforce per-IP rate limiting (max 30 batch uploads per minute)
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "127.0.0.1";
+    const allowed = await checkRateLimit(`rate:telemetry:${ip}`, 30, 60000);
+    if (!allowed) {
+      vitalsLogger.warn({ ip }, "[RATE_LIMIT] Telemetry rate limit exceeded");
+      return NextResponse.json(
+        { error: "Too many requests. Rate limit exceeded." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
 
-    // Validate structure
+    // Validate structure (max 20 vitals per batch)
     const parseResult = batchSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(

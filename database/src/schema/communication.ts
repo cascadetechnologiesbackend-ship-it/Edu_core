@@ -180,3 +180,32 @@ export const parentTeacherMessages = pgTable(
     schoolIdx: index("parent_teacher_messages_school_idx").on(t.schoolId),
   }),
 );
+
+// User Web Push Subscriptions (PWA Push Notifications - Spec 3.2 & OPEN-9)
+// Note: schoolId is nullable so SUPER_ADMIN subscriptions (who have no schoolId) are supported
+export const userPushSubscriptions = pgTable(
+  "user_push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    schoolId: uuid("school_id")
+      .references(() => schools.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("user_push_subscriptions_user_idx").on(t.userId),
+    schoolIdx: index("user_push_subscriptions_school_idx").on(t.schoolId),
+  }),
+);
+

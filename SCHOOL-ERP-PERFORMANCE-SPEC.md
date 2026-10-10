@@ -310,7 +310,7 @@ If not on Next.js, use the same shape: server-rendered shell plus small client p
 
 - **PF-R50** The LCP item is in the first HTML. Every tap handler gives feedback in 100 ms, then yields before heavy work.
 - **PF-R51** No request waterfalls. Fetch in parallel at route level. Prefetch on hover or when visible through the framework link.
-- **PF-R52** Speculation Rules (Chrome-family): prerender or prefetch likely next pages with `moderate` eagerness. [V] A prerender costs about a full page load [V], so keep the list short. Prerender only side-effect-free GET pages (never "mark as read" or payment). One case reports a 43% mobile LCP gain [V, single source, treat as an upper-range story]. Fallback: framework prefetch, or nothing.
+- **PF-R52** Speculation Rules & Dynamic Route Prefetch (Superseded & Refined): Blanket `<script type="speculationrules">` prerendering is SUPERSEDED for `force-dynamic` authenticated ERP routes. Because every admin module requires database auth verification and tenant queries, speculative prefetching of 10+ pages concurrently triggers a database connection storm (7–10s load latency). Production posture enforces: intentional hover-based prefetch (`onMouseEnter` with debounce) or viewport prefetch scoped strictly to static/cached pages. Never speculatively prefetch dynamic authenticated SSR pages or payment endpoints.
 - **PF-R53** Enable the React Compiler (stable in Next.js 16 [V]). Remove blanket `useMemo` and `useCallback`. Add manual memo only where a profile shows a hot path.
 - **PF-R54** Split code by route and by part for drawers, charts, report builders, rich text editors and payment tools.
 - **PF-R55** Use `useTransition` and `useDeferredValue` for filters and search [R]. Debounce typeahead 150 to 250 ms [P].
