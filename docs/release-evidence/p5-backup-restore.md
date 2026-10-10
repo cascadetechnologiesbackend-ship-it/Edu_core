@@ -59,8 +59,10 @@ SELECT 'user_push_subscriptions', count(*) FROM user_push_subscriptions;
 
 ---
 
-## 4. Financial Ledger Trial Balance Parity Audit
+## 4. Financial Ledger Parity & Trial Balance Audit
 
+### A. Cashbook Flow Direction Audit
+`transaction_type` reflects cash flow direction (single-entry cashbook legacy column from Migration 0013):
 ```sql
 SELECT transaction_type, sum(amount::numeric) as total
 FROM account_ledger_transactions
@@ -68,14 +70,44 @@ GROUP BY transaction_type
 ORDER BY transaction_type;
 ```
 
-**Financial Ledger Results:**
+**Cashbook Flow Results:**
 - **Source Database:**
-  - `DEBIT`: **₹10,005,000.00**
-  - `CREDIT`: **₹10,037,500.00**
+  - `DEBIT` (Cash Outflows / Reversals / Refunds): **₹10,005,000.00**
+  - `CREDIT` (Cash Inflows / Fee Receipts): **₹10,037,500.00**
 - **Restored Database:**
-  - `DEBIT`: **₹10,005,000.00**
-  - `CREDIT`: **₹10,037,500.00**
-- **Discrepancy:** **₹0.00 (Zero Drift)**
+  - `DEBIT` (Outflows): **₹10,005,000.00**
+  - `CREDIT` (Inflows): **₹10,037,500.00**
+- **Discrepancy:** **₹0.00 (Zero Drift between Source and Restored DB)**
+- **Net Vault Cash:** **+₹32,500.00**
+
+### B. Double-Entry General Ledger Trial Balance Audit (DECIDE-12 Option A)
+Per Migration 0016, double-entry is maintained via `debit_account_id` and `credit_account_id`:
+```sql
+WITH debits AS (
+  SELECT debit_account_id AS account_id, sum(amount::numeric) AS total_debit
+  FROM account_ledger_transactions WHERE debit_account_id IS NOT NULL GROUP BY debit_account_id
+),
+credits AS (
+  SELECT credit_account_id AS account_id, sum(amount::numeric) AS total_credit
+  FROM account_ledger_transactions WHERE credit_account_id IS NOT NULL GROUP BY credit_account_id
+)
+SELECT 
+  coa.code, coa.name,
+  COALESCE(d.total_debit, 0) AS total_debit,
+  COALESCE(c.total_credit, 0) AS total_credit,
+  COALESCE(d.total_debit, 0) - COALESCE(c.total_credit, 0) AS net_balance
+FROM chart_of_accounts coa
+LEFT JOIN debits d ON coa.id = d.account_id
+LEFT JOIN credits c ON coa.id = c.account_id
+WHERE d.total_debit IS NOT NULL OR c.total_credit IS NOT NULL
+ORDER BY coa.code;
+```
+
+- **Cash-in-Hand (`1000`)**: Debit ₹10,037,500.00 | Credit ₹10,005,000.00 | Net: +₹32,500.00
+- **Student Receivable (`1200`)**: Debit ₹10,005,000.00 | Credit ₹10,037,500.00 | Net: -₹32,500.00
+- **Total Debits**: **₹20,042,500.00** | **Total Credits**: **₹20,042,500.00**
+- **Trial Balance Drift**: **₹0.00 (Exact Double-Entry Match)**
+- Reference: `docs/release-evidence/p6-ledger-reconciliation.md` (closes OPEN-15).
 
 ---
 

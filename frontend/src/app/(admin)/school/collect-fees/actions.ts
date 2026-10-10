@@ -118,8 +118,11 @@ export async function searchStudentsAction(query?: string) {
       const hash = computeSearchHash(cleanQuery);
       const legacyHash = computeLegacySearchHash(cleanQuery);
 
+      // Escape LIKE metacharacters (%, _, \) to prevent wildcard injection in admission number match (OPEN-16)
+      const escapedLikeQuery = cleanQuery.replace(/[%_\\]/g, "\\$&");
+
       const searchConditions = [
-        ilike(students.admissionNumber, `${cleanQuery}%`),
+        ilike(students.admissionNumber, `${escapedLikeQuery}%`),
         eq(students.firstNameSearchHash, hash),
         eq(students.lastNameSearchHash, hash),
         eq(students.firstNameSearchHash, legacyHash),

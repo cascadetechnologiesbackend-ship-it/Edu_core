@@ -36,7 +36,7 @@ This report documents the resolution of three legacy specification and claim con
      - `NEXT_PUBLIC_VAPID_PUBLIC_KEY=""`
      - `VAPID_PRIVATE_KEY=""`
      - `VAPID_SUBJECT="mailto:support@schoolmitra.in"`
-     - `NEXT_PUBLIC_PWA_ENABLED="true"`
+     - `NEXT_PUBLIC_ENABLE_PWA="true"`
   2. Synchronized `docs/release-evidence/env-matrix.md` with explicit rows, reading packages, defaults, and failure modes for all newly added variables.
 - **Status:** **RESOLVED**
 

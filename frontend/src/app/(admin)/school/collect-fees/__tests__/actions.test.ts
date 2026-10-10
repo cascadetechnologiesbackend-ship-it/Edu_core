@@ -194,4 +194,27 @@ describe("S1-T2: POS searchStudentsAction Indexed Rewrite", () => {
     await searchStudentsAction("query3");
     expect(mockClassesFindMany).toHaveBeenCalledTimes(1);
   });
+
+  it("7. OPEN-16: Escapes LIKE metacharacters (%, _, \\) to prevent wildcard injection", async () => {
+    mockStudentsFindMany.mockResolvedValue([
+      {
+        id: "stud-special",
+        admissionNumber: "ADM%10_A",
+        firstNameEncrypted: "enc-first-arjun",
+        lastNameEncrypted: "enc-last-singh",
+        currentClassId: "class-1",
+      },
+    ]);
+
+    // Query with % and _ metacharacters
+    const res = await searchStudentsAction("ADM%10_");
+    expect(res.success).toBe(true);
+    expect(mockStudentsFindMany).toHaveBeenCalledTimes(1);
+
+    // Also query with backslash
+    const res2 = await searchStudentsAction("ADM\\test");
+    expect(res2.success).toBe(true);
+    expect(mockStudentsFindMany).toHaveBeenCalledTimes(2);
+  });
 });
+

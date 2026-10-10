@@ -51,7 +51,7 @@ A complete AST/regex scan of all source files across the monorepo identified **6
 | **`NEXT_PUBLIC_APP_URL`** | `frontend` | Optional | `http://localhost:3000` | No | Yes | UNKNOWN | Degraded-with-warning (falls back to VERCEL_URL) |
 | **`NEXT_PUBLIC_APP_VERSION`** | `frontend` | Optional | `"0.1.0"` | No | Yes | UNKNOWN | Degraded-with-warning (uses default version) |
 | **`NEXT_PUBLIC_CLARITY_PROJECT_ID`** | `frontend` | Optional | `"sm_clarity_baseline"` | No | No | UNKNOWN | Degraded-with-warning (disables analytics) |
-| **`NEXT_PUBLIC_PWA_ENABLED`** | `frontend` | Optional | `"true"` | No | Yes | UNKNOWN | Degraded-with-warning (defaults to enabled in prod) |
+| **`NEXT_PUBLIC_ENABLE_PWA`** | `frontend` | Optional | `"true"` | No | Yes | UNKNOWN | Degraded-with-warning (defaults to enabled in prod) |
 | **`NEXT_PUBLIC_PWA_URL`** | `frontend` | Optional | `http://localhost:3002` | No | No | UNKNOWN | Degraded-with-warning (falls back to local port) |
 | **`NEXT_PUBLIC_RAZORPAY_KEY_ID`** | `frontend` | Optional (Dev) | `"rzp_test_TlW4pDX3FlFmRx"` | No | Yes | UNKNOWN | Degraded-with-warning (client payment disabled) |
 | **`NEXT_PUBLIC_VAPID_PUBLIC_KEY`** | `frontend` | Optional (Push) | `""` | No | Yes | UNKNOWN | Degraded-with-warning (push notifications disabled) |

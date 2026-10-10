@@ -37,8 +37,8 @@ if (!parsed.success) {
 }
 
 // Zero-PII check (PF-R111)
-if (hasPii(body)) {
-  return NextResponse.json({ error: "Payload contains prohibited PII" }, { status: 400 });
+if (containsProhibitedPii(batch)) {
+  return NextResponse.json({ error: "Payload contains prohibited identifiers (PF-R111)" }, { status: 422 });
 }
 ```
 
