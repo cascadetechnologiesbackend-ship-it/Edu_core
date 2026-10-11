@@ -154,7 +154,6 @@ const nextConfig = {
       "bullmq",
       "@react-pdf/renderer",
       "exceljs",
-      "aws-sdk",
       "@aws-sdk/client-s3",
       "@aws-sdk/s3-request-presigner",
       "pino",

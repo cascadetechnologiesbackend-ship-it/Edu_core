@@ -1,0 +1,1352 @@
+{
+  "scannedAt": "2026-10-11T16:22:29.813Z",
+  "baseCommit": "7ffefcc",
+  "totalFilesAudited": 58,
+  "anyTypeOccurrences": [
+    {
+      "file": "backend/src/lib/__tests__/redisConnection.test.ts",
+      "line": 46,
+      "content": "(process.env as any).NODE_ENV = \"production\";"
+    },
+    {
+      "file": "backend/src/lib/__tests__/redisConnection.test.ts",
+      "line": 56,
+      "content": "(process.env as any).NODE_ENV = \"test\";"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 25,
+      "content": "vi.mocked(auth).mockResolvedValue(null as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 37,
+      "content": "} as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 56,
+      "content": "} as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 64,
+      "content": "} as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 77,
+      "content": "} as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 90,
+      "content": "} as any;"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 101,
+      "content": "} as any;"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 117,
+      "content": "vi.mocked(auth).mockResolvedValue(validSession as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 129,
+      "content": "} as any;"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 139,
+      "content": "} as any;"
+    },
+    {
+      "file": "backend/src/lib/__tests__/serverAuth.test.ts",
+      "line": 148,
+      "content": "vi.mocked(auth).mockResolvedValue(null as any);"
+    },
+    {
+      "file": "backend/src/lib/__tests__/tenant.test.ts",
+      "line": 11,
+      "content": "transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => cb(mockTx)),"
+    },
+    {
+      "file": "backend/src/lib/redisConnection.ts",
+      "line": 11,
+      "content": "export function getBullMQRedisConnection(): any {"
+    },
+    {
+      "file": "backend/src/lib/serverAuth.ts",
+      "line": 8,
+      "content": "const safeCache = typeof reactCache === \"function\" ? reactCache : <T extends (...args: any[]) => any>(fn: T): T => fn;"
+    },
+    {
+      "file": "backend/src/lib/serverAuth.ts",
+      "line": 50,
+      "content": "eq(roles.name, session.user.role as any),"
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 88,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 312,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "backend/src/lib/storage.ts",
+      "line": 153,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "backend/src/lib/tenant.ts",
+      "line": 8,
+      "content": "const safeCache = typeof reactCache === \"function\" ? reactCache : <T extends (...args: any[]) => any>(fn: T): T => fn;"
+    },
+    {
+      "file": "backend/src/lib/tenant.ts",
+      "line": 60,
+      "content": "txCallback: (tx: any) => Promise<T>,"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 26,
+      "content": "mockPolicy as any,"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 36,
+      "content": ".mockReturnValue({ set: updateSetSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 51,
+      "content": "mockPolicy as any,"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 65,
+      "content": ".mockResolvedValueOnce([exitedStudent] as any)"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 72,
+      "content": ".mockReturnValue({ set: updateSetSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 75,
+      "content": "vi.spyOn(db, \"insert\").mockReturnValue({ values: insertValuesSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 101,
+      "content": "mockPolicy as any,"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 115,
+      "content": ".mockResolvedValueOnce([softDeletedStudentWithFees] as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 120,
+      "content": "} as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 128,
+      "content": ".mockReturnValue({ set: updateSetSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 131,
+      "content": "vi.spyOn(db, \"insert\").mockReturnValue({ values: insertValuesSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 172,
+      "content": "mockPolicy as any,"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 185,
+      "content": ".mockResolvedValueOnce([softDeletedStudentWithoutFees] as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 194,
+      "content": ".mockReturnValue({ where: deleteWhereSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 197,
+      "content": "vi.spyOn(db, \"update\").mockReturnValue({ set: updateSetSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 200,
+      "content": "vi.spyOn(db, \"insert\").mockReturnValue({ values: insertValuesSpy } as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 225,
+      "content": "mockPolicy as any,"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 246,
+      "content": ".mockResolvedValueOnce([softCandidate] as any)"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 247,
+      "content": ".mockResolvedValueOnce([hardCandidate] as any);"
+    },
+    {
+      "file": "backend/src/workers/__tests__/retentionLifecycle.test.ts",
+      "line": 251,
+      "content": "} as any);"
+    },
+    {
+      "file": "backend/src/workers/financeAutomation.ts",
+      "line": 276,
+      "content": "const feeAmount = parseFloat((lockedLog as any).feeAmount || \"0\");"
+    },
+    {
+      "file": "backend/src/workers/retention.ts",
+      "line": 311,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "backend/src/workers/retention.ts",
+      "line": 391,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/academics/actions/class-setup.actions.ts",
+      "line": 58,
+      "content": "gradeLevel: data.gradeLevel as any,"
+    },
+    {
+      "file": "frontend/src/app/(admin)/academics/actions/class-setup.actions.ts",
+      "line": 156,
+      "content": "const csIds = cls.classSubjects.map((cs: any) => cs.id);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/academics/actions/class-setup.actions.ts",
+      "line": 189,
+      "content": "cls.classSubjects.map(async (cs: any) => {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/admissions/[id]/actions.ts",
+      "line": 660,
+      "content": ".set({ status: newStatus as any, updatedAt: new Date() })"
+    },
+    {
+      "file": "frontend/src/app/(admin)/admissions/[id]/actions.ts",
+      "line": 671,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/attendance/actions.ts",
+      "line": 31,
+      "content": "req: null as any,"
+    },
+    {
+      "file": "frontend/src/app/(admin)/attendance/actions.ts",
+      "line": 91,
+      "content": "let extraSections: any[] = [];"
+    },
+    {
+      "file": "frontend/src/app/(admin)/attendance/actions.ts",
+      "line": 265,
+      "content": "const ctxAudit = await getAuditContext({ user: { id: ctx.userId, role: ctx.role, schoolId: school.id } } as any);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 59,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 97,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 123,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 186,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 239,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 260,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 281,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 309,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 331,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/dpdp/actions.ts",
+      "line": 344,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/exams/actions.ts",
+      "line": 180,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/exams/actions.ts",
+      "line": 238,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/exams/actions.ts",
+      "line": 287,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/exams/actions.ts",
+      "line": 311,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/collect/actions.ts",
+      "line": 17,
+      "content": "const paymentMethod = formData.get(\"paymentMethod\") as any;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/collect/actions.ts",
+      "line": 79,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/structures/actions.ts",
+      "line": 159,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/structures/actions.ts",
+      "line": 173,
+      "content": "headType: any;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/structures/actions.ts",
+      "line": 242,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/structures/actions.ts",
+      "line": 287,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/structures/actions.ts",
+      "line": 390,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/structures/actions.ts",
+      "line": 502,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 54,
+      "content": "metadata?: any,"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 60,
+      "content": "userRole: ctx.role as any,"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 97,
+      "content": "let data: any = undefined;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 119,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 154,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 211,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 283,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 311,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 347,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 387,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 486,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 569,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 597,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 630,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 751,
+      "content": "where: and(eq(roles.schoolId, school.id), eq(roles.name, authoritativeRole as any)),"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 758,
+      "content": "name: authoritativeRole as any,"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 869,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 886,
+      "content": "contractType?: any;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1002,
+      "content": "where: and(eq(roles.schoolId, school.id), eq(roles.name, oldRoleName as any)),"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1017,
+      "content": "where: and(eq(roles.schoolId, school.id), eq(roles.name, newRoleName as any)),"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1024,
+      "content": "name: newRoleName as any,"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1058,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1093,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1235,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1274,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1303,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1359,
+      "content": "let academicAllocations: any = null;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1437,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1478,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1570,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1609,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1654,
+      "content": "otherAllowances: template.otherAllowances as any[],"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1669,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1703,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1738,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1846,
+      "content": "otherAllowances: (activeSalary.otherAllowances as any[]) || [],"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1909,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 1976,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/library/actions.ts",
+      "line": 27,
+      "content": "function makeAuditCtx(ctx: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/library/actions.ts",
+      "line": 49,
+      "content": "} as any;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/bank-reconciliation/actions.ts",
+      "line": 124,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/bank-reconciliation/actions.ts",
+      "line": 254,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/bank-reconciliation/actions.ts",
+      "line": 410,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 87,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 134,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 396,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 520,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/assign-fees/actions.ts",
+      "line": 19,
+      "content": "const term = (formData.get(\"term\") as any) || \"ANNUAL\";"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/assign-fees/actions.ts",
+      "line": 155,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 216,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 241,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 318,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 331,
+      "content": "let ctx: any = null;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 332,
+      "content": "let school: any = null;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 341,
+      "content": "let paymentMethod: any = \"CASH\";"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 517,
+      "content": "const invoice = invoiceWithRelations || (lockedInvoice as any);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 546,
+      "content": "let newStatus: any = invoice.status;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 689,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/due-fees/actions.ts",
+      "line": 34,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fee-challans/actions.ts",
+      "line": 49,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fee-challans/actions.ts",
+      "line": 183,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fee-types/actions.ts",
+      "line": 18,
+      "content": "const headType = (formData.get(\"headType\") as any) || \"TUITION\";"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fee-types/actions.ts",
+      "line": 60,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fee-types/actions.ts",
+      "line": 89,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-dashboard/actions.ts",
+      "line": 77,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 43,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 70,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 145,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 193,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 255,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/online-payments/actions.ts",
+      "line": 187,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/online-payments/actions.ts",
+      "line": 376,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/refunds/actions.ts",
+      "line": 106,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/refunds/actions.ts",
+      "line": 193,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/refunds/actions.ts",
+      "line": 243,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/refunds/actions.ts",
+      "line": 291,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/refunds/actions.ts",
+      "line": 446,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/transactions/actions.ts",
+      "line": 127,
+      "content": "const feeAmount = gatewayLog ? parseFloat((gatewayLog as any).feeAmount || \"0\") : 0;"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/transactions/actions.ts",
+      "line": 230,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 179,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 230,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 273,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 339,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 410,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 501,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 624,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/(admin)/students/[id]/class-history/actions.ts",
+      "line": 200,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/api/health/route.ts",
+      "line": 20,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/api/health/route.ts",
+      "line": 33,
+      "content": "} catch (err: any) {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 28,
+      "content": "log: any;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 29,
+      "content": "invoice: any;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 30,
+      "content": "payments: any[];"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 31,
+      "content": "ledger: any[];"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 32,
+      "content": "bank: any;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 101,
+      "content": "update: vi.fn((table: any) => ({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 102,
+      "content": "set: vi.fn((values: any) => ({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 103,
+      "content": "where: vi.fn((condition: any) => {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 117,
+      "content": "})() as any;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 141,
+      "content": "insert: vi.fn((table: any) => ({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 142,
+      "content": "values: vi.fn((vals: any) => {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 153,
+      "content": ") as any;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 193,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 200,
+      "content": "(db as any).query = {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 216,
+      "content": "(db as any).transaction = vi.fn(async (cb: any) => cb(mockTx));"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 257,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 264,
+      "content": "(db as any).query = {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 280,
+      "content": "(db as any).transaction = vi.fn(async (cb: any) => cb(mockTx));"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 339,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 356,
+      "content": "(db as any).query = {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/concurrency.test.ts",
+      "line": 370,
+      "content": "(db as any).transaction = vi.fn(async (cb: any) => cb(mockTx));"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 8,
+      "content": "const p = Promise.resolve([]) as any;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 70,
+      "content": "transaction: vi.fn(async (cb: any) => cb(mockTx)),"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 95,
+      "content": "(auth as any).mockResolvedValue(null);"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 108,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 125,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 147,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 168,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 179,
+      "content": "(db.query.paymentGatewayLogs.findFirst as any).mockResolvedValue(null);"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 196,
+      "content": "(auth as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 207,
+      "content": "(db.query.paymentGatewayLogs.findFirst as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/__tests__/verify.test.ts",
+      "line": 216,
+      "content": "(db.query.feeInvoices.findFirst as any).mockResolvedValue({"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 97,
+      "content": "const userSchoolId = (session.user as any).schoolId;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 122,
+      "content": "let existingPaymentRecord: any = null;"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 197,
+      "content": "} catch (insertErr: any) {"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 284,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/__tests__/route.test.ts",
+      "line": 9,
+      "content": "const p = Promise.resolve([]) as any;"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/__tests__/route.test.ts",
+      "line": 67,
+      "content": "transaction: vi.fn(async (cb: any) => cb(mockTx)),"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/__tests__/route.test.ts",
+      "line": 167,
+      "content": "vi.mocked(db.query.paymentGatewayLogs.findFirst).mockResolvedValueOnce(mockLog as any);"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/__tests__/route.test.ts",
+      "line": 169,
+      "content": "vi.mocked(db.query.feeInvoices.findFirst).mockResolvedValueOnce(mockInvoice as any);"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/__tests__/route.test.ts",
+      "line": 224,
+      "content": "vi.mocked(db.query.paymentGatewayLogs.findFirst).mockResolvedValueOnce(fulfilledLog as any);"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/route.ts",
+      "line": 191,
+      "content": "} catch (insertErr: any) {"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/route.ts",
+      "line": 270,
+      "content": "} catch (error: any) {"
+    },
+    {
+      "file": "frontend/src/components/layout/Header.tsx",
+      "line": 125,
+      "content": "href={(crumb.href || \"#\") as any}"
+    },
+    {
+      "file": "frontend/src/components/layout/Header.tsx",
+      "line": 277,
+      "content": "href={profileHref as any}"
+    },
+    {
+      "file": "frontend/src/components/layout/PwaHeader.tsx",
+      "line": 15,
+      "content": "userSession?: any;"
+    },
+    {
+      "file": "frontend/src/components/layout/Sidebar.tsx",
+      "line": 70,
+      "content": "router.prefetch(href as any);"
+    },
+    {
+      "file": "frontend/src/components/layout/Sidebar.tsx",
+      "line": 114,
+      "content": "let sessionUser: any = currentUser || null;"
+    },
+    {
+      "file": "frontend/src/components/layout/Sidebar.tsx",
+      "line": 150,
+      "content": "router.push(profileHref as any);"
+    },
+    {
+      "file": "frontend/src/components/layout/Sidebar.tsx",
+      "line": 307,
+      "content": "href={item.href as any}"
+    },
+    {
+      "file": "frontend/src/components/layout/Sidebar.tsx",
+      "line": 461,
+      "content": "href={profileHref as any}"
+    },
+    {
+      "file": "frontend/src/components/platform/PlatformSidebar.tsx",
+      "line": 103,
+      "content": "href={item.href as any}"
+    }
+  ],
+  "totalAnyCount": 220,
+  "consoleOccurrences": [
+    {
+      "file": "backend/src/lib/encryption.ts",
+      "line": 16,
+      "content": "console.warn("
+    },
+    {
+      "file": "backend/src/lib/serverAuth.ts",
+      "line": 59,
+      "content": "console.error(\"getCachedSession: user active/role status check failed - failing closed\", err);"
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 117,
+      "content": "console.warn("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 176,
+      "content": "console.error("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 193,
+      "content": "console.info("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 221,
+      "content": "console.error("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 232,
+      "content": "console.info("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 259,
+      "content": "console.error("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 270,
+      "content": "console.info("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 296,
+      "content": "console.error("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 307,
+      "content": "console.info("
+    },
+    {
+      "file": "backend/src/lib/sms.ts",
+      "line": 313,
+      "content": "console.error(\"[SMS Service] Unexpected fatal delivery error:\", error);"
+    },
+    {
+      "file": "backend/src/workers/financeAutomation.ts",
+      "line": 555,
+      "content": "console.error(\"[FinanceWorker] Failed to record initial heartbeat:\", err)"
+    },
+    {
+      "file": "backend/src/workers/financeAutomation.ts",
+      "line": 563,
+      "content": "console.error(\"[FinanceWorker] Failed to tick heartbeat:\", err);"
+    },
+    {
+      "file": "backend/src/workers/financeAutomation.ts",
+      "line": 575,
+      "content": "console.log(`[FinanceWorker] Processing automation routines for school: ${schoolId}`);"
+    },
+    {
+      "file": "backend/src/workers/financeAutomation.ts",
+      "line": 585,
+      "content": "console.log(`[FinanceWorker] Job ${job.id} completed successfully.`);"
+    },
+    {
+      "file": "backend/src/workers/financeAutomation.ts",
+      "line": 589,
+      "content": "console.error(`[FinanceWorker] Job ${job?.id} failed:`, err);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/admissions/[id]/actions.ts",
+      "line": 672,
+      "content": "console.error(\"Failed to update status:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/exams/[id]/marks/actions.ts",
+      "line": 157,
+      "content": "console.error(\"[saveMarkEntries]\", message);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/fees/collect/actions.ts",
+      "line": 80,
+      "content": "console.error(\"Manual Payment Error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "line": 71,
+      "content": "console.error(\"Failed to log HR audit event:\", err);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/bank-reconciliation/actions.ts",
+      "line": 125,
+      "content": "console.error(\"getBankReconciliationDataAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/bank-reconciliation/actions.ts",
+      "line": 255,
+      "content": "console.error(\"matchBankStatementAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/bank-reconciliation/actions.ts",
+      "line": 411,
+      "content": "console.error(\"createAdjustingJournalVoucherAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 88,
+      "content": "console.error(\"getJournalVouchersAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 135,
+      "content": "console.error(\"getChartOfAccountsForJVAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 397,
+      "content": "console.error(\"createContraEntryAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/accounts/journal-vouchers/actions.ts",
+      "line": 521,
+      "content": "console.error(\"createGeneralJournalVoucherAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/assign-fees/actions.ts",
+      "line": 156,
+      "content": "console.error(\"Assign Fee Error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 217,
+      "content": "console.error(\"searchStudentsAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 242,
+      "content": "console.error(\"getStudentFeeCardAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 319,
+      "content": "console.error(\"getStudentInvoicesAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 664,
+      "content": "console.error(\"[ReceiptArchival] Background S3 archival error:\", err);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 770,
+      "content": "console.error(\"Failed to recover original receipt after 23505:\", fetchErr);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/collect-fees/actions.ts",
+      "line": 775,
+      "content": "console.error(\"processCounterCollection error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fee-types/actions.ts",
+      "line": 61,
+      "content": "console.error(\"Create Fee Head Error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 44,
+      "content": "console.error(\"Create Fee Discount Error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/fees-discount/actions.ts",
+      "line": 146,
+      "content": "console.error(\"allocateStudentConcessionAction error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/school/transactions/actions.ts",
+      "line": 231,
+      "content": "console.error(\"Cancel Transaction Error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/settings/roles/actions.ts",
+      "line": 46,
+      "content": "console.warn(\"Failed to write RBAC audit log:\", err);"
+    },
+    {
+      "file": "frontend/src/app/(admin)/students/[id]/class-history/actions.ts",
+      "line": 201,
+      "content": "console.error(\"Promotion error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/api/health/route.ts",
+      "line": 23,
+      "content": "console.error(\"Health check DB failure:\", err);"
+    },
+    {
+      "file": "frontend/src/app/api/health/route.ts",
+      "line": 36,
+      "content": "console.warn(\"Health check Redis degraded:\", err);"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 52,
+      "content": "console.error(\"[Razorpay Verify] CRITICAL: RAZORPAY_KEY_SECRET is not configured.\");"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 274,
+      "content": "console.error(\"[Razorpay Verify] Async S3 receipt archival failed:\", err);"
+    },
+    {
+      "file": "frontend/src/app/api/razorpay/verify/route.ts",
+      "line": 285,
+      "content": "console.error(\"[Razorpay Verify] Verification error:\", error);"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/route.ts",
+      "line": 30,
+      "content": "console.error(\"[Razorpay Webhook] CRITICAL: RAZORPAY_WEBHOOK_SECRET is not configured.\");"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/route.ts",
+      "line": 256,
+      "content": "console.error(\"[Razorpay Webhook] Async S3 receipt archival failed:\", err);"
+    },
+    {
+      "file": "frontend/src/app/api/webhooks/razorpay/route.ts",
+      "line": 271,
+      "content": "console.error(\"Razorpay Webhook Error:\", error);"
+    },
+    {
+      "file": "frontend/src/lib/authClient.ts",
+      "line": 15,
+      "content": "console.warn(\"ServiceWorker CLEAR_AUTH_CACHE dispatch failed\", err);"
+    },
+    {
+      "file": "frontend/src/lib/authClient.ts",
+      "line": 23,
+      "content": "console.warn(\"Client caches purge failed\", err);"
+    }
+  ],
+  "totalConsoleCount": 51,
+  "largeFilesOver1000Lines": [
+    {
+      "file": "frontend/src/app/(admin)/hr/actions.ts",
+      "lineCount": 1980
+    }
+  ]
+}

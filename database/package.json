@@ -22,16 +22,16 @@
   },
   "dependencies": {
     "@schoolmitra/dpdp": "workspace:*",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/pg": "^8.11.6",
     "bcryptjs": "^2.4.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.30.10",
-    "pg": "^8.11.5",
-    "tsx": "^4.7.3",
-    "typescript": "^5.4.0"
+    "pg": "^8.11.5"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.20.18"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/pg": "^8.11.6",
+    "drizzle-kit": "^0.20.18",
+    "tsx": "^4.7.3",
+    "typescript": "^5.4.0"
   }
 }
