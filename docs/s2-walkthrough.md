@@ -4,7 +4,7 @@
 **Parent Release:** `edu-core-production-readiness-verification@7.0.0` (P0 through P6, S1 Latency Sprint)  
 **Governing Rulebooks:** `SCHOOL-ERP-PERFORMANCE-SPEC.md` v2.0, `RULES.md`, Antigravity Rule Pack  
 **Target Baseline Head:** `7ffefcc`  
-**Final Release Head:** `6f0ef0e`  
+**Final Release Head:** `6816c28`  
 **Execution Strategy:** Atomic commits per stage, sequential progression, zero test deletions, empirical proof per stage.
 
 ---
@@ -120,24 +120,19 @@ While the previous agent was preparing Stage S2-H, it launched `pnpm --filter @s
 ```mermaid
 graph TD
     A[Crash & Restart] --> B[WAL Journal Checkpoint & DB Recovery<br/>4,344 steps recovered]
-    B --> C[Chat History Extracted to docs/<br/>Commit: 6f0ef0e]
-    C --> D[Fix storage.ts build-phase guard<br/>Commit: edc4e79]
-    D --> E[Execute Stage S2-H Full Verification Suite]
-    E --> F[Live Cloud Probe on Render<br/>200 OK, 437ms]
-    F --> G[Author & Commit S2-H Final Verdict<br/>Commit: 6816c28]
+    B --> C[Fix storage.ts build-phase guard<br/>Commit: edc4e79]
+    C --> D[Execute Stage S2-H Full Verification Suite]
+    D --> E[Live Cloud Probe on Render<br/>200 OK, 437ms]
+    E --> F[Author & Commit S2-H Final Verdict<br/>Commit: 6816c28]
 ```
 
 ### 1. SQLite Database Recovery & Journal Merging
 - Inspected [`0a593d4c-9c2c-4b90-aa47-a6e705a8a063.db`](file:///C:/Users/vaibh/.gemini/antigravity-ide/conversations/0a593d4c-9c2c-4b90-aa47-a6e705a8a063.db).
 - Executed `PRAGMA wal_checkpoint(TRUNCATE)` via `inspect_db.js`, cleanly merging all uncommitted WAL frames into the primary 45.9 MB database and deleting lingering `-wal` and `-shm` lock files.
 - Verified that all 4,344 steps and 2,050 responses are completely preserved.
+- *Note:* In accordance with S3-T0 credential isolation invariants, raw chat logs and conversation transcripts are kept strictly outside git tracking.
 
-### 2. Chat Transcript Archival
-- Extracted all user messages and model outputs from the transcript logs.
-- Generated the markdown archive: [docs/retrieved_chat_history_0a593d4c.md](file:///v:/Cascade/Edu_core/Edu_core/docs/retrieved_chat_history_0a593d4c.md).
-- Committed in [`6f0ef0e`](file:///v:/Cascade/Edu_core/Edu_core/.git).
-
-### 3. Storage Build-Phase Guard Fix (Commit: [`edc4e79`](file:///v:/Cascade/Edu_core/Edu_core/.git))
+### 2. Storage Build-Phase Guard Fix (Commit: [`edc4e79`](file:///v:/Cascade/Edu_core/Edu_core/.git))
 - In [backend/src/lib/storage.ts](file:///v:/Cascade/Edu_core/Edu_core/backend/src/lib/storage.ts#L6-L32), wrapped the fail-fast check in `assertProductionStorageSafe()`.
 - Guarded module-level evaluation to skip when `isBuildPhase` is active (`NEXT_PHASE === "phase-production-build"` or `npm_lifecycle_event === "build"`), while ensuring production runtime always calls `assertProductionStorageSafe()`.
 
@@ -213,7 +208,7 @@ graph TD
 | **S2-G** | [`06628bc`](file:///v:/Cascade/Edu_core/Edu_core/.git) | `chore(security): Stage S2-G engineering hygiene and dependencies` | `.dockerignore`, `README.md`, `package.json`, `count-eslint-baselines.mjs` |
 | **Post-Crash** | [`edc4e79`](file:///v:/Cascade/Edu_core/Edu_core/.git) | `fix(storage): guard assertProductionStorageSafe against build phase false positives` | `backend/src/lib/storage.ts` |
 | **S2-H** | [`6816c28`](file:///v:/Cascade/Edu_core/Edu_core/.git) | `verify(release): Stage S2-H final release gate — Go/No-Go verdict signed` | `docs/release-evidence/s2-verdict.md` |
-| **Archive** | [`6f0ef0e`](file:///v:/Cascade/Edu_core/Edu_core/.git) | `docs: archive retrieved chat history from conversation 0a593d4c` | `docs/retrieved_chat_history_0a593d4c.md` |
+
 
 ---
 

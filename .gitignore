@@ -57,3 +57,8 @@ playwright/.auth/
 .cache
 .gemini/
 scripts/backup_conversations.py
+
+# Conversation transcripts and IDE recovery artifacts (S3-T0)
+docs/retrieved_chat_history*
+*.db-wal
+*.db-shm

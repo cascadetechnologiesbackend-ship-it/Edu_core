@@ -53,6 +53,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Transcript & Secret Leak Guard (S3-T0)
+        shell: bash
+        run: |
+          if find . -type f \( -name "*retrieved_chat_history*" -o -name "*.db-wal" -o -name "*.db-shm" \) | grep -q .; then
+            echo "❌ Error: Conversation transcript or SQLite DB artifact detected in repository!"
+            find . -type f \( -name "*retrieved_chat_history*" -o -name "*.db-wal" -o -name "*.db-shm" \)
+            exit 1
+          fi
+          echo "✅ Repository clean of conversation transcripts and SQLite lockfiles."
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
