@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { students, staff, auditLogs, dataRetentionPolicies } from "@/db/schema";
 import { eq, and, isNull, isNotNull, lt, lte } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
+import { getBullMQRedisConnection } from "../lib/redisConnection";
 import { consentRecords } from "@/db/schema";
 
 export interface RetentionJobPayload {
@@ -9,11 +10,7 @@ export interface RetentionJobPayload {
 }
 
 export const retentionQueue = new Queue<RetentionJobPayload>("data-retention", {
-  connection: {
-    host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-    port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-    password: process.env["REDIS_PASSWORD"] ?? undefined,
-  },
+  connection: getBullMQRedisConnection(),
 });
 
 /**
@@ -260,11 +257,7 @@ if (process.env["START_WORKERS"] === "true") {
       await executeConsentWithdrawals(schoolId);
     },
     {
-      connection: {
-        host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-        port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-        password: process.env["REDIS_PASSWORD"] ?? undefined,
-      },
+      connection: getBullMQRedisConnection(),
     },
   );
 

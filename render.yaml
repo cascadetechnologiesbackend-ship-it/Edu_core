@@ -3,7 +3,7 @@ services:
     name: educore-app
     runtime: node
     plan: starter
-    buildCommand: pnpm install --prod=false --ignore-scripts && pnpm --filter @schoolmitra/database db:migrate && pnpm --filter @schoolmitra/database db:seed-coa && pnpm exec turbo run build
+    buildCommand: pnpm install --prod=false --ignore-scripts && pnpm exec turbo run build
     preDeployCommand: pnpm --filter @schoolmitra/database db:migrate && pnpm --filter @schoolmitra/database db:seed-coa
     startCommand: pnpm -w run start
     healthCheckPath: /api/health
@@ -38,16 +38,20 @@ services:
         sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
-      - key: S3_BUCKET
+      - key: AWS_S3_BUCKET_NAME
         sync: false
-      - key: S3_REGION
+      - key: AWS_REGION
         value: ap-south-1
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
+      - key: AWS_S3_ENDPOINT
+        sync: false
       - key: SMS_PROVIDER
         value: mock
+      - key: ALLOW_MOCK_SMS_IN_PROD
+        value: "true"
       - key: SMS_API_KEY
         sync: false
       - key: SMS_SENDER_ID
@@ -89,6 +93,16 @@ services:
       - key: REDIS_URL
         sync: false
       - key: ENCRYPTION_KEY
+        sync: false
+      - key: AWS_S3_BUCKET_NAME
+        sync: false
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_ENDPOINT
         sync: false
 
 databases:

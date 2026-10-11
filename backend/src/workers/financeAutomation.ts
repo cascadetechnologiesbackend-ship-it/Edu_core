@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, lt, lte, gt, inArray, sql, desc } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
+import { getBullMQRedisConnection } from "../lib/redisConnection";
 import { setCachedFinanceData } from "@/lib/financeCache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
@@ -29,11 +30,7 @@ export interface FinanceJobPayload {
 }
 
 export const financeQueue = new Queue<FinanceJobPayload>("finance-automation", {
-  connection: {
-    host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-    port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-    password: process.env["REDIS_PASSWORD"] ?? undefined,
-  },
+  connection: getBullMQRedisConnection(),
 });
 
 /**
@@ -580,11 +577,7 @@ if (process.env["START_WORKERS"] === "true") {
       await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
     },
     {
-      connection: {
-        host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-        port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-        password: process.env["REDIS_PASSWORD"] ?? undefined,
-      },
+      connection: getBullMQRedisConnection(),
     }
   );
 

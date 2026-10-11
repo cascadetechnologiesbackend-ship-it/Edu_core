@@ -3,6 +3,7 @@
 // Each job generates a PDF for one student and updates the DB.
 
 import { Worker, Queue, type Job } from "bullmq";
+import { getBullMQRedisConnection } from "../lib/redisConnection";
 import { db } from "@/db";
 import {
   reportCards,
@@ -31,14 +32,7 @@ export interface ReportCardJobPayload {
 }
 
 // ─── Queue Definition ─────────────────────────────────────────────────────────
-const redisUrl = process.env.REDIS_URL || process.env.educore_REDIS_URL;
-const redisConnection: any = redisUrl
-  ? { url: redisUrl }
-  : {
-      host: process.env["REDIS_HOST"] ?? "127.0.0.1",
-      port: parseInt(process.env["REDIS_PORT"] ?? "6379"),
-      ...(process.env["REDIS_PASSWORD"] ? { password: process.env["REDIS_PASSWORD"] } : {}),
-    };
+const redisConnection = getBullMQRedisConnection();
 
 // Export so API routes can enqueue jobs
 export const reportCardQueue = new Queue<ReportCardJobPayload>(

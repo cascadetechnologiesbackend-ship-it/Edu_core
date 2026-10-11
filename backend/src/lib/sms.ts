@@ -24,6 +24,14 @@ export interface DltTemplateParams {
 
 export function isSmsConfigured(): boolean {
   const provider = (process.env.SMS_PROVIDER || "TWILIO").toUpperCase();
+  if (provider === "MOCK") {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_MOCK_SMS_IN_PROD !== "true") {
+      throw new Error(
+        "FATAL: SMS_PROVIDER is set to 'mock' in production without ALLOW_MOCK_SMS_IN_PROD=true"
+      );
+    }
+    return true;
+  }
   if (provider === "TWILIO") {
     return Boolean(
       process.env.TWILIO_ACCOUNT_SID &&
@@ -117,6 +125,19 @@ export async function sendSMSWithStatus(
   }
 
   const provider = (process.env.SMS_PROVIDER || "TWILIO").toUpperCase();
+  if (provider === "MOCK") {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_MOCK_SMS_IN_PROD !== "true") {
+      throw new Error(
+        "FATAL: SMS_PROVIDER is set to 'mock' in production without ALLOW_MOCK_SMS_IN_PROD=true"
+      );
+    }
+    return {
+      delivered: true,
+      messageId: `mock-sms-${Date.now()}`,
+      attempts: 1,
+    };
+  }
+
   const entityId = dltParams?.entityId || process.env.SMS_DLT_PE_ID || "";
   const templateId = dltParams?.templateId || process.env.SMS_DLT_TEMPLATE_ID || "";
   const senderId = process.env.SMS_SENDER_ID || "SCHMTR";

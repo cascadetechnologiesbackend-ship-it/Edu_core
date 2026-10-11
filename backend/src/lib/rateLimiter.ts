@@ -1,9 +1,6 @@
-import Redis from "ioredis";
+import { getRedisClient } from "./redisConnection";
 
-// Connect to Redis using connection URL or host/port configuration
-const redisUrl = process.env.REDIS_URL || process.env.educore_REDIS_URL;
-
-const redisOptions = {
+export const redis = getRedisClient({
   lazyConnect: true,
   maxRetriesPerRequest: 1,
   enableOfflineQueue: false,
@@ -14,16 +11,7 @@ const redisOptions = {
     if (times > 3) return null; // Stop retrying after 3 attempts
     return Math.min(times * 200, 1000);
   },
-};
-
-export const redis = redisUrl
-  ? new Redis(redisUrl, redisOptions)
-  : new Redis({
-      host: process.env.REDIS_HOST ?? "127.0.0.1",
-      port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
-      password: process.env.REDIS_PASSWORD ?? undefined,
-      ...redisOptions,
-    });
+});
 
 // ─── Module-Level Redis Circuit Breaker (Flaw Audit P0 #2) ───────────────────
 let lastRedisAttempt = 0;
