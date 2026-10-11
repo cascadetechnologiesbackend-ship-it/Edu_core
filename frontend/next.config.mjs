@@ -19,6 +19,11 @@ const nextConfig = {
   // Enabled per Requirement 17.6 for production readiness
   reactStrictMode: true,
 
+  // ESLint is checked in CI; ignore in Next.js cloud container builds to avoid devDependency drift
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Trust internal package TypeScript
   transpilePackages: [
     "@schoolmitra/dpdp",
