@@ -27,6 +27,10 @@ export default async function AdminLayout({
   const session = await getCachedSession();
 
   if (!session?.user) {
+    redirect("/login");
+  }
+
+  if (session.user.isActive === false) {
     redirect("/login?error=AccountDeactivated");
   }
 
