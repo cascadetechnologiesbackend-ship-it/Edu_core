@@ -7,13 +7,13 @@ import {
   fetchStudentCompleteData,
 } from "../actions";
 import { Shield, FileText, Copy } from "lucide-react";
-import { decryptData } from "@/lib/encryption";
 
 interface Student {
   id: string;
   firstNameEncrypted: string;
   lastNameEncrypted: string;
   admissionNumber: string;
+  displayName?: string;
 }
 
 interface RightsRequest {
@@ -69,11 +69,7 @@ export default function RightsPortalClient({
   const [copied, setCopied] = useState(false);
 
   const activeStudent = students.find((s) => s.id === activeStudentId);
-  const activeStudentName = activeStudent
-    ? `${decryptData(activeStudent.firstNameEncrypted) || ""} ${
-        decryptData(activeStudent.lastNameEncrypted) || ""
-      }`.trim()
-    : "Student";
+  const activeStudentName = activeStudent?.displayName || "Student";
 
   const handleFetchData = async () => {
     setLoading("FETCH_DATA");
@@ -219,9 +215,7 @@ export default function RightsPortalClient({
       {students.length > 1 && (
         <div className="flex border border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-slate-50 dark:bg-slate-900 max-w-md">
           {students.map((s) => {
-            const name = `${decryptData(s.firstNameEncrypted) || ""} ${
-              decryptData(s.lastNameEncrypted) || ""
-            }`.trim();
+            const name = s.displayName || "Student";
             return (
               <button
                 key={s.id}

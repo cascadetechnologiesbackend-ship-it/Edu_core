@@ -4,6 +4,7 @@ import { eq, and, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import ConsentPortalClient from "./ConsentPortalClient";
+import { decryptData } from "@/lib/encryption";
 
 export default async function ConsentPage() {
   const session = await auth();
@@ -60,6 +61,13 @@ export default async function ConsentPage() {
     }
   }
 
+  const studentsWithNames = myStudents.map((s) => ({
+    ...s,
+    displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
+      decryptData(s.lastNameEncrypted) || ""
+    }`.trim() || "Student",
+  }));
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -99,7 +107,7 @@ export default async function ConsentPage() {
       </div>
 
       <ConsentPortalClient
-        students={myStudents}
+        students={studentsWithNames}
         purposes={purposes}
         initialConsentRecords={latestRecords}
       />

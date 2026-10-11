@@ -22,7 +22,6 @@ import {
   Briefcase,
   AlertOctagon,
 } from "lucide-react";
-import { decryptData } from "@/lib/encryption";
 
 interface ConsentMetric {
   purposeId: string;
@@ -463,9 +462,7 @@ export default function DpdpDashboardClient({
               </p>
               <div className="space-y-3 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                 {softDeletedStudents.map((s) => {
-                  const pName = `${decryptData(s.firstNameEncrypted) || ""} ${
-                    decryptData(s.lastNameEncrypted) || ""
-                  }`.trim();
+                  const pName = (s as any).displayName || "Student";
                   const purgeDate = new Date(
                     new Date(s.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000,
                   );
@@ -502,9 +499,7 @@ export default function DpdpDashboardClient({
                 })}
 
                 {softDeletedStaff.map((st) => {
-                  const pName = `${decryptData(st.firstNameEncrypted) || ""} ${
-                    decryptData(st.lastNameEncrypted) || ""
-                  }`.trim();
+                  const pName = (st as any).displayName || "Staff";
                   const purgeDate = new Date(
                     new Date(st.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000,
                   );

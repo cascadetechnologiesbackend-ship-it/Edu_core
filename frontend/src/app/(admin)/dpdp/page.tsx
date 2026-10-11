@@ -17,6 +17,7 @@ import { assertRouteAccess } from "@/lib/routeGuards";
 import DpdpDashboardClient from "./DpdpDashboardClient";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import { assertQueryBudget } from "@schoolmitra/database";
+import { decryptData } from "@/lib/encryption";
 
 export const metadata = {
   title: "DPDP Compliance Centre | SchoolMitra ERP",
@@ -138,13 +139,27 @@ export default async function DpdpPage() {
           };
         });
 
+        const mappedStudents = softDeletedStudents.map((s) => ({
+          ...s,
+          displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
+            decryptData(s.lastNameEncrypted) || ""
+          }`.trim() || "Student",
+        }));
+
+        const mappedStaff = softDeletedStaff.map((st) => ({
+          ...st,
+          displayName: `${decryptData(st.firstNameEncrypted) || ""} ${
+            decryptData(st.lastNameEncrypted) || ""
+          }`.trim() || "Staff",
+        }));
+
         return {
           totalStudentsCount,
           consentMetrics,
           pendingRequests,
           pendingGrievances,
-          softDeletedStudents,
-          softDeletedStaff,
+          softDeletedStudents: mappedStudents,
+          softDeletedStaff: mappedStaff,
           vendors,
           breaches,
           logs,

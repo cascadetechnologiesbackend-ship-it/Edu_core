@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { generateConsentChangeOtp, submitConsentChange } from "../actions";
 import { Check, Shield, ShieldAlert } from "lucide-react";
-import { decryptData } from "@/lib/encryption";
 
 interface Student {
   id: string;
   firstNameEncrypted: string;
   lastNameEncrypted: string;
   admissionNumber: string;
+  displayName?: string;
 }
 
 interface Purpose {
@@ -61,11 +61,7 @@ export default function ConsentPortalClient({
   const [otpError, setOtpError] = useState("");
 
   const activeStudent = students.find((s) => s.id === activeStudentId);
-  const activeStudentName = activeStudent
-    ? `${decryptData(activeStudent.firstNameEncrypted) || ""} ${
-        decryptData(activeStudent.lastNameEncrypted) || ""
-      }`.trim()
-    : "Student";
+  const activeStudentName = activeStudent?.displayName || "Student";
 
   const getConsentState = (purposeId: string) => {
     const record = consentRecords.find(
@@ -152,9 +148,7 @@ export default function ConsentPortalClient({
       {students.length > 1 && (
         <div className="flex border border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-slate-50 dark:bg-slate-900 max-w-md">
           {students.map((s) => {
-            const name = `${decryptData(s.firstNameEncrypted) || ""} ${
-              decryptData(s.lastNameEncrypted) || ""
-            }`.trim();
+            const name = s.displayName || "Student";
             return (
               <button
                 key={s.id}

@@ -4,6 +4,7 @@ import { eq, isNotNull, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import RightsPortalClient from "./RightsPortalClient";
+import { decryptData } from "@/lib/encryption";
 
 export default async function RightsPage() {
   const session = await auth();
@@ -50,6 +51,13 @@ export default async function RightsPage() {
     orderBy: [desc(dpdpGrievances.createdAt)],
   });
 
+  const studentsWithNames = myStudents.map((s) => ({
+    ...s,
+    displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
+      decryptData(s.lastNameEncrypted) || ""
+    }`.trim() || "Student",
+  }));
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -89,7 +97,7 @@ export default async function RightsPage() {
       </div>
 
       <RightsPortalClient
-        students={myStudents}
+        students={studentsWithNames}
         initialRequests={requests}
         initialGrievances={grievances}
       />
