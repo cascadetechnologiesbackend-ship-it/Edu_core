@@ -225,7 +225,7 @@ export async function approveFeeRefund(refundId: string) {
         approvedAt: now,
         updatedAt: now,
       })
-      .where(eq(feeRefunds.id, refund.id));
+      .where(and(eq(feeRefunds.id, refund.id), eq(feeRefunds.schoolId, school.id)));
 
     await logFeeAuditEvent(db, {
       schoolId: school.id,
@@ -273,7 +273,7 @@ export async function rejectFeeRefund(refundId: string, reason?: string) {
         status: "REJECTED",
         updatedAt: now,
       })
-      .where(eq(feeRefunds.id, refund.id));
+      .where(and(eq(feeRefunds.id, refund.id), eq(feeRefunds.schoolId, school.id)));
 
     await logFeeAuditEvent(db, {
       schoolId: school.id,
@@ -353,7 +353,7 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
           processedAt: now,
           updatedAt: now,
         })
-        .where(eq(feeRefunds.id, refund.id));
+        .where(and(eq(feeRefunds.id, refund.id), eq(feeRefunds.schoolId, school.id)));
 
       // 2. Restore invoice balance & paidAmount
       const currentPaid = parseFloat(invoice.paidAmount || "0");
@@ -373,7 +373,7 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
           status: newStatus,
           updatedAt: now,
         })
-        .where(eq(feeInvoices.id, invoice.id));
+        .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
 
       // 3. Debit bank account if specified
       let bankBalanceAfter = "0";
@@ -384,7 +384,7 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
             currentBalance: sql`${bankAccounts.currentBalance} - ${refundAmountNum.toFixed(2)}`,
             updatedAt: now,
           })
-          .where(eq(bankAccounts.id, resolvedBankId))
+          .where(and(eq(bankAccounts.id, resolvedBankId), eq(bankAccounts.schoolId, school.id)))
           .returning();
         if (updatedBank) bankBalanceAfter = updatedBank.currentBalance;
       }

@@ -86,7 +86,7 @@ export async function clearChallan(formData: FormData) {
           referenceNumber,
           updatedAt: new Date(),
         })
-        .where(eq(feeChallans.id, challan.id));
+        .where(and(eq(feeChallans.id, challan.id), eq(feeChallans.schoolId, school.id)));
 
       // 2. Insert Fee Payment
       const [payment] = await tx
@@ -118,7 +118,7 @@ export async function clearChallan(formData: FormData) {
             status: newBalance <= 0 ? "PAID" : "PARTIAL",
             updatedAt: new Date(),
           })
-          .where(eq(feeInvoices.id, invoice.id));
+          .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
       }
 
       // 4. Update Bank Account Balance
@@ -136,7 +136,7 @@ export async function clearChallan(formData: FormData) {
             currentBalance: sql`${bankAccounts.currentBalance} + ${clearedAmount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, primaryBank.id))
+          .where(and(eq(bankAccounts.id, primaryBank.id), eq(bankAccounts.schoolId, school.id)))
           .returning();
         if (updatedBank) newBalance = updatedBank.currentBalance;
       }

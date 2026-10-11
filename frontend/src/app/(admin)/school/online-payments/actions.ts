@@ -97,7 +97,7 @@ export async function reconcileOnlinePayment(logId: string) {
             currentBalance: sql`${bankAccounts.currentBalance} + ${netAmount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, primaryBank.id))
+          .where(and(eq(bankAccounts.id, primaryBank.id), eq(bankAccounts.schoolId, school.id)))
           .returning();
         if (updatedBank) newBalance = updatedBank.currentBalance;
       }
@@ -264,7 +264,7 @@ export async function reverseOnlinePayment(logId: string, reason: string) {
             currentBalance: sql`${bankAccounts.currentBalance} - ${netAmount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, bankAccountId));
+          .where(and(eq(bankAccounts.id, bankAccountId), eq(bankAccounts.schoolId, school.id)));
       }
 
       // Restore invoice if invoiceId exists
@@ -286,7 +286,7 @@ export async function reverseOnlinePayment(logId: string, reason: string) {
               status: revertedBalance >= parseFloat(invoice.netAmount) ? "PENDING" : "PARTIAL",
               updatedAt: new Date(),
             })
-            .where(eq(feeInvoices.id, invoice.id));
+            .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
         }
       }
 
@@ -355,7 +355,7 @@ export async function reverseOnlinePayment(logId: string, reason: string) {
           status: "REFUNDED",
           updatedAt: new Date(),
         })
-        .where(eq(paymentGatewayLogs.id, log.id));
+        .where(and(eq(paymentGatewayLogs.id, log.id), eq(paymentGatewayLogs.schoolId, school.id)));
 
       await logFeeAuditEvent(tx, {
         schoolId: school.id,

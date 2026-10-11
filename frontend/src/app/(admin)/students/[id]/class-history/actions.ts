@@ -170,7 +170,7 @@ export async function promoteStudent(
           academicYearId,
           updatedAt: new Date(),
         })
-        .where(eq(students.id, studentId));
+        .where(and(eq(students.id, studentId), eq(students.schoolId, school.id)));
 
       // 3. Audit log
       await tx.insert(auditLogs).values({

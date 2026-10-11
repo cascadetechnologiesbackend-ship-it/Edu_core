@@ -27,7 +27,7 @@ export async function sendDueReminder(invoiceId: string) {
         reminderSentD7: true,
         updatedAt: new Date(),
       })
-      .where(eq(feeInvoices.id, invoice.id));
+      .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
 
     revalidatePath("/school/due-fees");
     return { success: true, message: `Payment reminder dispatched for Invoice #${invoice.invoiceNumber}` };

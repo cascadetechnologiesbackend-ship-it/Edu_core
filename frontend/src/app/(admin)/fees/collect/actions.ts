@@ -71,7 +71,7 @@ export async function processManualPayment(formData: FormData) {
           balanceAmount: newBalanceAmount.toFixed(2),
           status: newStatus,
         })
-        .where(eq(feeInvoices.id, invoice.id));
+        .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
     });
 
     revalidatePath("/fees/collect");

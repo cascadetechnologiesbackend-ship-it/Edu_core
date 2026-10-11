@@ -82,7 +82,7 @@ export async function toggleFeeHeadStatus(id: string) {
         isActive: !existing.isActive,
         updatedAt: new Date(),
       })
-      .where(eq(feeHeads.id, id));
+      .where(and(eq(feeHeads.id, id), eq(feeHeads.schoolId, school.id)));
 
     revalidatePath("/school/fee-types");
     return { success: true, message: `Fee Head ${existing.isActive ? "deactivated" : "activated"}` };

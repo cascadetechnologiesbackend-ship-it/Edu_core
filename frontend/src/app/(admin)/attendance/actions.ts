@@ -278,6 +278,7 @@ export async function markSectionAttendance(
     .from(studentAttendance)
     .where(
       and(
+        eq(studentAttendance.schoolId, school.id),
         inArray(studentAttendance.studentId, studentIds),
         eq(studentAttendance.academicYearId, activeYear.id),
         sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
@@ -304,7 +305,12 @@ export async function markSectionAttendance(
             remarks: record.remarks || null,
             updatedAt: new Date(),
           })
-          .where(eq(studentAttendance.id, existing.id));
+          .where(
+            and(
+              eq(studentAttendance.id, existing.id),
+              eq(studentAttendance.schoolId, school.id),
+            ),
+          );
       } else {
         toInsert.push({
           schoolId,

@@ -51,7 +51,7 @@ export async function assignFeeStructure(formData: FormData) {
           lateFeeAmount: parseFloat(lateFeeAmountStr).toFixed(2),
           updatedAt: new Date(),
         })
-        .where(eq(feeStructures.id, existing.id));
+        .where(and(eq(feeStructures.id, existing.id), eq(feeStructures.schoolId, school.id)));
       structureId = existing.id;
     } else {
       const [newStruct] = await db

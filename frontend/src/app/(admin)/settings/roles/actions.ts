@@ -261,7 +261,7 @@ export async function updateRole(input: {
         description: input.description?.trim() || null,
         updatedAt: new Date(),
       })
-      .where(eq(roles.id, existingRole.id));
+      .where(and(eq(roles.id, existingRole.id), eq(roles.schoolId, school.id)));
 
     await logRbacAudit(ctx, "WRITE", "roles", existingRole.id, {
       action: "UPDATE_ROLE",
@@ -479,7 +479,7 @@ export async function toggleUserAccess(input: {
           isActive: input.isActive,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, targetUser.id));
+        .where(and(eq(users.id, targetUser.id), eq(users.schoolId, school.id)));
 
       // If deactivated, revoke all active sessions immediately
       if (!input.isActive) {
@@ -568,7 +568,7 @@ export async function resetStaffCredentialAction(input: {
           lockedUntil: null,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, targetUser.id));
+        .where(and(eq(users.id, targetUser.id), eq(users.schoolId, school.id)));
 
       // Revoke existing sessions so old credentials cannot continue
       await tx.delete(sessions).where(eq(sessions.userId, targetUser.id));

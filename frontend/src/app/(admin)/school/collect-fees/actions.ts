@@ -588,7 +588,7 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
             status: newStatus,
             updatedAt: new Date(),
           })
-          .where(eq(feeInvoices.id, invoice.id));
+          .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
 
         // 3. Write immutable audit log (GAP-04)
         await logFeeAuditEvent(tx, {
@@ -654,7 +654,7 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
             currentBalance: sql`${bankAccounts.currentBalance} + ${totalAmountPaid}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, bankAccountId));
+          .where(and(eq(bankAccounts.id, bankAccountId), eq(bankAccounts.schoolId, school.id)));
       }
     });
 

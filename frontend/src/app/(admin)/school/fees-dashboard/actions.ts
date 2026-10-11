@@ -46,7 +46,7 @@ export async function toggleAcademicYearFiscalLockAction(input: {
         lockReason: input.isLocked ? reason : null,
         updatedAt: now,
       })
-      .where(eq(academicYears.id, ay.id));
+      .where(and(eq(academicYears.id, ay.id), eq(academicYears.schoolId, school.id)));
 
     // Mandatory Audit Log
     await db.insert(auditLogs).values({

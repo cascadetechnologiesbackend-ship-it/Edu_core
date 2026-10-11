@@ -63,7 +63,7 @@ export async function toggleFeeDiscount(id: string) {
         isActive: !existing.isActive,
         updatedAt: new Date(),
       })
-      .where(eq(feeDiscounts.id, id));
+      .where(and(eq(feeDiscounts.id, id), eq(feeDiscounts.schoolId, school.id)));
 
     revalidatePath("/school/fees-discount");
     return { success: true, message: "Discount status updated" };
@@ -171,7 +171,7 @@ export async function approveStudentConcessionAction(concessionId: string) {
         approvedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(feeConcessions.id, concessionId))
+      .where(and(eq(feeConcessions.id, concessionId), eq(feeConcessions.schoolId, school.id)))
       .returning();
 
     await logFeeAuditEvent(db, {

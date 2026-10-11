@@ -130,7 +130,7 @@ export async function seedStarterPackFeeHeads() {
             deletedAt: null,
             updatedAt: new Date(),
           })
-          .where(eq(feeHeads.id, existing.id));
+          .where(and(eq(feeHeads.id, existing.id), eq(feeHeads.schoolId, school.id)));
       } else {
         await db.insert(feeHeads).values({
           schoolId: school.id,

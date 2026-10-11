@@ -947,7 +947,7 @@ export async function updateStaff(
         if (emailConflict) {
           return { success: false, message: "Another user account already uses this email." };
         }
-        await db.update(users).set({ email: emailNorm, updatedAt: new Date() }).where(eq(users.id, staffRecord.userId));
+        await db.update(users).set({ email: emailNorm, updatedAt: new Date() }).where(and(eq(users.id, staffRecord.userId), eq(users.schoolId, school.id)));
       }
       updates.emailEncrypted = encryptData(emailNorm);
     }
@@ -1003,7 +1003,11 @@ export async function updateStaff(
             });
             if (oldRole) {
               await db.delete(userRoles).where(
-                and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, oldRole.id)),
+                and(
+                  eq(userRoles.userId, staffRecord.userId),
+                  eq(userRoles.roleId, oldRole.id),
+                  eq(userRoles.schoolId, school.id),
+                ),
               );
             }
           }
@@ -1045,7 +1049,7 @@ export async function updateStaff(
         }
       }
 
-    await db.update(staff).set(updates).where(eq(staff.id, staffId));
+    await db.update(staff).set(updates).where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
     await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "UPDATE_STAFF" });
 
     safeRevalidate("/hr");
@@ -1156,24 +1160,44 @@ export async function offboardStaff(
           await db
             .update(classSubjects)
             .set({ assignedTeacherId: null, updatedAt: new Date() })
-            .where(eq(classSubjects.assignedTeacherId, staffRecord.userId));
+            .where(
+              and(
+                eq(classSubjects.assignedTeacherId, staffRecord.userId),
+                eq(classSubjects.schoolId, school.id),
+              ),
+            );
         }
         if (sstList.length > 0) {
           await db
             .delete(sectionSubjectTeachers)
-            .where(eq(sectionSubjectTeachers.teacherId, staffRecord.userId));
+            .where(
+              and(
+                eq(sectionSubjectTeachers.teacherId, staffRecord.userId),
+                eq(sectionSubjectTeachers.schoolId, school.id),
+              ),
+            );
         }
         if (tpList.length > 0) {
           await db
             .update(timetablePeriods)
             .set({ teacherId: null, updatedAt: new Date() })
-            .where(eq(timetablePeriods.teacherId, staffRecord.userId));
+            .where(
+              and(
+                eq(timetablePeriods.teacherId, staffRecord.userId),
+                eq(timetablePeriods.schoolId, school.id),
+              ),
+            );
         }
         if (secList.length > 0) {
           await db
             .update(sections)
             .set({ classTeacherId: null, updatedAt: new Date() })
-            .where(eq(sections.classTeacherId, staffRecord.userId));
+            .where(
+              and(
+                eq(sections.classTeacherId, staffRecord.userId),
+                eq(sections.schoolId, school.id),
+              ),
+            );
         }
       }
     }
@@ -1189,14 +1213,14 @@ export async function offboardStaff(
         separationReason: input.separationReason?.trim() || null,
         updatedAt: new Date(),
       })
-      .where(eq(staff.id, staffId));
+      .where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
 
     // 5. Deactivate linked user login account
     if (staffRecord.userId) {
       await db
         .update(users)
         .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(users.id, staffRecord.userId));
+        .where(and(eq(users.id, staffRecord.userId), eq(users.schoolId, school.id)));
     }
 
     await logHrAudit(ctx, "WRITE", "staff", staffId, {
@@ -1233,13 +1257,13 @@ export async function reactivateStaff(staffId: string) {
         separationReason: null,
         updatedAt: new Date(),
       })
-      .where(eq(staff.id, staffId));
+      .where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
 
     if (staffRecord.userId) {
       await db
         .update(users)
         .set({ isActive: true, updatedAt: new Date() })
-        .where(eq(users.id, staffRecord.userId));
+        .where(and(eq(users.id, staffRecord.userId), eq(users.schoolId, school.id)));
     }
 
     await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "REACTIVATE_STAFF" });
@@ -1266,7 +1290,7 @@ export async function toggleStaffLegalHold(staffId: string, legalHold: boolean) 
     await db
       .update(staff)
       .set({ legalHold: Boolean(legalHold), updatedAt: new Date() })
-      .where(eq(staff.id, staffId));
+      .where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
 
     await logHrAudit(ctx, "WRITE", "staff", staffId, {
       action: "TOGGLE_LEGAL_HOLD",
@@ -1472,6 +1496,8 @@ export async function approveLeaveRequest(
 
     if (!request) return { success: false, message: "Leave request not found" };
 
+    const schoolId = session.user.schoolId || request.schoolId;
+
     const updateValues: Record<string, any> = {
       updatedAt: new Date(),
     };
@@ -1517,7 +1543,12 @@ export async function approveLeaveRequest(
                   usedDays: (currentUsed + requestedDays).toFixed(1),
                   updatedAt: new Date(),
                 })
-                .where(eq(leaveBalances.id, balance.id));
+                .where(
+                  and(
+                    eq(leaveBalances.id, balance.id),
+                    eq(leaveBalances.schoolId, schoolId),
+                  ),
+                );
             }
           }
         }
@@ -1527,7 +1558,12 @@ export async function approveLeaveRequest(
     await db
       .update(leaveRequests)
       .set(updateValues)
-      .where(eq(leaveRequests.id, id));
+      .where(
+        and(
+          eq(leaveRequests.id, id),
+          eq(leaveRequests.schoolId, schoolId),
+        ),
+      );
 
     safeRevalidate("/hr/leaves");
     return { success: true };
@@ -1582,11 +1618,11 @@ export async function associateSalaryTemplate(
   monthlyTds = 0,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
 
     const template = await db.query.salaryTemplates.findFirst({
-      where: eq(salaryTemplates.id, templateId),
+      where: and(eq(salaryTemplates.id, templateId), eq(salaryTemplates.schoolId, school.id)),
     });
 
     if (!template) return { success: false, message: "Template not found" };
@@ -1597,7 +1633,12 @@ export async function associateSalaryTemplate(
     // Delete existing salaryComponents
     await db
       .delete(salaryComponents)
-      .where(eq(salaryComponents.staffId, staffId));
+      .where(
+        and(
+          eq(salaryComponents.staffId, staffId),
+          eq(salaryComponents.schoolId, school.id),
+        ),
+      );
 
     await db.insert(salaryComponents).values({
       schoolId: template.schoolId,
@@ -1856,7 +1897,12 @@ export async function runPayrollForMonth(month: string) {
         status: "PROCESSED",
         updatedAt: new Date(),
       })
-      .where(eq(payrollRuns.id, run.id));
+      .where(
+        and(
+          eq(payrollRuns.id, run.id),
+          eq(payrollRuns.schoolId, school.id),
+        ),
+      );
 
     safeRevalidate("/hr/payroll");
     return { success: true, runId: run.id };
@@ -1867,23 +1913,11 @@ export async function runPayrollForMonth(month: string) {
 
 export async function approveAndLockPayroll(runId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
-
-    if (
-      session.user.role !== "SUPER_ADMIN" &&
-      session.user.role !== "PRINCIPAL" &&
-      session.user.role !== "SCHOOL_ADMIN"
-    ) {
-      return {
-        success: false,
-        message:
-          "Access denied: Principal or Admin authorization required to lock payroll.",
-      };
-    }
+    const ctx = await requireAuth(["SUPER_ADMIN", "PRINCIPAL", "SCHOOL_ADMIN"] as const);
+    const school = await requireSchool(ctx);
 
     const run = await db.query.payrollRuns.findFirst({
-      where: eq(payrollRuns.id, runId),
+      where: and(eq(payrollRuns.id, runId), eq(payrollRuns.schoolId, school.id)),
       with: { payslips: true },
     });
 
@@ -1894,11 +1928,16 @@ export async function approveAndLockPayroll(runId: string) {
       .update(payrollRuns)
       .set({
         status: "APPROVED",
-        approvedById: session.user.id,
+        approvedById: ctx.userId,
         approvedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(payrollRuns.id, runId));
+      .where(
+        and(
+          eq(payrollRuns.id, runId),
+          eq(payrollRuns.schoolId, school.id),
+        ),
+      );
 
     // Deduct remaining amounts of loans
     for (const slip of run.payslips) {
@@ -1907,6 +1946,7 @@ export async function approveAndLockPayroll(runId: string) {
         const activeLoan = await db.query.staffLoans.findFirst({
           where: and(
             eq(staffLoans.staffId, slip.staffId),
+            eq(staffLoans.schoolId, school.id),
             eq(staffLoans.status, "ACTIVE"),
           ),
         });
@@ -1921,7 +1961,12 @@ export async function approveAndLockPayroll(runId: string) {
               status: newRem <= 0 ? "PAID_OFF" : "ACTIVE",
               updatedAt: new Date(),
             })
-            .where(eq(staffLoans.id, activeLoan.id));
+            .where(
+              and(
+                eq(staffLoans.id, activeLoan.id),
+                eq(staffLoans.schoolId, school.id),
+              ),
+            );
         }
       }
     }

@@ -357,7 +357,12 @@ export async function assignSectionTeacher(data: {
           isActive: false,
           updatedAt: new Date(),
         })
-        .where(eq(sectionSubjectTeachers.id, currentActive.id));
+        .where(
+          and(
+            eq(sectionSubjectTeachers.id, currentActive.id),
+            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          ),
+        );
     }
 
     // 2. Insert new active allocation (effectiveTo = null, isActive = true)
@@ -495,97 +500,188 @@ export async function deleteClass(classId: string): Promise<{ success: true; mes
   // 7. Atomic cascade cleanup
   await db.transaction(async (tx) => {
     // Delete in-progress or historical report card jobs if any
-    await tx.delete(reportCardJobs).where(eq(reportCardJobs.classId, classId));
+    await tx
+      .delete(reportCardJobs)
+      .where(
+        and(
+          eq(reportCardJobs.classId, classId),
+          eq(reportCardJobs.schoolId, session.user.schoolId),
+        ),
+      );
 
     // Delete student class history entries for this class or its sections
     if (sectionIds.length > 0) {
       await tx
         .delete(studentClassHistory)
-        .where(inArray(studentClassHistory.sectionId, sectionIds));
+        .where(
+          and(
+            inArray(studentClassHistory.sectionId, sectionIds),
+            eq(studentClassHistory.schoolId, session.user.schoolId),
+          ),
+        );
     }
     await tx
       .delete(studentClassHistory)
-      .where(eq(studentClassHistory.classId, classId));
+      .where(
+        and(
+          eq(studentClassHistory.classId, classId),
+          eq(studentClassHistory.schoolId, session.user.schoolId),
+        ),
+      );
 
     // A. Section-level dependencies
     if (sectionIds.length > 0) {
       await tx
         .delete(timetableSubstitutions)
-        .where(inArray(timetableSubstitutions.sectionId, sectionIds));
+        .where(
+          and(
+            inArray(timetableSubstitutions.sectionId, sectionIds),
+            eq(timetableSubstitutions.schoolId, session.user.schoolId),
+          ),
+        );
 
       await tx
         .delete(timetablePeriods)
-        .where(inArray(timetablePeriods.sectionId, sectionIds));
+        .where(
+          and(
+            inArray(timetablePeriods.sectionId, sectionIds),
+            eq(timetablePeriods.schoolId, session.user.schoolId),
+          ),
+        );
 
       await tx
         .delete(sectionSubjectTeachers)
-        .where(inArray(sectionSubjectTeachers.sectionId, sectionIds));
+        .where(
+          and(
+            inArray(sectionSubjectTeachers.sectionId, sectionIds),
+            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          ),
+        );
     }
 
     // B. ClassSubject-level dependencies
     if (classSubjectIds.length > 0) {
       await tx
         .delete(sectionSubjectTeachers)
-        .where(inArray(sectionSubjectTeachers.classSubjectId, classSubjectIds));
+        .where(
+          and(
+            inArray(sectionSubjectTeachers.classSubjectId, classSubjectIds),
+            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          ),
+        );
 
       await tx
         .delete(assessments)
-        .where(inArray(assessments.classSubjectId, classSubjectIds));
+        .where(
+          and(
+            inArray(assessments.classSubjectId, classSubjectIds),
+            eq(assessments.schoolId, session.user.schoolId),
+          ),
+        );
 
       const classAssignments = await tx.query.assignments.findMany({
-        where: inArray(assignments.classSubjectId, classSubjectIds),
+        where: and(
+          inArray(assignments.classSubjectId, classSubjectIds),
+          eq(assignments.schoolId, session.user.schoolId),
+        ),
         columns: { id: true },
       });
       const assignmentIds = classAssignments.map((a) => a.id);
       if (assignmentIds.length > 0) {
         await tx
           .delete(assignmentSubmissions)
-          .where(inArray(assignmentSubmissions.assignmentId, assignmentIds));
+          .where(
+            and(
+              inArray(assignmentSubmissions.assignmentId, assignmentIds),
+              eq(assignmentSubmissions.schoolId, session.user.schoolId),
+            ),
+          );
 
         await tx
           .delete(assignments)
-          .where(inArray(assignments.id, assignmentIds));
+          .where(
+            and(
+              inArray(assignments.id, assignmentIds),
+              eq(assignments.schoolId, session.user.schoolId),
+            ),
+          );
       }
 
       await tx
         .delete(lessonPlans)
-        .where(inArray(lessonPlans.classSubjectId, classSubjectIds));
+        .where(
+          and(
+            inArray(lessonPlans.classSubjectId, classSubjectIds),
+            eq(lessonPlans.schoolId, session.user.schoolId),
+          ),
+        );
 
       const units = await tx.query.syllabusUnits.findMany({
-        where: inArray(syllabusUnits.classSubjectId, classSubjectIds),
+        where: and(
+          inArray(syllabusUnits.classSubjectId, classSubjectIds),
+          eq(syllabusUnits.schoolId, session.user.schoolId),
+        ),
         columns: { id: true },
       });
       const unitIds = units.map((u) => u.id);
       if (unitIds.length > 0) {
         const chapters = await tx.query.syllabusChapters.findMany({
-          where: inArray(syllabusChapters.unitId, unitIds),
+          where: and(
+            inArray(syllabusChapters.unitId, unitIds),
+            eq(syllabusChapters.schoolId, session.user.schoolId),
+          ),
           columns: { id: true },
         });
         const chapterIds = chapters.map((c) => c.id);
         if (chapterIds.length > 0) {
           await tx
             .delete(syllabusTopics)
-            .where(inArray(syllabusTopics.chapterId, chapterIds));
+            .where(
+              and(
+                inArray(syllabusTopics.chapterId, chapterIds),
+                eq(syllabusTopics.schoolId, session.user.schoolId),
+              ),
+            );
 
           await tx
             .delete(syllabusChapters)
-            .where(inArray(syllabusChapters.id, chapterIds));
+            .where(
+              and(
+                inArray(syllabusChapters.id, chapterIds),
+                eq(syllabusChapters.schoolId, session.user.schoolId),
+              ),
+            );
         }
         await tx
           .delete(syllabusUnits)
-          .where(inArray(syllabusUnits.id, unitIds));
+          .where(
+            and(
+              inArray(syllabusUnits.id, unitIds),
+              eq(syllabusUnits.schoolId, session.user.schoolId),
+            ),
+          );
       }
 
       await tx
         .delete(classSubjects)
-        .where(inArray(classSubjects.id, classSubjectIds));
+        .where(
+          and(
+            inArray(classSubjects.id, classSubjectIds),
+            eq(classSubjects.schoolId, session.user.schoolId),
+          ),
+        );
     }
 
     // C. Delete sections
     if (sectionIds.length > 0) {
       await tx
         .delete(sections)
-        .where(inArray(sections.id, sectionIds));
+        .where(
+          and(
+            inArray(sections.id, sectionIds),
+            eq(sections.schoolId, session.user.schoolId),
+          ),
+        );
     }
 
     // D. Delete the class itself

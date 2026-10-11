@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { examTypes } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { z } from "zod";
@@ -53,15 +53,16 @@ export async function createExamType(formData: FormData) {
 export async function deleteExamType(id: string) {
   try {
     const ctx = await requireAuth(ALLOWED_ROLES);
+    const school = await requireSchool(ctx);
     // Verify the exam type belongs to this school before deleting
     const existing = await db.query.examTypes.findFirst({
-      where: eq(examTypes.id, id),
+      where: and(eq(examTypes.id, id), eq(examTypes.schoolId, school.id)),
     });
-    if (!existing || existing.schoolId !== ctx.schoolId) {
+    if (!existing) {
       return { success: false, message: "Exam type not found" };
     }
 
-    await db.delete(examTypes).where(eq(examTypes.id, id));
+    await db.delete(examTypes).where(and(eq(examTypes.id, id), eq(examTypes.schoolId, school.id)));
 
     revalidatePath("/settings/exam-types");
     revalidatePath("/exams/new");

@@ -232,7 +232,12 @@ export async function issueBook(rawData: unknown) {
     await tx
       .update(bookCopies)
       .set({ isAvailable: false })
-      .where(eq(bookCopies.id, copy.id));
+      .where(
+        and(
+          eq(bookCopies.id, copy.id),
+          eq(bookCopies.schoolId, schoolId),
+        ),
+      );
 
     // Create checkout issue log
     const dueDate = new Date(
@@ -252,7 +257,12 @@ export async function issueBook(rawData: unknown) {
       .set({
         availableCopies: sql`available_copies - 1`,
       })
-      .where(eq(books.id, copy.bookId));
+      .where(
+        and(
+          eq(books.id, copy.bookId),
+          eq(books.schoolId, schoolId),
+        ),
+      );
   });
 
   await logAuditEvent(makeAuditCtx(ctx), {
@@ -294,13 +304,23 @@ export async function returnBook(rawData: unknown) {
     await tx
       .update(bookCopies)
       .set({ isAvailable: true, condition: data.condition })
-      .where(eq(bookCopies.id, issue.bookCopyId));
+      .where(
+        and(
+          eq(bookCopies.id, issue.bookCopyId),
+          eq(bookCopies.schoolId, schoolId),
+        ),
+      );
 
     // Update issue log returnedAt
     await tx
       .update(bookIssues)
       .set({ returnedAt: new Date(), status: "RETURNED" })
-      .where(eq(bookIssues.id, issue.id));
+      .where(
+        and(
+          eq(bookIssues.id, issue.id),
+          eq(bookIssues.schoolId, schoolId),
+        ),
+      );
 
     // Register fine if any
     if (data.fineAmount > 0) {
@@ -323,7 +343,10 @@ export async function returnBook(rawData: unknown) {
 
     // Increment available count in books table
     const copy = await tx.query.bookCopies.findFirst({
-      where: eq(bookCopies.id, issue.bookCopyId),
+      where: and(
+        eq(bookCopies.id, issue.bookCopyId),
+        eq(bookCopies.schoolId, schoolId),
+      ),
     });
     if (copy) {
       await tx
@@ -331,7 +354,12 @@ export async function returnBook(rawData: unknown) {
         .set({
           availableCopies: sql`available_copies + 1`,
         })
-        .where(eq(books.id, copy.bookId));
+        .where(
+          and(
+            eq(books.id, copy.bookId),
+            eq(books.schoolId, schoolId),
+          ),
+        );
     }
   });
 

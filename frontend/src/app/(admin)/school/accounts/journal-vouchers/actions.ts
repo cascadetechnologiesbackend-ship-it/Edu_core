@@ -197,7 +197,12 @@ export async function createContraEntryAction(params: {
             currentBalance: sql`${bankAccounts.currentBalance} + ${params.amount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, toBank.id));
+          .where(
+            and(
+              eq(bankAccounts.id, toBank.id),
+              eq(bankAccounts.schoolId, school.id),
+            ),
+          );
 
         // Post ledger transaction (Debit Bank 1010, Credit Cash 1000)
         await tx.insert(accountLedgerTransactions).values({
@@ -253,7 +258,12 @@ export async function createContraEntryAction(params: {
             currentBalance: sql`${bankAccounts.currentBalance} - ${params.amount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, fromBank.id));
+          .where(
+            and(
+              eq(bankAccounts.id, fromBank.id),
+              eq(bankAccounts.schoolId, school.id),
+            ),
+          );
 
         // Post ledger transaction (Debit Cash 1000, Credit Bank 1010)
         await tx.insert(accountLedgerTransactions).values({
@@ -318,7 +328,12 @@ export async function createContraEntryAction(params: {
             currentBalance: sql`${bankAccounts.currentBalance} - ${params.amount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, fromBank.id));
+          .where(
+            and(
+              eq(bankAccounts.id, fromBank.id),
+              eq(bankAccounts.schoolId, school.id),
+            ),
+          );
 
         // Increment destination bank
         await tx
@@ -327,7 +342,12 @@ export async function createContraEntryAction(params: {
             currentBalance: sql`${bankAccounts.currentBalance} + ${params.amount.toFixed(2)}`,
             updatedAt: new Date(),
           })
-          .where(eq(bankAccounts.id, toBank.id));
+          .where(
+            and(
+              eq(bankAccounts.id, toBank.id),
+              eq(bankAccounts.schoolId, school.id),
+            ),
+          );
 
         // Post inter-bank ledger transfer
         await tx.insert(accountLedgerTransactions).values({

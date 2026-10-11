@@ -86,29 +86,15 @@ export async function lockExam(examId: string) {
       lockedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(exams.id, examId));
+    .where(and(eq(exams.id, examId), eq(exams.schoolId, ctx.schoolId!)));
 
   revalidatePath(`/exams/${examId}`);
   revalidatePath("/exams");
 }
 
 export async function unlockExam(examId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
-  const dbUser = await db.query.users.findFirst({
-    where: eq(users.id, session.user.id),
-  });
-  if (!dbUser) {
-    throw new Error(
-      "Your session is invalid or stale (the database may have been re-seeded). Please sign out and sign back in.",
-    );
-  }
-
-  const allowed = ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(
-    session.user.role as string,
-  );
-  if (!allowed) throw new Error("Only Admin can unlock exams");
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"]);
+  const school = await requireSchool(ctx);
 
   await db
     .update(exams)
@@ -118,7 +104,7 @@ export async function unlockExam(examId: string) {
       lockedAt: null,
       updatedAt: new Date(),
     })
-    .where(eq(exams.id, examId));
+    .where(and(eq(exams.id, examId), eq(exams.schoolId, school.id)));
 
   revalidatePath(`/exams/${examId}`);
   revalidatePath("/exams");
@@ -126,11 +112,14 @@ export async function unlockExam(examId: string) {
 
 export async function generateMeritList(examId: string, classId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"]);
+    const school = await requireSchool(ctx);
 
     const classStudents = await db.query.students.findMany({
-      where: eq(students.currentClassId, classId),
+      where: and(
+        eq(students.currentClassId, classId),
+        eq(students.schoolId, school.id),
+      ),
     });
 
     if (classStudents.length === 0) {
@@ -174,7 +163,12 @@ export async function generateMeritList(examId: string, classId: string) {
         await db
           .update(reportCards)
           .set({ rank: item.rank, updatedAt: new Date() })
-          .where(eq(reportCards.id, card.id));
+          .where(
+            and(
+              eq(reportCards.id, card.id),
+              eq(reportCards.schoolId, school.id),
+            ),
+          );
       }
     }
 
@@ -297,10 +291,17 @@ export async function createExamSchedule(
 
 export async function deleteExamSchedule(id: string, examId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, message: "Unauthorized" };
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+    const school = await requireSchool(ctx);
 
-    await db.delete(examSchedules).where(eq(examSchedules.id, id));
+    await db
+      .delete(examSchedules)
+      .where(
+        and(
+          eq(examSchedules.id, id),
+          eq(examSchedules.schoolId, school.id),
+        ),
+      );
 
     revalidatePath(`/exams/${examId}`);
     return {

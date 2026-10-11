@@ -352,7 +352,12 @@ export async function createAdjustingJournalVoucherAction(params: {
           currentBalance: sql`${bankAccounts.currentBalance} + ${balanceDelta.toFixed(2)}`,
           updatedAt: new Date(),
         })
-        .where(eq(bankAccounts.id, bank.id))
+        .where(
+          and(
+            eq(bankAccounts.id, bank.id),
+            eq(bankAccounts.schoolId, school.id),
+          ),
+        )
         .returning();
 
       if (updatedBank) finalBalance = updatedBank.currentBalance;

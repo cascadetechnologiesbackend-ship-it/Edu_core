@@ -107,7 +107,7 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
             status: revertedStatus,
             updatedAt: new Date(),
           })
-          .where(eq(feeInvoices.id, invoice.id));
+          .where(and(eq(feeInvoices.id, invoice.id), eq(feeInvoices.schoolId, school.id)));
       }
 
       // 3. Post reversal DEBIT to general ledger with double-entry IDs
@@ -180,7 +180,7 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
               currentBalance: sql`${bankAccounts.currentBalance} - ${netAmount.toFixed(2)}`,
               updatedAt: new Date(),
             })
-            .where(eq(bankAccounts.id, bankAccountId));
+            .where(and(eq(bankAccounts.id, bankAccountId), eq(bankAccounts.schoolId, school.id)));
         }
       } else {
         // Standard Reversal
@@ -206,12 +206,12 @@ export async function cancelTransaction(input: FormData | { paymentId: string; r
               currentBalance: sql`${bankAccounts.currentBalance} - ${amountToReverse}`,
               updatedAt: new Date(),
             })
-            .where(eq(bankAccounts.id, bankAccountId));
+            .where(and(eq(bankAccounts.id, bankAccountId), eq(bankAccounts.schoolId, school.id)));
         }
       }
 
       // 5. Delete payment record
-      await tx.delete(feePayments).where(eq(feePayments.id, payment.id));
+      await tx.delete(feePayments).where(and(eq(feePayments.id, payment.id), eq(feePayments.schoolId, school.id)));
     });
 
     // Invalidate tenant S2 finance caches matching payment, dues, and accounts tags

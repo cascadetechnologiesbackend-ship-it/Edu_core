@@ -147,19 +147,34 @@ export async function archiveSyllabusUnit(id: string, force = false) {
       await tx
         .update(syllabusTopics)
         .set({ isActive: false, deletedAt: now, updatedAt: now })
-        .where(inArray(syllabusTopics.id, topicIds));
+        .where(
+          and(
+            inArray(syllabusTopics.id, topicIds),
+            eq(syllabusTopics.schoolId, session.user.schoolId),
+          ),
+        );
     }
     const chapterIds = unit.chapters.map((c) => c.id);
     if (chapterIds.length > 0) {
       await tx
         .update(syllabusChapters)
         .set({ isActive: false, deletedAt: now, updatedAt: now })
-        .where(inArray(syllabusChapters.id, chapterIds));
+        .where(
+          and(
+            inArray(syllabusChapters.id, chapterIds),
+            eq(syllabusChapters.schoolId, session.user.schoolId),
+          ),
+        );
     }
     await tx
       .update(syllabusUnits)
       .set({ isActive: false, deletedAt: now, updatedAt: now })
-      .where(eq(syllabusUnits.id, id));
+      .where(
+        and(
+          eq(syllabusUnits.id, id),
+          eq(syllabusUnits.schoolId, session.user.schoolId),
+        ),
+      );
   });
 
   safeRevalidate("/academics");
@@ -309,12 +324,22 @@ export async function archiveSyllabusChapter(id: string, force = false) {
       await tx
         .update(syllabusTopics)
         .set({ isActive: false, deletedAt: now, updatedAt: now })
-        .where(inArray(syllabusTopics.id, topicIds));
+        .where(
+          and(
+            inArray(syllabusTopics.id, topicIds),
+            eq(syllabusTopics.schoolId, session.user.schoolId),
+          ),
+        );
     }
     await tx
       .update(syllabusChapters)
       .set({ isActive: false, deletedAt: now, updatedAt: now })
-      .where(eq(syllabusChapters.id, id));
+      .where(
+        and(
+          eq(syllabusChapters.id, id),
+          eq(syllabusChapters.schoolId, session.user.schoolId),
+        ),
+      );
   });
 
   safeRevalidate("/academics");
@@ -342,12 +367,22 @@ export async function restoreSyllabusChapter(id: string) {
       await tx
         .update(syllabusUnits)
         .set({ isActive: true, deletedAt: null, updatedAt: now })
-        .where(eq(syllabusUnits.id, chapter.unitId));
+        .where(
+          and(
+            eq(syllabusUnits.id, chapter.unitId),
+            eq(syllabusUnits.schoolId, session.user.schoolId),
+          ),
+        );
     }
     await tx
       .update(syllabusChapters)
       .set({ isActive: true, deletedAt: null, updatedAt: now })
-      .where(eq(syllabusChapters.id, id));
+      .where(
+        and(
+          eq(syllabusChapters.id, id),
+          eq(syllabusChapters.schoolId, session.user.schoolId),
+        ),
+      );
   });
 
   safeRevalidate("/academics");
@@ -500,19 +535,34 @@ export async function restoreSyllabusTopic(id: string) {
       await tx
         .update(syllabusUnits)
         .set({ isActive: true, deletedAt: null, updatedAt: now })
-        .where(eq(syllabusUnits.id, topic.chapter.unitId));
+        .where(
+          and(
+            eq(syllabusUnits.id, topic.chapter.unitId),
+            eq(syllabusUnits.schoolId, session.user.schoolId),
+          ),
+        );
     }
     // If the parent chapter is archived, safely restore it as well
     if (!topic.chapter.isActive || topic.chapter.deletedAt) {
       await tx
         .update(syllabusChapters)
         .set({ isActive: true, deletedAt: null, updatedAt: now })
-        .where(eq(syllabusChapters.id, topic.chapterId));
+        .where(
+          and(
+            eq(syllabusChapters.id, topic.chapterId),
+            eq(syllabusChapters.schoolId, session.user.schoolId),
+          ),
+        );
     }
     await tx
       .update(syllabusTopics)
       .set({ isActive: true, deletedAt: null, updatedAt: now })
-      .where(eq(syllabusTopics.id, id));
+      .where(
+        and(
+          eq(syllabusTopics.id, id),
+          eq(syllabusTopics.schoolId, session.user.schoolId),
+        ),
+      );
   });
 
   safeRevalidate("/academics");

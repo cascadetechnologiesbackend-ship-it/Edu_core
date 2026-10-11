@@ -10,7 +10,7 @@ import {
   staff,
   auditLogs,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { auth } from "@/lib/auth";
@@ -24,18 +24,19 @@ export async function toggleLegalHold(
 ) {
   try {
     const ctx = await requireAuth(["HR_MANAGER", "SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
-    const schoolId = ctx.schoolId ?? "00000000-0000-0000-0000-000000000000";
+    const school = await requireSchool(ctx);
+    const schoolId = school.id;
 
     if (targetTable === "students") {
       await db
         .update(students)
         .set({ legalHold: hold, updatedAt: new Date() })
-        .where(eq(students.id, recordId));
+        .where(and(eq(students.id, recordId), eq(students.schoolId, school.id)));
     } else {
       await db
         .update(staff)
         .set({ legalHold: hold, updatedAt: new Date() })
-        .where(eq(staff.id, recordId));
+        .where(and(eq(staff.id, recordId), eq(staff.schoolId, school.id)));
     }
 
     // Log to DPDP Audit Log
@@ -104,7 +105,8 @@ export async function updateVendorDpaStatus(
   expiry?: string,
 ) {
   try {
-    await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     await db
       .update(vendorRegister)
@@ -114,7 +116,7 @@ export async function updateVendorDpaStatus(
         dpaExpiresAt: expiry ? new Date(expiry) : null,
         updatedAt: new Date(),
       })
-      .where(eq(vendorRegister.id, vendorId));
+      .where(and(eq(vendorRegister.id, vendorId), eq(vendorRegister.schoolId, school.id)));
 
     revalidatePath("/dpdp");
     return { success: true };
@@ -242,6 +244,7 @@ export async function reportDataBreach(input: {
 export async function markBreachBoardNotified(breachId: string) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     await db
       .update(dataBreachLog)
@@ -250,7 +253,7 @@ export async function markBreachBoardNotified(breachId: string) {
         boardNotifiedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(dataBreachLog.id, breachId));
+      .where(and(eq(dataBreachLog.id, breachId), eq(dataBreachLog.schoolId, school.id)));
 
     revalidatePath("/dpdp");
     return { success: true };
@@ -261,7 +264,8 @@ export async function markBreachBoardNotified(breachId: string) {
 
 export async function markBreachParentsNotified(breachId: string) {
   try {
-    await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     await db
       .update(dataBreachLog)
@@ -270,7 +274,7 @@ export async function markBreachParentsNotified(breachId: string) {
         parentsNotifiedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(dataBreachLog.id, breachId));
+      .where(and(eq(dataBreachLog.id, breachId), eq(dataBreachLog.schoolId, school.id)));
 
     revalidatePath("/dpdp");
     return { success: true };
@@ -287,6 +291,7 @@ export async function resolveRightsRequest(
 ) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     await db
       .update(rightsRequests)
@@ -297,7 +302,7 @@ export async function resolveRightsRequest(
         respondedByUserId: ctx.userId,
         updatedAt: new Date(),
       })
-      .where(eq(rightsRequests.id, id));
+      .where(and(eq(rightsRequests.id, id), eq(rightsRequests.schoolId, school.id)));
 
     revalidatePath("/dpdp");
     return { success: true };
@@ -309,6 +314,7 @@ export async function resolveRightsRequest(
 export async function resolveGrievance(id: string, responseDetails: string) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
 
     await db
       .update(dpdpGrievances)
@@ -318,7 +324,7 @@ export async function resolveGrievance(id: string, responseDetails: string) {
         resolvedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(dpdpGrievances.id, id));
+      .where(and(eq(dpdpGrievances.id, id), eq(dpdpGrievances.schoolId, school.id)));
 
     revalidatePath("/dpdp");
     return { success: true };

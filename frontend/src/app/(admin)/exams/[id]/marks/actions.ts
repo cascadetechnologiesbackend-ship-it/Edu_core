@@ -136,7 +136,12 @@ export async function saveMarkEntries(input: SaveMarksInput) {
         await db
           .update(markEntries)
           .set(values)
-          .where(eq(markEntries.id, existing.id));
+          .where(
+            and(
+              eq(markEntries.id, existing.id),
+              eq(markEntries.schoolId, exam.schoolId),
+            ),
+          );
       } else {
         await db.insert(markEntries).values(values);
       }

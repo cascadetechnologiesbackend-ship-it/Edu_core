@@ -310,7 +310,12 @@ export async function enrollApplicant(
         await tx
           .update(students)
           .set({ primaryParentUserId: parentUserId })
-          .where(eq(students.id, newStudent.id));
+          .where(
+            and(
+              eq(students.id, newStudent.id),
+              eq(students.schoolId, school.id),
+            ),
+          );
       }
     }
 
@@ -473,7 +478,12 @@ export async function enrollApplicant(
             siblingStudentId: detectedSiblingId,
             updatedAt: new Date(),
           })
-          .where(eq(admissionApplications.id, application.id));
+          .where(
+            and(
+              eq(admissionApplications.id, application.id),
+              eq(admissionApplications.schoolId, school.id),
+            ),
+          );
       }
     }
 
@@ -530,7 +540,12 @@ export async function enrollApplicant(
         currentWorkflowStep: nextStepNumber,
         updatedAt: new Date(),
       })
-      .where(eq(admissionApplications.id, applicationId));
+      .where(
+        and(
+          eq(admissionApplications.id, applicationId),
+          eq(admissionApplications.schoolId, school.id),
+        ),
+      );
 
     // 9. Workflow step record
     await tx.insert(admissionWorkflowSteps).values({
@@ -643,7 +658,12 @@ export async function updateApplicationStatus(
     await db
       .update(admissionApplications)
       .set({ status: newStatus as any, updatedAt: new Date() })
-      .where(eq(admissionApplications.id, applicationId));
+      .where(
+        and(
+          eq(admissionApplications.id, applicationId),
+          eq(admissionApplications.schoolId, school.id),
+        ),
+      );
 
     safeRevalidate(`/admissions/${applicationId}`);
     safeRevalidate(`/admissions`);
