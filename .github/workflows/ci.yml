@@ -42,6 +42,11 @@ jobs:
       REDIS_URL: redis://localhost:6379
       AUTH_SECRET: test-ci-secret-value-must-be-at-least-32-chars-long-here
       NEXTAUTH_SECRET: test-ci-secret-value-must-be-at-least-32-chars-long-here
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      ENCRYPTION_KEY_ID: k1
+      ENCRYPTION_KEYRING: '{"k1":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}'
+      VAPID_PUBLIC_KEY: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckj0Gy2TXRwyLx9xWQndBIQeM2QVKE
+      VAPID_PRIVATE_KEY: test-ci-vapid-private-key-must-be-32-chars
       NODE_ENV: test
 
     steps:
@@ -56,7 +61,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9.0.0
+          version: 9.7.0
           run_install: false
 
       - name: Get pnpm store directory
@@ -78,12 +83,8 @@ jobs:
       - name: Verify Migration Sequence & Journal
         run: pnpm --filter @schoolmitra/database run db:check-migrations
 
-      - name: Monorepo Type Check
-        run: |
-          pnpm --filter @schoolmitra/database run type-check
-          pnpm --filter @schoolmitra/validators run type-check
-          pnpm --filter @schoolmitra/backend run type-check
-          pnpm --filter @schoolmitra/frontend run type-check
+      - name: Monorepo Type Check (All 7 Workspace Packages)
+        run: pnpm run type-check
 
       - name: Run Monorepo Lint
         run: pnpm --filter @schoolmitra/frontend run lint
@@ -98,6 +99,23 @@ jobs:
         run: |
           pnpm --filter @schoolmitra/frontend run build:analyze
           node frontend/scripts/check-bundle-budgets.mjs
+
+      - name: Set up Database & Seed for Playwright E2E
+        run: |
+          pnpm --filter @schoolmitra/database run db:migrate
+          pnpm --filter @schoolmitra/database run db:seed
+          pnpm --filter @schoolmitra/database run db:seed-coa
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @schoolmitra/frontend exec playwright install --with-deps chromium
+
+      - name: Run Playwright Core E2E Tests (RBAC, Multitenancy, Fees)
+        run: |
+          pnpm --filter @schoolmitra/frontend start -p 3002 &
+          for i in {1..30}; do
+            curl -s http://localhost:3002/api/health >/dev/null && break || sleep 2
+          done
+          pnpm --filter @schoolmitra/frontend exec playwright test e2e/p3-rbac-drill.spec.ts e2e/multitenancy.spec.ts e2e/finance-flows.spec.ts
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

@@ -1,16 +1,30 @@
 import crypto from "crypto";
 
-function resolveKey(): string {
-  const key = process.env.ENCRYPTION_KEY;
+const DEMO_ENCRYPTION_KEY =
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+export function resolveKey(customKey?: string, customEnv?: string): string {
+  const key = customKey !== undefined ? customKey : process.env.ENCRYPTION_KEY;
+  const env = customEnv !== undefined ? customEnv : process.env.NODE_ENV;
+
   if (!key) {
-    if (process.env.NODE_ENV === "production") {
+    if (env === "production") {
       throw new Error(
         "CRITICAL: ENCRYPTION_KEY environment variable is missing in production. Refusing to boot with default key.",
       );
     }
-    console.warn("⚠️ Warning: ENCRYPTION_KEY is not set in environment. Falling back to default key.");
-    return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    console.warn(
+      "⚠️ Warning: ENCRYPTION_KEY is not set in environment. Falling back to default key.",
+    );
+    return DEMO_ENCRYPTION_KEY;
   }
+
+  if (env === "production" && key.toLowerCase() === DEMO_ENCRYPTION_KEY.toLowerCase()) {
+    throw new Error(
+      "CRITICAL: ENCRYPTION_KEY matches the .env.example demo value in production. Refusing to boot with insecure key.",
+    );
+  }
+
   return key;
 }
 

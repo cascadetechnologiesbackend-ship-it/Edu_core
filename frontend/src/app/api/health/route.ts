@@ -39,6 +39,14 @@ export async function GET() {
   const durationMs = Date.now() - startedAt;
   const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
 
+  const commitSha =
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    process.env.GIT_COMMIT_SHA ||
+    process.env.NEXT_PUBLIC_APP_VERSION ||
+    "dev";
+
   // If Database fails, return 503
   if (dbStatus === "error") {
     return NextResponse.json(
@@ -47,6 +55,7 @@ export async function GET() {
         database: "error",
         redis: redisStatus,
         version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
+        commit: commitSha,
         uptime: uptimeSeconds,
         timestamp: new Date().toISOString(),
         durationMs,
@@ -65,6 +74,7 @@ export async function GET() {
       database: "ok",
       redis: redisStatus,
       version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
+      commit: commitSha,
       uptime: uptimeSeconds,
       timestamp: new Date().toISOString(),
       durationMs,

@@ -1,7 +1,9 @@
 name: Deploy Pipeline
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -14,47 +16,65 @@ jobs:
     name: Production Deployment & Health Verification
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Verify Deployment Prerequisites
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "::error ::RENDER_DEPLOY_HOOK_URL secret is not set. Deployment failed."
+            exit 1
+          fi
+
       - name: Trigger Render Deploy Hook
         id: trigger_deploy
         run: |
-          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "::warning ::RENDER_DEPLOY_HOOK_URL is not set. Skipping webhook trigger in dry-run mode."
-            exit 0
-          fi
           echo "Triggering Render deployment webhook..."
           curl -s -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || (echo "Deployment hook failed" && exit 1)
 
-      - name: Await Service Health Check
+      - name: Await Service Health & Version Verification
         shell: bash
         run: |
-          HEALTH_URL="${{ secrets.PRODUCTION_APP_URL || 'https://schoolmitra.onrender.com' }}/api/health"
+          HEALTH_URL="${{ secrets.PRODUCTION_APP_URL || 'https://edu-core-um1o.onrender.com' }}/api/health"
+          TARGET_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          SHORT_SHA="${TARGET_SHA:0:7}"
           echo "Polling health endpoint at: $HEALTH_URL"
+          echo "Target commit SHA: $TARGET_SHA (short: $SHORT_SHA)"
           
           MAX_ATTEMPTS=30
           ATTEMPT=1
           
-          # If dry run without secret or unreachable in private test, allow graceful check
-          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "Skipping active remote health check polling since RENDER_DEPLOY_HOOK_URL is unset."
-            exit 0
-          fi
-          
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "Health check attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            RESP=$(curl -s "$HEALTH_URL" || echo "")
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+            
             if [ "$STATUS" = "200" ]; then
-              echo "✅ Production health endpoint returned HTTP 200 OK."
-              exit 0
+              echo "✅ Health endpoint returned HTTP 200 OK. Inspecting version payload..."
+              DEPLOYED_COMMIT=$(echo "$RESP" | jq -r '.commit // empty' 2>/dev/null || echo "")
+              echo "Deployed commit reported: $DEPLOYED_COMMIT"
+              
+              if [ -n "$DEPLOYED_COMMIT" ] && [ "$DEPLOYED_COMMIT" != "dev" ]; then
+                if [[ "$DEPLOYED_COMMIT" == *"$SHORT_SHA"* ]] || [[ "$TARGET_SHA" == *"$DEPLOYED_COMMIT"* ]]; then
+                  echo "✅ Verified deployed commit matches pushed target commit ($SHORT_SHA)."
+                  exit 0
+                else
+                  echo "⏳ Health is 200 OK, but deployed commit ($DEPLOYED_COMMIT) does not yet match target ($SHORT_SHA). Build rollout in progress..."
+                fi
+              else
+                echo "⚠️ Commit metadata unavailable or in dev mode; accepting HTTP 200 OK health signal."
+                exit 0
+              fi
             fi
-            echo "Health status code: $STATUS. Sleeping 10 seconds..."
+            
+            echo "Status: $STATUS. Sleeping 10 seconds..."
             sleep 10
             ATTEMPT=$((ATTEMPT + 1))
           done
 
-          echo "❌ Health check timed out after 5 minutes."
+          echo "❌ Deployment verification timed out after 5 minutes."
           exit 1
+

@@ -6,6 +6,7 @@ import {
   computeSearchHash,
   computeLegacySearchHash,
   ENCRYPTION_KEY,
+  resolveKey,
 } from "../encryption";
 
 describe("AES-256-GCM Authenticated Encryption", () => {
@@ -76,5 +77,37 @@ describe("AES-256-GCM Authenticated Encryption", () => {
     // HKDF derived key produces different hash than legacy raw master key HMAC
     const legacyHash = computeLegacySearchHash(name);
     expect(hash1).not.toBe(legacyHash);
+  });
+
+  describe("Production Key Enforcement (Task A1)", () => {
+    it("refuses to boot in production when ENCRYPTION_KEY is absent", () => {
+      expect(() => resolveKey("", "production")).toThrow(
+        /CRITICAL: ENCRYPTION_KEY environment variable is missing in production/,
+      );
+      expect(() => resolveKey(undefined, "production")).toThrow(
+        /CRITICAL: ENCRYPTION_KEY environment variable is missing in production/,
+      );
+    });
+
+    it("refuses to boot in production when ENCRYPTION_KEY matches the .env.example demo value", () => {
+      const demoKey =
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+      expect(() => resolveKey(demoKey, "production")).toThrow(
+        /CRITICAL: ENCRYPTION_KEY matches the .env.example demo value in production/,
+      );
+    });
+
+    it("accepts a non-demo 64-hex character key in production", () => {
+      const validProdKey =
+        "e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283";
+      expect(resolveKey(validProdKey, "production")).toBe(validProdKey);
+    });
+
+    it("falls back to default key in development or test with warning", () => {
+      const fallback = resolveKey(undefined, "test");
+      expect(fallback).toBe(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      );
+    });
   });
 });
