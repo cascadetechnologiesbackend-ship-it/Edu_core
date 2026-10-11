@@ -1,9 +1,11 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { schools, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { schools, users, userRoles, roles } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import type { Role } from "@schoolmitra/validators";
-import { cache } from "react";
+import { cache as reactCache } from "react";
+
+const safeCache = typeof reactCache === "function" ? reactCache : <T extends (...args: any[]) => any>(fn: T): T => fn;
 
 // ─── Server Action Auth Context ───────────────────────────────────────────────
 // ALWAYS use requireAuth() at the top of every server action.
@@ -18,7 +20,7 @@ export interface AuthContext {
 
 // Zero-arg cached session fetcher ensures 100% deduplication per RSC request
 // and enforces live account active status verification (P3-T1 live drill)
-export const getCachedSession = cache(async () => {
+export const getCachedSession = safeCache(async () => {
   const session = await auth();
   if (!session?.user?.id) {
     return null;
@@ -36,8 +38,26 @@ export const getCachedSession = cache(async () => {
       if (!u || !u.isActive) {
         return null;
       }
+
+      // Check whether user still possesses their session role
+      const hasRole = await db
+        .select({ id: userRoles.id })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(
+          and(
+            eq(userRoles.userId, session.user.id),
+            eq(roles.name, session.user.role as any),
+          ),
+        )
+        .limit(1);
+
+      if (!hasRole || hasRole.length === 0) {
+        return null;
+      }
     } catch (err) {
-      console.warn("getCachedSession: user active status check failed", err);
+      console.error("getCachedSession: user active/role status check failed - failing closed", err);
+      return null;
     }
   }
 
@@ -127,7 +147,7 @@ export async function requireAuth(
  *
  * @throws Error if schoolId is missing or school is not found / not active
  */
-export const requireSchool = cache(async function requireSchoolImpl(
+export const requireSchool = safeCache(async function requireSchoolImpl(
   ctx: AuthContext,
 ) {
   if (!ctx.schoolId) {

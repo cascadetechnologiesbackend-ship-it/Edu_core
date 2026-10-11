@@ -45,3 +45,18 @@ Drill 5 verifies cross-tenant and cross-user data isolation within the client br
 - **Data Exposure Risk:** **Zero**. No student, fee, or tenant data is ever placed into CacheStorage.
 - **Cross-Session Leakage:** **Zero**. Full logout evacuation destroys client-side session tokens and clears application storage.
 - **Drill 5 Verdict:** **PASS**
+
+---
+
+## 4. Stage S2-D Audit Finding Remediation & Policy Codification (2026-10-11)
+
+> [!IMPORTANT]
+> **Audit Finding Disclosure:**
+> An external audit following Phase P5 identified that while Section 2.1 above claimed SSR navigation documents were never cached, `frontend/public/sw.js` actually contained a `PAGE_CACHE` mechanism (`caches.open(PAGE_CACHE).then(cache => cache.put(event.request, clone))`) caching authenticated HTML pages during browser navigations. On shared workstations, this posed a residual privacy risk.
+
+### Remediation Applied in Stage S2-D:
+1. **Zero Authenticated Page Cache:** Completely removed `PAGE_CACHE` and all `.put(event.request, clone)` calls for navigation requests.
+2. **Strict Precache Invariant:** Precaching is strictly limited to static public assets: `/offline`, `/manifest.json`, `/favicon.ico`, and `/icon.svg`.
+3. **Network-Only Document Navigation:** HTML document requests always hit the network. If the network is unavailable, the service worker returns the public `/offline` fallback page containing zero tenant or user data.
+4. **Universal Cache Purge on Sign-Out:** All sign-out buttons across `Header.tsx`, `Sidebar.tsx`, `PwaHeader.tsx`, and `PlatformSidebar.tsx` now call `secureSignOut()` in `frontend/src/lib/authClient.ts`, dispatching `CLEAR_AUTH_CACHE` to the service worker and executing `caches.delete(...)` on all browser cache stores before invoking NextAuth sign-out.
+

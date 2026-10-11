@@ -15,7 +15,8 @@ import {
   AlertOctagon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { secureSignOut } from "@/lib/authClient";
 import { getRoleConfig, type UserRole, type NavItem } from "../../lib/roleConfig";
 
 // Split heavy navigation icon map into dynamic chunk for shell leanliness (<= 100KB gzip)
@@ -223,7 +224,7 @@ export function Sidebar({
             </p>
           )}
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => secureSignOut({ callbackUrl: "/login" })}
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -475,7 +476,7 @@ export function Sidebar({
                 <div className="pt-1">
                   <button
                     type="button"
-                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    onClick={() => secureSignOut({ callbackUrl: "/login" })}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition font-medium text-left"
                     role="menuitem"
                   >

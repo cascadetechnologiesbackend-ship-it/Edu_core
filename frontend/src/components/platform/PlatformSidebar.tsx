@@ -15,7 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { signOut } from "next-auth/react";
+import { secureSignOut } from "@/lib/authClient";
 
 interface PlatformSidebarProps {
   userEmail?: string;
@@ -142,7 +142,7 @@ export function PlatformSidebar({
             <div className="text-[10px] text-slate-400 font-mono truncate">{userEmail}</div>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => secureSignOut({ callbackUrl: "/login" })}
             title="Sign Out"
             className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
           >

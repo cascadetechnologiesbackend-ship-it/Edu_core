@@ -1,7 +1,6 @@
-// SchoolMitra Production Service Worker (PWA Spec 3.1)
-const CACHE_VERSION = "schoolmitra-v1";
+// SchoolMitra Production Service Worker (PWA Spec 3.2 - Privacy Hardened)
+const CACHE_VERSION = "schoolmitra-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 
 const isDevHost =
   self.location.hostname === "localhost" ||
@@ -21,6 +20,7 @@ if (isDevHost) {
   });
 }
 
+// Strictly restricted precache assets: NO authenticated pages or student data
 const PRECACHE_ASSETS = [
   "/offline",
   "/icon.svg",
@@ -52,16 +52,14 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Clear cache on sign-out or handle skip-waiting
+// Clear all runtime and authenticated caches on sign-out or handle skip-waiting
 self.addEventListener("message", (event) => {
   if (event.data?.type === "CLEAR_AUTH_CACHE") {
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys.filter((k) => k.includes("pages")).map((k) => caches.delete(k))
-        )
-      );
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+    );
   } else if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
@@ -85,7 +83,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 3. Static assets (_next/static/*): Cache-First with robust network fallback
+  // 3. Static immutable assets (_next/static/*): Cache-First with robust network fallback
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
@@ -109,39 +107,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 4. Document / Page navigations: Network-first with 3s timeout -> cached page -> /offline
+  // 4. Document / Page navigations: Network-only with /offline fallback.
+  // CRITICAL PRIVACY RULE: NEVER cache authenticated HTML document navigations.
   if (event.request.mode === "navigate") {
     event.respondWith(
-      new Promise((resolve) => {
-        let didTimeout = false;
-        const timeoutId = setTimeout(() => {
-          didTimeout = true;
-          caches.match(event.request).then((cached) => {
-            if (cached) resolve(cached);
-          });
-        }, 3000);
-
-        fetch(event.request)
-          .then((response) => {
-            clearTimeout(timeoutId);
-            if (response.ok && event.request.method === "GET") {
-              const clone = response.clone();
-              caches.open(PAGE_CACHE).then((cache) => cache.put(event.request, clone));
-            }
-            resolve(response);
+      fetch(event.request).catch(async () => {
+        const offlinePage = await caches.match("/offline");
+        return (
+          offlinePage ||
+          new Response("Offline - Please connect to the internet", {
+            status: 503,
+            headers: { "Content-Type": "text/html" },
           })
-          .catch(() => {
-            clearTimeout(timeoutId);
-            caches.match(event.request).then((cached) => {
-              if (cached) {
-                resolve(cached);
-              } else {
-                caches.match("/offline").then((offline) => {
-                  resolve(offline || new Response("Offline", { status: 503 }));
-                });
-              }
-            });
-          });
+        );
       })
     );
     return;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { secureSignOut } from "@/lib/authClient";
 import { LogOut, Sun, Moon, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -101,7 +102,7 @@ export default function PwaHeader({
 
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => secureSignOut({ callbackUrl: "/login" })}
           className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
           title="Sign Out"
           aria-label="Sign Out"

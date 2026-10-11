@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { secureSignOut } from "@/lib/authClient";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 
@@ -287,7 +288,7 @@ export function Header({
             <button
               onClick={() => {
                 setUserMenuOpen(false);
-                signOut({ callbackUrl: "/login" });
+                secureSignOut({ callbackUrl: "/login" });
               }}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger
                          hover:bg-danger/10 transition-colors text-left"
