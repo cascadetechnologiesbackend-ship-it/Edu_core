@@ -56,6 +56,35 @@ export async function reconcileOnlinePayment(logId: string) {
     const netAmount = Math.max(0, totalAmount - feeAmount);
 
     await db.transaction(async (tx) => {
+      // S2-B: Lock paymentGatewayLog row FOR UPDATE and ensure status is still PAID
+      const [lockedLog] = await tx
+        .select()
+        .from(paymentGatewayLogs)
+        .where(
+          and(
+            eq(paymentGatewayLogs.id, logId),
+            eq(paymentGatewayLogs.schoolId, school.id),
+            eq(paymentGatewayLogs.status, "PAID")
+          )
+        )
+        .for("update");
+
+      if (!lockedLog) {
+        throw new Error("Gateway log is not in PAID status or not found.");
+      }
+
+      // Re-verify inside transaction that no ledger entry exists
+      const existingInTx = await tx.query.accountLedgerTransactions.findFirst({
+        where: and(
+          eq(accountLedgerTransactions.schoolId, school.id),
+          eq(accountLedgerTransactions.sourceId, lockedLog.id),
+        ),
+      });
+
+      if (existingInTx) {
+        throw new Error("Transaction already reconciled in ledger");
+      }
+
       const primaryBank = await tx.query.bankAccounts.findFirst({
         where: and(eq(bankAccounts.schoolId, school.id), eq(bankAccounts.isActive, true)),
       });
@@ -196,11 +225,28 @@ export async function reverseOnlinePayment(logId: string, reason: string) {
     const netAmount = Math.max(0, totalAmount - feeAmount);
 
     await db.transaction(async (tx) => {
+      // S2-B: Lock paymentGatewayLog row FOR UPDATE and ensure status is still PAID
+      const [lockedLog] = await tx
+        .select()
+        .from(paymentGatewayLogs)
+        .where(
+          and(
+            eq(paymentGatewayLogs.id, logId),
+            eq(paymentGatewayLogs.schoolId, school.id),
+            eq(paymentGatewayLogs.status, "PAID")
+          )
+        )
+        .for("update");
+
+      if (!lockedLog) {
+        throw new Error("Gateway log is not in PAID status or not found.");
+      }
+
       // Find associated ledger entries
       const existingTx = await tx.query.accountLedgerTransactions.findMany({
         where: and(
           eq(accountLedgerTransactions.schoolId, school.id),
-          eq(accountLedgerTransactions.sourceId, log.id),
+          eq(accountLedgerTransactions.sourceId, lockedLog.id),
         ),
       });
 

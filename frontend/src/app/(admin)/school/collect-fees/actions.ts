@@ -494,8 +494,18 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
         itemIndex++;
         if (!item || item.amountPaid <= 0) continue;
 
-        const invoice = await tx.query.feeInvoices.findFirst({
-          where: and(eq(feeInvoices.id, item.invoiceId), eq(feeInvoices.schoolId, school.id)),
+        const [lockedInvoice] = await tx
+          .select()
+          .from(feeInvoices)
+          .where(and(eq(feeInvoices.id, item.invoiceId), eq(feeInvoices.schoolId, school.id)))
+          .for("update");
+
+        if (!lockedInvoice) {
+          throw new Error(`Invoice #${item.invoiceId} not found.`);
+        }
+
+        const invoiceWithRelations = await tx.query.feeInvoices.findFirst({
+          where: eq(feeInvoices.id, lockedInvoice.id),
           with: {
             feeStructure: {
               with: {
@@ -504,16 +514,13 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
             },
           },
         });
-
-        if (!invoice) {
-          throw new Error(`Invoice #${item.invoiceId} not found.`);
-        }
+        const invoice = invoiceWithRelations || (lockedInvoice as any);
 
         // Apply discount or late fee adjustments if specified
-        let currentGross = parseFloat(invoice.grossAmount);
-        let currentDiscount = parseFloat(invoice.discountAmount || "0");
-        let currentLateFee = parseFloat(invoice.lateFeeAmount || "0");
-        let currentTax = parseFloat(invoice.taxAmount || "0");
+        let currentGross = parseFloat(lockedInvoice.grossAmount);
+        let currentDiscount = parseFloat(lockedInvoice.discountAmount || "0");
+        let currentLateFee = parseFloat(lockedInvoice.lateFeeAmount || "0");
+        let currentTax = parseFloat(lockedInvoice.taxAmount || "0");
 
         if (item.discountAdjustment && item.discountAdjustment > 0) {
           currentDiscount += item.discountAdjustment;

@@ -116,22 +116,14 @@ export async function POST(req: Request) {
     }
 
     const amountPaid = parseFloat(log.amount);
-    const newPaidAmount = parseFloat(invoice.paidAmount) + amountPaid;
-    const newBalanceAmount = parseFloat(invoice.netAmount) - newPaidAmount;
-
-    let newStatus = invoice.status;
-    if (newBalanceAmount <= 0.01) {
-      newStatus = "PAID";
-    } else if (newPaidAmount > 0) {
-      newStatus = "PARTIAL";
-    }
-
     const receiptNumber = `RZR-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
     let createdPaymentId: string | null = null;
+    let alreadyProcessed = false;
+    let existingPaymentRecord: any = null;
 
     await db.transaction(async (tx) => {
-      // 1. Update gateway log to PAID
-      await tx
+      // 1. Atomic Compare-And-Swap (CAS) update: only transition if status <> 'PAID'
+      const [casLog] = await tx
         .update(paymentGatewayLogs)
         .set({
           status: "PAID",
@@ -139,32 +131,82 @@ export async function POST(req: Request) {
           gatewaySignature: razorpay_signature,
           updatedAt: new Date(),
         })
-        .where(eq(paymentGatewayLogs.id, log.id));
-
-      // 2. Record feePayment
-      const [insertedPayment] = await tx
-        .insert(feePayments)
-        .values({
-          receiptNumber,
-          schoolId: invoice.schoolId,
-          studentId: invoice.studentId,
-          feeInvoiceId: invoice.id,
-          amountPaid: amountPaid.toFixed(2),
-          paymentMethod: "ONLINE",
-          transactionReference: razorpay_payment_id,
-          paymentDate: new Date(),
-          remarks: `Verified Razorpay payment (Role: ${session.user.role})`,
-          collectedById: ["ACCOUNTANT", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role)
-            ? session.user.id
-            : null,
-        })
+        .where(
+          and(
+            eq(paymentGatewayLogs.id, log.id),
+            sql`${paymentGatewayLogs.status} <> 'PAID'`
+          )
+        )
         .returning();
 
-      if (insertedPayment) {
-        createdPaymentId = insertedPayment.id;
+      if (!casLog) {
+        // CAS failed: concurrent webhook or duplicate verify already marked it PAID!
+        alreadyProcessed = true;
+        existingPaymentRecord = await tx.query.feePayments.findFirst({
+          where: eq(feePayments.transactionReference, razorpay_payment_id),
+        });
+        return;
       }
 
-      // 3. Update invoice balance and status
+      // 2. Lock invoice row FOR UPDATE
+      const [lockedInvoice] = await tx
+        .select()
+        .from(feeInvoices)
+        .where(eq(feeInvoices.id, log.feeInvoiceId!))
+        .for("update");
+
+      if (!lockedInvoice) {
+        throw new Error("Invoice record not found under lock");
+      }
+
+      const lockedPaidAmount = parseFloat(lockedInvoice.paidAmount || "0");
+      const lockedNetAmount = parseFloat(lockedInvoice.netAmount || "0");
+      const newPaidAmount = lockedPaidAmount + amountPaid;
+      const newBalanceAmount = lockedNetAmount - newPaidAmount;
+
+      let newStatus = lockedInvoice.status;
+      if (newBalanceAmount <= 0.01) {
+        newStatus = "PAID";
+      } else if (newPaidAmount > 0) {
+        newStatus = "PARTIAL";
+      }
+
+      // 3. Record feePayment with catch for 23505 unique violation
+      try {
+        const [insertedPayment] = await tx
+          .insert(feePayments)
+          .values({
+            receiptNumber,
+            schoolId: lockedInvoice.schoolId,
+            studentId: lockedInvoice.studentId,
+            feeInvoiceId: lockedInvoice.id,
+            amountPaid: amountPaid.toFixed(2),
+            paymentMethod: "ONLINE",
+            transactionReference: razorpay_payment_id,
+            paymentDate: new Date(),
+            remarks: `Verified Razorpay payment (Role: ${session.user.role})`,
+            collectedById: ["ACCOUNTANT", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role)
+              ? session.user.id
+              : null,
+          })
+          .returning();
+
+        if (insertedPayment) {
+          createdPaymentId = insertedPayment.id;
+        }
+      } catch (insertErr: any) {
+        // Postgres 23505: unique_violation on (school_id, transaction_reference)
+        if (insertErr.code === "23505" || insertErr.message?.includes("unique")) {
+          alreadyProcessed = true;
+          existingPaymentRecord = await tx.query.feePayments.findFirst({
+            where: eq(feePayments.transactionReference, razorpay_payment_id),
+          });
+          return;
+        }
+        throw insertErr;
+      }
+
+      // 4. Update invoice balance and status
       await tx
         .update(feeInvoices)
         .set({
@@ -172,23 +214,23 @@ export async function POST(req: Request) {
           balanceAmount: Math.max(0, newBalanceAmount).toFixed(2),
           status: newStatus,
         })
-        .where(eq(feeInvoices.id, invoice.id));
+        .where(eq(feeInvoices.id, lockedInvoice.id));
 
-      // 4. Resolve Chart of Accounts & Post Consolidated Credit Entry to General Ledger (P2-T1 S0 Invariant)
+      // 5. Resolve Chart of Accounts & Post Consolidated Credit Entry to General Ledger (P2-T1 S0 Invariant)
       const primaryBank = await tx.query.bankAccounts.findFirst({
-        where: and(eq(bankAccounts.schoolId, invoice.schoolId), eq(bankAccounts.isActive, true)),
+        where: and(eq(bankAccounts.schoolId, lockedInvoice.schoolId), eq(bankAccounts.isActive, true)),
       });
 
       const primaryBankId = primaryBank ? primaryBank.id : null;
       const bankChartAccountId = primaryBankId
-        ? await getBankAccountChartAccountId(invoice.schoolId, primaryBankId, tx)
-        : await getCashMainChartAccountId(invoice.schoolId, tx);
-      const studentReceivableAccountId = await getStudentReceivableChartAccountId(invoice.schoolId, tx);
+        ? await getBankAccountChartAccountId(lockedInvoice.schoolId, primaryBankId, tx)
+        : await getCashMainChartAccountId(lockedInvoice.schoolId, tx);
+      const studentReceivableAccountId = await getStudentReceivableChartAccountId(lockedInvoice.schoolId, tx);
 
       const txNumber = `TX-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
 
       await tx.insert(accountLedgerTransactions).values({
-        schoolId: invoice.schoolId,
+        schoolId: lockedInvoice.schoolId,
         transactionNumber: txNumber,
         sourceType: "FEE_COLLECTION",
         sourceId: createdPaymentId || log.id,
@@ -213,6 +255,19 @@ export async function POST(req: Request) {
       }
     });
 
+    if (alreadyProcessed) {
+      const finalPayment = existingPaymentRecord || (await db.query.feePayments.findFirst({
+        where: eq(feePayments.transactionReference, razorpay_payment_id),
+      }));
+      return NextResponse.json({
+        success: true,
+        alreadyProcessed: true,
+        paymentId: finalPayment?.id || null,
+        receiptNumber: finalPayment?.receiptNumber || "RECORDED",
+        downloadUrl: finalPayment ? `/api/receipt/${finalPayment.id}` : undefined,
+      });
+    }
+
     // Asynchronously archive PDF to S3
     if (createdPaymentId) {
       archiveReceiptPdfToS3(invoice.schoolId, createdPaymentId).catch((err) => {
@@ -228,6 +283,9 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("[Razorpay Verify] Verification error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Payment verification failed. Please contact support." },
+      { status: 500 }
+    );
   }
 }

@@ -108,10 +108,11 @@ export async function POST(req: Request) {
 
       const receiptNumber = `RZR-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
       let createdPaymentId: string | null = null;
+      let alreadyProcessed = false;
 
       await db.transaction(async (tx) => {
-        // Update Log with feeAmount and sanitized webhookPayload (AZ-04)
-        await tx
+        // 1. Atomic Compare-And-Swap (CAS) update: only transition if status <> 'PAID'
+        const [casLog] = await tx
           .update(paymentGatewayLogs)
           .set({
             status: "PAID",
@@ -129,30 +130,74 @@ export async function POST(req: Request) {
             }),
             updatedAt: new Date(),
           })
-          .where(eq(paymentGatewayLogs.id, log.id));
-
-        // Create Payment
-        const [insertedPayment] = await tx
-          .insert(feePayments)
-          .values({
-            receiptNumber,
-            schoolId: invoice.schoolId,
-            studentId: invoice.studentId,
-            feeInvoiceId: invoice.id,
-            amountPaid: amountPaid.toFixed(2),
-            paymentMethod: "ONLINE",
-            transactionReference: payment.id,
-            paymentDate: new Date(),
-            remarks: "Online Payment via Razorpay",
-            collectedById: null, // Online payment
-          })
+          .where(
+            and(
+              eq(paymentGatewayLogs.id, log.id),
+              sql`${paymentGatewayLogs.status} <> 'PAID'`
+            )
+          )
           .returning();
 
-        if (insertedPayment) {
-          createdPaymentId = insertedPayment.id;
+        if (!casLog) {
+          // Already marked PAID concurrently
+          alreadyProcessed = true;
+          return;
         }
 
-        // Update Invoice
+        // 2. Lock invoice row FOR UPDATE
+        const [lockedInvoice] = await tx
+          .select()
+          .from(feeInvoices)
+          .where(eq(feeInvoices.id, log.feeInvoiceId!))
+          .for("update");
+
+        if (!lockedInvoice) {
+          throw new Error("Invoice record not found under lock");
+        }
+
+        const lockedPaidAmount = parseFloat(lockedInvoice.paidAmount || "0");
+        const lockedNetAmount = parseFloat(lockedInvoice.netAmount || "0");
+        const newPaidAmount = lockedPaidAmount + amountPaid;
+        const newBalanceAmount = lockedNetAmount - newPaidAmount;
+
+        let newStatus = lockedInvoice.status;
+        if (newBalanceAmount <= 0) {
+          newStatus = "PAID";
+        } else if (newPaidAmount > 0) {
+          newStatus = "PARTIAL";
+        }
+
+        // 3. Create Payment with catch for 23505 unique constraint violation
+        try {
+          const [insertedPayment] = await tx
+            .insert(feePayments)
+            .values({
+              receiptNumber,
+              schoolId: lockedInvoice.schoolId,
+              studentId: lockedInvoice.studentId,
+              feeInvoiceId: lockedInvoice.id,
+              amountPaid: amountPaid.toFixed(2),
+              paymentMethod: "ONLINE",
+              transactionReference: payment.id,
+              paymentDate: new Date(),
+              remarks: "Online Payment via Razorpay",
+              collectedById: null, // Online payment
+            })
+            .returning();
+
+          if (insertedPayment) {
+            createdPaymentId = insertedPayment.id;
+          }
+        } catch (insertErr: any) {
+          // Postgres 23505: unique_violation on (school_id, transaction_reference)
+          if (insertErr.code === "23505" || insertErr.message?.includes("unique")) {
+            alreadyProcessed = true;
+            return;
+          }
+          throw insertErr;
+        }
+
+        // 4. Update Invoice
         await tx
           .update(feeInvoices)
           .set({
@@ -160,23 +205,23 @@ export async function POST(req: Request) {
             balanceAmount: newBalanceAmount.toFixed(2),
             status: newStatus,
           })
-          .where(eq(feeInvoices.id, invoice.id));
+          .where(eq(feeInvoices.id, lockedInvoice.id));
 
-        // 4. Resolve Chart of Accounts & Post Consolidated Credit Entry to General Ledger (P2-T1 S0 Invariant)
+        // 5. Resolve Chart of Accounts & Post Consolidated Credit Entry to General Ledger (P2-T1 S0 Invariant)
         const primaryBank = await tx.query.bankAccounts.findFirst({
-          where: and(eq(bankAccounts.schoolId, invoice.schoolId), eq(bankAccounts.isActive, true)),
+          where: and(eq(bankAccounts.schoolId, lockedInvoice.schoolId), eq(bankAccounts.isActive, true)),
         });
 
         const primaryBankId = primaryBank ? primaryBank.id : null;
         const bankChartAccountId = primaryBankId
-          ? await getBankAccountChartAccountId(invoice.schoolId, primaryBankId, tx)
-          : await getCashMainChartAccountId(invoice.schoolId, tx);
-        const studentReceivableAccountId = await getStudentReceivableChartAccountId(invoice.schoolId, tx);
+          ? await getBankAccountChartAccountId(lockedInvoice.schoolId, primaryBankId, tx)
+          : await getCashMainChartAccountId(lockedInvoice.schoolId, tx);
+        const studentReceivableAccountId = await getStudentReceivableChartAccountId(lockedInvoice.schoolId, tx);
 
         const txNumber = `TX-${new Date().getFullYear()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
 
         await tx.insert(accountLedgerTransactions).values({
-          schoolId: invoice.schoolId,
+          schoolId: lockedInvoice.schoolId,
           transactionNumber: txNumber,
           sourceType: "FEE_COLLECTION",
           sourceId: createdPaymentId || log.id,
@@ -201,6 +246,10 @@ export async function POST(req: Request) {
         }
       });
 
+      if (alreadyProcessed) {
+        return NextResponse.json({ success: true, message: "Order already fulfilled" });
+      }
+
       // Asynchronously trigger S3 PDF archival (AZ-03)
       if (createdPaymentId) {
         archiveReceiptPdfToS3(invoice.schoolId, createdPaymentId).catch((err) => {
@@ -220,6 +269,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Razorpay Webhook Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Webhook processing failed. Please contact support." },
+      { status: 500 }
+    );
   }
 }

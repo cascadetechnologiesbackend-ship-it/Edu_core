@@ -335,6 +335,9 @@ export const feePayments = pgTable(
     idempotencyUniqueIdx: uniqueIndex("fee_payments_idempotency_unique_idx")
       .on(t.schoolId, t.collectedById, t.idempotencyKey)
       .where(sql`"idempotency_key" IS NOT NULL`),
+    txnRefUniqueIdx: uniqueIndex("fee_payments_txn_ref_unique_idx")
+      .on(t.schoolId, t.transactionReference)
+      .where(sql`"transaction_reference" IS NOT NULL`),
   }),
 );
 

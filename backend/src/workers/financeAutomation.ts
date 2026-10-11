@@ -244,6 +244,30 @@ export async function autoMatchGatewayPayments(schoolId: string) {
     if (existing) continue;
 
     await db.transaction(async (tx) => {
+      // S2-B: Lock paymentGatewayLog row FOR UPDATE and ensure status is still PAID
+      const [lockedLog] = await tx
+        .select()
+        .from(paymentGatewayLogs)
+        .where(
+          and(
+            eq(paymentGatewayLogs.id, log.id),
+            eq(paymentGatewayLogs.schoolId, schoolId),
+            eq(paymentGatewayLogs.status, "PAID")
+          )
+        )
+        .for("update");
+
+      if (!lockedLog) return;
+
+      // Re-check inside transaction that no ledger entry was created concurrently
+      const existingInTx = await tx.query.accountLedgerTransactions.findFirst({
+        where: and(
+          eq(accountLedgerTransactions.schoolId, schoolId),
+          eq(accountLedgerTransactions.sourceId, lockedLog.id),
+        ),
+      });
+      if (existingInTx) return;
+
       const primaryBank = await tx.query.bankAccounts.findFirst({
         where: and(eq(bankAccounts.schoolId, schoolId), eq(bankAccounts.isActive, true)),
       });
@@ -251,8 +275,8 @@ export async function autoMatchGatewayPayments(schoolId: string) {
       let primaryBankId: string | null = null;
       let newBalance = "0";
 
-      const totalAmount = parseFloat(log.amount);
-      const feeAmount = parseFloat((log as any).feeAmount || "0");
+      const totalAmount = parseFloat(lockedLog.amount);
+      const feeAmount = parseFloat((lockedLog as any).feeAmount || "0");
       const netAmount = Math.max(0, totalAmount - feeAmount);
 
       if (primaryBank) {

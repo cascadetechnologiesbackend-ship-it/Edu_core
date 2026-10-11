@@ -5,16 +5,39 @@ import { db } from "@/db";
 import { archiveReceiptPdfToS3 } from "@/workers/financeAutomation";
 
 const mockSet = vi.fn().mockReturnThis();
-const mockWhere = vi.fn().mockResolvedValue([]);
+const createUpdateResult = () => {
+  const p = Promise.resolve([]) as any;
+  p.returning = vi.fn().mockResolvedValue([{ id: "log_1", status: "PAID" }]);
+  return p;
+};
+const mockWhere = vi.fn().mockImplementation(() => createUpdateResult());
 const mockReturning = vi.fn().mockResolvedValue([{ id: "mock-payment-uuid" }]);
 const mockValues = vi.fn().mockReturnValue({ returning: mockReturning });
+
+const mockFor = vi.fn().mockResolvedValue([
+  {
+    id: "inv_1",
+    schoolId: "sch_12345678_school",
+    studentId: "stu_1",
+    paidAmount: "0.00",
+    netAmount: "5000.00",
+    balanceAmount: "5000.00",
+    status: "PENDING",
+  },
+]);
+const mockSelectWhere = vi.fn().mockReturnValue({ for: mockFor });
+const mockFrom = vi.fn().mockReturnValue({ where: mockSelectWhere });
 
 const mockTx = {
   update: vi.fn().mockReturnValue({ set: mockSet, where: mockWhere }),
   insert: vi.fn().mockReturnValue({ values: mockValues }),
+  select: vi.fn().mockReturnValue({ from: mockFrom }),
   query: {
     bankAccounts: {
       findFirst: vi.fn().mockResolvedValue({ id: "bank_01", currentBalance: "1000.00" }),
+    },
+    feePayments: {
+      findFirst: vi.fn().mockResolvedValue({ id: "mock-payment-uuid" }),
     },
   },
 };
