@@ -28,6 +28,21 @@ if (process.env["NODE_ENV"] !== "production") {
   globalForDb.pool = pool;
 }
 
+// S5-T1: Enforce non-owner role on all application database connections
+// DDL migrations and seed scripts continue to run with table-owner identity.
+const skipSetRole =
+  process.env["DB_SKIP_SET_ROLE"] === "true" ||
+  process.env["npm_lifecycle_event"]?.includes("seed") ||
+  process.env["npm_lifecycle_event"]?.includes("migrate");
+
+if (!skipSetRole) {
+  pool.on("connect", (client) => {
+    client.query("SET ROLE schoolmitra_app;").catch(() => {
+      // Graceful fallback if role not yet created during initial bootstrap
+    });
+  });
+}
+
 import { BudgetQueryLogger } from "./queryLogger";
 
 // ─── Drizzle Client ───────────────────────────────────────────────────────────

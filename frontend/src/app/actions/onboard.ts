@@ -17,7 +17,7 @@ import {
   userRoles,
   persons,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 import { encryptData, computeSearchHash } from "@/lib/encryption";
@@ -141,6 +141,9 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         .returning();
 
       if (!newSchool) throw new Error("Failed to provision school record.");
+
+      // S5-T2: Scope subsequent provisioning queries to the newly created school tenant
+      await tx.execute(sql`SELECT set_config('app.current_school_id', ${newSchool.id}, true)`);
 
       // 2. Create Active Academic Year
       const [newYear] = await tx

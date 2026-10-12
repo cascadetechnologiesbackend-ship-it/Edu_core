@@ -499,20 +499,23 @@ if (process.env["START_WORKERS"] === "true") {
     "data-retention",
     async (job) => {
       const { schoolId, dryRun } = job.data;
-      workerLogger.info(
-        `[RetentionWorker] Processing retention policies for school: ${schoolId} (dryRun: ${Boolean(
-          dryRun,
-        )})`,
-      );
-      await executeRetentionPolicy(
-        schoolId,
-        dryRun !== undefined ? { dryRun } : undefined,
-      );
+      const { withTenant } = await import("@/lib/tenant");
+      await withTenant(schoolId, async () => {
+        workerLogger.info(
+          `[RetentionWorker] Processing retention policies for school: ${schoolId} (dryRun: ${Boolean(
+            dryRun,
+          )})`,
+        );
+        await executeRetentionPolicy(
+          schoolId,
+          dryRun !== undefined ? { dryRun } : undefined,
+        );
 
-      workerLogger.info(
-        `[RetentionWorker] Processing consent withdrawals for school: ${schoolId}`,
-      );
-      await executeConsentWithdrawals(schoolId);
+        workerLogger.info(
+          `[RetentionWorker] Processing consent withdrawals for school: ${schoolId}`,
+        );
+        await executeConsentWithdrawals(schoolId);
+      });
     },
     {
       connection: getBullMQRedisConnection(),

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireAuth } from "@/lib/serverAuth";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getRoleConfig } from "@/lib/roleConfig";
 
 export async function forceChangePassword(newPassword: string, confirmPassword: string) {
@@ -29,15 +29,28 @@ export async function forceChangePassword(newPassword: string, confirmPassword: 
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
-    await db
-      .update(users)
-      .set({
-        passwordHash,
-        mustChangePassword: false,
-        passwordChangedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, ctx.userId));
+    // S5-T2: Wrap DB update in tenant context
+    await db.transaction(async (tx) => {
+      if (ctx.schoolId) {
+        await tx.execute(
+          sql`SELECT set_config('app.current_school_id', ${ctx.schoolId}, true)`,
+        );
+      } else {
+        await tx.execute(
+          sql`SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)`,
+        );
+      }
+
+      await tx
+        .update(users)
+        .set({
+          passwordHash,
+          mustChangePassword: false,
+          passwordChangedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, ctx.userId));
+    });
 
     const roleConfig = getRoleConfig(ctx.role);
 

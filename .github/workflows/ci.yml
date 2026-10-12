@@ -99,8 +99,17 @@ jobs:
       - name: Run Monorepo Lint
         run: pnpm --filter @schoolmitra/frontend run lint
 
-      - name: Run Backend Unit & Integration Tests
+      - name: Run Database Migrations (Owner / Superuser Identity)
+        run: pnpm --filter @schoolmitra/database run db:migrate
+        env:
+          MIGRATION_DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
+          DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
+
+      - name: Run Backend Unit & Integration Tests (Non-Owner Role S5-T3)
         run: pnpm --filter @schoolmitra/backend run test
+        env:
+          MIGRATION_DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
+          DATABASE_URL: postgresql://schoolmitra_app_login:schoolmitra_app_secure@localhost:5432/schoolmitra_test
 
       - name: Run Frontend Unit Tests
         run: pnpm --filter @schoolmitra/frontend run test
@@ -112,9 +121,11 @@ jobs:
 
       - name: Set up Database & Seed for Playwright E2E
         run: |
-          pnpm --filter @schoolmitra/database run db:migrate
           pnpm --filter @schoolmitra/database run db:seed
           pnpm --filter @schoolmitra/database run db:seed-coa
+        env:
+          MIGRATION_DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
+          DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
 
       - name: Install Playwright Chromium
         run: pnpm --filter @schoolmitra/frontend exec playwright install --with-deps chromium

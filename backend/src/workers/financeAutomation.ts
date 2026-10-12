@@ -573,7 +573,10 @@ if (process.env["START_WORKERS"] === "true") {
     async (job) => {
       const { schoolId } = job.data;
       console.log(`[FinanceWorker] Processing automation routines for school: ${schoolId}`);
-      await runSchoolFinanceAutomations(schoolId);
+      const { withTenant } = await import("@/lib/tenant");
+      await withTenant(schoolId, async () => {
+        await runSchoolFinanceAutomations(schoolId);
+      });
       await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
     },
     {

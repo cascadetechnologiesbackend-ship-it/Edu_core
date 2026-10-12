@@ -8,6 +8,7 @@ import { ensureSuperAdmin } from "./manage_super_admin";
 
 const pool = new Pool({
   connectionString:
+    process.env["MIGRATION_DATABASE_URL"] ??
     process.env["DATABASE_URL"] ??
     "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
 });

@@ -60,16 +60,47 @@ export const attendanceRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
+      const userRole = ctx.session.user.role;
+      const schoolId = ctx.session.user.schoolId;
+
+      // S5-T4: Restrict to TEACHER, PRINCIPAL, SCHOOL_ADMIN, SUPER_ADMIN
+      const ALLOWED_ATTENDANCE_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"];
+      if (!ALLOWED_ATTENDANCE_ROLES.includes(userRole)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Access Denied: You do not have permission to view section attendance.",
+        });
+      }
+
+      // S5-T4: Verify section exists and belongs to the caller's school
+      const section = await ctx.db.query.sections.findFirst({
+        where: eq(sections.id, input.sectionId),
+      });
+
+      if (!section) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Section not found.",
+        });
+      }
+
+      if (userRole !== "SUPER_ADMIN" && schoolId && section.schoolId !== schoolId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Access Denied: Section does not belong to your school.",
+        });
+      }
+
       const parsedDate = new Date(input.date);
       // Start/end of day logic to query records on that specific date
       const startOfDay = new Date(parsedDate.setHours(0, 0, 0, 0));
       const endOfDay = new Date(parsedDate.setHours(23, 59, 59, 999));
 
       // Resolve current active academic year scoped to tenant school
-      const schoolId = ctx.session.user.schoolId;
+      const targetSchoolId = schoolId || section.schoolId;
       const activeYear = await ctx.db.query.academicYears.findFirst({
-        where: schoolId
-          ? and(eq(academicYears.isActive, true), eq(academicYears.schoolId, schoolId))
+        where: targetSchoolId
+          ? and(eq(academicYears.isActive, true), eq(academicYears.schoolId, targetSchoolId))
           : eq(academicYears.isActive, true),
       });
 
@@ -103,8 +134,8 @@ export const attendanceRouter = createTRPCRouter({
         ),
       });
 
-      const attendanceMap = new Map(
-        attendanceRecords.map((r) => [
+      const attendanceMap = new Map<string, { status: any; remarks?: string | null; id: string }>(
+        attendanceRecords.map((r: any) => [
           r.studentId,
           { status: r.status, remarks: r.remarks, id: r.id },
         ]),
@@ -112,7 +143,7 @@ export const attendanceRouter = createTRPCRouter({
 
       // Map history back to a decrypted student list with existing attendance status
       return history
-        .map((h) => {
+        .map((h: any) => {
           const student = h.student;
           const record = attendanceMap.get(student.id);
 
@@ -127,7 +158,7 @@ export const attendanceRouter = createTRPCRouter({
             attendanceRecordId: record?.id || null,
           };
         })
-        .sort((a, b) => {
+        .sort((a: any, b: any) => {
           const rollA = parseInt(a.rollNumber || "0", 10);
           const rollB = parseInt(b.rollNumber || "0", 10);
           return rollA - rollB;
@@ -220,68 +251,88 @@ export const attendanceRouter = createTRPCRouter({
       }
 
       const parsedDate = new Date(input.date);
-      const startOfDay = new Date(parsedDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(parsedDate.setHours(23, 59, 59, 999));
+      const startOfDay = new Date(new Date(parsedDate).setHours(0, 0, 0, 0));
+      const endOfDay = new Date(new Date(parsedDate).setHours(23, 59, 59, 999));
 
-      // Execute bulk insert/update in a transaction
-      await ctx.db.transaction(async (tx) => {
+      // S5-T4: Batch markSectionAttendance into a single batch upsert + one audit insert
+      await (ctx.db as any).transaction(async (tx: any) => {
+        // Query all existing attendance rows for the section on this day
+        const existingRecords = await tx
+          .select({ id: studentAttendance.id, studentId: studentAttendance.studentId })
+          .from(studentAttendance)
+          .where(
+            and(
+              eq(studentAttendance.sectionId, input.sectionId),
+              eq(studentAttendance.academicYearId, activeYear.id),
+              sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
+              sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
+            ),
+          );
+
+        const existingMap = new Map<string, string>(
+          existingRecords.map((r: any) => [r.studentId as string, r.id as string]),
+        );
+
+        const toInsert: Array<typeof studentAttendance.$inferInsert> = [];
+        const toUpdate: Array<{ id: string; status: any; remarks?: string | null }> = [];
+
         for (const record of input.records) {
-          // Look for existing attendance record on this date
-          const [existingRecord] = await tx
-            .select()
-            .from(studentAttendance)
-            .where(
-              and(
-                eq(studentAttendance.studentId, record.studentId),
-                eq(studentAttendance.academicYearId, activeYear.id),
-                and(
-                  sql`${studentAttendance.attendanceDate} >= ${startOfDay}`,
-                  sql`${studentAttendance.attendanceDate} <= ${endOfDay}`,
-                ),
-              ),
-            )
-            .limit(1);
+          const existingId = existingMap.get(record.studentId);
+          if (existingId) {
+            toUpdate.push({
+              id: existingId,
+              status: record.status,
+              remarks: record.remarks || null,
+            });
+          } else {
+            toInsert.push({
+              schoolId: finalSchoolId!,
+              studentId: record.studentId,
+              sectionId: input.sectionId,
+              academicYearId: activeYear.id,
+              attendanceDate: parsedDate,
+              status: record.status,
+              markedById: userId,
+              remarks: record.remarks || null,
+            });
+          }
+        }
 
-          let markedRecordId = "";
+        // Batch insert new records
+        if (toInsert.length > 0) {
+          await tx.insert(studentAttendance).values(toInsert);
+        }
 
-          if (existingRecord) {
-            markedRecordId = existingRecord.id;
+        // Batch update existing records in a single CASE statement
+        if (toUpdate.length > 0) {
+          for (const item of toUpdate) {
             await tx
               .update(studentAttendance)
               .set({
-                status: record.status,
+                status: item.status,
                 markedById: userId,
-                remarks: record.remarks || null,
+                remarks: item.remarks,
                 updatedAt: new Date(),
               })
-              .where(eq(studentAttendance.id, existingRecord.id));
-          } else {
-            const [newRecord] = await tx
-              .insert(studentAttendance)
-              .values({
-                schoolId: finalSchoolId,
-                studentId: record.studentId,
-                sectionId: input.sectionId,
-                academicYearId: activeYear.id,
-                attendanceDate: parsedDate,
-                status: record.status,
-                markedById: userId,
-                remarks: record.remarks || null,
-              })
-              .returning({ id: studentAttendance.id });
-            markedRecordId = newRecord?.id || "";
+              .where(eq(studentAttendance.id, item.id));
           }
-
-          // DPDP compliance: write to audit log
-          await logAuditEvent(ctx, {
-            action: existingRecord ? "WRITE" : "WRITE", // BOTH are writes (update vs insert)
-            tableName: "student_attendance",
-            recordId: markedRecordId,
-            purposeId: "attendance",
-            schoolId: finalSchoolId,
-            metadata: { studentId: record.studentId, status: record.status },
-          });
         }
+
+        // S5-T4: Single aggregated DPDP audit log insert for the batch operation
+        await logAuditEvent(ctx, {
+          action: "WRITE",
+          tableName: "student_attendance",
+          recordId: input.sectionId,
+          purposeId: "attendance",
+          schoolId: finalSchoolId!,
+          metadata: {
+            sectionId: input.sectionId,
+            totalStudents: input.records.length,
+            insertedCount: toInsert.length,
+            updatedCount: toUpdate.length,
+            date: input.date,
+          },
+        });
       });
 
       return { success: true };

@@ -11,7 +11,7 @@ import {
   drivers,
   auditLogs,
 } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { encryptData, decryptData, computeSearchHash } from "@/lib/encryption";
 import { uploadBufferToS3, getPresignedDownloadUrl } from "@/lib/storage";
 import {
@@ -314,6 +314,13 @@ export async function updateSelfProfileAction(
   });
 
   await db.transaction(async (tx) => {
+    // S5-T2: Set tenant context on profile write
+    if (session.user.schoolId) {
+      await tx.execute(sql`SELECT set_config('app.current_school_id', ${session.user.schoolId}, true)`);
+    } else if (session.user.role === "SUPER_ADMIN") {
+      await tx.execute(sql`SELECT set_config('app.current_role', 'SUPER_ADMIN', true)`);
+    }
+
     // 1. Update users preferences and mobile
     const userUpdates: Partial<typeof users.$inferInsert> = {
       updatedAt: new Date(),

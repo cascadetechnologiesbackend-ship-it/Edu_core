@@ -123,20 +123,57 @@ const rateLimitMiddleware = t.middleware(async ({ ctx, next, path }) => {
   return next({ ctx });
 });
 
+import { withTenant } from "@/lib/tenant";
+import { sql } from "drizzle-orm";
+
 /**
- * Auth middleware — ensures user is authenticated.
+ * Auth middleware — ensures user is authenticated and sets PostgreSQL session RLS context (S5-T2).
+ * - For tenant users (schoolId set): runs within withTenant(schoolId) setting app.current_school_id
+ * - For global super-admins (schoolId null): sets app.current_role = 'SUPER_ADMIN'
  */
-const isAuthed = t.middleware(({ ctx, next }) => {
+const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "You must be logged in to perform this action.",
     });
   }
+
+  const session = ctx.session as Session & {
+    user: NonNullable<Session["user"]>;
+  };
+  const schoolId = session.user.schoolId;
+  const role = session.user.role;
+
+  if (schoolId) {
+    return await withTenant(schoolId, async (tx) => {
+      return next({
+        ctx: {
+          ...ctx,
+          session,
+          db: tx as any,
+        },
+      });
+    });
+  }
+
+  if (role === "SUPER_ADMIN") {
+    return await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.current_role', 'SUPER_ADMIN', true)`);
+      return next({
+        ctx: {
+          ...ctx,
+          session,
+          db: tx as any,
+        },
+      });
+    });
+  }
+
   return next({
     ctx: {
       ...ctx,
-      session: ctx.session,
+      session,
     },
   });
 });

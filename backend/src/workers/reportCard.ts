@@ -48,21 +48,24 @@ export const reportCardQueue = new Queue<ReportCardJobPayload>(
   },
 );
 
+import { withTenant } from "@/lib/tenant";
+
 // ─── Worker ───────────────────────────────────────────────────────────────────
 async function processReportCardJob(
   job: Job<ReportCardJobPayload>,
 ): Promise<void> {
   const { studentId, examId, schoolId, jobId } = job.data;
 
-  workerLogger.info(
-    `[ReportCardWorker] Starting job ${job.id} for student=${studentId}, schoolId=${schoolId}`,
-  );
+  return await withTenant(schoolId, async () => {
+    workerLogger.info(
+      `[ReportCardWorker] Starting job ${job.id} for student=${studentId}, schoolId=${schoolId}`,
+    );
 
-  // Mark job as processing
-  await db
-    .update(reportCardJobs)
-    .set({ status: "PROCESSING", startedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(reportCardJobs.id, jobId), eq(reportCardJobs.schoolId, schoolId)));
+    // Mark job as processing
+    await db
+      .update(reportCardJobs)
+      .set({ status: "PROCESSING", startedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(reportCardJobs.id, jobId), eq(reportCardJobs.schoolId, schoolId)));
 
   // DPDP Consent Check
   await assertConsent(studentId, "academic_records");
@@ -218,14 +221,15 @@ async function processReportCardJob(
     });
   }
 
-  // Update batch job progress counter
-  await db
-    .update(reportCardJobs)
-    .set({
-      processedCount: sql`${reportCardJobs.processedCount} + 1`,
-      updatedAt: new Date(),
-    })
-    .where(eq(reportCardJobs.id, jobId));
+    // Update batch job progress counter
+    await db
+      .update(reportCardJobs)
+      .set({
+        processedCount: sql`${reportCardJobs.processedCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(reportCardJobs.id, jobId));
+  });
 }
 
 import { workerLogger } from "@/lib/logger";

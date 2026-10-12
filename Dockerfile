@@ -19,7 +19,6 @@ COPY database/package.json ./database/
 COPY frontend/package.json ./frontend/
 COPY packages/domain-events/package.json ./packages/domain-events/
 COPY packages/dpdp/package.json ./packages/dpdp/
-COPY packages/i18n/package.json ./packages/i18n/
 COPY packages/validators/package.json ./packages/validators/
 
 RUN pnpm install --frozen-lockfile
@@ -34,7 +33,6 @@ COPY --from=deps /app/database/node_modules ./database/node_modules
 COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
 COPY --from=deps /app/packages/domain-events/node_modules ./packages/domain-events/node_modules
 COPY --from=deps /app/packages/dpdp/node_modules ./packages/dpdp/node_modules
-COPY --from=deps /app/packages/i18n/node_modules ./packages/i18n/node_modules
 COPY --from=deps /app/packages/validators/node_modules ./packages/validators/node_modules
 
 COPY . .

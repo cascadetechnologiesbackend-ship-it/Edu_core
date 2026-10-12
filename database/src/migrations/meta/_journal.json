@@ -218,6 +218,13 @@
       "when": 1792600000000,
       "tag": "0030_non_owner_application_role",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "5",
+      "when": 1792700000000,
+      "tag": "0031_non_owner_login_role",
+      "breakpoints": true
     }
   ]
 }

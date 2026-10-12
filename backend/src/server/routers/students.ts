@@ -90,7 +90,7 @@ export const studentsRouter = createTRPCRouter({
           ? `XXXX-XXXX-${student.aadhaarLast4}`
           : null,
         photoUrl,
-        family: familyMembers.map((fm) => ({
+        family: familyMembers.map((fm: any) => ({
           ...fm,
           name: decryptData(fm.nameEncrypted),
           mobile: decryptData(fm.mobileEncrypted),
