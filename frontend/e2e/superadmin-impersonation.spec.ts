@@ -35,7 +35,7 @@ test.describe("S6: Super Admin Platform Dashboard & Tenant Impersonation E2E", (
     await impersonateBtn.click();
 
     // 6. Impersonation sets sm_impersonation cookie and routes to tenant dashboard
-    await page.waitForURL(/\/dashboard|\/school/, {
+    await page.waitForURL((url) => url.pathname === "/dashboard", {
       timeout: 15000,
       waitUntil: "domcontentloaded",
     });

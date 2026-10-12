@@ -17,110 +17,12 @@ import {
   MapPin,
   Calendar,
 } from "lucide-react";
-import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { signImpersonationToken } from "@/lib/impersonation";
-import { logPlatformAuditEvent } from "@/lib/auditLogger";
+import { startImpersonationAction, toggleSchoolStatusAction } from "./actions";
 
 export const metadata = {
   title: "School Tenants Directory | Super Admin",
   description: "Manage, inspect, and impersonate multi-tenant school instances.",
 };
-
-// Server action for Impersonation
-async function startImpersonationAction(formData: FormData) {
-  "use server";
-  const session = await auth();
-  if (session?.user?.role !== "SUPER_ADMIN") {
-    throw new Error("Unauthorized: Super Admin access required.");
-  }
-
-  const schoolId = formData.get("schoolId") as string;
-  const schoolName = formData.get("schoolName") as string;
-
-  if (!schoolId) return;
-
-  const token = signImpersonationToken(
-    {
-      superAdminId: session.user.id,
-      superAdminEmail: session.user.email ?? "",
-      schoolId,
-      schoolName: schoolName || "School Instance",
-      role: "SCHOOL_ADMIN",
-    },
-    60,
-  );
-
-  await logPlatformAuditEvent({
-    superAdminId: session.user.id,
-    superAdminEmail: session.user.email ?? "",
-    action: "START_IMPERSONATION",
-    targetSchoolId: schoolId,
-    entityType: "school",
-    entityId: schoolId,
-    metadata: {
-      schoolName: schoolName || "School Instance",
-      ttlMinutes: 60,
-    },
-  });
-
-  const isHttps = (process.env.AUTH_URL || process.env.NEXTAUTH_URL || "").startsWith("https://");
-  const cookieStore = cookies();
-  cookieStore.set("sm_impersonation", token, {
-    path: "/",
-    maxAge: 3600, // 60 mins hard TTL
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isHttps,
-  });
-
-  redirect("/dashboard");
-}
-
-// Server action for Status Lifecycle (R-14 Generic Administrative Suspension)
-async function toggleSchoolStatusAction(formData: FormData) {
-  "use server";
-  const session = await auth();
-  if (session?.user?.role !== "SUPER_ADMIN") {
-    throw new Error("Unauthorized: Super Admin access required.");
-  }
-
-  const schoolId = formData.get("schoolId") as string;
-  const currentStatus = formData.get("currentStatus") as string;
-  const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-
-  if (!schoolId) return;
-
-  await db
-    .update(schools)
-    .set({
-      status: newStatus,
-      suspensionReason:
-        newStatus === "SUSPENDED"
-          ? "Administrative review pending by platform operator"
-          : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(schools.id, schoolId));
-
-  await logPlatformAuditEvent({
-    superAdminId: session.user.id,
-    superAdminEmail: session.user.email ?? "",
-    action: newStatus === "SUSPENDED" ? "SUSPEND_SCHOOL" : "ACTIVATE_SCHOOL",
-    targetSchoolId: schoolId,
-    entityType: "school",
-    entityId: schoolId,
-    beforeSnapshot: { status: currentStatus },
-    afterSnapshot: { status: newStatus },
-  });
-
-  const { invalidateSchoolCache } = await import("@/lib/schoolCache");
-  await invalidateSchoolCache(schoolId);
-
-  revalidatePath("/super-admin/schools");
-}
 
 export default async function SchoolsPage({
   searchParams,
