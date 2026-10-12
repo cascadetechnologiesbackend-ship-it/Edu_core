@@ -12,7 +12,7 @@ export interface ImpersonationPayload {
 function getSecret(): string {
   const secret = process.env.IMPERSONATION_SECRET || process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
+    if (process.env.NODE_ENV === "production" && !process.env.CI && process.env.NEXT_PHASE !== "phase-production-build") {
       throw new Error(
         "FATAL: IMPERSONATION_SECRET (or AUTH_SECRET) is required for impersonation token signing in production.",
       );

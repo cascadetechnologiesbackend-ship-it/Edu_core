@@ -117,6 +117,8 @@ jobs:
       - name: Next.js Bundle Analysis & Budget Enforcement (PF-R02)
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+          AUTH_SECRET: default-schoolmitra-auth-secret-key-32chars-min-len
+          IMPERSONATION_SECRET: default-schoolmitra-impersonation-signing-secret-key-32b
           ENCRYPTION_KEY: e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283
           ENCRYPTION_KEYRING: '{"k1":"e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283"}'
         run: |
@@ -138,6 +140,8 @@ jobs:
       - name: Run Playwright Core E2E Tests (Non-Owner Identity S6-T3)
         env:
           DATABASE_URL: postgresql://schoolmitra_app_login:schoolmitra_app_secure@localhost:5432/schoolmitra_test
+          AUTH_SECRET: default-schoolmitra-auth-secret-key-32chars-min-len
+          IMPERSONATION_SECRET: default-schoolmitra-impersonation-signing-secret-key-32b
           ENCRYPTION_KEY: e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283
           ENCRYPTION_KEYRING: '{"k1":"e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283"}'
         run: |
