@@ -5,6 +5,7 @@ if (process.env.ANALYZE === "true") {
     const { default: bundleAnalyzer } = await import("@next/bundle-analyzer");
     withAnalyzer = bundleAnalyzer({
       enabled: true,
+      openAnalyzer: false,
     });
   } catch {
     console.warn("@next/bundle-analyzer not installed, continuing build without analyzer.");
