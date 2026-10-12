@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Sparkles, CheckCircle2, Shield } from "lucide-react";
 import LoginForm from "./login-form";
+import { getActiveTenant } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "Sign In",
   description: "Sign in to SchoolMitra ERP — Your school, beautifully organized.",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  await getActiveTenant();
   return (
     <div className="relative min-h-screen w-full bg-[#070b18] text-slate-100 flex flex-col justify-between selection:bg-blue-600/30 selection:text-blue-200 overflow-x-hidden">
       {/* ── Subtle Ambient Background Lighting ── */}

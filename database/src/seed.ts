@@ -93,6 +93,7 @@ const ROLES = [
   },
   { name: "PARENT", displayName: "Parent", isSystemRole: true },
   { name: "STUDENT", displayName: "Student", isSystemRole: true },
+  { name: "DRIVER", displayName: "Driver", isSystemRole: true },
 ] as const;
 
 const GRADES = [
@@ -298,6 +299,7 @@ async function main() {
       email: "contact@saraswati.edu.in",
       principalName: "Dr. Arvind Sharma",
       establishedYear: 2005,
+      slug: "saraswati",
       isActive: true,
     })
     .returning({ id: schools.id });

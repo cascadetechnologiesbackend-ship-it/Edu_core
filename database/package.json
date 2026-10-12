@@ -17,6 +17,7 @@
     "db:seed": "tsx src/seed.ts",
     "db:seed-coa": "pnpm exec tsx src/seed_chart_of_accounts.ts",
     "db:seed-superadmin": "pnpm exec tsx src/manage_super_admin.ts",
+    "db:seed-test-admin": "pnpm exec tsx src/seed_test_admin.ts",
     "db:reset": "tsx src/factory_reset.ts",
     "db:studio": "drizzle-kit studio"
   },

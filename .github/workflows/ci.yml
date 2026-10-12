@@ -127,6 +127,7 @@ jobs:
         run: |
           pnpm --filter @schoolmitra/database run db:seed
           pnpm --filter @schoolmitra/database run db:seed-coa
+          pnpm --filter @schoolmitra/database run db:seed-test-admin
         env:
           MIGRATION_DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
           DATABASE_URL: postgresql://schoolmitra:password123@localhost:5432/schoolmitra_test
