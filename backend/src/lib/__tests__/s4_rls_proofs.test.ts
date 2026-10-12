@@ -386,4 +386,164 @@ describe("Live Postgres RLS Runtime Closure (Non-Owner Role)", () => {
       client.release();
     }
   });
+
+  // ── 10. S7-T0 Proof: PLATFORM_ADMIN strictly denies DELETE on foreign-school rows ──
+  it("S7-T0: PLATFORM_ADMIN role can SELECT cross-tenant rows but strictly affects 0 rows on DELETE", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', '', true)");
+      await client.query("SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)");
+
+      // (a) SELECT across tenants returns rows
+      const selectRes = await client.query(
+        "SELECT id, school_id FROM students WHERE id = $1",
+        [studentAId],
+      );
+      expect(selectRes.rows).toHaveLength(1);
+      expect(selectRes.rows[0].id).toBe(studentAId);
+
+      // (b) DELETE on student row in School A affects 0 rows under PLATFORM_ADMIN context
+      const deleteRes = await client.query(
+        "DELETE FROM students WHERE id = $1",
+        [studentAId],
+      );
+      expect(deleteRes.rowCount).toBe(0);
+
+      // Verify row still exists in database
+      const verifyRes = await client.query(
+        "SELECT id FROM students WHERE id = $1",
+        [studentAId],
+      );
+      expect(verifyRes.rows).toHaveLength(1);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 11. S7-T0 Proof: PLATFORM_ADMIN strictly denies UPDATE on foreign-school rows ──
+  it("S7-T0: PLATFORM_ADMIN role strictly affects 0 rows on UPDATE of tenant rows", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', '', true)");
+      await client.query("SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)");
+
+      const updateRes = await client.query(
+        "UPDATE students SET category = 'OBC' WHERE id = $1",
+        [studentAId],
+      );
+      expect(updateRes.rowCount).toBe(0);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 12. S7-T0 Proof: SYSTEM_AUTH strictly denies DELETE on users table ───────
+  it("S7-T0: SYSTEM_AUTH role can read users but strictly affects 0 rows on DELETE", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', '', true)");
+      await client.query("SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)");
+
+      // Verify SELECT works
+      const selectRes = await client.query(
+        "SELECT id, email FROM users WHERE id = $1",
+        [teacherUserId],
+      );
+      expect(selectRes.rows).toHaveLength(1);
+
+      // Verify DELETE affects 0 rows
+      const deleteRes = await client.query(
+        "DELETE FROM users WHERE id = $1",
+        [teacherUserId],
+      );
+      expect(deleteRes.rowCount).toBe(0);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 13. S7-T0 Proof: SYSTEM_AUTH strictly denies UPDATE on users table ───────
+  it("S7-T0: SYSTEM_AUTH role strictly affects 0 rows on UPDATE of users", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', '', true)");
+      await client.query("SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)");
+
+      const updateRes = await client.query(
+        "UPDATE users SET email = 'hacked@example.com' WHERE id = $1",
+        [teacherUserId],
+      );
+      expect(updateRes.rowCount).toBe(0);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 14. S7-T0 Proof: Tenant-scoped session succeeds on UPDATE and DELETE of tenant rows ──
+  it("S7-T0: withTenant(schoolA) successfully executes UPDATE and DELETE on School A rows", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', $1, true)", [schoolAId]);
+
+      // Seed a transient attendance row in School A
+      const tempAttendanceId = crypto.randomUUID();
+      await client.query(
+        `INSERT INTO student_attendance (id, school_id, student_id, section_id, academic_year_id, attendance_date, status, marked_by_id)
+         VALUES ($1, $2, $3, $4, $5, '2026-10-12 10:00:00+00', 'ABSENT', $6)`,
+        [tempAttendanceId, schoolAId, studentAId, sectionAId, academicYearAId, teacherUserId],
+      );
+
+      // UPDATE on School A row succeeds
+      const updateRes = await client.query(
+        "UPDATE student_attendance SET status = 'PRESENT' WHERE id = $1",
+        [tempAttendanceId],
+      );
+      expect(updateRes.rowCount).toBe(1);
+
+      // DELETE on School A row succeeds
+      const deleteRes = await client.query(
+        "DELETE FROM student_attendance WHERE id = $1",
+        [tempAttendanceId],
+      );
+      expect(deleteRes.rowCount).toBe(1);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 15. S7-T0 Proof: Tenant-scoped session strictly affects 0 rows on foreign School B rows ──
+  it("S7-T0: withTenant(schoolA) strictly affects 0 rows on UPDATE and DELETE of School B rows", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', $1, true)", [schoolAId]);
+
+      // UPDATE on School B student row affects 0 rows
+      const updateRes = await client.query(
+        "UPDATE students SET category = 'OBC' WHERE id = $1",
+        [studentBId],
+      );
+      expect(updateRes.rowCount).toBe(0);
+
+      // DELETE on School B student row affects 0 rows
+      const deleteRes = await client.query(
+        "DELETE FROM students WHERE id = $1",
+        [studentBId],
+      );
+      expect(deleteRes.rowCount).toBe(0);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
 });

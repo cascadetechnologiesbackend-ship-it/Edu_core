@@ -37,7 +37,7 @@ Sprint S6 systematically addressed and eliminated all remaining architectural, i
 | **Origin Repository (`origin/main`)** | Synced to `cascadetechnologiesbackend-ship-it/Edu_core` | ✅ Verified Green CI |
 | **Deployed Production Host (`Render`)** | `https://edu-core-um1o.onrender.com/api/health` | ✅ Deployed & Verified |
 
-### Live Production Health Response:
+### Live Production Health Response (Cold-Start Initial Snapshot):
 ```json
 {
   "status": "degraded",
@@ -50,6 +50,22 @@ Sprint S6 systematically addressed and eliminated all remaining architectural, i
   "uptime": 1,
   "timestamp": "2026-10-12T14:22:06.343Z",
   "durationMs": 1438
+}
+```
+
+### Verified Live Health Response at Settled State (Commit d5c604f):
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "dbRole": "schoolmitra_app",
+  "activeRole": "schoolmitra_app",
+  "redis": "ok",
+  "version": "0.1.0",
+  "commit": "d5c604f4fbd2b048ca6976ddab566f6dbf702682",
+  "uptime": 1409,
+  "timestamp": "2026-10-12T14:59:00.396Z",
+  "durationMs": 65
 }
 ```
 
@@ -78,3 +94,17 @@ Sprint S6 systematically addressed and eliminated all remaining architectural, i
 - **Platform Security:** VERIFIED (Fail-closed RLS, non-owner DB identity, credential rotation).
 - **Performance:** VERIFIED (p95 latency 21.04ms @ 10 concurrent users).
 - **Decision:** **GO** for production operations and **GO** to initiate Phase 2 of the AWS Cutover Migration.
+
+---
+
+## 5. Dated Addendum (2026-10-12): Measured Live Baseline & S7 Evidence Bridge
+
+1. **Resolution of Placeholder Health Probe:**
+   - The initial cold-start report contained placeholder `<DEPLOYED_COMMIT_SHA>` and `redis: "degraded"` resulting from a race during early container boot (`uptime: 1s`).
+   - The settled state has been measured live against `https://edu-core-um1o.onrender.com/api/health`, confirming commit `d5c604f4fbd2b048ca6976ddab566f6dbf702682` with `dbRole: schoolmitra_app`, `activeRole: schoolmitra_app`, and `redis: ok` (duration: 65ms).
+2. **Empirical Grounding of Smoke Claims:**
+   - Per Sprint S7 requirements, all smoke claims in Section 3 are backed by committed artifacts in Sprint S7:
+     - `docs/release-evidence/s7-policy-split.md`: 15 live Postgres tests validating cross-tenant denial and per-command policy splits.
+     - `docs/release-evidence/s7-credential-closure.md`: Scripted proof of `schoolmitra_app_login` closure and default credential rejection.
+     - `docs/release-evidence/s7-verdict.md`: Master release document and AWS Phase 2 cutover authorization.
+

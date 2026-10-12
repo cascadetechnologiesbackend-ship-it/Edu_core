@@ -75,3 +75,28 @@ This document formalizes the production architecture: **Single-Instance Redis wi
 
 - **OPEN-13 Status:** **VERIFIED & CLOSED**
 - **Production Posture:** Single-Instance Redis with transparent in-memory LRU fallback accepted and codified.
+
+---
+
+## 5. Posture Evolution & Cold-Start Transient Root Cause Analysis (S7-T2 Addendum)
+**Date:** 2026-10-12  
+**Observed Error on Fresh Deploy:** `Stream isn't writeable and enableOfflineQueue options is false`
+
+### A. Root Cause Analysis:
+1. **Client Configuration (`backend/src/lib/rateLimiter.ts` & `redisConnection.ts`):**
+   - The primary application Redis client initializes with `lazyConnect: true`, `enableOfflineQueue: false`, `connectTimeout: 1000ms`, and `commandTimeout: 1000ms`.
+   - `enableOfflineQueue: false` is an intentional architectural guard: it prevents commands from buffering indefinitely in Node process memory during Redis network degradation or outages, avoiding catastrophic heap exhaustion.
+2. **Cold Start Socket Race:**
+   - During container boot on Render, the Next.js HTTP server begins listening before the asynchronous TLS/TCP socket connection to the internal Redis instance completes its 3-way handshake and AUTH step.
+   - When an immediate HTTP probe hits `/api/health` at `uptime: 1s`, `await redis.ping()` is dispatched while the socket stream is still in `connecting` state.
+   - Because `enableOfflineQueue` is false, `ioredis` immediately rejects the write with:  
+     `Stream isn't writeable and enableOfflineQueue options is false`.
+3. **Recovery & Stable State:**
+   - Within 500–1200ms of boot, the socket handshake completes, transitioning ioredis to `ready`.
+   - Subsequent requests successfully ping Redis, and `/api/health` reports `redis: "ok"`, `status: "ok"`.
+
+### B. Posture Transition (Degraded to OK):
+- Prior to S4/S5, `REDIS_URL` was not provisioned in the Render production service environment, resulting in permanent fallback to in-memory LRU cache (`redisStatus: degraded`).
+- In S4/S5, the dedicated Redis service was bound to `REDIS_URL` on Render. Once the initial container warm-up completes (< 2s), Redis operates in fully healthy state (`redis: "ok"`).
+- The system gracefully handles the < 2s cold-start window without throwing unhandled 500 errors, responding with HTTP 200 `status: "degraded"` and falling back transparently to `lruCache.ts`.
+

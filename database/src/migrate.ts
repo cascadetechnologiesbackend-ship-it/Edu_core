@@ -86,17 +86,42 @@ async function main() {
 
   await sanitizeMigrationHistory(pool);
 
-  // S6-T1: Inject APP_DB_PASSWORD into migration session for non-owner login role
+  // S6-T1 / S7-T1: Production credential closure and APP_DB_PASSWORD enforcement
   const appDbPassword = process.env["APP_DB_PASSWORD"];
+  const isProduction = process.env["NODE_ENV"] === "production";
+
+  if (isProduction) {
+    const roleCheck = await pool.query(`
+      SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'schoolmitra_app_login') AS exists;
+    `);
+    const roleExists = Boolean(roleCheck.rows[0]?.exists);
+
+    if (!roleExists && !appDbPassword) {
+      throw new Error(
+        "[Migrate FATAL] Production environment requires APP_DB_PASSWORD to create schoolmitra_app_login role. Cannot use committed default credentials in production."
+      );
+    }
+  }
+
   if (appDbPassword) {
     await pool.query(`SELECT set_config('app.app_db_password', $1, false)`, [appDbPassword]);
     console.log("[Migrate] Injected APP_DB_PASSWORD into migration session context.");
-  } else if (process.env["NODE_ENV"] === "production") {
-    console.warn("[Migrate] Notice: APP_DB_PASSWORD not set in production. Using existing or default credentials.");
   }
 
   await migrate(db, { migrationsFolder });
   console.log("Migration completed");
+
+  // S7-T1: In production, enforce NOLOGIN on schoolmitra_app_login to close the credential surface.
+  // The application connection pool connects as the owner role and sets session role to schoolmitra_app.
+  if (isProduction) {
+    const roleExists = (await pool.query(
+      `SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'schoolmitra_app_login') AS exists;`
+    )).rows[0]?.exists;
+    if (roleExists) {
+      await pool.query(`ALTER ROLE schoolmitra_app_login NOLOGIN;`);
+      console.log("[Migrate] S7-T1: Hardened production - altered role schoolmitra_app_login to NOLOGIN.");
+    }
+  }
 
   try {
     console.log("Checking and seeding default super admin if required...");

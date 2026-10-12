@@ -232,6 +232,13 @@
       "when": 1792800000000,
       "tag": "0032_grant_app_role_and_platform_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1792900000000,
+      "tag": "0033_s7_split_rls_policies_by_command",
+      "breakpoints": true
     }
   ]
 }
