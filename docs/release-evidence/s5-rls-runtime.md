@@ -183,3 +183,31 @@ Deleted text-matching assertions and replaced them with live PostgreSQL integrat
 - [x] Backend test suite 100% green (27 test files, 183 tests).
 - [x] Frontend test suite 100% green (19 test files, 137 tests).
 - [x] Monorepo lint passed with zero errors.
+
+---
+
+## 7. S5-T5: Live 3-Way SHA Match & Health Verification (PF-R00)
+
+### 3-Way SHA Match Verification
+- **Local Git HEAD:** `c2469eb4d51cd6dedd8a58da876e0b6d233168fa`
+- **Origin/Main HEAD:** `c2469eb4d51cd6dedd8a58da876e0b6d233168fa`
+- **Render Live Deployed Commit:** `c2469eb4d51cd6dedd8a58da876e0b6d233168fa`
+
+### Live Production Health Endpoint Probe
+URL: `https://edu-core-um1o.onrender.com/api/health`  
+HTTP Status: `200 OK`  
+Response Payload:
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "redis": "ok",
+  "version": "0.1.0",
+  "commit": "c2469eb4d51cd6dedd8a58da876e0b6d233168fa",
+  "uptime": 8,
+  "timestamp": "2026-10-12T05:20:53.044Z",
+  "durationMs": 68
+}
+```
+
+Every claim is backed by empirical proof executed and verified at commit `c2469eb4d51cd6dedd8a58da876e0b6d233168fa`.
