@@ -65,8 +65,9 @@ jobs:
                   echo "⏳ Health is 200 OK, but deployed commit ($DEPLOYED_COMMIT) does not yet match target ($SHORT_SHA). Build rollout in progress..."
                 fi
               else
-                echo "⚠️ Commit metadata unavailable or in dev mode; accepting HTTP 200 OK health signal."
-                exit 0
+                echo "⚠️ Health returned 200 OK but commit metadata is unavailable or 'dev'. Waiting for full deploy with version info..."
+                # S4-T2: Do NOT accept here — keep polling until exact commit match.
+                # A deploy without verified commit identity cannot satisfy Rule Zero (PF-R00).
               fi
             fi
             

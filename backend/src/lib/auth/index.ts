@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users, userRoles, roles } from "@/db/schema/core";
 import { eq, sql } from "drizzle-orm";
+import { withAuthContext } from "@/lib/tenant";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
@@ -208,18 +209,23 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         }
 
         // 2. Fetch regular user (Project only necessary columns - Flaw Audit P1 #10)
-        const [user] = await db
-          .select({
-            id: users.id,
-            email: users.email,
-            passwordHash: users.passwordHash,
-            isActive: users.isActive,
-            mustChangePassword: users.mustChangePassword,
-            schoolId: users.schoolId,
-          })
-          .from(users)
-          .where(sql`lower(${users.email}) = ${email}`)
-          .limit(1);
+        // S4-T0: Use withAuthContext() to set app.current_role = 'SYSTEM_AUTH' in the
+        // transaction. Migration 0030 added Arm 3 to the users RLS policy permitting
+        // reads under this sentinel role, preventing login lockout from FORCE RLS.
+        const [user] = await withAuthContext(async (tx) => {
+          return await tx
+            .select({
+              id: users.id,
+              email: users.email,
+              passwordHash: users.passwordHash,
+              isActive: users.isActive,
+              mustChangePassword: users.mustChangePassword,
+              schoolId: users.schoolId,
+            })
+            .from(users)
+            .where(sql`lower(${users.email}) = ${email}`)
+            .limit(1);
+        });
 
         if (!user || !user.passwordHash || !user.isActive) {
           await recordFailedAttempt(email);
