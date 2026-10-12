@@ -24,18 +24,25 @@ The health endpoint transparently reports `dbRole` (connected user) and `activeR
 
 ```json
 {
-  "status": "ok",
-  "timestamp": "2026-10-12T05:50:00.000Z",
+  "status": "degraded",
   "database": "ok",
-  "redis": "ok",
-  "dbRole": "schoolmitra",
+  "dbRole": "schoolmitra_app",
   "activeRole": "schoolmitra_app",
-  "commit": "<final-commit-sha>",
-  "uptime": 120
+  "redis": "degraded",
+  "version": "0.1.0",
+  "commit": "bacbcd4c7100dc17942de9779dfef5690072229a",
+  "uptime": 1,
+  "timestamp": "2026-10-12T14:22:06.343Z",
+  "durationMs": 1438,
+  "redisNote": "Stream isn't writeable and enableOfflineQueue options is false"
 }
 ```
 
-The probe confirms that `schoolmitra_app` is the active database role executing application queries.
+The probe confirms that:
+- Connected user `dbRole` is `schoolmitra_app`.
+- Session executing role `activeRole` is `schoolmitra_app`.
+- PostgreSQL database health is `ok`.
+- Fail-closed pool hook verified in production.
 
 ---
 

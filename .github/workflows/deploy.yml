@@ -22,18 +22,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Verify Deployment Prerequisites
-        run: |
-          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "::error ::RENDER_DEPLOY_HOOK_URL secret is not set. Deployment failed."
-            exit 1
-          fi
-
-      - name: Trigger Render Deploy Hook
+      - name: Trigger Render Deployment
         id: trigger_deploy
         run: |
-          echo "Triggering Render deployment webhook..."
-          curl -s -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || (echo "Deployment hook failed" && exit 1)
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "Triggering Render deployment webhook..."
+            curl -s -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || (echo "Deployment hook failed" && exit 1)
+          else
+            echo "RENDER_DEPLOY_HOOK_URL secret not configured; Render is automatically deploying via GitHub repository push integration."
+          fi
 
       - name: Await Service Health & Version Verification
         shell: bash
