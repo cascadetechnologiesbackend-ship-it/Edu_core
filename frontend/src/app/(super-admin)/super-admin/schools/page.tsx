@@ -66,13 +66,14 @@ async function startImpersonationAction(formData: FormData) {
     },
   });
 
+  const isHttps = (process.env.AUTH_URL || process.env.NEXTAUTH_URL || "").startsWith("https://");
   const cookieStore = cookies();
   cookieStore.set("sm_impersonation", token, {
     path: "/",
     maxAge: 3600, // 60 mins hard TTL
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
   });
 
   redirect("/dashboard");

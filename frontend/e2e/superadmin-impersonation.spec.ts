@@ -30,7 +30,7 @@ test.describe("S6: Super Admin Platform Dashboard & Tenant Impersonation E2E", (
     expect(count).toBeGreaterThan(0);
 
     // 5. Trigger impersonation for the first available school
-    const impersonateBtn = page.locator('button:has-text("Impersonate"), form button[type="submit"]').first();
+    const impersonateBtn = page.locator('button:has-text("Impersonate")').first();
     await expect(impersonateBtn).toBeVisible();
     await impersonateBtn.click();
 
