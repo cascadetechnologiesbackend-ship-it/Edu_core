@@ -42,9 +42,9 @@ jobs:
       REDIS_URL: redis://localhost:6379
       AUTH_SECRET: test-ci-secret-value-must-be-at-least-32-chars-long-here
       NEXTAUTH_SECRET: test-ci-secret-value-must-be-at-least-32-chars-long-here
-      ENCRYPTION_KEY: e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       ENCRYPTION_KEY_ID: k1
-      ENCRYPTION_KEYRING: '{"k1":"e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283"}'
+      ENCRYPTION_KEYRING: '{"k1":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}'
       VAPID_PUBLIC_KEY: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckj0Gy2TXRwyLx9xWQndBIQeM2QVKE
       VAPID_PRIVATE_KEY: test-ci-vapid-private-key-must-be-32-chars
       NODE_ENV: test
@@ -117,6 +117,8 @@ jobs:
       - name: Next.js Bundle Analysis & Budget Enforcement (PF-R02)
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+          ENCRYPTION_KEY: e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283
+          ENCRYPTION_KEYRING: '{"k1":"e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283"}'
         run: |
           pnpm --filter @schoolmitra/frontend run build
           node frontend/scripts/check-bundle-budgets.mjs
@@ -135,6 +137,8 @@ jobs:
       - name: Run Playwright Core E2E Tests (Non-Owner Identity S6-T3)
         env:
           DATABASE_URL: postgresql://schoolmitra_app_login:schoolmitra_app_secure@localhost:5432/schoolmitra_test
+          ENCRYPTION_KEY: e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283
+          ENCRYPTION_KEYRING: '{"k1":"e29ed7af4c54ed20a650cd257398652e3dc54b1fc4800b77900192c088532283"}'
         run: |
           pnpm --filter @schoolmitra/frontend start -p 3002 &
           for i in {1..30}; do
