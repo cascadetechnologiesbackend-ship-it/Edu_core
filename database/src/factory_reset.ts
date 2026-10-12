@@ -8,6 +8,9 @@ import { eq } from "drizzle-orm";
 async function factoryReset() {
   console.log("⚠️  Starting Complete Database Clean (Preserving Super Admin)...");
 
+  // Maintenance script override: allow up to 60s for bulk schema drops & truncations
+  await db.execute(sql`SET statement_timeout = 60000;`);
+
   // 1. Drop all dynamic tenant schemas
   const tenantSchemasRes: any = await db.execute(sql`
     SELECT schema_name 
