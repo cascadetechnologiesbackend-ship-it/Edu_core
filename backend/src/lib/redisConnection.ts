@@ -34,8 +34,8 @@ export function getBullMQRedisConnection(): any {
     };
   }
 
-  // Refuse hardcoded localhost fallback in production
-  if (process.env.NODE_ENV === "production") {
+  // Refuse hardcoded localhost fallback in production (except during Next.js build)
+  if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
     throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required in production environment.");
   }
 
@@ -85,7 +85,7 @@ export function getRedisClient(customOptions: RedisOptions = {}): Redis {
     });
   }
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
     throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required in production environment.");
   }
 

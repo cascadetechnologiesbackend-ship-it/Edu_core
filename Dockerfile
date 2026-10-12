@@ -43,6 +43,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV AUTH_SECRET="build-time-dummy-secret-at-least-32-chars-long"
 ENV NEXTAUTH_SECRET="build-time-dummy-secret-at-least-32-chars-long"
 ENV ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde0"
+ENV REDIS_URL="redis://127.0.0.1:6379"
 
 RUN pnpm --filter @schoolmitra/database run type-check
 RUN pnpm --filter @schoolmitra/validators run type-check
