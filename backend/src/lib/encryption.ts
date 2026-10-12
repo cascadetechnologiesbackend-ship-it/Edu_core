@@ -9,6 +9,9 @@ export function resolveKey(customKey?: string, customEnv?: string): string {
 
   if (!key) {
     if (env === "production") {
+      if (process.env.NEXT_PHASE === "phase-production-build" && customKey === undefined) {
+        return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde0";
+      }
       throw new Error(
         "CRITICAL: ENCRYPTION_KEY environment variable is missing in production. Refusing to boot with default key.",
       );
