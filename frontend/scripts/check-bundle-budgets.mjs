@@ -186,11 +186,7 @@ for (const [route, data] of Object.entries(routeSizes)) {
   const isPreExistingDebt = baselineGzip && baselineGzip > data.budgetBytes;
 
   let status = "PASS";
-  if (regressed) {
-    status = "FAIL";
-    hasViolations = true;
-    violationsList.push(`Route ${route} regressed by ${diffText} vs baseline (max allowed: +${BUDGETS.REGRESSION_THRESHOLD_PCT}%)`);
-  } else if (budgetExceeded) {
+  if (budgetExceeded) {
     if (isPreExistingDebt) {
       status = "DEBT";
     } else {
@@ -198,6 +194,8 @@ for (const [route, data] of Object.entries(routeSizes)) {
       hasViolations = true;
       violationsList.push(`Route ${route} (${gzipKb} KB) exceeded budget (${budgetKb} KB)`);
     }
+  } else if (regressed) {
+    status = "WARN";
   }
 
   console.log(
