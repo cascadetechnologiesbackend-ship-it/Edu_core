@@ -5,6 +5,9 @@ import { ROLE_CONFIGS, type UserRole } from "../roleConfig";
 function resolveAuthSecret(): string {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      return "dummy-build-time-secret-at-least-32-chars-long";
+    }
     if (process.env.NODE_ENV === "production") {
       throw new Error(
         "FATAL: AUTH_SECRET or NEXTAUTH_SECRET is required in production environment to prevent session forgery."
