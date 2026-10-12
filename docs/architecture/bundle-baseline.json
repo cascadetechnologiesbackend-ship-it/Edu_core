@@ -1,497 +1,533 @@
 {
-  "appShellGzipBytes": 81021,
+  "appShellGzipBytes": 81014,
   "routes": {
     "/layout": {
-      "gzipBytes": 121849,
-      "rawBytes": 477463
-    },
-    "/(auth)/force-password-change/page": {
-      "gzipBytes": 90882,
-      "rawBytes": 311226
+      "gzipBytes": 125956,
+      "rawBytes": 488970
     },
     "/(auth)/forgot-password/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(auth)/force-password-change/page": {
+      "gzipBytes": 90988,
+      "rawBytes": 310492
+    },
+    "/offline/page": {
+      "gzipBytes": 96704,
+      "rawBytes": 326751
     },
     "/page": {
-      "gzipBytes": 98205,
-      "rawBytes": 334681
+      "gzipBytes": 98341,
+      "rawBytes": 333645
     },
     "/onboard/page": {
-      "gzipBytes": 103818,
-      "rawBytes": 367412
+      "gzipBytes": 103946,
+      "rawBytes": 366372
     },
     "/(accountant)/accountant/dashboard/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/(auth)/login/page": {
-      "gzipBytes": 134951,
-      "rawBytes": 462135
-    },
-    "/(hr-manager)/hr/dashboard/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
+      "gzipBytes": 133117,
+      "rawBytes": 452910
     },
     "/(librarian)/librarian/dashboard/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
+      "gzipBytes": 95213,
+      "rawBytes": 323269
     },
     "/(principal)/principal/dashboard/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
+      "gzipBytes": 95213,
+      "rawBytes": 323269
     },
     "/(student)/student/profile/page": {
-      "gzipBytes": 105725,
-      "rawBytes": 367136
+      "gzipBytes": 105843,
+      "rawBytes": 365408
+    },
+    "/(student)/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/(student)/student/dashboard/page": {
-      "gzipBytes": 104043,
-      "rawBytes": 353142
+      "gzipBytes": 104193,
+      "rawBytes": 352896
+    },
+    "/(hr-manager)/hr/dashboard/page": {
+      "gzipBytes": 95213,
+      "rawBytes": 323269
     },
     "/(transport-manager)/transport/dashboard/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
-    },
-    "/(admin)/admissions/new/page": {
-      "gzipBytes": 93549,
-      "rawBytes": 329019
-    },
-    "/(admin)/admissions/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/layout": {
-      "gzipBytes": 119643,
-      "rawBytes": 408326
-    },
-    "/(admin)/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/admissions/[id]/page": {
-      "gzipBytes": 96784,
-      "rawBytes": 327922
-    },
-    "/(admin)/academics/classes/[classId]/subjects/[classSubjectId]/page": {
-      "gzipBytes": 106024,
-      "rawBytes": 378742
-    },
-    "/(admin)/academics/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/fees/collect/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/fees/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/admissions/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
-    },
-    "/(admin)/fees/reports/page": {
-      "gzipBytes": 382241,
-      "rawBytes": 1356049
-    },
-    "/(admin)/admin/dashboard/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/fees/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/school/accounting/reports/balance-sheet/page": {
-      "gzipBytes": 112854,
-      "rawBytes": 385488
-    },
-    "/(admin)/fees/concessions/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/fees/structures/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/school/accounting/reports/page": {
-      "gzipBytes": 104604,
-      "rawBytes": 351664
-    },
-    "/(admin)/students/page": {
-      "gzipBytes": 96518,
-      "rawBytes": 328493
-    },
-    "/(admin)/students/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/academics/classes/[classId]/page": {
-      "gzipBytes": 106818,
-      "rawBytes": 379748
-    },
-    "/(admin)/school/accounting/reports/income-expenditure/page": {
-      "gzipBytes": 112792,
-      "rawBytes": 384981
-    },
-    "/(admin)/school/accounting/reports/trial-balance/page": {
-      "gzipBytes": 113569,
-      "rawBytes": 385979
-    },
-    "/(admin)/students/[id]/fees/page": {
-      "gzipBytes": 95560,
-      "rawBytes": 324004
-    },
-    "/(admin)/students/[id]/class-history/page": {
-      "gzipBytes": 89762,
-      "rawBytes": 307249
-    },
-    "/(admin)/students/[id]/page": {
-      "gzipBytes": 100833,
-      "rawBytes": 351870
-    },
-    "/(admin)/settings/school-setup/page": {
-      "gzipBytes": 98745,
-      "rawBytes": 348524
-    },
-    "/(admin)/settings/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/academics/setup/bell-schedule/page": {
-      "gzipBytes": 99174,
-      "rawBytes": 338122
-    },
-    "/(admin)/academics/setup/calendar/page": {
-      "gzipBytes": 100387,
-      "rawBytes": 346057
-    },
-    "/(admin)/attendance/page": {
-      "gzipBytes": 91833,
-      "rawBytes": 314232
-    },
-    "/(admin)/attendance/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/academics/page": {
-      "gzipBytes": 106734,
-      "rawBytes": 369522
-    },
-    "/(admin)/dpdp/page": {
-      "gzipBytes": 228755,
-      "rawBytes": 779819
-    },
-    "/(admin)/exams/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
-    },
-    "/(admin)/exams/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/exams/[id]/page": {
-      "gzipBytes": 97217,
-      "rawBytes": 330833
-    },
-    "/(admin)/academics/reports/page": {
-      "gzipBytes": 101682,
-      "rawBytes": 361127
-    },
-    "/(admin)/exams/[id]/marks/page": {
-      "gzipBytes": 96783,
-      "rawBytes": 328495
-    },
-    "/(admin)/exams/report-cards/page": {
-      "gzipBytes": 97509,
-      "rawBytes": 329773
-    },
-    "/(admin)/hr/page": {
-      "gzipBytes": 114851,
-      "rawBytes": 439931
-    },
-    "/(admin)/hr/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/hr/payroll/page": {
-      "gzipBytes": 95730,
-      "rawBytes": 338375
-    },
-    "/(admin)/dashboard/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/hr/staff/[id]/page": {
-      "gzipBytes": 102812,
-      "rawBytes": 365646
-    },
-    "/(admin)/library/page": {
-      "gzipBytes": 93291,
-      "rawBytes": 328259
-    },
-    "/(admin)/library/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/exams/new/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(admin)/school/accounting/dashboard/page": {
-      "gzipBytes": 128930,
-      "rawBytes": 437357
-    },
-    "/(admin)/school/accounts/bank-reconciliation/page": {
-      "gzipBytes": 111259,
-      "rawBytes": 379159
-    },
-    "/(admin)/school/accounts/expense-heads/page": {
-      "gzipBytes": 104618,
-      "rawBytes": 351654
-    },
-    "/(admin)/profile/page": {
-      "gzipBytes": 105725,
-      "rawBytes": 367136
-    },
-    "/(admin)/school/accounts/bank-accounts/page": {
-      "gzipBytes": 104618,
-      "rawBytes": 351654
-    },
-    "/(admin)/school/accounts/expenses/page": {
-      "gzipBytes": 104618,
-      "rawBytes": 351654
-    },
-    "/(admin)/school/collect-fees/page": {
-      "gzipBytes": 145991,
-      "rawBytes": 490490
-    },
-    "/(admin)/school/accounting/reports/concessions/page": {
-      "gzipBytes": 113559,
-      "rawBytes": 393301
-    },
-    "/(admin)/school/fee-audit/page": {
-      "gzipBytes": 384067,
-      "rawBytes": 1373611
-    },
-    "/(admin)/school/accounts/incomes/page": {
-      "gzipBytes": 104618,
-      "rawBytes": 351654
-    },
-    "/(admin)/school/accounts/journal-vouchers/page": {
-      "gzipBytes": 109819,
-      "rawBytes": 376278
-    },
-    "/(admin)/school/due-fees/page": {
-      "gzipBytes": 147631,
-      "rawBytes": 505124
-    },
-    "/(admin)/school/accounts/income-heads/page": {
-      "gzipBytes": 104620,
-      "rawBytes": 351654
-    },
-    "/(admin)/school/fee-structures/page": {
-      "gzipBytes": 133406,
-      "rawBytes": 462894
-    },
-    "/(admin)/school/fee-challans/page": {
-      "gzipBytes": 142580,
-      "rawBytes": 492769
-    },
-    "/(admin)/school/fee-groups/page": {
-      "gzipBytes": 104620,
-      "rawBytes": 351654
-    },
-    "/(admin)/school/due-slip-history/page": {
-      "gzipBytes": 124840,
-      "rawBytes": 420430
-    },
-    "/(admin)/school/fees-discount/page": {
-      "gzipBytes": 128284,
-      "rawBytes": 434372
-    },
-    "/(admin)/school/fee-types/page": {
-      "gzipBytes": 104618,
-      "rawBytes": 351654
-    },
-    "/(admin)/school/fees-carry-forward/page": {
-      "gzipBytes": 107398,
-      "rawBytes": 364920
-    },
-    "/(admin)/school/generate-due-slip/page": {
-      "gzipBytes": 124585,
-      "rawBytes": 419966
-    },
-    "/(admin)/settings/exam-types/page": {
-      "gzipBytes": 96579,
-      "rawBytes": 327631
-    },
-    "/(admin)/school/import-center/page": {
-      "gzipBytes": 109189,
-      "rawBytes": 368182
-    },
-    "/(admin)/school/online-payments/page": {
-      "gzipBytes": 142403,
-      "rawBytes": 489509
-    },
-    "/(admin)/school/assign-fees/page": {
-      "gzipBytes": 104618,
-      "rawBytes": 351654
-    },
-    "/(admin)/settings/grading/page": {
-      "gzipBytes": 89825,
-      "rawBytes": 307140
-    },
-    "/(admin)/school/refunds/page": {
-      "gzipBytes": 146260,
-      "rawBytes": 508954
-    },
-    "/(admin)/school/transactions/page": {
-      "gzipBytes": 404220,
-      "rawBytes": 1437867
-    },
-    "/(admin)/settings/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
-    },
-    "/(admin)/settings/roles/page": {
-      "gzipBytes": 103148,
-      "rawBytes": 366355
-    },
-    "/(admin)/school/fees-dashboard/page": {
-      "gzipBytes": 135942,
-      "rawBytes": 467194
-    },
-    "/(admin)/transport/page": {
-      "gzipBytes": 101634,
-      "rawBytes": 369811
-    },
-    "/(admin)/transport/loading": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(parent)/parent/fees/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(parent)/layout": {
-      "gzipBytes": 104206,
-      "rawBytes": 350124
-    },
-    "/(parent)/portal/consent/page": {
-      "gzipBytes": 231635,
-      "rawBytes": 772087
-    },
-    "/(parent)/parent/bus/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(parent)/portal/report-cards/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
-    },
-    "/(parent)/parent/attendance/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(parent)/portal/rights/page": {
-      "gzipBytes": 232093,
-      "rawBytes": 777552
-    },
-    "/(parent)/portal/page": {
-      "gzipBytes": 104043,
-      "rawBytes": 353142
-    },
-    "/(parent)/parent/profile/page": {
-      "gzipBytes": 105725,
-      "rawBytes": 367136
-    },
-    "/(parent)/parent/dashboard/page": {
-      "gzipBytes": 143773,
-      "rawBytes": 491302
+      "gzipBytes": 95213,
+      "rawBytes": 323269
     },
     "/(driver)/driver/dashboard/page": {
-      "gzipBytes": 92567,
-      "rawBytes": 316114
+      "gzipBytes": 92681,
+      "rawBytes": 315376
     },
     "/(driver)/layout": {
-      "gzipBytes": 104206,
-      "rawBytes": 350124
+      "gzipBytes": 104627,
+      "rawBytes": 348587
+    },
+    "/(driver)/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/(driver)/driver/profile/page": {
-      "gzipBytes": 105725,
-      "rawBytes": 367136
+      "gzipBytes": 105843,
+      "rawBytes": 365408
     },
     "/platform/dashboard/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/platform/layout": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/platform/schools/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/platform/schools/new/page": {
-      "gzipBytes": 93862,
-      "rawBytes": 324219
+      "gzipBytes": 94095,
+      "rawBytes": 324691
     },
-    "/(teacher)/teacher/classes/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
+    "/platform/schools/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(parent)/parent/fees/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(parent)/layout": {
+      "gzipBytes": 104627,
+      "rawBytes": 348587
+    },
+    "/(parent)/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(parent)/parent/attendance/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(parent)/portal/page": {
+      "gzipBytes": 104193,
+      "rawBytes": 352896
+    },
+    "/(parent)/portal/consent/page": {
+      "gzipBytes": 98775,
+      "rawBytes": 333796
+    },
+    "/(parent)/parent/bus/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(parent)/portal/report-cards/page": {
+      "gzipBytes": 95213,
+      "rawBytes": 323269
+    },
+    "/(parent)/portal/rights/page": {
+      "gzipBytes": 99351,
+      "rawBytes": 339259
+    },
+    "/(parent)/parent/profile/page": {
+      "gzipBytes": 105843,
+      "rawBytes": 365408
+    },
+    "/(parent)/parent/dashboard/page": {
+      "gzipBytes": 144024,
+      "rawBytes": 491812
+    },
+    "/(admin)/admissions/page": {
+      "gzipBytes": 95213,
+      "rawBytes": 323269
+    },
+    "/(admin)/admissions/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/layout": {
+      "gzipBytes": 118223,
+      "rawBytes": 394267
+    },
+    "/(admin)/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/admissions/new/page": {
+      "gzipBytes": 93786,
+      "rawBytes": 329491
+    },
+    "/(admin)/admissions/[id]/page": {
+      "gzipBytes": 97033,
+      "rawBytes": 328430
+    },
+    "/(admin)/academics/classes/[classId]/subjects/[classSubjectId]/page": {
+      "gzipBytes": 106034,
+      "rawBytes": 377014
+    },
+    "/(admin)/academics/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/fees/collect/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/fees/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/fees/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/fees/concessions/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/fees/reports/page": {
+      "gzipBytes": 125331,
+      "rawBytes": 419657
+    },
+    "/(admin)/fees/structures/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/school/accounting/reports/income-expenditure/page": {
+      "gzipBytes": 112711,
+      "rawBytes": 383943
+    },
+    "/(admin)/academics/classes/[classId]/page": {
+      "gzipBytes": 106926,
+      "rawBytes": 377506
+    },
+    "/(admin)/school/accounting/reports/page": {
+      "gzipBytes": 104628,
+      "rawBytes": 351654
+    },
+    "/(admin)/admin/dashboard/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/school/accounting/reports/balance-sheet/page": {
+      "gzipBytes": 112769,
+      "rawBytes": 384446
+    },
+    "/(admin)/students/[id]/class-history/page": {
+      "gzipBytes": 89998,
+      "rawBytes": 307721
+    },
+    "/(admin)/students/loading": {
+      "gzipBytes": 88407,
+      "rawBytes": 302700
+    },
+    "/(admin)/students/[id]/page": {
+      "gzipBytes": 101083,
+      "rawBytes": 352380
+    },
+    "/(admin)/settings/school-setup/page": {
+      "gzipBytes": 98855,
+      "rawBytes": 347618
+    },
+    "/(admin)/settings/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/school/accounting/reports/trial-balance/page": {
+      "gzipBytes": 113483,
+      "rawBytes": 384939
+    },
+    "/(admin)/students/page": {
+      "gzipBytes": 97343,
+      "rawBytes": 330554
+    },
+    "/(admin)/students/[id]/fees/page": {
+      "gzipBytes": 95813,
+      "rawBytes": 324516
+    },
+    "/(admin)/academics/reports/page": {
+      "gzipBytes": 101807,
+      "rawBytes": 359399
+    },
+    "/(admin)/academics/page": {
+      "gzipBytes": 106842,
+      "rawBytes": 367102
+    },
+    "/(admin)/academics/setup/bell-schedule/page": {
+      "gzipBytes": 99294,
+      "rawBytes": 337080
+    },
+    "/(admin)/attendance/page": {
+      "gzipBytes": 91943,
+      "rawBytes": 313670
+    },
+    "/(admin)/attendance/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/exams/page": {
+      "gzipBytes": 95213,
+      "rawBytes": 323269
+    },
+    "/(admin)/exams/loading": {
+      "gzipBytes": 88407,
+      "rawBytes": 302700
+    },
+    "/(admin)/academics/setup/calendar/page": {
+      "gzipBytes": 100504,
+      "rawBytes": 345013
+    },
+    "/(admin)/dpdp/page": {
+      "gzipBytes": 95980,
+      "rawBytes": 340611
+    },
+    "/(admin)/dpdp/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/exams/[id]/marks/page": {
+      "gzipBytes": 97035,
+      "rawBytes": 329005
+    },
+    "/(admin)/exams/new/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/hr/page": {
+      "gzipBytes": 114868,
+      "rawBytes": 437177
+    },
+    "/(admin)/hr/loading": {
+      "gzipBytes": 88407,
+      "rawBytes": 302700
+    },
+    "/(admin)/exams/[id]/page": {
+      "gzipBytes": 97468,
+      "rawBytes": 331343
+    },
+    "/(admin)/hr/staff/[id]/page": {
+      "gzipBytes": 103062,
+      "rawBytes": 366156
+    },
+    "/(admin)/hr/payroll/page": {
+      "gzipBytes": 95843,
+      "rawBytes": 336265
+    },
+    "/(admin)/library/page": {
+      "gzipBytes": 93395,
+      "rawBytes": 327181
+    },
+    "/(admin)/library/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/dashboard/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/school/accounts/bank-reconciliation/page": {
+      "gzipBytes": 111168,
+      "rawBytes": 377601
+    },
+    "/(admin)/profile/page": {
+      "gzipBytes": 105843,
+      "rawBytes": 365408
+    },
+    "/(admin)/exams/report-cards/page": {
+      "gzipBytes": 97760,
+      "rawBytes": 330283
+    },
+    "/(admin)/school/accounting/dashboard/page": {
+      "gzipBytes": 128862,
+      "rawBytes": 434822
+    },
+    "/(admin)/school/accounts/bank-accounts/page": {
+      "gzipBytes": 104642,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/accounts/journal-vouchers/page": {
+      "gzipBytes": 109838,
+      "rawBytes": 374892
+    },
+    "/(admin)/school/accounts/income-heads/page": {
+      "gzipBytes": 104642,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/accounting/reports/concessions/page": {
+      "gzipBytes": 113564,
+      "rawBytes": 391229
+    },
+    "/(admin)/school/collect-fees/page": {
+      "gzipBytes": 145296,
+      "rawBytes": 484014
+    },
+    "/(admin)/school/collect-fees/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/school/accounts/expenses/page": {
+      "gzipBytes": 104642,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/accounts/incomes/page": {
+      "gzipBytes": 104642,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/due-fees/page": {
+      "gzipBytes": 147233,
+      "rawBytes": 501156
+    },
+    "/(admin)/school/due-slip-history/page": {
+      "gzipBytes": 124860,
+      "rawBytes": 418878
+    },
+    "/(admin)/school/fee-challans/page": {
+      "gzipBytes": 142327,
+      "rawBytes": 489741
+    },
+    "/(admin)/school/accounts/expense-heads/page": {
+      "gzipBytes": 104642,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/fee-structures/page": {
+      "gzipBytes": 133308,
+      "rawBytes": 458414
+    },
+    "/(admin)/school/fee-groups/page": {
+      "gzipBytes": 104642,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/assign-fees/page": {
+      "gzipBytes": 104644,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/fee-audit/page": {
+      "gzipBytes": 126889,
+      "rawBytes": 436581
+    },
+    "/(admin)/school/fee-types/page": {
+      "gzipBytes": 104644,
+      "rawBytes": 351644
+    },
+    "/(admin)/school/fees-discount/page": {
+      "gzipBytes": 128192,
+      "rawBytes": 432306
+    },
+    "/(admin)/school/fees-carry-forward/page": {
+      "gzipBytes": 107419,
+      "rawBytes": 363874
+    },
+    "/(admin)/school/online-payments/page": {
+      "gzipBytes": 142137,
+      "rawBytes": 486135
+    },
+    "/(admin)/school/import-center/page": {
+      "gzipBytes": 109090,
+      "rawBytes": 366796
+    },
+    "/(admin)/school/generate-due-slip/page": {
+      "gzipBytes": 124608,
+      "rawBytes": 418414
+    },
+    "/(admin)/settings/page": {
+      "gzipBytes": 95213,
+      "rawBytes": 323269
+    },
+    "/(admin)/settings/grading/page": {
+      "gzipBytes": 90059,
+      "rawBytes": 307612
+    },
+    "/(admin)/school/refunds/page": {
+      "gzipBytes": 145968,
+      "rawBytes": 504893
+    },
+    "/(admin)/school/fees-dashboard/page": {
+      "gzipBytes": 135812,
+      "rawBytes": 463169
+    },
+    "/(admin)/school/fees-dashboard/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/school/transactions/page": {
+      "gzipBytes": 145598,
+      "rawBytes": 493754
+    },
+    "/(admin)/settings/exam-types/page": {
+      "gzipBytes": 96829,
+      "rawBytes": 328141
+    },
+    "/(admin)/transport/page": {
+      "gzipBytes": 101709,
+      "rawBytes": 366145
+    },
+    "/(admin)/transport/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(admin)/settings/roles/page": {
+      "gzipBytes": 103261,
+      "rawBytes": 364075
+    },
+    "/(teacher)/teacher/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/(teacher)/layout": {
-      "gzipBytes": 104206,
-      "rawBytes": 350124
+      "gzipBytes": 104627,
+      "rawBytes": 348587
+    },
+    "/(teacher)/loading": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/(teacher)/teacher/attendance/page": {
-      "gzipBytes": 91719,
-      "rawBytes": 315359
+      "gzipBytes": 91820,
+      "rawBytes": 314625
+    },
+    "/(teacher)/teacher/classes/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
     "/(teacher)/teacher/grading/page": {
-      "gzipBytes": 91022,
-      "rawBytes": 311726
+      "gzipBytes": 91131,
+      "rawBytes": 311164
     },
     "/(teacher)/teacher/profile/page": {
-      "gzipBytes": 105725,
-      "rawBytes": 367136
-    },
-    "/(teacher)/teacher/payroll/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
-    },
-    "/(super-admin)/super-admin/audit/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
-    },
-    "/(super-admin)/super-admin/layout": {
-      "gzipBytes": 109367,
-      "rawBytes": 365752
+      "gzipBytes": 105843,
+      "rawBytes": 365408
     },
     "/(super-admin)/super-admin/announcements/page": {
-      "gzipBytes": 88154,
-      "rawBytes": 302188
+      "gzipBytes": 88406,
+      "rawBytes": 302700
     },
-    "/(super-admin)/super-admin/dashboard/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
+    "/(super-admin)/super-admin/layout": {
+      "gzipBytes": 109628,
+      "rawBytes": 365108
     },
     "/(super-admin)/super-admin/profile/page": {
-      "gzipBytes": 105725,
-      "rawBytes": 367136
+      "gzipBytes": 105843,
+      "rawBytes": 365408
+    },
+    "/(super-admin)/super-admin/dashboard/page": {
+      "gzipBytes": 95213,
+      "rawBytes": 323269
     },
     "/(super-admin)/super-admin/schools/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
+      "gzipBytes": 95213,
+      "rawBytes": 323269
+    },
+    "/(super-admin)/super-admin/audit/page": {
+      "gzipBytes": 88406,
+      "rawBytes": 302700
+    },
+    "/(teacher)/teacher/payroll/page": {
+      "gzipBytes": 95209,
+      "rawBytes": 323269
     },
     "/(teacher)/teacher/dashboard/page": {
-      "gzipBytes": 94962,
-      "rawBytes": 322761
+      "gzipBytes": 95213,
+      "rawBytes": 323269
     }
   }
 }
