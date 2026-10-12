@@ -115,8 +115,10 @@ jobs:
         run: pnpm --filter @schoolmitra/frontend run test
 
       - name: Next.js Bundle Analysis & Budget Enforcement (PF-R02)
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
-          pnpm --filter @schoolmitra/frontend run build:analyze
+          pnpm --filter @schoolmitra/frontend run build
           node frontend/scripts/check-bundle-budgets.mjs
 
       - name: Set up Database & Seed for Playwright E2E
