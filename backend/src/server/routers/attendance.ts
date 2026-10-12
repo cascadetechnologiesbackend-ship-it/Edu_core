@@ -8,7 +8,7 @@ import {
   auditLogs,
   academicYears,
 } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import { TRPCError } from "@trpc/server";
 import { logAuditEvent } from "@/lib/auditLogger";
@@ -305,17 +305,25 @@ export const attendanceRouter = createTRPCRouter({
 
         // Batch update existing records in a single CASE statement
         if (toUpdate.length > 0) {
-          for (const item of toUpdate) {
-            await tx
-              .update(studentAttendance)
-              .set({
-                status: item.status,
-                markedById: userId,
-                remarks: item.remarks,
-                updatedAt: new Date(),
-              })
-              .where(eq(studentAttendance.id, item.id));
-          }
+          const ids = toUpdate.map((item) => item.id);
+          const statusCases = sql.join(
+            toUpdate.map((item) => sql`WHEN ${studentAttendance.id} = ${item.id} THEN ${item.status}::attendance_status`),
+            sql` `,
+          );
+          const remarksCases = sql.join(
+            toUpdate.map((item) => sql`WHEN ${studentAttendance.id} = ${item.id} THEN ${item.remarks}`),
+            sql` `,
+          );
+
+          await tx
+            .update(studentAttendance)
+            .set({
+              status: sql`CASE ${statusCases} ELSE ${studentAttendance.status} END`,
+              remarks: sql`CASE ${remarksCases} ELSE ${studentAttendance.remarks} END`,
+              markedById: userId,
+              updatedAt: new Date(),
+            })
+            .where(inArray(studentAttendance.id, ids));
         }
 
         // S5-T4: Single aggregated DPDP audit log insert for the batch operation

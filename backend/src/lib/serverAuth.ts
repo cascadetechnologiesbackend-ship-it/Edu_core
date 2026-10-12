@@ -18,8 +18,10 @@ export interface AuthContext {
   email: string;
 }
 
+import { withTenant, withAuthContext } from "./tenant";
+
 // Zero-arg cached session fetcher ensures 100% deduplication per RSC request
-// and enforces live account active status verification (P3-T1 live drill)
+// and enforces live account active status verification within tenant RLS context (S6-T2)
 export const getCachedSession = safeCache(async () => {
   const session = await auth();
   if (!session?.user?.id) {
@@ -28,31 +30,44 @@ export const getCachedSession = safeCache(async () => {
 
   // Super admins skip school-level active checks unless impersonating
   if (session.user.role !== "SUPER_ADMIN") {
-    try {
-      const [u] = await db
-        .select({ isActive: users.isActive })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
-
-      if (!u || !u.isActive) {
-        return null;
+    const schoolId = (session.user as { schoolId?: string | null }).schoolId;
+    const runInContext = async (cb: (tx: any) => Promise<any>) => {
+      if (schoolId) {
+        return await withTenant(schoolId, cb);
       }
+      return await withAuthContext(cb);
+    };
 
-      // Check whether user still possesses their session role
-      const hasRole = await db
-        .select({ id: userRoles.id })
-        .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(
-          and(
-            eq(userRoles.userId, session.user.id),
-            eq(roles.name, session.user.role as any),
-          ),
-        )
-        .limit(1);
+    try {
+      const { userActive, hasRole } = await runInContext(async (tx) => {
+        const client = tx || db;
+        const [u] = await client
+          .select({ isActive: users.isActive })
+          .from(users)
+          .where(eq(users.id, session.user.id))
+          .limit(1);
 
-      if (!hasRole || hasRole.length === 0) {
+        if (!u || !u.isActive) {
+          return { userActive: false, hasRole: false };
+        }
+
+        // Check whether user still possesses their session role
+        const roleRows = await client
+          .select({ id: userRoles.id })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(
+            and(
+              eq(userRoles.userId, session.user.id),
+              eq(roles.name, session.user.role as any),
+            ),
+          )
+          .limit(1);
+
+        return { userActive: true, hasRole: roleRows.length > 0 };
+      });
+
+      if (!userActive || !hasRole) {
         return null;
       }
     } catch (err) {

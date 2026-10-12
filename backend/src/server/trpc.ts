@@ -123,13 +123,14 @@ const rateLimitMiddleware = t.middleware(async ({ ctx, next, path }) => {
   return next({ ctx });
 });
 
-import { withTenant } from "@/lib/tenant";
+import { withTenant, withPlatformContext } from "@/lib/tenant";
 import { sql } from "drizzle-orm";
 
 /**
- * Auth middleware — ensures user is authenticated and sets PostgreSQL session RLS context (S5-T2).
+ * Auth middleware — ensures user is authenticated and sets PostgreSQL session RLS context (S5-T2, S6-T2).
  * - For tenant users (schoolId set): runs within withTenant(schoolId) setting app.current_school_id
- * - For global super-admins (schoolId null): sets app.current_role = 'SUPER_ADMIN'
+ * - For impersonating SUPER_ADMINs: runs within withTenant(impersonatedSchoolId) setting tenant context
+ * - For global super-admins (non-impersonated): runs within withPlatformContext() setting app.current_role = 'PLATFORM_ADMIN'
  */
 const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.session?.user) {
@@ -158,8 +159,47 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
   }
 
   if (role === "SUPER_ADMIN") {
-    return await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.current_role', 'SUPER_ADMIN', true)`);
+    // Check for active impersonation session via sm_impersonation cookie
+    let impersonatedSchoolId: string | null = null;
+    try {
+      const impCookie = ctx.req?.cookies?.get?.("sm_impersonation")?.value;
+      let token = impCookie;
+      if (!token) {
+        const { cookies } = await import("next/headers");
+        token = cookies().get("sm_impersonation")?.value;
+      }
+      if (token) {
+        const { verifyImpersonationToken } = await import("@/lib/impersonation");
+        const payload = verifyImpersonationToken(token);
+        if (payload?.schoolId) {
+          impersonatedSchoolId = payload.schoolId;
+        }
+      }
+    } catch {}
+
+    if (impersonatedSchoolId) {
+      // Impersonated sessions are tenant sessions: run inside withTenant
+      const impersonatedSession = {
+        ...session,
+        user: {
+          ...session.user,
+          schoolId: impersonatedSchoolId,
+          role: "SCHOOL_ADMIN",
+        },
+      };
+      return await withTenant(impersonatedSchoolId, async (tx) => {
+        return next({
+          ctx: {
+            ...ctx,
+            session: impersonatedSession,
+            db: tx as any,
+          },
+        });
+      });
+    }
+
+    // Non-impersonated SUPER_ADMIN: platform read-only cross-tenant access via PLATFORM_ADMIN
+    return await withPlatformContext(async (tx) => {
       return next({
         ctx: {
           ...ctx,

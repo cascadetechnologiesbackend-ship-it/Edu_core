@@ -9,10 +9,13 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/db", () => {
   const mockSelect = vi.fn();
+  const mockDb: any = {
+    select: mockSelect,
+    execute: vi.fn().mockResolvedValue({}),
+    transaction: vi.fn(async (cb: (tx: any) => Promise<any>): Promise<any> => cb(mockDb)),
+  };
   return {
-    db: {
-      select: mockSelect,
-    },
+    db: mockDb,
   };
 });
 

@@ -37,9 +37,34 @@ const skipSetRole =
 
 if (!skipSetRole) {
   pool.on("connect", (client) => {
-    client.query("SET ROLE schoolmitra_app;").catch(() => {
-      // Graceful fallback if role not yet created during initial bootstrap
-    });
+    client
+      .query("SET ROLE schoolmitra_app;")
+      .then(async () => {
+        if (
+          process.env["DEBUG_DB_ROLES"] === "true" ||
+          process.env["NODE_ENV"] === "development"
+        ) {
+          try {
+            const res = await client.query(
+              "SELECT current_user, current_setting('role', true) AS active_role;",
+            );
+            console.log(
+              `[DB Pool] Connection established as ${res.rows[0]?.current_user} (role: ${res.rows[0]?.active_role})`,
+            );
+          } catch {}
+        }
+      })
+      .catch((err) => {
+        console.error(
+          "[FATAL] Failed to set role schoolmitra_app on application connection:",
+          err?.message || err,
+        );
+        if (process.env["NODE_ENV"] === "production") {
+          // Hard fail-closed in production (S6-T0)
+          client.emit("error", new Error(`Production DB connection failed to assume schoolmitra_app: ${err?.message || err}`));
+          process.exit(1);
+        }
+      });
   });
 }
 
@@ -72,46 +97,8 @@ export async function withReportSession<T>(
   });
 }
 
-/**
- * Runs queries inside a transaction scoped to the tenant context.
- * Kept for backward compatibility with schema-isolated plugins.
- */
-export async function withTenant<T>(
-  tenantSlug: string,
-  cb: (tx: Db) => Promise<T>,
-): Promise<T> {
-  return await db.transaction(async (tx) => {
-    return await cb(tx as any);
-  });
-}
-
-/**
- * Tenant provisioning handler.
- * Under the shared schema architecture, newly created schools immediately inherit
- * the shared schema tables partitioned by `school_id`.
- */
-export async function provisionTenant(tenantSlug: string): Promise<void> {
-  // Shared-schema architecture: no dynamic DDL required.
-  // Tables are pre-provisioned and scoped by schoolId.
-  return Promise.resolve();
-}
-
-/**
- * Gets the tenant slug from the specified schoolId.
- * Used to scope DB queries to the tenant schema.
- */
-export async function getTenantDb(schoolId?: string) {
-  if (!schoolId) throw new Error("No tenant context");
-
-  const school = await db.query.schools.findFirst({
-    where: eq(schema.schools.id, schoolId),
-    columns: { udiseCode: true, id: true },
-  });
-  if (!school) throw new Error("School not found");
-
-  const tenantSlug = school.udiseCode.replace(/[^a-zA-Z0-9]/g, "_");
-  return { tenantDb: db, tenantSlug, schoolId: school.id };
-}
+// Canonical multi-tenant & RLS context wrappers (S6-T3 consolidation)
+export * from "./tenant";
 
 // ─── Re-export schema and query logger for convenience ───────────────────────
 

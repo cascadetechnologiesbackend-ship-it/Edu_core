@@ -5,14 +5,22 @@
 -- DDL migrations continue to run via MIGRATION_DATABASE_URL using the table owner role.
 
 DO $$
+DECLARE
+  v_pwd text;
 BEGIN
+  v_pwd := nullif(current_setting('app.app_db_password', true), '');
+  IF v_pwd IS NULL THEN
+    v_pwd := 'schoolmitra_app_secure';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_roles WHERE rolname = 'schoolmitra_app_login'
   ) THEN
-    -- In production, the password should be rotated and injected via environment.
-    -- Default password provided for standard local / CI setups.
-    CREATE ROLE schoolmitra_app_login WITH LOGIN PASSWORD 'schoolmitra_app_secure' IN ROLE schoolmitra_app;
+    EXECUTE format('CREATE ROLE schoolmitra_app_login WITH LOGIN PASSWORD %L IN ROLE schoolmitra_app', v_pwd);
   ELSE
+    IF current_setting('app.app_db_password', true) IS NOT NULL AND current_setting('app.app_db_password', true) <> '' THEN
+      EXECUTE format('ALTER ROLE schoolmitra_app_login WITH PASSWORD %L', v_pwd);
+    END IF;
     -- Ensure role is granted membership in schoolmitra_app
     GRANT schoolmitra_app TO schoolmitra_app_login;
   END IF;

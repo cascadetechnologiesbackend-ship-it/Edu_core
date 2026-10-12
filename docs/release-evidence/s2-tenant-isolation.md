@@ -125,3 +125,32 @@ pnpm run type-check
 ## 5. Sign-off
 
 Stage S2-C tenant isolation and RLS hardening is complete, empirically verified, and ready for commit.
+
+---
+
+## 6. Dated Correction & RLS Architecture Evolution (2026-10-12, Sprint S6)
+
+> [!WARNING]
+> **Historical Correction on Migration 0028:**  
+> The policy definition in Migration 0028 (`current_setting('app.current_school_id', true) IS NULL OR ...`) was **fail-open**: any database connection with an unset GUC received full access to all rows across all schools. Furthermore, application connections connecting as the PostgreSQL table owner bypassed RLS entirely.
+
+### Multi-Sprint Evolution Timeline (S2 -> S6):
+1. **Sprint S2 (Migration 0028):** Initial RLS policies introduced, but fail-open when `app.current_school_id` was unset (`IS NULL`), and server action writes audited for `schoolId` qualification.
+2. **Sprint S4 (Migration 0029 & 0030):**
+   - Migration 0029 replaced fail-open policies with strict fail-closed policies (`nullif(current_setting('app.current_school_id', true), '') = school_id::text`) and added `FORCE ROW LEVEL SECURITY`.
+   - Migration 0030 created the non-owner role `schoolmitra_app` (NOLOGIN, DML-only) with `SYSTEM_AUTH` read arm for user credential lookups.
+3. **Sprint S5 (Migration 0031):**
+   - Migration 0031 created the login role `schoolmitra_app_login`.
+   - Pool connect hook configured to run `SET ROLE schoolmitra_app`.
+4. **Sprint S6 (Migration 0032 & Identity Closure):**
+   - Migration 0032 granted `schoolmitra_app` to `CURRENT_USER` (migration runner / Render owner) so `SET ROLE schoolmitra_app` succeeds legal and unprivileged from owner connections.
+   - Added `PLATFORM_ADMIN` read arm (`OR nullif(current_setting('app.current_role', true), '') = 'PLATFORM_ADMIN'`) in `USING` across all 13 RLS tables for platform super admin dashboards while remaining strictly read-only (`WITH CHECK` maintains tenant or system-auth isolation).
+   - Fail-closed pool hook in production: `database/src/index.ts` hard fails if `SET ROLE schoolmitra_app` does not establish `schoolmitra_app` identity.
+   - Wired NextAuth `jwt`, `session`, and `getCachedSession` to execute with tenant context (`withTenant(schoolId)` or `withAuthContext()`).
+   - Consolidated `withTenant` into canonical `@schoolmitra/database`.
+
+### Scope Decision on Remaining School-Scoped Tables
+- **Covered by DB-Level Fail-Closed RLS (13 Tables):** `students`, `fee_invoices`, `fee_payments`, `users`, `classes`, `student_attendance`, `payment_gateway_logs`, `account_ledger_transactions`, `consent_records`, `rights_requests`, `dpdp_grievances`, `data_breach_log`, `vendor_register`.
+- **Application-Scoped (AST & ORM Enforced):** `staff`, `parents`, `admissions`, `transport`, `exam_results`, `payroll`.
+  - *Rationale & Sign-off:* These tables are guarded by application-level AST audit (`scripts/audit-unscoped-writes.mjs`) requiring mandatory `schoolId` equality in all mutations. Extending database RLS to them is deferred to avoid breaking cross-cutting background jobs and payroll aggregation routines until dedicated non-owner test coverage is completed for those subsystems.
+

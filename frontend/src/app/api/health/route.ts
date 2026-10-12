@@ -14,9 +14,17 @@ export async function GET() {
   let dbError: string | null = null;
   let redisError: string | null = null;
 
-  // 1. Check Database (Strict Dependency)
+  let dbRole: string = "unknown";
+  let activeRole: string = "unknown";
+
+  // 1. Check Database (Strict Dependency) & Identity Verification (S6-T0)
   try {
-    await db.execute(sql`SELECT 1`);
+    const res: any = await db.execute(
+      sql`SELECT current_user AS db_user, current_setting('role', true) AS active_role`,
+    );
+    const row = res.rows?.[0] || res[0];
+    dbRole = row?.db_user || row?.current_user || "unknown";
+    activeRole = row?.active_role || "unknown";
   } catch (err: any) {
     dbStatus = "error";
     dbError = err?.message || "Database connection failed";
@@ -53,6 +61,8 @@ export async function GET() {
       {
         status: "error",
         database: "error",
+        dbRole,
+        activeRole,
         redis: redisStatus,
         version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
         commit: commitSha,
@@ -72,6 +82,8 @@ export async function GET() {
     {
       status: overallStatus,
       database: "ok",
+      dbRole,
+      activeRole,
       redis: redisStatus,
       version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
       commit: commitSha,

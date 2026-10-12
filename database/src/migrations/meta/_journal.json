@@ -225,6 +225,13 @@
       "when": 1792700000000,
       "tag": "0031_non_owner_login_role",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1792800000000,
+      "tag": "0032_grant_app_role_and_platform_admin",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users, userRoles, roles } from "@/db/schema/core";
 import { eq, sql } from "drizzle-orm";
-import { withAuthContext } from "@/lib/tenant";
+import { withAuthContext, withTenant } from "@/lib/tenant";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
@@ -15,11 +15,20 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       let token = await (authConfig.callbacks?.jwt ? authConfig.callbacks.jwt(params) : params.token);
       if (token?.id) {
         try {
-          const [dbUser] = await db
-            .select({ mustChangePassword: users.mustChangePassword, isActive: users.isActive })
-            .from(users)
-            .where(eq(users.id, token.id as string))
-            .limit(1);
+          const schoolId = (token.schoolId as string) || (params.user as any)?.schoolId;
+          const queryUser = async (tx: any) => {
+            const [u] = await tx
+              .select({ mustChangePassword: users.mustChangePassword, isActive: users.isActive })
+              .from(users)
+              .where(eq(users.id, token.id as string))
+              .limit(1);
+            return u;
+          };
+
+          const dbUser = await (schoolId
+            ? withTenant(schoolId, queryUser)
+            : withAuthContext(queryUser));
+
           if (dbUser) {
             if (!dbUser.isActive) {
               token.isDeactivated = true;
@@ -42,13 +51,23 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         return null as any;
       }
       let session = await (authConfig.callbacks?.session ? authConfig.callbacks.session(params) : params.session);
-      if (session?.user?.id && session.user.role !== "SUPER_ADMIN") {
+      const currentUser = session?.user;
+      if (currentUser?.id && currentUser.role !== "SUPER_ADMIN") {
         try {
-          const [dbUser] = await db
-            .select({ isActive: users.isActive })
-            .from(users)
-            .where(eq(users.id, session.user.id))
-            .limit(1);
+          const schoolId = (currentUser as any).schoolId || (params.token?.schoolId as string);
+          const queryUser = async (tx: any) => {
+            const [u] = await tx
+              .select({ isActive: users.isActive })
+              .from(users)
+              .where(eq(users.id, currentUser.id))
+              .limit(1);
+            return u;
+          };
+
+          const dbUser = await (schoolId
+            ? withTenant(schoolId, queryUser)
+            : withAuthContext(queryUser));
+
           if (!dbUser || !dbUser.isActive) {
             return null as any;
           }

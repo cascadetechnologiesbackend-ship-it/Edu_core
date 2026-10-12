@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/serverAuth";
-import { db, provisionTenant } from "@/db";
+import { db } from "@/db";
 import { schools, users, roles, userRoles, persons } from "@/db/schema";
 import { encryptData, computeSearchHash } from "@/lib/encryption";
 import { revalidatePath } from "next/cache";
@@ -102,8 +102,7 @@ export async function provisionNewSchool(formData: FormData) {
       return { schoolId: school.id };
     });
 
-    // 5. Provision tenant Postgres schema and run migrations
-    await provisionTenant(udiseCode);
+    // 5. Shared-schema architecture: newly created school records inherit partitioned tables immediately
 
     revalidatePath("/platform/schools");
     return { success: true, schoolId };

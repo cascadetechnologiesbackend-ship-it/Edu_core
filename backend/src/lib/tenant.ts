@@ -92,40 +92,31 @@ export async function withTenant<T>(
 
 /**
  * Executes a callback within a transactional context scoped for authentication
- * lookups BEFORE a session exists.
- *
- * The login path (NextAuth authorize()) queries the `users` table by email
- * before any school context is known. Since migration 0029 enforced FORCE RLS,
- * a plain query with no `app.current_school_id` would return 0 rows (fail-closed).
- *
- * This helper temporarily sets `app.current_school_id = ''` (empty string) AND
- * `app.current_role = 'SYSTEM_AUTH'` so a dedicated RLS bypass policy can permit
- * the login lookup. As an alternative to a bypass policy, this can be used with
- * a connection that has BYPASSRLS privilege granted ONLY to the migration runner role.
- *
- * For managed Render/Vercel Postgres, the practical solution is:
- * - The `users` table RLS policy already permits rows where school_id IS NULL (global
- *   super-admins). For school-scoped users, the authorize() call must pass the schoolId
- *   via a pre-auth step (e.g. the login form queries the school from the email domain first,
- *   or a separate /api/auth/school endpoint resolves school from email).
- *
- * IMMEDIATE SAFE APPROACH: Run the auth lookup in a transaction that sets
- * app.current_school_id to the school found by email lookup (two-query approach):
- * 1. Query school_id from users table using BYPASSRLS role (migration runner / postgres superuser)
- * 2. Use withTenant(school_id) for the full user fetch + password check
- *
- * Until a non-owner connection string is wired, this function serves as the
- * documented placeholder for the auth session context.
+ * lookups BEFORE a session exists (e.g. NextAuth authorize() lookup by email).
+ * Sets `app.current_role = 'SYSTEM_AUTH'` locally for the transaction.
  */
 export async function withAuthContext<T>(
   txCallback: (tx: any) => Promise<T>,
 ): Promise<T> {
-  // Auth lookups run in a transaction with SYSTEM_AUTH role context.
-  // The users RLS policy must include:
-  //   OR nullif(current_setting('app.current_role', true), '') = 'SYSTEM_AUTH'
-  // for this to work.
   return await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)`);
+    return await txCallback(tx);
+  });
+}
+
+/**
+ * Executes a callback within a transactional context scoped for platform super-admin operations.
+ * Sets `app.current_role = 'PLATFORM_ADMIN'` locally for the transaction.
+ *
+ * SECURITY: Under the 13 RLS table policies, PLATFORM_ADMIN is granted read-only
+ * access in USING (excluded from WITH CHECK). Cross-tenant writes outside withTenant(schoolId)
+ * are rejected by RLS.
+ */
+export async function withPlatformContext<T>(
+  txCallback: (tx: any) => Promise<T>,
+): Promise<T> {
+  return await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)`);
     return await txCallback(tx);
   });
 }

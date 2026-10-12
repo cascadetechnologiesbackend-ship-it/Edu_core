@@ -86,6 +86,15 @@ async function main() {
 
   await sanitizeMigrationHistory(pool);
 
+  // S6-T1: Inject APP_DB_PASSWORD into migration session for non-owner login role
+  const appDbPassword = process.env["APP_DB_PASSWORD"];
+  if (appDbPassword) {
+    await pool.query(`SELECT set_config('app.app_db_password', $1, false)`, [appDbPassword]);
+    console.log("[Migrate] Injected APP_DB_PASSWORD into migration session context.");
+  } else if (process.env["NODE_ENV"] === "production") {
+    console.warn("[Migrate] Notice: APP_DB_PASSWORD not set in production. Using existing or default credentials.");
+  }
+
   await migrate(db, { migrationsFolder });
   console.log("Migration completed");
 

@@ -292,4 +292,98 @@ describe("Live Postgres RLS Runtime Closure (Non-Owner Role)", () => {
       client.release();
     }
   });
+
+  // ── 7. PLATFORM_ADMIN read arm allows reading cross-tenant data ───────────
+  it("PLATFORM_ADMIN role allows reading students across all schools (super-admin view)", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      // Set platform role context, clear tenant school
+      await client.query("SELECT set_config('app.current_school_id', '', true)");
+      await client.query("SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)");
+
+      const res = await client.query(
+        "SELECT id, school_id FROM students WHERE id IN ($1, $2)",
+        [studentAId, studentBId],
+      );
+
+      // PLATFORM_ADMIN sees rows from both School A and School B
+      expect(res.rows).toHaveLength(2);
+      const returnedIds = res.rows.map((r: any) => r.id);
+      expect(returnedIds).toContain(studentAId);
+      expect(returnedIds).toContain(studentBId);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 8. PLATFORM_ADMIN strictly denies writes without tenant context ────────
+  it("PLATFORM_ADMIN role strictly denies writes outside withTenant context", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_school_id', '', true)");
+      await client.query("SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)");
+
+      let writeError: any = null;
+      try {
+        await client.query(
+          `INSERT INTO student_attendance (id, school_id, student_id, section_id, academic_year_id, attendance_date, status, marked_by_id)
+           VALUES ($1, $2, $3, $4, $5, '2026-10-12 09:00:00+00', 'PRESENT', $6)`,
+          [crypto.randomUUID(), schoolAId, studentAId, sectionAId, academicYearAId, teacherUserId],
+        );
+      } catch (err) {
+        writeError = err;
+      }
+
+      expect(writeError).not.toBeNull();
+      expect(writeError.message).toMatch(
+        /new row violates row-level security policy for table "student_attendance"/i,
+      );
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
+  // ── 9. Impersonated super admin runs within withTenant and succeeds ────────
+  it("super admin impersonating School A succeeds with attendance mark in School A", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      // Impersonated context: sets tenant school A
+      await client.query("SELECT set_config('app.current_school_id', $1, true)", [schoolAId]);
+
+      const attendanceId = crypto.randomUUID();
+      const insertRes = await client.query(
+        `INSERT INTO student_attendance (id, school_id, student_id, section_id, academic_year_id, attendance_date, status, marked_by_id)
+         VALUES ($1, $2, $3, $4, $5, '2026-10-12 09:00:00+00', 'PRESENT', $6)
+         RETURNING id`,
+        [attendanceId, schoolAId, studentAId, sectionAId, academicYearAId, teacherUserId],
+      );
+
+      expect(insertRes.rows[0].id).toBe(attendanceId);
+
+      // Verify cross-tenant write into School B under impersonation of School A is DENIED
+      let crossTenantError: any = null;
+      try {
+        await client.query(
+          `INSERT INTO student_attendance (id, school_id, student_id, section_id, academic_year_id, attendance_date, status, marked_by_id)
+           VALUES ($1, $2, $3, $4, $5, '2026-10-12 09:00:00+00', 'PRESENT', $6)`,
+          [crypto.randomUUID(), schoolBId, studentBId, sectionAId, academicYearBId, teacherUserId],
+        );
+      } catch (err) {
+        crossTenantError = err;
+      }
+
+      expect(crossTenantError).not.toBeNull();
+      expect(crossTenantError.message).toMatch(
+        /new row violates row-level security policy for table "student_attendance"/i,
+      );
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
 });
