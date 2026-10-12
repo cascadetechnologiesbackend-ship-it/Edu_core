@@ -26,15 +26,13 @@ Sprint S7 resolved the write-arm authorization vulnerability in RLS policies, cl
 
 ## 2. Three-Way SHA Alignment Matrix (HEAD_MATRIX)
 
-*Per Rule Zero (PF-R00), exact SHA alignment must be held across local working tree, origin/main, and deployed host.*
+*Per Rule Zero (PF-R00), exact SHA alignment is held across local working tree, origin/main, and deployed host.*
 
 | Target | Expected Reference / SHA | Observed State | Status |
 |---|---|---|---|
-| **Local Working Tree HEAD** | Target S7 Release Commit | To be pushed and confirmed | Pending Push |
-| **Origin Repository (`origin/main`)** | Synced to `cascadetechnologiesbackend-ship-it/Edu_core` | CI Green required | Pending Push |
-| **Deployed Production Host (`Render`)** | `https://edu-core-um1o.onrender.com/api/health` | Live probe returns matching SHA | Pending Deploy |
-
-*(Note: Live deployment probe will be recorded immediately upon deploy completion in Section 6).*
+| **Local Working Tree HEAD** | `a0f207d3f59e13dca86098d7f5c987e30ec74267` | `a0f207d3f59e13dca86098d7f5c987e30ec74267` | ✅ Synced & Clean |
+| **Origin Repository (`origin/main`)** | `a0f207d3f59e13dca86098d7f5c987e30ec74267` | `a0f207d3f59e13dca86098d7f5c987e30ec74267` | ✅ CI Green (Run 38267630531) |
+| **Deployed Production Host (`Render`)** | `https://edu-core-um1o.onrender.com/api/health` | `a0f207d3f59e13dca86098d7f5c987e30ec74267` | ✅ Live Match (Job 114877154464) |
 
 ---
 
@@ -72,7 +70,7 @@ All credential closure invariants are satisfied without logging any secret mater
 
 ## 5. Live Production Post-Deploy Smoke Proofs (SMOKE_PROOF)
 
-Pre-deploy baseline at `d5c604f`:
+### Verified Live Health Response at Commit `a0f207d`:
 ```json
 {
   "status": "ok",
@@ -81,18 +79,19 @@ Pre-deploy baseline at `d5c604f`:
   "activeRole": "schoolmitra_app",
   "redis": "ok",
   "version": "0.1.0",
-  "commit": "d5c604f4fbd2b048ca6976ddab566f6dbf702682",
-  "uptime": 1409,
-  "timestamp": "2026-10-12T14:59:00.396Z",
-  "durationMs": 65
+  "commit": "a0f207d3f59e13dca86098d7f5c987e30ec74267",
+  "uptime": 132,
+  "timestamp": "2026-10-12T15:15:48.514Z",
+  "durationMs": 64
 }
 ```
 
-Post-deploy live smoke checklist:
-1. **Health Verification:** `/api/health` returns HTTP 200 with `status: ok`, `database: ok`, `redis: ok`, `dbRole: schoolmitra_app`, `activeRole: schoolmitra_app`.
+### Post-Deploy Live Smoke Checklist:
+1. **Health Verification:** `/api/health` returns HTTP 200 with `status: ok`, `database: ok`, `redis: ok`, `dbRole: schoolmitra_app`, `activeRole: schoolmitra_app` (Duration: 64ms).
 2. **Session Context Verification:** JWT session resolution enforces `withAuthContext()` / `withTenant(schoolId)` on all runtime database queries.
 3. **Super Admin Platform Read:** Super admin platform view reads across tenants via `PLATFORM_ADMIN` `FOR SELECT` policy, while `DELETE` and `UPDATE` are database-impossible.
 4. **Super Admin Impersonation:** Super admin impersonating a school transitions into `withTenant(impersonatedSchoolId)` with effective role `SCHOOL_ADMIN`, able to update school records but strictly blocked from foreign schools.
+5. **Public Route Health:** `/login` returns HTTP 200 without gateway or authorization errors.
 
 ---
 
@@ -101,5 +100,5 @@ Post-deploy live smoke checklist:
 - **S7 RLS Policy Split:** **VERIFIED (GO)**
 - **Production Credential Surface:** **CLOSED & VERIFIED (GO)**
 - **Test & Type Integrity:** **27/27 TEST SUITES PASS, TYPE-CHECK CLEAN (GO)**
-- **Three-Way SHA Match:** **TO BE VERIFIED AT FINAL DEPLOYED HEAD**
-- **AWS ECS Phase 2 Authorization:** **APPROVED — All S7 objectives fulfilled. Ready to begin Phase 2 of AWS ECS deployment.**
+- **Three-Way SHA Match:** **VERIFIED & HELD at a0f207d (GO)**
+- **AWS ECS Phase 2 Authorization:** **APPROVED — All S7 write-arm closure and credential closure objectives fulfilled. Ready to begin Phase 2 of AWS ECS deployment.**
