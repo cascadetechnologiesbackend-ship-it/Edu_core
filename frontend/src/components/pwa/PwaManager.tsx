@@ -10,11 +10,10 @@ import {
   Smartphone,
   Share2,
   PlusSquare,
-  CheckCircle2,
-  ShieldCheck,
   Sparkles,
-  ArrowRight,
-  Info,
+  Zap,
+  ShieldCheck,
+  Check,
 } from "lucide-react";
 
 export function PwaManager() {
@@ -27,7 +26,9 @@ export function PwaManager() {
   const [isIos, setIsIos] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [isInstalledOrAcknowledged, setIsInstalledOrAcknowledged] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIosTip, setShowIosTip] = useState(false);
+  const [showManualTip, setShowManualTip] = useState(false);
 
   useEffect(() => {
     // 1. Online / Offline listeners
@@ -44,7 +45,9 @@ export function PwaManager() {
     if (typeof window !== "undefined") {
       const ua = navigator.userAgent || "";
       const isIosDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-      const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) || window.innerWidth <= 820;
+      const isMobileDevice =
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+        window.innerWidth <= 820;
       const standalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
@@ -54,11 +57,10 @@ export function PwaManager() {
       setIsMobile(isMobileDevice);
       setIsStandalone(standalone);
 
-      const acknowledged =
-        sessionStorage.getItem("edu.pwa.installed_or_acknowledged") === "true" ||
-        localStorage.getItem("edu.pwa.installed_or_acknowledged") === "true";
-
-      setIsInstalledOrAcknowledged(acknowledged);
+      const installed =
+        localStorage.getItem("edu.pwa.installed") === "true" ||
+        sessionStorage.getItem("edu.pwa.installed") === "true";
+      setIsInstalled(installed);
     }
 
     // 3. Register Service Worker (Production Only)
@@ -126,43 +128,53 @@ export function PwaManager() {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
+      // Auto-trigger direct modal when install prompt is ready on mobile
+      const dismissed = sessionStorage.getItem("edu.pwa.modal_dismissed") === "true";
+      if (!dismissed) {
+        setShowInstallModal(true);
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+
+    // Listen for app installed event
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setShowInstallModal(false);
+      localStorage.setItem("edu.pwa.installed", "true");
+    };
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
-  // Show modal if user is on an authenticated page (post-login), on mobile/tablet, and hasn't installed yet
+  // Show modal on mobile device when not standalone
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (isStandalone || isInstalled) {
+      setShowInstallModal(false);
+      return;
+    }
 
-    const isPublicAuthRoute =
-      pathname === "/" ||
-      pathname.startsWith("/login") ||
-      pathname.startsWith("/forgot-password") ||
-      pathname.startsWith("/force-password-change") ||
-      pathname.startsWith("/onboard");
+    const dismissed = sessionStorage.getItem("edu.pwa.modal_dismissed") === "true";
+    if (dismissed) return;
 
     let timer: NodeJS.Timeout | undefined;
-
-    // Only prompt after login on internal dashboards
-    if (!isPublicAuthRoute && !isStandalone && isMobile && !isInstalledOrAcknowledged) {
+    if (isMobile) {
       timer = setTimeout(() => {
         setShowInstallModal(true);
-      }, 600); // Gentle delay after route transition
-    } else {
-      setShowInstallModal(false);
+      }, 1200);
     }
 
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [pathname, isStandalone, isMobile, isInstalledOrAcknowledged]);
+  }, [pathname, isMobile, isStandalone, isInstalled]);
 
   const handleUpdateReload = () => {
     if (waitingWorker) {
@@ -172,30 +184,37 @@ export function PwaManager() {
     }
   };
 
-  const handleNativeInstallClick = async () => {
-    if (!installPrompt) return;
-    try {
-      await installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
-      if (outcome === "accepted") {
-        setShowInstallModal(false);
-        setIsInstalledOrAcknowledged(true);
-        sessionStorage.setItem("edu.pwa.installed_or_acknowledged", "true");
-        localStorage.setItem("edu.pwa.installed_or_acknowledged", "true");
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+      try {
+        await installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === "accepted") {
+          setIsInstalled(true);
+          setShowInstallModal(false);
+          localStorage.setItem("edu.pwa.installed", "true");
+        }
+      } catch (err) {
+        console.warn("PWA prompt error:", err);
       }
-    } catch (err) {
-      console.warn("PWA prompt error:", err);
+      setInstallPrompt(null);
+      return;
     }
-    setInstallPrompt(null);
+
+    if (isIos) {
+      setShowIosTip(true);
+      setShowManualTip(false);
+      return;
+    }
+
+    // Android/Desktop without native event ready yet
+    setShowManualTip(true);
+    setShowIosTip(false);
   };
 
-  const handleAcknowledgeAndProceed = () => {
+  const handleDismissModal = () => {
     setShowInstallModal(false);
-    setIsInstalledOrAcknowledged(true);
-    try {
-      sessionStorage.setItem("edu.pwa.installed_or_acknowledged", "true");
-      localStorage.setItem("edu.pwa.installed_or_acknowledged", "true");
-    } catch {}
+    sessionStorage.setItem("edu.pwa.modal_dismissed", "true");
   };
 
   return (
@@ -207,7 +226,7 @@ export function PwaManager() {
           className="fixed top-0 left-0 right-0 z-[100000] bg-amber-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 shadow-md animate-fade-in"
         >
           <WifiOff className="w-4 h-4 flex-shrink-0" />
-          <span>You are currently offline. Edits and financial operations are paused to protect record integrity.</span>
+          <span>You are currently offline. Edits are queued to protect records.</span>
         </div>
       )}
 
@@ -233,113 +252,101 @@ export function PwaManager() {
         </div>
       )}
 
-      {/* ─── Centered Mobile PWA Install Modal (Mid-Screen Pop-Up) ─────────────── */}
-      {showInstallModal && !isStandalone && (
-        <div className="fixed inset-0 z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="relative w-full max-w-md bg-gradient-to-b from-slate-900 via-slate-900 to-[#0b101b] border border-indigo-500/30 rounded-2xl p-6 sm:p-7 shadow-2xl space-y-5 text-white">
-            {/* Top Badge & Close */}
-            <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Mobile Installation Required</span>
+      {/* ─── Direct PWA Install Pop-Up (Clean, Direct Action, Zero Long Instructions) ─── */}
+      {showInstallModal && !isStandalone && !isInstalled && (
+        <div className="fixed inset-0 z-[999999] bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm bg-gradient-to-b from-slate-900 via-slate-900 to-[#0b101b] border border-indigo-500/30 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
+            {/* Top Close Button */}
+            <button
+              onClick={handleDismissModal}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* App Branding & Icon */}
+            <div className="text-center pt-2 space-y-3">
+              <div className="relative inline-block">
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-xl shadow-indigo-600/30 border border-indigo-400/30">
+                  <Smartphone className="w-10 h-10 text-white" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1 shadow-md border-2 border-slate-900">
+                  <Zap className="w-3.5 h-3.5 text-white" />
+                </div>
               </div>
+
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  SchoolMitra ERP
+                </h2>
+                <p className="text-xs text-indigo-300 font-medium">
+                  Official School Management App
+                </p>
+              </div>
+
+              {/* Value Badges */}
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/80 border border-slate-700/60 text-slate-300">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  Instant Access
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/80 border border-slate-700/60 text-slate-300">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  DPDP Protected
+                </span>
+              </div>
+            </div>
+
+            {/* iOS Instant Cue (Only shown when user taps install on iOS) */}
+            {showIosTip && (
+              <div className="rounded-xl bg-indigo-950/70 border border-indigo-500/40 p-3 text-center text-xs text-indigo-200 animate-in fade-in space-y-1">
+                <div className="flex items-center justify-center gap-1.5 font-semibold text-white">
+                  <span>Tap Safari</span>
+                  <Share2 className="w-4 h-4 text-sky-400 inline" />
+                  <span>Share ➔ Add to Home Screen</span>
+                  <PlusSquare className="w-4 h-4 text-emerald-400 inline" />
+                </div>
+              </div>
+            )}
+
+            {/* Android Menu Cue (Only shown if browser hasn't fired beforeinstallprompt) */}
+            {showManualTip && (
+              <div className="rounded-xl bg-indigo-950/70 border border-indigo-500/40 p-3 text-center text-xs text-indigo-200 animate-in fade-in">
+                <span>Tap <strong className="text-white">⋮ (Menu)</strong> in your browser and select <strong className="text-indigo-300">&quot;Install app&quot;</strong></span>
+              </div>
+            )}
+
+            {/* Direct Actions */}
+            <div className="space-y-2.5 pt-1">
               <button
-                onClick={handleAcknowledgeAndProceed}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
-                title="Dismiss"
+                onClick={handleInstallClick}
+                className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/40 flex items-center justify-center gap-2.5 transition active:scale-[0.98] border border-indigo-400/30"
               >
-                <X className="w-5 h-5" />
+                <Download className="w-4 h-4" />
+                <span>Install App</span>
               </button>
-            </div>
 
-            {/* Icon & Title */}
-            <div className="text-center space-y-2 pt-2">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-600/30">
-                <Smartphone className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-xl font-bold tracking-tight text-white">
-                Install SchoolMitra ERP
-              </h2>
-              <p className="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto">
-                For complete DPDP compliance, biometric access, and secure offline record management on your mobile device, please install the application to your home screen.
-              </p>
-            </div>
-
-            {/* Interactive Install Guidance */}
-            <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-4 space-y-3">
-              {installPrompt ? (
-                /* Native BeforeInstallPrompt available (Chrome / Edge) */
-                <div className="space-y-3 text-center">
-                  <p className="text-xs text-slate-300">
-                    Your browser supports one-tap installation:
-                  </p>
-                  <button
-                    onClick={handleNativeInstallClick}
-                    className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition active:scale-95"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Install App to Home Screen</span>
-                  </button>
-                </div>
-              ) : isIos ? (
-                /* iOS Safari instructions */
-                <div className="space-y-2 text-xs text-slate-300">
-                  <div className="font-semibold text-white flex items-center gap-1.5 text-xs text-indigo-400">
-                    <Info className="w-4 h-4" /> How to install on iPhone / iPad (Safari):
-                  </div>
-                  <ol className="space-y-2 pl-1 list-decimal list-inside text-slate-300 leading-normal">
-                    <li>
-                      Tap the <span className="font-semibold text-white">Share button</span>{" "}
-                      <Share2 className="w-3.5 h-3.5 inline text-sky-400 mx-0.5" /> at the bottom of Safari.
-                    </li>
-                    <li>
-                      Scroll down and tap{" "}
-                      <span className="font-semibold text-white">Add to Home Screen</span>{" "}
-                      <PlusSquare className="w-3.5 h-3.5 inline text-emerald-400 mx-0.5" />.
-                    </li>
-                    <li>
-                      Tap <span className="font-semibold text-indigo-300">Add</span> in the top right to install.
-                    </li>
-                  </ol>
-                </div>
-              ) : (
-                /* Android Chrome without native prompt (e.g. over HTTP) */
-                <div className="space-y-2 text-xs text-slate-300">
-                  <div className="font-semibold text-white flex items-center gap-1.5 text-xs text-indigo-400">
-                    <Info className="w-4 h-4" /> How to install on Android (Chrome / Browser):
-                  </div>
-                  <ol className="space-y-2 pl-1 list-decimal list-inside text-slate-300 leading-normal">
-                    <li>
-                      Tap the <span className="font-semibold text-white">three dots menu (⋮)</span> in the top right corner of Chrome.
-                    </li>
-                    <li>
-                      Select <span className="font-semibold text-white">&quot;Install app&quot;</span> or{" "}
-                      <span className="font-semibold text-white">&quot;Add to Home screen&quot;</span>.
-                    </li>
-                    <li>
-                      Tap <span className="font-semibold text-indigo-300">&quot;Install&quot;</span> to add SchoolMitra to your phone.
-                    </li>
-                  </ol>
-                  <p className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 mt-2">
-                    Note: Browsers require an SSL certificate (HTTPS) for automatic popups. Adding to home screen via Chrome menu installs the identical full-screen application.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="pt-1 flex flex-col sm:flex-row gap-2.5">
               <button
-                onClick={handleAcknowledgeAndProceed}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 border border-slate-700"
+                onClick={handleDismissModal}
+                className="w-full py-2.5 px-4 text-slate-400 hover:text-slate-200 text-xs font-semibold transition text-center"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>I have installed / Continue to App</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                Maybe Later
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── Discrete Floating Install Button on Mobile (When modal is dismissed) ─── */}
+      {!showInstallModal && !isStandalone && !isInstalled && isMobile && (
+        <button
+          onClick={() => setShowInstallModal(true)}
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[99990] flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/95 border border-indigo-500/40 text-white shadow-xl shadow-black/50 text-xs font-semibold backdrop-blur-md active:scale-95 transition hover:border-indigo-400 hover:bg-slate-800"
+        >
+          <Download className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Install App</span>
+        </button>
       )}
     </>
   );
