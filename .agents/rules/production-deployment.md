@@ -45,3 +45,29 @@ globs: ["frontend/**", "backend/**", "database/**", "package.json", "render.yaml
 - Utility functions managing cryptographic encryption or session tokens (e.g., `encryption.ts`, `auth.config.ts`) MUST assert presence of required secrets:
   `if (process.env.NODE_ENV === "production" && !process.env.ENCRYPTION_KEY) { throw new Error("FATAL: ENCRYPTION_KEY missing in production"); }`
 - Development fallbacks are permissible ONLY when `process.env.NODE_ENV !== "production"`.
+
+## 7. Mobile PWA Standards (Android WebAPK & iOS Safari)
+- **Raster PNG Icon Invariant**: Never rely solely on SVG icons in `manifest.json` for PWAs.
+  - Android WebAPK packaging requires PNG icons in both `192x192` and `512x512` dimensions.
+  - Provide icons with both `purpose: "any"` and `purpose: "maskable"` (ensuring maskable icons respect safe-zone margins).
+- **iOS Apple Touch Icon**:
+  - Safari requires an explicit `<link rel="apple-touch-icon" href="/apple-touch-icon.png">` (180x180 PNG).
+  - Configure Next.js metadata with `appleWebApp: { capable: true, statusBarStyle: "black-translucent" }`.
+- **Service Worker Pre-caching**:
+  - All manifest icons (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) must be registered in the service worker pre-cache list (`PRECACHE_ASSETS`) to guarantee offline launcher availability.
+- **Transport Security**:
+  - While standalone shortcut creation works over HTTP, native WebAPK installation on Android requires HTTPS. When provisioning production domains, enforce TLS termination.
+
+## 8. PostgreSQL Enum Columns and Text Matching (`ILIKE`)
+- Never use `ILIKE` or `LIKE` pattern matching directly on PostgreSQL enum columns (e.g. `audit_action`, `user_role`, `attendance_status`).
+- PostgreSQL throws error `42883: operator does not exist: <enum_type> ~~* unknown`.
+- Always explicitly cast enum columns to text before applying pattern matching:
+  `sql`${column}::text ILIKE ${pattern}``
+
+## 9. Safe Database Factory Reset & Multi-Tenant Data Clearing
+- When performing a database reset or data purge:
+  - Drop all dynamic schemas matching `tenant_%` using `DROP SCHEMA ... CASCADE`.
+  - Truncate public tables using `TRUNCATE TABLE <tables> RESTART IDENTITY CASCADE`.
+  - **Strictly Preserve**: Never truncate or drop `super_admin_users` or migration tracking tables (`__drizzle_migrations`, `drizzle.*`).
+  - Always verify and reactivate Super Admin accounts (`is_active = true`) immediately after truncation.
+

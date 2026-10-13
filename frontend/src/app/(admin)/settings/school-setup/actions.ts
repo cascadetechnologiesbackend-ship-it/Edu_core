@@ -80,7 +80,15 @@ export async function updateSchoolProfile(data: SchoolProfileUpdateInput) {
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const school = await requireSchool(ctx);
 
-  const validated = schoolProfileUpdateSchema.parse(data);
+  let validated;
+  try {
+    validated = schoolProfileUpdateSchema.parse(data);
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      throw new Error(err.issues[0]?.message || "Validation failed on school profile fields.");
+    }
+    throw err;
+  }
 
   // Strip prohibited keys at runtime to guarantee invariant
   const updatePayload: Record<string, any> = {

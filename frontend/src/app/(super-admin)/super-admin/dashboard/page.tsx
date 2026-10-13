@@ -18,6 +18,8 @@ import {
   Clock,
   ExternalLink,
 } from "lucide-react";
+import { getInfrastructureTelemetryAction } from "./telemetryActions";
+import { InfrastructureTelemetryPanel } from "./InfrastructureTelemetryPanel";
 
 export const metadata = {
   title: "Platform Command Center | SchoolMitra ERP",
@@ -32,6 +34,7 @@ export default async function SuperAdminDashboardPage() {
     [totalStaff],
     [totalAudits],
     activeSchools,
+    telemetryRes,
   ] = await Promise.all([
     db.select({ count: count() }).from(schools),
     db.select({ count: count() }).from(students),
@@ -40,6 +43,10 @@ export default async function SuperAdminDashboardPage() {
     db.query.schools.findMany({
       orderBy: [desc(schools.createdAt)],
       limit: 8,
+    }),
+    getInfrastructureTelemetryAction().catch((err: any) => {
+      console.error("[SuperAdminDashboard] Telemetry fetch error:", err);
+      return { success: false, data: undefined, error: err?.message || "Failed to load telemetry" };
     }),
   ]);
 
@@ -74,6 +81,11 @@ export default async function SuperAdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Live AWS Infrastructure Telemetry Panel ──────────────────── */}
+      {telemetryRes.data && (
+        <InfrastructureTelemetryPanel initialTelemetry={telemetryRes.data} />
+      )}
 
       {/* ─── 4 KPI Metrics ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

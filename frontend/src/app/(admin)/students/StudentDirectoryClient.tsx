@@ -109,66 +109,68 @@ export function StudentDirectoryClient({
   return (
     <div className="space-y-6">
       {/* Search & Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex-1 min-w-[280px]">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-center justify-between">
+        <div className="flex-1 min-w-0 sm:min-w-[240px]">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
             Search Student
           </label>
           <div className="relative">
             <input
               type="text"
-              placeholder="Search by student name or admission number..."
+              placeholder="Search student name or admission number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleServerSearch();
               }}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              className="w-full pl-9 pr-4 py-2.5 sm:py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
             />
-            <span className="absolute left-3 top-2.5 text-gray-400 text-sm">
+            <span className="absolute left-3 top-3 sm:top-2.5 text-gray-400 text-sm">
               🔍
             </span>
           </div>
         </div>
 
-        <div className="w-48">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Class
-          </label>
-          <select
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-          >
-            <option value="ALL">All Classes</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="grid grid-cols-2 sm:flex gap-3">
+          <div className="flex-1 sm:w-44">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              Class
+            </label>
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="w-full py-2.5 sm:py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            >
+              <option value="ALL">All Classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="w-40">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Status
-          </label>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-          >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
+          <div className="flex-1 sm:w-36">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              Status
+            </label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full py-2.5 sm:py-2 px-3 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            >
+              <option value="ALL">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Results Count & Data Table */}
+      {/* Results Count & Data Container */}
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/20">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/20">
+          <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">
             Showing <strong className="text-gray-900 dark:text-white">{filteredStudents.length}</strong> loaded students
             {isPending && <span className="ml-2 text-xs text-blue-500 animate-pulse">(Searching…)</span>}
           </span>
@@ -178,90 +180,153 @@ export function StudentDirectoryClient({
                 setSearchTerm("");
                 handleServerSearch();
               }}
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-primary font-semibold hover:underline"
             >
               Clear Search
             </button>
           )}
         </div>
 
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-slate-700">
-            <tr>
-              <th className="px-6 py-3.5">Admission No</th>
-              <th className="px-6 py-3.5">Student Name</th>
-              <th className="px-6 py-3.5">Current Placement</th>
-              <th className="px-6 py-3.5">Gender</th>
-              <th className="px-6 py-3.5">Status</th>
-              <th className="px-6 py-3.5 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-            {filteredStudents.length === 0 ? (
+        {/* Desktop Table View (>= 768px) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-slate-700">
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                  {isPending ? "Searching student records..." : "No students found matching your criteria."}
-                </td>
+                <th className="px-6 py-3.5">Admission No</th>
+                <th className="px-6 py-3.5">Student Name</th>
+                <th className="px-6 py-3.5">Current Placement</th>
+                <th className="px-6 py-3.5">Gender</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
-            ) : (
-              filteredStudents.map((student) => (
-                <tr
-                  key={student.id}
-                  className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="px-6 py-4 font-mono font-medium text-gray-900 dark:text-white">
-                    {student.admissionNumber}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    {student.fullName}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                    {student.className ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200">
-                        {student.className} • Section {student.sectionName || "A"}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs italic">
-                        Not Assigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {student.gender}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        student.isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                      }`}
-                    >
-                      {student.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link
-                      href={`/students/${student.id}`}
-                      prefetch={false}
-                      className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs shadow-sm transition-colors"
-                    >
-                      View Student 360 →
-                    </Link>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    {isPending ? "Searching student records..." : "No students found matching your criteria."}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredStudents.map((student) => (
+                  <tr
+                    key={student.id}
+                    className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-mono font-medium text-gray-900 dark:text-white">
+                      {student.admissionNumber}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                      {student.fullName}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                      {student.className ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200">
+                          {student.className} • Section {student.sectionName || "A"}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">
+                          Not Assigned
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {student.gender}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          student.isActive
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
+                      >
+                        {student.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/students/${student.id}`}
+                        prefetch={false}
+                        className="inline-flex items-center gap-1 bg-primary hover:bg-primary-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs shadow-sm transition-colors"
+                      >
+                        View Student 360 →
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Card View (< 768px per UX-R47) */}
+        <div className="block md:hidden p-3 space-y-3">
+          {filteredStudents.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">
+              {isPending ? "Searching student records..." : "No students found matching your criteria."}
+            </div>
+          ) : (
+            filteredStudents.map((student) => (
+              <div
+                key={student.id}
+                className="p-3.5 bg-gray-50/70 dark:bg-slate-800/40 rounded-xl border border-gray-200/80 dark:border-slate-800 space-y-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-sm text-foreground truncate">
+                      {student.fullName}
+                    </h4>
+                    <p className="font-mono text-xs text-muted-foreground mt-0.5">
+                      Adm No: {student.admissionNumber}
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold flex-shrink-0 ${
+                      student.isActive
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
+                    {student.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                  {student.className ? (
+                    <span className="px-2 py-0.5 rounded bg-muted text-foreground font-medium">
+                      {student.className} • Section {student.sectionName || "A"}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 italic">Not Assigned</span>
+                  )}
+                  {student.gender && (
+                    <span className="px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
+                      {student.gender}
+                    </span>
+                  )}
+                </div>
+
+                {/* UX-R21: 44px tap target action button */}
+                <Link
+                  href={`/students/${student.id}`}
+                  prefetch={false}
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-700 text-white font-semibold text-xs transition-all active:scale-95 shadow-sm mt-1"
+                >
+                  View Student 360 →
+                </Link>
+              </div>
+            ))
+          )}
+        </div>
 
         {/* Load More Pagination */}
         {nextCursor && (
-          <div className="p-4 border-t border-gray-100 dark:border-slate-800 text-center bg-gray-50/50 dark:bg-slate-800/20">
+          <div className="p-3 sm:p-4 border-t border-gray-100 dark:border-slate-800 text-center bg-gray-50/50 dark:bg-slate-800/20">
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50"
+              className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-xl shadow-sm transition-all active:scale-95 disabled:opacity-50"
             >
               {loadingMore ? "Loading more..." : "Load More Students ↓"}
             </button>

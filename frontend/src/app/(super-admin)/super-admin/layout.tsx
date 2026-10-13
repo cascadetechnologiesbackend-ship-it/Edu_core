@@ -57,6 +57,18 @@ export default async function SuperAdminLayout({
         {/* Global Platform Header */}
         <PlatformHeader />
 
+        {/* Impersonation Banner if active */}
+        {impersonationData && (
+          <ImpersonationBanner
+            schoolName={impersonationData.schoolName}
+            impersonatingRole="School Administrator"
+            expiresInMinutes={Math.max(
+              1,
+              Math.round((impersonationData.exp - Date.now()) / (60 * 1000)),
+            )}
+          />
+        )}
+
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto" id="platform-main">
           <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">

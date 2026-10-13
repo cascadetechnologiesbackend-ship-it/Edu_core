@@ -71,25 +71,57 @@ export interface SelfProfileResult {
 }
 
 export async function getSelfProfileAction(): Promise<SelfProfileResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
 
-  const userId = session.user.id;
+    const userId = session.user.id;
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
+    let user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
 
-  if (!user) {
-    return { success: false, error: "User account not found" };
-  }
+    if (!user && session.user.role === "SUPER_ADMIN") {
+      const { superAdminUsers } = await import("@/db/schema/core");
+      const superAdminUser = await db.query.superAdminUsers.findFirst({
+        where: eq(superAdminUsers.id, userId),
+      });
+      if (superAdminUser) {
+        user = {
+          id: superAdminUser.id,
+          email: superAdminUser.email,
+          schoolId: null,
+          isActive: superAdminUser.isActive,
+          isEmailVerified: true,
+          isMobileVerified: true,
+          mustChangePassword: false,
+          prefersDarkMode: false,
+          languagePreference: "en",
+          mobileEncrypted: null,
+          createdAt: superAdminUser.createdAt,
+          updatedAt: superAdminUser.updatedAt,
+          deletedAt: null,
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: superAdminUser.lastLoginAt,
+          passwordChangedAt: null,
+          passwordHash: superAdminUser.passwordHash,
+          totpEnabled: superAdminUser.totpEnabled,
+          totpSecret: superAdminUser.totpSecret,
+        } as any;
+      }
+    }
 
-  // Find canonical person linked to this user
-  let person = await db.query.persons.findFirst({
-    where: and(eq(persons.userId, userId), isNull(persons.deletedAt)),
-  });
+    if (!user) {
+      return { success: false, error: "User account not found" };
+    }
+
+    // Find canonical person linked to this user
+    let person = await db.query.persons.findFirst({
+      where: and(eq(persons.userId, userId), isNull(persons.deletedAt)),
+    });
 
   // If no person record exists (e.g. legacy seed user), synthesize or insert canonical shell
   if (!person) {
@@ -235,35 +267,47 @@ export async function getSelfProfileAction(): Promise<SelfProfileResult> {
     hasLicence: Boolean(driverRecord?.licenceEncrypted),
   });
 
-  return {
-    success: true,
-    profile: {
-      id: user.id,
-      personId: person ? person.id : "",
-      role: session.user.role,
-      email: user.email,
-      schoolId: user.schoolId || null,
-      firstName: decryptedFirstName,
-      middleName: decryptedMiddleName,
-      lastName: decryptedLastName,
-      mobile: decryptedMobile,
-      gender: person?.gender || "OTHER",
-      dateOfBirth: person?.dateOfBirth ? new Date(person.dateOfBirth).toISOString().split("T")[0] : null,
-      aadhaarLast4: person?.aadhaarLast4 || null,
-      photoS3Key: photoKey,
-      avatarUrl,
-      address: decryptedAddress,
-      emergencyContact: decryptedEmergencyContact,
-      bloodGroup,
-      preferredLanguage: user.languagePreference || "en",
-      prefersDarkMode: user.prefersDarkMode || false,
-      mustChangePassword: user.mustChangePassword || false,
-      isEmailVerified: user.isEmailVerified,
-      isMobileVerified: user.isMobileVerified,
-    },
-    completeness,
-    readOnlyDetails,
-  };
+    let safeDob: string | null = null;
+    if (person?.dateOfBirth) {
+      try {
+        const d = new Date(person.dateOfBirth);
+        if (!isNaN(d.getTime())) safeDob = d.toISOString().split("T")[0] ?? null;
+      } catch {}
+    }
+
+    return {
+      success: true,
+      profile: {
+        id: user.id,
+        personId: person ? person.id : "",
+        role: session.user.role,
+        email: user.email,
+        schoolId: user.schoolId || null,
+        firstName: decryptedFirstName,
+        middleName: decryptedMiddleName,
+        lastName: decryptedLastName,
+        mobile: decryptedMobile,
+        gender: person?.gender || "OTHER",
+        dateOfBirth: safeDob,
+        aadhaarLast4: person?.aadhaarLast4 || null,
+        photoS3Key: photoKey,
+        avatarUrl,
+        address: decryptedAddress,
+        emergencyContact: decryptedEmergencyContact,
+        bloodGroup,
+        preferredLanguage: user.languagePreference || "en",
+        prefersDarkMode: user.prefersDarkMode || false,
+        mustChangePassword: user.mustChangePassword || false,
+        isEmailVerified: user.isEmailVerified,
+        isMobileVerified: user.isMobileVerified,
+      },
+      completeness,
+      readOnlyDetails,
+    };
+  } catch (err: any) {
+    console.error("[PROFILE ACTION] getSelfProfileAction error:", err);
+    return { success: false, error: err?.message || "Failed to retrieve profile" };
+  }
 }
 
 export async function updateSelfProfileAction(

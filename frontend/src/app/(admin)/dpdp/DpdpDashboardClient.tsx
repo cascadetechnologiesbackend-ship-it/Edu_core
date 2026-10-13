@@ -375,8 +375,8 @@ export default function DpdpDashboardClient({
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 overflow-x-auto pb-1">
+      {/* Tabs - Horizontally scrollable on mobile */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1.5 sm:gap-6 overflow-x-auto no-scrollbar -mx-3 sm:mx-0 px-3 sm:px-0 pb-1">
         {[
           { id: "overview", label: "Consent & Purges", icon: Shield },
           { id: "requests", label: "Rights Queue", icon: FileText },
@@ -390,9 +390,9 @@ export default function DpdpDashboardClient({
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`pb-3 font-semibold text-sm transition-all border-b-2 flex items-center gap-1.5 shrink-0 ${
+              className={`min-h-[44px] px-3 py-2.5 sm:px-1 sm:pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 shrink-0 select-none ${
                 activeTab === t.id
-                  ? "border-indigo-600 text-indigo-650 dark:text-indigo-400"
+                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold"
                   : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >

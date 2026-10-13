@@ -4,6 +4,17 @@
 
 ---
 
+## 📖 Official Documentation & Manuals Suite
+
+Comprehensive, long-form technical manuals and operational handbooks are located in [`docs/manuals/`](file:///v:/Cascade/Edu_core/Edu_core/docs/manuals/README.md):
+- 🏗️ **[Infrastructure & DevOps Architecture Manual](file:///v:/Cascade/Edu_core/Edu_core/docs/manuals/01_infrastructure_and_devops_manual.md)** — AWS Cloud, ECS Fargate, ALB, RDS, S3, Docker, CloudWatch alarms.
+- 📐 **[System Architecture & Design Patterns Manual](file:///v:/Cascade/Edu_core/Edu_core/docs/manuals/02_system_architecture_and_design_patterns_manual.md)** — C4 Architecture, Multi-tenancy, NextAuth.js, Drizzle ORM, BullMQ, DPDP Act.
+- ⚙️ **[Core Modules Deep-Dive Manual](file:///v:/Cascade/Edu_core/Edu_core/docs/manuals/03_core_modules_deep_dive_manual.md)** — Super Admin, Academics, Admissions, Attendance, Fees, Exams, HR & Payroll.
+- 🛠️ **[Engineering Team Handbook & SOPs](file:///v:/Cascade/Edu_core/Edu_core/docs/manuals/04_engineering_team_handbook_and_sops.md)** — Developer onboarding, TypeScript rules, Git quality gates, DB migrations, Rollback SOP.
+- 👥 **[End-User Operations Manual & Role Playbooks](file:///v:/Cascade/Edu_core/Edu_core/docs/manuals/05_end_user_operations_manual.md)** — Super Admin, Principal, Teacher, Accountant, and Parent PWA guides.
+
+---
+
 ## 1. System Architecture
 
 SchoolMitra is structured as a high-performance TypeScript monorepo orchestrated via [Turborepo](https://turbo.build/) and [pnpm](https://pnpm.io/):

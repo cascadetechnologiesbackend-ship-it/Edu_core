@@ -46,7 +46,7 @@ const NAV_ITEMS = [
   },
   {
     label: "DPDP Privacy Vault",
-    href: "/dpdp",
+    href: "/super-admin/dpdp",
     icon: ShieldCheck,
   },
 ];

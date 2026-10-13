@@ -17,9 +17,9 @@ import {
 type Section = {
   id: string;
   name: string;
-  class: {
+  class?: {
     displayName: string;
-  };
+  } | null;
 };
 
 type StudentRecord = {
@@ -200,7 +200,7 @@ export default function AttendanceManager({
             >
               {sectionsList.map((sec) => (
                 <option key={sec.id} value={sec.id}>
-                  {sec.class.displayName} - Section {sec.name}
+                  {sec.class?.displayName ? `${sec.class.displayName} - ` : ""}Section {sec.name}
                 </option>
               ))}
             </select>
@@ -270,122 +270,220 @@ export default function AttendanceManager({
         ) : students.length === 0 ? (
           <div className="text-center py-20 text-gray-500 space-y-2">
             <AlertTriangle className="w-8 h-8 mx-auto text-gray-400" />
-            <p className="font-medium">No students enrolled in this section.</p>
+            <p className="text-sm">No students found enrolled in this section.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-semibold">
-                <tr>
-                  <th className="px-6 py-3.5 w-16">Roll No</th>
-                  <th className="px-6 py-3.5">Student Name</th>
-                  <th className="px-6 py-3.5">Admission No</th>
-                  <th className="px-6 py-3.5 w-[450px]">Attendance Status</th>
-                  <th className="px-6 py-3.5">Remarks</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                {students.map((student) => (
-                  <tr
-                    key={student.studentId}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
-                  >
-                    <td className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">
-                      {student.rollNumber || "—"}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {student.firstName} {student.lastName}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {student.admissionNumber}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5">
-                        {[
-                          {
-                            value: "PRESENT",
-                            label: "Present",
-                            color:
-                              "peer-checked:bg-green-600 peer-checked:text-white",
-                          },
-                          {
-                            value: "ABSENT",
-                            label: "Absent",
-                            color:
-                              "peer-checked:bg-red-600 peer-checked:text-white",
-                          },
-                          {
-                            value: "LATE",
-                            label: "Late",
-                            color:
-                              "peer-checked:bg-yellow-600 peer-checked:text-white",
-                          },
-                          {
-                            value: "HALF_DAY",
-                            label: "Half Day",
-                            color:
-                              "peer-checked:bg-orange-600 peer-checked:text-white",
-                          },
-                          {
-                            value: "LEAVE",
-                            label: "Leave",
-                            color:
-                              "peer-checked:bg-blue-600 peer-checked:text-white",
-                          },
-                          {
-                            value: "HOLIDAY",
-                            label: "Holiday",
-                            color:
-                              "peer-checked:bg-gray-600 peer-checked:text-white",
-                          },
-                        ].map((opt) => (
-                          <label
-                            key={opt.value}
-                            className="relative flex-1 text-center cursor-pointer select-none"
-                          >
-                            <input
-                              type="radio"
-                              name={`attendance-${student.studentId}`}
-                              value={opt.value}
-                              checked={student.attendanceStatus === opt.value}
-                              onChange={() =>
-                                handleStatusChange(
-                                  student.studentId,
-                                  opt.value as any,
-                                )
-                              }
-                              className="peer sr-only"
-                            />
-                            <span
-                              className={`block px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-slate-800 transition ${opt.color}`}
-                            >
-                              {opt.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        value={student.remarks}
-                        onChange={(e) =>
-                          handleRemarksChange(student.studentId, e.target.value)
-                        }
-                        placeholder="Optional remarks"
-                        className="w-full text-xs rounded border border-gray-200 dark:border-slate-700 bg-transparent px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </td>
+          <>
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-semibold">
+                  <tr>
+                    <th className="px-6 py-3.5 w-16">Roll No</th>
+                    <th className="px-6 py-3.5">Student Name</th>
+                    <th className="px-6 py-3.5">Admission No</th>
+                    <th className="px-6 py-3.5 w-[450px]">Attendance Status</th>
+                    <th className="px-6 py-3.5">Remarks</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                  {students.map((student) => (
+                    <tr
+                      key={student.studentId}
+                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                    >
+                      <td className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">
+                        {student.rollNumber || "—"}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                        {student.firstName} {student.lastName}
+                      </td>
+                      <td className="px-6 py-4 text-gray-500">
+                        {student.admissionNumber}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5">
+                          {[
+                            {
+                              value: "PRESENT",
+                              label: "Present",
+                              color:
+                                "peer-checked:bg-green-600 peer-checked:text-white",
+                            },
+                            {
+                              value: "ABSENT",
+                              label: "Absent",
+                              color:
+                                "peer-checked:bg-red-600 peer-checked:text-white",
+                            },
+                            {
+                              value: "LATE",
+                              label: "Late",
+                              color:
+                                "peer-checked:bg-yellow-600 peer-checked:text-white",
+                            },
+                            {
+                              value: "HALF_DAY",
+                              label: "Half Day",
+                              color:
+                                "peer-checked:bg-orange-600 peer-checked:text-white",
+                            },
+                            {
+                              value: "LEAVE",
+                              label: "Leave",
+                              color:
+                                "peer-checked:bg-blue-600 peer-checked:text-white",
+                            },
+                            {
+                              value: "HOLIDAY",
+                              label: "Holiday",
+                              color:
+                                "peer-checked:bg-gray-600 peer-checked:text-white",
+                            },
+                          ].map((opt) => (
+                            <label
+                              key={opt.value}
+                              className="relative flex-1 text-center cursor-pointer select-none"
+                            >
+                              <input
+                                type="radio"
+                                name={`attendance-${student.studentId}`}
+                                value={opt.value}
+                                checked={student.attendanceStatus === opt.value}
+                                onChange={() =>
+                                  handleStatusChange(
+                                    student.studentId,
+                                    opt.value as any,
+                                  )
+                                }
+                                className="peer sr-only"
+                              />
+                              <span
+                                className={`block px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-slate-800 transition ${opt.color}`}
+                              >
+                                {opt.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          value={student.remarks}
+                          onChange={(e) =>
+                            handleRemarksChange(student.studentId, e.target.value)
+                          }
+                          placeholder="Optional remarks"
+                          className="w-full text-xs rounded border border-gray-200 dark:border-slate-700 bg-transparent px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View (< 768px per UX-R47: Card Morphology & UX-R21: 44px tap targets) */}
+            <div className="block md:hidden divide-y divide-gray-100 dark:divide-slate-800 p-2 sm:p-3 space-y-3">
+              {students.map((student) => (
+                <div
+                  key={student.studentId}
+                  className="p-3.5 bg-gray-50/70 dark:bg-slate-800/40 rounded-xl border border-gray-200/80 dark:border-slate-800 space-y-3"
+                >
+                  {/* Student Card Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="flex-shrink-0 px-2 py-0.5 text-xs font-bold rounded-md bg-primary/10 text-primary border border-primary/20">
+                        #{student.rollNumber || "—"}
+                      </span>
+                      <h4 className="font-semibold text-sm text-foreground truncate">
+                        {student.firstName} {student.lastName}
+                      </h4>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground flex-shrink-0 font-mono">
+                      {student.admissionNumber}
+                    </span>
+                  </div>
+
+                  {/* Attendance Status Buttons: 44px height tap targets */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      {
+                        value: "PRESENT",
+                        label: "Present",
+                        activeClass: "bg-green-600 text-white border-green-600 font-bold shadow-sm",
+                      },
+                      {
+                        value: "ABSENT",
+                        label: "Absent",
+                        activeClass: "bg-red-600 text-white border-red-600 font-bold shadow-sm",
+                      },
+                      {
+                        value: "LATE",
+                        label: "Late",
+                        activeClass: "bg-yellow-600 text-white border-yellow-600 font-bold shadow-sm",
+                      },
+                      {
+                        value: "HALF_DAY",
+                        label: "Half Day",
+                        activeClass: "bg-orange-600 text-white border-orange-600 font-bold shadow-sm",
+                      },
+                      {
+                        value: "LEAVE",
+                        label: "Leave",
+                        activeClass: "bg-blue-600 text-white border-blue-600 font-bold shadow-sm",
+                      },
+                      {
+                        value: "HOLIDAY",
+                        label: "Holiday",
+                        activeClass: "bg-gray-600 text-white border-gray-600 font-bold shadow-sm",
+                      },
+                    ].map((opt) => {
+                      const isSelected = student.attendanceStatus === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() =>
+                            handleStatusChange(
+                              student.studentId,
+                              opt.value as any,
+                            )
+                          }
+                          className={`min-h-[44px] flex items-center justify-center text-xs rounded-xl border transition-all active:scale-95 ${
+                            isSelected
+                              ? opt.activeClass
+                              : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Remarks input */}
+                  <div>
+                    <input
+                      type="text"
+                      value={student.remarks}
+                      onChange={(e) =>
+                        handleRemarksChange(student.studentId, e.target.value)
+                      }
+                      placeholder="Optional remarks…"
+                      className="w-full text-sm rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Footer actions */}
+        {/* Desktop Footer Actions */}
         {students.length > 0 && !loadingStudents && (
-          <div className="bg-gray-50 dark:bg-slate-800/30 px-6 py-4 flex justify-end border-t border-gray-100 dark:border-slate-800">
+          <div className="hidden md:flex bg-gray-50 dark:bg-slate-800/30 px-6 py-4 justify-end border-t border-gray-100 dark:border-slate-800">
             <button
               onClick={handleSave}
               disabled={isPending}
@@ -403,6 +501,36 @@ export default function AttendanceManager({
           </div>
         )}
       </div>
+
+      {/* Mobile Sticky Action Bar (UX-R20: Bottom Thumb Zone) */}
+      {students.length > 0 && !loadingStudents && (
+        <div className="md:hidden sticky bottom-16 left-0 right-0 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-30">
+          <div className="text-xs">
+            <p className="font-semibold text-foreground">
+              {students.filter((s) => s.attendanceStatus === "PRESENT").length} Present /{" "}
+              {students.filter((s) => s.attendanceStatus === "ABSENT").length} Absent
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Total {students.length} students
+            </p>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={isPending}
+            className="min-h-[44px] bg-primary hover:bg-primary-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+          >
+            {isPending ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save Register"
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -121,28 +121,32 @@ export async function requireAuth(
     } catch {}
   }
 
-  // When SUPER_ADMIN is impersonating, role enforcement applies against effectiveRole (e.g. SCHOOL_ADMIN).
-  // When SUPER_ADMIN is NOT impersonating, they have platform-level access unless allowedRoles explicitly excludes them.
   const isImpersonating = role === "SUPER_ADMIN" && Boolean(schoolId);
 
-  if (
-    allowedRoles &&
-    allowedRoles.length > 0 &&
-    !allowedRoles.includes(effectiveRole) &&
-    (!isImpersonating && role !== "SUPER_ADMIN")
-  ) {
-    throw new Error(
-      `FORBIDDEN: requires roles [${allowedRoles.join(", ")}], got ${effectiveRole}`,
-    );
-  }
+  // If role enforcement is active:
+  if (allowedRoles && allowedRoles.length > 0) {
+    // 1. Direct match with effectiveRole (e.g. SCHOOL_ADMIN when impersonating, or normal role)
+    if (allowedRoles.includes(effectiveRole)) {
+      return {
+        userId: session.user.id,
+        schoolId,
+        role: effectiveRole,
+        email: session.user.email ?? "",
+      };
+    }
 
-  // If SUPER_ADMIN is impersonating, they MUST satisfy the allowedRoles list as effectiveRole
-  if (
-    isImpersonating &&
-    allowedRoles &&
-    allowedRoles.length > 0 &&
-    !allowedRoles.includes(effectiveRole)
-  ) {
+    // 2. If real session user is SUPER_ADMIN and the action explicitly permits SUPER_ADMIN,
+    // grant platform-level SUPER_ADMIN authority (unscoped from the tenant)
+    if (role === "SUPER_ADMIN" && allowedRoles.includes("SUPER_ADMIN")) {
+      return {
+        userId: session.user.id,
+        schoolId: null,
+        role: "SUPER_ADMIN",
+        email: session.user.email ?? "",
+      };
+    }
+
+    // 3. Otherwise forbid
     throw new Error(
       `FORBIDDEN: requires roles [${allowedRoles.join(", ")}], got ${effectiveRole}`,
     );

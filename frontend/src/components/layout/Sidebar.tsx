@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   AlertOctagon,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -40,17 +41,26 @@ interface SidebarProps {
   schoolName?: string | undefined;
   userRole?: string | undefined;
   currentUser?: SidebarCurrentUser | null | undefined;
+  mobileOpen?: boolean | undefined;
+  onCloseMobile?: (() => void) | undefined;
 }
 
 export function Sidebar({
   schoolName = "SchoolMitra ERP",
   userRole,
   currentUser,
+  mobileOpen = false,
+  onCloseMobile,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Auto-close mobile drawer when navigating between pages
+  useEffect(() => {
+    onCloseMobile?.();
+  }, [pathname]);
 
   // Safe Debounced Hover Prefetch (S1-T1 / Closes OPEN-14)
   // Max 2 in-flight prefetches with 150ms debounce prevents hover-sweep connection storms
@@ -176,13 +186,15 @@ export function Sidebar({
       <aside
         className={cn(
           "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
-          collapsed ? "w-16" : "w-64"
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
+          mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
+          collapsed ? "md:w-16" : "md:w-64"
         )}
         aria-label="Navigation loading"
       >
         <div className="flex items-center h-16 px-4 border-b border-white/10 animate-pulse">
           <div className="w-8 h-8 bg-white/10 rounded-lg shrink-0" />
-          {!collapsed && <div className="ml-3 h-4 w-28 bg-white/10 rounded" />}
+          <div className={cn("ml-3 h-4 w-28 bg-white/10 rounded", collapsed && "md:hidden")} />
         </div>
         <div className="flex-1 p-3 space-y-4 animate-pulse">
           <div className="h-3 w-16 bg-white/10 rounded" />
@@ -202,7 +214,9 @@ export function Sidebar({
       <aside
         className={cn(
           "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
-          collapsed ? "w-16" : "w-64"
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
+          mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
+          collapsed ? "md:w-16" : "md:w-64"
         )}
         aria-label="Authentication required"
       >
@@ -210,25 +224,21 @@ export function Sidebar({
           <div className="w-8 h-8 bg-rose-500/20 text-rose-400 rounded-lg flex items-center justify-center shrink-0">
             <AlertOctagon className="w-5 h-5" />
           </div>
-          {!collapsed && (
-            <div className="ml-3 min-w-0">
-              <p className="text-xs font-bold text-rose-400 truncate">Session Error</p>
-              <p className="text-[10px] text-sidebar-text/70">Role unverified</p>
-            </div>
-          )}
+          <div className={cn("ml-3 min-w-0", collapsed && "md:hidden")}>
+            <p className="text-xs font-bold text-rose-400 truncate">Session Error</p>
+            <p className="text-[10px] text-sidebar-text/70">Role unverified</p>
+          </div>
         </div>
         <div className="p-4 space-y-3 text-center">
-          {!collapsed && (
-            <p className="text-xs text-sidebar-text/70">
-              Your security role could not be resolved. Please re-authenticate.
-            </p>
-          )}
+          <p className={cn("text-xs text-sidebar-text/70", collapsed && "md:hidden")}>
+            Your security role could not be resolved. Please re-authenticate.
+          </p>
           <button
             onClick={() => secureSignOut({ callbackUrl: "/login" })}
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm"
           >
             <LogOut className="w-3.5 h-3.5" />
-            {!collapsed && <span>Relogin</span>}
+            <span className={cn(collapsed && "md:hidden")}>Relogin</span>
           </button>
         </div>
       </aside>
@@ -253,21 +263,33 @@ export function Sidebar({
   });
 
   return (
-    <aside
-      className={cn(
-        "flex flex-col h-full bg-sidebar border-r border-white/10",
-        collapsed ? "w-16" : "w-64"
-      )}
-      aria-label="Main navigation"
-    >
-      {/* Workspace Identity (Spec 4.1.0) */}
-      <div className="flex items-center h-16 px-4 border-b border-white/10 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
+    <>
+      {/* Mobile Drawer Backdrop Overlay */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 md:hidden",
+          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onCloseMobile}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={cn(
+          "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
+          mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
+          collapsed ? "md:w-16" : "md:w-64"
+        )}
+        aria-label="Main navigation"
+      >
+        {/* Workspace Identity (Spec 4.1.0) */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+              <GraduationCap className="w-5 h-5 text-white" />
+            </div>
+            <div className={cn("min-w-0", collapsed && "md:hidden")}>
               <p className="text-white font-semibold text-sm truncate leading-tight">
                 {schoolName}
               </p>
@@ -277,149 +299,160 @@ export function Sidebar({
                 </span>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Grouped Nav Items */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5" role="navigation">
-        {groupOrder.map((groupName) => {
-          const items = groupsRecord[groupName] || [];
-          return (
-            <div key={groupName} className="space-y-1">
-              {!collapsed && (
-                <p className="text-[10px] font-bold text-sidebar-text/50 uppercase tracking-wider px-2.5 mb-1.5">
-                  {groupName}
-                </p>
-              )}
-              <ul className="space-y-0.5" role="list">
-                {items.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== "/dashboard" &&
-                      item.href !== "/school/fees-dashboard" &&
-                      pathname.startsWith(item.href));
-                  const isPending = pendingHref === item.href;
-
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href as any}
-                        prefetch={false}
-                        onClick={() => setPendingHref(item.href)}
-                        onPointerEnter={() => handlePointerEnter(item.href)}
-                        onPointerLeave={handlePointerLeave}
-                        onFocus={() => handlePointerEnter(item.href)}
-                        onBlur={handlePointerLeave}
-                        className={cn(
-                          "sidebar-nav-item transition-all relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium",
-                          isActive
-                            ? "bg-indigo-50/10 text-indigo-400 font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-indigo-500 before:rounded-r"
-                            : "text-sidebar-text hover:bg-white/5 hover:text-white",
-                          isPending && "opacity-80 animate-pulse bg-white/10",
-                          collapsed && "justify-center px-2"
-                        )}
-                        aria-current={isActive ? "page" : undefined}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <SidebarIcon
-                          name={item.icon}
-                          className={cn(
-                            "w-4 h-4 flex-shrink-0 transition-transform",
-                            isActive ? "text-indigo-400" : "text-sidebar-text/80",
-                            isPending && "scale-110 text-indigo-400"
-                          )}
-                          aria-hidden="true"
-                        />
-                        {!collapsed && (
-                          <span className="truncate flex-1">{item.label}</span>
-                        )}
-                        {!collapsed && item.kbdHint && (
-                          <kbd className="hidden group-hover:inline-block px-1 py-0.5 text-[9px] font-mono text-sidebar-text/60 bg-white/5 rounded border border-white/10">
-                            C
-                          </kbd>
-                        )}
-                        {!collapsed && isPending && (
-                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* Fixed 64px Account Section (Spec 5.0.0 Phase 3) */}
-      {(() => {
-        const userName = sessionUser?.name || "User";
-        const userInitials =
-          userName
-            .split(" ")
-            .map((s: string) => s.charAt(0))
-            .slice(0, 2)
-            .join("")
-            .toUpperCase() || "U";
-        const avatarColors = [
-          "bg-indigo-600",
-          "bg-violet-600",
-          "bg-emerald-600",
-          "bg-blue-600",
-          "bg-rose-600",
-          "bg-amber-600",
-          "bg-teal-600",
-        ];
-        const charSum = userName
-          .split("")
-          .reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
-        const avatarBg = avatarColors[charSum % avatarColors.length];
-
-        return (
-          <div
-            ref={accountRef}
-            className="relative flex-shrink-0 h-16 border-t border-white/10 px-2 flex items-center"
-          >
+          {/* Mobile Drawer Close Button (UX-R21: 44px tap target) */}
+          {onCloseMobile && (
             <button
               type="button"
-              onClick={() => setAccountMenuOpen(!accountMenuOpen)}
-              className={cn(
-                "w-full flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/5 transition text-left focus:outline-none focus:ring-1 focus:ring-indigo-500/50",
-                collapsed && "justify-center"
-              )}
-              aria-expanded={accountMenuOpen}
-              aria-haspopup="true"
-              title={collapsed ? `${userName} (${roleConfig.displayName})` : undefined}
+              onClick={onCloseMobile}
+              className="md:hidden flex items-center justify-center w-11 h-11 -mr-2 rounded-xl text-sidebar-text/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+              aria-label="Close navigation"
             >
-              {/* Avatar with Online Status */}
-              <div className="relative flex-shrink-0">
-                {sessionUser?.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={sessionUser.image}
-                    alt={userName}
-                    className="w-8 h-8 rounded-lg object-cover border border-white/20"
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white/20",
-                      avatarBg
-                    )}
-                  >
-                    {userInitials}
-                  </div>
-                )}
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900"
-                  title="Online"
-                />
-              </div>
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
 
-              {/* User Name & Role Chip */}
-              {!collapsed && (
-                <div className="min-w-0 flex-1">
+        {/* Grouped Nav Items */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5" role="navigation">
+          {groupOrder.map((groupName) => {
+            const items = groupsRecord[groupName] || [];
+            return (
+              <div key={groupName} className="space-y-1">
+                <p className={cn("text-[10px] font-bold text-sidebar-text/50 uppercase tracking-wider px-2.5 mb-1.5", collapsed && "md:hidden")}>
+                  {groupName}
+                </p>
+                <ul className="space-y-0.5" role="list">
+                  {items.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/dashboard" &&
+                        item.href !== "/school/fees-dashboard" &&
+                        pathname.startsWith(item.href));
+                    const isPending = pendingHref === item.href;
+
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href as any}
+                          prefetch={false}
+                          onClick={() => {
+                            setPendingHref(item.href);
+                            onCloseMobile?.();
+                          }}
+                          onPointerEnter={() => handlePointerEnter(item.href)}
+                          onPointerLeave={handlePointerLeave}
+                          onFocus={() => handlePointerEnter(item.href)}
+                          onBlur={handlePointerLeave}
+                          className={cn(
+                            "sidebar-nav-item transition-all relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium",
+                            isActive
+                              ? "bg-indigo-50/10 text-indigo-400 font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-indigo-500 before:rounded-r"
+                              : "text-sidebar-text hover:bg-white/5 hover:text-white",
+                            isPending && "opacity-80 animate-pulse bg-white/10",
+                            collapsed ? "md:justify-center md:px-2" : ""
+                          )}
+                          aria-current={isActive ? "page" : undefined}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <SidebarIcon
+                            name={item.icon}
+                            className={cn(
+                              "w-4 h-4 flex-shrink-0 transition-transform",
+                              isActive ? "text-indigo-400" : "text-sidebar-text/80",
+                              isPending && "scale-110 text-indigo-400"
+                            )}
+                            aria-hidden="true"
+                          />
+                          <span className={cn("truncate flex-1", collapsed && "md:hidden")}>
+                            {item.label}
+                          </span>
+                          {item.kbdHint && (
+                            <kbd className={cn("hidden group-hover:inline-block px-1 py-0.5 text-[9px] font-mono text-sidebar-text/60 bg-white/5 rounded border border-white/10", collapsed && "md:hidden")}>
+                              C
+                            </kbd>
+                          )}
+                          {isPending && (
+                            <span className={cn("ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping", collapsed && "md:hidden")} />
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Fixed 64px Account Section (Spec 5.0.0 Phase 3) */}
+        {(() => {
+          const userName = sessionUser?.name || "User";
+          const userInitials =
+            userName
+              .split(" ")
+              .map((s: string) => s.charAt(0))
+              .slice(0, 2)
+              .join("")
+              .toUpperCase() || "U";
+          const avatarColors = [
+            "bg-indigo-600",
+            "bg-violet-600",
+            "bg-emerald-600",
+            "bg-blue-600",
+            "bg-rose-600",
+            "bg-amber-600",
+            "bg-teal-600",
+          ];
+          const charSum = userName
+            .split("")
+            .reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
+          const avatarBg = avatarColors[charSum % avatarColors.length];
+
+          return (
+            <div
+              ref={accountRef}
+              className="relative flex-shrink-0 h-16 border-t border-white/10 px-2 flex items-center"
+            >
+              <button
+                type="button"
+                onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/5 transition text-left focus:outline-none focus:ring-1 focus:ring-indigo-500/50",
+                  collapsed ? "md:justify-center" : ""
+                )}
+                aria-expanded={accountMenuOpen}
+                aria-haspopup="true"
+                title={collapsed ? `${userName} (${roleConfig.displayName})` : undefined}
+              >
+                {/* Avatar with Online Status */}
+                <div className="relative flex-shrink-0">
+                  {sessionUser?.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={sessionUser.image}
+                      alt={userName}
+                      className="w-8 h-8 rounded-lg object-cover border border-white/20"
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white/20",
+                        avatarBg
+                      )}
+                    >
+                      {userInitials}
+                    </div>
+                  )}
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900"
+                    title="Online"
+                  />
+                </div>
+
+                {/* User Name & Role Chip */}
+                <div className={cn("min-w-0 flex-1", collapsed && "md:hidden")}>
                   <p className="text-white font-medium text-xs truncate leading-tight">
                     {userName}
                   </p>
@@ -427,86 +460,87 @@ export function Sidebar({
                     {roleConfig.displayName}
                   </p>
                 </div>
-              )}
 
-              {!collapsed && (
-                <div className="text-sidebar-text/60 flex-shrink-0">
+                <div className={cn("text-sidebar-text/60 flex-shrink-0", collapsed && "md:hidden")}>
                   {accountMenuOpen ? (
                     <ChevronDown className="w-3.5 h-3.5" />
                   ) : (
                     <ChevronUp className="w-3.5 h-3.5" />
                   )}
                 </div>
+              </button>
+
+              {/* Quick-Action Popover */}
+              {accountMenuOpen && (
+                <div
+                  className={cn(
+                    "absolute bottom-full mb-2 z-50 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 w-56 text-xs divide-y divide-slate-800",
+                    collapsed ? "left-2 md:left-14" : "left-2"
+                  )}
+                  role="menu"
+                >
+                  <div className="px-3 py-2">
+                    <p className="font-semibold text-white truncate">{userName}</p>
+                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                      {sessionUser?.email || ""}
+                    </p>
+                  </div>
+
+                  <div className="py-1 space-y-0.5">
+                    <Link
+                      href={profileHref as any}
+                      prefetch={false}
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        onCloseMobile?.();
+                      }}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 transition font-medium"
+                      role="menuitem"
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-indigo-400" /> My Profile
+                      </span>
+                      <kbd className="px-1 py-0.5 text-[9px] font-mono text-slate-400 bg-white/5 rounded border border-white/10">
+                        ⌘,
+                      </kbd>
+                    </Link>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => secureSignOut({ callbackUrl: "/login" })}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition font-medium text-left"
+                      role="menuitem"
+                    >
+                      <LogOut className="w-3.5 h-3.5" /> Sign Out
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
+          );
+        })()}
 
-            {/* Quick-Action Popover */}
-            {accountMenuOpen && (
-              <div
-                className={cn(
-                  "absolute bottom-full mb-2 z-50 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 w-56 text-xs divide-y divide-slate-800",
-                  collapsed ? "left-14" : "left-2"
-                )}
-                role="menu"
-              >
-                <div className="px-3 py-2">
-                  <p className="font-semibold text-white truncate">{userName}</p>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                    {sessionUser?.email || ""}
-                  </p>
-                </div>
-
-                <div className="py-1 space-y-0.5">
-                  <Link
-                    href={profileHref as any}
-                    prefetch={false}
-                    onClick={() => setAccountMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 transition font-medium"
-                    role="menuitem"
-                  >
-                    <span className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-indigo-400" /> My Profile
-                    </span>
-                    <kbd className="px-1 py-0.5 text-[9px] font-mono text-slate-400 bg-white/5 rounded border border-white/10">
-                      ⌘,
-                    </kbd>
-                  </Link>
-                </div>
-
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => secureSignOut({ callbackUrl: "/login" })}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition font-medium text-left"
-                    role="menuitem"
-                  >
-                    <LogOut className="w-3.5 h-3.5" /> Sign Out
-                  </button>
-                </div>
-              </div>
+        {/* Collapse Toggle - Desktop Only */}
+        <div className="hidden md:block flex-shrink-0 p-2 border-t border-white/10">
+          <button
+            onClick={handleToggleCollapse}
+            className="sidebar-nav-item w-full justify-center"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <>
+                <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+                <span className="text-xs">Collapse</span>
+              </>
             )}
-          </div>
-        );
-      })()}
-
-      {/* Collapse Toggle */}
-      <div className="flex-shrink-0 p-2 border-t border-white/10">
-        <button
-          onClick={handleToggleCollapse}
-          className="sidebar-nav-item w-full justify-center"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!collapsed}
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" aria-hidden="true" />
-          ) : (
-            <>
-              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-              <span className="text-xs">Collapse</span>
-            </>
-          )}
-        </button>
-      </div>
-    </aside>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

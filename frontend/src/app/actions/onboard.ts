@@ -8,6 +8,7 @@ import {
   classes,
   sections,
   subjects,
+  classSubjects,
   feeHeads,
   departments,
   designations,
@@ -183,14 +184,38 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         return orderA - orderB;
       });
 
+      const validGradeLevels = new Set([
+        "NURSERY", "LKG", "UKG",
+        "CLASS_1", "CLASS_2", "CLASS_3", "CLASS_4", "CLASS_5",
+        "CLASS_6", "CLASS_7", "CLASS_8", "CLASS_9", "CLASS_10",
+        "CLASS_11", "CLASS_12"
+      ]);
+
       for (let i = 0; i < sortedClasses.length; i++) {
         const clsItem = sortedClasses[i]!;
+        let resolvedGradeLevel = clsItem.gradeLevel.toUpperCase().trim();
+        if (!validGradeLevels.has(resolvedGradeLevel)) {
+          // Normalize e.g. "CLASS 1" -> "CLASS_1", "1" -> "CLASS_1"
+          const numMatch = resolvedGradeLevel.match(/\d+/);
+          if (numMatch && validGradeLevels.has(`CLASS_${numMatch[0]}`)) {
+            resolvedGradeLevel = `CLASS_${numMatch[0]}`;
+          } else if (resolvedGradeLevel.includes("NURS")) {
+            resolvedGradeLevel = "NURSERY";
+          } else if (resolvedGradeLevel.includes("LKG")) {
+            resolvedGradeLevel = "LKG";
+          } else if (resolvedGradeLevel.includes("UKG")) {
+            resolvedGradeLevel = "UKG";
+          } else {
+            resolvedGradeLevel = "CLASS_1";
+          }
+        }
+
         const [cls] = await tx
           .insert(classes)
           .values({
             schoolId: newSchool.id,
             academicYearId: newYear.id,
-            gradeLevel: clsItem.gradeLevel as any,
+            gradeLevel: resolvedGradeLevel as any,
             displayName: clsItem.displayName,
             sortOrder: i + 1,
             isActive: true,
@@ -233,6 +258,38 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
           passingMarks: 33,
           isActive: true,
         }).onConflictDoNothing();
+      }
+
+      // Attach provisioned subjects to all created classes
+      const createdClassesList = await tx
+        .select({ id: classes.id })
+        .from(classes)
+        .where(eq(classes.schoolId, newSchool.id));
+      const createdSubjectsList = await tx
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(eq(subjects.schoolId, newSchool.id));
+
+      if (createdClassesList.length > 0 && createdSubjectsList.length > 0) {
+        const mappingsToInsert: Array<{
+          schoolId: string;
+          classId: string;
+          subjectId: string;
+          periodsPerWeek: number;
+          isElective: boolean;
+        }> = [];
+        for (const cls of createdClassesList) {
+          for (const sub of createdSubjectsList) {
+            mappingsToInsert.push({
+              schoolId: newSchool.id,
+              classId: cls.id,
+              subjectId: sub.id,
+              periodsPerWeek: 5,
+              isElective: false,
+            });
+          }
+        }
+        await tx.insert(classSubjects).values(mappingsToInsert).onConflictDoNothing();
       }
 
       // 5. Create Fee Heads

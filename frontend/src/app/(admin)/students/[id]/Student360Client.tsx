@@ -182,8 +182,8 @@ export function Student360Client({
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* ─── Compact Master Header ────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 p-6 flex flex-wrap items-center gap-6">
-        <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-3xl font-bold overflow-hidden shadow-inner shrink-0">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl sm:text-3xl font-bold overflow-hidden shadow-inner shrink-0">
           {data.photoUrl ? (
             <img
               src={data.photoUrl}
@@ -195,9 +195,9 @@ export function Student360Client({
           )}
         </div>
 
-        <div className="flex-1 min-w-[280px]">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex-1 min-w-0 sm:min-w-[280px]">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               {data.fullName}
             </h1>
             <span
@@ -211,7 +211,7 @@ export function Student360Client({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 text-xs text-gray-600 dark:text-gray-300">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-3 text-xs text-gray-600 dark:text-gray-300">
             <div>
               <span className="text-gray-400 block">Admission No</span>
               <span className="font-mono font-semibold text-gray-900 dark:text-white">
@@ -243,7 +243,7 @@ export function Student360Client({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 shrink-0">
+        <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
           <PromoteStudentModal
             studentId={data.id}
             schoolId={schoolId}
@@ -254,19 +254,19 @@ export function Student360Client({
       </div>
 
       {/* ─── Glanceable Metric Cards ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Attendance */}
         <div
           onClick={() => setActiveTab("ATTENDANCE")}
-          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
         >
-          <div className="text-xs font-semibold uppercase text-gray-400 tracking-wider">
+          <div className="text-[11px] sm:text-xs font-semibold uppercase text-gray-400 tracking-wider">
             Attendance Rate
           </div>
-          <div className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">
+          <div className="text-xl sm:text-2xl font-bold mt-1 text-gray-900 dark:text-white">
             {data.attendanceSummary.percentage}%
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-[11px] sm:text-xs text-gray-500 mt-1 truncate">
             {data.attendanceSummary.present} / {data.attendanceSummary.total} days present
           </div>
         </div>
@@ -274,33 +274,33 @@ export function Student360Client({
         {/* Fees */}
         <div
           onClick={() => setActiveTab("FEES")}
-          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
         >
-          <div className="text-xs font-semibold uppercase text-gray-400 tracking-wider">
+          <div className="text-[11px] sm:text-xs font-semibold uppercase text-gray-400 tracking-wider">
             Fee Balance
           </div>
-          <div className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">
+          <div className="text-xl sm:text-2xl font-bold mt-1 text-gray-900 dark:text-white truncate">
             {data.canViewFees ? `₹${totalOutstanding.toFixed(2)}` : "Restricted"}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-[11px] sm:text-xs text-gray-500 mt-1 truncate">
             {data.canViewFees
-              ? `${data.invoices.filter((i) => i.status === "PENDING").length} pending fee bills`
-              : "Financial role required"}
+              ? `${data.invoices.filter((i) => i.status === "PENDING").length} pending bills`
+              : "Financial role req."}
           </div>
         </div>
 
         {/* Academics */}
         <div
           onClick={() => setActiveTab("ACADEMICS")}
-          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
         >
-          <div className="text-xs font-semibold uppercase text-gray-400 tracking-wider">
+          <div className="text-[11px] sm:text-xs font-semibold uppercase text-gray-400 tracking-wider">
             Academic Roster
           </div>
-          <div className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">
+          <div className="text-xl sm:text-2xl font-bold mt-1 text-gray-900 dark:text-white">
             {data.subjects.length} Subjects
           </div>
-          <div className="text-xs text-gray-500 mt-1 truncate">
+          <div className="text-[11px] sm:text-xs text-gray-500 mt-1 truncate">
             Teacher: {data.classTeacherName || "Not Assigned"}
           </div>
         </div>
@@ -308,20 +308,20 @@ export function Student360Client({
         {/* Documents */}
         <div
           onClick={() => setActiveTab("DOCUMENTS")}
-          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-slate-800 cursor-pointer hover:border-blue-500 transition-colors shadow-sm"
         >
-          <div className="text-xs font-semibold uppercase text-gray-400 tracking-wider">
+          <div className="text-[11px] sm:text-xs font-semibold uppercase text-gray-400 tracking-wider">
             Documents
           </div>
-          <div className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">
+          <div className="text-xl sm:text-2xl font-bold mt-1 text-gray-900 dark:text-white">
             {data.documents.filter((d) => d.isVerified).length} / {data.documents.length}
           </div>
-          <div className="text-xs text-gray-500 mt-1">Verified records</div>
+          <div className="text-[11px] sm:text-xs text-gray-500 mt-1">Verified records</div>
         </div>
       </div>
 
       {/* ─── 8-Tab Navigation Bar ────────────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-slate-800 flex overflow-x-auto gap-2 text-sm font-medium">
+      <div className="border-b border-gray-200 dark:border-slate-800 flex overflow-x-auto no-scrollbar gap-1 sm:gap-2 text-xs sm:text-sm font-medium -mx-3 sm:mx-0 px-3 sm:px-0">
         {[
           { key: "OVERVIEW", label: "Overview" },
           { key: "ACADEMICS", label: "Academics" },
@@ -335,7 +335,7 @@ export function Student360Client({
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`py-3 px-4 rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${
+            className={`min-h-[44px] py-2.5 sm:py-3 px-3 sm:px-4 rounded-t-lg transition-colors border-b-2 whitespace-nowrap select-none ${
               activeTab === tab.key
                 ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-slate-800/50 font-semibold"
                 : "border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white"

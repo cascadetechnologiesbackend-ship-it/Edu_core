@@ -79,14 +79,14 @@ export default function ClassroomsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
           Classes & Sections Management
         </h2>
         {isAdmin && (
           <button
             onClick={() => setShowClassForm(true)}
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+            className="flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition min-h-[44px] active:scale-95 w-full sm:w-auto shadow-sm"
           >
             <Plus className="w-4 h-4" /> Add Class
           </button>

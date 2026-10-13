@@ -91,7 +91,8 @@ export default function LoginForm() {
           window.location.href = defaultDashboard;
         }
       }
-    } catch {
+    } catch (err) {
+      console.error("[LOGIN ERROR]", err);
       setServerError("Something went wrong. Please check your network connection and try again.");
     } finally {
       setIsLoading(false);

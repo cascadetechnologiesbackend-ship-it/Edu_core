@@ -19,8 +19,20 @@ function resolveAuthSecret(): string {
   return secret;
 }
 
+function getSafeRedirect(path: string, nextUrl: URL, headers?: Headers) {
+  const host = headers?.get("x-forwarded-host") || headers?.get("host");
+  const proto = headers?.get("x-forwarded-proto") || (nextUrl.protocol ? nextUrl.protocol.replace(":", "") : "http");
+  if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+    return Response.redirect(new URL(path, `${proto}://${host}`));
+  }
+  if (host) {
+    return Response.redirect(new URL(path, `${proto}://${host}`));
+  }
+  return Response.redirect(new URL(path, nextUrl));
+}
+
 export const authConfig: NextAuthConfig = {
-  // trustHost: required for deployments behind a reverse proxy (Render, Vercel, Railway)
+  // trustHost: required for deployments behind a reverse proxy (Render, Vercel, Railway, AWS ALB)
   // NextAuth v5 validates the HOST header against AUTH_URL or requires trustHost: true.
   trustHost: true,
   secret: resolveAuthSecret(),
@@ -35,7 +47,19 @@ export const authConfig: NextAuthConfig = {
     error: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return url;
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+          return parsed.pathname + parsed.search;
+        }
+        const baseObj = new URL(baseUrl);
+        if (parsed.origin === baseObj.origin) return url;
+      } catch {}
+      return url.startsWith("/") ? url : "/dashboard";
+    },
+    authorized({ auth, request: { nextUrl, headers } }) {
       const pathname = nextUrl.pathname;
 
       // Strictly match static asset extensions to prevent dot-truncation middleware auth bypass
@@ -77,12 +101,12 @@ export const authConfig: NextAuthConfig = {
 
       if (isLoggedIn && mustChangePassword) {
         if (!isForcePasswordRoute && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
-          return Response.redirect(new URL("/force-password-change", nextUrl));
+          return getSafeRedirect("/force-password-change", nextUrl, headers);
         }
       }
 
       if (isLoggedIn && !mustChangePassword && isForcePasswordRoute) {
-        return Response.redirect(new URL("/dashboard", nextUrl));
+        return getSafeRedirect("/dashboard", nextUrl, headers);
       }
 
       const isAuthRoute =
@@ -95,9 +119,9 @@ export const authConfig: NextAuthConfig = {
         }
         if (isLoggedIn) {
           if (mustChangePassword) {
-            return Response.redirect(new URL("/force-password-change", nextUrl));
+            return getSafeRedirect("/force-password-change", nextUrl, headers);
           }
-          return Response.redirect(new URL("/dashboard", nextUrl));
+          return getSafeRedirect("/dashboard", nextUrl, headers);
         }
         return true;
       }

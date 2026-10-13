@@ -98,17 +98,17 @@ export default function AcademicsClientTabs({
 
   return (
     <div className="space-y-6">
-      {/* Tab Selectors */}
-      <div className="border-b border-gray-200 dark:border-slate-800">
+      {/* Tab Selectors - Horizontally scrollable on mobile with smooth touch snapping */}
+      <div className="border-b border-gray-200 dark:border-slate-800 -mx-3 sm:mx-0 px-3 sm:px-0">
         <ul
-          className="flex flex-wrap -mb-px text-sm font-medium text-center"
+          className="flex overflow-x-auto no-scrollbar gap-1 sm:gap-2 -mb-px text-sm font-medium whitespace-nowrap py-1"
           role="tablist"
         >
           {tabs.map((tab) => (
-            <li key={tab.id} className="mr-2" role="presentation">
+            <li key={tab.id} className="flex-shrink-0" role="presentation">
               <button
                 onClick={() => handleTabChange(tab.id)}
-                className={`inline-block p-4 border-b-2 rounded-t-lg transition font-semibold ${
+                className={`inline-flex items-center px-3.5 py-2.5 sm:px-4 sm:py-3 border-b-2 rounded-t-lg transition font-semibold text-xs sm:text-sm min-h-[44px] select-none ${
                   activeTab === tab.id
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"

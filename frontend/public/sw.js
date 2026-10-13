@@ -24,6 +24,9 @@ if (isDevHost) {
 const PRECACHE_ASSETS = [
   "/offline",
   "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
   "/manifest.json",
   "/favicon.ico",
 ];

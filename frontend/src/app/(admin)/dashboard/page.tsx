@@ -71,15 +71,15 @@ function MetricCard({
   accentColor,
 }: MetricCardProps) {
   return (
-    <div className="metric-card group relative overflow-hidden bg-card border border-border p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="metric-card group relative overflow-hidden bg-card border border-border p-4 sm:p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground font-medium">{title}</p>
-          <p className="text-3xl font-bold text-foreground mt-1 tracking-tight">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1 tracking-tight truncate">
             {value}
           </p>
           {subtext && (
-            <p className="text-xs text-muted-foreground mt-0.5">{subtext}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtext}</p>
           )}
           {trend && (
             <div
@@ -101,9 +101,9 @@ function MetricCard({
           )}
         </div>
         <div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ml-4 ${iconBgClass}`}
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ml-3 sm:ml-4 ${iconBgClass}`}
         >
-          <Icon className={`w-6 h-6 ${accentColor}`} aria-hidden="true" />
+          <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${accentColor}`} aria-hidden="true" />
         </div>
       </div>
       <div
@@ -127,8 +127,8 @@ function QuickAction({
   return (
     <a
       href={href}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                  transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${className}`}
+      className={`inline-flex items-center justify-center min-h-[44px] px-3.5 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold
+                  transition-all duration-200 active:scale-95 hover:shadow-md select-none ${className}`}
     >
       {label}
     </a>
@@ -697,30 +697,30 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             Good morning, {session?.user?.name || "Admin"} 👋
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             {school?.name || "School ERP"} — Academic Year {summary.activeYearLabel}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar -mx-3 sm:mx-0 px-3 sm:px-0 py-1">
           <QuickAction
             label="+ Add Student"
             href="/admissions"
-            className="bg-primary text-white hover:bg-primary/90"
+            className="bg-primary text-white hover:bg-primary/90 flex-shrink-0"
           />
           <QuickAction
             label="Collect Fee"
             href="/fees"
-            className="bg-secondary/10 text-secondary hover:bg-secondary/20"
+            className="bg-secondary/10 text-secondary hover:bg-secondary/20 flex-shrink-0"
           />
           <QuickAction
             label="Mark Attendance"
             href="/attendance"
-            className="bg-muted text-foreground hover:bg-muted/80"
+            className="bg-muted text-foreground hover:bg-muted/80 flex-shrink-0"
           />
         </div>
       </div>

@@ -109,7 +109,7 @@ export type Board = (typeof BOARDS)[number];
 export const createSchoolSchema = z.object({
   name: z.string().min(3).max(200),
   board: z.enum(BOARDS),
-  udiseCode: z.string().regex(/^\d{11}$/, "UDISE code must be 11 digits"),
+  udiseCode: z.string().regex(/^\d{8,11}$/, "UDISE code must be between 8 and 11 digits"),
   address: z.string().min(10).max(500),
   city: z.string().min(2).max(100),
   state: z.string().min(2).max(100),
@@ -125,7 +125,7 @@ export const updateSchoolSchema = createSchoolSchema.partial();
 export const schoolProfileUpdateSchema = z.object({
   name: z.string().min(3).max(200).optional(),
   board: z.enum(BOARDS).optional(),
-  udiseCode: z.string().regex(/^\d{11}$/, "UDISE code must be 11 digits").optional(),
+  udiseCode: z.string().regex(/^\d{8,11}$/, "UDISE code must be between 8 and 11 digits").optional(),
   address: z.string().min(10).max(500).optional(),
   city: z.string().min(2).max(100).optional(),
   state: z.string().min(2).max(100).optional(),

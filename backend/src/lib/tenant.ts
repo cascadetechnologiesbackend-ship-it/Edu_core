@@ -20,11 +20,12 @@ export const getActiveTenant = safeCache(async () => {
   const parts = host.split(".");
   let tenant = "";
 
-  // Deployments on Vercel (*.vercel.app), Render (*.onrender.com), etc. are main apps, not school subdomains
+  // Deployments on Vercel (*.vercel.app), Render (*.onrender.com), AWS (*.amazonaws.com), etc. are main apps, not school subdomains
   const isCloudDeploymentDomain =
     host.endsWith(".vercel.app") ||
     host.endsWith(".onrender.com") ||
-    host.endsWith(".railway.app");
+    host.endsWith(".railway.app") ||
+    host.endsWith(".amazonaws.com");
 
   if (host.includes("localhost") || host.includes("127.0.0.1")) {
     if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {

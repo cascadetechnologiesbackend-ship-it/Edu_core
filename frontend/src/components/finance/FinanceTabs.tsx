@@ -129,8 +129,8 @@ export function FinanceTabs({
   );
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-slate-800 pb-2", className)}>
-      <nav className="flex flex-wrap items-center gap-1.5" aria-label="Finance Navigation Tabs">
+    <div className={cn("border-b border-gray-200 dark:border-slate-800 pb-2", className)}>
+      <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" aria-label="Finance Navigation Tabs">
         {effectivePrimary.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
           return (
@@ -138,7 +138,7 @@ export function FinanceTabs({
               key={tab.id}
               href={tab.href as any}
               className={cn(
-                "relative inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                "relative inline-flex items-center gap-2 px-3.5 py-2 min-h-[44px] shrink-0 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150",
                 isActive
                   ? "bg-indigo-600 text-white shadow-sm font-semibold dark:bg-indigo-500"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80"
