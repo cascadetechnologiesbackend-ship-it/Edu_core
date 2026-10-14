@@ -15,6 +15,7 @@ const CLASS_GROUPS = [
   { value: "CLASS_1_5", label: "Class 1 – 5" },
   { value: "CLASS_6_8", label: "Class 6 – 8" },
   { value: "CLASS_9_10", label: "Class 9 – 10" },
+  { value: "CLASS_11_12", label: "Class 11 – 12" },
 ] as const;
 
 export default async function GradingSettingsPage() {

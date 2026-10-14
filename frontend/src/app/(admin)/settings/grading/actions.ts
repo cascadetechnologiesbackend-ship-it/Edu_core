@@ -10,7 +10,12 @@ import { z } from "zod";
 
 const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
 
-type ClassGroupValue = "NURSERY_UKG" | "CLASS_1_5" | "CLASS_6_8" | "CLASS_9_10";
+type ClassGroupValue =
+  | "NURSERY_UKG"
+  | "CLASS_1_5"
+  | "CLASS_6_8"
+  | "CLASS_9_10"
+  | "CLASS_11_12";
 
 const GradeRuleSchema = z.object({
   minPercent: z.number().min(0).max(100),

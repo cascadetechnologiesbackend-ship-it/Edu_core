@@ -239,6 +239,27 @@
       "when": 1792900000000,
       "tag": "0033_s7_split_rls_policies_by_command",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1793000000000,
+      "tag": "0034_fix_rls_policies_for_pool",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1793100000000,
+      "tag": "0035_examinations_enum_and_alterations",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "5",
+      "when": 1793200000000,
+      "tag": "0036_examinations_new_tables",
+      "breakpoints": true
     }
   ]
 }

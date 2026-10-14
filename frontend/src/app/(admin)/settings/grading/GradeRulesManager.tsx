@@ -3,7 +3,12 @@
 import { useState, useTransition } from "react";
 import { saveGradeRules, seedCBSERules } from "./actions";
 
-type ClassGroupValue = "NURSERY_UKG" | "CLASS_1_5" | "CLASS_6_8" | "CLASS_9_10";
+type ClassGroupValue =
+  | "NURSERY_UKG"
+  | "CLASS_1_5"
+  | "CLASS_6_8"
+  | "CLASS_9_10"
+  | "CLASS_11_12";
 
 interface GradeRule {
   id?: string;
