@@ -53,7 +53,7 @@ export default async function SuperAdminDashboardPage() {
   return (
     <div className="space-y-8">
       {/* ─── Hero Command Banner ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-[#090d16] p-8 border border-slate-800/80 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-[#090d16] p-5 sm:p-8 border border-slate-800/80 shadow-2xl">
         <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
@@ -61,18 +61,18 @@ export default async function SuperAdminDashboardPage() {
               <Zap className="w-3.5 h-3.5 text-indigo-400" />
               <span>Platform Operator Mode · v2.4 Live</span>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight mt-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-3">
               Platform Command Center
             </h1>
-            <p className="text-slate-400 text-sm mt-1.5 max-w-2xl leading-relaxed">
+            <p className="text-slate-400 text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
               Real-time multi-tenant telemetry, automated DPDP governance, tenant lifecycle control, and instant school support impersonation.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="w-full sm:w-auto flex flex-wrap items-center gap-3">
             <Link
               href="/super-admin/schools"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition active:scale-95"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition active:scale-95"
             >
               <Building2 className="w-4 h-4" />
               <span>Manage School Tenants</span>
@@ -310,7 +310,8 @@ export default async function SuperAdminDashboardPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View (UX-R47) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-950/60 text-slate-400 uppercase font-semibold tracking-wider border-b border-slate-800">
               <tr>
@@ -379,6 +380,56 @@ export default async function SuperAdminDashboardPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View (UX-R47) */}
+        <div className="block md:hidden p-3.5 space-y-3">
+          {activeSchools.length === 0 ? (
+            <div className="py-8 text-center text-slate-500 text-xs">
+              No school tenants registered yet.
+            </div>
+          ) : (
+            activeSchools.map((s) => (
+              <div
+                key={s.id}
+                className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs uppercase shrink-0 border border-indigo-500/20">
+                      {s.name.substring(0, 2)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white text-sm truncate">{s.name}</div>
+                      <div className="text-[11px] text-slate-400 font-mono truncate">
+                        /{s.slug ?? s.id.slice(0, 8)} · {s.city}, {s.state}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    {s.status ?? "ACTIVE"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                      {s.board}
+                    </span>
+                    <span className="font-mono text-slate-400 text-[11px]">{s.udiseCode}</span>
+                  </div>
+                  <Link
+                    href={`/super-admin/schools`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium transition text-xs active:scale-95"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Inspect</span>
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

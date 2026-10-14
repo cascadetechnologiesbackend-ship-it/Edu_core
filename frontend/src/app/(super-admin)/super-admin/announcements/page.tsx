@@ -67,7 +67,7 @@ export default async function AnnouncementsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Broadcast Composer */}
-        <div className="lg:col-span-1 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4 shadow-xl">
+        <div className="lg:col-span-1 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-6 space-y-4 shadow-xl">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Send className="w-4 h-4 text-indigo-400" /> Compose Announcement
           </h2>
@@ -79,7 +79,7 @@ export default async function AnnouncementsPage() {
                 type="text"
                 name="title"
                 placeholder="e.g. Scheduled Infrastructure Upgrade · Oct 10"
-                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                className="w-full px-3 py-2.5 min-h-[42px] rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
                 required
               />
             </div>
@@ -88,7 +88,7 @@ export default async function AnnouncementsPage() {
               <label className="text-slate-300 font-semibold">Target Audience *</label>
               <select
                 name="targetType"
-                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500/50"
+                className="w-full px-3 py-2.5 min-h-[42px] rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500/50"
               >
                 <option value="ALL">All School Tenants (Global Broadcast)</option>
                 <option value="SPECIFIC">Specific School Tenant Only</option>
@@ -99,7 +99,7 @@ export default async function AnnouncementsPage() {
               <label className="text-slate-300 font-semibold">Select School (If specific)</label>
               <select
                 name="targetSchoolId"
-                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500/50"
+                className="w-full px-3 py-2.5 min-h-[42px] rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500/50"
               >
                 <option value="">Choose tenant school...</option>
                 {allSchools.map((s) => (
@@ -116,14 +116,14 @@ export default async function AnnouncementsPage() {
                 name="body"
                 rows={5}
                 placeholder="Details of the announcement, downtime window, or compliance instructions..."
-                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 resize-none"
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 resize-none"
                 required
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition active:scale-95 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+              className="w-full py-3 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition active:scale-95 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Broadcast Announcement</span>
@@ -132,7 +132,7 @@ export default async function AnnouncementsPage() {
         </div>
 
         {/* Sent Announcements Log */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4 shadow-xl">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-6 space-y-4 shadow-xl">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Clock className="w-4 h-4 text-purple-400" /> Broadcast History & Active Alerts
           </h2>

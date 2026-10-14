@@ -116,7 +116,7 @@ export default async function SuperAdminDpdpPage() {
   return (
     <div className="space-y-8">
       {/* ─── Hero Platform Header ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-[#090d16] p-8 border border-slate-800/80 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-[#090d16] p-5 sm:p-8 border border-slate-800/80 shadow-2xl">
         <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
@@ -248,9 +248,9 @@ export default async function SuperAdminDpdpPage() {
 
       {/* ─── Multi-Tenant Schools Compliance Matrix ──────────────────────── */}
       <div className="rounded-2xl border border-slate-800 bg-[#0d1322] overflow-hidden shadow-xl">
-        <div className="p-6 border-b border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="p-4 sm:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <Building2 className="w-5 h-5 text-indigo-400" />
               School Tenants DPDP Compliance Matrix
             </h2>
@@ -260,14 +260,15 @@ export default async function SuperAdminDpdpPage() {
           </div>
           <Link
             href="/super-admin/schools"
-            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition"
+            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition py-1"
           >
             <span>Manage Tenants Directory</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-800">
               <tr>
@@ -352,13 +353,98 @@ export default async function SuperAdminDpdpPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View (UX-R47) */}
+        <div className="block md:hidden p-3.5 space-y-3">
+          {allSchools.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-xs">
+              No school tenants found.
+            </div>
+          ) : (
+            allSchools.map((s) => {
+              const studentCount = studentCountMap.get(s.id) ?? 0;
+              const consentCount = consentCountMap.get(s.id) ?? 0;
+              const coverage =
+                studentCount > 0 ? Math.min(100, Math.round((consentCount / studentCount) * 100)) : 100;
+
+              return (
+                <div
+                  key={s.id}
+                  className="p-4 bg-slate-950/70 rounded-xl border border-slate-800/80 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white text-sm">{s.name}</div>
+                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                        UDISE: {s.udiseCode || "UNSET"} · {s.city || "India"}
+                      </div>
+                    </div>
+                    {s.status === "ACTIVE" ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Compliant
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                        <AlertTriangle className="w-3 h-3" />
+                        Suspended
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Coverage Progress Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400 text-[11px]">Parental Consent Coverage:</span>
+                      <span className="font-mono text-white font-bold">{coverage}%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          coverage >= 80
+                            ? "bg-emerald-500"
+                            : coverage >= 50
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
+                        }`}
+                        style={{ width: `${coverage}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Enrolled Students vs Recorded Consents */}
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800/80">
+                    <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-850">
+                      <div className="text-[10px] text-slate-400 uppercase">Students</div>
+                      <div className="font-mono text-sm font-bold text-slate-200 mt-0.5">{studentCount}</div>
+                    </div>
+                    <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-850">
+                      <div className="text-[10px] text-slate-400 uppercase">Consents</div>
+                      <div className="font-mono text-sm font-bold text-emerald-400 mt-0.5">{consentCount}</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <Link
+                      href={`/super-admin/schools`}
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition active:scale-95"
+                    >
+                      <Eye className="w-4 h-4 text-indigo-400" />
+                      <span>Inspect Tenant In School Directory</span>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* ─── Statutory Consent Purposes Registry ─────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] p-4 sm:p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <FileCheck2 className="w-5 h-5 text-emerald-400" />
               Statutory Consent Purposes Registry
             </h2>
@@ -414,10 +500,10 @@ export default async function SuperAdminDpdpPage() {
       </div>
 
       {/* ─── Recent DPDP Audit Logs ───────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] p-4 sm:p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-400" />
               Recent DPDP Forensic Audit Stream
             </h2>

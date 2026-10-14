@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Enterprise SaaS platform command center for multi-tenant school governance.",
 };
 
+import { SuperAdminBottomNav } from "@/components/platform/SuperAdminBottomNav";
+
 export default async function SuperAdminLayout({
   children,
 }: {
@@ -44,18 +46,18 @@ export default async function SuperAdminLayout({
   const impersonationCookie = cookieStore.get("sm_impersonation");
   const impersonationData = verifyImpersonationToken(impersonationCookie?.value);
 
+  const userEmail = session.user.email ?? "operator@schoolmitra.in";
+  const userName = session.user.name ?? "Platform Super Admin";
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#090d16] text-slate-100 font-sans antialiased">
-      {/* Platform Sidebar */}
-      <PlatformSidebar
-        userEmail={session.user.email ?? "operator@schoolmitra.in"}
-        userName={session.user.name ?? "Platform Super Admin"}
-      />
+      {/* Platform Sidebar - Desktop */}
+      <PlatformSidebar userEmail={userEmail} userName={userName} />
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Global Platform Header */}
-        <PlatformHeader />
+        <PlatformHeader userEmail={userEmail} userName={userName} />
 
         {/* Impersonation Banner if active */}
         {impersonationData && (
@@ -69,13 +71,16 @@ export default async function SuperAdminLayout({
           />
         )}
 
-        {/* Scrollable Viewport */}
+        {/* Scrollable Viewport with extra bottom padding for mobile bottom bar */}
         <main className="flex-1 overflow-y-auto" id="platform-main">
-          <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+          <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24 md:pb-8 animate-fade-in">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Thumb Zone) */}
+      <SuperAdminBottomNav />
     </div>
   );
 }

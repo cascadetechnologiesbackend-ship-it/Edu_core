@@ -21,6 +21,8 @@ import {
   Calendar,
   School,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -68,6 +70,7 @@ export function SchoolManagementClient({ initialSchools }: Props) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<SchoolItem | null>(null);
   const [deletingSchool, setDeletingSchool] = useState<SchoolItem | null>(null);
+  const [expandedSchoolId, setExpandedSchoolId] = useState<string | null>(null);
 
   // Transitions
   const [isPending, startTransition] = useTransition();
@@ -97,8 +100,8 @@ export function SchoolManagementClient({ initialSchools }: Props) {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-800">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-            <Building2 className="w-6 h-6 text-indigo-400" /> School Tenant Directory
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" /> School Tenant Directory
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Governing {schoolsList.length} registered school instances across educational boards with real-time operations.
@@ -107,7 +110,7 @@ export function SchoolManagementClient({ initialSchools }: Props) {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25 active:scale-95"
+          className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25 active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>Provision New School</span>
@@ -115,25 +118,25 @@ export function SchoolManagementClient({ initialSchools }: Props) {
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl bg-slate-900/60 border border-slate-800">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by school, city, or UDISE..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+            placeholder="Search school, city, or UDISE..."
+            className="w-full min-h-[44px] pl-9 pr-4 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto text-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto text-xs">
           {/* Board Selector */}
           <select
             value={boardFilter}
             onChange={(e) => setBoardFilter(e.target.value)}
             aria-label="Filter by Educational Board"
-            className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 font-medium focus:outline-none focus:border-indigo-500/50"
+            className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 font-medium focus:outline-none focus:border-indigo-500/50"
           >
             <option value="ALL">All Boards</option>
             <option value="CBSE">CBSE</option>
@@ -143,52 +146,54 @@ export function SchoolManagementClient({ initialSchools }: Props) {
             <option value="IB">IB</option>
           </select>
 
-          {/* Status Tabs */}
-          <button
-            onClick={() => setStatusFilter("ALL")}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
-              statusFilter === "ALL"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            All ({schoolsList.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter("ACTIVE")}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
-              statusFilter === "ACTIVE"
-                ? "bg-emerald-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            Active ({schoolsList.filter((s) => s.status === "ACTIVE").length})
-          </button>
-          <button
-            onClick={() => setStatusFilter("SUSPENDED")}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
-              statusFilter === "SUSPENDED"
-                ? "bg-amber-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            Suspended ({schoolsList.filter((s) => s.status === "SUSPENDED").length})
-          </button>
-          <button
-            onClick={() => setStatusFilter("ARCHIVED")}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
-              statusFilter === "ARCHIVED"
-                ? "bg-rose-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            Archived ({schoolsList.filter((s) => s.status === "ARCHIVED").length})
-          </button>
+          {/* Status Tabs with scroll on mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            <button
+              onClick={() => setStatusFilter("ALL")}
+              className={`min-h-[40px] px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition ${
+                statusFilter === "ALL"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white"
+              }`}
+            >
+              All ({schoolsList.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("ACTIVE")}
+              className={`min-h-[40px] px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition ${
+                statusFilter === "ACTIVE"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white"
+              }`}
+            >
+              Active ({schoolsList.filter((s) => s.status === "ACTIVE").length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("SUSPENDED")}
+              className={`min-h-[40px] px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition ${
+                statusFilter === "SUSPENDED"
+                  ? "bg-amber-600 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white"
+              }`}
+            >
+              Suspended ({schoolsList.filter((s) => s.status === "SUSPENDED").length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("ARCHIVED")}
+              className={`min-h-[40px] px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition ${
+                statusFilter === "ARCHIVED"
+                  ? "bg-rose-600 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white"
+              }`}
+            >
+              Archived ({schoolsList.filter((s) => s.status === "ARCHIVED").length})
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Schools Table */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
+      {/* Desktop Schools Table (hidden on mobile, visible on md+) */}
+      <div className="hidden md:block rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold tracking-wider border-b border-slate-800">
@@ -369,6 +374,208 @@ export function SchoolManagementClient({ initialSchools }: Props) {
         </div>
       </div>
 
+      {/* Mobile School Cards View (UX-R47: Phones show cards) */}
+      <div className="block md:hidden space-y-3">
+        {filteredSchools.length === 0 ? (
+          <div className="p-8 text-center text-slate-500 rounded-xl border border-slate-800 bg-slate-900/40 text-xs">
+            No schools match the specified search or filter criteria.
+          </div>
+        ) : (
+          filteredSchools.map((s) => {
+            const isActive = s.status === "ACTIVE";
+            const isArchived = s.status === "ARCHIVED";
+            const isExpanded = expandedSchoolId === s.id;
+
+            return (
+              <div
+                key={s.id}
+                className="p-4 rounded-xl border border-slate-800 bg-slate-900/80 shadow-md space-y-3 transition hover:border-slate-700"
+              >
+                {/* Header Row */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center font-bold text-sm shrink-0">
+                      {s.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-white text-sm leading-tight truncate">
+                        {s.name}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                          {s.board}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono truncate max-w-[120px]">
+                          /{s.slug || s.id.slice(0, 8)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status badge */}
+                  <div className="shrink-0">
+                    {isActive && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        ACTIVE
+                      </span>
+                    )}
+                    {s.status === "SUSPENDED" && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        <AlertCircle className="w-3 h-3" />
+                        SUSPENDED
+                      </span>
+                    )}
+                    {isArchived && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                        <Trash2 className="w-3 h-3" />
+                        ARCHIVED
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Key metadata summary */}
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 pt-1 border-t border-slate-800/60">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="truncate">{s.city}, {s.state}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-mono text-slate-400 truncate">
+                    <span className="text-[10px] uppercase text-slate-500">UDISE:</span>
+                    <span>{s.udiseCode}</span>
+                  </div>
+                </div>
+
+                {/* Expandable details toggle */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedSchoolId(isExpanded ? null : s.id)}
+                  className="w-full flex items-center justify-between text-[11px] text-slate-400 hover:text-indigo-400 pt-1 transition min-h-[32px]"
+                >
+                  <span>{isExpanded ? "Hide Details" : "Show Full Details & Contact"}</span>
+                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+
+                {/* Expanded details panel */}
+                {isExpanded && (
+                  <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 text-xs space-y-1.5 text-slate-300 animate-in fade-in duration-150">
+                    <div>
+                      <span className="text-slate-500 font-medium">Principal: </span>
+                      <span className="text-white font-medium">{s.principalName || "Not Assigned"}</span>
+                    </div>
+                    {s.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span>{s.phone}</span>
+                      </div>
+                    )}
+                    {s.email && (
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span className="truncate">{s.email}</span>
+                      </div>
+                    )}
+                    {s.address && (
+                      <div className="text-[11px] text-slate-400">
+                        {s.address}, Pincode: {s.pincode}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-slate-500 flex items-center gap-2 pt-1 border-t border-slate-900">
+                      <span>Type: {s.schoolType || "Standard"}</span>
+                      {s.establishedYear && <span>· Est. {s.establishedYear}</span>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Bar (Thumb Zone: UX-R20, UX-R21) */}
+                <div className="pt-2 flex items-center gap-2 border-t border-slate-800/80">
+                  {!isArchived && (
+                    <form action={startImpersonationAction} className="flex-1">
+                      <input type="hidden" name="schoolId" value={s.id} />
+                      <input type="hidden" name="schoolName" value={s.name} />
+                      <button
+                        type="submit"
+                        className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/25 transition active:scale-95"
+                        title="Enter school with Superadmin Impersonation"
+                      >
+                        <ShieldAlert className="w-4 h-4 text-indigo-200" />
+                        <span>Impersonate</span>
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="flex items-center gap-1.5">
+                    {/* Edit button */}
+                    <button
+                      onClick={() => setEditingSchool(s)}
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition"
+                      title="Edit School Metadata"
+                      aria-label="Edit School"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+
+                    {/* Toggle status */}
+                    {!isArchived && (
+                      <button
+                        onClick={() => {
+                          startTransition(async () => {
+                            const fd = new FormData();
+                            fd.append("schoolId", s.id);
+                            fd.append("currentStatus", s.status);
+                            const res = await toggleSchoolStatusAction(fd);
+                            if (res?.success) {
+                              setSchoolsList((prev) =>
+                                prev.map((item) =>
+                                  item.id === s.id
+                                    ? {
+                                        ...item,
+                                        status: res.status as any,
+                                        isActive: res.status === "ACTIVE",
+                                      }
+                                    : item
+                                )
+                              );
+                              toast.success(
+                                `School ${res.status === "ACTIVE" ? "activated" : "suspended"} successfully`
+                              );
+                            } else {
+                              toast.error(res?.error || "Failed to update status");
+                            }
+                          });
+                        }}
+                        className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border transition ${
+                          isActive
+                            ? "border-amber-500/30 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                            : "border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                        }`}
+                        title={isActive ? "Suspend School Instance" : "Reactivate School Instance"}
+                        aria-label={isActive ? "Suspend School" : "Reactivate School"}
+                      >
+                        <ShieldAlert className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {/* Delete button */}
+                    {!isArchived && (
+                      <button
+                        onClick={() => setDeletingSchool(s)}
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition"
+                        title="Archive School"
+                        aria-label="Archive School"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* CREATE MODAL */}
       {isCreateOpen && (
         <SchoolFormModal
@@ -502,256 +709,315 @@ function SchoolFormModal({ title, initialData, isOpen, onClose, onSubmit }: Scho
     }
   };
 
+  const [activeStep, setActiveStep] = useState<"identity" | "contact" | "location" | "session">("identity");
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800 bg-slate-950/50">
           <div className="flex items-center gap-2.5">
             <School className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-base font-bold text-white">{title}</h2>
+            <h2 className="text-base font-bold text-white truncate max-w-[240px] sm:max-w-md">{title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            aria-label="Close form"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Step Selector Tabs (UX-R41, UX-R42: 3-5 fields per step) */}
+        <div className="flex items-center border-b border-slate-800 bg-slate-950/60 px-3 sm:px-6 overflow-x-auto scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setActiveStep("identity")}
+            className={`py-3 px-3 text-xs font-semibold border-b-2 transition whitespace-nowrap min-h-[44px] ${
+              activeStep === "identity"
+                ? "border-indigo-500 text-indigo-400"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            1. Identity
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveStep("contact")}
+            className={`py-3 px-3 text-xs font-semibold border-b-2 transition whitespace-nowrap min-h-[44px] ${
+              activeStep === "contact"
+                ? "border-indigo-500 text-indigo-400"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            2. Contact
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveStep("location")}
+            className={`py-3 px-3 text-xs font-semibold border-b-2 transition whitespace-nowrap min-h-[44px] ${
+              activeStep === "location"
+                ? "border-indigo-500 text-indigo-400"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            3. Location
+          </button>
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setActiveStep("session")}
+              className={`py-3 px-3 text-xs font-semibold border-b-2 transition whitespace-nowrap min-h-[44px] ${
+                activeStep === "session"
+                  ? "border-indigo-500 text-indigo-400"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              4. Session
+            </button>
+          )}
+        </div>
+
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-5 flex-1">
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1">
           {/* Section: Core Identity */}
-          <div>
-            <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider mb-3">
-              1. Institutional Identity
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  School Name <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Delhi Public School"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.name && <p className="text-[11px] text-rose-400 mt-1">{errors.name}</p>}
-              </div>
+          {activeStep === "identity" && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider">
+                Institutional Identity & Board
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    School Name <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Delhi Public School"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.name && <p className="text-[11px] text-rose-400 mt-1">{errors.name}</p>}
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Educational Board <span className="text-rose-400">*</span>
-                </label>
-                <select
-                  value={formData.board}
-                  onChange={(e) => setFormData({ ...formData, board: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="CBSE">CBSE</option>
-                  <option value="ICSE">ICSE</option>
-                  <option value="STATE_BOARD">State Board</option>
-                  <option value="IGCSE">IGCSE</option>
-                  <option value="IB">IB</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Educational Board <span className="text-rose-400">*</span>
+                  </label>
+                  <select
+                    value={formData.board}
+                    onChange={(e) => setFormData({ ...formData, board: e.target.value as any })}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="CBSE">CBSE</option>
+                    <option value="ICSE">ICSE</option>
+                    <option value="STATE_BOARD">State Board</option>
+                    <option value="IGCSE">IGCSE</option>
+                    <option value="IB">IB</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  UDISE Code <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.udiseCode}
-                  onChange={(e) => setFormData({ ...formData, udiseCode: e.target.value })}
-                  placeholder="e.g. 09123456789"
-                  maxLength={11}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
-                />
-                {errors.udiseCode && <p className="text-[11px] text-rose-400 mt-1">{errors.udiseCode}</p>}
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    UDISE Code <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.udiseCode}
+                    onChange={(e) => setFormData({ ...formData, udiseCode: e.target.value })}
+                    placeholder="e.g. 09123456789"
+                    maxLength={11}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  {errors.udiseCode && <p className="text-[11px] text-rose-400 mt-1">{errors.udiseCode}</p>}
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  School Level / Type
-                </label>
-                <select
-                  value={formData.schoolType}
-                  onChange={(e) => setFormData({ ...formData, schoolType: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="PRIMARY">Primary School (K-5)</option>
-                  <option value="SECONDARY">Secondary School (K-10)</option>
-                  <option value="SENIOR_SECONDARY">Senior Secondary (K-12)</option>
-                  <option value="INTEGRATED">Integrated Academy</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    School Level / Type
+                  </label>
+                  <select
+                    value={formData.schoolType}
+                    onChange={(e) => setFormData({ ...formData, schoolType: e.target.value as any })}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="PRIMARY">Primary School (K-5)</option>
+                    <option value="SECONDARY">Secondary School (K-10)</option>
+                    <option value="SENIOR_SECONDARY">Senior Secondary (K-12)</option>
+                    <option value="INTEGRATED">Integrated Academy</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Established Year
-                </label>
-                <input
-                  type="number"
-                  value={formData.establishedYear}
-                  onChange={(e) => setFormData({ ...formData, establishedYear: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Established Year
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.establishedYear}
+                    onChange={(e) => setFormData({ ...formData, establishedYear: Number(e.target.value) })}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  URL Slug (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="e.g. dps-noida"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    URL Slug (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    placeholder="e.g. dps-noida"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Website URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.website || ""}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Website URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.website || ""}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Section: Contact & Leadership */}
-          <div className="pt-2 border-t border-slate-800">
-            <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider mb-3">
-              2. Leadership & Contact
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-1">
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Principal Name <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.principalName}
-                  onChange={(e) => setFormData({ ...formData, principalName: e.target.value })}
-                  placeholder="Dr. Rajesh Sharma"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.principalName && (
-                  <p className="text-[11px] text-rose-400 mt-1">{errors.principalName}</p>
-                )}
-              </div>
+          {activeStep === "contact" && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider">
+                Leadership & Official Communication
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Principal Name <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.principalName}
+                    onChange={(e) => setFormData({ ...formData, principalName: e.target.value })}
+                    placeholder="Dr. Rajesh Sharma"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.principalName && (
+                    <p className="text-[11px] text-rose-400 mt-1">{errors.principalName}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Official Email <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="admin@school.edu.in"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.email && <p className="text-[11px] text-rose-400 mt-1">{errors.email}</p>}
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Official Email <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="admin@school.edu.in"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.email && <p className="text-[11px] text-rose-400 mt-1">{errors.email}</p>}
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Phone Number <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+91 9876543210"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.phone && <p className="text-[11px] text-rose-400 mt-1">{errors.phone}</p>}
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Phone Number <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+91 9876543210"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.phone && <p className="text-[11px] text-rose-400 mt-1">{errors.phone}</p>}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Section: Address & Location */}
-          <div className="pt-2 border-t border-slate-800">
-            <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider mb-3">
-              3. Campus Location
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="sm:col-span-4">
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Street Address
-                </label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Sector 62, Institutional Area"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+          {activeStep === "location" && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider">
+                Campus Location & Territory
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="sm:col-span-4">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Sector 62, Institutional Area"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  City <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="Noida"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.city && <p className="text-[11px] text-rose-400 mt-1">{errors.city}</p>}
-              </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    City <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    placeholder="Noida"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.city && <p className="text-[11px] text-rose-400 mt-1">{errors.city}</p>}
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  State <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  placeholder="Uttar Pradesh"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.state && <p className="text-[11px] text-rose-400 mt-1">{errors.state}</p>}
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    State <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    placeholder="Uttar Pradesh"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.state && <p className="text-[11px] text-rose-400 mt-1">{errors.state}</p>}
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Pincode <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.pincode}
-                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-                  placeholder="201301"
-                  maxLength={6}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                {errors.pincode && <p className="text-[11px] text-rose-400 mt-1">{errors.pincode}</p>}
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Pincode <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                    placeholder="201301"
+                    maxLength={6}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {errors.pincode && <p className="text-[11px] text-rose-400 mt-1">{errors.pincode}</p>}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Section: Academic Session (Only on creation) */}
-          {!isEditing && (
-            <div className="pt-2 border-t border-slate-800">
-              <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider mb-3">
-                4. Inaugural Academic Session
+          {activeStep === "session" && !isEditing && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <h3 className="text-xs uppercase font-semibold text-indigo-400 tracking-wider">
+                Inaugural Academic Session Setup
               </h3>
-              <div className="w-full sm:w-1/2">
+              <div className="w-full sm:w-2/3">
                 <label className="block text-xs font-medium text-slate-300 mb-1">
                   Initial Academic Year Label
                 </label>
@@ -760,33 +1026,64 @@ function SchoolFormModal({ title, initialData, isOpen, onClose, onSubmit }: Scho
                   value={formData.academicYearLabel}
                   onChange={(e) => setFormData({ ...formData, academicYearLabel: e.target.value })}
                   placeholder="2026-2027"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Creates the default active academic calendar session for this school tenant.
+                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                  Automatically initializes the active academic calendar and default terms for this new school tenant.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Modal Footer */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800/50 text-xs transition font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25 disabled:opacity-50"
-            >
-              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{isEditing ? "Save Changes" : "Provision School"}</span>
-            </button>
+          {/* Modal Footer with step navigation and submit button */}
+          <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              {activeStep !== "identity" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeStep === "contact") setActiveStep("identity");
+                    if (activeStep === "location") setActiveStep("contact");
+                    if (activeStep === "session") setActiveStep("location");
+                  }}
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800/50 text-xs transition font-medium"
+                >
+                  Previous
+                </button>
+              )}
+              {activeStep !== (isEditing ? "location" : "session") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeStep === "identity") setActiveStep("contact");
+                    if (activeStep === "contact") setActiveStep("location");
+                    if (activeStep === "location" && !isEditing) setActiveStep("session");
+                  }}
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs transition font-medium"
+                >
+                  Next Step
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800/50 text-xs transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25 disabled:opacity-50"
+              >
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{isEditing ? "Save Changes" : "Provision School"}</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -824,10 +1121,10 @@ function DeleteConfirmModal({ school, isOpen, onClose, onConfirm }: DeleteModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-2xl shadow-2xl p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 space-y-4">
         <div className="flex items-center gap-3 text-rose-400">
-          <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center shrink-0">
             <ShieldAlert className="w-5 h-5 text-rose-400" />
           </div>
           <div>
@@ -857,7 +1154,7 @@ function DeleteConfirmModal({ school, isOpen, onClose, onConfirm }: DeleteModalP
             value={confirmInput}
             onChange={(e) => setConfirmInput(e.target.value)}
             placeholder={school.name}
-            className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-rose-500/50"
+            className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-rose-500/50"
           />
         </div>
 
@@ -866,7 +1163,7 @@ function DeleteConfirmModal({ school, isOpen, onClose, onConfirm }: DeleteModalP
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800/50 text-xs transition"
+            className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800/50 text-xs transition font-medium"
           >
             Cancel
           </button>
@@ -874,9 +1171,9 @@ function DeleteConfirmModal({ school, isOpen, onClose, onConfirm }: DeleteModalP
             type="button"
             onClick={handleConfirm}
             disabled={!isMatch || isDeleting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition shadow-lg shadow-rose-600/25 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition shadow-lg shadow-rose-600/25 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>Archive School</span>
           </button>
         </div>

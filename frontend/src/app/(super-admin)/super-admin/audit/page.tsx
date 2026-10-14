@@ -68,9 +68,10 @@ export default async function AuditLogPage({
         </div>
       </div>
 
-      {/* Audit Log Table */}
+      {/* Audit Log Table Container (UX-R47 dual-morphology) */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold tracking-wider border-b border-slate-800">
               <tr>
@@ -117,6 +118,64 @@ export default async function AuditLogPage({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Forensic Cards (UX-R47) */}
+        <div className="block md:hidden p-3.5 space-y-3">
+          {logs.length === 0 ? (
+            <div className="py-10 text-center text-slate-500 text-xs">
+              No platform audit events recorded yet.
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log.id}
+                className="p-3.5 bg-slate-950/70 rounded-xl border border-slate-800/80 space-y-2.5 text-xs font-mono"
+              >
+                <div className="flex items-center justify-between gap-2 border-b border-slate-800/60 pb-2">
+                  <span className="text-[10px] text-slate-400 font-sans">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </span>
+                  <span className="px-2 py-0.5 rounded font-semibold text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">
+                    {log.action}
+                  </span>
+                </div>
+
+                <div className="space-y-1 font-sans">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">Actor:</span>
+                    <span className="text-slate-200 font-medium text-xs">{log.userEmail}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">Role:</span>
+                    <span className="text-indigo-400 font-semibold text-[11px]">{log.userRole}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">Entity / Table:</span>
+                    <span className="text-slate-300 font-mono text-[11px]">
+                      {log.tableName}
+                      {log.recordId && <span className="text-slate-500"> #{log.recordId.slice(0, 6)}</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">Client IP:</span>
+                    <span className="text-slate-400 font-mono text-[11px]">{log.ipAddress || "—"}</span>
+                  </div>
+                </div>
+
+                {Boolean(log.metadata && typeof log.metadata === "object" && Object.keys(log.metadata as object).length > 0) && (
+                  <div className="pt-2 border-t border-slate-800/60">
+                    <div className="text-[10px] uppercase font-semibold text-slate-500 font-sans mb-1">
+                      Context Metadata
+                    </div>
+                    <div className="p-2 rounded bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 overflow-x-auto break-all font-mono">
+                      {JSON.stringify(log.metadata, null, 2)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
