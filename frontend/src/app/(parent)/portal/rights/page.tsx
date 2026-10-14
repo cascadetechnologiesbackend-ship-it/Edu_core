@@ -90,6 +90,12 @@ export default async function RightsPage() {
           >
             Consent Center
           </Link>
+          <Link
+            href="/parent/documents"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Documents
+          </Link>
           <span className="px-3.5 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/30 whitespace-nowrap">
             Subject Rights
           </span>

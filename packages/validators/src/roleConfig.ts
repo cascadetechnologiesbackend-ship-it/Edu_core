@@ -154,6 +154,7 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
       { label: "Attendance", href: "/parent/attendance", icon: "CalendarCheck" },
       { label: "Fee Portal", href: "/parent/fees", icon: "Receipt" },
       { label: "Bus Tracker", href: "/parent/bus", icon: "Bus" },
+      { label: "Documents", href: "/parent/documents", icon: "FileText" },
     ],
   },
   STUDENT: {

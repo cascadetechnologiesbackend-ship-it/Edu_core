@@ -171,6 +171,18 @@ export async function submitAdmissionApplication(
         } as const);
       }
 
+      const tc = parseDocInfo(documentKeys.transferCertificate, "transfer_certificate.pdf");
+      if (tc && tc.key) {
+        documentsToInsert.push({
+          applicationId: application.id,
+          schoolId: targetSchoolId,
+          documentType: "PREVIOUS_TC",
+          s3Key: tc.key,
+          originalFileName: tc.fileName,
+          mimeType: tc.mimeType,
+        } as const);
+      }
+
       if (documentsToInsert.length > 0) {
         await db.insert(admissionDocuments).values(documentsToInsert);
       }

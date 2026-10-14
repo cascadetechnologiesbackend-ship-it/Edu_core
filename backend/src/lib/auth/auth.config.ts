@@ -48,16 +48,15 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) return url;
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
       try {
         const parsed = new URL(url);
-        if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-          return parsed.pathname + parsed.search;
-        }
         const baseObj = new URL(baseUrl);
-        if (parsed.origin === baseObj.origin) return url;
+        if (parsed.origin === baseObj.origin || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+          return url;
+        }
       } catch {}
-      return url.startsWith("/") ? url : "/dashboard";
+      return baseUrl;
     },
     authorized({ auth, request: { nextUrl, headers } }) {
       const pathname = nextUrl.pathname;

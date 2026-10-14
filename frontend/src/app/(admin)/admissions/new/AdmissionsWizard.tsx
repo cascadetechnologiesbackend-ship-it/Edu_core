@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { verifyConsentOtp, dispatchConsentOtp, submitAdmissionApplication } from "./actions";
+import { submitAdmissionApplication } from "./actions";
 
 export function AdmissionsWizard({
   privacyNoticeVersion,
@@ -20,8 +20,6 @@ export function AdmissionsWizard({
 
   // Wizard Data State
   const [consentState, setConsentState] = useState<Record<string, boolean>>({});
-  const [mobileOtp, setMobileOtp] = useState({ mobile: "", otp: "" });
-  const [otpSent, setOtpSent] = useState(false);
   const [isHindi, setIsHindi] = useState(false);
 
   useEffect(() => {
@@ -59,57 +57,66 @@ export function AdmissionsWizard({
     birthCertificate: File | null;
     aadhaar: File | null;
     photo: File | null;
+    transferCertificate: File | null;
   }>({
     birthCertificate: null,
     aadhaar: null,
     photo: null,
+    transferCertificate: null,
   });
 
   const handleNext = async () => {
     setError("");
     if (step === 1) {
-      if (!otpSent) {
-        if (mobileOtp.mobile.length !== 10) {
-          setError("Please enter a valid 10-digit mobile number");
-          return;
-        }
-        // Verify all mandatory purposes are checked
-        const mandatoryPurposes = consentPurposes.filter(
-          (p: any) => p.mandatory,
-        );
-        const missingMandatory = mandatoryPurposes.some(
-          (p: any) => !consentState[p.id],
-        );
-        if (missingMandatory) {
-          setError(
-            "You must agree to all mandatory consent purposes to proceed.",
-          );
-          return;
-        }
-        setLoading(true);
-        try {
-          const res = await dispatchConsentOtp(mobileOtp.mobile);
-          if (!res.success) {
-            setError(res.message || "Failed to dispatch OTP");
-            setLoading(false);
-            return;
-          }
-          setOtpSent(true);
-        } catch (e: any) {
-          setError(e.message || "Failed to dispatch OTP");
-        }
-        setLoading(false);
-        return;
-      } else {
-        setLoading(true);
-        const res = await verifyConsentOtp(mobileOtp.mobile, mobileOtp.otp);
-        setLoading(false);
-        if (!res.success) {
-          setError(res.message || "Invalid OTP");
-          return;
-        }
-      }
+      // Step 1: DPDP Notice review. Digital consent will be collected on parent login.
+      setStep(2);
+      return;
     }
+
+    if (step === 2) {
+      if (!basicInfo.applicantName.trim()) {
+        setError("Please enter the applicant's full name");
+        return;
+      }
+      if (!basicInfo.dateOfBirth) {
+        setError("Please enter the date of birth");
+        return;
+      }
+      setStep(3);
+      return;
+    }
+
+    if (step === 3) {
+      if (!familyDetails.fatherName.trim() && !familyDetails.motherName.trim() && !familyDetails.guardianName.trim()) {
+        setError("Please enter at least one parent or guardian name");
+        return;
+      }
+      if (!/^[6-9]\d{9}$/.test(familyDetails.primaryContactMobile)) {
+        setError("Please enter a valid 10-digit Indian mobile number for primary contact");
+        return;
+      }
+      if (!familyDetails.primaryContactEmail.trim() || !familyDetails.primaryContactEmail.includes("@")) {
+        setError("Please enter a valid email address");
+        return;
+      }
+      if (!familyDetails.address.trim()) {
+        setError("Please enter the residential address");
+        return;
+      }
+      if (!/^\d{6}$/.test(familyDetails.pincode)) {
+        setError("Please enter a valid 6-digit pincode");
+        return;
+      }
+      setStep(4);
+      return;
+    }
+
+    if (step === 4) {
+      // Step 4: Documents are optional during admission (can be uploaded later by parent)
+      setStep(5);
+      return;
+    }
+
     setStep(step + 1);
   };
 
@@ -122,7 +129,7 @@ export function AdmissionsWizard({
       ...basicInfo,
       bloodGroup: basicInfo.bloodGroup ? basicInfo.bloodGroup : undefined,
       ...familyDetails,
-      primaryContactMobile: mobileOtp.mobile, // Overwrite with verified mobile
+      primaryContactMobile: familyDetails.primaryContactMobile,
     };
     
     // Upload documents
@@ -189,7 +196,7 @@ export function AdmissionsWizard({
               {s < step ? "✓" : s}
             </div>
             <span className="hidden md:inline text-sm">
-              {s === 1 && "Consent"}
+              {s === 1 && "DPDP Notice"}
               {s === 2 && "Basic Info"}
               {s === 3 && "Family"}
               {s === 4 && "Documents"}
@@ -207,54 +214,56 @@ export function AdmissionsWizard({
           </div>
         )}
 
-        {/* STEP 1: DPDP Consent */}
+        {/* STEP 1: DPDP Consent Notice */}
         {step === 1 && (
           <div className="space-y-6">
-            <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-              <h2 className="font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-2">
-                <span className="text-xl">🛡️</span> Data Privacy & Consent (DPDP
-                Act 2023)
-              </h2>
-              <p className="text-sm text-blue-800 dark:text-blue-400 mt-1">
-                {isHindi
-                  ? `कृपया अपने बच्चे के डेटा को संसाधित करने के लिए सहमति की समीक्षा करें और स्पष्ट रूप से अनुमति दें। (सूचना v${privacyNoticeVersion})`
-                  : `Please review and explicitly grant consent for processing your child's data. (Notice v${privacyNoticeVersion})`}
-              </p>
+            <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl mt-0.5">🛡️</span>
+                <div>
+                  <h2 className="font-bold text-base text-blue-950 dark:text-blue-200">
+                    Data Privacy &amp; Processing Notice (DPDP Act 2023)
+                  </h2>
+                  <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
+                    {isHindi
+                      ? `डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम 2023 के तहत स्कूल डेटा प्रसंस्करण सूचना (v${privacyNoticeVersion})।`
+                      : `School Data Processing & Privacy Notice under DPDP Act 2023 (Notice v${privacyNoticeVersion}).`}
+                  </p>
+                  <div className="mt-3 bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-lg border border-blue-200 dark:border-blue-700/60 text-xs text-blue-900 dark:text-blue-200 space-y-1">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <span>📲</span> Parent App Digital Consent Workflow
+                    </p>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      In compliance with DPDP regulations, verifiable parental opt-in is collected directly from the parent/guardian when they first log into the <strong>Parent Companion App</strong>. You may review the processing purposes below and click <strong>Continue</strong> to fill the admission details.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               {consentPurposes.map((p: any) => (
                 <div
                   key={p.id}
-                  className="flex items-start space-x-3 p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800/50 transition"
+                  className="flex items-start space-x-3 p-4 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50/60 dark:bg-slate-800/40"
                 >
-                  <input
-                    type="checkbox"
-                    id={p.id}
-                    checked={!!consentState[p.id]}
-                    onChange={(e) =>
-                      setConsentState({
-                        ...consentState,
-                        [p.id]: e.target.checked,
-                      })
-                    }
-                    className="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <div>
-                    <label
-                      htmlFor={p.id}
-                      className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2"
-                    >
-                      {isHindi ? p.labelHi || p.label : p.label}
-                      {p.mandatory && (
-                        <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">
-                          {isHindi ? "अनिवार्य" : "Required"}
+                  <div className="mt-0.5 text-blue-600 dark:text-blue-400 font-bold">✓</div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center justify-between gap-2">
+                      <span>{isHindi ? p.labelHindi || p.labelHi || p.label : p.label}</span>
+                      {p.mandatory ? (
+                        <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 rounded-full font-medium whitespace-nowrap">
+                          {isHindi ? "अनिवार्य" : "Core Educational"}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300 rounded-full whitespace-nowrap">
+                          {isHindi ? "वैकल्पिक" : "Optional"}
                         </span>
                       )}
-                    </label>
+                    </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {isHindi
-                        ? p.descriptionHi || p.description
+                        ? p.descriptionHindi || p.descriptionHi || p.description
                         : p.description}
                     </p>
                   </div>
@@ -262,50 +271,9 @@ export function AdmissionsWizard({
               ))}
             </div>
 
-            <div className="mt-8 p-6 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 max-w-md mx-auto">
-              <h3 className="font-medium text-gray-900 dark:text-white mb-4">
-                Parent Mobile Verification
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Mobile Number
-                  </label>
-                  <input
-                    type="text"
-                    value={mobileOtp.mobile}
-                    onChange={(e) =>
-                      setMobileOtp({
-                        ...mobileOtp,
-                        mobile: e.target.value.replace(/\D/g, "").slice(0, 10),
-                      })
-                    }
-                    disabled={otpSent}
-                    placeholder="e.g. 9876543210"
-                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
-                  />
-                </div>
-
-                {otpSent && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      OTP (Use 123456)
-                    </label>
-                    <input
-                      type="text"
-                      value={mobileOtp.otp}
-                      onChange={(e) =>
-                        setMobileOtp({
-                          ...mobileOtp,
-                          otp: e.target.value.slice(0, 6),
-                        })
-                      }
-                      placeholder="123456"
-                      className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
-                    />
-                  </div>
-                )}
-              </div>
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+              <span className="text-base">✓</span>
+              <span>Parent login credentials will be dispatched to the primary mobile entered in Family Details upon enrollment.</span>
             </div>
           </div>
         )}
@@ -563,6 +531,7 @@ export function AdmissionsWizard({
                 </label>
                 <input
                   type="text"
+                  name="fatherName"
                   value={familyDetails.fatherName}
                   onChange={(e) =>
                     setFamilyDetails({
@@ -579,6 +548,7 @@ export function AdmissionsWizard({
                 </label>
                 <input
                   type="text"
+                  name="motherName"
                   value={familyDetails.motherName}
                   onChange={(e) =>
                     setFamilyDetails({
@@ -592,10 +562,49 @@ export function AdmissionsWizard({
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Primary Email
+                  Guardian's Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="guardianName"
+                  value={familyDetails.guardianName}
+                  onChange={(e) =>
+                    setFamilyDetails({
+                      ...familyDetails,
+                      guardianName: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Primary Contact Mobile <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="primaryContactMobile"
+                  placeholder="10-digit mobile (e.g. 9876543210)"
+                  value={familyDetails.primaryContactMobile}
+                  onChange={(e) =>
+                    setFamilyDetails({
+                      ...familyDetails,
+                      primaryContactMobile: e.target.value.replace(/\D/g, "").slice(0, 10),
+                    })
+                  }
+                  maxLength={10}
+                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Primary Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
+                  name="primaryContactEmail"
                   value={familyDetails.primaryContactEmail}
                   onChange={(e) =>
                     setFamilyDetails({
@@ -609,15 +618,18 @@ export function AdmissionsWizard({
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Pincode
+                  Pincode <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
+                  name="pincode"
+                  maxLength={6}
+                  placeholder="6-digit pincode"
                   value={familyDetails.pincode}
                   onChange={(e) =>
                     setFamilyDetails({
                       ...familyDetails,
-                      pincode: e.target.value,
+                      pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
                     })
                   }
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
@@ -626,9 +638,10 @@ export function AdmissionsWizard({
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">
-                  Residential Address
+                  Residential Address <span className="text-red-500">*</span>
                 </label>
                 <textarea
+                  name="address"
                   value={familyDetails.address}
                   onChange={(e) =>
                     setFamilyDetails({
@@ -644,36 +657,71 @@ export function AdmissionsWizard({
           </div>
         )}
 
-        {/* STEP 4: Documents (Mock view for now) */}
+        {/* STEP 4: Documents (Optional during admission) */}
         {step === 4 && (
-          <div className="space-y-6 max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Document Upload
-            </h2>
-            <div className="grid gap-6 text-left">
-              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800">
-                <label className="block text-sm font-medium mb-2">Birth Certificate</label>
+          <div className="space-y-6 max-w-2xl mx-auto">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Document Upload
+              </h2>
+              <div className="mt-2 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800/40">
+                <span>✓</span> Documents are optional during initial admission
+              </div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+                You can upload documents now or the parent can upload them later from the Parent Companion App.
+              </p>
+            </div>
+
+            <div className="grid gap-4 text-left">
+              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">Birth Certificate</label>
+                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                </div>
                 <input 
                   type="file" 
+                  accept=".pdf,image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, birthCertificate: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
                 />
               </div>
-              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800">
-                <label className="block text-sm font-medium mb-2">Aadhaar (Masked)</label>
+
+              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">Aadhaar (Masked)</label>
+                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                </div>
                 <input 
                   type="file" 
+                  accept=".pdf,image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, aadhaar: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
                 />
               </div>
-              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800">
-                <label className="block text-sm font-medium mb-2">Student Photo</label>
+
+              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">Student Photo</label>
+                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                </div>
                 <input 
                   type="file" 
                   accept="image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, photo: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
+                />
+              </div>
+
+              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">Transfer Certificate (TC)</label>
+                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                </div>
+                <input 
+                  type="file" 
+                  accept=".pdf,image/*"
+                  onChange={(e) => setDocuments(prev => ({ ...prev, transferCertificate: e.target.files?.[0] || null }))}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
                 />
               </div>
             </div>
@@ -773,7 +821,7 @@ export function AdmissionsWizard({
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Contact Number</dt>
-                    <dd className="font-medium">{mobileOtp.mobile || "-"}</dd>
+                    <dd className="font-medium">{familyDetails.primaryContactMobile || "-"}</dd>
                   </div>
                   <div className="col-span-2">
                     <dt className="text-sm text-gray-500">Email Address</dt>
@@ -790,17 +838,19 @@ export function AdmissionsWizard({
             {/* Document Previews */}
             <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Document Previews</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500 mb-2">Birth Certificate</dt>
                   <dd>
                     {documents.birthCertificate ? (
                       <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
-                        <span className="text-2xl mr-3">📄</span>
-                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-2">{documents.birthCertificate.name}</span>
+                        <span className="text-xl mr-2">📄</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-1">{documents.birthCertificate.name}</span>
                       </div>
                     ) : (
-                      <span className="text-sm text-red-500 font-medium">Not uploaded</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                        Pending (Parent App)
+                      </span>
                     )}
                   </dd>
                 </div>
@@ -809,11 +859,13 @@ export function AdmissionsWizard({
                   <dd>
                     {documents.aadhaar ? (
                       <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
-                        <span className="text-2xl mr-3">📄</span>
-                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-2">{documents.aadhaar.name}</span>
+                        <span className="text-xl mr-2">📄</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-1">{documents.aadhaar.name}</span>
                       </div>
                     ) : (
-                      <span className="text-sm text-red-500 font-medium">Not uploaded</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                        Pending (Parent App)
+                      </span>
                     )}
                   </dd>
                 </div>
@@ -824,23 +876,41 @@ export function AdmissionsWizard({
                       <div className="p-2 border rounded-lg bg-white dark:bg-slate-900 flex flex-col items-center shadow-sm">
                         {documents.photo.type.startsWith("image/") ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={URL.createObjectURL(documents.photo)} alt="Student Photo" className="h-32 w-32 object-cover rounded-md mb-2 shadow-sm border" />
+                          <img src={URL.createObjectURL(documents.photo)} alt="Student Photo" className="h-24 w-24 object-cover rounded-md mb-1 shadow-sm border" />
                         ) : (
-                          <div className="h-32 flex items-center justify-center text-5xl mb-2">📄</div>
+                          <div className="h-24 flex items-center justify-center text-4xl mb-1">📄</div>
                         )}
                         <span className="text-xs text-center break-all w-full font-medium text-gray-700 dark:text-gray-200 line-clamp-1" title={documents.photo.name}>{documents.photo.name}</span>
                       </div>
                     ) : (
-                      <span className="text-sm text-red-500 font-medium">Not uploaded</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                        Pending (Parent App)
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500 mb-2">Transfer Cert. (TC)</dt>
+                  <dd>
+                    {documents.transferCertificate ? (
+                      <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
+                        <span className="text-xl mr-2">📄</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-1">{documents.transferCertificate.name}</span>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                        Pending (Parent App)
+                      </span>
                     )}
                   </dd>
                 </div>
               </div>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800 flex items-center">
-              <p className="text-green-800 dark:text-green-300 font-medium">
-                ✓ DPDP Consent Verified via OTP ({mobileOtp.mobile})
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center gap-3">
+              <span className="text-xl">🛡️</span>
+              <p className="text-xs text-blue-800 dark:text-blue-300 font-medium">
+                DPDP digital parental consent prompt will be requested directly from the parent upon their first login to the Parent Companion App.
               </p>
             </div>
           </div>
@@ -863,11 +933,7 @@ export function AdmissionsWizard({
             disabled={loading}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition disabled:opacity-50"
           >
-            {loading
-              ? "Processing..."
-              : step === 1 && !otpSent
-                ? "Send OTP"
-                : "Continue"}
+            {loading ? "Processing..." : "Continue"}
           </button>
         ) : (
           <button

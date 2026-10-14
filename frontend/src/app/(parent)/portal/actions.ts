@@ -12,6 +12,8 @@ import {
   feeInvoices,
   feePayments,
   auditLogs,
+  studentDocuments,
+  consentPurposes,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -372,6 +374,307 @@ export async function getParentStudentFeeLedgerAction(studentId: string) {
     return { success: true, data: ledger };
   } catch (error: any) {
     return { success: false, message: error.message };
+  }
+}
+
+// ─── Parent App Login DPDP Compliance Opt-In ──────────────────────────────────
+export async function checkParentConsentStatus() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, needsConsent: false };
+    }
+
+    const parentUserId = session.user.id;
+    const isParentRole = session.user.role === "PARENT";
+    const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role);
+
+    // If role is neither parent nor admin, no parent consent modal needed
+    if (!isParentRole && !isAdmin) {
+      return { success: true, needsConsent: false };
+    }
+
+    // Find students linked to this parent
+    let myStudents = await db.query.students.findMany({
+      where: eq(students.primaryParentUserId, parentUserId),
+    });
+
+    // If Admin preview and no students, fetch first student with parent or any student for demo
+    if (myStudents.length === 0 && isAdmin) {
+      const demoStudent = await db.query.students.findFirst();
+      if (demoStudent) myStudents = [demoStudent];
+    }
+
+    if (myStudents.length === 0) {
+      return { success: true, needsConsent: false, reason: "NO_STUDENTS" };
+    }
+
+    // Load active consent purposes
+    const dbPurposes = await db.query.consentPurposes.findMany({
+      where: eq(consentPurposes.isActive, true),
+    });
+
+    const purposes = dbPurposes.length > 0 ? dbPurposes.map(p => ({
+      id: p.purposeId,
+      purposeId: p.purposeId,
+      labelEn: p.labelEn,
+      labelHi: p.labelHi,
+      descriptionEn: p.descriptionEn,
+      descriptionHi: p.descriptionHi,
+      mandatory: p.mandatory,
+    })) : [
+      {
+        id: "admission_data",
+        purposeId: "admission_data",
+        labelEn: "Admission & Enrolment Data",
+        labelHi: "प्रवेश और नामांकन डेटा",
+        descriptionEn: "Collection and processing of student details for official enrolment.",
+        descriptionHi: "आधिकारिक नामांकन के लिए छात्र विवरण का संग्रह और प्रसंस्करण।",
+        mandatory: true,
+      },
+      {
+        id: "academic_records",
+        purposeId: "academic_records",
+        labelEn: "Academic Records & Report Cards",
+        labelHi: "शैक्षणिक अभिलेख और रिपोर्ट कार्ड",
+        descriptionEn: "Maintaining marks, grades, and academic progression records.",
+        descriptionHi: "अंक, ग्रेड और शैक्षणिक प्रगति के रिकॉर्ड बनाए रखना।",
+        mandatory: true,
+      },
+      {
+        id: "attendance",
+        purposeId: "attendance",
+        labelEn: "Daily Attendance Tracking",
+        labelHi: "दैनिक उपस्थिति ट्रैकिंग",
+        descriptionEn: "Tracking daily attendance for school records and student safety.",
+        descriptionHi: "स्कूल रिकॉर्ड और छात्र सुरक्षा के लिए दैनिक उपस्थिति की निगरानी।",
+        mandatory: true,
+      },
+      {
+        id: "communications",
+        purposeId: "communications",
+        labelEn: "SMS & WhatsApp Updates",
+        labelHi: "एसएमएस और व्हाट्सएप अपडेट",
+        descriptionEn: "Receiving circulars, notices, fee receipts, and emergency alerts.",
+        descriptionHi: "परिपत्र, नोटिस, शुल्क रसीदें और आपातकालीन अलर्ट प्राप्त करना।",
+        mandatory: false,
+      },
+      {
+        id: "photos_media",
+        purposeId: "photos_media",
+        labelEn: "School Publications & Media",
+        labelHi: "स्कूल प्रकाशन और मीडिया",
+        descriptionEn: "Celebrating achievements in annual magazines, newsletter, and school website.",
+        descriptionHi: "वार्षिक पत्रिका, समाचार पत्र और स्कूल वेबसाइट में उपलब्धियों का प्रदर्शन।",
+        mandatory: false,
+      },
+    ];
+
+    const mandatoryPurposes = purposes.filter(p => p.mandatory);
+    let needsConsent = false;
+    const studentsRequiringConsent = [];
+
+    for (const student of myStudents) {
+      const records = await db.query.consentRecords.findMany({
+        where: and(
+          eq(consentRecords.studentId, student.id),
+          eq(consentRecords.parentUserId, parentUserId)
+        ),
+      });
+
+      const grantedPurposes = new Set(
+        records.filter(r => r.granted && !r.withdrawnAt).map(r => r.purposeId)
+      );
+
+      const hasAllMandatory = mandatoryPurposes.every(mp => grantedPurposes.has(mp.purposeId));
+
+      if (!hasAllMandatory || records.length === 0) {
+        needsConsent = true;
+        studentsRequiringConsent.push({
+          id: student.id,
+          admissionNumber: student.admissionNumber,
+          displayName: `${decryptData(student.firstNameEncrypted) || ""} ${decryptData(student.lastNameEncrypted) || ""}`.trim() || "Student",
+        });
+      }
+    }
+
+    return {
+      success: true,
+      needsConsent,
+      students: studentsRequiringConsent,
+      purposes,
+      privacyNoticeVersion: "1.0",
+    };
+  } catch (error: any) {
+    console.error("checkParentConsentStatus error:", error);
+    return { success: false, needsConsent: false, message: error.message };
+  }
+}
+
+export async function submitParentLoginConsent(input: {
+  consents: Array<{
+    studentId: string;
+    purposeId: string;
+    granted: boolean;
+  }>;
+}) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const parentUserId = session.user.id;
+    const now = new Date();
+
+    for (const item of input.consents) {
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, item.studentId),
+      });
+
+      if (!student) continue;
+
+      const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role);
+      if (!isAdmin && student.primaryParentUserId !== parentUserId) {
+        continue;
+      }
+
+      await db.insert(consentRecords).values({
+        schoolId: student.schoolId,
+        studentId: student.id,
+        parentUserId,
+        purposeId: item.purposeId,
+        privacyNoticeVersion: "1.0",
+        granted: item.granted,
+        method: "web_form",
+        ipAddress: "127.0.0.1",
+        userAgent: "Parent Companion App - Login Opt-In",
+        otpVerified: false,
+        grantedAt: now,
+        withdrawnAt: !item.granted ? now : null,
+        createdAt: now,
+      });
+    }
+
+    revalidatePath("/portal");
+    revalidatePath("/portal/consent");
+    revalidatePath("/parent/dashboard");
+    return { success: true };
+  } catch (error: any) {
+    console.error("submitParentLoginConsent error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── Parent App Document Upload Actions ───────────────────────────────────────
+export async function uploadParentStudentDocument(input: {
+  studentId: string;
+  documentType: string;
+  s3Key: string;
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+}) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const student = await db.query.students.findFirst({
+      where: eq(students.id, input.studentId),
+    });
+
+    if (!student) {
+      return { success: false, message: "Student record not found" };
+    }
+
+    const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role);
+    if (!isAdmin && student.primaryParentUserId !== session.user.id) {
+      return { success: false, message: "Forbidden: You are not authorized for this student" };
+    }
+
+    await db.insert(studentDocuments).values({
+      studentId: student.id,
+      schoolId: student.schoolId,
+      documentType: input.documentType,
+      s3Key: input.s3Key,
+      originalFileName: input.fileName,
+      mimeType: input.mimeType,
+      fileSizeBytes: input.fileSizeBytes,
+      uploadedById: session.user.id,
+      isVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    revalidatePath("/parent/documents");
+    return { success: true };
+  } catch (error: any) {
+    console.error("uploadParentStudentDocument error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function fetchParentStudentDocuments(studentId?: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized", students: [], documents: [] };
+    }
+
+    const parentUserId = session.user.id;
+    const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role);
+
+    let myStudents = await db.query.students.findMany({
+      where: eq(students.primaryParentUserId, parentUserId),
+    });
+
+    if (myStudents.length === 0 && isAdmin) {
+      const demoStudent = await db.query.students.findFirst();
+      if (demoStudent) myStudents = [demoStudent];
+    }
+
+    const studentsFormatted = myStudents.map(s => ({
+      id: s.id,
+      admissionNumber: s.admissionNumber,
+      displayName: `${decryptData(s.firstNameEncrypted) || ""} ${decryptData(s.lastNameEncrypted) || ""}`.trim() || "Student",
+    }));
+
+    const targetStudentId = studentId || myStudents[0]?.id;
+
+    if (!targetStudentId) {
+      return { success: true, students: [], documents: [] };
+    }
+
+    // Verify ownership
+    const targetStudent = myStudents.find(s => s.id === targetStudentId);
+    if (!targetStudent && !isAdmin) {
+      return { success: false, message: "Unauthorized access to student documents", students: studentsFormatted, documents: [] };
+    }
+
+    const docs = await db.query.studentDocuments.findMany({
+      where: eq(studentDocuments.studentId, targetStudentId),
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    });
+
+    return {
+      success: true,
+      students: studentsFormatted,
+      selectedStudentId: targetStudentId,
+      documents: docs.map(d => ({
+        id: d.id,
+        documentType: d.documentType,
+        originalFileName: d.originalFileName,
+        mimeType: d.mimeType,
+        fileSizeBytes: d.fileSizeBytes,
+        isVerified: d.isVerified,
+        createdAt: d.createdAt,
+      })),
+    };
+  } catch (error: any) {
+    console.error("fetchParentStudentDocuments error:", error);
+    return { success: false, message: error.message, students: [], documents: [] };
   }
 }
 

@@ -93,6 +93,16 @@ export default function LoginForm() {
       }
     } catch (err) {
       console.error("[LOGIN ERROR]", err);
+      // Fallback: If session was established despite client error, redirect directly
+      try {
+        const session = await getSession();
+        if (session?.user) {
+          const role = (session.user as any)?.role as UserRole;
+          const defaultDashboard = (role && ROLE_CONFIGS[role]?.defaultDashboard) || "/dashboard";
+          window.location.href = defaultDashboard;
+          return;
+        }
+      } catch {}
       setServerError("Something went wrong. Please check your network connection and try again.");
     } finally {
       setIsLoading(false);

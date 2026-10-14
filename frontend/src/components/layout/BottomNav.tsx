@@ -15,6 +15,7 @@ import {
   Award,
   Bus,
   Calendar,
+  FileText,
   LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Award,
   Bus,
   Calendar,
+  FileText,
 };
 
 export default function BottomNav({ items }: { items: NavItem[] }) {

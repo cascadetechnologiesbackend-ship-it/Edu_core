@@ -7,25 +7,9 @@ test.describe("Admission Workflow", () => {
   }) => {
     await page.goto("/admissions/apply");
 
-    // Step 1: DPDP Consent
-    await expect(page.locator("h2")).toContainText("Privacy & Consent");
-    const mobileInput = page.locator('input[name="mobile"]');
-    if (await mobileInput.isVisible()) {
-      await mobileInput.fill("9876543210");
-      await page.click('button:has-text("Send OTP")');
-
-      const otpInput = page.locator('input[name="otp"]');
-      await expect(otpInput).toBeVisible({ timeout: 10000 });
-      await otpInput.fill("123456"); // Assuming mock OTP or test bypass
-
-      // Check consent checkboxes
-      const consentChecks = page.locator('input[type="checkbox"]');
-      const count = await consentChecks.count();
-      for (let i = 0; i < count; i++) {
-        await consentChecks.nth(i).check();
-      }
-      await page.click('button:has-text("Confirm & Proceed")');
-    }
+    // Step 1: DPDP Notice Review
+    await expect(page.locator("h2, h3, div")).toContainText(/DPDP|Privacy/i);
+    await page.click('button:has-text("Continue")');
 
     // Step 2: Basic Info
     await expect(page.locator("h2")).toContainText("Basic Information");
@@ -34,7 +18,7 @@ test.describe("Admission Workflow", () => {
     await page.selectOption('select[name="gender"]', "MALE");
     await page.selectOption('select[name="category"]', "GENERAL");
     await page.selectOption('select[name="gradeAppliedFor"]', "CLASS_5");
-    await page.click('button:has-text("Next")');
+    await page.click('button:has-text("Continue"), button:has-text("Next")');
 
     // Step 3: Family Details
     await expect(page.locator("h2")).toContainText("Family Details");
@@ -47,13 +31,13 @@ test.describe("Admission Workflow", () => {
     );
     await page.fill('input[name="address"]', "123 Test Street, New Delhi");
     await page.fill('input[name="pincode"]', "110001");
-    await page.click('button:has-text("Next")');
+    await page.click('button:has-text("Continue"), button:has-text("Next")');
 
     // Step 4: Documents Upload
     await expect(page.locator("h2")).toContainText("Documents");
     // We could skip or mock file uploads in E2E if they depend on S3.
     // For now, assume it's optional or we just proceed
-    await page.click('button:has-text("Next")');
+    await page.click('button:has-text("Continue"), button:has-text("Next")');
 
     // Step 5: Review
     await expect(page.locator("h2")).toContainText("Review Application");

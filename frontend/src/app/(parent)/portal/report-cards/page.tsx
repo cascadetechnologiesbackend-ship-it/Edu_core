@@ -114,6 +114,12 @@ export default async function ParentReportCardsPage() {
             Consent Center
           </Link>
           <Link
+            href="/parent/documents"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Documents
+          </Link>
+          <Link
             href="/portal/rights"
             className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
           >

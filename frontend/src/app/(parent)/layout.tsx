@@ -11,6 +11,7 @@ import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 import { SessionProvider } from "next-auth/react";
+import DpdpOptInModal from "@/components/parent/DpdpOptInModal";
 
 export const metadata: Metadata = {
   title: {
@@ -24,6 +25,7 @@ const PARENT_NAV_ITEMS = [
   { label: "Attendance", href: "/parent/dashboard?tab=attendance", icon: "CalendarCheck" },
   { label: "Fee Portal", href: "/parent/dashboard?tab=fees", icon: "Receipt" },
   { label: "Bus Tracker", href: "/parent/dashboard?tab=bus", icon: "Bus" },
+  { label: "Documents", href: "/parent/documents", icon: "FileText" },
 ];
 
 export default async function ParentLayout({
@@ -73,6 +75,9 @@ export default async function ParentLayout({
           icon={<Users className="w-4 h-4 text-indigo-400" />}
           userSession={session}
         />
+
+        {/* DPDP Compliance Opt-In Modal (triggers automatically if parent hasn't completed consent) */}
+        <DpdpOptInModal />
 
         {/* Main Content Area (Max-w-3xl for optimal mobile/tablet reading) */}
         <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
