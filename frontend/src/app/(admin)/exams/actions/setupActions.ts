@@ -274,7 +274,7 @@ export async function saveCocurricularGrade(input: {
 }
 
 export async function saveClassSpecificGradeRule(input: {
-  classId: string;
+  classId?: string | null;
   classGroup: "NURSERY_UKG" | "CLASS_1_5" | "CLASS_6_8" | "CLASS_9_10" | "CLASS_11_12";
   minPercent: number;
   maxPercent: number;
@@ -290,7 +290,7 @@ export async function saveClassSpecificGradeRule(input: {
     .insert(gradeRules)
     .values({
       schoolId: school.id,
-      classId: input.classId,
+      classId: input.classId ?? null,
       classGroup: input.classGroup,
       minPercent: input.minPercent.toFixed(2),
       maxPercent: input.maxPercent.toFixed(2),
@@ -301,6 +301,7 @@ export async function saveClassSpecificGradeRule(input: {
     })
     .returning();
 
+  revalidatePath("/exams/manage");
   revalidatePath("/settings/grading");
   return { success: true, rule };
 }
