@@ -10,14 +10,19 @@ import {
   students,
   gradeRules,
   classes,
+  examSchedules,
+  markEntries,
+  classSubjects,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
 import {
   buildResultSnapshotPayload,
   getCBSEDefaultRules,
+  rankSnapshots,
+  calculateGrade,
 } from "@/lib/gradeEngine";
 import { decryptData } from "@/lib/encryption";
 
@@ -248,12 +253,136 @@ export async function generateResultSnapshots(
       }))
     : getCBSEDefaultRules();
 
-  const createdSnapshots: Array<{ studentId: string }> = [];
+  // 1. Gather all exams involved in this setup
+  const examWeightages =
+    (setup.examWeightages as Array<{ examId: string; weightPercent: number }>) || [];
+  const examIds = examWeightages.map((ew) => ew.examId);
+
+  // 2. Query schedules, marks, and class subjects
+  const [schedulesList, entriesList, classSubs] = await Promise.all([
+    db.query.examSchedules.findMany({
+      where: and(
+        eq(examSchedules.schoolId, school.id),
+        eq(examSchedules.classId, classId),
+        examIds.length > 0 ? inArray(examSchedules.examId, examIds) : undefined,
+      ),
+      with: { subject: true },
+    }),
+    classStudents.length > 0
+      ? await db.query.markEntries.findMany({
+          where: and(
+            eq(markEntries.schoolId, school.id),
+            examIds.length > 0 ? inArray(markEntries.examId, examIds) : undefined,
+            inArray(
+              markEntries.studentId,
+              classStudents.map((s) => s.id),
+            ),
+          ),
+        })
+      : [],
+    db.query.classSubjects.findMany({
+      where: and(
+        eq(classSubjects.schoolId, school.id),
+        eq(classSubjects.classId, classId),
+      ),
+      with: { subject: true },
+    }),
+  ]);
+
+  // Aggregate subjects for this class
+  const classSubjectsMap = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      code?: string | null;
+      maxMarks: number;
+      passingMarks: number;
+    }
+  >();
+  for (const cs of classSubs) {
+    if (cs.subject) {
+      classSubjectsMap.set(cs.subject.id, {
+        id: cs.subject.id,
+        name: cs.subject.name,
+        code: cs.subject.code,
+        maxMarks: cs.subject.maxMarks || 100,
+        passingMarks: cs.subject.passingMarks || 33,
+      });
+    }
+  }
+  for (const sc of schedulesList) {
+    if (sc.subject && !classSubjectsMap.has(sc.subject.id)) {
+      classSubjectsMap.set(sc.subject.id, {
+        id: sc.subject.id,
+        name: sc.subject.name,
+        code: sc.subject.code,
+        maxMarks: parseFloat(sc.maxMarks) || 100,
+        passingMarks: parseFloat(sc.passingMarks) || 33,
+      });
+    }
+  }
+
+  // Group marks by studentId -> subjectId -> totalObtained
+  const studentSubjectMarks = new Map<string, Map<string, number>>();
+  for (const entry of entriesList) {
+    if (!studentSubjectMarks.has(entry.studentId)) {
+      studentSubjectMarks.set(entry.studentId, new Map());
+    }
+    const subMap = studentSubjectMarks.get(entry.studentId)!;
+    const current = subMap.get(entry.subjectId) || 0;
+    const num =
+      entry.marksObtained !== null && entry.marksObtained !== undefined
+        ? parseFloat(entry.marksObtained)
+        : 0;
+    subMap.set(entry.subjectId, current + num);
+  }
+
+  // Build intermediate student payload & scores
+  const intermediateList: Array<{
+    studentId: string;
+    payload: any;
+    totalMarks: number;
+    percentage: number;
+    isPassed: boolean;
+  }> = [];
 
   for (const st of classStudents) {
     const firstName = decryptData(st.firstNameEncrypted) || "Student";
-    const lastName = st.lastNameEncrypted ? decryptData(st.lastNameEncrypted) || "" : "";
+    const lastName = st.lastNameEncrypted
+      ? decryptData(st.lastNameEncrypted) || ""
+      : "";
     const fullName = `${firstName} ${lastName}`.trim();
+
+    const subMarks = studentSubjectMarks.get(st.id) || new Map<string, number>();
+    const subjectsForSnapshot = Array.from(classSubjectsMap.values()).map(
+      (sub) => {
+        const obtained = subMarks.get(sub.id) ?? 0;
+        const pct = sub.maxMarks > 0 ? (obtained / sub.maxMarks) * 100 : 0;
+        const gradeRes = calculateGrade(
+          {
+            marksObtained: obtained,
+            maxMarks: sub.maxMarks,
+            isAbsent: false,
+            isMedicalExempt: false,
+          },
+          activeRules,
+        );
+        const isSubPassed = obtained >= sub.passingMarks;
+
+        return {
+          subjectId: sub.id,
+          subjectName: sub.name,
+          subjectCode: sub.code ?? null,
+          totalObtained: obtained,
+          totalMax: sub.maxMarks,
+          percent: Number(pct.toFixed(2)),
+          grade: isSubPassed ? gradeRes.grade : "E",
+          gradePoint: isSubPassed ? gradeRes.gradePoint : 0,
+          isPassed: isSubPassed,
+        };
+      },
+    );
 
     const snapshotPayload = buildResultSnapshotPayload({
       schoolId: school.id,
@@ -266,24 +395,74 @@ export async function generateResultSnapshots(
         classId: classRecord.id,
         className: classRecord.displayName,
       },
-      subjects: [],
+      subjects: subjectsForSnapshot,
       rules: activeRules,
     });
 
-    const [snapshot] = await db
+    intermediateList.push({
+      studentId: st.id,
+      payload: snapshotPayload,
+      totalMarks: snapshotPayload.summary.totalMarks,
+      percentage: snapshotPayload.summary.percentage,
+      isPassed: snapshotPayload.summary.resultStatus === "PASSED",
+    });
+  }
+
+  // Compute Ranks
+  const ranks = rankSnapshots(
+    intermediateList.map((i) => ({
+      studentId: i.studentId,
+      totalMarks: i.totalMarks,
+      isPassed: i.isPassed,
+      percentage: i.percentage,
+    })),
+  );
+  const rankMap = new Map(ranks.map((r) => [r.studentId, r.rank]));
+
+  const createdSnapshots: Array<{ studentId: string }> = [];
+
+  for (const item of intermediateList) {
+    item.payload.summary.rank = rankMap.get(item.studentId) || 1;
+
+    // Check existing snapshot
+    const existing = await db.query.resultSnapshots.findFirst({
+      where: and(
+        eq(resultSnapshots.schoolId, school.id),
+        eq(resultSnapshots.setupId, setupId),
+        eq(resultSnapshots.studentId, item.studentId),
+        eq(resultSnapshots.isCurrent, true),
+      ),
+      orderBy: (t, { desc }) => [desc(t.version)],
+    });
+
+    const nextVersion = existing ? existing.version + 1 : 1;
+
+    const [newSnapshot] = await db
       .insert(resultSnapshots)
       .values({
         schoolId: school.id,
         setupId,
-        studentId: st.id,
-        version: 1,
-        payload: snapshotPayload,
+        studentId: item.studentId,
+        version: nextVersion,
+        payload: item.payload,
         frozenById: ctx.userId,
+        isCurrent: true,
       })
       .returning();
 
-    if (snapshot) {
-      createdSnapshots.push({ studentId: st.id });
+    if (existing && newSnapshot) {
+      await db
+        .update(resultSnapshots)
+        .set({
+          isCurrent: false,
+          supersededById: newSnapshot.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(resultSnapshots.id, existing.id));
+    }
+
+    if (newSnapshot) {
+      createdSnapshots.push({ studentId: item.studentId });
     }
   }
 

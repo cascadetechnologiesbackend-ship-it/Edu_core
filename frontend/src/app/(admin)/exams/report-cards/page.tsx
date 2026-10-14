@@ -1,270 +1,217 @@
 import { db } from "@/db";
 import {
-  exams,
+  reportCardSetups,
+  resultSnapshots,
+  resultSettings,
+  resultHolds,
   classes,
-  reportCards,
-  reportCardJobs,
-  academicYears,
-  certificates,
+  students,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import Link from "next/link";
+import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
-import { BulkGenerateButton } from "./BulkGenerateButton";
-import { MeritListManager } from "./MeritListManager";
+import { requireAuth } from "@/lib/serverAuth";
+import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
+import { withDataPhaseTiming } from "@/lib/serverTiming";
+import { assertQueryBudget } from "@schoolmitra/database";
 import { decryptData } from "@/lib/encryption";
+import {
+  ReportCardsClient,
+  type SnapshotItem,
+} from "./ReportCardsClient";
+import Link from "next/link";
+import { ArrowLeft, Award, SlidersHorizontal } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Report Cards | SchoolMitra ERP",
+  title: "Report Cards & Result Snapshots | SchoolMitra ERP",
+  description: "Generate immutable result snapshots, calculate ranks, and issue topper certificates",
 };
 
-export default async function ReportCardsPage({
+const REPORT_CARD_ADMIN_ROLES = [
+  "SUPER_ADMIN",
+  "SCHOOL_ADMIN",
+  "PRINCIPAL",
+] as const;
+
+export default async function ReportCardsAdminPage({
   searchParams,
 }: {
-  searchParams: { examId?: string };
+  searchParams: { setupId?: string; classId?: string };
 }) {
-  const activeYear = await db.query.academicYears.findFirst({
-    where: eq(academicYears.isActive, true),
+  const ctx = await requireAuth(REPORT_CARD_ADMIN_ROLES);
+  const access = assertRouteAccess(ctx.role, "/exams/report-cards", {
+    id: ctx.userId,
+    email: ctx.email,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
+  const schoolId = ctx.schoolId || "";
+
+  const data = await withDataPhaseTiming("/exams/report-cards", async () => {
+    return assertQueryBudget(
+      async () => {
+        const setupsList = await db.query.reportCardSetups.findMany({
+          where: eq(reportCardSetups.schoolId, schoolId),
+          orderBy: (t, { desc }) => [desc(t.createdAt)],
+        });
+
+        const selectedSetupId =
+          searchParams.setupId && setupsList.some((s) => s.id === searchParams.setupId)
+            ? searchParams.setupId
+            : setupsList[0]?.id || "";
+
+        const classList = await db.query.classes.findMany({
+          where: eq(classes.schoolId, schoolId),
+          orderBy: (t, { asc }) => [asc(t.displayName)],
+        });
+
+        const selectedClassId =
+          searchParams.classId && classList.some((c) => c.id === searchParams.classId)
+            ? searchParams.classId
+            : classList[0]?.id || "";
+
+        if (!selectedSetupId || !selectedClassId) {
+          return {
+            setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
+            selectedSetupId,
+            classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+            selectedClassId,
+            snapshots: [],
+            settings: null,
+          };
+        }
+
+        const [rawSnapshots, holdsList, settingsRecord, rawStudents] =
+          await Promise.all([
+            db.query.resultSnapshots.findMany({
+              where: and(
+                eq(resultSnapshots.schoolId, schoolId),
+                eq(resultSnapshots.setupId, selectedSetupId),
+                eq(resultSnapshots.isCurrent, true),
+              ),
+              orderBy: (t, { desc }) => [desc(t.version)],
+            }),
+            db.query.resultHolds.findMany({
+              where: and(
+                eq(resultHolds.schoolId, schoolId),
+                eq(resultHolds.setupId, selectedSetupId),
+              ),
+            }),
+            db.query.resultSettings.findFirst({
+              where: and(
+                eq(resultSettings.schoolId, schoolId),
+                eq(resultSettings.setupId, selectedSetupId),
+              ),
+            }),
+            db.query.students.findMany({
+              where: and(
+                eq(students.schoolId, schoolId),
+                eq(students.currentClassId, selectedClassId),
+                eq(students.isActive, true),
+              ),
+            }),
+          ]);
+
+        const holdsMap = new Map(holdsList.map((h) => [h.studentId, h.reason]));
+        const studentsMap = new Map(rawStudents.map((s) => [s.id, s]));
+
+        // Filter snapshots belonging to students in selected class
+        const snapshotsForClass: SnapshotItem[] = rawSnapshots
+          .filter((snap) => studentsMap.has(snap.studentId))
+          .map((snap) => {
+            const st = studentsMap.get(snap.studentId);
+            const first = st ? decryptData(st.firstNameEncrypted) || "" : "";
+            const last = st ? decryptData(st.lastNameEncrypted) || "" : "";
+            const fullName = `${first} ${last}`.trim() || "Student";
+
+            return {
+              id: snap.id,
+              studentId: snap.studentId,
+              studentName: fullName,
+              rollNumber: st?.rollNumber || null,
+              admissionNumber: st?.admissionNumber || "",
+              version: snap.version,
+              isCurrent: snap.isCurrent,
+              frozenAt: snap.frozenAt.toISOString(),
+              payload: snap.payload,
+              isHeld: holdsMap.has(snap.studentId),
+              holdReason: holdsMap.get(snap.studentId) || null,
+            };
+          });
+
+        const formattedSettings = settingsRecord
+          ? {
+              withholdAll: settingsRecord.withholdAll,
+              releaseAt: settingsRecord.releaseAt
+                ? settingsRecord.releaseAt.toISOString()
+                : null,
+              feeLockMode: settingsRecord.feeLockMode as "OFF" | "SOFT" | "HARD",
+              feeLockThresholdAmount: settingsRecord.feeLockThresholdAmount || "0",
+              publicLookupEnabled: settingsRecord.publicLookupEnabled,
+              publicToppersEnabled: settingsRecord.publicToppersEnabled,
+            }
+          : null;
+
+        return {
+          setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
+          selectedSetupId,
+          classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+          selectedClassId,
+          snapshots: snapshotsForClass,
+          settings: formattedSettings,
+        };
+      },
+      { maxQueries: 10 },
+    );
   });
 
-  const allExams = activeYear
-    ? await db.query.exams.findMany({
-        where: eq(exams.academicYearId, activeYear.id),
-        with: { examType: true },
-        orderBy: (t, { desc }) => [desc(t.startDate)],
-      })
-    : [];
-
-  const selectedExamId = searchParams.examId ?? allExams[0]?.id;
-
-  const allClasses = activeYear
-    ? await db.query.classes.findMany({
-        where: eq(classes.academicYearId, activeYear.id),
-        orderBy: (t, { asc }) => [asc(t.sortOrder)],
-      })
-    : [];
-
-  // Fetch all students to build a decryption map
-  const rawStudents = await db.query.students.findMany();
-  const studentMap = new Map(
-    rawStudents.map((s) => [
-      s.id,
-      {
-        name: `${decryptData(s.firstNameEncrypted)} ${decryptData(s.lastNameEncrypted)}`,
-        admissionNumber: s.admissionNumber,
-      },
-    ]),
-  );
-
-  const managerStudents = rawStudents.map((s) => ({
-    id: s.id,
-    name: `${decryptData(s.firstNameEncrypted)} ${decryptData(s.lastNameEncrypted)}`,
-    admissionNumber: s.admissionNumber,
-  }));
-
-  // Recent batch jobs
-  const recentJobs = selectedExamId
-    ? await db.query.reportCardJobs.findMany({
-        where: eq(reportCardJobs.examId, selectedExamId),
-        with: { class: true },
-        orderBy: (t, { desc }) => [desc(t.createdAt)],
-      })
-    : [];
-
-  // Recently generated report cards
-  const recentCards = selectedExamId
-    ? await db.query.reportCards.findMany({
-        where: eq(reportCards.examId, selectedExamId),
-        orderBy: (t, { desc }) => [desc(t.generatedAt)],
-      })
-    : [];
-
-  // Certificates
-  const issuedCertificates = selectedExamId
-    ? await db.query.certificates.findMany({
-        where: eq(
-          certificates.schoolId,
-          allExams.find((e) => e.id === selectedExamId)?.schoolId ?? "",
-        ),
-      })
-    : [];
-
-  const selectedExam = allExams.find((e) => e.id === selectedExamId);
-
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Report Cards
-        </h1>
-        <p className="text-sm text-gray-500">
-          Generate and manage report cards for each exam.
-        </p>
-      </div>
+    <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-8">
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/exams/dashboard"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                <Award className="w-5 h-5" />
+              </span>
+              <h1 className="text-2xl font-bold text-white tracking-tight">
+                Report Cards &amp; Result Snapshots
+              </h1>
+            </div>
+            <p className="text-sm text-slate-400 mt-1">
+              Freeze immutable result snapshots, calculate class ranks, and issue topper certificates
+            </p>
+          </div>
+        </div>
 
-      {/* Exam Selector */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-4">
-        <label className="block text-sm font-medium mb-2">Select Exam</label>
-        <div className="flex gap-2 flex-wrap">
-          {allExams.map((e) => (
-            <Link
-              key={e.id}
-              href={`/exams/report-cards?examId=${e.id}`}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                selectedExamId === e.id
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200"
-              }`}
-            >
-              {e.name}
-            </Link>
-          ))}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/exams/report-cards/setups"
+            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Framework Setups</span>
+          </Link>
         </div>
       </div>
 
-      {selectedExam && (
-        <>
-          {/* Bulk Generation */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6">
-            <h2 className="font-semibold text-lg mb-4">
-              Generate Report Cards — {selectedExam.name}
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Click a class below to queue report card PDF generation for all
-              students in that class. Jobs are processed asynchronously — the
-              PDFs will be available in the parent portal once generation is
-              complete.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {allClasses.map((cls) => (
-                <div
-                  key={cls.id}
-                  className="border border-gray-200 dark:border-slate-700 rounded-lg p-4"
-                >
-                  <p className="font-semibold mb-3 text-gray-900 dark:text-white">
-                    {cls.displayName}
-                  </p>
-                  <BulkGenerateButton
-                    examId={selectedExamId!}
-                    classId={cls.id}
-                    className={cls.displayName}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Batch Job Status */}
-          {recentJobs.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-                <h2 className="font-semibold">Generation Jobs Status</h2>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-slate-800">
-                {recentJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="p-4 flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-medium">{job.class?.displayName}</p>
-                      <p className="text-xs text-gray-500">
-                        {job.processedCount}/{job.totalStudents} processed
-                        {job.failedCount > 0 && (
-                          <span className="ml-2 text-red-500">
-                            {job.failedCount} failed
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(job.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        job.status === "DONE"
-                          ? "bg-green-100 text-green-800"
-                          : job.status === "FAILED"
-                            ? "bg-red-100 text-red-800"
-                            : job.status === "PROCESSING"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {job.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Generated Report Cards */}
-          {recentCards.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-                <h2 className="font-semibold">
-                  Generated Report Cards ({recentCards.length})
-                </h2>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-96 overflow-y-auto">
-                {recentCards.map((card) => {
-                  const sInfo = studentMap.get(card.studentId) || {
-                    name: card.studentId,
-                    admissionNumber: "—",
-                  };
-                  return (
-                    <div
-                      key={card.id}
-                      className="p-3 flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">
-                          {sInfo.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Admission No: {sInfo.admissionNumber} | Grade:{" "}
-                          {card.overallGrade ?? "—"}{" "}
-                          {card.rank && `| Rank: ${card.rank}`}
-                        </p>
-                      </div>
-                      <a
-                        href={`/api/report-cards/${card.id}/download`}
-                        target="_blank"
-                        className="text-xs text-indigo-600 hover:underline px-2 py-1 bg-indigo-50 rounded"
-                      >
-                        Download PDF
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Merit List Manager */}
-          <MeritListManager
-            examId={selectedExamId!}
-            classes={allClasses.map((c) => ({
-              id: c.id,
-              displayName: c.displayName,
-            }))}
-            students={managerStudents}
-            reportCards={recentCards.map((rc) => ({
-              id: rc.id,
-              studentId: rc.studentId,
-              rank: rc.rank,
-              overallGrade: rc.overallGrade,
-            }))}
-            issuedCertificates={issuedCertificates.map((c) => ({
-              id: c.id,
-              studentId: c.studentId,
-              certificateNumber: c.certificateNumber,
-              remarks: c.remarks,
-            }))}
-          />
-        </>
-      )}
+      <ReportCardsClient
+        setups={data.setups}
+        selectedSetupId={data.selectedSetupId}
+        classes={data.classes}
+        selectedClassId={data.selectedClassId}
+        snapshots={data.snapshots}
+        settings={data.settings}
+      />
     </div>
   );
 }

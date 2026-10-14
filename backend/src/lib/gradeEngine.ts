@@ -737,6 +737,7 @@ export interface ResultSnapshotPayload {
     overallGradePoint: number;
     division: Division;
     resultStatus: "PASSED" | "FAILED" | "COMPARTMENT" | "WITHHELD";
+    rank?: number;
     generatedAt: string;
   };
   remarks?: string | null;
