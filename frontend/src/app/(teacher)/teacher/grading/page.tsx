@@ -9,6 +9,8 @@ import {
   sections,
   subjects,
   students,
+  markEntries,
+  examMarksLocks,
 } from "@/db/schema";
 import { eq, and, inArray, isNull } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -40,7 +42,7 @@ export default async function TeacherGradingPage() {
   const assignedClassSubjects = await db.query.classSubjects.findMany({
     where: and(
       eq(classSubjects.schoolId, schoolId),
-      eq(classSubjects.assignedTeacherId, userId)
+      eq(classSubjects.assignedTeacherId, userId),
     ),
     with: {
       class: true,
@@ -53,7 +55,7 @@ export default async function TeacherGradingPage() {
     where: and(
       eq(sectionSubjectTeachers.schoolId, schoolId),
       eq(sectionSubjectTeachers.teacherId, userId),
-      eq(sectionSubjectTeachers.isActive, true)
+      eq(sectionSubjectTeachers.isActive, true),
     ),
     with: {
       section: {
@@ -106,7 +108,20 @@ export default async function TeacherGradingPage() {
     }
   });
 
-  // 4. Fetch students for first allocation if available
+  // 4. Fetch locks for teacher's school
+  const allLocks = await db.query.examMarksLocks.findMany({
+    where: and(
+      eq(examMarksLocks.schoolId, schoolId),
+      eq(examMarksLocks.status, "LOCKED"),
+    ),
+  });
+
+  const locksMap: Record<string, boolean> = {};
+  for (const l of allLocks) {
+    locksMap[`${l.examId}-${l.classId}-${l.subjectId}`] = true;
+  }
+
+  // 5. Fetch students and existing marks for first allocation if available
   let initialStudents: any[] = [];
   if (allocations.length > 0 && allocations[0]) {
     const firstAlloc = allocations[0];
@@ -114,19 +129,35 @@ export default async function TeacherGradingPage() {
       where: and(
         eq(students.schoolId, schoolId),
         eq(students.currentClassId, firstAlloc.classId),
-        eq(students.isActive, true)
+        eq(students.isActive, true),
       ),
       orderBy: [students.admissionNumber],
     });
 
-    initialStudents = enrolled.map((st) => ({
-      studentId: st.id,
-      name: `${decryptData(st.firstNameEncrypted)} ${decryptData(st.lastNameEncrypted)}`.trim(),
-      admissionNumber: st.admissionNumber,
-      rollNumber: st.rollNumber,
-      marks: "",
-      isAbsent: false,
-    }));
+    const firstExamId = examList[0]?.id;
+    const existingMarks = firstExamId
+      ? await db.query.markEntries.findMany({
+          where: and(
+            eq(markEntries.schoolId, schoolId),
+            eq(markEntries.examId, firstExamId),
+            eq(markEntries.subjectId, firstAlloc.subjectId),
+          ),
+        })
+      : [];
+
+    const marksLookup = new Map(existingMarks.map((m) => [m.studentId, m]));
+
+    initialStudents = enrolled.map((st) => {
+      const entry = marksLookup.get(st.id);
+      return {
+        studentId: st.id,
+        name: `${decryptData(st.firstNameEncrypted)} ${decryptData(st.lastNameEncrypted)}`.trim(),
+        admissionNumber: st.admissionNumber,
+        rollNumber: st.rollNumber,
+        marks: entry?.marksObtained !== null && entry?.marksObtained !== undefined ? entry.marksObtained : "",
+        isAbsent: entry?.isAbsent || false,
+      };
+    });
   }
 
   return (
@@ -144,6 +175,7 @@ export default async function TeacherGradingPage() {
         exams={examList.map((e) => ({ id: e.id, name: e.name }))}
         allocations={allocations}
         initialStudents={initialStudents}
+        locksMap={locksMap}
       />
     </div>
   );

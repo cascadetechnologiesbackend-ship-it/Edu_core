@@ -9,7 +9,9 @@ import {
   FileSpreadsheet,
   ChevronDown,
   Users,
+  Lock,
 } from "lucide-react";
+import { saveMarkEntries } from "@/app/(admin)/exams/actions";
 
 type Allocation = {
   classId: string;
@@ -39,12 +41,14 @@ interface TeacherGradingClientProps {
   exams: ExamOption[];
   allocations: Allocation[];
   initialStudents: StudentGrade[];
+  locksMap?: Record<string, boolean>;
 }
 
 export default function TeacherGradingClient({
   exams,
   allocations,
   initialStudents,
+  locksMap = {},
 }: TeacherGradingClientProps) {
   const [selectedExamId, setSelectedExamId] = useState(exams[0]?.id || "");
   const [selectedAllocIndex, setSelectedAllocIndex] = useState(0);
@@ -56,6 +60,9 @@ export default function TeacherGradingClient({
   } | null>(null);
 
   const currentAlloc = allocations[selectedAllocIndex] || allocations[0];
+
+  const lockKey = `${selectedExamId}-${currentAlloc?.classId}-${currentAlloc?.subjectId}`;
+  const isLocked = Boolean(locksMap[lockKey]);
 
   if (allocations.length === 0) {
     return (
@@ -75,35 +82,59 @@ export default function TeacherGradingClient({
   }
 
   const handleMarksChange = (studentId: string, val: string) => {
+    if (isLocked) return;
     const num = parseFloat(val);
     const max = currentAlloc?.maxMarks || 100;
-    if (!isNaN(num) && num > max) {
-      return; // prevent exceeding max marks
+    if (!isNaN(num) && (num < 0 || num > max)) {
+      return; // prevent exceeding max marks or negative
     }
     setStudents((prev) =>
-      prev.map((s) => (s.studentId === studentId ? { ...s, marks: val } : s))
+      prev.map((s) => (s.studentId === studentId ? { ...s, marks: val } : s)),
     );
   };
 
   const toggleAbsent = (studentId: string) => {
+    if (isLocked) return;
     setStudents((prev) =>
       prev.map((s) =>
         s.studentId === studentId
           ? { ...s, isAbsent: !s.isAbsent, marks: !s.isAbsent ? "" : s.marks }
-          : s
-      )
+          : s,
+      ),
     );
   };
 
   const handleSave = () => {
+    if (isLocked || !currentAlloc) return;
     setFeedback(null);
+
     startTransition(async () => {
-      // Simulate/perform save feedback
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setFeedback({
-        type: "success",
-        text: `Marks for ${students.length} student(s) in ${currentAlloc?.subjectName || "selected subject"} updated successfully.`,
+      const entries = students.map((s) => ({
+        studentId: s.studentId,
+        marksObtained: s.isAbsent || s.marks === "" ? null : parseFloat(s.marks),
+        isAbsent: s.isAbsent,
+        isMedicalExempt: false,
+      }));
+
+      const res = await saveMarkEntries({
+        examId: selectedExamId,
+        classId: currentAlloc.classId,
+        ...(currentAlloc.sectionId ? { sectionId: currentAlloc.sectionId } : {}),
+        subjectId: currentAlloc.subjectId,
+        entries,
       });
+
+      if (res.success) {
+        setFeedback({
+          type: "success",
+          text: `Marks for ${students.length} student(s) in ${currentAlloc?.subjectName || "selected subject"} recorded successfully!`,
+        });
+      } else {
+        setFeedback({
+          type: "error",
+          text: res.message || "Failed to record marks.",
+        });
+      }
     });
   };
 
@@ -164,6 +195,16 @@ export default function TeacherGradingClient({
             </div>
           </div>
         </div>
+
+        {/* Lock Notice */}
+        {isLocked && (
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+            <Lock className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="font-semibold">
+              Evaluation Finalized: Marks for this subject have been locked by administration. No further edits are permitted.
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs text-slate-400">
           <span>
@@ -226,12 +267,13 @@ export default function TeacherGradingClient({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
+                  disabled={isLocked}
                   onClick={() => toggleAbsent(student.studentId)}
                   className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition active:scale-95 ${
                     student.isAbsent
                       ? "bg-rose-600 text-white"
                       : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
+                  } ${isLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
                   {student.isAbsent ? "ABSENT" : "Present"}
                 </button>
@@ -239,7 +281,7 @@ export default function TeacherGradingClient({
                 <div className="relative w-20">
                   <input
                     type="number"
-                    disabled={student.isAbsent}
+                    disabled={student.isAbsent || isLocked}
                     value={student.marks}
                     placeholder="0"
                     onChange={(e) => handleMarksChange(student.studentId, e.target.value)}
@@ -258,11 +300,15 @@ export default function TeacherGradingClient({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isPending}
-            className="w-full py-3.5 px-4 rounded-2xl bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white font-bold text-sm transition shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={isPending || isLocked}
+            className={`w-full py-3.5 px-4 rounded-2xl text-white font-bold text-sm transition shadow-lg flex items-center justify-center gap-2 ${
+              isLocked
+                ? "bg-slate-800 text-slate-500 cursor-not-allowed shadow-none border border-slate-700/50"
+                : "bg-purple-600 hover:bg-purple-500 active:scale-[0.98] shadow-purple-600/30 cursor-pointer"
+            }`}
           >
             <Save className="w-4 h-4" />
-            {isPending ? "Recording Scores..." : "Save Grade Entries"}
+            {isPending ? "Recording Scores..." : isLocked ? "Evaluation Finalized (Locked)" : "Save Grade Entries"}
           </button>
         </div>
       )}
