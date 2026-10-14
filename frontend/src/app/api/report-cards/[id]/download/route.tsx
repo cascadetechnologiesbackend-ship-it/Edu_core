@@ -7,8 +7,18 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { db } from "@/db";
-import { reportCards, students, schools, classes } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  reportCards,
+  resultSnapshots,
+  reportCardSetups,
+  resultSettings,
+  resultHolds,
+  feeInvoices,
+  students,
+  schools,
+  classes,
+} from "@/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import {
@@ -27,6 +37,171 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userRole = session.user.role as string;
+    const isSuperAdmin = userRole === "SUPER_ADMIN";
+    const userSchoolId = session.user.schoolId;
+
+    // 1. Try finding in result_snapshots (S8)
+    const snapshot = await db.query.resultSnapshots.findFirst({
+      where: eq(resultSnapshots.id, params.id),
+      with: { setup: true },
+    });
+
+    if (snapshot) {
+      // Strict cross-tenant boundary
+      if (!isSuperAdmin && userSchoolId && snapshot.schoolId !== userSchoolId) {
+        return NextResponse.json(
+          { error: "Forbidden: cross-tenant access denied" },
+          { status: 403 },
+        );
+      }
+
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, snapshot.studentId),
+      });
+
+      if (!student) {
+        return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      }
+
+      const isAdmin = [
+        "SUPER_ADMIN",
+        "SCHOOL_ADMIN",
+        "PRINCIPAL",
+        "TEACHER",
+      ].includes(userRole);
+      const isParent = session.user.id === student.primaryParentUserId;
+      const isStudent = session.user.id === student.userId;
+
+      if (!isAdmin && !isParent && !isStudent) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      // Check S8 Release Gate for non-admin requests
+      if (!isAdmin) {
+        const [settings, hold] = await Promise.all([
+          db.query.resultSettings.findFirst({
+            where: and(
+              eq(resultSettings.schoolId, snapshot.schoolId),
+              eq(resultSettings.setupId, snapshot.setupId),
+            ),
+          }),
+          db.query.resultHolds.findFirst({
+            where: and(
+              eq(resultHolds.schoolId, snapshot.schoolId),
+              eq(resultHolds.setupId, snapshot.setupId),
+              eq(resultHolds.studentId, snapshot.studentId),
+            ),
+          }),
+        ]);
+
+        if (settings?.withholdAll) {
+          return NextResponse.json(
+            { error: "Results withheld by administration" },
+            { status: 403 },
+          );
+        }
+
+        if (settings?.releaseAt && new Date(settings.releaseAt) > new Date()) {
+          return NextResponse.json(
+            { error: "Results scheduled for future release" },
+            { status: 403 },
+          );
+        }
+
+        if (hold) {
+          return NextResponse.json(
+            { error: `Result on hold: ${hold.reason}` },
+            { status: 403 },
+          );
+        }
+
+        if (settings?.feeLockMode === "HARD") {
+          const invoices = await db.query.feeInvoices.findMany({
+            where: and(
+              eq(feeInvoices.schoolId, snapshot.schoolId),
+              eq(feeInvoices.studentId, snapshot.studentId),
+              isNull(feeInvoices.deletedAt),
+            ),
+            columns: { balanceAmount: true },
+          });
+          let dueAmount = 0;
+          for (const inv of invoices) {
+            const bal = parseFloat(inv.balanceAmount || "0");
+            if (bal > 0) dueAmount += bal;
+          }
+          const threshold = parseFloat(settings.feeLockThresholdAmount || "0");
+          if (dueAmount > threshold) {
+            return NextResponse.json(
+              { error: "Access locked due to outstanding tuition fees" },
+              { status: 403 },
+            );
+          }
+        }
+      }
+
+      const school = await db.query.schools.findFirst({
+        where: eq(schools.id, snapshot.schoolId),
+      });
+
+      const studentClass = await db.query.classes.findFirst({
+        where: eq(classes.id, student.currentClassId ?? ""),
+      });
+
+      const classGroup = studentClass
+        ? gradeToClassGroup(studentClass.gradeLevel)
+        : "CLASS_1_5";
+
+      const studentName = `${decryptData(student.firstNameEncrypted)} ${decryptData(student.lastNameEncrypted)}`.trim();
+      const today = new Date().toLocaleDateString("en-IN");
+
+      const payloadData = snapshot.payload as any;
+      const subjects = payloadData?.subjects ?? [];
+      const summary = payloadData?.summary ?? {};
+
+      let pdfPayload: ReportCardData = {
+        classGroup: "CLASS_1_5",
+        data: {
+          schoolName: school?.name ?? "School",
+          studentName,
+          admissionNumber: student.admissionNumber,
+          classDisplay: studentClass?.displayName ?? "—",
+          section: "A",
+          academicYear: snapshot.setup?.name ?? "Academic Year",
+          examName: snapshot.setup?.name ?? "Examination",
+          subjects: subjects.map((sub: any) => ({
+            subjectName: sub.subjectName,
+            maxMarks: sub.totalMax,
+            marksObtained: sub.totalObtained,
+            grade: sub.grade,
+          })),
+          totalMarks: summary.totalMarks ?? 0,
+          totalMaxMarks: summary.totalMax ?? 0,
+          overallGrade: summary.overallGrade ?? "—",
+          isPassed: summary.resultStatus === "PASSED",
+          isWatermarked: !isAdmin,
+          watermarkDate: today,
+          ...(summary.rank ? { rank: summary.rank } : {}),
+          ...(school?.principalName
+            ? { principalName: school.principalName }
+            : {}),
+        },
+      };
+
+      const pdfBuffer = await renderToBuffer(<ReportCardPDF payload={pdfPayload} />);
+      const safeStudentName = studentName.replace(/[^a-zA-Z0-9_]/g, "_");
+      const filename = `ReportCard_${safeStudentName}_v${snapshot.version}.pdf`;
+
+      return new NextResponse(pdfBuffer as any, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    // 2. Fallback to legacy reportCards
     const reportCard = await db.query.reportCards.findFirst({
       where: eq(reportCards.id, params.id),
       with: { exam: { with: { examType: true, academicYear: true } } },
@@ -46,10 +221,6 @@ export async function GET(
 
     if (!student)
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
-
-    const userRole = session.user.role as string;
-    const isSuperAdmin = userRole === "SUPER_ADMIN";
-    const userSchoolId = session.user.schoolId;
 
     // Strict cross-tenant boundary: staff must belong to the report card's school
     if (!isSuperAdmin && userSchoolId && reportCard.schoolId !== userSchoolId) {

@@ -20,7 +20,7 @@ import {
   type SnapshotItem,
 } from "./ReportCardsClient";
 import Link from "next/link";
-import { ArrowLeft, Award, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Award, SlidersHorizontal, ShieldAlert } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Report Cards & Result Snapshots | SchoolMitra ERP",
@@ -200,6 +200,13 @@ export default async function ReportCardsAdminPage({
           >
             <SlidersHorizontal className="w-4 h-4" />
             <span>Framework Setups</span>
+          </Link>
+          <Link
+            href={(`/exams/report-cards/settings${data.selectedSetupId ? `?setupId=${data.selectedSetupId}` : ""}`) as any}
+            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Release Policies</span>
           </Link>
         </div>
       </div>

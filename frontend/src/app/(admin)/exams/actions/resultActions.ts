@@ -94,7 +94,10 @@ export async function publishResults(setupId: string) {
   }
 
   revalidatePath("/exams/results");
+  revalidatePath("/exams/report-cards");
+  revalidatePath("/exams/report-cards/settings");
   revalidatePath("/portal/results");
+  revalidatePath("/portal/report-cards");
   return { success: true };
 }
 
@@ -154,7 +157,10 @@ export async function configureResultSettings(input: {
   }
 
   revalidatePath("/exams/results");
+  revalidatePath("/exams/report-cards");
+  revalidatePath("/exams/report-cards/settings");
   revalidatePath("/portal/results");
+  revalidatePath("/portal/report-cards");
   return { success: true };
 }
 
@@ -201,7 +207,10 @@ export async function setResultHold(input: {
   }
 
   revalidatePath("/exams/results");
+  revalidatePath("/exams/report-cards");
+  revalidatePath("/exams/report-cards/settings");
   revalidatePath("/portal/results");
+  revalidatePath("/portal/report-cards");
   return { success: true };
 }
 
@@ -467,6 +476,9 @@ export async function generateResultSnapshots(
   }
 
   revalidatePath("/exams/results");
+  revalidatePath("/exams/report-cards");
+  revalidatePath("/portal/results");
+  revalidatePath("/portal/report-cards");
   return { success: true, count: createdSnapshots.length };
 }
 
