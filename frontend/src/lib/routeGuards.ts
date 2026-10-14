@@ -62,7 +62,6 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/teacher/payroll",
     "/academics",
     "/attendance",
-    "/exams",
   ],
   SCHOOL_ADMIN: [
     "/profile",
