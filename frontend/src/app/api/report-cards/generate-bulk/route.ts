@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"];
+    const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"];
     if (!ALLOWED_ROLES.includes(session.user.role)) {
       return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 });
     }
