@@ -175,16 +175,55 @@ To prevent duplicate fee credits when network timeouts occur during webhook deli
 
 ---
 
-## 7. Examination, Grading & Report Cards Engine
+## 7. Offline Examinations, Grading & Result Freeze Engine (S8 Rebuild)
 
-### 7.1 Data Model Architecture (`database/src/schema/examinations.ts`)
-- **`exam_types`**: Formative Assessment (FA), Summative Assessment (SA), Unit Tests, Prelims.
-- **`exams`**: Specific examination instances linked to academic terms.
-- **`exam_schedules`**: Timetable of test dates, maximum marks, passing thresholds, and invigilators.
-- **`mark_entries`**: Granular scores per student, per subject, including component splits (Theory, Practical, Viva).
-- **`grade_rules`**: Configurable grading scales (CBSE 9-point scale, ICSE percentages, Letter grades A+ to F).
-- **`report_cards`**: Compiled term evaluations, teacher remarks, attendance percentages, and overall GPA.
-- **`report_card_jobs`**: Asynchronous batch rendering jobs processed by `backend/src/workers/reportCard.ts`.
+### 7.1 Architecture Overview
+The S8 Offline Examination Engine structures institutional testing into a rigorous six-stage lifecycle:
+1. **Setup & Standards Definition**: Framework setup, term boundaries, class scopes, and multi-exam assessment weightages.
+2. **Scheduling & Sub-Component Distribution**: Date-sheet timetables, room allocation, and component score splits (Theory, Practical, Viva).
+3. **Admit Cards & Financial Gating**: Hall ticket template configuration, seat assignment, and automated fee arrears clearance locks.
+4. **Marks Entry & Dual-Step Administrative Locking**: Component evaluation grid with real-time validation, absent/exemption toggles, and administrative locks (`exam_marks_locks`).
+5. **Report Cards & Immutable Result Snapshots**: Weightage synthesis across terms, deterministic tie-breaking ranking, and immutable snapshots protected by PostgreSQL trigger (`trg_enforce_result_snapshot_immutability`).
+6. **Cohort Analytics & Public Result Portal**: Comprehensive class distributions, topper leaderboards, remedial rosters, and a school-scoped rate-limited public portal (`/s/[slug]/results`).
+
+### 7.2 Database Entities (`database/src/schema/examinations.ts`)
+The engine is backed by 15 schema tables:
+- **`exam_types` & `exams`**: Assessment definitions linked to academic terms.
+- **`exam_components`**: Sub-assessment taxonomy (Theory, Practical, Viva, Internal Assessment).
+- **`exam_class_scopes`**: Explicit mapping of which classes participate in an examination.
+- **`exam_schedules`**: Timetable of test dates, maximum marks, passing thresholds, room allocations, and invigilator assignments.
+- **`exam_mark_distributions`**: Component marks breakdown per subject schedule (e.g., Theory 70 + Practical 30 = 100).
+- **`mark_entries`**: Granular scores with attendance flags (`ABSENT`, `EXEMPT`). Protected by two partial unique indexes:
+  - `mark_entries_component_unique_idx`: Unique on `(exam_id, student_id, subject_id, component_id) WHERE component_id IS NOT NULL`
+  - `mark_entries_legacy_unique_idx`: Unique on `(exam_id, student_id, subject_id) WHERE component_id IS NULL`
+- **`exam_marks_locks`**: Administrative evaluation locks per exam, class, and subject, preventing unauthorized grade modifications.
+- **`admit_card_templates` & `exam_admit_card_settings`**: Layout configuration, instructions, and financial clearance mode (`OFF`, `SOFT`, `HARD`).
+- **`exam_admit_card_holds`**: Individual administrative holds blocking hall ticket issuance.
+- **`cocurricular_areas` & `cocurricular_grades`**: Holistic assessments (Work Education, Art, Health & Physical Education).
+- **`report_card_setups`**: Multi-term weightage distribution frameworks (e.g., PT1 10% + Mid Term 40% + Final 50% = 100%).
+- **`result_settings`**: Release gate policies (Emergency Withhold, Scheduled Release `releaseAt`, Fee Lock Policy, Public Lookup Toggles).
+- **`result_snapshots`**: Immutable compiled marksheets with JSONB payload, cryptographic versioning (`version`, `superseded_by_id`, `is_current`), protected by trigger `trg_enforce_result_snapshot_immutability`.
+- **`result_holds`**: Individual student result holds with mandatory reason tracking.
+- **`uploaded_marksheets`**: Archival storage for legacy or physical scanned marksheets.
+- **`public_result_lookups`**: Audit logging and rate-limiting ledger for external portal verification attempts.
+
+### 7.3 Grade Engine v2 (`backend/src/lib/gradeEngine.ts`)
+The Grade Engine is a pure mathematical library with zero side effects:
+- **`calculateGrade`**: Computes CBSE 9-point scale (`A1` to `E`), grade points (10 to 0), and pass status.
+- **`calculateCompositeScore`**: Computes weighted scores across multiple terms based on setup weightages.
+- **`rankSnapshots`**: Deterministic ranking algorithm:
+  - Candidates sorted descending by composite marks.
+  - Candidates failing any core subject are ranked strictly below all passing candidates.
+  - Tied candidates share the highest rank (e.g. 1, 2, 2, 4).
+- **`buildResultSnapshotPayload`**: Constructs the canonical, tamper-evident JSONB payload for `result_snapshots`.
+
+### 7.4 Public Result Portal & Anti-Abuse Protection
+External candidate lookups (`POST /s/[slug]/results/lookup`) are implemented as a Next.js Route Handler:
+- Rate-limited to 10 lookups per minute keyed on the client's first-hop IP address (`x-forwarded-for`).
+- Validates candidate credentials (Admission No or Roll No) against encrypted records.
+- Verifies Date of Birth against institutional student records.
+- Enforces institutional result release policies (`withholdAll`, `releaseAt`, `feeLockMode`).
+
 
 ---
 

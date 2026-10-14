@@ -83,13 +83,63 @@ flowchart TD
 4. Set official joining date and assign salary grade template.
 5. Provide login credentials; the staff member receives an automated activation email to set up their password.
 
+#### SOP AD-03: Six-Stage Offline Examination Operations Lifecycle
+The S8 Offline Examination Module follows a strict six-stage lifecycle engineered for accuracy, auditability, and academic integrity:
+
+```mermaid
+flowchart LR
+    S1["1. Setup & Standards<br/>(/exams/manage)"] --> S2["2. Schedule & Weights<br/>(/exams/schedule)"]
+    S2 --> S3["3. Admit Cards & Holds<br/>(/exams/admit-cards)"]
+    S3 --> S4["4. Marks & Lock<br/>(/exams/marks)"]
+    S4 --> S5["5. Freeze Snapshots<br/>(/exams/report-cards)"]
+    S5 --> S6["6. Release & Analytics<br/>(/exams/analytics)"]
+```
+
+1. **Stage 1 — Exam Creation & Grading Standards** (`/exams/manage`):
+   - Open **Examinations** -> **Manage Exams**.
+   - Click **+ Create Exam** and enter:
+     - Exam Name (e.g., `Term 1 Summative Assessment 2026-27`), Exam Type (`TERM`, `UNIT_TEST`, `FINAL`, `PRACTICE`), and Academic Year/Term.
+     - Target Class Scope (select all participating grades or specific streams).
+     - Grading Scale Profile: Choose `CBSE_9_POINT` (A1 through E), `CBSE_PRIMARY` (A* through D), or custom percentage boundaries.
+     - Co-Curricular Areas: Enable required evaluation areas (e.g., `Work Education`, `Art Education`, `Health & Physical Education`, `Discipline`).
+2. **Stage 2 — Timetable & Component Mark Distributions** (`/exams/schedule`):
+   - Navigate to **Examinations** -> **Schedules & Timetable**.
+   - For each class and subject, configure the datesheet: Exam Date, Start/End Time, Room/Venue, and Maximum Marks.
+   - Click **Component Breakdown** to assign multi-component weights (e.g., Theory: 70 marks, Practical: 20 marks, Viva/Project: 10 marks). Total component weights are strictly validated to equal subject maximum marks.
+3. **Stage 3 — Admit Card Generation & Fee Defaulter Policy** (`/exams/admit-cards`):
+   - Open **Examinations** -> **Admit Cards**.
+   - Configure issuance policies: Set Fee Clearance Threshold (e.g., maximum allowable unpaid balance of ₹500) and Mandatory Attendance threshold (e.g., 75%).
+   - Select an Admit Card Template (`CBSE_STANDARD`, `MODERN_MINIMAL`, `COMPACT_SLIP`).
+   - Click **Generate Batch Admit Cards**. Students exceeding the fee threshold are placed on **Fee Hold** with automated notice slips generated for parents.
+4. **Stage 4 — Marks Entry & Administrative Locking** (`/exams/marks`):
+   - Administrators and Exam Incharges monitor incoming marks from the central register.
+   - To prevent post-submission tampering, click **Lock Marks Entry** for completed subjects or entire classes.
+   - Once locked, teachers cannot alter marks without a formal administrative unlock action with an audit justification.
+5. **Stage 5 — Result Calculation, Rank Generation & Snapshot Freeze** (`/exams/report-cards`):
+   - Navigate to **Examinations** -> **Report Cards**.
+   - Click **Calculate Ranks & Results**. The engine computes student totals, percentages, grade conversions, class ranks, and section ranks.
+   - Configure a Report Card Setup (`/exams/report-cards/setups`): Header banner, grading key display, co-curricular matrices, and authorized signature blocks.
+   - Click **Freeze Result Snapshots**. The system copies student results into immutable `result_snapshots` records protected by database triggers (`trg_enforce_result_snapshot_immutability`).
+6. **Stage 6 — Release Gate, Portal Publication & Cohort Analytics** (`/exams/report-cards/settings` & `/exams/analytics`):
+   - Set the Result Release Gate to `PUBLISHED` when leadership approves distribution.
+   - Review institutional performance in `/exams/analytics`: Pass percentage, CBSE bell-curve distributions, subject comparative analysis, topper leaderboards, and students requiring remedial academic intervention.
+
+#### SOP AD-04: Result Release Gate & Controlled Visibility
+1. Open **Examinations** -> **Report Cards** -> **Release Settings** (`/exams/report-cards/settings`).
+2. Configure distribution channels:
+   - **Parent & Student Portal Access**: Toggle `Allow Parent Portal Download`. Set date/time for scheduled release if publishing in the future.
+   - **Fee Defaulter Gate for Results**: Set whether students with outstanding dues can download official report cards or see a clearance notice.
+   - **Public Result Verification Portal**: Enable `School Public Result Verification` to allow students, universities, and alumni to verify marks online via the school's public slug (`/s/[slug]/results`).
+3. If an error is identified post-freeze, administrators issue a revised snapshot. The previous snapshot is flagged as superseded (`superseded_by_id`) ensuring an unbroken academic audit trail.
+
 ---
 
 ## 4. Teacher & Educator Playbook
 
 ### 4.1 Workspace Access
 - **URL**: Institutional subdomain (`/teacher`).
-- **Permissions**: Classroom roll call, mark entry, lesson planning, student notes.
+- **Permissions**: Classroom roll call, student grading workspace (`/teacher/grading`), lesson planning, student notes.
+- **Security Boundary**: Per strict institutional RBAC policy, teachers are restricted from `/exams/*` administrative routes and evaluate students exclusively within the teacher grading workspace.
 
 ### 4.2 Standard Operating Procedures
 
@@ -104,11 +154,19 @@ flowchart TD
 6. Review totals in the summary bar (Enrolled, Present, Absent, Late).
 7. Tap **Submit Attendance Register**. The roll call is locked, and parent notification alerts are automatically queued for any absent students.
 
-#### SOP TC-02: Exam Mark Entry & Submission
-1. Navigate to **Examinations** -> **Mark Entry**.
-2. Select the Exam (e.g., `Mid-Term Examination 2026`), Subject (e.g., `Physics`), and Section (`Class 10-A`).
-3. Enter marks for Theory and Practical components. The form enforces maximum mark boundaries automatically.
-4. Click **Save Draft** during entry, or click **Submit for Principal Review** once all entries are finalized.
+#### SOP TC-02: Teacher Grading Workspace (`/teacher/grading`)
+1. Navigate to **Academic Evaluations** -> **Grading Workspace** (`/teacher/grading`).
+2. The system evaluates `assertTeacherTeaches` to present only the classes, sections, and subjects officially assigned to you in the master timetable.
+3. Select the Exam (e.g., `Half-Yearly Examination 2026-27`), Class/Section, and Subject.
+4. The grading matrix dynamically renders based on whether the exam uses holistic marks or multi-component breakdown:
+   - **Component Breakdown**: Enter marks into distinct columns for **Theory** (e.g., /70), **Practical** (e.g., /20), and **Internal/Viva** (e.g., /10).
+   - **Status Flags**: Check **Absent (AB)** or **Medical Exemption (EX)** where appropriate.
+5. Auto-Save & Validation:
+   - Marks exceeding the component maximum are highlighted in red with form submission blocked.
+   - Edits are saved in real-time drafts.
+6. **Administrative Lock Notice**:
+   - If the exam incharge or administrator has locked the marks for this subject, a lock badge (`🔒 Marks Locked by Admin`) is displayed and input cells become read-only.
+   - If marks need amendment post-locking, contact the Examination Department to request a formal administrative unlock.
 
 ---
 
@@ -116,7 +174,7 @@ flowchart TD
 
 ### 5.1 Workspace Access
 - **URL**: Institutional subdomain (`/accountant`).
-- **Permissions**: Fee collection, invoice generation, discount waivers, bank reconciliation, ledger reports.
+- **Permissions**: Fee collection, invoice generation, discount waivers, bank reconciliation, ledger reports, exam admit card fee clearance.
 
 ### 5.2 Standard Operating Procedures
 
@@ -135,6 +193,18 @@ flowchart TD
    - For Cheques: Enter Cheque Number, Bank Name, and Cheque Date.
 5. Click **Receive Payment & Print Receipt**.
 6. The system generates an official receipt with a unique serial number and double-entry ledger journal entry, then downloads the printable PDF.
+
+#### SOP AC-03: Admit Card Fee Clearance & Defaulter Holds
+1. Navigate to **Fees** -> **Exam Clearance** or access **Examinations** -> **Admit Cards** (`/exams/admit-cards`).
+2. View the **Fee Clearance Roster** prior to term examinations.
+3. Students with outstanding balances exceeding the threshold (e.g., ₹500) are flagged with **Admit Card Blocked**.
+4. When a parent clears outstanding dues at the cash counter or via UPI online:
+   - The fee ledger automatically updates.
+   - The hold is lifted instantly in real-time, enabling immediate admit card generation.
+5. **Special Hardship Waiver / Provisional Clearance**:
+   - For students granted a formal fee payment extension by the Principal, click **Grant Provisional Admit Card Clearance**.
+   - Input the authorized reason (e.g., `Principal approved extension until Nov 15 — Application #882`).
+   - The system records an audited override in `exam_admit_card_holds` and releases the admit card for printing.
 
 ---
 
@@ -163,5 +233,35 @@ SchoolMitra provides a native-like Progressive Web App (PWA) installable directl
 ### 6.2 Key Features in Parent Portal
 - **Real-Time Attendance**: Live notifications when morning roll call is marked.
 - **Online Fee Payment**: One-click UPI, Google Pay, PhonePe, and Card payments with instant PDF receipts.
-- **Report Cards**: Direct download of signed academic evaluation cards.
 - **DPDP Privacy Rights**: Navigate to **Profile** -> **Data Privacy Rights** to inspect all personal information the school maintains and manage communication consent preferences.
+
+### 6.3 Examination Admit Cards & Timetables (`/portal/admit-cards`)
+1. Open the mobile app or web portal and tap **Admit Cards** in the navigation bar.
+2. Select the upcoming exam (e.g., `Term 1 Summative Assessment`).
+3. View the complete timetable: Subject, Exam Date, Session Timings, Venue/Room, and Roll Number.
+4. Tap **Download Admit Card (PDF)** to save the verified, printable admit card featuring student photograph, examination instructions, and institutional verification seal.
+5. **Fee Hold Notification**: If an admit card is withheld due to outstanding tuition fees, a clear notice is displayed indicating the outstanding amount with a direct button: **Pay Fees Online to Unlock Admit Card**. Once payment completes, the admit card unlocks immediately.
+
+### 6.4 Academic Report Cards & Performance History (`/portal/report-cards`)
+1. In the student or parent portal, tap **Report Cards**.
+2. When the school releases results, a notification card announces the published report card.
+3. Review performance details:
+   - Subject-wise scores broken down by Theory, Practical, and Internal Assessment.
+   - CBSE standard 9-point grading (A1, A2, B1, etc.) and grade points.
+   - Co-curricular grades (Work Education, Art Education, Physical & Health Education, Discipline).
+   - Overall percentage, percentile, attendance percentage, class teacher remarks, and principal endorsement.
+4. Tap **Download Official Marksheet (PDF)** to download the digitally signed, tamper-evident document.
+
+### 6.5 School-Scoped Public Result Verification Portal (`/s/[slug]/results`)
+1. External stakeholders, employers, and alumni can verify academic credentials directly via the school's unique public portal URL:
+   `https://schoolmitra.in/s/[school-slug]/results`
+2. **Online Result Lookup**:
+   - Enter the student's **Roll Number** or **Admission Number**.
+   - Enter the **Date of Birth** (DD/MM/YYYY) for identity confirmation.
+   - Click **Check Result**.
+3. **Verified Statement of Marks**:
+   - The portal returns an official digital statement of marks reflecting the frozen academic snapshot.
+   - Features the school logo, affiliation number, student details, subject marks, final grade, and official publication date.
+4. **Security & Rate Protection**:
+   - The public lookup API is protected by client-level rate limiting and anti-scraping defense to guarantee privacy and prevent automated batch harvesting of student records.
+
