@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 
 export function ClarityScript() {
   const pathname = usePathname();
-  const clarityProjectId =
-    process.env["NEXT_PUBLIC_CLARITY_PROJECT_ID"] || "sm_clarity_baseline";
+  const clarityProjectId = process.env["NEXT_PUBLIC_CLARITY_PROJECT_ID"];
+  const isEnabled = Boolean(clarityProjectId && clarityProjectId !== "sm_clarity_baseline");
 
   useEffect(() => {
     // If clarity is loaded, tag page navigation for heatmap tracking on /school/*
-    if (typeof window !== "undefined" && (window as any).clarity && pathname) {
+    if (isEnabled && typeof window !== "undefined" && (window as any).clarity && pathname) {
       try {
         (window as any).clarity("set", "page", pathname);
         if (pathname.startsWith("/school/")) {
@@ -21,9 +21,9 @@ export function ClarityScript() {
         // Safe fail-silent for analytics
       }
     }
-  }, [pathname]);
+  }, [pathname, isEnabled]);
 
-  if (!clarityProjectId) return null;
+  if (!isEnabled) return null;
 
   return (
     <Script

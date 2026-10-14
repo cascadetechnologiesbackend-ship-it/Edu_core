@@ -151,6 +151,18 @@ const nextConfig = {
 
   // Experimental features
   experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "rkyka6i996.execute-api.ap-south-1.amazonaws.com",
+        "*.execute-api.ap-south-1.amazonaws.com",
+        "educore-alb-1749225371.ap-south-1.elb.amazonaws.com",
+        "*.elb.amazonaws.com",
+        "localhost:3000",
+        "localhost:3002",
+        "127.0.0.1:3000",
+        "127.0.0.1:3002",
+      ],
+    },
     externalDir: true,
     typedRoutes: true,
     serverComponentsExternalPackages: [

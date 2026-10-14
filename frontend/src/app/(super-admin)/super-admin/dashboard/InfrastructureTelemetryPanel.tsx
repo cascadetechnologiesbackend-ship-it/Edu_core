@@ -30,10 +30,14 @@ export function InfrastructureTelemetryPanel({ initialTelemetry }: Props) {
 
   const handleRefresh = () => {
     startTransition(async () => {
-      const res = await getInfrastructureTelemetryAction();
-      if (res.success && res.data) {
-        setTelemetry(res.data);
-        setLastRefreshed(new Date());
+      try {
+        const res = await getInfrastructureTelemetryAction();
+        if (res?.success && res?.data) {
+          setTelemetry(res.data);
+          setLastRefreshed(new Date());
+        }
+      } catch (err) {
+        console.warn("[InfrastructureTelemetryPanel] Background telemetry poll error:", err);
       }
     });
   };

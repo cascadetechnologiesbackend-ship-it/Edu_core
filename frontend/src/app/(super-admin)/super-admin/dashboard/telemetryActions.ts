@@ -43,7 +43,14 @@ export async function getInfrastructureTelemetryAction(): Promise<{
   data?: InfrastructureTelemetry;
   error?: string;
 }> {
-  await requireAuth(["SUPER_ADMIN"]);
+  try {
+    await requireAuth(["SUPER_ADMIN"]);
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "UNAUTHORIZED",
+    };
+  }
 
   const region = process.env.AWS_REGION || "ap-south-1";
 
