@@ -108,6 +108,12 @@ export default async function ParentReportCardsPage() {
             Report Cards
           </span>
           <Link
+            href="/portal/admit-cards"
+            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+          >
+            Admit Cards
+          </Link>
+          <Link
             href="/portal/consent"
             className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
           >
