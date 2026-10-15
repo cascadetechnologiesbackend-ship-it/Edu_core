@@ -21,7 +21,9 @@ import {
   Palette,
   Sparkles,
   RefreshCw,
+  Users,
 } from "lucide-react";
+import Link from "next/link";
 
 interface ExamManageClientProps {
   schoolId: string;
@@ -364,6 +366,14 @@ export function ExamManageClient({
           <Award className="w-4 h-4" />
           <span>Grading Rules ({gradeRules.length})</span>
         </button>
+
+        <Link
+          href="/exams/setup/enrollments"
+          className="py-3 px-5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-2"
+        >
+          <Users className="w-4 h-4 text-indigo-500" />
+          <span>Student Elective Enrollments</span>
+        </Link>
       </div>
 
       {/* Global Status Message */}

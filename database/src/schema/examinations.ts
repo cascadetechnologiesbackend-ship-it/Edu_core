@@ -566,6 +566,9 @@ export const resultSettings = pgTable(
     publicToppersEnabled: boolean("public_toppers_enabled")
       .notNull()
       .default(false),
+    smsNotificationsEnabled: boolean("sms_notifications_enabled")
+      .notNull()
+      .default(false),
     lastRecomputedAt: timestamp("last_recomputed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

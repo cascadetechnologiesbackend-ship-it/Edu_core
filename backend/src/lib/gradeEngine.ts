@@ -54,6 +54,7 @@ export const ABSENT_GRADE = "AB";
 export const MEDICAL_EXEMPT_GRADE = "ME";
 export const PRACTICAL_ABSENT_GRADE = "PA";
 export const FAIL_GRADE = "E";
+export const UNENROLLED_SENTINEL = "-";
 
 /**
  * Calculates the grade for a single subject mark entry.
@@ -480,15 +481,18 @@ export interface EffectiveSubjectInput {
   subjectName: string;
   isOptional?: boolean;
   isElective?: boolean;
+  isEnrolled?: boolean;
   marksObtained: number;
   maxMarks: number;
   percent: number;
   isPassed: boolean;
+  grade?: string;
 }
 
 export interface EffectiveSubjectsResult {
   countedSubjects: EffectiveSubjectInput[];
   excludedSubjects: EffectiveSubjectInput[];
+  unenrolledSubjects: EffectiveSubjectInput[];
   totalMarks: number;
   totalMaxMarks: number;
   percent: number;
@@ -496,14 +500,46 @@ export interface EffectiveSubjectsResult {
 
 export function resolveEffectiveSubjects(
   subjects: EffectiveSubjectInput[],
-  options?: { bestOfCount?: number; coreSubjectIds?: string[] },
+  options?: {
+    bestOfCount?: number;
+    coreSubjectIds?: string[];
+    enrolledSubjectIds?: string[];
+  },
 ): EffectiveSubjectsResult {
-  if (options?.bestOfCount && subjects.length > options.bestOfCount) {
+  const enrolledIds = options?.enrolledSubjectIds
+    ? new Set(options.enrolledSubjectIds)
+    : null;
+
+  // Filter out unenrolled elective/optional subjects
+  const enrolled: EffectiveSubjectInput[] = [];
+  const unenrolled: EffectiveSubjectInput[] = [];
+
+  for (const s of subjects) {
+    const isSubjectElective = s.isElective || s.isOptional;
+    const isExplicitlyUnenrolled = s.isEnrolled === false;
+    const isUnenrolledViaOptions =
+      enrolledIds !== null && isSubjectElective && !enrolledIds.has(s.subjectId);
+
+    if (isExplicitlyUnenrolled || isUnenrolledViaOptions) {
+      unenrolled.push({
+        ...s,
+        isEnrolled: false,
+        grade: UNENROLLED_SENTINEL,
+      });
+    } else {
+      enrolled.push({
+        ...s,
+        isEnrolled: true,
+      });
+    }
+  }
+
+  if (options?.bestOfCount && enrolled.length > options.bestOfCount) {
     const coreIds = new Set(options.coreSubjectIds ?? []);
-    const core = subjects.filter(
+    const core = enrolled.filter(
       (s) => !s.isOptional || coreIds.has(s.subjectId),
     );
-    const optional = subjects.filter(
+    const optional = enrolled.filter(
       (s) => s.isOptional && !coreIds.has(s.subjectId),
     );
 
@@ -521,18 +557,20 @@ export function resolveEffectiveSubjects(
     return {
       countedSubjects: counted,
       excludedSubjects: excluded,
+      unenrolledSubjects: unenrolled,
       totalMarks,
       totalMaxMarks: totalMax,
       percent,
     };
   }
 
-  const totalMarks = subjects.reduce((sum, s) => sum + s.marksObtained, 0);
-  const totalMax = subjects.reduce((sum, s) => sum + s.maxMarks, 0);
+  const totalMarks = enrolled.reduce((sum, s) => sum + s.marksObtained, 0);
+  const totalMax = enrolled.reduce((sum, s) => sum + s.maxMarks, 0);
   const percent = totalMax > 0 ? (totalMarks / totalMax) * 100 : 0;
   return {
-    countedSubjects: subjects,
+    countedSubjects: enrolled,
     excludedSubjects: [],
+    unenrolledSubjects: unenrolled,
     totalMarks,
     totalMaxMarks: totalMax,
     percent,

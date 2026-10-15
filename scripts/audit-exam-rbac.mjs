@@ -106,7 +106,7 @@ for (const filePath of actionFiles) {
         } else {
           console.log(`  ✓ [DELEGATED ACTION]   ${relPath} -> ${funcName}()`);
         }
-      } else if (hasDbWrite) {
+      } else if (hasDbWrite || hasRequireExamPermission) {
         console.log(`  ✓ [GUARDED MUTATION]   ${relPath} -> ${funcName}()`);
       } else {
         console.log(`  ✓ [READ / QUERY]       ${relPath} -> ${funcName}()`);
@@ -127,6 +127,7 @@ const EXAM_PAGES = [
   "frontend/src/app/(admin)/exams/report-cards/page.tsx",
   "frontend/src/app/(admin)/exams/report-cards/setups/page.tsx",
   "frontend/src/app/(admin)/exams/report-cards/settings/page.tsx",
+  "frontend/src/app/(admin)/exams/setup/enrollments/page.tsx",
   "frontend/src/app/(admin)/exams/analytics/page.tsx",
   "frontend/src/app/(admin)/exams/usage/page.tsx",
   "frontend/src/app/(admin)/exams/results/page.tsx",

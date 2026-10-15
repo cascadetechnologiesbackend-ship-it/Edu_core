@@ -6,7 +6,9 @@
 export type ExamPermission =
   | "exam.dashboard.view"
   | "exam.setup.manage"
+  | "exam.enrollments.manage"
   | "exam.schedule.manage"
+  | "exam.schedule.conflict.override"
   | "exam.admit_card.manage"
   | "exam.admit_card.view"
   | "exam.marks.entry"
@@ -20,7 +22,9 @@ export type ExamPermission =
 export const ALL_EXAM_PERMISSIONS: readonly ExamPermission[] = [
   "exam.dashboard.view",
   "exam.setup.manage",
+  "exam.enrollments.manage",
   "exam.schedule.manage",
+  "exam.schedule.conflict.override",
   "exam.admit_card.manage",
   "exam.admit_card.view",
   "exam.marks.entry",
@@ -36,12 +40,13 @@ export const ALL_EXAM_PERMISSIONS: readonly ExamPermission[] = [
  * Role-to-Permissions Mapping for Examinations
  * Note on TEACHER: Per Amendment 2, teachers are excluded from all /exams/* routes
  * and their ONLY operational permission is `exam.marks.entry` (exercised exclusively via /teacher/grading).
- * Note on PRINCIPAL: Holds `exam.result.publish` in addition to SCHOOL_ADMIN and SUPER_ADMIN.
+ * Note on PRINCIPAL: Holds all operational permissions including result publish and conflict override,
+ * with enrollments management reserved for SCHOOL_ADMIN and SUPER_ADMIN.
  */
 export const ROLE_EXAM_PERMISSIONS: Record<string, readonly ExamPermission[]> = {
   SUPER_ADMIN: ALL_EXAM_PERMISSIONS,
   SCHOOL_ADMIN: ALL_EXAM_PERMISSIONS,
-  PRINCIPAL: ALL_EXAM_PERMISSIONS,
+  PRINCIPAL: ALL_EXAM_PERMISSIONS.filter((p) => p !== "exam.enrollments.manage"),
   TEACHER: ["exam.marks.entry"],
   ACCOUNTANT: ["exam.admit_card.manage", "exam.admit_card.view"],
   STUDENT: ["exam.admit_card.view", "exam.result.view"],

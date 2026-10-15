@@ -1,4 +1,3 @@
-// ─── Attendance Schema ────────────────────────────────────────────────────────
 import {
   pgTable,
   uuid,
@@ -8,9 +7,12 @@ import {
   pgEnum,
   index,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { isNotNull } from "drizzle-orm";
 import { schools, academicYears } from "./core";
 import { sections } from "./academics";
+import { examSchedules } from "./examinations";
 
 export const attendanceStatusEnum = pgEnum("attendance_status", [
   "PRESENT",
@@ -40,6 +42,10 @@ export const studentAttendance = pgTable(
     }).notNull(),
     periodId: uuid("period_id"), // null = day-wise; set = period-wise
     status: attendanceStatusEnum("status").notNull(),
+    source: text("source").notNull().default("ROUTINE"), // "ROUTINE", "EXAM"
+    examScheduleId: uuid("exam_schedule_id").references(() => examSchedules.id, {
+      onDelete: "set null",
+    }),
     markedById: uuid("marked_by_id").notNull(),
     remarks: text("remarks"),
     smsNotificationSent: boolean("sms_notification_sent")
@@ -66,6 +72,15 @@ export const studentAttendance = pgTable(
       t.attendanceDate,
     ),
     studentIdx: index("student_attendance_student_idx").on(t.studentId),
+    examScheduleUniqueIdx: uniqueIndex(
+      "student_attendance_exam_schedule_unique",
+    )
+      .on(t.studentId, t.examScheduleId)
+      .where(isNotNull(t.examScheduleId)),
+    examScheduleIdx: index("student_attendance_exam_schedule_idx").on(
+      t.schoolId,
+      t.examScheduleId,
+    ),
   }),
 );
 

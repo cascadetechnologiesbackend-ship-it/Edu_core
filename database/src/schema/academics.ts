@@ -59,6 +59,12 @@ export const assignmentStatusEnum = pgEnum("assignment_status", [
   "GRADED",
 ]);
 
+export const enrollmentStatusEnum = pgEnum("enrollment_status_enum", [
+  "ACTIVE",
+  "DROPPED",
+  "COMPLETED",
+]);
+
 // NEW: Academic calendar event types (AMS-only, Rule #1)
 export const calendarEventTypeEnum = pgEnum("calendar_event_type", [
   "HOLIDAY",
@@ -239,6 +245,50 @@ export const classSubjects = pgTable(
       t.subjectId,
     ),
     classIdx: index("class_subjects_class_idx").on(t.classId),
+  }),
+);
+
+// ─── student_subject_enrollments ──────────────────────────────────────────────
+// Student-level subject enrollment (S11 electives data gap closure).
+
+export const studentSubjectEnrollments = pgTable(
+  "student_subject_enrollments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+    classSubjectId: uuid("class_subject_id")
+      .notNull()
+      .references(() => classSubjects.id, { onDelete: "restrict" }),
+    isElectiveTaken: boolean("is_elective_taken").notNull().default(true),
+    enrollmentStatus: enrollmentStatusEnum("enrollment_status")
+      .notNull()
+      .default("ACTIVE"),
+    enrolledAt: timestamp("enrolled_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    studentClassSubjectUnique: unique(
+      "student_subject_enrollments_unique",
+    ).on(t.studentId, t.classSubjectId),
+    schoolStudentIdx: index("student_subject_enrollments_school_student_idx").on(
+      t.schoolId,
+      t.studentId,
+    ),
+    classSubjectIdx: index("student_subject_enrollments_class_subject_idx").on(
+      t.classSubjectId,
+    ),
+    activeUniqueIdx: uniqueIndex("student_subject_enrollments_active_idx")
+      .on(t.studentId, t.classSubjectId)
+      .where(sql`${t.enrollmentStatus} = 'ACTIVE'`),
   }),
 );
 
@@ -836,6 +886,25 @@ export const classSubjectsRelations = relations(
     assignments: many(assignments),
     assessments: many(assessments),
     sectionSubjectTeachers: many(sectionSubjectTeachers),
+    studentEnrollments: many(studentSubjectEnrollments),
+  }),
+);
+
+export const studentSubjectEnrollmentsRelations = relations(
+  studentSubjectEnrollments,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [studentSubjectEnrollments.schoolId],
+      references: [schools.id],
+    }),
+    student: one(students, {
+      fields: [studentSubjectEnrollments.studentId],
+      references: [students.id],
+    }),
+    classSubject: one(classSubjects, {
+      fields: [studentSubjectEnrollments.classSubjectId],
+      references: [classSubjects.id],
+    }),
   }),
 );
 

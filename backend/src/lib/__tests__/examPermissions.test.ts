@@ -15,17 +15,22 @@ describe("Exam Permissions Registry", () => {
     }
   });
 
-  it("SCHOOL_ADMIN has all 11 permissions", () => {
+  it("SCHOOL_ADMIN has all 13 permissions", () => {
     for (const perm of ALL_EXAM_PERMISSIONS) {
       expect(hasExamPermission("SCHOOL_ADMIN", perm)).toBe(true);
     }
   });
 
-  it("PRINCIPAL has all 11 permissions including exam.result.publish", () => {
+  it("PRINCIPAL has 12 permissions (all except exam.enrollments.manage)", () => {
     for (const perm of ALL_EXAM_PERMISSIONS) {
-      expect(hasExamPermission("PRINCIPAL", perm)).toBe(true);
+      if (perm === "exam.enrollments.manage") {
+        expect(hasExamPermission("PRINCIPAL", perm)).toBe(false);
+      } else {
+        expect(hasExamPermission("PRINCIPAL", perm)).toBe(true);
+      }
     }
     expect(hasExamPermission("PRINCIPAL", "exam.result.publish")).toBe(true);
+    expect(hasExamPermission("PRINCIPAL", "exam.schedule.conflict.override")).toBe(true);
   });
 
   it("TEACHER has ONLY exam.marks.entry per Amendment 2", () => {
