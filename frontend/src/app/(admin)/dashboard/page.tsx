@@ -25,7 +25,7 @@ import {
   rightsRequests,
 } from "@/db/schema";
 import { calculateSchoolProfileCompleteness } from "@/lib/profileCompleteness";
-import { eq, and, isNull, sql, inArray } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray, ne, or } from "drizzle-orm";
 import { getCachedDashboardSummary, setCachedDashboardSummary } from "@/lib/dashboardCache";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import {
@@ -514,6 +514,7 @@ export default async function DashboardPage() {
           and(
             eq(studentAttendance.schoolId, schoolId),
             sql`${studentAttendance.attendanceDate} >= ${startOfDay} AND ${studentAttendance.attendanceDate} <= ${endOfDay}`,
+            or(isNull(studentAttendance.source), ne(studentAttendance.source, "EXAM")),
           ),
         )
         .groupBy(studentAttendance.status),

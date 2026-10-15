@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { Pool } from "pg";
-import { syncExamAttendance } from "../examAttendanceSync";
+import {
+  syncExamAttendance,
+  getExamAttendanceMetrics,
+} from "../examAttendanceSync";
 import { ISOLATION_IDS, seedIsolationSchools } from "../isolationFixtures";
 import { db } from "@/db";
 import {
@@ -14,13 +17,14 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { withTenant } from "../tenant";
 
 const dbUrl =
   process.env.MIGRATION_DATABASE_URL ||
   process.env.DATABASE_URL ||
   "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
-describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => {
+describe("S11 Layer 2 & S12 Layer 5: Exam Attendance Synchronization & Scoped Metrics Drill", () => {
   let pool: Pool;
   const schoolId = ISOLATION_IDS.schoolA.id;
   const academicYearId = ISOLATION_IDS.schoolA.academicYearId;
@@ -38,100 +42,103 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
 
     const runId = Math.random().toString(36).substring(2, 7);
 
-    // 0. Create a section for this class
-    const [sec] = await db
-      .insert(sections)
-      .values({
-        schoolId,
-        classId,
-        name: `Sec_${runId}`,
-      })
-      .returning();
-    testSectionId = sec!.id;
+    // Set up fixtures under tenant context to satisfy fail-closed RLS
+    await withTenant(schoolId, async (tx) => {
+      // 0. Create a section for this class
+      const [sec] = await tx
+        .insert(sections)
+        .values({
+          schoolId,
+          classId,
+          name: `Sec_${runId}`,
+        })
+        .returning();
+      testSectionId = sec!.id;
 
-    // 1. Create a test exam
-    const [exam] = await db
-      .insert(exams)
-      .values({
-        schoolId,
-        academicYearId,
-        examTypeId: ISOLATION_IDS.schoolA.examTypeId,
-        name: `S11 Layer 2 Exam ${runId}`,
-        startDate: new Date("2026-11-01"),
-        endDate: new Date("2026-11-15"),
-      })
-      .returning();
-    testExamId = exam!.id;
+      // 1. Create a test exam
+      const [exam] = await tx
+        .insert(exams)
+        .values({
+          schoolId,
+          academicYearId,
+          examTypeId: ISOLATION_IDS.schoolA.examTypeId,
+          name: `S11 Layer 2 Exam ${runId}`,
+          startDate: new Date("2026-11-01"),
+          endDate: new Date("2026-11-15"),
+        })
+        .returning();
+      testExamId = exam!.id;
 
-    // 2. Create a test subject
-    const [subj] = await db
-      .insert(subjects)
-      .values({
-        schoolId,
-        code: `SCI_ATT_${runId}`,
-        name: "Science Attendance",
-        subjectType: "THEORY",
-        maxMarks: 100,
-        passingMarks: 33,
-      })
-      .returning();
-    testSubjectId = subj!.id;
+      // 2. Create a test subject
+      const [subj] = await tx
+        .insert(subjects)
+        .values({
+          schoolId,
+          code: `SCI_ATT_${runId}`,
+          name: "Science Attendance",
+          subjectType: "THEORY",
+          maxMarks: 100,
+          passingMarks: 33,
+        })
+        .returning();
+      testSubjectId = subj!.id;
 
-    // 3. Create exam schedule
-    const [schedule] = await db
-      .insert(examSchedules)
-      .values({
-        schoolId,
-        examId: testExamId,
-        classId,
-        subjectId: testSubjectId,
-        examDate: "2026-11-05",
-        startTime: "09:00:00",
-        durationMinutes: 180,
-        maxMarks: "100.00",
-        passingMarks: "33.00",
-      })
-      .returning();
-    testScheduleId = schedule!.id;
+      // 3. Create exam schedule
+      const [schedule] = await tx
+        .insert(examSchedules)
+        .values({
+          schoolId,
+          examId: testExamId,
+          classId,
+          subjectId: testSubjectId,
+          examDate: "2026-11-05",
+          startTime: "09:00:00",
+          durationMinutes: 180,
+          maxMarks: "100.00",
+          passingMarks: "33.00",
+        })
+        .returning();
+      testScheduleId = schedule!.id;
 
-    // 4. Create two test students in this class and section
-    const [st1] = await db
-      .insert(students)
-      .values({
-        schoolId,
-        academicYearId,
-        admissionNumber: `ATT-ST1-${runId}`,
-        firstNameEncrypted: "Rohan",
-        lastNameEncrypted: "Mehta",
-        dateOfBirth: new Date("2010-03-03"),
-        gender: "MALE",
-        category: "GENERAL",
-        admissionDate: new Date("2024-04-01"),
-        currentClassId: classId,
-        currentSectionId: testSectionId,
-        isActive: true,
-      })
-      .returning();
-    student1Id = st1!.id;
+      // 4. Create two test students in this class and section
+      const [st1] = await tx
+        .insert(students)
+        .values({
+          schoolId,
+          academicYearId,
+          admissionNumber: `ATT-ST1-${runId}`,
+          firstNameEncrypted: "Rohan",
+          lastNameEncrypted: "Mehta",
+          dateOfBirth: new Date("2010-03-03"),
+          gender: "MALE",
+          category: "GENERAL",
+          admissionDate: new Date("2024-04-01"),
+          currentClassId: classId,
+          currentSectionId: testSectionId,
+          isActive: true,
+        })
+        .returning();
+      student1Id = st1!.id;
 
-    const [st2] = await db
-      .insert(students)
-      .values({
-        schoolId,
-        academicYearId,
-        admissionNumber: `ATT-ST2-${runId}`,
-        firstNameEncrypted: "Ananya",
-        lastNameEncrypted: "Iyer",
-        dateOfBirth: new Date("2010-04-04"),
-        gender: "FEMALE",
-        category: "GENERAL",
-        admissionDate: new Date("2024-04-01"),
-        currentClassId: classId,
-        currentSectionId: testSectionId,
-        isActive: true,
-      })
-      .returning();
-    student2Id = st2!.id;
+      const [st2] = await tx
+        .insert(students)
+        .values({
+          schoolId,
+          academicYearId,
+          admissionNumber: `ATT-ST2-${runId}`,
+          firstNameEncrypted: "Ananya",
+          lastNameEncrypted: "Iyer",
+          dateOfBirth: new Date("2010-04-04"),
+          gender: "FEMALE",
+          category: "GENERAL",
+          admissionDate: new Date("2024-04-01"),
+          currentClassId: classId,
+          currentSectionId: testSectionId,
+          isActive: true,
+        })
+        .returning();
+      student2Id = st2!.id;
+    });
   });
 
   afterAll(async () => {
@@ -160,18 +167,20 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
 
     expect(res.syncedAbsencesCount).toBe(1);
 
-    const records = await db.query.studentAttendance.findMany({
-      where: and(
-        eq(studentAttendance.schoolId, schoolId),
-        eq(studentAttendance.studentId, student1Id),
-        eq(studentAttendance.examScheduleId, testScheduleId),
-      ),
-    });
+    await withTenant(schoolId, async (tx) => {
+      const records = await tx.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.schoolId, schoolId),
+          eq(studentAttendance.studentId, student1Id),
+          eq(studentAttendance.examScheduleId, testScheduleId),
+        ),
+      });
 
-    expect(records.length).toBe(1);
-    expect(records[0]?.source).toBe("EXAM");
-    expect(records[0]?.status).toBe("ABSENT");
-    expect(records[0]?.remarks).toContain("Fever on exam morning");
+      expect(records.length).toBe(1);
+      expect(records[0]?.source).toBe("EXAM");
+      expect(records[0]?.status).toBe("ABSENT");
+      expect(records[0]?.remarks).toContain("Fever on exam morning");
+    });
   });
 
   it("2.2: Zero double-records — re-saving marks entry does not create duplicate attendance records", async () => {
@@ -197,17 +206,19 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
 
     expect(res.syncedAbsencesCount).toBe(1);
 
-    // Verify still exactly 1 record for this student and schedule (idempotency & partial unique index)
-    const records = await db.query.studentAttendance.findMany({
-      where: and(
-        eq(studentAttendance.schoolId, schoolId),
-        eq(studentAttendance.studentId, student1Id),
-        eq(studentAttendance.examScheduleId, testScheduleId),
-      ),
-    });
+    await withTenant(schoolId, async (tx) => {
+      // Verify still exactly 1 record for this student and schedule (idempotency & partial unique index)
+      const records = await tx.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.schoolId, schoolId),
+          eq(studentAttendance.studentId, student1Id),
+          eq(studentAttendance.examScheduleId, testScheduleId),
+        ),
+      });
 
-    expect(records.length).toBe(1);
-    expect(records[0]?.remarks).toContain("Confirmed absent by invigilator");
+      expect(records.length).toBe(1);
+      expect(records[0]?.remarks).toContain("Confirmed absent by invigilator");
+    });
   });
 
   it("2.3: Unlocking marks & correcting from ABSENT to PRESENT reconciles attendance to PRESENT and writes audit_logs", async () => {
@@ -233,30 +244,32 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
 
     expect(res.reconciledCount).toBe(1);
 
-    // Verify record was NOT deleted, but updated to PRESENT
-    const records = await db.query.studentAttendance.findMany({
-      where: and(
-        eq(studentAttendance.schoolId, schoolId),
-        eq(studentAttendance.studentId, student1Id),
-        eq(studentAttendance.examScheduleId, testScheduleId),
-      ),
+    await withTenant(schoolId, async (tx) => {
+      // Verify record was NOT deleted, but updated to PRESENT
+      const records = await tx.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.schoolId, schoolId),
+          eq(studentAttendance.studentId, student1Id),
+          eq(studentAttendance.examScheduleId, testScheduleId),
+        ),
+      });
+
+      expect(records.length).toBe(1);
+      expect(records[0]?.status).toBe("PRESENT");
+      expect(records[0]?.remarks).toContain("EXAM_RECONCILED: Corrected to PRESENT");
+
+      // Verify immutable audit log exists for this correction
+      const logs = await tx.query.auditLogs.findMany({
+        where: and(
+          eq(auditLogs.schoolId, schoolId),
+          eq(auditLogs.tableName, "student_attendance"),
+          eq(auditLogs.recordId, records[0]!.id),
+        ),
+      });
+
+      expect(logs.length).toBeGreaterThanOrEqual(1);
+      expect(logs[0]?.purposeId).toBe("exam_attendance_correction");
     });
-
-    expect(records.length).toBe(1);
-    expect(records[0]?.status).toBe("PRESENT");
-    expect(records[0]?.remarks).toContain("EXAM_RECONCILED: Corrected to PRESENT");
-
-    // Verify immutable audit log exists for this correction
-    const logs = await db.query.auditLogs.findMany({
-      where: and(
-        eq(auditLogs.schoolId, schoolId),
-        eq(auditLogs.tableName, "student_attendance"),
-        eq(auditLogs.recordId, records[0]!.id),
-      ),
-    });
-
-    expect(logs.length).toBeGreaterThanOrEqual(1);
-    expect(logs[0]?.purposeId).toBe("exam_attendance_correction");
   });
 
   it("2.4: Medical exemption creates status='LEAVE' with medical exemption remarks", async () => {
@@ -281,17 +294,19 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
 
     expect(res.syncedAbsencesCount).toBe(1);
 
-    const records = await db.query.studentAttendance.findMany({
-      where: and(
-        eq(studentAttendance.schoolId, schoolId),
-        eq(studentAttendance.studentId, student2Id),
-        eq(studentAttendance.examScheduleId, testScheduleId),
-      ),
-    });
+    await withTenant(schoolId, async (tx) => {
+      const records = await tx.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.schoolId, schoolId),
+          eq(studentAttendance.studentId, student2Id),
+          eq(studentAttendance.examScheduleId, testScheduleId),
+        ),
+      });
 
-    expect(records.length).toBe(1);
-    expect(records[0]?.status).toBe("LEAVE");
-    expect(records[0]?.remarks).toContain("EXAM_ABSENT_MEDICAL");
+      expect(records.length).toBe(1);
+      expect(records[0]?.status).toBe("LEAVE");
+      expect(records[0]?.remarks).toContain("EXAM_ABSENT_MEDICAL");
+    });
   });
 
   it("2.5: Cross-tenant isolation — School A attendance sync cannot query or touch School B student records", async () => {
@@ -317,17 +332,41 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
       ],
     });
 
-    // Student B not found in School A roster -> 0 records synced
+    // Student B not found in School A roster -> 0 records synced and reported in skipped
     expect(res.syncedAbsencesCount).toBe(0);
+    expect(res.skipped.length).toBe(1);
+    expect(res.skipped[0]?.studentId).toBe(schoolBStudentId);
 
     // Verify School B attendance table remains pristine
-    const schoolBRecords = await db.query.studentAttendance.findMany({
-      where: and(
-        eq(studentAttendance.schoolId, ISOLATION_IDS.schoolB.id),
-        eq(studentAttendance.studentId, schoolBStudentId),
-      ),
+    await withTenant(ISOLATION_IDS.schoolB.id, async (tx) => {
+      const schoolBRecords = await tx.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.schoolId, ISOLATION_IDS.schoolB.id),
+          eq(studentAttendance.studentId, schoolBStudentId),
+        ),
+      });
+      expect(schoolBRecords.length).toBe(0);
     });
+  });
 
-    expect(schoolBRecords.length).toBe(0);
+  it("2.6: getExamAttendanceMetrics strictly scopes metrics when examId is provided", async () => {
+    await withTenant(schoolId, async (tx) => {
+      const metricsForExam = await getExamAttendanceMetrics(schoolId, testExamId, tx);
+      expect(metricsForExam).toBeDefined();
+      expect(Array.isArray(metricsForExam)).toBe(true);
+
+      // Verify each record belongs to a schedule for testExamId
+      for (const m of metricsForExam) {
+        expect(m.examScheduleId).toBe(testScheduleId);
+      }
+
+      // Non-existent exam returns empty
+      const nonExistentMetrics = await getExamAttendanceMetrics(
+        schoolId,
+        "00000000-0000-0000-0000-000000000000",
+        tx,
+      );
+      expect(nonExistentMetrics.length).toBe(0);
+    });
   });
 });

@@ -106,10 +106,7 @@ describe("Sprint S12.1 Layer 3: Staff Exam Results API Tenant Guard (SEC-API-003
     } as any);
 
     // Scoped lookup for exam under School A returns undefined
-    vi.mocked(db.query.exams.findFirst).mockImplementation(async (opts: any) => {
-      // First call is scoped query
-      return undefined;
-    });
+    vi.mocked(db.query.exams.findFirst).mockResolvedValue(undefined as any);
 
     const req = new Request(`http://localhost:3000/api/staff/exam-results/${examBId}`);
     const res = await GET(req, { params: { examId: examBId } });
