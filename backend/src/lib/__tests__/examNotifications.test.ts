@@ -5,6 +5,7 @@ import {
   notifyAdmitCardsReleased,
   notifyDatesheetPublished,
   notifyBulkJobCompleted,
+  isQuietHours,
 } from "../examNotifications";
 import { ISOLATION_IDS, seedIsolationSchools } from "../isolationFixtures";
 import { db } from "@/db";
@@ -19,17 +20,19 @@ import {
   classes,
   subjects,
   examSchedules,
+  examClassScopes,
   students,
   users,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { withTenant } from "../tenant";
 
 const dbUrl =
   process.env.MIGRATION_DATABASE_URL ||
   process.env.DATABASE_URL ||
   "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
-describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
+describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push Dispatch Wiring", () => {
   let pool: Pool;
   const schoolA = ISOLATION_IDS.schoolA.id;
   const schoolB = ISOLATION_IDS.schoolB.id;
@@ -44,74 +47,79 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
 
     const runId = Math.random().toString(36).substring(2, 7);
 
-    // 1. Create a parent user in School A
-    const [pUser] = await db
-      .insert(users)
-      .values({
-        schoolId: schoolA,
-        email: `parent_notif_${runId}@isolation.internal`,
-        isActive: true,
-      })
-      .returning();
-    parentAUserId = pUser!.id;
+    // Run fixture setup inside tenant context to satisfy fail-closed RLS
+    await withTenant(schoolA, async (tx) => {
+      // 1. Create a parent user in School A
+      const [pUser] = await tx
+        .insert(users)
+        .values({
+          schoolId: schoolA,
+          email: `parent_notif_${runId}@isolation.internal`,
+          isActive: true,
+        })
+        .returning();
+      parentAUserId = pUser!.id;
 
-    // 2. Link student in School A to parentAUserId
-    await db
-      .update(students)
-      .set({ primaryParentUserId: parentAUserId })
-      .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
+      // 2. Link student in School A to parentAUserId
+      await tx
+        .update(students)
+        .set({ primaryParentUserId: parentAUserId })
+        .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
 
-    // 3. Create test exam for School A
-    const [exam] = await db
-      .insert(exams)
-      .values({
-        schoolId: schoolA,
-        academicYearId: ISOLATION_IDS.schoolA.academicYearId,
-        examTypeId: ISOLATION_IDS.schoolA.examTypeId,
-        name: `S11 Layer 3 Exam ${runId}`,
-        startDate: new Date("2026-11-01"),
-        endDate: new Date("2026-11-15"),
-      })
-      .returning();
-    testExamAId = exam!.id;
+      // 3. Create test exam for School A
+      const [exam] = await tx
+        .insert(exams)
+        .values({
+          schoolId: schoolA,
+          academicYearId: ISOLATION_IDS.schoolA.academicYearId,
+          examTypeId: ISOLATION_IDS.schoolA.examTypeId,
+          name: `S11 Layer 3 Exam ${runId}`,
+          startDate: new Date("2026-11-01"),
+          endDate: new Date("2026-11-15"),
+        })
+        .returning();
+      testExamAId = exam!.id;
 
-    // 4. Create a test schedule
-    const [sched] = await db
-      .insert(examSchedules)
-      .values({
-        schoolId: schoolA,
-        examId: testExamAId,
-        classId: ISOLATION_IDS.schoolA.classId,
-        subjectId: ISOLATION_IDS.schoolA.subjectId,
-        examDate: "2026-11-05",
-        startTime: "09:00:00",
-        durationMinutes: 180,
-        maxMarks: "100.00",
-        passingMarks: "33.00",
-      })
-      .returning();
-    testScheduleAId = sched!.id;
+      // 4. Create a test schedule
+      const [sched] = await tx
+        .insert(examSchedules)
+        .values({
+          schoolId: schoolA,
+          examId: testExamAId,
+          classId: ISOLATION_IDS.schoolA.classId,
+          subjectId: ISOLATION_IDS.schoolA.subjectId,
+          examDate: "2026-11-05",
+          startTime: "09:00:00",
+          durationMinutes: 180,
+          maxMarks: "100.00",
+          passingMarks: "33.00",
+        })
+        .returning();
+      testScheduleAId = sched!.id;
 
-    // 5. Create a test setup for School A
-    const [setup] = await db
-      .insert(reportCardSetups)
-      .values({
-        schoolId: schoolA,
-        academicYearId: ISOLATION_IDS.schoolA.academicYearId,
-        name: `Term Report ${runId}`,
-        examWeightages: [{ examId: testExamAId, weightPercent: 100 }],
-        createdById: ISOLATION_IDS.schoolA.adminUserId,
-      })
-      .returning();
-    testSetupAId = setup!.id;
+      // 5. Create a test setup for School A
+      const [setup] = await tx
+        .insert(reportCardSetups)
+        .values({
+          schoolId: schoolA,
+          academicYearId: ISOLATION_IDS.schoolA.academicYearId,
+          name: `Term Report ${runId}`,
+          examWeightages: [{ examId: testExamAId, weightPercent: 100 }],
+          createdById: ISOLATION_IDS.schoolA.adminUserId,
+        })
+        .returning();
+      testSetupAId = setup!.id;
+    });
   });
 
   afterAll(async () => {
-    // Restore primaryParentUserId to original fixture
-    await db
-      .update(students)
-      .set({ primaryParentUserId: ISOLATION_IDS.schoolA.parentUserId })
-      .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
+    // Restore primaryParentUserId to original fixture within tenant context
+    await withTenant(schoolA, async (tx) => {
+      await tx
+        .update(students)
+        .set({ primaryParentUserId: ISOLATION_IDS.schoolA.parentUserId })
+        .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
+    });
     await pool.end();
   });
 
@@ -126,46 +134,50 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
     expect(res.inAppNoticeId).toBeDefined();
     expect(res.pushSentCount).toBeGreaterThanOrEqual(1);
 
-    // Verify in-app notice
-    const notice = await db.query.notices.findFirst({
-      where: and(eq(notices.id, res.inAppNoticeId!), eq(notices.schoolId, schoolA)),
-    });
-    expect(notice).toBeDefined();
-    expect(notice?.audienceType).toBe("PARENTS");
-    expect(notice?.title).toContain("Results Published");
+    await withTenant(schoolA, async (tx) => {
+      // Verify in-app notice
+      const notice = await tx.query.notices.findFirst({
+        where: and(eq(notices.id, res.inAppNoticeId!), eq(notices.schoolId, schoolA)),
+      });
+      expect(notice).toBeDefined();
+      expect(notice?.audienceType).toBe("PARENTS");
+      expect(notice?.title).toContain("Results Published");
 
-    // Verify push notification log
-    const pushLogs = await db.query.pushNotificationLogs.findMany({
-      where: and(
-        eq(pushNotificationLogs.schoolId, schoolA),
-        eq(pushNotificationLogs.recipientUserId, parentAUserId),
-      ),
-    });
-    expect(pushLogs.length).toBeGreaterThanOrEqual(1);
-    const latestPush = pushLogs[pushLogs.length - 1];
+      // Verify push notification log
+      const pushLogs = await tx.query.pushNotificationLogs.findMany({
+        where: and(
+          eq(pushNotificationLogs.schoolId, schoolA),
+          eq(pushNotificationLogs.recipientUserId, parentAUserId),
+        ),
+      });
+      expect(pushLogs.length).toBeGreaterThanOrEqual(1);
+      const latestPush = pushLogs[pushLogs.length - 1];
 
-    // Assert zero student marks or private scores in payload
-    expect(latestPush?.body).toContain("Tap to view");
-    expect(latestPush?.body).not.toMatch(/\bmarks\s*:\s*\d+/i);
-    expect(latestPush?.body).not.toMatch(/\bscore\s*:\s*\d+/i);
+      // Assert zero student marks or private scores in payload
+      expect(latestPush?.body).toContain("Tap to view");
+      expect(latestPush?.body).not.toMatch(/\bmarks\s*:\s*\d+/i);
+      expect(latestPush?.body).not.toMatch(/\bscore\s*:\s*\d+/i);
+    });
   });
 
   it("3.2: notifyResultReleased triggers SMS fallback only when smsNotificationsEnabled=true and parent has no push sub", async () => {
-    // 1. First, enable SMS on this setup in result_settings
-    await db
-      .insert(resultSettings)
-      .values({
-        schoolId: schoolA,
-        setupId: testSetupAId,
-        smsNotificationsEnabled: true,
-        withholdAll: false,
-        feeLockMode: "OFF",
-        feeLockThresholdAmount: "0.00",
-      })
-      .onConflictDoUpdate({
-        target: [resultSettings.setupId],
-        set: { smsNotificationsEnabled: true },
-      });
+    // 1. Enable SMS on this setup in result_settings under tenant context
+    await withTenant(schoolA, async (tx) => {
+      await tx
+        .insert(resultSettings)
+        .values({
+          schoolId: schoolA,
+          setupId: testSetupAId,
+          smsNotificationsEnabled: true,
+          withholdAll: false,
+          feeLockMode: "OFF",
+          feeLockThresholdAmount: "0.00",
+        })
+        .onConflictDoUpdate({
+          target: [resultSettings.setupId],
+          set: { smsNotificationsEnabled: true },
+        });
+    });
 
     // Verify parentAUserId has NO web push subscription currently
     const res = await notifyResultReleased({
@@ -177,17 +189,19 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
     expect(res.success).toBe(true);
     expect(res.smsQueuedCount).toBeGreaterThanOrEqual(1);
 
-    // Verify SMS log entry exists
-    const sms = await db.query.smsLogs.findMany({
-      where: and(
-        eq(smsLogs.schoolId, schoolA),
-        eq(smsLogs.recipientUserId, parentAUserId),
-        eq(smsLogs.messageType, "EXAM"),
-      ),
-    });
+    // Verify SMS log entry exists under tenant context
+    await withTenant(schoolA, async (tx) => {
+      const sms = await tx.query.smsLogs.findMany({
+        where: and(
+          eq(smsLogs.schoolId, schoolA),
+          eq(smsLogs.recipientUserId, parentAUserId),
+          eq(smsLogs.messageType, "EXAM"),
+        ),
+      });
 
-    expect(sms.length).toBeGreaterThanOrEqual(1);
-    expect(sms[0]?.status).toBe("QUEUED");
+      expect(sms.length).toBeGreaterThanOrEqual(1);
+      expect(sms[0]?.status).toBe("QUEUED");
+    });
   });
 
   it("3.3: notifyAdmitCardsReleased creates in-app notice and web push notification for parents", async () => {
@@ -201,10 +215,12 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
     expect(res.inAppNoticeId).toBeDefined();
     expect(res.pushSentCount).toBeGreaterThanOrEqual(1);
 
-    const notice = await db.query.notices.findFirst({
-      where: and(eq(notices.id, res.inAppNoticeId!), eq(notices.schoolId, schoolA)),
+    await withTenant(schoolA, async (tx) => {
+      const notice = await tx.query.notices.findFirst({
+        where: and(eq(notices.id, res.inAppNoticeId!), eq(notices.schoolId, schoolA)),
+      });
+      expect(notice?.title).toContain("Admit Cards Released");
     });
-    expect(notice?.title).toContain("Admit Cards Released");
   });
 
   it("3.4: notifyDatesheetPublished creates in-app notice with audienceType='ALL' and push logs", async () => {
@@ -217,11 +233,13 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
     expect(res.success).toBe(true);
     expect(res.inAppNoticeId).toBeDefined();
 
-    const notice = await db.query.notices.findFirst({
-      where: and(eq(notices.id, res.inAppNoticeId!), eq(notices.schoolId, schoolA)),
+    await withTenant(schoolA, async (tx) => {
+      const notice = await tx.query.notices.findFirst({
+        where: and(eq(notices.id, res.inAppNoticeId!), eq(notices.schoolId, schoolA)),
+      });
+      expect(notice?.title).toContain("Datesheet Published");
+      expect(notice?.audienceType).toBe("ALL");
     });
-    expect(notice?.title).toContain("Datesheet Published");
-    expect(notice?.audienceType).toBe("ALL");
   });
 
   it("3.5: notifyBulkJobCompleted dispatches push notification directly to triggering admin user", async () => {
@@ -238,21 +256,22 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
     expect(res.success).toBe(true);
     expect(res.pushSentCount).toBe(1);
 
-    const pushLog = await db.query.pushNotificationLogs.findFirst({
-      where: and(
-        eq(pushNotificationLogs.schoolId, schoolA),
-        eq(pushNotificationLogs.recipientUserId, adminUserId),
-      ),
-      orderBy: (t, { desc }) => [desc(t.createdAt)],
-    });
+    await withTenant(schoolA, async (tx) => {
+      const pushLog = await tx.query.pushNotificationLogs.findFirst({
+        where: and(
+          eq(pushNotificationLogs.schoolId, schoolA),
+          eq(pushNotificationLogs.recipientUserId, adminUserId),
+        ),
+        orderBy: (t, { desc }) => [desc(t.createdAt)],
+      });
 
-    expect(pushLog).toBeDefined();
-    expect(pushLog?.title).toContain("Bulk Report Card Generation Complete");
-    expect(pushLog?.body).toContain("45 succeeded, 0 failed");
+      expect(pushLog).toBeDefined();
+      expect(pushLog?.title).toContain("Bulk Report Card Generation Complete");
+      expect(pushLog?.body).toContain("45 succeeded, 0 failed");
+    });
   });
 
   it("3.6: Cross-tenant isolation probe: School A notification never queries or sends to School B parent", async () => {
-    // School B has its own parent user
     const schoolBParentUserId = ISOLATION_IDS.schoolB.parentUserId;
 
     // Trigger School A result release
@@ -262,22 +281,24 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
       triggeredById: ISOLATION_IDS.schoolA.adminUserId,
     });
 
-    // Probe: School B parent user MUST have zero push or sms logs under School A
-    const crossPushLogs = await db.query.pushNotificationLogs.findMany({
-      where: and(
-        eq(pushNotificationLogs.schoolId, schoolA),
-        eq(pushNotificationLogs.recipientUserId, schoolBParentUserId),
-      ),
-    });
-    expect(crossPushLogs.length).toBe(0);
+    // Probe under School A tenant: School B parent user MUST have zero push or sms logs
+    await withTenant(schoolA, async (tx) => {
+      const crossPushLogs = await tx.query.pushNotificationLogs.findMany({
+        where: and(
+          eq(pushNotificationLogs.schoolId, schoolA),
+          eq(pushNotificationLogs.recipientUserId, schoolBParentUserId),
+        ),
+      });
+      expect(crossPushLogs.length).toBe(0);
 
-    const crossSmsLogs = await db.query.smsLogs.findMany({
-      where: and(
-        eq(smsLogs.schoolId, schoolA),
-        eq(smsLogs.recipientUserId, schoolBParentUserId),
-      ),
+      const crossSmsLogs = await tx.query.smsLogs.findMany({
+        where: and(
+          eq(smsLogs.schoolId, schoolA),
+          eq(smsLogs.recipientUserId, schoolBParentUserId),
+        ),
+      });
+      expect(crossSmsLogs.length).toBe(0);
     });
-    expect(crossSmsLogs.length).toBe(0);
   });
 
   it("3.7: Failure-without-rollback rule: invalid schoolId does not crash or throw unhandled exceptions", async () => {
@@ -290,5 +311,74 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
     // Expect graceful fail-safe handling (returns false with error, never throws)
     expect(res.success).toBe(false);
     expect(res.error).toBeDefined();
+  });
+
+  it("3.8: IST Quiet Hours accuracy: enforces 21:00 - 07:00 IST window regardless of system timezone", () => {
+    // 2026-10-15T16:00:00Z -> In IST (+5:30) is 21:30 (9:30 PM) -> Quiet hours
+    const nightDate = new Date("2026-10-15T16:00:00.000Z");
+    expect(isQuietHours(nightDate)).toBe(true);
+
+    // 2026-10-15T08:30:00Z -> In IST (+5:30) is 14:00 (2:00 PM) -> Active hours
+    const daytimeDate = new Date("2026-10-15T08:30:00.000Z");
+    expect(isQuietHours(daytimeDate)).toBe(false);
+
+    // 2026-10-15T01:00:00Z -> In IST (+5:30) is 06:30 (6:30 AM) -> Quiet hours
+    const earlyMorningDate = new Date("2026-10-15T01:00:00.000Z");
+    expect(isQuietHours(earlyMorningDate)).toBe(true);
+
+    // 2026-10-15T02:00:00Z -> In IST (+5:30) is 07:30 (7:30 AM) -> Active hours
+    const postQuietMorningDate = new Date("2026-10-15T02:00:00.000Z");
+    expect(isQuietHours(postQuietMorningDate)).toBe(false);
+  });
+
+  it("3.9: Scopes fan-out strictly to classes in examClassScopes when configured", async () => {
+    const runId = Math.random().toString(36).substring(2, 7);
+
+    // Create a new scoped exam with specific class scope in School A
+    let scopedExamId: string;
+    let scopedSetupId: string;
+
+    await withTenant(schoolA, async (tx) => {
+      const [scopedExam] = await tx
+        .insert(exams)
+        .values({
+          schoolId: schoolA,
+          academicYearId: ISOLATION_IDS.schoolA.academicYearId,
+          examTypeId: ISOLATION_IDS.schoolA.examTypeId,
+          name: `Scoped Exam ${runId}`,
+          startDate: new Date("2026-12-01"),
+          endDate: new Date("2026-12-10"),
+        })
+        .returning();
+      scopedExamId = scopedExam!.id;
+
+      // Add class scope to classId
+      await tx.insert(examClassScopes).values({
+        schoolId: schoolA,
+        examId: scopedExamId,
+        classId: ISOLATION_IDS.schoolA.classId,
+      });
+
+      const [scopedSetup] = await tx
+        .insert(reportCardSetups)
+        .values({
+          schoolId: schoolA,
+          academicYearId: ISOLATION_IDS.schoolA.academicYearId,
+          name: `Scoped Setup ${runId}`,
+          examWeightages: [{ examId: scopedExamId, weightPercent: 100 }],
+          createdById: ISOLATION_IDS.schoolA.adminUserId,
+        })
+        .returning();
+      scopedSetupId = scopedSetup!.id;
+    });
+
+    const res = await notifyResultReleased({
+      schoolId: schoolA,
+      setupId: scopedSetupId!,
+      triggeredById: ISOLATION_IDS.schoolA.adminUserId,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.pushSentCount).toBeGreaterThanOrEqual(1);
   });
 });
