@@ -78,7 +78,7 @@ describe("S12 Layer 1: Marks Entry Input Validation and Bounds Rules", () => {
     const parsed = saveMarkEntriesSchema.safeParse(payload);
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
-      expect(parsed.error.issues[0].message).toContain("Cannot save more than 500");
+      expect(parsed.error.issues[0]?.message).toContain("Cannot save more than 500");
     }
   });
 

@@ -14,6 +14,9 @@ import {
   markEntries,
   classSubjects,
   reportCards,
+  studentSubjectEnrollments,
+  examMarkDistributions,
+  examComponents,
 } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -25,7 +28,13 @@ import {
   rankSnapshots,
   calculateGrade,
   calculateRanks,
+  calculateComponentMarks,
+  UNENROLLED_SENTINEL,
+  ABSENT_GRADE,
+  MEDICAL_EXEMPT_GRADE,
+  FAIL_GRADE,
 } from "@/lib/gradeEngine";
+import { resolveGradeRules, gradeToClassGroup } from "@/lib/gradeRuleResolver";
 import { decryptData } from "@/lib/encryption";
 import { notifyResultReleased } from "@/lib/examNotifications";
 
@@ -287,30 +296,30 @@ export async function generateResultSnapshots(
     ),
   });
 
-  const rules = await db.query.gradeRules.findMany({
-    where: and(
-      eq(gradeRules.schoolId, school.id),
-      eq(gradeRules.classId, classId),
-    ),
-  });
+  const studentIds = classStudents.map((s) => s.id);
 
-  const activeRules = rules.length > 0
-    ? rules.map((r) => ({
-        minPercent: parseFloat(r.minPercent),
-        maxPercent: parseFloat(r.maxPercent),
-        grade: r.grade,
-        gradePoint: parseFloat(r.gradePoint),
-        description: r.description,
-      }))
-    : getCBSEDefaultRules();
+  // 1. Unified Grade Rules Resolution (Class -> ClassGroup -> CBSE Default)
+  const activeRules = await resolveGradeRules(
+    school.id,
+    classId,
+    gradeToClassGroup(classRecord.gradeLevel),
+  );
 
-  // 1. Gather all exams involved in this setup
+  // 2. Gather all exams involved in this setup
   const examWeightages =
     (setup.examWeightages as Array<{ examId: string; weightPercent: number }>) || [];
   const examIds = examWeightages.map((ew) => ew.examId);
 
-  // 2. Query schedules, marks, and class subjects
-  const [schedulesList, entriesList, classSubs] = await Promise.all([
+  // 3. Query schedules, marks, class subjects, student subject enrollments, distributions, components in parallel
+  const [
+    schedulesList,
+    entriesList,
+    classSubs,
+    enrollmentsList,
+    distributionsList,
+    componentsList,
+    existingSnapshots,
+  ] = await Promise.all([
     db.query.examSchedules.findMany({
       where: and(
         eq(examSchedules.schoolId, school.id),
@@ -319,15 +328,12 @@ export async function generateResultSnapshots(
       ),
       with: { subject: true },
     }),
-    classStudents.length > 0
+    studentIds.length > 0
       ? await db.query.markEntries.findMany({
           where: and(
             eq(markEntries.schoolId, school.id),
             examIds.length > 0 ? inArray(markEntries.examId, examIds) : undefined,
-            inArray(
-              markEntries.studentId,
-              classStudents.map((s) => s.id),
-            ),
+            inArray(markEntries.studentId, studentIds),
           ),
         })
       : [],
@@ -338,7 +344,96 @@ export async function generateResultSnapshots(
       ),
       with: { subject: true },
     }),
+    studentIds.length > 0
+      ? await db.query.studentSubjectEnrollments.findMany({
+          where: and(
+            eq(studentSubjectEnrollments.schoolId, school.id),
+            inArray(studentSubjectEnrollments.studentId, studentIds),
+            eq(studentSubjectEnrollments.enrollmentStatus, "ACTIVE"),
+            eq(studentSubjectEnrollments.isElectiveTaken, true),
+          ),
+        })
+      : [],
+    examIds.length > 0
+      ? await db.query.examMarkDistributions.findMany({
+          where: and(
+            eq(examMarkDistributions.schoolId, school.id),
+            eq(examMarkDistributions.classId, classId),
+            inArray(examMarkDistributions.examId, examIds),
+          ),
+        })
+      : [],
+    examIds.length > 0
+      ? await db.query.examComponents.findMany({
+          where: and(
+            eq(examComponents.schoolId, school.id),
+            inArray(examComponents.examId, examIds),
+          ),
+        })
+      : [],
+    studentIds.length > 0
+      ? await db.query.resultSnapshots.findMany({
+          where: and(
+            eq(resultSnapshots.schoolId, school.id),
+            eq(resultSnapshots.setupId, setupId),
+            eq(resultSnapshots.isCurrent, true),
+            inArray(resultSnapshots.studentId, studentIds),
+          ),
+        })
+      : [],
   ]);
+
+  // Component ID -> Name Map
+  const componentNamesMap = new Map<string, string>();
+  for (const comp of componentsList) {
+    componentNamesMap.set(comp.id, comp.displayName);
+  }
+
+  // Distribution Map by Component ID
+  const distributionMapByComponent = new Map<
+    string,
+    { maxMarks: number; passingMarks: number }
+  >();
+  for (const dist of distributionsList) {
+    if (dist.componentId) {
+      distributionMapByComponent.set(dist.componentId, {
+        maxMarks: parseFloat(dist.maxMarks) || 100,
+        passingMarks:
+          parseFloat(dist.passingMarks) ||
+          (parseFloat(dist.maxMarks) || 100) * 0.33,
+      });
+    }
+  }
+
+  // Distribution Subject Ceilings: subjectId -> { maxMarks, passingMarks, hasComponents }
+  const distributionSubjectMap = new Map<
+    string,
+    { maxMarks: number; passingMarks: number; hasComponents: boolean }
+  >();
+  for (const dist of distributionsList) {
+    const current = distributionSubjectMap.get(dist.subjectId);
+    const distMax = parseFloat(dist.maxMarks) || 100;
+    const distPass = parseFloat(dist.passingMarks) || distMax * 0.33;
+    if (dist.componentId) {
+      if (!current) {
+        distributionSubjectMap.set(dist.subjectId, {
+          maxMarks: distMax,
+          passingMarks: distPass,
+          hasComponents: true,
+        });
+      } else {
+        current.maxMarks += distMax;
+        current.passingMarks += distPass;
+        current.hasComponents = true;
+      }
+    } else if (!current) {
+      distributionSubjectMap.set(dist.subjectId, {
+        maxMarks: distMax,
+        passingMarks: distPass,
+        hasComponents: false,
+      });
+    }
+  }
 
   // Aggregate subjects for this class
   const classSubjectsMap = new Map<
@@ -349,44 +444,63 @@ export async function generateResultSnapshots(
       code?: string | null;
       maxMarks: number;
       passingMarks: number;
+      isElective: boolean;
+      classSubjectId: string;
     }
   >();
   for (const cs of classSubs) {
     if (cs.subject) {
+      const dist = distributionSubjectMap.get(cs.subject.id);
+      const subMax = dist ? dist.maxMarks : cs.subject.maxMarks || 100;
+      const subPass = dist ? dist.passingMarks : cs.subject.passingMarks || 33;
       classSubjectsMap.set(cs.subject.id, {
         id: cs.subject.id,
         name: cs.subject.name,
         code: cs.subject.code,
-        maxMarks: cs.subject.maxMarks || 100,
-        passingMarks: cs.subject.passingMarks || 33,
+        maxMarks: subMax,
+        passingMarks: subPass,
+        isElective: cs.isElective ?? false,
+        classSubjectId: cs.id,
       });
     }
   }
   for (const sc of schedulesList) {
     if (sc.subject && !classSubjectsMap.has(sc.subject.id)) {
+      const dist = distributionSubjectMap.get(sc.subject.id);
+      const scMax = dist ? dist.maxMarks : parseFloat(sc.maxMarks) || 100;
+      const scPass = dist ? dist.passingMarks : parseFloat(sc.passingMarks) || 33;
       classSubjectsMap.set(sc.subject.id, {
         id: sc.subject.id,
         name: sc.subject.name,
         code: sc.subject.code,
-        maxMarks: parseFloat(sc.maxMarks) || 100,
-        passingMarks: parseFloat(sc.passingMarks) || 33,
+        maxMarks: scMax,
+        passingMarks: scPass,
+        isElective: false,
+        classSubjectId: "",
       });
     }
   }
 
-  // Group marks by studentId -> subjectId -> totalObtained
-  const studentSubjectMarks = new Map<string, Map<string, number>>();
-  for (const entry of entriesList) {
-    if (!studentSubjectMarks.has(entry.studentId)) {
-      studentSubjectMarks.set(entry.studentId, new Map());
+  // Active Elective Enrollments: studentId -> Set of classSubjectId
+  const studentEnrollmentSet = new Map<string, Set<string>>();
+  for (const enr of enrollmentsList) {
+    if (!studentEnrollmentSet.has(enr.studentId)) {
+      studentEnrollmentSet.set(enr.studentId, new Set());
     }
-    const subMap = studentSubjectMarks.get(entry.studentId)!;
-    const current = subMap.get(entry.subjectId) || 0;
-    const num =
-      entry.marksObtained !== null && entry.marksObtained !== undefined
-        ? parseFloat(entry.marksObtained)
-        : 0;
-    subMap.set(entry.subjectId, current + num);
+    studentEnrollmentSet.get(enr.studentId)!.add(enr.classSubjectId);
+  }
+
+  // Group mark entries: studentId -> subjectId -> entry[]
+  const studentSubjectEntries = new Map<string, Map<string, typeof entriesList>>();
+  for (const entry of entriesList) {
+    if (!studentSubjectEntries.has(entry.studentId)) {
+      studentSubjectEntries.set(entry.studentId, new Map());
+    }
+    const subMap = studentSubjectEntries.get(entry.studentId)!;
+    if (!subMap.has(entry.subjectId)) {
+      subMap.set(entry.subjectId, []);
+    }
+    subMap.get(entry.subjectId)!.push(entry);
   }
 
   // Build intermediate student payload & scores
@@ -405,30 +519,149 @@ export async function generateResultSnapshots(
       : "";
     const fullName = `${firstName} ${lastName}`.trim();
 
-    const subMarks = studentSubjectMarks.get(st.id) || new Map<string, number>();
     const subjectsForSnapshot = Array.from(classSubjectsMap.values()).map(
       (sub) => {
-        const obtained = subMarks.get(sub.id) ?? 0;
-        const pct = sub.maxMarks > 0 ? (obtained / sub.maxMarks) * 100 : 0;
+        // Elective enrollment check (F2 closure)
+        if (sub.isElective) {
+          const enrolledClassSubIds = studentEnrollmentSet.get(st.id);
+          const isEnrolled = enrolledClassSubIds
+            ? enrolledClassSubIds.has(sub.classSubjectId)
+            : false;
+          if (!isEnrolled) {
+            return {
+              subjectId: sub.id,
+              subjectName: sub.name,
+              subjectCode: sub.code ?? null,
+              totalObtained: 0,
+              totalMax: 0,
+              percent: 0,
+              grade: UNENROLLED_SENTINEL,
+              gradePoint: 0,
+              isPassed: true,
+            };
+          }
+        }
+
+        const entries = studentSubjectEntries.get(st.id)?.get(sub.id) ?? [];
+        const compEntries = entries.filter((e) => e.componentId !== null);
+
+        // Component marks aggregation (F5 / D1 closure)
+        if (compEntries.length > 0) {
+          const compInputs = compEntries.map((ce) => {
+            const compDist = ce.componentId
+              ? distributionMapByComponent.get(ce.componentId)
+              : undefined;
+            const compMax =
+              parseFloat(ce.maxMarks) || compDist?.maxMarks || 100;
+            const compPass =
+              compDist?.passingMarks || compMax * 0.33;
+            return {
+              componentId: ce.componentId!,
+              componentName:
+                (ce.componentId
+                  ? componentNamesMap.get(ce.componentId)
+                  : undefined) ?? "Component",
+              marksObtained:
+                ce.marksObtained !== null ? parseFloat(ce.marksObtained) : null,
+              maxMarks: compMax,
+              passingMarks: compPass,
+              isAbsent: ce.isAbsent ?? false,
+              isExempt: ce.isMedicalExempt ?? false,
+            };
+          });
+
+          const compResult = calculateComponentMarks(compInputs, 33);
+          const gradeRes = calculateGrade(
+            {
+              marksObtained: compResult.totalObtained,
+              maxMarks: compResult.totalMax > 0 ? compResult.totalMax : sub.maxMarks,
+              isAbsent: compResult.isAbsent,
+              isMedicalExempt: compResult.isExempt,
+            },
+            activeRules,
+          );
+
+          return {
+            subjectId: sub.id,
+            subjectName: sub.name,
+            subjectCode: sub.code ?? null,
+            components: compResult.components.map((c) => ({
+              name: c.componentName ?? "Component",
+              obtained: c.marksObtained,
+              maxMarks: c.maxMarks,
+            })),
+            totalObtained: compResult.totalObtained,
+            totalMax: compResult.totalMax > 0 ? compResult.totalMax : sub.maxMarks,
+            percent: Number((compResult.percent ?? 0).toFixed(2)),
+            grade: compResult.isPassed
+              ? gradeRes.grade
+              : compResult.isAbsent
+              ? ABSENT_GRADE
+              : compResult.isExempt
+              ? MEDICAL_EXEMPT_GRADE
+              : FAIL_GRADE,
+            gradePoint: compResult.isPassed ? gradeRes.gradePoint : 0,
+            isPassed: compResult.isPassed,
+          };
+        }
+
+        // Single paper entry (F3 closure: flow isAbsent & isMedicalExempt)
+        const singleEntry =
+          entries.find((e) => e.componentId === null) ?? entries[0];
+        const isAbsent = singleEntry ? singleEntry.isAbsent ?? false : false;
+        const isMedicalExempt = singleEntry
+          ? singleEntry.isMedicalExempt ?? false
+          : false;
+        const isPracticalAbsent = singleEntry
+          ? singleEntry.isPracticalAbsent ?? false
+          : false;
+
+        const obtained =
+          singleEntry &&
+          singleEntry.marksObtained !== null &&
+          singleEntry.marksObtained !== undefined
+            ? parseFloat(singleEntry.marksObtained)
+            : isAbsent || isMedicalExempt
+            ? null
+            : 0;
+        const maxM = singleEntry
+          ? parseFloat(singleEntry.maxMarks) || sub.maxMarks
+          : sub.maxMarks;
+        const passM = sub.passingMarks;
+
         const gradeRes = calculateGrade(
           {
             marksObtained: obtained,
-            maxMarks: sub.maxMarks,
-            isAbsent: false,
-            isMedicalExempt: false,
+            maxMarks: maxM > 0 ? maxM : 100,
+            isAbsent,
+            isMedicalExempt,
+            isPracticalAbsent,
           },
           activeRules,
         );
-        const isSubPassed = obtained >= sub.passingMarks;
+
+        const isSubPassed =
+          isMedicalExempt ||
+          (!isAbsent &&
+            !isPracticalAbsent &&
+            obtained !== null &&
+            obtained >= passM);
+        const pct = maxM > 0 && obtained !== null ? (obtained / maxM) * 100 : 0;
 
         return {
           subjectId: sub.id,
           subjectName: sub.name,
           subjectCode: sub.code ?? null,
-          totalObtained: obtained,
-          totalMax: sub.maxMarks,
+          totalObtained: obtained ?? 0,
+          totalMax: maxM,
           percent: Number(pct.toFixed(2)),
-          grade: isSubPassed ? gradeRes.grade : "E",
+          grade: isSubPassed
+            ? gradeRes.grade
+            : isAbsent
+            ? ABSENT_GRADE
+            : isMedicalExempt
+            ? MEDICAL_EXEMPT_GRADE
+            : FAIL_GRADE,
           gradePoint: isSubPassed ? gradeRes.gradePoint : 0,
           isPassed: isSubPassed,
         };
@@ -470,22 +703,16 @@ export async function generateResultSnapshots(
   );
   const rankMap = new Map(ranks.map((r) => [r.studentId, r.rank]));
 
+  // Batch Snapshot Upsert (O(1) lookups instead of N+1 sequential DB queries)
+  const existingSnapshotMap = new Map(
+    existingSnapshots.map((s) => [s.studentId, s]),
+  );
   const createdSnapshots: Array<{ studentId: string }> = [];
 
   for (const item of intermediateList) {
     item.payload.summary.rank = rankMap.get(item.studentId) || 1;
 
-    // Check existing snapshot
-    const existing = await db.query.resultSnapshots.findFirst({
-      where: and(
-        eq(resultSnapshots.schoolId, school.id),
-        eq(resultSnapshots.setupId, setupId),
-        eq(resultSnapshots.studentId, item.studentId),
-        eq(resultSnapshots.isCurrent, true),
-      ),
-      orderBy: (t, { desc }) => [desc(t.version)],
-    });
-
+    const existing = existingSnapshotMap.get(item.studentId);
     const nextVersion = existing ? existing.version + 1 : 1;
 
     const [newSnapshot] = await db
