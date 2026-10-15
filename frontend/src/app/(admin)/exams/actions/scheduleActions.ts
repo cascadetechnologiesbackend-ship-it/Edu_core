@@ -11,6 +11,10 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
 import { notifyDatesheetPublished } from "@/lib/examNotifications";
+import {
+  syncDatesheetToCalendar,
+  removeDatesheetFromCalendar,
+} from "@/lib/examCalendarSync";
 import { z } from "zod";
 
 const ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
@@ -99,6 +103,16 @@ export async function deleteExamSchedule(scheduleId: string, examId?: string) {
     .delete(examSchedules)
     .where(and(eq(examSchedules.id, scheduleId), eq(examSchedules.schoolId, school.id)));
 
+  // S11 Layer 4: Remove deleted schedule from Academic Calendar
+  try {
+    await removeDatesheetFromCalendar({
+      schoolId: school.id,
+      scheduleIds: [scheduleId],
+    });
+  } catch (calErr) {
+    console.error("[deleteExamSchedule] Calendar removal error:", calErr);
+  }
+
   if (examId) {
     revalidatePath(`/exams/${examId}`);
   }
@@ -138,6 +152,55 @@ export async function publishDatesheet(scheduleIds: string[]) {
     });
   } catch (notifErr) {
     console.error("[publishDatesheet] Notification dispatch error:", notifErr);
+  }
+
+  // S11 Layer 4: Sync to Academic Calendar & Events
+  try {
+    await syncDatesheetToCalendar({
+      schoolId: school.id,
+      scheduleIds,
+      triggeredById: ctx.userId,
+    });
+  } catch (calErr) {
+    console.error("[publishDatesheet] Calendar sync error:", calErr);
+  }
+
+  revalidatePath("/exams/schedule");
+  revalidatePath("/portal/admit-cards");
+  return { success: true };
+}
+
+export async function unpublishDatesheet(scheduleIds: string[]) {
+  const ctx = await requireAuth(ADMIN_ROLES);
+  requireExamPermission(ctx.role, "exam.schedule.manage");
+  const school = await requireSchool(ctx);
+
+  if (!scheduleIds || scheduleIds.length === 0) {
+    return { success: false, message: "No schedules provided" };
+  }
+
+  await db
+    .update(examSchedules)
+    .set({
+      datesheetPublishedAt: null,
+      datesheetPublishedById: null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        inArray(examSchedules.id, scheduleIds),
+        eq(examSchedules.schoolId, school.id),
+      ),
+    );
+
+  // S11 Layer 4: Remove from Academic Calendar & Events
+  try {
+    await removeDatesheetFromCalendar({
+      schoolId: school.id,
+      scheduleIds,
+    });
+  } catch (calErr) {
+    console.error("[unpublishDatesheet] Calendar removal error:", calErr);
   }
 
   revalidatePath("/exams/schedule");
