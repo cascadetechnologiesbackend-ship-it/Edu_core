@@ -176,16 +176,16 @@ export async function GET() {
         { "name": "AUTH_URL", "value": "http://educore-alb-1749225371.ap-south-1.elb.amazonaws.com" },
         { "name": "NEXTAUTH_URL", "value": "http://educore-alb-1749225371.ap-south-1.elb.amazonaws.com" },
         { "name": "AUTH_TRUST_HOST", "value": "true" },
-        { "name": "AWS_REGION", "value": "ap-south-1" },
+        { "name": "AWS_REGION", "value": "ap-south-2" },
         { "name": "AWS_S3_BUCKET_NAME", "value": "educore-platform-storage-mumbai" },
-        { "name": "VALKEY_URL", "value": "valkeys://default:***@educore-valkey.c3e6ik.ap-south-1.cache.amazonaws.com:6379" },
+        { "name": "VALKEY_URL", "value": "valkeys://educore-valkey-efwyhh.serverless.aps2.cache.amazonaws.com:6379" },
         { "name": "REDIS_URL", "value": "redis://127.0.0.1:6379" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/educore-task",
-          "awslogs-region": "ap-south-1",
+          "awslogs-region": "ap-south-2",
           "awslogs-stream-prefix": "ecs"
         }
       }
@@ -200,12 +200,13 @@ export async function GET() {
 
 ### 5.1 Database Instance Specifications
 - **Instance Identifier**: `educore-postgres`
-- **Engine**: PostgreSQL 16.3
+- **Engine**: PostgreSQL 16.15
 - **Instance Class**: `db.t4g.micro` (AWS Graviton2 64-bit Arm processor, 2 vCPU, 1 GB RAM)
 - **Storage**: 20 GiB General Purpose SSD (`gp3`), 3,000 baseline IOPS, 125 MB/s throughput, Storage Auto-Scaling enabled up to 100 GiB.
 - **Master Username**: `postgres`
 - **Database Name**: `educore`
-- **Endpoint**: `educore-postgres.c3e6ik6w4c0u.ap-south-1.rds.amazonaws.com:5432`
+- **Region**: `ap-south-2` (Hyderabad)
+- **ARN**: `arn:aws:rds:ap-south-2:144911976586:db:educore-postgres`
 
 ### 5.2 Connection Pooling & Statement Timeouts
 To prevent database connection exhaustion and runaway slow queries, connection limits and statement timeouts are enforced at both the client and server levels:
@@ -219,18 +220,24 @@ To prevent database connection exhaustion and runaway slow queries, connection l
    - Long-running analytical reports and administrative batch jobs explicitly override timeouts up to `60,000 ms`.
    - SSL Verification: `rejectUnauthorized: false` configured for AWS RDS default certificate chain without requiring local cert bundles.
 
-### 5.3 Amazon ElastiCache for Valkey Tier (Cache, BullMQ Queues & Distributed Locks)
-- **Engine**: Valkey 7.2+ (Amazon ElastiCache for Valkey, fully protocol-compatible with RESP2/RESP3)
-- **Deployment Topology**: Replication Group with Multi-AZ automatic failover across `ap-south-1a` and `ap-south-1b`.
-- **Node Type**: `cache.t4g.micro` (Dev/Test) / `cache.m7g.large` (Production, AWS Graviton3, 64-bit Arm processor)
-- **Port & Transport Encryption**: Port `6379`, In-Transit Encryption (`TLS 1.2+` required), At-Rest Encryption (AWS KMS `aws/elasticache`), Token-Based Access Control (`--auth-token`).
+### 5.3 Amazon ElastiCache Serverless for Valkey Tier (Cache, BullMQ Queues & Distributed Locks)
+- **Cache Name**: `educore-valkey`
+- **Engine**: Valkey 7.2 (`valkey`, fully protocol-compatible with RESP2/RESP3)
+- **Deployment Model**: Amazon ElastiCache Serverless (Auto-scaling compute & storage with 99.99% multi-AZ SLA)
+- **Primary Endpoint**: `educore-valkey-efwyhh.serverless.aps2.cache.amazonaws.com:6379`
+- **Reader Endpoint**: `educore-valkey-efwyhh.serverless.aps2.cache.amazonaws.com:6380`
+- **ARN**: `arn:aws:elasticache:ap-south-2:144911976586:serverlesscache:educore-valkey`
+- **Region**: `ap-south-2` (Hyderabad)
+- **VPC Subnets**: `subnet-0587dcab47f393e37`, `subnet-041c8e3067b0ace53`, `subnet-007a26ba24fd2b61d`
+- **Security Group**: `sg-0289f60235c859cec` (Port 6379/6380 Inbound from application tasks)
+- **Transport Encryption**: TLS 1.2+ mandatory (`valkeys://` protocol scheme)
 - **Primary Roles & Capabilities**:
   1. **L5 Application Query & Session Cache**: Caches hot school tenant configuration, fee structures, exam blueprints, and attendance summaries.
   2. **BullMQ Background Job Queues**: Powers asynchronous processing for report card PDF generation, automated fee reminders, and DPDP compliance retention purges.
   3. **Atomic Rate Limiter & Circuit Breaker**: Atomic sliding-window rate limiting via EVAL Lua scripts, backed by a 30s client-side circuit breaker with in-memory fallback.
   4. **Distributed Locks**: Multi-task concurrency control preventing duplicate fee invoice generations and double payment reconciliations.
 - **Architectural Advantages over Redis OSS**:
-  - **33% Lower Pricing**: ElastiCache for Valkey is priced approximately 33% lower than legacy ElastiCache for Redis OSS nodes.
+  - **33% Lower Pricing**: ElastiCache Serverless for Valkey is priced ~33% lower than ElastiCache Serverless for Redis OSS.
   - **20% Higher Throughput**: Optimized vector search and multicore engine scaling.
   - **Open Source Governance**: Governed under the Linux Foundation with BSD-3-Clause license, avoiding restrictive SSPL/RSAL licensing.
   - **100% Wire Protocol Parity**: Native RESP2/RESP3 compatibility with port 6379, standard `ioredis` client with automatic `valkeys://` protocol translation.
