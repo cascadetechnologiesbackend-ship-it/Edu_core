@@ -29,6 +29,9 @@ export const examTypeEnum = pgEnum("exam_type_enum", [
   "INTERNAL_ASSESSMENT",
   "PRE_BOARD",
   "ACTIVITY",
+  "QUARTERLY",
+  "FORMATIVE",
+  "SUMMATIVE",
 ]);
 
 export const markEntryStatusEnum = pgEnum("mark_entry_status", [
@@ -71,6 +74,7 @@ export const examTypes = pgTable("exam_types", {
   name: text("name").notNull(),
   code: text("code").notNull(),
   examType: examTypeEnum("exam_type").notNull(),
+  applicableClassGroups: jsonb("applicable_class_groups"),
   weightagePercent: numeric("weightage_percent", { precision: 5, scale: 2 }),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })

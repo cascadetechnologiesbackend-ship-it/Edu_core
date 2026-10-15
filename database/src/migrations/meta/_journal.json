@@ -260,6 +260,13 @@
       "when": 1793200000000,
       "tag": "0036_examinations_new_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "5",
+      "when": 1793300000000,
+      "tag": "0037_board_exam_blueprint",
+      "breakpoints": true
     }
   ]
 }
