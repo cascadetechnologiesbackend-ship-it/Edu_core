@@ -26,7 +26,7 @@ import {
   setResultHold,
   configureResultSettings,
   issueTopperCertificate,
-} from "../actions";
+} from "../actions/resultActions";
 import Link from "next/link";
 
 export interface SnapshotItem {

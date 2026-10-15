@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { examTypes, academicYears } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createExam } from "../actions";
+import { createExam } from "../actions/setupActions";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

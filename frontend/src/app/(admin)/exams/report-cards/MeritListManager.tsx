@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { generateMeritList, issueTopperCertificate } from "../actions";
+import { generateMeritList, issueTopperCertificate } from "../actions/resultActions";
 
 interface ClassItem {
   id: string;

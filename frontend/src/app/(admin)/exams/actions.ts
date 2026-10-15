@@ -1,11 +1,5 @@
 "use server";
 
-export * from "./actions/setupActions";
-export * from "./actions/scheduleActions";
-export * from "./actions/admitCardActions";
-export * from "./actions/marksActions";
-export * from "./actions/resultActions";
-
 import { db } from "@/db";
 import { exams, reportCards, students } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";

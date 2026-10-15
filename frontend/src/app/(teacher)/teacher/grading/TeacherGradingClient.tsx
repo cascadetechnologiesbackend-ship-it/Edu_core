@@ -11,7 +11,7 @@ import {
   Users,
   Lock,
 } from "lucide-react";
-import { saveMarkEntries } from "@/app/(admin)/exams/actions";
+import { saveMarkEntries } from "@/app/(admin)/exams/actions/marksActions";
 
 type Allocation = {
   classId: string;

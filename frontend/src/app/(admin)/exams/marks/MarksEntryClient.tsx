@@ -20,7 +20,7 @@ import {
   saveMarkEntries,
   lockMarks,
   unlockMarks,
-} from "../actions";
+} from "../actions/marksActions";
 
 export interface ComponentCol {
   id: string;

@@ -7,7 +7,7 @@ import {
   deleteExamSchedule,
   publishDatesheet,
   setMarkDistribution,
-} from "../actions";
+} from "../actions/scheduleActions";
 import {
   Calendar,
   Clock,

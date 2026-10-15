@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   saveAdmitCardSettings,
   toggleAdmitCardHold,
-} from "../actions";
+} from "../actions/admitCardActions";
 import {
   FileCheck2,
   Calendar,

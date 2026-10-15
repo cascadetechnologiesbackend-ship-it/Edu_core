@@ -14,7 +14,7 @@ import {
   Layers,
   Sparkles,
 } from "lucide-react";
-import { createReportCardSetup } from "../../actions";
+import { createReportCardSetup } from "../../actions/resultActions";
 
 interface SetupBuilderClientProps {
   activeYear: { id: string; label: string };

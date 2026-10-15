@@ -6,7 +6,7 @@ import {
   createExamComponent,
   createCocurricularArea,
   saveClassSpecificGradeRule,
-} from "../actions";
+} from "../actions/setupActions";
 import {
   BookOpen,
   PlusCircle,
