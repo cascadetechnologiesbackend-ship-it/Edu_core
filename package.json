@@ -16,6 +16,8 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
+    "audit:exam-rbac": "node scripts/audit-exam-rbac.mjs",
+    "audit:unscoped-writes": "node scripts/audit-unscoped-writes.mjs",
     "prepare": "node -e \"if (process.env.NODE_ENV !== 'production') try { require('husky')() } catch {}\""
   },
   "dependencies": {

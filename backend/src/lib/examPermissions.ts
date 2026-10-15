@@ -14,7 +14,8 @@ export type ExamPermission =
   | "exam.marks.unlock"
   | "exam.result.publish"
   | "exam.result.view"
-  | "exam.analytics.view";
+  | "exam.analytics.view"
+  | "exam.usage.view";
 
 export const ALL_EXAM_PERMISSIONS: readonly ExamPermission[] = [
   "exam.dashboard.view",
@@ -28,6 +29,7 @@ export const ALL_EXAM_PERMISSIONS: readonly ExamPermission[] = [
   "exam.result.publish",
   "exam.result.view",
   "exam.analytics.view",
+  "exam.usage.view",
 ] as const;
 
 /**
@@ -115,10 +117,10 @@ export function requireExamPermission(
 export async function assertTeacherTeaches(params: {
   teacherId: string;
   schoolId: string;
-  role?: string;
-  classId?: string;
-  subjectId?: string;
-  sectionId?: string;
+  role?: string | undefined;
+  classId?: string | undefined;
+  subjectId?: string | undefined;
+  sectionId?: string | undefined;
 }): Promise<boolean> {
   const { teacherId, schoolId, role, classId, subjectId, sectionId } = params;
 
