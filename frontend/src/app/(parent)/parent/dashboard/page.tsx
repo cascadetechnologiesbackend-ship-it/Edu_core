@@ -579,7 +579,11 @@ export default async function ParentDashboardPage({
                 </span>
                 <div
                   className={`w-8 h-8 rounded-xl border flex items-center justify-center ${
-                    todayLog?.status === "PRESENT"
+                    todayLog?.source === "EXAM" && todayLog?.status === "ABSENT"
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                      : todayLog?.source === "EXAM" && todayLog?.status === "LEAVE"
+                      ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                      : todayLog?.status === "PRESENT"
                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                       : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                   }`}
@@ -589,17 +593,31 @@ export default async function ParentDashboardPage({
               </div>
               <div
                 className={`text-xl sm:text-2xl font-bold ${
-                  todayLog?.status === "PRESENT"
+                  todayLog?.source === "EXAM" && todayLog?.status === "ABSENT"
+                    ? "text-rose-400"
+                    : todayLog?.source === "EXAM" && todayLog?.status === "LEAVE"
+                    ? "text-purple-400"
+                    : todayLog?.status === "PRESENT"
                     ? "text-emerald-400"
                     : todayLog?.status === "ABSENT"
                     ? "text-rose-400"
                     : "text-amber-400"
                 }`}
               >
-                {todayLog?.status || "In Class"}
+                {todayLog?.source === "EXAM"
+                  ? todayLog.status === "ABSENT"
+                    ? "Exam Absent"
+                    : todayLog.status === "LEAVE"
+                    ? "Exam Exemption"
+                    : "Exam Present"
+                  : todayLog?.status || "In Class"}
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {todayLog ? "Marked by class teacher" : "Normal academic session"}
+              <p className="text-xs text-slate-400 mt-0.5 truncate">
+                {todayLog?.source === "EXAM"
+                  ? todayLog.remarks || "Examination session"
+                  : todayLog
+                  ? "Marked by class teacher"
+                  : "Normal academic session"}
               </p>
             </div>
 
@@ -923,15 +941,42 @@ export default async function ParentDashboardPage({
                         )}
                       </div>
                     </div>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        isPres
-                          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                          : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
-                      }`}
-                    >
-                      {log.status}
-                    </span>
+                    {log.source === "EXAM" ? (
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 ${
+                          log.status === "ABSENT"
+                            ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                            : log.status === "LEAVE"
+                            ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                            : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            log.status === "ABSENT"
+                              ? "bg-rose-400"
+                              : log.status === "LEAVE"
+                              ? "bg-purple-400"
+                              : "bg-emerald-400"
+                          }`}
+                        />
+                        {log.status === "ABSENT"
+                          ? "Exam Absent"
+                          : log.status === "LEAVE"
+                          ? "Exam Exemption"
+                          : "Exam Present"}
+                      </span>
+                    ) : (
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          isPres
+                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                        }`}
+                      >
+                        {log.status}
+                      </span>
+                    )}
                   </div>
                 );
               })}

@@ -8,8 +8,12 @@ import {
   resultSettings,
   reportCardSetups,
   schools,
+  studentAttendance,
+  classes,
+  subjects,
 } from "@/db/schema";
 import { BoardTermPlanCard } from "./BoardTermPlanCard";
+import { ExamAttendanceTrendCard, type ExamAttendanceMetricItem } from "./ExamAttendanceTrendCard";
 import { eq, and, sql, lte } from "drizzle-orm";
 import Link from "next/link";
 import {
@@ -70,6 +74,10 @@ export default async function ExamsDashboardPage() {
             totalSchedules: 0,
             lockedMarksCount: 0,
             releasedResultsCount: 0,
+            attendanceTrendMetrics: [],
+            totalAbsents: 0,
+            totalLeaves: 0,
+            totalPresent: 0,
           };
         }
 
@@ -80,6 +88,7 @@ export default async function ExamsDashboardPage() {
           releasedRes,
           schoolRow,
           examTypesCountRes,
+          examAttendanceRes,
         ] = await Promise.all([
           db.query.exams.findMany({
             where: and(
@@ -128,7 +137,58 @@ export default async function ExamsDashboardPage() {
             .where(
               and(eq(examTypes.schoolId, schoolId), eq(examTypes.isActive, true)),
             ),
+          db
+            .select({
+              status: studentAttendance.status,
+              examName: exams.name,
+              className: classes.displayName,
+              subjectName: subjects.name,
+              examDate: examSchedules.examDate,
+            })
+            .from(studentAttendance)
+            .leftJoin(
+              examSchedules,
+              eq(studentAttendance.examScheduleId, examSchedules.id),
+            )
+            .leftJoin(exams, eq(examSchedules.examId, exams.id))
+            .leftJoin(classes, eq(examSchedules.classId, classes.id))
+            .leftJoin(subjects, eq(examSchedules.subjectId, subjects.id))
+            .where(
+              and(
+                eq(studentAttendance.schoolId, schoolId),
+                eq(studentAttendance.source, "EXAM"),
+              ),
+            )
+            .limit(100),
         ]);
+
+        let totalAbsents = 0;
+        let totalLeaves = 0;
+        let totalPresent = 0;
+        const trendMap = new Map<string, ExamAttendanceMetricItem>();
+
+        for (const row of examAttendanceRes) {
+          if (row.status === "ABSENT") totalAbsents++;
+          else if (row.status === "LEAVE") totalLeaves++;
+          else if (row.status === "PRESENT") totalPresent++;
+
+          const key = `${row.examName || "Exam"}::${row.className || "Class"}::${row.subjectName || "Subject"}`;
+          const existing = trendMap.get(key) || {
+            examName: row.examName || "Exam",
+            className: row.className || "Class",
+            subjectName: row.subjectName || "Subject",
+            examDate: row.examDate ? String(row.examDate) : "Scheduled",
+            absentCount: 0,
+            leaveCount: 0,
+            presentCount: 0,
+          };
+
+          if (row.status === "ABSENT") existing.absentCount++;
+          else if (row.status === "LEAVE") existing.leaveCount++;
+          else if (row.status === "PRESENT") existing.presentCount++;
+
+          trendMap.set(key, existing);
+        }
 
         return {
           activeYear,
@@ -138,9 +198,13 @@ export default async function ExamsDashboardPage() {
           totalSchedules: Number(schedulesCountRes[0]?.count || 0),
           lockedMarksCount: Number(locksCountRes[0]?.count || 0),
           releasedResultsCount: Number(releasedRes[0]?.count || 0),
+          attendanceTrendMetrics: Array.from(trendMap.values()),
+          totalAbsents,
+          totalLeaves,
+          totalPresent,
         };
       },
-      { maxQueries: 8, label: "Exams Dashboard KPIs" },
+      { maxQueries: 10, label: "Exams Dashboard KPIs" },
     );
   });
 
@@ -152,6 +216,10 @@ export default async function ExamsDashboardPage() {
     totalSchedules,
     lockedMarksCount,
     releasedResultsCount,
+    attendanceTrendMetrics,
+    totalAbsents,
+    totalLeaves,
+    totalPresent,
   } = data;
 
   return (
@@ -357,6 +425,14 @@ export default async function ExamsDashboardPage() {
         hasExams={examsList.length > 0}
         hasBoardDefaults={hasBoardDefaults}
         activeYearLabel={activeYear?.label}
+      />
+
+      {/* S11 Layer 2: Guide Attendance Trend Chart */}
+      <ExamAttendanceTrendCard
+        metrics={attendanceTrendMetrics}
+        totalAbsents={totalAbsents}
+        totalLeaves={totalLeaves}
+        totalPresent={totalPresent}
       />
 
       {/* Active Exams Table */}

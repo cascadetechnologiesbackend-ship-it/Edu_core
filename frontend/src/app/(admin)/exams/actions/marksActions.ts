@@ -17,6 +17,7 @@ import {
   verifyClassOwnership,
   logExamIsolationViolation,
 } from "@/lib/examIsolation";
+import { syncExamAttendance } from "@/lib/examAttendanceSync";
 
 const GRADING_ROLES = [
   "SUPER_ADMIN",
@@ -166,6 +167,19 @@ export async function saveMarkEntries(input: {
       `);
     }
   }
+
+  // 4. Synchronize exam-day absenteeism to student_attendance (S11 Layer 2)
+  await syncExamAttendance({
+    schoolId: school.id,
+    examId: input.examId,
+    classId: input.classId,
+    subjectId: input.subjectId,
+    sectionId: input.sectionId ?? null,
+    markedById: ctx.userId,
+    userEmail: ctx.email,
+    userRole: ctx.role,
+    entries: input.entries,
+  });
 
   revalidatePath("/exams/marks");
   revalidatePath("/teacher/grading");
