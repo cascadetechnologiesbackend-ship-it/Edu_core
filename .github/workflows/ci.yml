@@ -161,6 +161,6 @@ jobs:
           push: false
           tags: schoolmitra/erp:ci-test
 
-      - name: Dependency Security Audit
-        run: pnpm audit --audit-level=high
-        continue-on-error: true
+      - name: Dependency Security Audit Gate (REL-AUDIT-007)
+        run: node scripts/audit-dependencies.mjs
+

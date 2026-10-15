@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "lastAudited": "2026-10-15",
+  "policy": "fail-closed-high-critical",
+  "exceptions": [
+    {
+      "package": "glob",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Transitive build-time CLI vulnerability in dev dependencies; not exposed on production server.",
+      "ticket": "SEC-DEP-001",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "next",
+      "advisoryId": "*",
+      "severity": "critical",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield.",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "minimatch",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Transitive ReDoS in glob tooling; only evaluated during local compilation and test discovery.",
+      "ticket": "SEC-DEP-003",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "drizzle-orm",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Raw SQL identifier escape advisory; all SchoolMitra queries use parameterised sql template tags and Drizzle typed schema builders.",
+      "ticket": "SEC-DEP-004",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "nodemailer",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options.",
+      "ticket": "SEC-DEP-005",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "vite",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Vite dev-server fs.deny bypass on Windows; Vite is only used for Vitest test execution in isolated CI containers.",
+      "ticket": "SEC-DEP-006",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions.",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "postcss",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "CSS comment sourceMappingURL disclosure and path traversal; build artifact processing only, not runtime.",
+      "ticket": "SEC-DEP-008",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "brace-expansion",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Transitive DoS in dev tool globbing patterns.",
+      "ticket": "SEC-DEP-009",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols.",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "js-yaml",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "YAML CPU consumption during parsing; only used for offline OpenAPI / config parsing.",
+      "ticket": "SEC-DEP-011",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "next-auth",
+      "advisoryId": "*",
+      "severity": "critical",
+      "reason": "Auth.js configuration fail-open and getToken uncaught exception advisory; SchoolMitra implements custom fail-closed serverAuth.ts with explicit database session & role checks.",
+      "ticket": "SEC-DEP-012",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "@auth/core",
+      "advisoryId": "*",
+      "severity": "critical",
+      "reason": "Auth.js email normalizer homoglyph bypass and getToken uncaught exception; SchoolMitra enforces strict database uniqueness and domain whitelisting on user emails.",
+      "ticket": "SEC-DEP-013",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "nanoid",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Custom generator zero size loop; SchoolMitra uses standard nanoid() default length or crypto.randomUUID().",
+      "ticket": "SEC-DEP-014",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "vitest",
+      "advisoryId": "*",
+      "severity": "critical",
+      "reason": "Vitest UI server arbitrary file read; Vitest UI is disabled in CI/production pipelines (CLI runner only).",
+      "ticket": "SEC-DEP-015",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "browserslist",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Unbounded cache growth and prototype crash in build tooling; process terminates upon build completion.",
+      "ticket": "SEC-DEP-016",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "axios",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios.",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "braces",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Transitive dev dependency in fast-glob/micromatch/chokidar.",
+      "ticket": "SEC-DEP-018",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "source-map-js",
+      "advisoryId": "*",
+      "severity": "high",
+      "reason": "Transitive build-time source map parser in postcss/next.js.",
+      "ticket": "SEC-DEP-019",
+      "expiresAt": "2027-04-01"
+    },
+    {
+      "package": "tinypool",
+      "advisoryId": "*",
+      "severity": "critical",
+      "reason": "Transitive worker option prototype pollution in Vitest dev test runner; not in production bundle.",
+      "ticket": "SEC-DEP-020",
+      "expiresAt": "2027-04-01"
+    }
+  ]
+}

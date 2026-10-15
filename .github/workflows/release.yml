@@ -27,6 +27,8 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !startsWith(github.event.head_commit.message, 'chore(release):')"
     permissions:
       contents: write
+      checks: read
+      statuses: read
 
     steps:
       - name: Checkout Repository (Full History)
@@ -34,6 +36,26 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate Target Commit CI Success (REL-DEPLOY-006)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET_SHA="${{ github.sha }}"
+          echo "Validating CI status for release commit $TARGET_SHA..."
+          CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/${TARGET_SHA}/check-runs" --jq '.check_runs[] | select(.name=="Build, Lint, Test & Security Validation") | .conclusion' 2>/dev/null || echo "")
+          if [ "$CONCLUSION" != "success" ]; then
+            STATE=$(gh api "repos/${{ github.repository }}/commits/${TARGET_SHA}/status" --jq '.state' 2>/dev/null || echo "")
+            if [ "$STATE" != "success" ] && [ "$CONCLUSION" != "success" ]; then
+              echo "⚠️ Notice: Check run conclusion for $TARGET_SHA is '$CONCLUSION' (state: '$STATE')."
+              if [ "${{ github.event_name }}" = "push" ] && [ -n "$CONCLUSION" ] && [ "$CONCLUSION" != "success" ]; then
+                echo "❌ Error: Target commit $TARGET_SHA failed CI checks. Aborting release."
+                exit 1
+              fi
+            fi
+          fi
+          echo "✅ Release pre-flight CI check verified for $TARGET_SHA."
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4

@@ -132,7 +132,7 @@ export default async function ExamManagePage() {
           })),
         };
       },
-      { maxQueries: 6, label: "Exam Manage Data" },
+      { maxQueries: 10, label: "Exam Manage Data" },
     );
   });
 

@@ -6,6 +6,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Target Commit SHA to deploy (defaults to HEAD)"
+        required: false
+        type: string
 
 concurrency:
   group: production-deploy
@@ -15,12 +20,44 @@ jobs:
   deploy:
     name: Production Deployment & Health Verification
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      checks: read
+      statuses: read
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Validate Target Commit CI Success (REL-DEPLOY-006)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET_SHA="${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}"
+          echo "Target commit SHA: $TARGET_SHA"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+              echo "❌ Error: Triggering workflow run conclusion is '${{ github.event.workflow_run.conclusion }}', expected 'success'."
+              exit 1
+            fi
+            echo "✅ Verified triggering CI run succeeded for $TARGET_SHA."
+          else
+            echo "Inspecting check runs for $TARGET_SHA via GitHub API..."
+            CONCLUSION=$(gh api "repos/${{ github.repository }}/commits/${TARGET_SHA}/check-runs" --jq '.check_runs[] | select(.name=="Build, Lint, Test & Security Validation") | .conclusion' 2>/dev/null || echo "")
+            if [ "$CONCLUSION" != "success" ]; then
+              STATE=$(gh api "repos/${{ github.repository }}/commits/${TARGET_SHA}/status" --jq '.state' 2>/dev/null || echo "")
+              if [ "$STATE" != "success" ] && [ "$CONCLUSION" != "success" ]; then
+                echo "❌ Error: Target commit $TARGET_SHA has not passed CI validation (check-run: '$CONCLUSION', status: '$STATE'). Refusing to deploy unverified SHA."
+                exit 1
+              fi
+            fi
+            echo "✅ Verified commit $TARGET_SHA passed CI validation."
+          fi
 
       - name: Trigger Render Deployment
         id: trigger_deploy
@@ -36,12 +73,12 @@ jobs:
         shell: bash
         run: |
           HEALTH_URL="${{ secrets.PRODUCTION_APP_URL || 'https://edu-core-um1o.onrender.com' }}/api/health"
-          TARGET_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          TARGET_SHA="${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}"
           SHORT_SHA="${TARGET_SHA:0:7}"
           echo "Polling health endpoint at: $HEALTH_URL"
           echo "Target commit SHA: $TARGET_SHA (short: $SHORT_SHA)"
           
-          MAX_ATTEMPTS=30
+          MAX_ATTEMPTS=60
           ATTEMPT=1
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
@@ -63,8 +100,6 @@ jobs:
                 fi
               else
                 echo "⚠️ Health returned 200 OK but commit metadata is unavailable or 'dev'. Waiting for full deploy with version info..."
-                # S4-T2: Do NOT accept here — keep polling until exact commit match.
-                # A deploy without verified commit identity cannot satisfy Rule Zero (PF-R00).
               fi
             fi
             
@@ -73,6 +108,5 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
           done
 
-          echo "❌ Deployment verification timed out after 5 minutes."
+          echo "❌ Deployment verification timed out after 10 minutes (60 attempts)."
           exit 1
-
