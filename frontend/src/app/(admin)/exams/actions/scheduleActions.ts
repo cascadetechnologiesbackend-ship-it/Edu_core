@@ -9,12 +9,16 @@ import {
 import { eq, and, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { requireExamPermission } from "@/lib/examPermissions";
+import { requireExamPermission, hasExamPermission } from "@/lib/examPermissions";
 import { notifyDatesheetPublished } from "@/lib/examNotifications";
 import {
   syncDatesheetToCalendar,
   removeDatesheetFromCalendar,
 } from "@/lib/examCalendarSync";
+import {
+  checkScheduleConflicts,
+  getAvailableInvigilators,
+} from "@/lib/timetableClashEngine";
 import { z } from "zod";
 
 const ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
@@ -29,6 +33,8 @@ const CreateScheduleSchema = z.object({
   maxMarks: z.number().positive("Max marks must be positive"),
   passingMarks: z.number().positive("Passing marks must be positive"),
   roomNumber: z.string().optional(),
+  invigilatorId: z.string().uuid().optional().nullable(),
+  overrideConflicts: z.boolean().optional(),
 });
 
 import {
@@ -57,6 +63,8 @@ export async function createExamSchedule(data: z.infer<typeof CreateScheduleSche
     maxMarks,
     passingMarks,
     roomNumber,
+    invigilatorId,
+    overrideConflicts,
   } = parsed.data;
 
   const examVerification = await verifyExamOwnership(school.id, examId, ctx, "createExamSchedule");
@@ -67,6 +75,32 @@ export async function createExamSchedule(data: z.infer<typeof CreateScheduleSche
   const classVerification = await verifyClassOwnership(school.id, classId, ctx, "createExamSchedule");
   if (!classVerification.success) {
     return { success: false, error: classVerification.error, message: classVerification.message };
+  }
+
+  // S11 Layer 5: Timetable clash detection
+  const conflictReport = await checkScheduleConflicts({
+    schoolId: school.id,
+    examId,
+    classId,
+    subjectId,
+    examDate,
+    startTime,
+    durationMinutes,
+    roomNumber: roomNumber ?? null,
+    invigilatorId: invigilatorId ?? null,
+  });
+
+  if (conflictReport.hasConflict) {
+    if (!overrideConflicts) {
+      return {
+        success: false,
+        conflictError: true,
+        conflicts: conflictReport.conflicts,
+        canOverride: hasExamPermission(ctx.role, "exam.schedule.conflict.override"),
+        message: "Timetable conflicts detected.",
+      };
+    }
+    requireExamPermission(ctx.role, "exam.schedule.conflict.override");
   }
 
   const [schedule] = await db
@@ -82,6 +116,7 @@ export async function createExamSchedule(data: z.infer<typeof CreateScheduleSche
       maxMarks: maxMarks.toFixed(2),
       passingMarks: passingMarks.toFixed(2),
       roomNumber: roomNumber ?? null,
+      invigilatorId: invigilatorId ?? null,
     })
     .returning();
 
@@ -270,4 +305,51 @@ export async function setMarkDistribution(input: {
 
   revalidatePath("/exams/schedule");
   return { success: true };
+}
+
+export async function checkScheduleConflictsAction(data: {
+  scheduleId?: string;
+  examId: string;
+  classId: string;
+  subjectId: string;
+  examDate: string;
+  startTime: string;
+  durationMinutes: number;
+  roomNumber?: string | null;
+  invigilatorId?: string | null;
+}) {
+  const ctx = await requireAuth(ADMIN_ROLES);
+  requireExamPermission(ctx.role, "exam.schedule.manage");
+  const school = await requireSchool(ctx);
+
+  const report = await checkScheduleConflicts({
+    ...data,
+    schoolId: school.id,
+  });
+
+  return {
+    success: true,
+    hasConflict: report.hasConflict,
+    conflicts: report.conflicts,
+    canOverride: hasExamPermission(ctx.role, "exam.schedule.conflict.override"),
+  };
+}
+
+export async function getAvailableInvigilatorsAction(params: {
+  examDate: string;
+  startTime: string;
+  durationMinutes: number;
+}) {
+  const ctx = await requireAuth(ADMIN_ROLES);
+  requireExamPermission(ctx.role, "exam.schedule.manage");
+  const school = await requireSchool(ctx);
+
+  const invigilators = await getAvailableInvigilators(
+    school.id,
+    params.examDate,
+    params.startTime,
+    params.durationMinutes,
+  );
+
+  return { success: true, invigilators };
 }

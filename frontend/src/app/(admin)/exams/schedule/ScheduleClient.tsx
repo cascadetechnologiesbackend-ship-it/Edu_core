@@ -126,6 +126,33 @@ export function ScheduleClient({
         setMessage({ text: "✓ Timetable schedule entry added!", type: "success" });
         setShowAddModal(false);
         router.refresh();
+      } else if (res.conflictError) {
+        const conflictMsgs = (res.conflicts || []).map((c: any) => c.message).join("\n• ");
+        const overridePrompt = res.canOverride
+          ? `Timetable Clash Detected:\n• ${conflictMsgs}\n\nDo you wish to override this clash with administrative permission?`
+          : `Timetable Clash Detected:\n• ${conflictMsgs}`;
+
+        if (res.canOverride && confirm(overridePrompt)) {
+          const overrideRes = await createExamSchedule({
+            examId: selectedExamId,
+            classId: formClassId,
+            subjectId: formSubjectId,
+            examDate: formDate,
+            startTime: formTime,
+            durationMinutes: parseInt(formDuration, 10) || 180,
+            maxMarks: parseFloat(formMaxMarks) || 100,
+            passingMarks: parseFloat(formPassMarks) || 33,
+            ...(formRoom.trim() ? { roomNumber: formRoom.trim() } : {}),
+            overrideConflicts: true,
+          });
+          if (overrideRes.success) {
+            setMessage({ text: "✓ Schedule entry saved with conflict override acknowledgment.", type: "success" });
+            setShowAddModal(false);
+            router.refresh();
+            return;
+          }
+        }
+        setMessage({ text: `✗ Schedule Conflict: ${(res.conflicts || []).map((c: any) => c.message).join("; ")}`, type: "error" });
       } else {
         setMessage({ text: `✗ ${res.message || "Failed to create schedule"}`, type: "error" });
       }
