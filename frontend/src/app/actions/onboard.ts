@@ -22,6 +22,8 @@ import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 import { encryptData, computeSearchHash } from "@/lib/encryption";
+import { seedExamBoardDefaults } from "@/lib/examSeeding";
+import { deriveClassGroupsFromClasses, SchoolBoard, GradingScale } from "@/lib/examBoardBlueprints";
 
 export interface ClassSetupItem {
   gradeLevel: string;
@@ -71,6 +73,7 @@ export interface ComprehensiveOnboardPayload {
   // 5. Fee Heads & Grading
   feeHeadsSetup: FeeHeadSetupItem[];
   gradingScale?: "CBSE_9_POINT" | "PERCENTAGE" | "GPA";
+  loadExamDefaults?: boolean;
 
   // 6. Admin Credentials
   adminName: string;
@@ -100,10 +103,17 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
       classesSetup = [],
       subjectsSetup = [],
       feeHeadsSetup = [],
+      gradingScale,
+      loadExamDefaults = true,
       adminName,
       adminEmail,
       adminPassword,
     } = payload;
+
+    const validBoards: readonly SchoolBoard[] = ["CBSE", "ICSE", "STATE_BOARD", "IGCSE", "IB"];
+    const resolvedBoard: SchoolBoard = validBoards.includes(board as any) ? (board as SchoolBoard) : "CBSE";
+    const validScales: readonly GradingScale[] = ["CBSE_9_POINT", "PERCENTAGE", "GPA"];
+    const resolvedScale: GradingScale | undefined = gradingScale && validScales.includes(gradingScale as any) ? gradingScale : undefined;
 
     if (!schoolName || !udiseCode || !adminEmail || !adminPassword) {
       return { success: false, message: "Required fields missing." };
@@ -234,6 +244,19 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
             });
           }
         }
+      }
+
+      // 3.5. Seed Examination Board Blueprint Defaults (Sprint S9)
+      let examSeedResult = { insertedExamTypes: 0, insertedGradeRules: 0, insertedCocurricular: 0, skipped: 0 };
+      if (loadExamDefaults !== false) {
+        const activeClassGroups = deriveClassGroupsFromClasses(sortedClasses);
+        examSeedResult = await seedExamBoardDefaults(
+          newSchool.id,
+          resolvedBoard,
+          resolvedScale,
+          tx,
+          { activeClassGroups },
+        );
       }
 
       // 4. Create Subjects
@@ -476,11 +499,16 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         }
       }
 
+      const examMsg = loadExamDefaults !== false
+        ? `, and ${examSeedResult.insertedExamTypes} exam types (${examSeedResult.insertedGradeRules} grade rules)`
+        : "";
+
       return {
         success: true,
-        message: `School '${schoolName}' onboarded successfully! ${sortedClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, and 4 salary templates provisioned under tenant ${udiseCode}.`,
+        message: `School '${schoolName}' onboarded successfully! ${sortedClasses.length} classes, ${defaultSubjects.length} subjects, ${defaultFeeHeads.length} fee heads, ${standardDepartments.length} departments, 4 salary templates${examMsg} provisioned under tenant ${udiseCode}.`,
         schoolId: newSchool.id,
         adminEmail,
+        examSeedResult,
       };
     });
   } catch (err: any) {
