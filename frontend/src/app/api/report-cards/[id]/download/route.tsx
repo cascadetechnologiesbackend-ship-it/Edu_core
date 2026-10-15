@@ -43,6 +43,10 @@ export async function GET(
     const isSuperAdmin = userRole === "SUPER_ADMIN";
     const userSchoolId = session.user.schoolId;
 
+    if (!isSuperAdmin && (!userSchoolId || typeof userSchoolId !== "string")) {
+      return NextResponse.json({ error: "Forbidden: tenant school scope required" }, { status: 403 });
+    }
+
     // 1. Try finding in result_snapshots (S8)
     const snapshot = await db.query.resultSnapshots.findFirst({
       where: eq(resultSnapshots.id, params.id),
@@ -51,7 +55,7 @@ export async function GET(
 
     if (snapshot) {
       // Strict cross-tenant boundary
-      if (!isSuperAdmin && userSchoolId && snapshot.schoolId !== userSchoolId) {
+      if (!isSuperAdmin && snapshot.schoolId !== userSchoolId) {
         await logExamIsolationViolation({
           schoolId: userSchoolId,
           userId: session.user.id,
@@ -240,7 +244,7 @@ export async function GET(
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
     // Strict cross-tenant boundary: staff must belong to the report card's school
-    if (!isSuperAdmin && userSchoolId && reportCard.schoolId !== userSchoolId) {
+    if (!isSuperAdmin && reportCard.schoolId !== userSchoolId) {
       await logExamIsolationViolation({
         schoolId: userSchoolId,
         userId: session.user.id,

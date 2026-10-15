@@ -96,7 +96,10 @@ export async function POST(req: Request) {
     // Tenant boundary check
     const userSchoolId = (session.user as any).schoolId;
     const isSuperAdmin = session.user.role === "SUPER_ADMIN";
-    if (!isSuperAdmin && userSchoolId && invoice.schoolId !== userSchoolId) {
+    if (!isSuperAdmin && (!userSchoolId || typeof userSchoolId !== "string")) {
+      return NextResponse.json({ error: "Forbidden: tenant school scope required" }, { status: 403 });
+    }
+    if (!isSuperAdmin && invoice.schoolId !== userSchoolId) {
       return NextResponse.json({ error: "Forbidden: cross-tenant access denied" }, { status: 403 });
     }
 

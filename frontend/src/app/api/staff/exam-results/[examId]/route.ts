@@ -33,24 +33,69 @@ export async function GET(
     const userSchoolId = (session.user as any).schoolId;
     const isSuperAdmin = role === "SUPER_ADMIN";
 
-    // 1. Fetch exam record
+    // SEC-API-003: Require valid tenant school context for non-super-admin requests
+    if (!isSuperAdmin && (!userSchoolId || typeof userSchoolId !== "string")) {
+      return NextResponse.json(
+        { error: "Forbidden: tenant school scope required for staff examination access" },
+        { status: 403 },
+      );
+    }
+
+    // 1. Fetch exam record scoped strictly by authorized tenant
+    const examConditions = [eq(exams.id, params.examId)];
+    if (!isSuperAdmin) {
+      examConditions.push(eq(exams.schoolId, userSchoolId));
+    }
+
     const exam = await db.query.exams.findFirst({
-      where: eq(exams.id, params.examId),
+      where: and(...examConditions),
     });
 
-    // Uniform 404 if not found OR if belonging to a different tenant (zero cross-tenant disclosure)
-    if (!exam || (!isSuperAdmin && userSchoolId && exam.schoolId !== userSchoolId)) {
+    // Uniform 404 if not found in authorized school (zero cross-tenant disclosure)
+    if (!exam) {
+      // Check if foreign exam exists to record security audit violation
+      if (!isSuperAdmin && userSchoolId) {
+        try {
+          const foreignExam = await db.query.exams.findFirst({
+            where: eq(exams.id, params.examId),
+          });
+          if (foreignExam && foreignExam.schoolId !== userSchoolId) {
+            await db.insert(auditLogs).values({
+              userId: session.user.id,
+              userEmail: session.user.email || "staff@schoolmitra.internal",
+              userRole: role,
+              schoolId: userSchoolId,
+              action: "READ",
+              tableName: "exams",
+              recordId: params.examId,
+              purposeId: "cross_tenant_violation",
+              ipAddress: "127.0.0.1",
+              userAgent: "StaffAPI",
+              metadata: {
+                event: "CROSS_TENANT_EXAM_RESULTS_ACCESS_ATTEMPT",
+                attemptedExamId: params.examId,
+                attemptedSchoolId: foreignExam.schoolId,
+                actorSchoolId: userSchoolId,
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
+        } catch {}
+      }
+
       return NextResponse.json(
         { error: "Exam not found" },
         { status: 404 },
       );
     }
 
+    const effectiveSchoolId = exam.schoolId;
+
     // 2. Teacher-specific subject assignment boundary
     if (role === "TEACHER") {
       const isAssigned = await assertTeacherTeaches({
         teacherId: session.user.id,
-        schoolId: exam.schoolId,
+        schoolId: effectiveSchoolId,
         role: "TEACHER",
         classId,
         subjectId,
@@ -63,7 +108,7 @@ export async function GET(
             userId: session.user.id,
             userEmail: session.user.email || "teacher@schoolmitra.internal",
             userRole: "TEACHER",
-            schoolId: exam.schoolId,
+            schoolId: effectiveSchoolId,
             action: "READ",
             tableName: "mark_entries",
             recordId: params.examId,
@@ -87,10 +132,10 @@ export async function GET(
       }
     }
 
-    // 3. Query marks scoped strictly to exam and school
+    // 3. Query marks scoped strictly to exam and authorized school
     const marksConditions = [
       eq(markEntries.examId, params.examId),
-      eq(markEntries.schoolId, exam.schoolId),
+      eq(markEntries.schoolId, effectiveSchoolId),
     ];
     if (subjectId) {
       marksConditions.push(eq(markEntries.subjectId, subjectId));
@@ -104,15 +149,22 @@ export async function GET(
     const studentIds = Array.from(new Set(marks.map((m) => m.studentId)));
     const subjectIds = Array.from(new Set(marks.map((m) => m.subjectId)));
 
+    // Scope referenced students and subjects strictly to effectiveSchoolId
     const [studentsList, subjectsList] = await Promise.all([
       studentIds.length > 0
         ? db.query.students.findMany({
-            where: inArray(students.id, studentIds),
+            where: and(
+              inArray(students.id, studentIds),
+              eq(students.schoolId, effectiveSchoolId),
+            ),
           })
         : [],
       subjectIds.length > 0
         ? db.query.subjects.findMany({
-            where: inArray(subjects.id, subjectIds),
+            where: and(
+              inArray(subjects.id, subjectIds),
+              eq(subjects.schoolId, effectiveSchoolId),
+            ),
           })
         : [],
     ]);

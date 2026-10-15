@@ -47,8 +47,12 @@ export async function GET(
     const isSuperAdmin = userRole === "SUPER_ADMIN";
     const userSchoolId = session.user.schoolId;
 
+    if (!isSuperAdmin && (!userSchoolId || typeof userSchoolId !== "string")) {
+      return NextResponse.json({ error: "Forbidden: tenant school scope required" }, { status: 403 });
+    }
+
     // Strict cross-tenant boundary: staff must belong to the certificate's school
-    if (!isSuperAdmin && userSchoolId && cert.schoolId !== userSchoolId) {
+    if (!isSuperAdmin && cert.schoolId !== userSchoolId) {
       return NextResponse.json({ error: "Forbidden: cross-tenant access denied" }, { status: 403 });
     }
 

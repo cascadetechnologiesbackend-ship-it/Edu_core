@@ -61,7 +61,10 @@ export async function POST(req: Request) {
 
     const userSchoolId = (session.user as any).schoolId;
     const isSuperAdmin = session.user.role === "SUPER_ADMIN";
-    if (!isSuperAdmin && userSchoolId && exam.schoolId !== userSchoolId) {
+    if (!isSuperAdmin && (!userSchoolId || typeof userSchoolId !== "string")) {
+      return NextResponse.json({ error: "Forbidden: tenant school scope required" }, { status: 403 });
+    }
+    if (!isSuperAdmin && exam.schoolId !== userSchoolId) {
       return NextResponse.json({ error: "Forbidden: exam does not belong to your school" }, { status: 403 });
     }
 
@@ -72,7 +75,7 @@ export async function POST(req: Request) {
     if (!classRecord)
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
 
-    if (!isSuperAdmin && userSchoolId && classRecord.schoolId !== userSchoolId) {
+    if (!isSuperAdmin && classRecord.schoolId !== userSchoolId) {
       return NextResponse.json({ error: "Forbidden: class does not belong to your school" }, { status: 403 });
     }
 
@@ -173,7 +176,10 @@ export async function GET(req: Request) {
 
     const userSchoolId = (session.user as any).schoolId;
     const isSuperAdmin = session.user.role === "SUPER_ADMIN";
-    if (!isSuperAdmin && userSchoolId && exam.schoolId !== userSchoolId) {
+    if (!isSuperAdmin && (!userSchoolId || typeof userSchoolId !== "string")) {
+      return NextResponse.json({ error: "Forbidden: tenant school scope required" }, { status: 403 });
+    }
+    if (!isSuperAdmin && exam.schoolId !== userSchoolId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
