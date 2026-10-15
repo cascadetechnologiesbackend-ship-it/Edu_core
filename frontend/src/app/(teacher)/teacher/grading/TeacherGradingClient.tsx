@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Award,
   Save,
@@ -40,6 +41,8 @@ type StudentGrade = {
 interface TeacherGradingClientProps {
   exams: ExamOption[];
   allocations: Allocation[];
+  initialExamId?: string;
+  initialAllocIndex?: number;
   initialStudents: StudentGrade[];
   locksMap?: Record<string, boolean>;
 }
@@ -47,11 +50,18 @@ interface TeacherGradingClientProps {
 export default function TeacherGradingClient({
   exams,
   allocations,
+  initialExamId,
+  initialAllocIndex = 0,
   initialStudents,
   locksMap = {},
 }: TeacherGradingClientProps) {
-  const [selectedExamId, setSelectedExamId] = useState(exams[0]?.id || "");
-  const [selectedAllocIndex, setSelectedAllocIndex] = useState(0);
+  const router = useRouter();
+  const [selectedExamId, setSelectedExamId] = useState(
+    initialExamId || exams[0]?.id || "",
+  );
+  const [selectedAllocIndex, setSelectedAllocIndex] = useState(
+    initialAllocIndex ?? 0,
+  );
   const [students, setStudents] = useState<StudentGrade[]>(initialStudents);
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -59,7 +69,34 @@ export default function TeacherGradingClient({
     text: string;
   } | null>(null);
 
+  useEffect(() => {
+    if (initialExamId) setSelectedExamId(initialExamId);
+    if (initialAllocIndex !== undefined) setSelectedAllocIndex(initialAllocIndex);
+    setStudents(initialStudents);
+  }, [initialExamId, initialAllocIndex, initialStudents]);
+
   const currentAlloc = allocations[selectedAllocIndex] || allocations[0];
+
+  const handleExamChange = (newExamId: string) => {
+    setSelectedExamId(newExamId);
+    setFeedback(null);
+    if (currentAlloc) {
+      router.push(
+        `/teacher/grading?examId=${newExamId}&classId=${currentAlloc.classId}&subjectId=${currentAlloc.subjectId}`,
+      );
+    }
+  };
+
+  const handleAllocChange = (newIndex: number) => {
+    setSelectedAllocIndex(newIndex);
+    setFeedback(null);
+    const alloc = allocations[newIndex];
+    if (alloc) {
+      router.push(
+        `/teacher/grading?examId=${selectedExamId}&classId=${alloc.classId}&subjectId=${alloc.subjectId}`,
+      );
+    }
+  };
 
   const lockKey = `${selectedExamId}-${currentAlloc?.classId}-${currentAlloc?.subjectId}`;
   const isLocked = Boolean(locksMap[lockKey]);
@@ -151,10 +188,7 @@ export default function TeacherGradingClient({
             <div className="relative">
               <select
                 value={selectedExamId}
-                onChange={(e) => {
-                  setSelectedExamId(e.target.value);
-                  setFeedback(null);
-                }}
+                onChange={(e) => handleExamChange(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-purple-500 appearance-none pr-8"
               >
                 {exams.length === 0 ? (
@@ -179,10 +213,7 @@ export default function TeacherGradingClient({
             <div className="relative">
               <select
                 value={selectedAllocIndex}
-                onChange={(e) => {
-                  setSelectedAllocIndex(parseInt(e.target.value, 10));
-                  setFeedback(null);
-                }}
+                onChange={(e) => handleAllocChange(parseInt(e.target.value, 10))}
                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-purple-500 appearance-none pr-8"
               >
                 {allocations.map((alloc, idx) => (

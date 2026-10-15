@@ -43,6 +43,7 @@ import {
   CheckCircle,
   Info,
   Navigation,
+  Sparkles,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -437,6 +438,12 @@ export default async function DashboardPage() {
       href: string;
       urgency: "warning" | "danger" | "info";
     }>;
+    examLifecycle?: {
+      pendingMarksLocks: number;
+      activeAdmitCardExams: number;
+      releasedResultExams: number;
+      ongoingExams: number;
+    };
   }
 
   // Measure data phase with Server-Timing p95 budget (PF-R00 / PF-R80)
@@ -452,6 +459,12 @@ export default async function DashboardPage() {
         outstandingDuesStr: "₹0",
         outstandingSubtext: "No outstanding dues",
         pendingTasks: [],
+        examLifecycle: {
+          pendingMarksLocks: 0,
+          activeAdmitCardExams: 0,
+          releasedResultExams: 0,
+          ongoingExams: 0,
+        },
       };
     }
 
@@ -477,13 +490,17 @@ export default async function DashboardPage() {
         ),
       }),
 
-      // Query 2: Consolidated Rollup Counts (students, admissions, leaves, rights) in 1 roundtrip
+      // Query 2: Consolidated Rollup Counts (students, admissions, leaves, rights, exam lifecycle) in 1 roundtrip
       db.execute(sql`
         SELECT 
           (SELECT count(*) FROM students WHERE school_id = ${schoolId})::int as total_students,
           (SELECT count(*) FROM admission_applications WHERE school_id = ${schoolId} AND status IN ('APPLIED', 'SCREENING'))::int as pending_admissions,
           (SELECT count(*) FROM leave_requests WHERE school_id = ${schoolId} AND status = 'PENDING')::int as pending_leaves,
-          (SELECT count(*) FROM rights_requests WHERE school_id = ${schoolId} AND status IN ('SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'))::int as pending_rights
+          (SELECT count(*) FROM rights_requests WHERE school_id = ${schoolId} AND status IN ('SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'))::int as pending_rights,
+          (SELECT count(*) FROM exam_marks_locks WHERE school_id = ${schoolId} AND status = 'SUBMITTED')::int as pending_marks_locks,
+          (SELECT count(*) FROM exams WHERE school_id = ${schoolId} AND deleted_at IS NULL AND admit_cards_released = true)::int as active_admit_card_exams,
+          (SELECT count(*) FROM exams WHERE school_id = ${schoolId} AND deleted_at IS NULL AND results_released = true)::int as released_result_exams,
+          (SELECT count(*) FROM exams WHERE school_id = ${schoolId} AND deleted_at IS NULL AND start_date <= NOW() AND end_date >= NOW())::int as ongoing_exams
       `),
 
       // Query 3: Today's Student Attendance Grouped by Status
@@ -536,6 +553,10 @@ export default async function DashboardPage() {
     const pendingAdmissionsCount = Number(countsRow.pending_admissions || 0);
     const pendingLeavesCount = Number(countsRow.pending_leaves || 0);
     const pendingRightsCount = Number(countsRow.pending_rights || 0);
+    const pendingMarksLocksCount = Number(countsRow.pending_marks_locks || 0);
+    const activeAdmitCardExamsCount = Number(countsRow.active_admit_card_exams || 0);
+    const releasedResultExamsCount = Number(countsRow.released_result_exams || 0);
+    const ongoingExamsCount = Number(countsRow.ongoing_exams || 0);
 
     // Compute attendance metrics
     let totalMarkedToday = 0;
@@ -587,6 +608,14 @@ export default async function DashboardPage() {
       urgency: "warning" | "danger" | "info";
     }> = [];
 
+    if (pendingMarksLocksCount > 0) {
+      pendingTasksList.push({
+        label: `${pendingMarksLocksCount} class-subject marks submission${pendingMarksLocksCount === 1 ? "" : "s"} awaiting final lock`,
+        href: "/exams/marks",
+        urgency: "warning",
+      });
+    }
+
     if (pendingAdmissionsCount > 0) {
       pendingTasksList.push({
         label: `${pendingAdmissionsCount} admission application${pendingAdmissionsCount === 1 ? "" : "s"} pending review`,
@@ -629,6 +658,12 @@ export default async function DashboardPage() {
       outstandingDuesStr,
       outstandingSubtext,
       pendingTasks: pendingTasksList,
+      examLifecycle: {
+        pendingMarksLocks: pendingMarksLocksCount,
+        activeAdmitCardExams: activeAdmitCardExamsCount,
+        releasedResultExams: releasedResultExamsCount,
+        ongoingExams: ongoingExamsCount,
+      },
     };
 
     // Store in S2 Cache with jittered 5-min TTL
@@ -833,6 +868,91 @@ export default async function DashboardPage() {
               </p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Examination Lifecycle Command Card */}
+      <div className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 uppercase tracking-wide">
+                  Cross-Module Engine
+                </span>
+                <span className="text-xs text-muted-foreground font-semibold">
+                  Examination Lifecycle &amp; Release Control
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-foreground mt-0.5">
+                Active Assessment Operations
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href="/exams/schedule"
+              className="px-3.5 py-1.5 rounded-xl border border-border bg-muted/60 hover:bg-muted text-foreground text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <CalendarCheck className="w-3.5 h-3.5 text-indigo-500" />
+              Datesheets
+            </a>
+            <a
+              href="/exams/marks"
+              className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              Review Marks
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/80">
+          <div className="p-3 rounded-xl bg-muted/40 border border-border">
+            <span className="text-[11px] text-muted-foreground font-medium block">
+              Ongoing Exam Cycles
+            </span>
+            <strong className="text-base font-bold text-foreground mt-0.5 block">
+              {summary.examLifecycle?.ongoingExams || 0}
+            </strong>
+            <span className="text-[10px] text-muted-foreground">Active in school calendar</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/40 border border-border">
+            <span className="text-[11px] text-muted-foreground font-medium block">
+              Marks Awaiting Lock
+            </span>
+            <strong className={`text-base font-bold mt-0.5 block ${
+              (summary.examLifecycle?.pendingMarksLocks || 0) > 0 ? "text-amber-500" : "text-foreground"
+            }`}>
+              {summary.examLifecycle?.pendingMarksLocks || 0}
+            </strong>
+            <span className="text-[10px] text-muted-foreground">Class-subject marksheets</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/40 border border-border">
+            <span className="text-[11px] text-muted-foreground font-medium block">
+              Admit Cards Live
+            </span>
+            <strong className="text-base font-bold text-foreground mt-0.5 block">
+              {summary.examLifecycle?.activeAdmitCardExams || 0}
+            </strong>
+            <span className="text-[10px] text-muted-foreground">Fee-gated portal release</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/40 border border-border">
+            <span className="text-[11px] text-muted-foreground font-medium block">
+              Results Published
+            </span>
+            <strong className="text-base font-bold text-emerald-500 mt-0.5 block">
+              {summary.examLifecycle?.releasedResultExams || 0}
+            </strong>
+            <span className="text-[10px] text-muted-foreground">Report cards accessible</span>
+          </div>
         </div>
       </div>
 

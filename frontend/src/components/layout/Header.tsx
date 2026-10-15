@@ -16,6 +16,7 @@ import { useSession } from "next-auth/react";
 import { secureSignOut } from "@/lib/authClient";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
+import { ExamCommandSearch } from "@/components/exams/ExamCommandSearch";
 
 interface BreadcrumbItem {
   label: string;
@@ -67,6 +68,7 @@ export function Header({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [examCmdOpen, setExamCmdOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -149,24 +151,37 @@ export function Header({
         </ol>
       </nav>
 
-      {/* Search */}
-      <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          placeholder="Search students, fees, notices…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 pr-4 py-1.5 text-sm bg-muted rounded-lg border border-border
-                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                     transition-all w-64"
-          aria-label="Global search"
-          id="global-search"
-        />
-      </form>
+      {/* Command Search Trigger (⌘K) & Search */}
+      <button
+        type="button"
+        onClick={() => setExamCmdOpen(true)}
+        className="hidden md:flex items-center justify-between gap-3 pl-3 pr-2 py-1.5 text-xs text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition-all w-64 text-left"
+        title="Examination & Academics Command Search (⌘K)"
+        aria-label="Command Search"
+      >
+        <span className="flex items-center gap-2 truncate">
+          <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="truncate">Search exams, marks, students…</span>
+        </span>
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shrink-0">
+          <span className="text-xs">⌘</span>K
+        </kbd>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setExamCmdOpen(true)}
+        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Open Command Search"
+      >
+        <Search className="w-5 h-5" />
+      </button>
+
+      <ExamCommandSearch
+        open={examCmdOpen}
+        onOpenChange={setExamCmdOpen}
+        userRole={role || "SUPER_ADMIN"}
+      />
 
       {/* Notification Bell */}
       <div className="relative" ref={notifRef}>

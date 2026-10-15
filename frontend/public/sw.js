@@ -1,6 +1,7 @@
 // SchoolMitra Production Service Worker (PWA Spec 3.2 - Privacy Hardened)
 const CACHE_VERSION = "schoolmitra-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const EXAMS_CACHE = `${CACHE_VERSION}-exams`;
 
 const isDevHost =
   self.location.hostname === "localhost" ||
@@ -81,7 +82,37 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. /api/* pass-through: NEVER cache ERP API endpoints
+  // 2a. Offline examination datesheets and released admit card PDFs (UX-P03): Network-first with cache fallback
+  if (
+    url.pathname.startsWith("/api/admit-cards/") ||
+    url.pathname.startsWith("/api/exams/datesheet") ||
+    url.pathname.startsWith("/api/report-cards/")
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok && response.status === 200) {
+            const clone = response.clone();
+            caches.open(EXAMS_CACHE).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return (
+              cached ||
+              new Response(
+                JSON.stringify({ error: "Offline: Examination resource not available in cache." }),
+                { status: 503, headers: { "Content-Type": "application/json" } }
+              )
+            );
+          });
+        })
+    );
+    return;
+  }
+
+  // 2b. /api/* pass-through: NEVER cache general ERP API endpoints
   if (url.pathname.startsWith("/api/")) {
     return;
   }

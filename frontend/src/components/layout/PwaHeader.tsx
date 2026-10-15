@@ -2,9 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import { secureSignOut } from "@/lib/authClient";
-import { LogOut, Sun, Moon, Sparkles } from "lucide-react";
+import { LogOut, Sun, Moon, Sparkles, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { ExamCommandSearch } from "@/components/exams/ExamCommandSearch";
 
 interface PwaHeaderProps {
   role: "TEACHER" | "PARENT" | "DRIVER";
@@ -34,6 +35,7 @@ export default function PwaHeader({
   const session = sessionData;
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [examCmdOpen, setExamCmdOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -89,6 +91,16 @@ export default function PwaHeader({
 
       {/* Header Actions (Theme Toggle, Logout) */}
       <div className="flex items-center gap-1 shrink-0">
+        <button
+          type="button"
+          onClick={() => setExamCmdOpen(true)}
+          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          title="Command Search (⌘K)"
+          aria-label="Command Search"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+
         {mounted && (
           <button
             type="button"
@@ -110,6 +122,12 @@ export default function PwaHeader({
           <LogOut className="w-4 h-4" />
         </button>
       </div>
+
+      <ExamCommandSearch
+        open={examCmdOpen}
+        onOpenChange={setExamCmdOpen}
+        userRole={role}
+      />
     </header>
   );
 }

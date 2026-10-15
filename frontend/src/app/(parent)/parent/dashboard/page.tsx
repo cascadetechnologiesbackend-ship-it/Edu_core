@@ -17,8 +17,9 @@ import {
   gpsPings,
   reportCards,
   exams,
+  examSchedules,
 } from "@/db/schema";
-import { eq, and, desc, asc, sql, or, inArray, ne } from "drizzle-orm";
+import { eq, and, desc, asc, sql, or, inArray, ne, isNotNull } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -41,6 +42,8 @@ import {
   Sparkles,
   Percent,
   Check,
+  FileCheck,
+  Download,
 } from "lucide-react";
 
 // Dynamic import of LiveMap
@@ -176,6 +179,7 @@ export default async function ParentDashboardPage({
     allWardInvoices,
     busPass,
     childReportCards,
+    upcomingExamSchedules,
   } = await withDataPhaseTiming("/parent/dashboard", () =>
     assertQueryBudget(
       async () => {
@@ -188,6 +192,7 @@ export default async function ParentDashboardPage({
           allWardInvoices,
           busPass,
           childReportCards,
+          upcomingExamSchedules,
         ] = await Promise.all([
           activeStudent.currentClassId
             ? db.query.classes.findFirst({
@@ -251,6 +256,22 @@ export default async function ParentDashboardPage({
             orderBy: [desc(reportCards.createdAt)],
             limit: 5,
           }),
+          activeStudent.currentClassId
+            ? db.query.examSchedules.findMany({
+                where: and(
+                  eq(examSchedules.schoolId, schoolId),
+                  eq(examSchedules.classId, activeStudent.currentClassId),
+                  isNotNull(examSchedules.datesheetPublishedAt),
+                  sql`${examSchedules.examDate} >= CURRENT_DATE`,
+                ),
+                with: {
+                  exam: true,
+                  subject: true,
+                },
+                orderBy: [asc(examSchedules.examDate)],
+                limit: 6,
+              })
+            : Promise.resolve([]),
         ]);
 
         return {
@@ -262,6 +283,7 @@ export default async function ParentDashboardPage({
           allWardInvoices,
           busPass,
           childReportCards,
+          upcomingExamSchedules,
         };
       },
       { maxQueries: 10, label: "Parent Portal Dashboard" },
@@ -551,6 +573,44 @@ export default async function ParentDashboardPage({
       {/* ─── TAB: OVERVIEW ─────────────────────────────────────────────────── */}
       {activeTab === "overview" && (
         <div className="space-y-4">
+          {/* Report Cards Banner (UX-R08) */}
+          {childReportCards.length > 0 && (
+            <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>Official Report Cards Published</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      {childReportCards[0]?.exam?.name || "Term Evaluation"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Term report cards have been released. Grade: {childReportCards[0]?.overallGrade || "A"}{" "}
+                    {childReportCards[0]?.rank ? `• Rank #${childReportCards[0]?.rank}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/api/report-cards/${childReportCards[0]?.id}/download`}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download PDF
+                </Link>
+                <Link
+                  href={`/parent/dashboard?tab=academics&studentId=${activeStudent.id}`}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700"
+                >
+                  View All
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Metric Stat Row (2x2 Grid) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* Attendance Rate */}
@@ -865,6 +925,118 @@ export default async function ParentDashboardPage({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Upcoming Examinations & Datesheet Card (UX-P03) */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-purple-400" />
+                <h3 className="font-bold text-sm text-white">Upcoming Examinations &amp; Datesheet</h3>
+                {upcomingExamSchedules.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    {upcomingExamSchedules.length} Papers
+                  </span>
+                )}
+              </div>
+              <Link
+                href={`/parent/dashboard?tab=academics&studentId=${activeStudent.id}`}
+                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+              >
+                Academic Hub <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {upcomingExamSchedules.length === 0 ? (
+              <div className="p-5 text-center text-slate-400 text-xs rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <Calendar className="w-6 h-6 text-slate-600 mx-auto mb-1.5" />
+                <p className="font-medium text-slate-300">No Upcoming Examinations</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  All scheduled examinations are up to date. Datesheets will appear here once published.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {/* Admit Card Status Banner */}
+                <div
+                  className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs ${
+                    totalDue > 0
+                      ? "bg-amber-950/20 border-amber-500/30 text-amber-300"
+                      : "bg-indigo-950/30 border-indigo-500/30 text-indigo-200"
+                  }`}
+                >
+                  <div className="flex items-start sm:items-center gap-2">
+                    {totalDue > 0 ? (
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+                    ) : (
+                      <FileCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5 sm:mt-0" />
+                    )}
+                    <div>
+                      <span className="font-bold">
+                        {totalDue > 0 ? "Admit Card Fee-Locked" : "Admit Card Ready"}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {totalDue > 0
+                          ? `Pending dues (₹${totalDue.toLocaleString()}). Clear dues to unlock instant download.`
+                          : "Official examination hall ticket released. Available for offline verification."}
+                      </p>
+                    </div>
+                  </div>
+                  {totalDue > 0 ? (
+                    <Link
+                      href={`/parent/dashboard?tab=fees&studentId=${activeStudent.id}`}
+                      className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 self-start sm:self-center"
+                    >
+                      Clear Fees
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/api/admit-cards/${activeStudent.id}/${upcomingExamSchedules[0]?.examId}/pdf` as any}
+                      download
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 self-start sm:self-center shadow-md shadow-indigo-600/30"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Admit Card PDF
+                    </Link>
+                  )}
+                </div>
+
+                {/* Datesheet Papers List */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {upcomingExamSchedules.map((sched) => (
+                    <div
+                      key={sched.id}
+                      className="p-3 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs"
+                    >
+                      <div className="space-y-0.5 min-w-0 pr-2">
+                        <div className="font-bold text-white flex items-center gap-1.5 truncate">
+                          <span className="truncate">{sched.subject?.name || "Subject"}</span>
+                          <span className="text-[9px] font-semibold text-purple-400 bg-purple-500/10 px-1.5 py-0.2 rounded border border-purple-500/20 shrink-0">
+                            {sched.exam?.name || "Exam"}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-500" />
+                            {sched.examDate}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-slate-500" />
+                            {sched.startTime} ({sched.durationMinutes}m)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-slate-400 font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/80">
+                          {sched.roomNumber ? `Rm ${sched.roomNumber}` : "Hall"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

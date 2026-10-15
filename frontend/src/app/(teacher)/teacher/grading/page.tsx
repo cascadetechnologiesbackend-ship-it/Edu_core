@@ -21,7 +21,16 @@ export const metadata: Metadata = {
   description: "Record scholastic marks for assigned subjects and classes.",
 };
 
-export default async function TeacherGradingPage() {
+export default async function TeacherGradingPage({
+  searchParams,
+}: {
+  searchParams?:
+    | Promise<{ examId?: string; classId?: string; subjectId?: string }>
+    | { examId?: string; classId?: string; subjectId?: string };
+}) {
+  const resolvedParams =
+    searchParams instanceof Promise ? await searchParams : searchParams || {};
+
   const ctx = await requireAuth([
     "SUPER_ADMIN",
     "SCHOOL_ADMIN",
@@ -121,26 +130,48 @@ export default async function TeacherGradingPage() {
     locksMap[`${l.examId}-${l.classId}-${l.subjectId}`] = true;
   }
 
-  // 5. Fetch students and existing marks for first allocation if available
+  // Determine target allocation index from searchParams
+  let targetAllocIndex = 0;
+  if (resolvedParams.classId && resolvedParams.subjectId) {
+    const idx = allocations.findIndex(
+      (a) =>
+        a.classId === resolvedParams.classId &&
+        a.subjectId === resolvedParams.subjectId,
+    );
+    if (idx !== -1) targetAllocIndex = idx;
+  } else if (resolvedParams.subjectId) {
+    const idx = allocations.findIndex(
+      (a) => a.subjectId === resolvedParams.subjectId,
+    );
+    if (idx !== -1) targetAllocIndex = idx;
+  }
+
+  // Determine target exam from searchParams
+  let targetExamId = examList[0]?.id || "";
+  if (resolvedParams.examId) {
+    const matchedExam = examList.find((e) => e.id === resolvedParams.examId);
+    if (matchedExam) targetExamId = matchedExam.id;
+  }
+
+  // 5. Fetch students and existing marks for target allocation if available
   let initialStudents: any[] = [];
-  if (allocations.length > 0 && allocations[0]) {
-    const firstAlloc = allocations[0];
+  if (allocations.length > 0 && allocations[targetAllocIndex]) {
+    const targetAlloc = allocations[targetAllocIndex]!;
     const enrolled = await db.query.students.findMany({
       where: and(
         eq(students.schoolId, schoolId),
-        eq(students.currentClassId, firstAlloc.classId),
+        eq(students.currentClassId, targetAlloc.classId),
         eq(students.isActive, true),
       ),
       orderBy: [students.admissionNumber],
     });
 
-    const firstExamId = examList[0]?.id;
-    const existingMarks = firstExamId
+    const existingMarks = targetExamId
       ? await db.query.markEntries.findMany({
           where: and(
             eq(markEntries.schoolId, schoolId),
-            eq(markEntries.examId, firstExamId),
-            eq(markEntries.subjectId, firstAlloc.subjectId),
+            eq(markEntries.examId, targetExamId),
+            eq(markEntries.subjectId, targetAlloc.subjectId),
           ),
         })
       : [];
@@ -154,7 +185,10 @@ export default async function TeacherGradingPage() {
         name: `${decryptData(st.firstNameEncrypted)} ${decryptData(st.lastNameEncrypted)}`.trim(),
         admissionNumber: st.admissionNumber,
         rollNumber: st.rollNumber,
-        marks: entry?.marksObtained !== null && entry?.marksObtained !== undefined ? entry.marksObtained : "",
+        marks:
+          entry?.marksObtained !== null && entry?.marksObtained !== undefined
+            ? entry.marksObtained
+            : "",
         isAbsent: entry?.isAbsent || false,
       };
     });
@@ -174,6 +208,8 @@ export default async function TeacherGradingPage() {
       <TeacherGradingClient
         exams={examList.map((e) => ({ id: e.id, name: e.name }))}
         allocations={allocations}
+        initialExamId={targetExamId}
+        initialAllocIndex={targetAllocIndex}
         initialStudents={initialStudents}
         locksMap={locksMap}
       />

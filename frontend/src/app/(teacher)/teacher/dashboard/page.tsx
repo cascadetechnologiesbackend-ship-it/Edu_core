@@ -14,6 +14,7 @@ import {
   exams,
   students,
   salaryComponents,
+  examMarksLocks,
 } from "@/db/schema";
 import { eq, and, isNull, inArray, sql, desc, or } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -70,6 +71,8 @@ export default async function TeacherDashboardPage() {
     activeExams,
     salaryBreakdown,
     hasAllocations,
+    pendingMarksAllocations,
+    activeExam,
   } = await withDataPhaseTiming("/teacher/dashboard", () =>
     assertQueryBudget(
       async () => {
@@ -179,11 +182,21 @@ export default async function TeacherDashboardPage() {
         const currentDayOfWeek = dayNames[new Date().getDay()] || "MONDAY";
         const isSunday = currentDayOfWeek === "SUNDAY";
 
+        const teacherClassIds = Array.from(
+          new Set([
+            ...assignedMappings.map((m) => m.classId),
+            ...sectionSubjectAllocations
+              .map((s) => s.section?.classId)
+              .filter(Boolean) as string[],
+          ]),
+        );
+
         const [
           studentCountRes,
           todayAttendanceLogs,
           todayPeriods,
           salaryComponent,
+          activeExamLocks,
         ] = await Promise.all([
           assignedSectionIds.length > 0
             ? db
@@ -231,6 +244,15 @@ export default async function TeacherDashboardPage() {
                 where: eq(salaryComponents.staffId, staffMember.id),
               })
             : Promise.resolve(null),
+          activeExams[0] && teacherClassIds.length > 0
+            ? db.query.examMarksLocks.findMany({
+                where: and(
+                  eq(examMarksLocks.schoolId, schoolId),
+                  eq(examMarksLocks.examId, activeExams[0].id),
+                  inArray(examMarksLocks.classId, teacherClassIds),
+                ),
+              })
+            : Promise.resolve([]),
         ]);
 
         const totalStudents = Number(studentCountRes[0]?.count || 0);
@@ -261,6 +283,65 @@ export default async function TeacherDashboardPage() {
         const totalSubjectAllocations =
           assignedMappings.length + sectionSubjectAllocations.length;
 
+        // Compute pending marks allocations for the active exam
+        const allTeacherAllocations: Array<{
+          classId: string;
+          className: string;
+          subjectId: string;
+          subjectName: string;
+          isLocked: boolean;
+        }> = [];
+
+        const seenAllocKeys = new Set<string>();
+
+        assignedMappings.forEach((m) => {
+          if (m.class && m.subject) {
+            const key = `${m.class.id}-${m.subject.id}`;
+            if (!seenAllocKeys.has(key)) {
+              seenAllocKeys.add(key);
+              const isLocked = activeExamLocks.some(
+                (l) =>
+                  l.classId === m.class.id &&
+                  l.subjectId === m.subject.id &&
+                  l.status === "LOCKED",
+              );
+              allTeacherAllocations.push({
+                classId: m.class.id,
+                className: m.class.displayName,
+                subjectId: m.subject.id,
+                subjectName: m.subject.name,
+                isLocked,
+              });
+            }
+          }
+        });
+
+        sectionSubjectAllocations.forEach((ssa) => {
+          if (ssa.section?.class && ssa.classSubject?.subject) {
+            const key = `${ssa.section.class.id}-${ssa.classSubject.subject.id}`;
+            if (!seenAllocKeys.has(key)) {
+              seenAllocKeys.add(key);
+              const isLocked = activeExamLocks.some(
+                (l) =>
+                  l.classId === ssa.section.class.id &&
+                  l.subjectId === ssa.classSubject.subject.id &&
+                  l.status === "LOCKED",
+              );
+              allTeacherAllocations.push({
+                classId: ssa.section.class.id,
+                className: ssa.section.class.displayName,
+                subjectId: ssa.classSubject.subject.id,
+                subjectName: ssa.classSubject.subject.name,
+                isLocked,
+              });
+            }
+          }
+        });
+
+        const pendingMarksAllocations = allTeacherAllocations.filter(
+          (a) => !a.isLocked,
+        );
+
         const salaryBreakdown = salaryComponent
           ? computeSalaryBreakdown(salaryComponent)
           : null;
@@ -286,6 +367,8 @@ export default async function TeacherDashboardPage() {
           isSunday,
           todayPeriods,
           activeExams,
+          activeExam: activeExams[0] || null,
+          pendingMarksAllocations,
           salaryBreakdown,
           hasAllocations,
         };
@@ -437,6 +520,74 @@ export default async function TeacherDashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* ─── 2.2. Pending Marks Entry Card (UX-R08) ─────────────────────────── */}
+      {activeExam && (
+        <div className="rounded-2xl border border-purple-900/40 bg-gradient-to-r from-slate-900 via-purple-950/30 to-slate-900 p-5 shadow-lg space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wide">
+                    Scholastic Evaluation
+                  </span>
+                  <span className="text-xs text-purple-400 font-semibold">
+                    {activeExam.name}
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white mt-0.5">
+                  Pending Marks Entry &amp; Draft Verification
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {pendingMarksAllocations.length > 0 ? (
+                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                  {pendingMarksAllocations.length} Pending Class-Subject(s)
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> All Marks Finalized &amp; Locked
+                </span>
+              )}
+            </div>
+          </div>
+
+          {pendingMarksAllocations.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-800/80">
+              {pendingMarksAllocations.map((alloc) => (
+                <div
+                  key={`${alloc.classId}-${alloc.subjectId}`}
+                  className="p-3 rounded-xl border border-slate-800/90 bg-slate-950/60 flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white truncate">
+                      {alloc.subjectName}
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      {alloc.className}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/teacher/grading?examId=${activeExam.id}&classId=${alloc.classId}&subjectId=${alloc.subjectId}`}
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition shrink-0 flex items-center gap-1"
+                  >
+                    Enter Marks <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 pt-2 border-t border-slate-800/80">
+              You have submitted marks for all assigned subjects in this examination cycle. No further action is required until administrative review.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ─── 2.5. Educator Compensation & Monthly Take-Home Card ──────────────── */}
       <div className="rounded-2xl border border-emerald-900/40 bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 p-5 shadow-lg space-y-4">
