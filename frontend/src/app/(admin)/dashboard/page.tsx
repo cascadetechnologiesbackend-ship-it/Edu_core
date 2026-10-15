@@ -498,8 +498,8 @@ export default async function DashboardPage() {
           (SELECT count(*) FROM leave_requests WHERE school_id = ${schoolId} AND status = 'PENDING')::int as pending_leaves,
           (SELECT count(*) FROM rights_requests WHERE school_id = ${schoolId} AND status IN ('SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'))::int as pending_rights,
           (SELECT count(*) FROM exam_marks_locks WHERE school_id = ${schoolId} AND status = 'SUBMITTED')::int as pending_marks_locks,
-          (SELECT count(*) FROM exams WHERE school_id = ${schoolId} AND deleted_at IS NULL AND admit_cards_released = true)::int as active_admit_card_exams,
-          (SELECT count(*) FROM exams WHERE school_id = ${schoolId} AND deleted_at IS NULL AND results_released = true)::int as released_result_exams,
+          (SELECT count(DISTINCT exam_id) FROM exam_admit_card_settings WHERE school_id = ${schoolId} AND is_released = true)::int as active_admit_card_exams,
+          (SELECT count(*) FROM result_settings WHERE school_id = ${schoolId} AND release_at <= NOW())::int as released_result_exams,
           (SELECT count(*) FROM exams WHERE school_id = ${schoolId} AND deleted_at IS NULL AND start_date <= NOW() AND end_date >= NOW())::int as ongoing_exams
       `),
 

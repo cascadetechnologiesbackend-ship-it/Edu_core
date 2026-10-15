@@ -5,23 +5,39 @@ import {
   sections,
   classSubjects,
   sectionSubjectTeachers,
+  schools,
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
+import type { Role } from "@schoolmitra/validators";
 import { cache } from "react";
 
-// checkAuth is wrapped in React cache() so it only calls auth() ONCE per request,
-// even when called by multiple server actions during the same RSC render.
+// checkAuth is wrapped in React cache() so it only calls requireAuth() ONCE per request,
+// resolving active user, tenant schoolId (including sm_impersonation token), and role.
 export const checkAuth = cache(async function checkAuthImpl(allowedRoles?: string[]) {
-  const session = await auth();
-  if (!session?.user?.id || !session?.user?.schoolId) {
-    throw new Error("Unauthorized");
+  const ctx = await requireAuth(allowedRoles as readonly Role[] | undefined);
+  let schoolId = ctx.schoolId;
+
+  // Fallback for SUPER_ADMIN inspecting without an active impersonation cookie in dev/admin context
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || null;
   }
-  if (allowedRoles && !allowedRoles.includes(session.user.role)) {
-    throw new Error("Access Denied: Insufficient Permissions");
+
+  if (!schoolId) {
+    throw new Error("No school context. Please select or impersonate a school instance.");
   }
-  return session as typeof session & {
-    user: { id: string; schoolId: string; role: string; email?: string | null };
+
+  return {
+    user: {
+      id: ctx.userId,
+      schoolId,
+      role: ctx.role,
+      email: ctx.email,
+    },
   };
 });
 
@@ -38,6 +54,10 @@ export function invalidateActiveYearCache(schoolId?: string) {
 
 // Cached per-request and with 60s in-memory TTL across requests
 export const getActiveAcademicYear = cache(async function getActiveAcademicYearImpl(schoolId: string) {
+  if (!schoolId) {
+    throw new Error("Cannot fetch academic year: School ID is required.");
+  }
+
   const now = Date.now();
   const cached = activeYearCache.get(schoolId);
   if (cached && cached.expiresAt > now) {
@@ -52,6 +72,15 @@ export const getActiveAcademicYear = cache(async function getActiveAcademicYearI
   });
 
   if (activeYears.length === 0) {
+    // If no active year found, try finding the latest academic year for this school as fallback
+    const latestYear = await db.query.academicYears.findFirst({
+      where: eq(academicYears.schoolId, schoolId),
+      orderBy: (t, { desc }) => [desc(t.startDate)],
+    });
+    if (latestYear) {
+      activeYearCache.set(schoolId, { data: latestYear, expiresAt: now + 60_000 });
+      return latestYear;
+    }
     throw new Error(
       "No active academic year found for this school. Please configure and activate an academic year.",
     );

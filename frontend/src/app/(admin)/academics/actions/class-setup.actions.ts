@@ -44,55 +44,80 @@ export async function createClassSetup(data: {
     roomNumber?: string | null;
   }[];
   subjectIds: string[];
-}): Promise<{ success: true; classId: string }> {
-  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
-  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+}): Promise<{ success: boolean; classId?: string; error?: string }> {
+  try {
+    const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+    const activeYear = await getActiveAcademicYear(session.user.schoolId);
 
-  return await db.transaction(async (tx) => {
-    // 1. Create class
-    const [newClass] = await tx
-      .insert(classes)
-      .values({
-        schoolId: session.user.schoolId,
-        academicYearId: activeYear.id,
-        gradeLevel: data.gradeLevel as any,
-        displayName: data.displayName,
-        sortOrder: data.sortOrder,
-      })
-      .returning({ id: classes.id });
+    return await db.transaction(async (tx) => {
+      // Pre-check for duplicate gradeLevel in the same school and academic year
+      const existingClass = await tx.query.classes.findFirst({
+        where: and(
+          eq(classes.schoolId, session.user.schoolId),
+          eq(classes.academicYearId, activeYear.id),
+          eq(classes.gradeLevel, data.gradeLevel as any),
+        ),
+      });
 
-    if (!newClass) throw new Error("Failed to create classroom");
+      if (existingClass) {
+        throw new Error(
+          `A class for grade "${data.displayName || data.gradeLevel}" already exists in this academic year.`,
+        );
+      }
 
-    // 2. Create sections
-    if (data.sections.length > 0) {
-      await tx.insert(sections).values(
-        data.sections.map((s) => ({
+      // 1. Create class
+      const [newClass] = await tx
+        .insert(classes)
+        .values({
           schoolId: session.user.schoolId,
-          classId: newClass.id,
-          name: s.name,
-          capacity: s.capacity ?? 40,
-          classTeacherId: s.classTeacherId || null,
-          roomNumber: s.roomNumber || null,
-        })),
-      );
-    }
+          academicYearId: activeYear.id,
+          gradeLevel: data.gradeLevel as any,
+          displayName: data.displayName,
+          sortOrder: data.sortOrder,
+        })
+        .returning({ id: classes.id });
 
-    // 3. Attach subjects to class
-    if (data.subjectIds.length > 0) {
-      await tx.insert(classSubjects).values(
-        data.subjectIds.map((subjectId) => ({
-          schoolId: session.user.schoolId,
-          classId: newClass.id,
-          subjectId,
-        })),
-      );
-    }
+      if (!newClass) throw new Error("Failed to create classroom");
 
-    try {
-      revalidatePath("/academics");
-    } catch {}
-    return { success: true as const, classId: newClass.id };
-  });
+      // 2. Create sections
+      if (data.sections && data.sections.length > 0) {
+        await tx.insert(sections).values(
+          data.sections.map((s) => ({
+            schoolId: session.user.schoolId,
+            classId: newClass.id,
+            name: s.name.trim(),
+            capacity: s.capacity ?? 40,
+            classTeacherId: s.classTeacherId ? s.classTeacherId : null,
+            roomNumber: s.roomNumber ? s.roomNumber.trim() : null,
+          })),
+        );
+      }
+
+      // 3. Attach subjects to class
+      if (data.subjectIds && data.subjectIds.length > 0) {
+        const validSubjectIds = data.subjectIds.filter(
+          (id) => typeof id === "string" && !id.startsWith("temp-") && id.trim().length > 0,
+        );
+        if (validSubjectIds.length > 0) {
+          await tx.insert(classSubjects).values(
+            validSubjectIds.map((subjectId) => ({
+              schoolId: session.user.schoolId,
+              classId: newClass.id,
+              subjectId,
+            })),
+          );
+        }
+      }
+
+      try {
+        revalidatePath("/academics");
+      } catch {}
+      return { success: true, classId: newClass.id };
+    });
+  } catch (err: any) {
+    console.error("[createClassSetup] Error:", err);
+    return { success: false, error: err?.message || "Failed to create class setup" };
+  }
 }
 
 // ─── 2. Class Hub Queries ─────────────────────────────────────────────────────

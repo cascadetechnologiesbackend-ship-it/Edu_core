@@ -193,7 +193,7 @@ export default function ClassCreationWizard({
             name: s.name.trim(),
             capacity: s.capacity,
             classTeacherId: s.classTeacherId || null,
-            roomNumber: s.roomNumber.trim() || null,
+            roomNumber: s.roomNumber?.trim() || null,
           })),
           subjectIds: selectedSubjectIds.filter((id) => !id.startsWith("temp-")),
         };
@@ -203,6 +203,8 @@ export default function ClassCreationWizard({
           onClose();
           router.push(`/academics/classes/${result.classId}`);
           router.refresh();
+        } else if (!result.success) {
+          setError(result.error || "Failed to create class setup");
         }
       } catch (err: any) {
         setError(err?.message || "Failed to create class setup");

@@ -8,6 +8,7 @@ import {
   classSubjects,
   users,
   timetableSubstitutions,
+  schools,
 } from "@/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { getActiveAcademicYear } from "./actions/auth-helper";
@@ -32,7 +33,15 @@ export default async function AcademicsPage() {
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
+
   const role = ctx.role;
   const userId = ctx.userId;
 

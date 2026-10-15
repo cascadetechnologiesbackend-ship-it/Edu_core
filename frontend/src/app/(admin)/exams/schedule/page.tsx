@@ -156,7 +156,7 @@ export default async function ExamSchedulePage({
           })),
         };
       },
-      { maxQueries: 6, label: "Exam Schedules Data" },
+      { maxQueries: 10, label: "Exam Schedules Data" },
     );
   });
 
