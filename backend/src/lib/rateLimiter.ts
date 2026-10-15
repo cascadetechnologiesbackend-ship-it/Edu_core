@@ -13,13 +13,15 @@ export const redis = getRedisClient({
   },
 });
 
-// ─── Module-Level Redis Circuit Breaker (Flaw Audit P0 #2) ───────────────────
+// ─── Module-Level Valkey / Redis Circuit Breaker (Flaw Audit P0 #2) ──────────
 let lastRedisAttempt = 0;
-const REDIS_RETRY_INTERVAL_MS = 30_000;
+export const REDIS_RETRY_INTERVAL_MS = 30_000;
+export const VALKEY_RETRY_INTERVAL_MS = REDIS_RETRY_INTERVAL_MS;
 
 export function recordRedisFailure(err?: unknown): void {
   lastRedisAttempt = Date.now();
 }
+export const recordValkeyFailure = recordRedisFailure;
 
 export function isRedisAvailable(): boolean {
   if (redis.status === "ready") {
@@ -34,10 +36,14 @@ export function isRedisAvailable(): boolean {
   lastRedisAttempt = now;
   return true;
 }
+export const isValkeyAvailable = isRedisAvailable;
+
+/** Canonical Valkey client alias */
+export const valkey = redis;
 
 redis.on("error", (_err) => {
   recordRedisFailure(_err);
-  // Gracefully handle redis connection issues without throwing unhandled exceptions
+  // Gracefully handle Valkey / Redis connection issues without throwing unhandled exceptions
 });
 
 // Lua script for atomic sliding window rate limiting

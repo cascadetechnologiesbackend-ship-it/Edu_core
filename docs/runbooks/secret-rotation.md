@@ -62,8 +62,35 @@ Rotating `ENCRYPTION_KEY` requires a **two-phase re-encryption migration script*
 
 ---
 
-### 5. Rotating Redis Credentials
-1. Create a new user/password in Redis Cloud / Upstash / Managed Redis.
-2. Update `REDIS_URL` or `REDIS_PASSWORD` in Render.com environment settings.
-3. Trigger rolling restart of web and background worker services.
-4. Verify `/api/health` reports `{ "status": "ok", "redis": "ok" }`.
+### 5. Rotating Amazon ElastiCache for Valkey Credentials & Auth Tokens
+
+Amazon ElastiCache for Valkey uses token-based authentication (or IAM/RBAC users) over TLS on port 6379. To prevent downtime during token rotation, AWS ElastiCache supports an **active two-token rotation window** via `MODIFY_REPLICATION_GROUP`.
+
+#### Procedure:
+1. Generate a new high-entropy Valkey authentication token (minimum 16 alphanumeric characters):
+   ```bash
+   openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 32
+   ```
+2. Apply the secondary authentication token to the ElastiCache Replication Group using the AWS CLI:
+   ```bash
+   aws elasticache modify-replication-group \
+     --replication-group-id educore-valkey \
+     --auth-token "<NEW_AUTH_TOKEN>" \
+     --auth-token-update-strategy ROTATE \
+     --region ap-south-1
+   ```
+   *Note: During the `ROTATE` phase, ElastiCache accepts connections using either the old or new token without dropping active clients.*
+3. Update environment variables across ECS Task Definitions / Render.com / CI/CD:
+   - Set `VALKEY_URL="valkeys://default:<NEW_AUTH_TOKEN>@educore-valkey.c3e6ik.ap-south-1.cache.amazonaws.com:6379"`
+   - *(Optional backward compatibility)*: Set `REDIS_URL="rediss://default:<NEW_AUTH_TOKEN>@educore-valkey.c3e6ik.ap-south-1.cache.amazonaws.com:6379"`
+4. Perform a rolling deployment of ECS Fargate tasks and background worker instances (`educore-finance-worker`).
+5. Verify `/api/health` reports `{ "status": "ok", "valkey": "ok", "redis": "ok" }`.
+6. Once all tasks are running the new token, remove the old token from ElastiCache:
+   ```bash
+   aws elasticache modify-replication-group \
+     --replication-group-id educore-valkey \
+     --auth-token "<NEW_AUTH_TOKEN>" \
+     --auth-token-update-strategy SET \
+     --region ap-south-1
+   ```
+

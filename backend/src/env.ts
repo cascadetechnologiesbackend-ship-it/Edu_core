@@ -1,19 +1,28 @@
 import { z } from "zod";
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  REDIS_URL: z.string().min(1, "REDIS_URL is required"),
-  AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
-  IMPERSONATION_SECRET: z.string().min(32, "IMPERSONATION_SECRET must be at least 32 characters").optional(),
-  ENCRYPTION_KEY: z
-    .string()
-    .length(64, "ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)"),
-  // Optional in dev/test, but required in production
-  S3_BUCKET: z.string().optional(),
-  AWS_ACCESS_KEY_ID: z.string().optional(),
-  AWS_SECRET_ACCESS_KEY: z.string().optional(),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+    VALKEY_URL: z.string().optional(),
+    REDIS_URL: z.string().optional(),
+    AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
+    IMPERSONATION_SECRET: z.string().min(32, "IMPERSONATION_SECRET must be at least 32 characters").optional(),
+    ENCRYPTION_KEY: z
+      .string()
+      .length(64, "ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)"),
+    // Optional in dev/test, but required in production
+    S3_BUCKET: z.string().optional(),
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  })
+  .refine(
+    (data) => Boolean(data.VALKEY_URL || data.REDIS_URL || process.env.VALKEY_HOST || process.env.REDIS_HOST),
+    {
+      message: "VALKEY_URL (or legacy REDIS_URL) is required",
+      path: ["VALKEY_URL"],
+    },
+  );
 
 function validateEnv() {
   const isProd = process.env.NODE_ENV === "production";

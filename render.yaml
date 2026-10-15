@@ -28,6 +28,8 @@ services:
         value: "2"
       - key: DATABASE_POOL_MAX
         value: "10"
+      - key: VALKEY_URL
+        sync: false
       - key: REDIS_URL
         sync: false
       - key: AUTH_SECRET
@@ -90,6 +92,8 @@ services:
         value: "2"
       - key: DATABASE_POOL_MAX
         value: "10"
+      - key: VALKEY_URL
+        sync: false
       - key: REDIS_URL
         sync: false
       - key: ENCRYPTION_KEY

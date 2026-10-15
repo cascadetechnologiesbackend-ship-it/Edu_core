@@ -37,7 +37,7 @@ flowchart TB
 
             subgraph StorageData ["Managed Data Tier (Private Subnets)"]
                 RDS["Amazon RDS PostgreSQL 16\neducore-postgres\n(db.t4g.micro / GP3)\nPort 5432"]
-                Redis["Redis Cache & Queue Server\n(Local / ElastiCache)\nPort 6379"]
+                Valkey["Amazon ElastiCache for Valkey\neducore-valkey (Port 6379 TLS)\n(Cache, BullMQ Queues & Locks)"]
                 S3["Amazon S3 Bucket\neducore-platform-storage-mumbai\n(Documents, Avatars, Receipts)"]
             end
 
@@ -52,7 +52,7 @@ flowchart TB
     PaymentGW -->|Webhooks /api/webhooks/razorpay| ALB
     ALB -->|Target Group HTTP:3000| NextApp
     NextApp -->|Drizzle ORM Connection Pool| RDS
-    NextApp -->|BullMQ Async Jobs| Redis
+    NextApp -->|BullMQ Async Jobs & Caching| Valkey
     NextApp -->|AWS SDK v3 S3Client / Presigned URLs| S3
     NextApp -->|Structured JSON Logs| CW
     ECR -.->|Pulls latest container image| NextApp
@@ -75,8 +75,9 @@ flowchart TB
 | Security Group Name | Description | Inbound Rules | Outbound Rules |
 | :--- | :--- | :--- | :--- |
 | **`educore-alb-sg`** | Application Load Balancer Security Group | • TCP 80 from `0.0.0.0/0`<br>• TCP 443 from `0.0.0.0/0` | • TCP 3000 to `educore-ecs-sg`<br>• All traffic to `0.0.0.0/0` |
-| **`educore-ecs-sg`** | ECS Fargate Tasks Security Group | • TCP 3000 from `educore-alb-sg` | • TCP 5432 to `educore-rds-sg`<br>• TCP 6379 to Redis SG<br>• TCP 443 to `0.0.0.0/0` (AWS API endpoints & S3) |
+| **`educore-ecs-sg`** | ECS Fargate Tasks Security Group | • TCP 3000 from `educore-alb-sg` | • TCP 5432 to `educore-rds-sg`<br>• TCP 6379 to `educore-valkey-sg`<br>• TCP 443 to `0.0.0.0/0` (AWS API endpoints & S3) |
 | **`educore-rds-sg`** | Amazon RDS PostgreSQL Security Group | • TCP 5432 from `educore-ecs-sg`<br>• TCP 5432 from authorized admin bastion/IPs | • None (Database does not initiate outbound egress) |
+| **`educore-valkey-sg`** | Amazon ElastiCache for Valkey Security Group | • TCP 6379 from `educore-ecs-sg` | • None (In-memory cache does not initiate outbound egress) |
 
 ---
 
@@ -177,6 +178,7 @@ export async function GET() {
         { "name": "AUTH_TRUST_HOST", "value": "true" },
         { "name": "AWS_REGION", "value": "ap-south-1" },
         { "name": "AWS_S3_BUCKET_NAME", "value": "educore-platform-storage-mumbai" },
+        { "name": "VALKEY_URL", "value": "valkeys://default:***@educore-valkey.c3e6ik.ap-south-1.cache.amazonaws.com:6379" },
         { "name": "REDIS_URL", "value": "redis://127.0.0.1:6379" }
       ],
       "logConfiguration": {
@@ -216,6 +218,22 @@ To prevent database connection exhaustion and runaway slow queries, connection l
    - Default OLTP statement timeout: `2,000 ms` (2 seconds) to guarantee fast request-response cycles.
    - Long-running analytical reports and administrative batch jobs explicitly override timeouts up to `60,000 ms`.
    - SSL Verification: `rejectUnauthorized: false` configured for AWS RDS default certificate chain without requiring local cert bundles.
+
+### 5.3 Amazon ElastiCache for Valkey Tier (Cache, BullMQ Queues & Distributed Locks)
+- **Engine**: Valkey 7.2+ (Amazon ElastiCache for Valkey, fully protocol-compatible with RESP2/RESP3)
+- **Deployment Topology**: Replication Group with Multi-AZ automatic failover across `ap-south-1a` and `ap-south-1b`.
+- **Node Type**: `cache.t4g.micro` (Dev/Test) / `cache.m7g.large` (Production, AWS Graviton3, 64-bit Arm processor)
+- **Port & Transport Encryption**: Port `6379`, In-Transit Encryption (`TLS 1.2+` required), At-Rest Encryption (AWS KMS `aws/elasticache`), Token-Based Access Control (`--auth-token`).
+- **Primary Roles & Capabilities**:
+  1. **L5 Application Query & Session Cache**: Caches hot school tenant configuration, fee structures, exam blueprints, and attendance summaries.
+  2. **BullMQ Background Job Queues**: Powers asynchronous processing for report card PDF generation, automated fee reminders, and DPDP compliance retention purges.
+  3. **Atomic Rate Limiter & Circuit Breaker**: Atomic sliding-window rate limiting via EVAL Lua scripts, backed by a 30s client-side circuit breaker with in-memory fallback.
+  4. **Distributed Locks**: Multi-task concurrency control preventing duplicate fee invoice generations and double payment reconciliations.
+- **Architectural Advantages over Redis OSS**:
+  - **33% Lower Pricing**: ElastiCache for Valkey is priced approximately 33% lower than legacy ElastiCache for Redis OSS nodes.
+  - **20% Higher Throughput**: Optimized vector search and multicore engine scaling.
+  - **Open Source Governance**: Governed under the Linux Foundation with BSD-3-Clause license, avoiding restrictive SSPL/RSAL licensing.
+  - **100% Wire Protocol Parity**: Native RESP2/RESP3 compatibility with port 6379, standard `ioredis` client with automatic `valkeys://` protocol translation.
 
 ---
 

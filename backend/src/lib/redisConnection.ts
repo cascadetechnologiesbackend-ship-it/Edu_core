@@ -1,8 +1,33 @@
 import Redis, { type RedisOptions } from "ioredis";
 
+/**
+ * Resolves Valkey / Redis connection URL.
+ * Prioritizes VALKEY_URL (Amazon ElastiCache for Valkey / Valkey OSS), falling back to REDIS_URL.
+ * Normalizes 'valkeys://' -> 'rediss://' and 'valkey://' -> 'redis://' so the underlying
+ * wire-compatible client (ioredis) connects without protocol parse errors.
+ */
 export function getRedisUrl(): string | null {
-  return process.env.REDIS_URL || process.env.educore_REDIS_URL || null;
+  const rawUrl =
+    process.env.VALKEY_URL ||
+    process.env.REDIS_URL ||
+    process.env.educore_VALKEY_URL ||
+    process.env.educore_REDIS_URL ||
+    null;
+
+  if (!rawUrl) return null;
+
+  // Protocol normalization for ioredis parser compatibility
+  if (rawUrl.startsWith("valkeys://")) {
+    return "rediss://" + rawUrl.slice("valkeys://".length);
+  }
+  if (rawUrl.startsWith("valkey://")) {
+    return "redis://" + rawUrl.slice("valkey://".length);
+  }
+  return rawUrl;
 }
+
+/** Idiomatic Valkey URL getter */
+export const getValkeyUrl = getRedisUrl;
 
 /**
  * Returns connection configuration for BullMQ Queue and Worker instances.
@@ -19,9 +44,10 @@ export function getBullMQRedisConnection(): any {
     };
   }
 
-  const host = process.env.REDIS_HOST;
-  const port = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : undefined;
-  const password = process.env.REDIS_PASSWORD || undefined;
+  const host = process.env.VALKEY_HOST || process.env.REDIS_HOST;
+  const rawPort = process.env.VALKEY_PORT || process.env.REDIS_PORT;
+  const port = rawPort ? parseInt(rawPort, 10) : undefined;
+  const password = process.env.VALKEY_PASSWORD || process.env.REDIS_PASSWORD || undefined;
 
   if (host && port) {
     return {
@@ -36,7 +62,7 @@ export function getBullMQRedisConnection(): any {
 
   // Refuse hardcoded localhost fallback in production (except during Next.js build)
   if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-    throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required in production environment.");
+    throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required (or VALKEY_URL) in production environment.");
   }
 
   // Development/test fallback
@@ -49,8 +75,11 @@ export function getBullMQRedisConnection(): any {
   };
 }
 
+/** Idiomatic BullMQ Valkey connection getter */
+export const getBullMQValkeyConnection = getBullMQRedisConnection;
+
 /**
- * Factory for ioredis instance (used for rate limiting, locks, caching).
+ * Factory for Valkey / Redis client instance (used for rate limiting, locks, caching).
  */
 export function getRedisClient(customOptions: RedisOptions = {}): Redis {
   const url = getRedisUrl();
@@ -72,9 +101,10 @@ export function getRedisClient(customOptions: RedisOptions = {}): Redis {
     return new Redis(url, defaultOptions);
   }
 
-  const host = process.env.REDIS_HOST;
-  const port = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : undefined;
-  const password = process.env.REDIS_PASSWORD || undefined;
+  const host = process.env.VALKEY_HOST || process.env.REDIS_HOST;
+  const rawPort = process.env.VALKEY_PORT || process.env.REDIS_PORT;
+  const port = rawPort ? parseInt(rawPort, 10) : undefined;
+  const password = process.env.VALKEY_PASSWORD || process.env.REDIS_PASSWORD || undefined;
 
   if (host && port) {
     return new Redis({
@@ -86,7 +116,7 @@ export function getRedisClient(customOptions: RedisOptions = {}): Redis {
   }
 
   if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-    throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required in production environment.");
+    throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required (or VALKEY_URL) in production environment.");
   }
 
   return new Redis({
@@ -95,3 +125,6 @@ export function getRedisClient(customOptions: RedisOptions = {}): Redis {
     ...defaultOptions,
   });
 }
+
+/** Idiomatic Valkey client factory */
+export const getValkeyClient = getRedisClient;
