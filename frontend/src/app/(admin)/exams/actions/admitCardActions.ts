@@ -14,6 +14,7 @@ import {
   verifyExamOwnership,
   verifyStudentOwnership,
 } from "@/lib/examIsolation";
+import { notifyAdmitCardsReleased } from "@/lib/examNotifications";
 
 const ADMIT_CARD_ROLES = [
   "SUPER_ADMIN",
@@ -84,6 +85,17 @@ export async function saveAdmitCardSettings(input: {
       examCentre: input.examCentre ?? null,
       reportingTime: input.reportingTime ?? null,
     });
+  }
+
+  // S11 Layer 3: Dispatch Admit Cards Released Notification
+  try {
+    await notifyAdmitCardsReleased({
+      schoolId: school.id,
+      examId: input.examId,
+      triggeredById: ctx.userId,
+    });
+  } catch (notifErr) {
+    console.error("[saveAdmitCardSettings] Notification dispatch error:", notifErr);
   }
 
   revalidatePath("/exams/admit-cards");

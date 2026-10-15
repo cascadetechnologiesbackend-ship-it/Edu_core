@@ -10,6 +10,7 @@ import { eq, and, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
+import { notifyDatesheetPublished } from "@/lib/examNotifications";
 import { z } from "zod";
 
 const ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
@@ -127,6 +128,17 @@ export async function publishDatesheet(scheduleIds: string[]) {
         eq(examSchedules.schoolId, school.id),
       ),
     );
+
+  // S11 Layer 3: Dispatch Datesheet Published Notification
+  try {
+    await notifyDatesheetPublished({
+      schoolId: school.id,
+      scheduleIds,
+      triggeredById: ctx.userId,
+    });
+  } catch (notifErr) {
+    console.error("[publishDatesheet] Notification dispatch error:", notifErr);
+  }
 
   revalidatePath("/exams/schedule");
   revalidatePath("/portal/admit-cards");

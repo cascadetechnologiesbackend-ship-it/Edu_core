@@ -27,6 +27,7 @@ import {
   calculateRanks,
 } from "@/lib/gradeEngine";
 import { decryptData } from "@/lib/encryption";
+import { notifyResultReleased } from "@/lib/examNotifications";
 
 const RESULT_ADMIN_ROLES = [
   "SUPER_ADMIN",
@@ -104,7 +105,19 @@ export async function publishResults(setupId: string) {
       feeLockThresholdAmount: "0.00",
       publicLookupEnabled: true,
       publicToppersEnabled: true,
+      smsNotificationsEnabled: false,
     });
+  }
+
+  // S11 Layer 3: Dispatch Result Released Notification (fail-safe without blocking mutation)
+  try {
+    await notifyResultReleased({
+      schoolId: school.id,
+      setupId,
+      triggeredById: ctx.userId,
+    });
+  } catch (notifErr) {
+    console.error("[publishResults] Notification dispatch error:", notifErr);
   }
 
   revalidatePath("/exams/results");
@@ -123,6 +136,7 @@ export async function configureResultSettings(input: {
   feeLockThresholdAmount: number;
   publicLookupEnabled?: boolean;
   publicToppersEnabled?: boolean;
+  smsNotificationsEnabled?: boolean;
 }) {
   const ctx = await requireAuth(RESULT_ADMIN_ROLES);
   requireExamPermission(ctx.role, "exam.result.publish");
@@ -159,6 +173,7 @@ export async function configureResultSettings(input: {
         feeLockThresholdAmount: input.feeLockThresholdAmount.toFixed(2),
         publicLookupEnabled: input.publicLookupEnabled ?? existing.publicLookupEnabled,
         publicToppersEnabled: input.publicToppersEnabled ?? existing.publicToppersEnabled,
+        smsNotificationsEnabled: input.smsNotificationsEnabled ?? existing.smsNotificationsEnabled,
         updatedAt: new Date(),
       })
       .where(eq(resultSettings.id, existing.id));
@@ -172,6 +187,7 @@ export async function configureResultSettings(input: {
       feeLockThresholdAmount: input.feeLockThresholdAmount.toFixed(2),
       publicLookupEnabled: input.publicLookupEnabled ?? false,
       publicToppersEnabled: input.publicToppersEnabled ?? false,
+      smsNotificationsEnabled: input.smsNotificationsEnabled ?? false,
     });
   }
 

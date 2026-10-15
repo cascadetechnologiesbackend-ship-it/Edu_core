@@ -20,6 +20,7 @@ import { buildZipArchive, type ZipFileEntry } from "./zipPacker";
 import { uploadBufferToS3, getPresignedDownloadUrl } from "./storage";
 import { withTenant } from "./tenant";
 import { workerLogger } from "./logger";
+import { notifyBulkJobCompleted } from "./examNotifications";
 
 export const REPORT_CARD_CHUNK_SIZE = 50;
 
@@ -337,6 +338,29 @@ export async function executeBulkReportCardRun(
         updatedAt: new Date(),
       })
       .where(eq(reportCardJobs.id, jobId));
+
+    // S11 Layer 3: Dispatch Bulk Job Completed Notification
+    try {
+      const jobRecord = await db.query.reportCardJobs.findFirst({
+        where: and(
+          eq(reportCardJobs.id, jobId),
+          eq(reportCardJobs.schoolId, schoolId),
+        ),
+        columns: { triggeredById: true },
+      });
+      if (jobRecord?.triggeredById) {
+        await notifyBulkJobCompleted({
+          schoolId,
+          jobId,
+          examId,
+          triggeredById: jobRecord.triggeredById,
+          processedCount,
+          failedCount,
+        });
+      }
+    } catch (notifErr: any) {
+      workerLogger.warn(`[BulkGeneration] Failed to dispatch completion notification: ${notifErr?.message}`);
+    }
 
     const durationMs = Date.now() - startTime;
     const peakRssMb = Math.round(peakRss / (1024 * 1024));
