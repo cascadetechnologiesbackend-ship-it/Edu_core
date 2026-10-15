@@ -60,9 +60,12 @@ export const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/webp",
   "application/pdf",
+  "application/zip",
+  "application/x-zip-compressed",
 ];
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB (10485760 bytes)
+export const MAX_ARCHIVE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB for bulk export ZIP archives
 
 /**
  * Validates upload MIME type and optional size payload against strict whitelist.
@@ -74,8 +77,13 @@ export function validateUpload(mimeType: string, sizeBytes?: number): boolean {
     );
   }
 
-  if (sizeBytes !== undefined && sizeBytes > MAX_FILE_SIZE_BYTES) {
-    throw new Error("File size exceeds 10MB limit.");
+  const limit =
+    mimeType === "application/zip" || mimeType === "application/x-zip-compressed"
+      ? MAX_ARCHIVE_SIZE_BYTES
+      : MAX_FILE_SIZE_BYTES;
+
+  if (sizeBytes !== undefined && sizeBytes > limit) {
+    throw new Error(`File size exceeds allowed limit (${limit / (1024 * 1024)}MB).`);
   }
 
   return true;

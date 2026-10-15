@@ -23,12 +23,16 @@ import {
 } from "@/lib/gradeEngine";
 import { gradeToClassGroup } from "@/lib/pdf/ReportCardPDF";
 import { assertConsent } from "@/server/middleware/consent";
+import { executeBulkReportCardRun } from "../lib/bulkGenerationEngine";
 
 export interface ReportCardJobPayload {
-  studentId: string;
+  studentId?: string;
+  classId?: string;
   examId: string;
   schoolId: string;
   jobId: string; // reportCardJobs table ID for status tracking
+  batchSize?: number;
+  studentIds?: string[];
 }
 
 // ─── Queue Definition ─────────────────────────────────────────────────────────
@@ -54,11 +58,31 @@ import { withTenant } from "@/lib/tenant";
 async function processReportCardJob(
   job: Job<ReportCardJobPayload>,
 ): Promise<void> {
-  const { studentId, examId, schoolId, jobId } = job.data;
+  const { studentId, classId, examId, schoolId, jobId } = job.data;
+
+  // Bulk Class Run with Chunking & Backpressure
+  if (classId) {
+    workerLogger.info(
+      `[ReportCardWorker] Starting bulk chunked run for class=${classId}, exam=${examId}, schoolId=${schoolId}`,
+    );
+    await executeBulkReportCardRun({
+      jobId,
+      schoolId,
+      examId,
+      classId,
+      studentIds: job.data.studentIds,
+      chunkSize: job.data.batchSize || 50,
+    });
+    return;
+  }
+
+  if (!studentId) {
+    throw new Error("Job payload must specify either classId (bulk) or studentId (single).");
+  }
 
   return await withTenant(schoolId, async () => {
     workerLogger.info(
-      `[ReportCardWorker] Starting job ${job.id} for student=${studentId}, schoolId=${schoolId}`,
+      `[ReportCardWorker] Starting single job ${job.id} for student=${studentId}, schoolId=${schoolId}`,
     );
 
     // Mark job as processing

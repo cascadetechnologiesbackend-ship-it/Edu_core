@@ -115,22 +115,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Enqueue one job per student
-    const jobs = classStudents.map((s) => ({
-      name: `report-card:${s.id}:${examId}`,
-      data: {
-        studentId: s.id,
-        examId,
+    // Enqueue single chunked job with backpressure (no unbounded fan-out per Sprint S10 rules)
+    await reportCardQueue.add(
+      `bulk-report-card:${examId}:${classId}`,
+      {
         schoolId: exam.schoolId,
+        examId,
+        classId,
         jobId: jobRecord.id,
+        batchSize: 50,
       },
-    }));
-
-    await reportCardQueue.addBulk(jobs);
+      { jobId: jobRecord.id },
+    );
 
     return NextResponse.json({
       success: true,
-      message: `Queued ${classStudents.length} report card generation jobs.`,
+      message: `Preparing ${classStudents.length} report cards. You can leave this page.`,
       batchJobId: jobRecord.id,
       totalStudents: classStudents.length,
     });

@@ -611,3 +611,50 @@ export async function generateMeritList(examId: string, classId: string) {
   }
 }
 
+import {
+  requeueFailedRows,
+  getJobPresignedZipUrl,
+  detectAndRecoverStuckJobs,
+} from "@/lib/bulkGenerationEngine";
+
+export async function retryFailedReportCardJob(jobId: string) {
+  try {
+    const ctx = await requireAuth(RESULT_ADMIN_ROLES);
+    requireExamPermission(ctx.role, "exam.result.publish");
+    const school = await requireSchool(ctx);
+
+    const result = await requeueFailedRows(jobId, school.id);
+    revalidatePath("/exams/report-cards");
+    return { success: true, result };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function getReportCardJobDownloadUrl(jobId: string) {
+  try {
+    const ctx = await requireAuth(RESULT_ADMIN_ROLES);
+    requireExamPermission(ctx.role, "exam.result.publish");
+    const school = await requireSchool(ctx);
+
+    const downloadUrl = await getJobPresignedZipUrl(jobId, school.id, 3600);
+    return { success: true, downloadUrl };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function recoverStuckReportCardJobs() {
+  try {
+    const ctx = await requireAuth(RESULT_ADMIN_ROLES);
+    requireExamPermission(ctx.role, "exam.result.publish");
+    const school = await requireSchool(ctx);
+
+    const recoveredCount = await detectAndRecoverStuckJobs({ schoolId: school.id });
+    revalidatePath("/exams/report-cards");
+    return { success: true, recoveredCount };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
