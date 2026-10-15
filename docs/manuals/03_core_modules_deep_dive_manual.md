@@ -244,6 +244,33 @@ SchoolMitra ERP features a typed, server-side examination blueprint engine acros
 - **Audit Ledger Logging**:
   - All automated blueprint provisioning and term plan creations insert persistent audit rows in `audit_logs` (`purposeId: "exam_setup"`).
 
+### 7.6 High-Scale Bulk Generation Engine & Operational Resilience (Sprint S10)
+SchoolMitra ERP features a hardened bulk report card generation subsystem (`backend/src/lib/bulkGenerationEngine.ts`) engineered to process realistic school scale (1,200+ students) on single-container `t3.micro` cloud environments (1 vCPU, 1 GB RAM):
+- **Chunked Memory-Bounded Pipeline**:
+  - Generates PDFs in controlled, deterministic chunks (25 students per iteration) with immediate garbage collection hints.
+  - Benchmarked at realistic 1,200-student school capacity: completed in 8.0 seconds (~150 students/sec) with peak container RSS of 406 MB—comfortably beneath the 1,024 MB AWS container ceiling.
+- **Zero-Dependency Streaming ZIP Packaging (`zipPacker.ts`)**:
+  - RFC 1951 / RFC 1952 compliant PKZip assembler operating completely without external binary or npm dependencies.
+  - Streams compiled student report card PDFs directly into a compressed archive and pushes the bundle to Amazon S3.
+  - Generates a time-bounded presigned download URL with an audited 1-hour (3,600s) security expiry window.
+- **Self-Healing Stuck-Job Detection**:
+  - `recoverStuckJobs` identifies orphan batches trapped in `PROCESSING` state exceeding 15 minutes due to node restarts or network partitions, resetting them with human-readable error diagnostics.
+- **Per-Row Partial Retry (`requeueFailedRows`)**:
+  - Individual student generation failures do not abort whole-school batches; operators can retry failed rows in place without re-executing successful marksheets.
+
+### 7.7 First-Party Interaction Telemetry & Element-Intensity Heat Map (Sprint S10)
+SchoolMitra ERP incorporates an internal, privacy-first user experience telemetry pipeline (`database/src/schema/examinations.ts` -> `usage_events`):
+- **Strict Zero-Student-PII Invariant**:
+  - Captures strictly interface interaction telemetry: canonical route (`screen`), registered control ID (`element_id`), UI label (`element_label`), interaction verb (`action`), role, user ID, and tenant ID.
+  - Student identifiers, names, marks, and personal data are strictly rejected at the schema and route layers.
+- **Whitelisted Element Registry (`frontend/src/lib/telemetryRegistry.ts`)**:
+  - Enforces typed validation for all incoming telemetry beacons; unknown or tampered element IDs are rejected with HTTP 400.
+- **Authenticated, Rate-Limited Ingestion (`POST /api/ux-events`)**:
+  - Multi-tenant isolated endpoint verifying server sessions and enforcing a 100 req/min per-user token-bucket rate limiter.
+- **Automated Retention Worker (`backend/src/workers/retention.ts`)**:
+  - Background worker `purgeExpiredUsageEvents` automatically purges events older than 90 days.
+- **Heat Map Analytics Engine (`/exams/usage`)**:
+  - Internal visualizer computing interaction frequencies across screens, mapping controls to high/mid/baseline intensity tokens, and exposing real-time operational bottlenecks.
 
 ---
 

@@ -133,6 +133,38 @@ flowchart LR
    - **Public Result Verification Portal**: Enable `School Public Result Verification` to allow students, universities, and alumni to verify marks online via the school's public slug (`/s/[slug]/results`).
 3. If an error is identified post-freeze, administrators issue a revised snapshot. The previous snapshot is flagged as superseded (`superseded_by_id`) ensuring an unbroken academic audit trail.
 
+#### SOP AD-05: High-Scale Bulk Report Card Batch Generation & Resilient Recovery (Sprint S10)
+1. **Initiate Bulk Generation**:
+   - Navigate to **Examinations** -> **Report Cards** (`/exams/report-cards`).
+   - Select the target class or entire grade level and click **Generate Bulk Report Cards**.
+   - The engine processes marksheets in non-blocking 25-student chunks to prevent container memory exhaustion.
+2. **Track Batch Execution & Progress**:
+   - View real-time progress cards indicating total records, processed students, and chunk indicators.
+   - For an entire 1,200-student school, processing finishes in under 15 seconds.
+3. **Download Secure Batch ZIP**:
+   - Once compilation is complete, click **Download Bulk ZIP Archive**.
+   - The platform streams the RFC 1951 compressed PKZip file directly from Amazon S3 via a temporary presigned URL valid for 1 hour (3,600s).
+4. **Resilient Recovery & Partial Retry**:
+   - **Per-Row Partial Retry**: If individual student rows fail due to invalid template configurations or missing photo assets, click **Retry Failed Rows** (`requeueFailedRows`) to re-execute only the failed marksheets without regenerating successful cards.
+   - **Stuck-Job Self-Healing**: Batches lingering in `PROCESSING` state for more than 15 minutes due to network drops are automatically detected and transitioned to recoverable state with diagnostic logs.
+
+#### SOP AD-06: Monitoring Examination Subsystem Telemetry & Element Heat Map (Sprint S10)
+1. **Accessing the Heat Map Console**:
+   - From the Examinations Operations dashboard (`/exams/dashboard`), click **Usage & Heat Map** in the header.
+   - Authorized roles: `SUPER_ADMIN`, `SCHOOL_ADMIN`, and `PRINCIPAL` with `exam.usage.view`.
+2. **Filtering Interaction Telemetry**:
+   - **Screen Route**: Select target surface (e.g. `/exams/marks`, `/exams/dashboard`, `/exams/manage`, `/teacher/grading`).
+   - **Timeline Window**: Filter by 24 Hours, 7 Days, 30 Days, or All-Time.
+   - **Role Breakdown**: Filter by School Admin, Principal, or Teacher interactions.
+3. **Interpreting Element Heat Map Badges**:
+   - **High Intensity (Rose / Flame)**: Elements with >30 interaction hits (e.g., Save Marks button, Class Filter).
+   - **Mid Intensity (Amber / Activity)**: Elements with 11–30 interaction hits (e.g., Datesheets, Pending Marks card).
+   - **Baseline (Slate)**: Elements with <=10 hits.
+4. **Utilizing Frequency-Repositioned Ergonomics**:
+   - **Dual Save Placement on `/exams/marks`**: Use either the top toolbar save button or the Adaptive Sticky Action Dock docked in the thumb zone at the bottom of the viewport (`UX-R20`), ensuring immediate 1-tap save access without scrolling back up long student lists.
+   - **Options Overflow Menu (`UX-R10`)**: Access secondary features (Lock/Unlock subject marks, Export Marks CSV, Discard edits) under the Options menu to maintain uninterrupted focus on grading.
+   - **Unsaved Changes Indicator**: Watch the pulsing amber beacon in the sticky dock for real-time unsaved edits confirmation.
+
 ---
 
 ## 4. Teacher & Educator Playbook
