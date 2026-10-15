@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { sql } from "drizzle-orm";
-import { redis } from "@/lib/rateLimiter";
+import { valkey, redis } from "@/lib/rateLimiter";
 
 export const dynamic = "force-dynamic";
 
@@ -31,17 +31,18 @@ export async function GET() {
     console.error("Health check DB failure:", err);
   }
 
-  // 2. Check Redis (Degraded Fallback Supported)
+  // 2. Check Valkey Primary (with Redis fallback supported)
+  const inMemoryClient = valkey || redis;
   try {
-    if (redis) {
-      await redis.ping();
+    if (inMemoryClient) {
+      await inMemoryClient.ping();
     } else {
       redisStatus = "degraded";
     }
   } catch (err: any) {
     redisStatus = "degraded";
-    redisError = err?.message || "Redis ping failed";
-    console.warn("Health check Redis degraded:", err);
+    redisError = err?.message || "Valkey/Redis ping failed";
+    console.warn("Health check Valkey/Redis degraded:", err);
   }
 
   const durationMs = Date.now() - startedAt;

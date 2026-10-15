@@ -9,9 +9,16 @@ vi.mock("@/db", () => ({
   },
 }));
 
+const { mockPing } = vi.hoisted(() => ({
+  mockPing: vi.fn(),
+}));
+
 vi.mock("@/lib/rateLimiter", () => ({
+  valkey: {
+    ping: mockPing,
+  },
   redis: {
-    ping: vi.fn(),
+    ping: mockPing,
   },
 }));
 

@@ -11,7 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, lt, lte, gt, inArray, sql, desc } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
-import { getBullMQRedisConnection } from "../lib/redisConnection";
+import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
 import { setCachedFinanceData } from "@/lib/financeCache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
@@ -30,7 +30,7 @@ export interface FinanceJobPayload {
 }
 
 export const financeQueue = new Queue<FinanceJobPayload>("finance-automation", {
-  connection: getBullMQRedisConnection(),
+  connection: getBullMQValkeyConnection(),
 });
 
 /**
@@ -580,7 +580,7 @@ if (process.env["START_WORKERS"] === "true") {
       await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
     },
     {
-      connection: getBullMQRedisConnection(),
+      connection: getBullMQValkeyConnection(),
     }
   );
 

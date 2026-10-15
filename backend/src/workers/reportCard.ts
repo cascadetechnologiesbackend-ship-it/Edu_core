@@ -3,7 +3,7 @@
 // Each job generates a PDF for one student and updates the DB.
 
 import { Worker, Queue, type Job } from "bullmq";
-import { getBullMQRedisConnection } from "../lib/redisConnection";
+import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
 import { db } from "@/db";
 import {
   reportCards,
@@ -36,13 +36,14 @@ export interface ReportCardJobPayload {
 }
 
 // ─── Queue Definition ─────────────────────────────────────────────────────────
-const redisConnection = getBullMQRedisConnection();
+const valkeyConnection = getBullMQValkeyConnection();
+const redisConnection = valkeyConnection;
 
 // Export so API routes can enqueue jobs
 export const reportCardQueue = new Queue<ReportCardJobPayload>(
   "report-card-generation",
   {
-    connection: redisConnection,
+    connection: valkeyConnection,
     defaultJobOptions: {
       attempts: 3,
       backoff: { type: "exponential", delay: 5000 },

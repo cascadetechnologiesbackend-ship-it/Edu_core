@@ -1,7 +1,16 @@
-import { redis, isRedisAvailable, recordRedisFailure } from "./rateLimiter";
+import {
+  valkey,
+  isValkeyAvailable,
+  recordValkeyFailure,
+  redis,
+  isRedisAvailable,
+  recordRedisFailure,
+} from "./rateLimiter";
 
 // ─── S2 Finance Cache Engine Configuration ─────────────────────────────────────
 // Governing Spec: SCHOOL-ERP-PERFORMANCE-SPEC.md v2.0 (PF-R41, PF-R45, PF-R47, PF-R80)
+// Primary In-Memory Engine: Valkey 7.2+ (Amazon ElastiCache Serverless for Valkey)
+// Fallback In-Memory Engine: Redis OSS 7.x
 // Freshness Class S2: Working 5-minute TTL jittered between 270s and 330s to prevent thundering herds.
 const S2_BASE_TTL_SECONDS = 300;
 const S2_JITTER_SECONDS = 60; // +/- 30s jitter

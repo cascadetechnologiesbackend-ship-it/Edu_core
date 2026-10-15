@@ -84,9 +84,13 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const now = Date.now();
 
-  if (isRedisAvailable()) {
+  // Check Valkey primary (or Redis fallback)
+  const client = valkey || redis;
+  const isAvailable = isValkeyAvailable();
+
+  if (isAvailable && client) {
     try {
-      const result = await redis.eval(
+      const result = await client.eval(
         SLIDING_WINDOW_SCRIPT,
         1,
         key,
@@ -96,7 +100,7 @@ export async function checkRateLimit(
       );
       return result === 1;
     } catch (err) {
-      recordRedisFailure(err);
+      recordValkeyFailure(err);
       // Fall through to in-memory sliding window fallback
     }
   }

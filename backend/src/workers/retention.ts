@@ -11,7 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, isNull, isNotNull, lt, lte, or } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
-import { getBullMQRedisConnection } from "../lib/redisConnection";
+import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
 import { workerLogger } from "@/lib/logger";
 
 export interface RetentionJobPayload {
@@ -545,7 +545,7 @@ if (process.env["START_WORKERS"] === "true") {
       });
     },
     {
-      connection: getBullMQRedisConnection(),
+      connection: getBullMQValkeyConnection(),
     },
   );
 
