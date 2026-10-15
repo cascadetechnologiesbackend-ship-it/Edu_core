@@ -53,7 +53,7 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
         isActive: true,
       })
       .returning();
-    parentAUserId = pUser.id;
+    parentAUserId = pUser!.id;
 
     // 2. Link student in School A to parentAUserId
     await db
@@ -73,7 +73,7 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
         endDate: new Date("2026-11-15"),
       })
       .returning();
-    testExamAId = exam.id;
+    testExamAId = exam!.id;
 
     // 4. Create a test schedule
     const [sched] = await db
@@ -90,7 +90,7 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
         passingMarks: "33.00",
       })
       .returning();
-    testScheduleAId = sched.id;
+    testScheduleAId = sched!.id;
 
     // 5. Create a test setup for School A
     const [setup] = await db
@@ -103,10 +103,15 @@ describe("S11 Layer 3: Examination Lifecycle Communication Wiring", () => {
         createdById: ISOLATION_IDS.schoolA.adminUserId,
       })
       .returning();
-    testSetupAId = setup.id;
+    testSetupAId = setup!.id;
   });
 
   afterAll(async () => {
+    // Restore primaryParentUserId to original fixture
+    await db
+      .update(students)
+      .set({ primaryParentUserId: ISOLATION_IDS.schoolA.parentUserId })
+      .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
     await pool.end();
   });
 

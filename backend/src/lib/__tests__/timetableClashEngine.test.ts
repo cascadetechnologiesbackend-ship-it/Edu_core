@@ -49,7 +49,7 @@ describe("S11 Layer 5: Timetable-Aware Scheduling & Clash Detection Engine", () 
         capacity: 40,
       })
       .returning();
-    testSectionAId = sec.id;
+    testSectionAId = sec!.id;
 
     // 2. Create subject 2 for School A
     const [sub2] = await db
@@ -61,7 +61,7 @@ describe("S11 Layer 5: Timetable-Aware Scheduling & Clash Detection Engine", () 
         subjectType: "THEORY",
       })
       .returning();
-    testSubject2Id = sub2.id;
+    testSubject2Id = sub2!.id;
 
     // 3. Create test exam for School A
     const [exam] = await db
@@ -75,7 +75,7 @@ describe("S11 Layer 5: Timetable-Aware Scheduling & Clash Detection Engine", () 
         endDate: new Date("2026-12-15"),
       })
       .returning();
-    testExamAId = exam.id;
+    testExamAId = exam!.id;
 
     // 4. Create an existing exam schedule on Monday Dec 7: 09:00 - 12:00 in Room "Hall-1", Invigilator: teacherA1
     const [sched1] = await db
@@ -94,7 +94,7 @@ describe("S11 Layer 5: Timetable-Aware Scheduling & Clash Detection Engine", () 
         passingMarks: "33.00",
       })
       .returning();
-    existingScheduleA1Id = sched1.id;
+    existingScheduleA1Id = sched1!.id;
 
     // 5. Create a regular timetable period on MONDAY: Period 1 (08:30 - 09:30) in Room "Lab-A", Teacher: teacherA2
     await db.insert(timetablePeriods).values({

@@ -21,6 +21,7 @@ import {
   MapPin,
   BookOpen,
 } from "lucide-react";
+import { DistributionsAutomationModal } from "../manage/DistributionsAutomationModal";
 
 interface ScheduleClientProps {
   exams: Array<{ id: string; name: string }>;
@@ -89,6 +90,7 @@ export function ScheduleClient({
   const [distComponentId, setDistComponentId] = useState<string>("");
   const [distMax, setDistMax] = useState("70");
   const [distPass, setDistPass] = useState("23");
+  const [showAutoDistModal, setShowAutoDistModal] = useState(false);
 
   const filteredSchedules = schedules.filter((s) => {
     if (selectedClassFilter !== "ALL" && s.classId !== selectedClassFilter) {
@@ -265,6 +267,16 @@ export function ScheduleClient({
           >
             <PlusCircle className="w-4 h-4" />
             <span>Add Schedule</span>
+          </button>
+
+          <button
+            onClick={() => setShowAutoDistModal(true)}
+            disabled={!selectedExamId}
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
+            title="Automatically generate default subject mark distributions based on components and board guidelines"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Auto-Distribute Marks</span>
           </button>
 
           <button
@@ -683,6 +695,18 @@ export function ScheduleClient({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Auto-Distribute Marks Modal */}
+      {showAutoDistModal && selectedExamId && (
+        <DistributionsAutomationModal
+          examId={selectedExamId}
+          examName={exams.find((e) => e.id === selectedExamId)?.name ?? "Current Exam"}
+          classes={classes}
+          isOpen={showAutoDistModal}
+          onClose={() => setShowAutoDistModal(false)}
+          onSuccess={() => router.refresh()}
+        />
       )}
     </div>
   );

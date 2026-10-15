@@ -79,22 +79,22 @@ describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
       .values({
         schoolId,
         classId: testClassId,
-        subjectId: subMandatory.id,
+        subjectId: subMandatory!.id,
         isElective: false,
       })
       .returning();
-    mandatoryClassSubjId = csMand.id;
+    mandatoryClassSubjId = csMand!.id;
 
     const [csElec] = await db
       .insert(classSubjects)
       .values({
         schoolId,
         classId: testClassId,
-        subjectId: subElective.id,
+        subjectId: subElective!.id,
         isElective: true,
       })
       .returning();
-    electiveClassSubjId = csElec.id;
+    electiveClassSubjId = csElec!.id;
 
     // 4. Create two test students in this class
     const [st1] = await db
@@ -113,7 +113,7 @@ describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
         isActive: true,
       })
       .returning();
-    student1Id = st1.id;
+    student1Id = st1!.id;
 
     const [st2] = await db
       .insert(students)
@@ -131,7 +131,7 @@ describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
         isActive: true,
       })
       .returning();
-    student2Id = st2.id;
+    student2Id = st2!.id;
   });
 
   afterAll(async () => {

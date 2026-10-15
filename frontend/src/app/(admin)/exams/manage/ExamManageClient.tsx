@@ -24,6 +24,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { DistributionsAutomationModal } from "./DistributionsAutomationModal";
 
 interface ExamManageClientProps {
   schoolId: string;
@@ -76,9 +77,10 @@ export function ExamManageClient({
   cocurricularAreas,
   gradeRules,
 }: ExamManageClientProps) {
-  const [activeTab, setActiveTab] = useState<"wizard" | "cocurricular" | "rules">("wizard");
+  const [activeTab, setActiveTab] = useState<"wizard" | "cocurricular" | "rules" | "distributions">("wizard");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [automationExam, setAutomationExam] = useState<{ id: string; name: string } | null>(null);
 
   // Wizard state
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -365,6 +367,21 @@ export function ExamManageClient({
         >
           <Award className="w-4 h-4" />
           <span>Grading Rules ({gradeRules.length})</span>
+        </button>
+
+        <button
+          data-ux-id="btn_manage_distributions"
+          data-ux-label="Distributions Automation Tab"
+          data-ux-action="tab_switch"
+          onClick={() => setActiveTab("distributions")}
+          className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === "distributions"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-indigo-500" />
+          <span>Mark Distributions</span>
         </button>
 
         <Link
@@ -886,6 +903,97 @@ export function ExamManageClient({
             )}
           </div>
         </div>
+      )}
+
+      {/* TAB 4: MARK DISTRIBUTIONS AUTOMATION */}
+      {activeTab === "distributions" && (
+        <div className="space-y-6">
+          <div className="p-6 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-slate-800">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    Automated Mark Distributions
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  Bulk generate component mark distributions across classes and subjects according to board blueprints.
+                </p>
+              </div>
+            </div>
+
+            {exams.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-500 dark:text-slate-400">
+                No active exams found. Create an examination in the Setup Wizard first.
+              </div>
+            ) : (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {exams.map((exam) => (
+                  <div
+                    key={exam.id}
+                    className="p-5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 hover:border-indigo-300 dark:hover:border-indigo-700 transition space-y-4"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-bold text-sm text-gray-900 dark:text-white">
+                          {exam.name}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                          Type: {exam.examType?.name ?? "General"} • {exam.startDate} to {exam.endDate}
+                        </p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                        {exam.components?.length ?? 0} Components
+                      </span>
+                    </div>
+
+                    {exam.components && exam.components.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {exam.components.map((comp) => (
+                          <span
+                            key={comp.id}
+                            className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300"
+                          >
+                            {comp.displayName} ({comp.weightPercent ?? 100}%)
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="pt-3 border-t border-gray-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                      <Link
+                        href={`/exams/schedule?examId=${exam.id}`}
+                        className="text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition"
+                      >
+                        View Schedules →
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setAutomationExam({ id: exam.id, name: exam.name })}
+                        className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Auto-Generate Distributions</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Distribution Automation Modal */}
+      {automationExam && (
+        <DistributionsAutomationModal
+          examId={automationExam.id}
+          examName={automationExam.name}
+          classes={classes}
+          isOpen={Boolean(automationExam)}
+          onClose={() => setAutomationExam(null)}
+        />
       )}
     </div>
   );

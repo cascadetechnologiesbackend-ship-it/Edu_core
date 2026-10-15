@@ -47,7 +47,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
         endDate: new Date("2026-12-15"),
       })
       .returning();
-    testExamAId = examA.id;
+    testExamAId = examA!.id;
 
     // 2. Create 2 schedules for Exam A
     const [schedA1] = await db
@@ -64,7 +64,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
         passingMarks: "33.00",
       })
       .returning();
-    testScheduleA1Id = schedA1.id;
+    testScheduleA1Id = schedA1!.id;
 
     const [sub2] = await db
       .insert(subjects)
@@ -82,7 +82,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
         schoolId: schoolA,
         examId: testExamAId,
         classId: ISOLATION_IDS.schoolA.classId,
-        subjectId: sub2.id,
+        subjectId: sub2!.id,
         examDate: "2026-12-05",
         startTime: "09:30:00",
         durationMinutes: 180,
@@ -90,7 +90,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
         passingMarks: "33.00",
       })
       .returning();
-    testScheduleA2Id = schedA2.id;
+    testScheduleA2Id = schedA2!.id;
 
     // 3. Create Exam and schedule for School B
     const [examB] = await db
@@ -104,7 +104,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
         endDate: new Date("2026-12-15"),
       })
       .returning();
-    testExamBId = examB.id;
+    testExamBId = examB!.id;
 
     const [schedB] = await db
       .insert(examSchedules)
@@ -120,7 +120,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
         passingMarks: "26.00",
       })
       .returning();
-    testScheduleBId = schedB.id;
+    testScheduleBId = schedB!.id;
   });
 
   afterAll(async () => {

@@ -45,10 +45,9 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
         schoolId,
         classId,
         name: `Sec_${runId}`,
-        displayName: `10-${runId}`,
       })
       .returning();
-    testSectionId = sec.id;
+    testSectionId = sec!.id;
 
     // 1. Create a test exam
     const [exam] = await db
@@ -62,7 +61,7 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
         endDate: new Date("2026-11-15"),
       })
       .returning();
-    testExamId = exam.id;
+    testExamId = exam!.id;
 
     // 2. Create a test subject
     const [subj] = await db
@@ -76,7 +75,7 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
         passingMarks: 33,
       })
       .returning();
-    testSubjectId = subj.id;
+    testSubjectId = subj!.id;
 
     // 3. Create exam schedule
     const [schedule] = await db
@@ -93,7 +92,7 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
         passingMarks: "33.00",
       })
       .returning();
-    testScheduleId = schedule.id;
+    testScheduleId = schedule!.id;
 
     // 4. Create two test students in this class and section
     const [st1] = await db
@@ -113,7 +112,7 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
         isActive: true,
       })
       .returning();
-    student1Id = st1.id;
+    student1Id = st1!.id;
 
     const [st2] = await db
       .insert(students)
@@ -132,7 +131,7 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
         isActive: true,
       })
       .returning();
-    student2Id = st2.id;
+    student2Id = st2!.id;
   });
 
   afterAll(async () => {
@@ -252,7 +251,7 @@ describe("S11 Layer 2: Exam Attendance Synchronization & Reconciliation", () => 
       where: and(
         eq(auditLogs.schoolId, schoolId),
         eq(auditLogs.tableName, "student_attendance"),
-        eq(auditLogs.recordId, records[0]?.id),
+        eq(auditLogs.recordId, records[0]!.id),
       ),
     });
 

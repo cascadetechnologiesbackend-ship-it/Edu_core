@@ -165,7 +165,7 @@ export async function seedIsolationSchools() {
       await client.query(
         `INSERT INTO students (id, school_id, academic_year_id, admission_number, first_name_encrypted, last_name_encrypted, date_of_birth, gender, category, admission_date, current_class_id, primary_parent_user_id, is_active)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'MALE', 'GENERAL', '2026-04-01 00:00:00+00', $8, $9, true)
-         ON CONFLICT (id) DO NOTHING`,
+         ON CONFLICT (id) DO UPDATE SET primary_parent_user_id = EXCLUDED.primary_parent_user_id, current_class_id = EXCLUDED.current_class_id, is_active = EXCLUDED.is_active`,
         [s.studentId, s.id, s.academicYearId, s.admissionNumber, firstEnc, lastEnc, s.studentDob, s.classId, s.parentUserId],
       );
 
