@@ -15,6 +15,12 @@ import { requireExamPermission } from "@/lib/examPermissions";
 import { calculateRanks } from "@/lib/gradeEngine";
 import { decryptData } from "@/lib/encryption";
 
+import {
+  verifyExamOwnership,
+  verifyClassOwnership,
+  verifySetupOwnership,
+} from "@/lib/examIsolation";
+
 const ANALYTICS_ADMIN_ROLES = [
   "SUPER_ADMIN",
   "SCHOOL_ADMIN",
@@ -32,6 +38,16 @@ export async function generateMeritList(examId: string, classId: string) {
     requireExamPermission(ctx, "exam.analytics.view");
     requireExamPermission(ctx, "exam.result.publish");
     const school = await requireSchool(ctx);
+
+    const examVerification = await verifyExamOwnership(school.id, examId, ctx, "generateMeritList");
+    if (!examVerification.success) {
+      return { success: false, error: examVerification.error, message: examVerification.message };
+    }
+
+    const classVerification = await verifyClassOwnership(school.id, classId, ctx, "generateMeritList");
+    if (!classVerification.success) {
+      return { success: false, error: classVerification.error, message: classVerification.message };
+    }
 
     const classStudents = await db.query.students.findMany({
       where: and(
@@ -112,11 +128,9 @@ export async function generateRankSheet(examId: string, classId: string) {
     requireExamPermission(ctx, "exam.analytics.view");
     const school = await requireSchool(ctx);
 
-    const exam = await db.query.exams.findFirst({
-      where: and(eq(exams.id, examId), eq(exams.schoolId, school.id)),
-    });
-    if (!exam) {
-      return { success: false, message: "Exam not found or outside tenant scope." };
+    const examVerification = await verifyExamOwnership(school.id, examId, ctx, "generateRankSheet");
+    if (!examVerification.success) {
+      return { success: false, error: examVerification.error, message: examVerification.message };
     }
 
     const rows = await db.query.reportCards.findMany({
@@ -178,15 +192,11 @@ export async function exportCohortAnalytics(setupId: string, classId?: string) {
     requireExamPermission(ctx, "exam.analytics.view");
     const school = await requireSchool(ctx);
 
-    const setup = await db.query.reportCardSetups.findFirst({
-      where: and(
-        eq(reportCardSetups.id, setupId),
-        eq(reportCardSetups.schoolId, school.id),
-      ),
-    });
-    if (!setup) {
-      return { success: false, message: "Report card setup not found." };
+    const setupVerification = await verifySetupOwnership(school.id, setupId, ctx, "exportCohortAnalytics");
+    if (!setupVerification.success) {
+      return { success: false, error: setupVerification.error, message: setupVerification.message };
     }
+    const setup = setupVerification.data!;
 
     const whereConditions = [
       eq(resultSnapshots.setupId, setupId),

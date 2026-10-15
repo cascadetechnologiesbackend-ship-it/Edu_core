@@ -10,6 +10,11 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
 
+import {
+  verifyExamOwnership,
+  verifyStudentOwnership,
+} from "@/lib/examIsolation";
+
 const ADMIT_CARD_ROLES = [
   "SUPER_ADMIN",
   "SCHOOL_ADMIN",
@@ -30,6 +35,11 @@ export async function saveAdmitCardSettings(input: {
   const ctx = await requireAuth(ADMIT_CARD_ROLES);
   requireExamPermission(ctx.role, "exam.admit_card.manage");
   const school = await requireSchool(ctx);
+
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "saveAdmitCardSettings");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
 
   const normalizedFeeLockMode: "OFF" | "SOFT" | "HARD" =
     input.feeLockMode === "SOFT_WARNING"
@@ -91,6 +101,16 @@ export async function toggleAdmitCardHold(input: {
   requireExamPermission(ctx.role, "exam.admit_card.manage");
   const school = await requireSchool(ctx);
 
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "toggleAdmitCardHold");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const studentVerification = await verifyStudentOwnership(school.id, input.studentId, ctx, "toggleAdmitCardHold");
+  if (!studentVerification.success) {
+    return { success: false, error: studentVerification.error, message: studentVerification.message };
+  }
+
   const existing = await db.query.examAdmitCardHolds.findFirst({
     where: and(
       eq(examAdmitCardHolds.schoolId, school.id),
@@ -139,6 +159,16 @@ export async function releaseAdmitCardHold(input: {
   const ctx = await requireAuth(ADMIT_CARD_ROLES);
   requireExamPermission(ctx.role, "exam.admit_card.manage");
   const school = await requireSchool(ctx);
+
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "releaseAdmitCardHold");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const studentVerification = await verifyStudentOwnership(school.id, input.studentId, ctx, "releaseAdmitCardHold");
+  if (!studentVerification.success) {
+    return { success: false, error: studentVerification.error, message: studentVerification.message };
+  }
 
   await db
     .delete(examAdmitCardHolds)

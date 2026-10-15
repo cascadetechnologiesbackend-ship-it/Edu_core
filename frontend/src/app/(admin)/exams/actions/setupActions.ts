@@ -103,6 +103,12 @@ export async function createExam(input: z.infer<typeof CreateExamSchema> | FormD
   return { success: true, examId: newExam?.id };
 }
 
+import {
+  verifyExamOwnership,
+  verifyClassOwnership,
+  verifyStudentOwnership,
+} from "@/lib/examIsolation";
+
 export async function updateExam(
   examId: string,
   input: {
@@ -116,12 +122,18 @@ export async function updateExam(
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
-  const existing = await db.query.exams.findFirst({
-    where: and(eq(exams.id, examId), eq(exams.schoolId, school.id), isNull(exams.deletedAt)),
-  });
+  const verification = await verifyExamOwnership(school.id, examId, ctx, "updateExam");
+  if (!verification.success) {
+    return { success: false, error: verification.error, message: verification.message };
+  }
 
-  if (!existing) {
-    return { success: false, message: "Exam not found" };
+  if (input.classIds && input.classIds.length > 0) {
+    for (const classId of input.classIds) {
+      const classCheck = await verifyClassOwnership(school.id, classId, ctx, "updateExamClassScope");
+      if (!classCheck.success) {
+        return { success: false, error: classCheck.error, message: classCheck.message };
+      }
+    }
   }
 
   const updateValues: Record<string, unknown> = {
@@ -162,6 +174,11 @@ export async function deleteExam(examId: string) {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
+
+  const verification = await verifyExamOwnership(school.id, examId, ctx, "deleteExam");
+  if (!verification.success) {
+    return { success: false, error: verification.error, message: verification.message };
+  }
 
   await db
     .update(exams)

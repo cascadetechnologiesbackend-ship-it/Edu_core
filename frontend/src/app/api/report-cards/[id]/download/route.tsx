@@ -27,6 +27,8 @@ import {
   type ReportCardData,
 } from "@/lib/pdf/ReportCardPDF";
 
+import { logExamIsolationViolation } from "@/lib/examIsolation";
+
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } },
@@ -50,6 +52,21 @@ export async function GET(
     if (snapshot) {
       // Strict cross-tenant boundary
       if (!isSuperAdmin && userSchoolId && snapshot.schoolId !== userSchoolId) {
+        await logExamIsolationViolation({
+          schoolId: userSchoolId,
+          userId: session.user.id,
+          userEmail: session.user.email,
+          userRole,
+          action: "READ",
+          tableName: "result_snapshots",
+          recordId: params.id,
+          purposeId: "cross_tenant_violation",
+          metadata: {
+            reason: "Cross-tenant PDF download attempted",
+            attemptedSchoolId: snapshot.schoolId,
+          },
+        });
+
         return NextResponse.json(
           { error: "Forbidden: cross-tenant access denied" },
           { status: 403 },
@@ -224,6 +241,21 @@ export async function GET(
 
     // Strict cross-tenant boundary: staff must belong to the report card's school
     if (!isSuperAdmin && userSchoolId && reportCard.schoolId !== userSchoolId) {
+      await logExamIsolationViolation({
+        schoolId: userSchoolId,
+        userId: session.user.id,
+        userEmail: session.user.email,
+        userRole,
+        action: "READ",
+        tableName: "report_cards",
+        recordId: params.id,
+        purposeId: "cross_tenant_violation",
+        metadata: {
+          reason: "Cross-tenant legacy PDF download attempted",
+          attemptedSchoolId: reportCard.schoolId,
+        },
+      });
+
       return NextResponse.json({ error: "Forbidden: cross-tenant access denied" }, { status: 403 });
     }
 

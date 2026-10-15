@@ -61,10 +61,22 @@ export async function createReportCardSetup(input: {
   return { success: true, setup };
 }
 
+import {
+  verifySetupOwnership,
+  verifyStudentOwnership,
+  verifyClassOwnership,
+  verifyExamOwnership,
+} from "@/lib/examIsolation";
+
 export async function publishResults(setupId: string) {
   const ctx = await requireAuth(RESULT_ADMIN_ROLES);
   requireExamPermission(ctx.role, "exam.result.publish");
   const school = await requireSchool(ctx);
+
+  const setupVerification = await verifySetupOwnership(school.id, setupId, ctx, "publishResults");
+  if (!setupVerification.success) {
+    return { success: false, error: setupVerification.error, message: setupVerification.message };
+  }
 
   const settings = await db.query.resultSettings.findFirst({
     where: and(
@@ -115,6 +127,11 @@ export async function configureResultSettings(input: {
   const ctx = await requireAuth(RESULT_ADMIN_ROLES);
   requireExamPermission(ctx.role, "exam.result.publish");
   const school = await requireSchool(ctx);
+
+  const setupVerification = await verifySetupOwnership(school.id, input.setupId, ctx, "configureResultSettings");
+  if (!setupVerification.success) {
+    return { success: false, error: setupVerification.error, message: setupVerification.message };
+  }
 
   const normalizedFeeLockMode: "OFF" | "SOFT" | "HARD" =
     input.feeLockMode === "SOFT_WARNING"
@@ -176,6 +193,16 @@ export async function setResultHold(input: {
   requireExamPermission(ctx.role, "exam.result.publish");
   const school = await requireSchool(ctx);
 
+  const setupVerification = await verifySetupOwnership(school.id, input.setupId, ctx, "setResultHold");
+  if (!setupVerification.success) {
+    return { success: false, error: setupVerification.error, message: setupVerification.message };
+  }
+
+  const studentVerification = await verifyStudentOwnership(school.id, input.studentId, ctx, "setResultHold");
+  if (!studentVerification.success) {
+    return { success: false, error: studentVerification.error, message: studentVerification.message };
+  }
+
   const existing = await db.query.resultHolds.findFirst({
     where: and(
       eq(resultHolds.schoolId, school.id),
@@ -224,20 +251,17 @@ export async function generateResultSnapshots(
   requireExamPermission(ctx.role, "exam.result.publish");
   const school = await requireSchool(ctx);
 
-  const setup = await db.query.reportCardSetups.findFirst({
-    where: and(
-      eq(reportCardSetups.id, setupId),
-      eq(reportCardSetups.schoolId, school.id),
-    ),
-  });
+  const setupVerification = await verifySetupOwnership(school.id, setupId, ctx, "generateResultSnapshots");
+  if (!setupVerification.success) {
+    return { success: false, error: setupVerification.error, message: setupVerification.message };
+  }
+  const setup = setupVerification.data!;
 
-  if (!setup) return { success: false, message: "Report card setup not found" };
-
-  const classRecord = await db.query.classes.findFirst({
-    where: and(eq(classes.id, classId), eq(classes.schoolId, school.id)),
-  });
-
-  if (!classRecord) return { success: false, message: "Class not found" };
+  const classVerification = await verifyClassOwnership(school.id, classId, ctx, "generateResultSnapshots");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
+  const classRecord = classVerification.data!;
 
   const classStudents = await db.query.students.findMany({
     where: and(

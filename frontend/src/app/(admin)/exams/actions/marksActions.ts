@@ -12,6 +12,12 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission, assertTeacherTeaches } from "@/lib/examPermissions";
 import { z } from "zod";
 
+import {
+  verifyExamOwnership,
+  verifyClassOwnership,
+  logExamIsolationViolation,
+} from "@/lib/examIsolation";
+
 const GRADING_ROLES = [
   "SUPER_ADMIN",
   "SCHOOL_ADMIN",
@@ -45,7 +51,18 @@ export async function saveMarkEntries(input: {
   requireExamPermission(ctx.role, "exam.marks.entry");
   const school = await requireSchool(ctx);
 
-  // 1. If teacher, verify teacher is assigned to this class/subject
+  // 1. Verify exam and class tenant boundaries
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "saveMarkEntries");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, input.classId, ctx, "saveMarkEntries");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
+
+  // 2. If teacher, verify teacher is assigned to this class/subject
   if (ctx.role === "TEACHER") {
     const isAssigned = await assertTeacherTeaches({
       teacherId: ctx.userId,
@@ -56,8 +73,26 @@ export async function saveMarkEntries(input: {
       ...(input.sectionId ? { sectionId: input.sectionId } : {}),
     });
     if (!isAssigned) {
+      await logExamIsolationViolation({
+        schoolId: school.id,
+        userId: ctx.userId,
+        userEmail: ctx.email,
+        userRole: ctx.role,
+        action: "WRITE",
+        tableName: "mark_entries",
+        recordId: `${input.examId}:${input.classId}:${input.subjectId}`,
+        purposeId: "teacher_assignment_violation",
+        metadata: {
+          event: "TEACHER_CROSS_SUBJECT_WRITE_DENIED",
+          teacherId: ctx.userId,
+          classId: input.classId,
+          subjectId: input.subjectId,
+          examId: input.examId,
+        },
+      });
       return {
         success: false,
+        error: "TENANT_ACCESS_DENIED",
         message: "Unauthorized: You are not assigned to grade this class and subject.",
       };
     }
@@ -147,6 +182,16 @@ export async function lockMarks(input: {
   requireExamPermission(ctx.role, "exam.marks.lock");
   const school = await requireSchool(ctx);
 
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "lockMarks");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, input.classId, ctx, "lockMarks");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
+
   const existing = await db.query.examMarksLocks.findFirst({
     where: and(
       eq(examMarksLocks.schoolId, school.id),
@@ -193,6 +238,16 @@ export async function unlockMarks(input: {
   const ctx = await requireAuth(ADMIN_LOCK_ROLES);
   requireExamPermission(ctx.role, "exam.marks.unlock");
   const school = await requireSchool(ctx);
+
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "unlockMarks");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, input.classId, ctx, "unlockMarks");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
 
   const existing = await db.query.examMarksLocks.findFirst({
     where: and(

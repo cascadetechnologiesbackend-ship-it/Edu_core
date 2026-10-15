@@ -8,6 +8,8 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
 import { calculateRanks } from "@/lib/gradeEngine";
 
+import { verifyExamOwnership } from "@/lib/examIsolation";
+
 const ADMIN_LOCK_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
 
 export async function lockExam(examId: string) {
@@ -15,10 +17,10 @@ export async function lockExam(examId: string) {
   requireExamPermission(ctx, "exam.marks.lock");
   const school = await requireSchool(ctx);
 
-  const exam = await db.query.exams.findFirst({
-    where: and(eq(exams.id, examId), eq(exams.schoolId, school.id)),
-  });
-  if (!exam) throw new Error("Exam not found");
+  const verification = await verifyExamOwnership(school.id, examId, ctx, "lockExam");
+  if (!verification.success) {
+    return { success: false, error: verification.error, message: verification.message };
+  }
 
   await db
     .update(exams)
@@ -33,12 +35,18 @@ export async function lockExam(examId: string) {
   revalidatePath("/exams/dashboard");
   revalidatePath("/exams/manage");
   revalidatePath("/exams");
+  return { success: true };
 }
 
 export async function unlockExam(examId: string) {
   const ctx = await requireAuth(ADMIN_LOCK_ROLES);
   requireExamPermission(ctx, "exam.marks.unlock");
   const school = await requireSchool(ctx);
+
+  const verification = await verifyExamOwnership(school.id, examId, ctx, "unlockExam");
+  if (!verification.success) {
+    return { success: false, error: verification.error, message: verification.message };
+  }
 
   await db
     .update(exams)
@@ -53,6 +61,7 @@ export async function unlockExam(examId: string) {
   revalidatePath("/exams/dashboard");
   revalidatePath("/exams/manage");
   revalidatePath("/exams");
+  return { success: true };
 }
 
 export async function generateMeritList(examId: string, classId: string) {

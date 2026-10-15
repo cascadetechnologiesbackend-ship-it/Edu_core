@@ -44,22 +44,32 @@ export default async function ParentPortalAdmitCardsPage() {
     "ACCOUNTANT",
   ].includes(role);
 
-  // 1. Identify student(s) linked to this user
+  // 1. Identify student(s) linked to this user, strictly scoped to session schoolId
+  const userSchoolId = session.user.schoolId;
   let myStudents = await db.query.students.findMany({
-    where: eq(students.primaryParentUserId, userId),
+    where: and(
+      eq(students.primaryParentUserId, userId),
+      userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+    ),
   });
 
   // If role is STUDENT, also check userId on student
   if (myStudents.length === 0 && role === "STUDENT") {
     myStudents = await db.query.students.findMany({
-      where: eq(students.userId, userId),
+      where: and(
+        eq(students.userId, userId),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+      ),
     });
   }
 
-  // Preview fallback for admins
+  // Preview fallback for admins, strictly within tenant school
   if (myStudents.length === 0 && isPrivileged) {
     const demo = await db.query.students.findFirst({
-      where: eq(students.isActive, true),
+      where: and(
+        eq(students.isActive, true),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+      ),
     });
     if (demo) myStudents = [demo];
   }

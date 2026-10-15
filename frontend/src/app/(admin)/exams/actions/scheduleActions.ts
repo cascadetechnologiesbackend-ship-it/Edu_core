@@ -26,6 +26,12 @@ const CreateScheduleSchema = z.object({
   roomNumber: z.string().optional(),
 });
 
+import {
+  verifyExamOwnership,
+  verifyClassOwnership,
+  verifyScheduleOwnership,
+} from "@/lib/examIsolation";
+
 export async function createExamSchedule(data: z.infer<typeof CreateScheduleSchema>) {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx.role, "exam.schedule.manage");
@@ -48,10 +54,15 @@ export async function createExamSchedule(data: z.infer<typeof CreateScheduleSche
     roomNumber,
   } = parsed.data;
 
-  const exam = await db.query.exams.findFirst({
-    where: and(eq(exams.id, examId), eq(exams.schoolId, school.id)),
-  });
-  if (!exam) return { success: false, message: "Exam not found" };
+  const examVerification = await verifyExamOwnership(school.id, examId, ctx, "createExamSchedule");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, classId, ctx, "createExamSchedule");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
 
   const [schedule] = await db
     .insert(examSchedules)
@@ -77,6 +88,11 @@ export async function deleteExamSchedule(scheduleId: string, examId?: string) {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx.role, "exam.schedule.manage");
   const school = await requireSchool(ctx);
+
+  const scheduleVerification = await verifyScheduleOwnership(school.id, scheduleId, ctx, "deleteExamSchedule");
+  if (!scheduleVerification.success) {
+    return { success: false, error: scheduleVerification.error, message: scheduleVerification.message };
+  }
 
   await db
     .delete(examSchedules)
@@ -129,6 +145,16 @@ export async function setMarkDistribution(input: {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx.role, "exam.schedule.manage");
   const school = await requireSchool(ctx);
+
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "setMarkDistribution");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, input.classId, ctx, "setMarkDistribution");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
 
   const componentIdVal = input.componentId ?? null;
 

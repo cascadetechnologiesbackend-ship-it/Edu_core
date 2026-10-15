@@ -36,5 +36,10 @@
     "../database/src/**/*.ts",
     "../backend/src/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "../backend/src/**/__tests__/**",
+    "../backend/src/**/*.test.ts",
+    "../scripts/**"
+  ]
 }

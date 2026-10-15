@@ -49,21 +49,31 @@ export default async function ParentReportCardsPage() {
     "TEACHER",
   ].includes(userRole);
 
-  // 1. Identify students linked to this parent/student
+  // 1. Identify students linked to this parent/student, strictly scoped to tenant schoolId
+  const userSchoolId = session.user.schoolId;
   let myStudents = await db.query.students.findMany({
-    where: eq(students.primaryParentUserId, userId),
+    where: and(
+      eq(students.primaryParentUserId, userId),
+      userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+    ),
   });
 
   if (myStudents.length === 0 && userRole === "STUDENT") {
     myStudents = await db.query.students.findMany({
-      where: eq(students.userId, userId),
+      where: and(
+        eq(students.userId, userId),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+      ),
     });
   }
 
-  // Admin preview fallback
+  // Admin preview fallback, strictly within tenant school
   if (myStudents.length === 0 && isPrivileged) {
     const demoStudent = await db.query.students.findFirst({
-      where: eq(students.isActive, true),
+      where: and(
+        eq(students.isActive, true),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+      ),
     });
     if (demoStudent) myStudents = [demoStudent];
   }
