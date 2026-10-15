@@ -11,6 +11,10 @@ import {
 } from "@/app/actions/onboard";
 import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 import {
+  blueprintSummary,
+  deriveClassGroupsFromClasses,
+} from "@/lib/examBoardBlueprints";
+import {
   GraduationCap,
   Building2,
   UserPlus,
@@ -96,6 +100,12 @@ export default function DedicatedSchoolOnboardingWizard() {
   ]);
   const [customFeeHeadInput, setCustomFeeHeadInput] = useState("");
   const [gradingScale, setGradingScale] = useState<"CBSE_9_POINT" | "PERCENTAGE" | "GPA">("CBSE_9_POINT");
+  const [loadExamDefaults, setLoadExamDefaults] = useState(true);
+
+  // Derived blueprint summary for examination pre-seeding preview
+  const classGroupsDerived = deriveClassGroupsFromClasses(classesList);
+  const examSummary = blueprintSummary(board, gradingScale, classGroupsDerived);
+  const totalGradeRulesCount = Object.values(examSummary.gradeRuleCountsByGroup).reduce((acc, v) => acc + v, 0);
 
   // ── 6. Admin Security State ─────────────────────────────────────────────
   const [adminName, setAdminName] = useState("");
@@ -345,6 +355,7 @@ export default function DedicatedSchoolOnboardingWizard() {
         subjectsSetup: subjectsList,
         feeHeadsSetup: feeHeadsList,
         gradingScale,
+        loadExamDefaults,
         adminName,
         adminEmail,
         adminPassword,
@@ -414,7 +425,7 @@ export default function DedicatedSchoolOnboardingWizard() {
                 { id: 2, label: "School Profile", sub: "Logo, contact & currency" },
                 { id: 3, label: "Classes & Sections", sub: "Where students will live" },
                 { id: 4, label: "Subjects", sub: "For timetables & marks" },
-                { id: 5, label: "Grading & Fees", sub: "Report cards & fee heads" },
+                { id: 5, label: "Grading, Fees & Exams", sub: "Report cards, fees & exam blueprint" },
                 { id: 6, label: "School Admin Security", sub: "Credentials & captcha" },
                 { id: 7, label: "Finish & Launch", sub: "Review & launch" },
               ].map((stepItem) => {
@@ -901,9 +912,9 @@ export default function DedicatedSchoolOnboardingWizard() {
                 {activeStep === 5 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-2xl font-black text-white">Fee heads & grading scale</h1>
+                      <h1 className="text-2xl font-black text-white">Fee heads, grading & examinations</h1>
                       <p className="text-slate-400 text-xs mt-1">
-                        Configure master fee structure categories and report card evaluation rules.
+                        Configure master fee structure categories, report card evaluation rules, and board examination blueprint defaults.
                       </p>
                     </div>
 
@@ -969,6 +980,89 @@ export default function DedicatedSchoolOnboardingWizard() {
                             </button>
                           ))}
                         </div>
+                      </div>
+
+                      {/* Board Examination Blueprint Preview & Toggle */}
+                      <div className="pt-6 border-t border-slate-800 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                              <Sparkles className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-white flex items-center gap-2">
+                                <span>{board} Examination Blueprint</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                                  Pre-Seeding Ready
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Automatic provisioning of board-compliant exam types, grade rules, and cocurricular areas.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Toggle Switch */}
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={loadExamDefaults}
+                              onChange={(e) => setLoadExamDefaults(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600 relative"></div>
+                            <span className="text-xs font-bold text-slate-300">
+                              {loadExamDefaults ? "Enabled" : "Skip"}
+                            </span>
+                          </label>
+                        </div>
+
+                        {loadExamDefaults ? (
+                          <div className="p-4 rounded-2xl bg-slate-950/90 border border-orange-500/30 space-y-3.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                              <span className="text-slate-400">
+                                Tailored to your {classesList.length} configured classes:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {classGroupsDerived.map((group) => (
+                                  <span
+                                    key={group}
+                                    className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-[10px] font-semibold text-slate-300"
+                                  >
+                                    {group.replace("_", " ")}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                                <div className="text-base font-black text-orange-400">{examSummary.examTypeCount}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Exam Types</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                                <div className="text-base font-black text-blue-400">{totalGradeRulesCount}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Grade Rules (Contiguous)</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                                <div className="text-base font-black text-purple-400">{examSummary.cocurricularCount}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Cocurricular Areas</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                                <div className="text-base font-black text-emerald-400">{examSummary.termPlanNames.length}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Term Shells Prepared</div>
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              Pre-seeds {examSummary.examTypeCount} board-accurate exam types, {totalGradeRulesCount} contiguous grade rules across {classGroupsDerived.length} class categories, and {examSummary.cocurricularCount} cocurricular areas for {board}.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-500 italic">
+                            Board exam defaults skipped. You can manually configure exam types or load defaults later from the Examination Setup page.
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1122,7 +1216,7 @@ export default function DedicatedSchoolOnboardingWizard() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3 text-center py-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center py-2">
                         <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
                           <div className="text-xl font-black text-orange-400">{classesList.length}</div>
                           <div className="text-[10px] text-slate-400 mt-1">Classes</div>
@@ -1134,6 +1228,14 @@ export default function DedicatedSchoolOnboardingWizard() {
                         <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
                           <div className="text-xl font-black text-purple-400">{feeHeadsList.length}</div>
                           <div className="text-[10px] text-slate-400 mt-1">Fee Heads</div>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                          <div className="text-xl font-black text-emerald-400">
+                            {loadExamDefaults ? `${examSummary.examTypeCount} Exams` : "None"}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1">
+                            {loadExamDefaults ? `${board} Blueprint` : "Exam Defaults Off"}
+                          </div>
                         </div>
                       </div>
 
