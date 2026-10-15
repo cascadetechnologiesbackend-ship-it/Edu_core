@@ -65,3 +65,4 @@ docs/retrieved_chat_history*
 
 # Chat artifacts, scripts and diagnosis evidence
 artifacts/
+RELEASE_NOTES.md

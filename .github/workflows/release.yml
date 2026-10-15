@@ -1,0 +1,89 @@
+name: Automated SemVer & GitHub Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - ".gitignore"
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "SemVer Bump Type (auto | patch | minor | major | explicit X.Y.Z)"
+        required: true
+        default: "auto"
+        type: string
+
+concurrency:
+  group: release-pipeline
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: SemVer Bump, Tag & GitHub Release
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !startsWith(github.event.head_commit.message, 'chore(release):')"
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository (Full History)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
+
+      - name: Compute SemVer & Bump Monorepo Packages
+        id: bump
+        run: |
+          BUMP_ARG="${{ github.event.inputs.bump_type || 'auto' }}"
+          echo "Executing version bump with argument: $BUMP_ARG"
+          node scripts/bump-version.mjs "$BUMP_ARG"
+
+      - name: Commit Bumped Packages & Tag Release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          NEW_TAG="${{ steps.bump.outputs.new_tag }}"
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          
+          echo "Processing release: $NEW_TAG (version: $NEW_VERSION)"
+          
+          git add package.json frontend/package.json backend/package.json database/package.json packages/*/package.json frontend/src/app/api/health/route.ts
+          
+          if git diff --staged --quiet; then
+            echo "No package.json diffs to commit."
+          else
+            git commit -m "chore(release): $NEW_TAG [skip ci]"
+            git push origin main
+          fi
+          
+          # Check if tag already exists locally or remotely
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists."
+          else
+            git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+            git push origin "$NEW_TAG"
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: steps.bump.outputs.new_tag != ''
+        with:
+          tag_name: ${{ steps.bump.outputs.new_tag }}
+          name: Release ${{ steps.bump.outputs.new_tag }}
+          body_path: RELEASE_NOTES.md
+          token: ${{ secrets.GITHUB_TOKEN }}

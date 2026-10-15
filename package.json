@@ -1,6 +1,6 @@
 {
   "name": "schoolmitra-erp",
-  "version": "0.1.0",
+  "version": "11.0.0",
   "private": true,
   "description": "SchoolMitra ERP — School Management for Nursery–Class 10 (DPDP Act 2023 Compliant)",
   "scripts": {
@@ -18,6 +18,10 @@
     "db:seed": "turbo run db:seed",
     "audit:exam-rbac": "node scripts/audit-exam-rbac.mjs",
     "audit:unscoped-writes": "node scripts/audit-unscoped-writes.mjs",
+    "version:auto": "node scripts/bump-version.mjs auto",
+    "version:patch": "node scripts/bump-version.mjs patch",
+    "version:minor": "node scripts/bump-version.mjs minor",
+    "version:major": "node scripts/bump-version.mjs major",
     "prepare": "node -e \"if (process.env.NODE_ENV !== 'production') try { require('husky')() } catch {}\""
   },
   "dependencies": {
