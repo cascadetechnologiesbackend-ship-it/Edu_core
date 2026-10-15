@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import type { ExamAuthContext } from "./examPermissions";
+import { withPlatformContext } from "./tenant";
 
 export type TenantDenialError = "TENANT_ACCESS_DENIED" | "RESOURCE_NOT_FOUND";
 
@@ -200,8 +201,10 @@ export async function verifyClassOwnership(
     return { success: true, data: ownClass };
   }
 
-  const anyClass = await db.query.classes.findFirst({
-    where: eq(classes.id, classId),
+  const anyClass = await withPlatformContext(async (tx) => {
+    return await tx.query.classes.findFirst({
+      where: eq(classes.id, classId),
+    });
   });
 
   if (anyClass && anyClass.schoolId !== schoolId) {
@@ -253,8 +256,10 @@ export async function verifyStudentOwnership(
     return { success: true, data: ownStudent };
   }
 
-  const anyStudent = await db.query.students.findFirst({
-    where: eq(students.id, studentId),
+  const anyStudent = await withPlatformContext(async (tx) => {
+    return await tx.query.students.findFirst({
+      where: eq(students.id, studentId),
+    });
   });
 
   if (anyStudent && anyStudent.schoolId !== schoolId) {
