@@ -14,6 +14,7 @@ import {
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
+import { resolveResultVisibility } from "@/lib/gradeEngine";
 import Link from "next/link";
 import {
   Award,
@@ -189,20 +190,26 @@ export default async function ParentReportCardsPage() {
           }),
         ]);
 
-        const isWithheld = settings?.withholdAll ?? false;
-        const releaseAt = settings?.releaseAt ?? null;
-        const isScheduled = Boolean(releaseAt && new Date(releaseAt) > now);
-        const isHold = Boolean(hold);
-        const holdReason = hold?.reason ?? null;
-
         const feeThreshold = parseFloat(settings?.feeLockThresholdAmount || "0");
         const isHardFeeBlocked =
           settings?.feeLockMode === "HARD" && dueAmount > feeThreshold;
         const isSoftFeeWarning =
           settings?.feeLockMode === "SOFT" && dueAmount > feeThreshold;
 
-        const isAllowed =
-          !isWithheld && !isScheduled && !isHold && !isHardFeeBlocked;
+        const visibility = resolveResultVisibility({
+          isPublished: !settings?.withholdAll,
+          scheduledPublishAt: settings?.releaseAt ?? null,
+          feeBlocked: isHardFeeBlocked,
+          adminHold: Boolean(hold),
+          adminHoldReason: hold?.reason ?? null,
+        });
+
+        const isAllowed = visibility.isVisible;
+        const isWithheld = visibility.status === "UNPUBLISHED";
+        const isScheduled = visibility.status === "SCHEDULED";
+        const isHold = visibility.status === "WITHHELD_ADMIN";
+        const releaseAt = settings?.releaseAt ?? null;
+        const holdReason = hold?.reason ?? null;
 
         return {
           id: snap.id,

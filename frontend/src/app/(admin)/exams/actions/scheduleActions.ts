@@ -5,8 +5,10 @@ import {
   examSchedules,
   examMarkDistributions,
   exams,
+  markEntries,
+  students,
 } from "@/db/schema";
-import { eq, and, inArray, isNull } from "drizzle-orm";
+import { eq, and, inArray, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission, hasExamPermission } from "@/lib/examPermissions";
@@ -132,6 +134,36 @@ export async function deleteExamSchedule(scheduleId: string, examId?: string) {
   const scheduleVerification = await verifyScheduleOwnership(school.id, scheduleId, ctx, "deleteExamSchedule");
   if (!scheduleVerification.success) {
     return { success: false, error: scheduleVerification.error, message: scheduleVerification.message };
+  }
+
+  // Layer 8: Fail-closed mark guard: check if mark entries exist for this schedule paper
+  const schedule = await db.query.examSchedules.findFirst({
+    where: and(eq(examSchedules.id, scheduleId), eq(examSchedules.schoolId, school.id)),
+  });
+
+  if (!schedule) {
+    return { success: false, message: "Exam schedule not found." };
+  }
+
+  const markCheck = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(markEntries)
+    .innerJoin(students, eq(markEntries.studentId, students.id))
+    .where(
+      and(
+        eq(markEntries.schoolId, school.id),
+        eq(markEntries.examId, schedule.examId),
+        eq(markEntries.subjectId, schedule.subjectId),
+        eq(students.currentClassId, schedule.classId),
+      ),
+    );
+
+  const marksCount = Number(markCheck[0]?.count ?? 0);
+  if (marksCount > 0) {
+    return {
+      success: false,
+      message: `Cannot delete exam schedule: ${marksCount} student mark entries have already been recorded for this examination paper. Void or clear existing marks first.`,
+    };
   }
 
   await db

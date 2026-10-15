@@ -158,6 +158,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
     expect(p1Event?.startDate).toBe("2026-12-03");
     expect(p1Event?.endDate).toBe("2026-12-03");
     expect(p1Event?.title).toContain("("); // e.g. Subject Name (Class DisplayName)
+    expect(p1Event?.examScheduleId).toBe(testScheduleA1Id);
   });
 
   it("4.2: syncDatesheetToCalendar creates a whole-exam span row in academic_calendar_events", async () => {
@@ -174,6 +175,7 @@ describe("S11 Layer 4: Academic Calendar & Events Synchronization", () => {
     expect(spanEvent?.startDate).toBe("2026-12-01");
     expect(spanEvent?.endDate).toBe("2026-12-15");
     expect(spanEvent?.title).toContain("Examination:");
+    expect(spanEvent?.examSpanSourceId).toBe(testExamAId);
   });
 
   it("4.3: Idempotency: re-running syncDatesheetToCalendar updates existing rows without duplicating", async () => {
