@@ -22,6 +22,7 @@ import {
   type GradeRule,
 } from "@/lib/gradeEngine";
 import { gradeToClassGroup } from "@/lib/pdf/ReportCardPDF";
+import { resolveGradeRules } from "@/lib/gradeRuleResolver";
 import { assertConsent } from "@/server/middleware/consent";
 import { executeBulkReportCardRun } from "../lib/bulkGenerationEngine";
 
@@ -81,13 +82,13 @@ async function processReportCardJob(
     throw new Error("Job payload must specify either classId (bulk) or studentId (single).");
   }
 
-  return await withTenant(schoolId, async () => {
+  return await withTenant(schoolId, async (scopedDb) => {
     workerLogger.info(
       `[ReportCardWorker] Starting single job ${job.id} for student=${studentId}, schoolId=${schoolId}`,
     );
 
     // Mark job as processing
-    await db
+    await scopedDb
       .update(reportCardJobs)
       .set({ status: "PROCESSING", startedAt: new Date(), updatedAt: new Date() })
       .where(and(eq(reportCardJobs.id, jobId), eq(reportCardJobs.schoolId, schoolId)));
@@ -96,7 +97,7 @@ async function processReportCardJob(
   await assertConsent(studentId, "academic_records");
 
   // Fetch the student with strict tenant scoping
-  const student = await db.query.students.findFirst({
+  const student = await scopedDb.query.students.findFirst({
     where: and(eq(students.id, studentId), eq(students.schoolId, schoolId)),
   });
 
@@ -107,7 +108,7 @@ async function processReportCardJob(
   }
 
   // Fetch the exam with strict tenant scoping
-  const exam = await db.query.exams.findFirst({
+  const exam = await scopedDb.query.exams.findFirst({
     where: and(eq(exams.id, examId), eq(exams.schoolId, schoolId)),
     with: { examType: true, academicYear: true },
   });
@@ -119,14 +120,14 @@ async function processReportCardJob(
   }
 
   // Fetch the school
-  const school = await db.query.schools.findFirst({
+  const school = await scopedDb.query.schools.findFirst({
     where: eq(schools.id, schoolId),
   });
 
   if (!school) throw new Error(`School ${schoolId} not found`);
 
   // Fetch mark entries for this student + exam
-  const marks = await db.query.markEntries.findMany({
+  const marks = await scopedDb.query.markEntries.findMany({
     where: and(
       eq(markEntries.examId, examId),
       eq(markEntries.studentId, studentId),
@@ -134,29 +135,13 @@ async function processReportCardJob(
     with: { subject: true },
   });
 
-  // Fetch grade rules for this school and class group
-  const studentClass = await db.query.classes.findFirst({
-    where: eq(classes.id, student.currentClassId ?? ""),
-  });
-
-  const classGroup = studentClass
-    ? gradeToClassGroup(studentClass.gradeLevel)
-    : "CLASS_1_5";
-
-  const dbRules = await db.query.gradeRules.findMany({
-    where: and(
-      eq(gradeRules.schoolId, schoolId),
-      eq(gradeRules.classGroup, classGroup),
-    ),
-  });
-
-  const engineRules: GradeRule[] = dbRules.map((r) => ({
-    minPercent: parseFloat(r.minPercent),
-    maxPercent: parseFloat(r.maxPercent),
-    grade: r.grade,
-    gradePoint: parseFloat(r.gradePoint),
-    description: r.description,
-  }));
+  // Resolve hierarchical grade rules (class override -> class group -> board defaults -> CBSE fallback)
+  const engineRules: GradeRule[] = await resolveGradeRules(
+    schoolId,
+    student.currentClassId,
+    undefined,
+    scopedDb,
+  );
 
   // Calculate grades for each subject
   const subjectResults = marks.map((m) => {
@@ -211,8 +196,9 @@ async function processReportCardJob(
   };
 
   // Upsert report card record
-  const existingCard = await db.query.reportCards.findFirst({
+  const existingCard = await scopedDb.query.reportCards.findFirst({
     where: and(
+      eq(reportCards.schoolId, schoolId),
       eq(reportCards.studentId, studentId),
       eq(reportCards.examId, examId),
     ),
@@ -222,7 +208,7 @@ async function processReportCardJob(
   const now = new Date();
 
   if (existingCard) {
-    await db
+    await scopedDb
       .update(reportCards)
       .set({
         gradeData,
@@ -230,9 +216,9 @@ async function processReportCardJob(
         generatedAt: now,
         updatedAt: now,
       })
-      .where(eq(reportCards.id, existingCard.id));
+      .where(and(eq(reportCards.id, existingCard.id), eq(reportCards.schoolId, schoolId)));
   } else {
-    await db.insert(reportCards).values({
+    await scopedDb.insert(reportCards).values({
       id: cardId,
       schoolId,
       studentId,
@@ -247,13 +233,13 @@ async function processReportCardJob(
   }
 
     // Update batch job progress counter
-    await db
+    await scopedDb
       .update(reportCardJobs)
       .set({
         processedCount: sql`${reportCardJobs.processedCount} + 1`,
         updatedAt: new Date(),
       })
-      .where(eq(reportCardJobs.id, jobId));
+      .where(and(eq(reportCardJobs.id, jobId), eq(reportCardJobs.schoolId, schoolId)));
   });
 }
 

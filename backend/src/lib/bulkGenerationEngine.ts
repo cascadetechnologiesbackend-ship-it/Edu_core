@@ -16,6 +16,7 @@ import {
   type GradeRule,
 } from "./gradeEngine";
 import { gradeToClassGroup } from "./pdf/ReportCardPDF";
+import { resolveGradeRules } from "./gradeRuleResolver";
 import { buildZipArchive, type ZipFileEntry } from "./zipPacker";
 import { uploadBufferToS3, getPresignedDownloadUrl } from "./storage";
 import { withTenant } from "./tenant";
@@ -77,9 +78,10 @@ export async function executeBulkReportCardRun(
     mockPdfContent = false,
   } = options;
 
-  return await withTenant(schoolId, async () => {
+  return await withTenant(schoolId, async (scopedDb) => {
+
     // 1. Mark job as PROCESSING
-    await db
+    await scopedDb
       .update(reportCardJobs)
       .set({
         status: "PROCESSING",
@@ -88,40 +90,25 @@ export async function executeBulkReportCardRun(
       })
       .where(and(eq(reportCardJobs.id, jobId), eq(reportCardJobs.schoolId, schoolId)));
 
-    // 2. Fetch Exam & Grade Rules for tenant
-    const exam = await db.query.exams.findFirst({
+    // 2. Fetch Exam & Grade Rules for tenant via unified resolver
+    const exam = await scopedDb.query.exams.findFirst({
       where: and(eq(exams.id, examId), eq(exams.schoolId, schoolId)),
     });
     if (!exam) {
       throw new Error(`Exam ${examId} not found in school ${schoolId}`);
     }
 
-    const classRecord = await db.query.classes.findFirst({
-      where: and(eq(classes.id, classId), eq(classes.schoolId, schoolId)),
-    });
-    const classGroup = classRecord
-      ? gradeToClassGroup(classRecord.gradeLevel)
-      : "CLASS_1_5";
-
-    const dbRules = await db.query.gradeRules.findMany({
-      where: and(
-        eq(gradeRules.schoolId, schoolId),
-        eq(gradeRules.classGroup, classGroup),
-      ),
-    });
-
-    const engineRules: GradeRule[] = dbRules.map((r) => ({
-      minPercent: parseFloat(r.minPercent),
-      maxPercent: parseFloat(r.maxPercent),
-      grade: r.grade,
-      gradePoint: parseFloat(r.gradePoint),
-      description: r.description,
-    }));
+    const engineRules: GradeRule[] = await resolveGradeRules(
+      schoolId,
+      classId,
+      undefined,
+      scopedDb,
+    );
 
     // 3. Resolve student records
     let candidateStudents;
     if (studentIds && studentIds.length > 0) {
-      candidateStudents = await db.query.students.findMany({
+      candidateStudents = await scopedDb.query.students.findMany({
         where: and(
           eq(students.schoolId, schoolId),
           inArray(students.id, studentIds),
@@ -129,7 +116,7 @@ export async function executeBulkReportCardRun(
         ),
       });
     } else {
-      candidateStudents = await db.query.students.findMany({
+      candidateStudents = await scopedDb.query.students.findMany({
         where: and(
           eq(students.schoolId, schoolId),
           eq(students.currentClassId, classId),
@@ -171,7 +158,7 @@ export async function executeBulkReportCardRun(
       for (const student of chunk) {
         try {
           // Fetch student mark entries
-          const marks = await db.query.markEntries.findMany({
+          const marks = await scopedDb.query.markEntries.findMany({
             where: and(
               eq(markEntries.examId, examId),
               eq(markEntries.studentId, student.id),
@@ -244,7 +231,7 @@ export async function executeBulkReportCardRun(
           const now = new Date();
 
           // Upsert report card
-          await db
+          await scopedDb
             .insert(reportCards)
             .values({
               id: cardId,
@@ -296,7 +283,7 @@ export async function executeBulkReportCardRun(
       if (currentRss > peakRss) peakRss = currentRss;
 
       // Update incremental batch progress in database
-      await db
+      await scopedDb
         .update(reportCardJobs)
         .set({
           processedCount,
@@ -323,7 +310,7 @@ export async function executeBulkReportCardRun(
       failedCount === totalStudents && totalStudents > 0 ? "FAILED" : "DONE";
 
     // 6. Complete Job Record
-    await db
+    await scopedDb
       .update(reportCardJobs)
       .set({
         processedCount,
@@ -341,7 +328,7 @@ export async function executeBulkReportCardRun(
 
     // S11 Layer 3: Dispatch Bulk Job Completed Notification
     try {
-      const jobRecord = await db.query.reportCardJobs.findFirst({
+      const jobRecord = await scopedDb.query.reportCardJobs.findFirst({
         where: and(
           eq(reportCardJobs.id, jobId),
           eq(reportCardJobs.schoolId, schoolId),

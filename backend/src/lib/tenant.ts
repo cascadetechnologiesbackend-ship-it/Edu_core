@@ -81,9 +81,11 @@ export async function getTenantFromSession(schoolId: string | null | undefined) 
  * setting LOCAL to the current transaction, preventing leakage across pooled
  * connections. Never call SET app.current_school_id outside a transaction.
  */
+export type TenantTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export async function withTenant<T>(
   schoolId: string,
-  txCallback: (tx: any) => Promise<T>,
+  txCallback: (tx: TenantTransaction) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
