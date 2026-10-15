@@ -8,14 +8,14 @@
  * - Scoped strictly to school tenant.
  */
 
-import { db } from "@/db";
 import {
+  db,
   examTypes,
   gradeRules,
   cocurricularAreas,
   schools,
   classes,
-} from "@/db/schema";
+} from "@schoolmitra/database";
 import { eq, and, isNull } from "drizzle-orm";
 import {
   getBlueprint,

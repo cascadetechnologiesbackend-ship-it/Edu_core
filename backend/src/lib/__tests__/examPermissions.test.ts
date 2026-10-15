@@ -75,6 +75,50 @@ describe("Exam Permissions Registry", () => {
     );
     expect(() => requireExamPermission("SCHOOL_ADMIN", "exam.result.publish")).not.toThrow();
   });
+
+  it("requireExamPermission enforces full AuthContext and fail-closed tenant scoping (Amendment 1)", () => {
+    const validCtx = {
+      userId: "user-123",
+      schoolId: "school-abc",
+      role: "SCHOOL_ADMIN",
+      email: "admin@school.com",
+    };
+    expect(() => requireExamPermission(validCtx, "exam.setup.manage")).not.toThrow();
+
+    // Non-SUPER_ADMIN missing schoolId fails closed
+    const unscopedCtx = {
+      userId: "user-123",
+      schoolId: null,
+      role: "SCHOOL_ADMIN",
+      email: "admin@school.com",
+    };
+    expect(() => requireExamPermission(unscopedCtx, "exam.setup.manage")).toThrow(
+      ExamAuthorizationError,
+    );
+    expect(() => requireExamPermission(unscopedCtx, "exam.setup.manage")).toThrow(
+      /requires active tenant school scope/,
+    );
+
+    // SUPER_ADMIN without schoolId is permitted for platform-wide/impersonated operations
+    const superAdminCtx = {
+      userId: "super-1",
+      schoolId: null,
+      role: "SUPER_ADMIN",
+      email: "super@platform.com",
+    };
+    expect(() => requireExamPermission(superAdminCtx, "exam.setup.manage")).not.toThrow();
+
+    // Teacher lacks setup permission even with valid schoolId
+    const teacherCtx = {
+      userId: "t-1",
+      schoolId: "school-abc",
+      role: "TEACHER",
+      email: "teacher@school.com",
+    };
+    expect(() => requireExamPermission(teacherCtx, "exam.setup.manage")).toThrow(
+      ExamAuthorizationError,
+    );
+  });
 });
 
 describe("Route Guards — Teacher /exams boundary (Amendment 2)", () => {

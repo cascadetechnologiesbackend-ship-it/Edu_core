@@ -12,7 +12,7 @@ const ADMIN_LOCK_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
 
 export async function lockExam(examId: string) {
   const ctx = await requireAuth(ADMIN_LOCK_ROLES);
-  requireExamPermission(ctx.role, "exam.marks.lock");
+  requireExamPermission(ctx, "exam.marks.lock");
   const school = await requireSchool(ctx);
 
   const exam = await db.query.exams.findFirst({
@@ -37,7 +37,7 @@ export async function lockExam(examId: string) {
 
 export async function unlockExam(examId: string) {
   const ctx = await requireAuth(ADMIN_LOCK_ROLES);
-  requireExamPermission(ctx.role, "exam.marks.unlock");
+  requireExamPermission(ctx, "exam.marks.unlock");
   const school = await requireSchool(ctx);
 
   await db
@@ -58,7 +58,7 @@ export async function unlockExam(examId: string) {
 export async function generateMeritList(examId: string, classId: string) {
   try {
     const ctx = await requireAuth(ADMIN_LOCK_ROLES);
-    requireExamPermission(ctx.role, "exam.result.publish");
+    requireExamPermission(ctx, "exam.result.publish");
     const school = await requireSchool(ctx);
 
     const classStudents = await db.query.students.findMany({

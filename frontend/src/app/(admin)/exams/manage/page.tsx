@@ -6,6 +6,7 @@ import {
   classes,
   cocurricularAreas,
   gradeRules,
+  schools,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
@@ -45,7 +46,7 @@ export default async function ExamManagePage() {
           ),
         });
 
-        const [classList, examTypeList, examsList, cocurricularList, rulesList] =
+        const [classList, examTypeList, examsList, cocurricularList, rulesList, schoolRow] =
           await Promise.all([
             db.query.classes.findMany({
               where: and(
@@ -82,10 +83,14 @@ export default async function ExamManagePage() {
               where: eq(gradeRules.schoolId, schoolId),
               orderBy: (t, { desc }) => [desc(t.minPercent)],
             }),
+            db.query.schools.findFirst({
+              where: eq(schools.id, schoolId),
+            }),
           ]);
 
         return {
           activeYear,
+          board: schoolRow?.board || "CBSE",
           classes: classList.map((c) => ({
             id: c.id,
             displayName: c.displayName,
@@ -153,6 +158,7 @@ export default async function ExamManagePage() {
       <ExamManageClient
         schoolId={schoolId}
         activeYearId={data.activeYear?.id || ""}
+        board={data.board}
         classes={data.classes}
         examTypes={data.examTypes}
         exams={data.exams}

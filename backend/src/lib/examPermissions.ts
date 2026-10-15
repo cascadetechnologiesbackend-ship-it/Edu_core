@@ -75,17 +75,36 @@ export class ExamAuthorizationError extends Error {
   }
 }
 
+export interface ExamAuthContext {
+  userId?: string | null;
+  schoolId?: string | null;
+  role: string | null | undefined;
+  email?: string | null;
+}
+
 /**
- * Guard function that throws ExamAuthorizationError (403) if role lacks permission.
+ * Guard function that throws ExamAuthorizationError (403) if role lacks permission
+ * or if a non-SUPER_ADMIN context lacks school tenant scoping (Amendment 1).
  */
 export function requireExamPermission(
-  role: string | null | undefined,
+  ctxOrRole: ExamAuthContext | string | null | undefined,
   permission: ExamPermission,
 ): void {
+  const role = typeof ctxOrRole === "string" ? ctxOrRole : ctxOrRole?.role;
+
   if (!hasExamPermission(role, permission)) {
     throw new ExamAuthorizationError(
       `Forbidden: Role '${role ?? "ANONYMOUS"}' lacks required exam permission '${permission}'.`,
     );
+  }
+
+  // Fail-closed tenant scoping check (Amendment 1)
+  if (typeof ctxOrRole === "object" && ctxOrRole !== null) {
+    if (role !== "SUPER_ADMIN" && !ctxOrRole.schoolId) {
+      throw new ExamAuthorizationError(
+        `Forbidden: Role '${role}' requires active tenant school scope for permission '${permission}'.`,
+      );
+    }
   }
 }
 

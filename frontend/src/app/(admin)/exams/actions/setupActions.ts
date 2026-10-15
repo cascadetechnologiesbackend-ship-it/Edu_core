@@ -9,11 +9,16 @@ import {
   cocurricularGrades,
   gradeRules,
   academicYears,
+  schools,
+  classes,
+  auditLogs,
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
+import { seedExamBoardDefaults } from "@/lib/examSeeding";
+import { deriveClassGroupsFromClasses } from "@/lib/examBoardBlueprints";
 import { z } from "zod";
 
 const ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
@@ -28,7 +33,7 @@ const CreateExamSchema = z.object({
 
 export async function createExam(input: z.infer<typeof CreateExamSchema> | FormData) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   let rawData: Record<string, unknown>;
@@ -101,7 +106,7 @@ export async function updateExam(
   },
 ) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   const existing = await db.query.exams.findFirst({
@@ -148,7 +153,7 @@ export async function updateExam(
 
 export async function deleteExam(examId: string) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   await db
@@ -173,7 +178,7 @@ export async function createExamComponent(input: {
   showOnReportCard?: boolean;
 }) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   const [comp] = await db
@@ -195,7 +200,7 @@ export async function createExamComponent(input: {
 
 export async function deleteExamComponent(componentId: string) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   await db
@@ -211,7 +216,7 @@ export async function createCocurricularArea(input: {
   description?: string;
 }) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   const [area] = await db
@@ -236,7 +241,7 @@ export async function saveCocurricularGrade(input: {
   remark?: string;
 }) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   const existing = await db.query.cocurricularGrades.findFirst({
@@ -283,7 +288,7 @@ export async function saveClassSpecificGradeRule(input: {
   description?: string;
 }) {
   const ctx = await requireAuth(ADMIN_ROLES);
-  requireExamPermission(ctx.role, "exam.setup.manage");
+  requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
   const [rule] = await db
@@ -304,4 +309,66 @@ export async function saveClassSpecificGradeRule(input: {
   revalidatePath("/exams/manage");
   revalidatePath("/settings/grading");
   return { success: true, rule };
+}
+
+export async function loadBoardDefaultsForSchool(input?: {
+  gradingScaleOverride?: "CBSE_9_POINT" | "PERCENTAGE" | "GPA";
+}) {
+  const ctx = await requireAuth(ADMIN_ROLES);
+  requireExamPermission(ctx, "exam.setup.manage");
+  const school = await requireSchool(ctx);
+
+  const schoolRow = await db.query.schools.findFirst({
+    where: eq(schools.id, school.id),
+  });
+
+  if (!schoolRow) {
+    return { success: false, message: "School tenant not found" };
+  }
+
+  const schoolClasses = await db.query.classes.findMany({
+    where: and(eq(classes.schoolId, school.id), isNull(classes.deletedAt)),
+  });
+
+  const activeGroups = deriveClassGroupsFromClasses(schoolClasses);
+
+  const seedResult = await seedExamBoardDefaults(
+    school.id,
+    schoolRow.board,
+    input?.gradingScaleOverride,
+    db,
+    { activeClassGroups: activeGroups },
+  );
+
+  // Audit log entry per Amendment 11
+  await db.insert(auditLogs).values({
+    userId: ctx.userId,
+    userEmail: ctx.email,
+    userRole: ctx.role,
+    schoolId: school.id,
+    action: "WRITE",
+    tableName: "examinations",
+    recordId: school.id,
+    purposeId: "exam_setup",
+    ipAddress: "127.0.0.1",
+    userAgent: "SchoolMitra/ExamSetup",
+    metadata: {
+      action: "LOAD_BOARD_DEFAULTS",
+      board: schoolRow.board,
+      gradingScale: input?.gradingScaleOverride || null,
+      examTypesInserted: seedResult.insertedExamTypes,
+      gradeRulesInserted: seedResult.insertedGradeRules,
+      cocurricularInserted: seedResult.insertedCocurricular,
+      skipped: seedResult.skipped,
+    },
+  });
+
+  revalidatePath("/exams/dashboard");
+  revalidatePath("/exams/manage");
+
+  return {
+    success: true,
+    message: `Board defaults loaded for ${schoolRow.board}: ${seedResult.insertedExamTypes} exam types, ${seedResult.insertedGradeRules} grade rules, and ${seedResult.insertedCocurricular} cocurricular areas inserted.`,
+    stats: seedResult,
+  };
 }

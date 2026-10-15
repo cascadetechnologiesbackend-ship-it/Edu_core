@@ -6,6 +6,7 @@ import {
   createExamComponent,
   createCocurricularArea,
   saveClassSpecificGradeRule,
+  loadBoardDefaultsForSchool,
 } from "../actions/setupActions";
 import {
   BookOpen,
@@ -18,11 +19,13 @@ import {
   AlertCircle,
   Palette,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 
 interface ExamManageClientProps {
   schoolId: string;
   activeYearId: string;
+  board?: string;
   classes: Array<{ id: string; displayName: string }>;
   examTypes: Array<{ id: string; name: string }>;
   exams: Array<{
@@ -56,7 +59,9 @@ interface ExamManageClientProps {
 }
 
 export function ExamManageClient({
+  schoolId,
   activeYearId,
+  board,
   classes,
   examTypes,
   exams,
@@ -213,6 +218,81 @@ export function ExamManageClient({
 
   return (
     <div className="space-y-6">
+      {/* Board Blueprint Banner / Status Badge */}
+      {examTypes.length === 0 && gradeRules.length === 0 ? (
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-orange-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                Blank Slate Detected
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 font-semibold">
+                {board || "CBSE"} Affiliation
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+              Pre-seed {board || "CBSE"} Examination Standards & Blueprint
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-slate-400 max-w-xl">
+              Automatically provision board-compliant assessment types, 0–100% contiguous grade rules across class categories, and cocurricular rubrics in one click.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              startTransition(async () => {
+                setMessage(null);
+                const res = await loadBoardDefaultsForSchool();
+                if (res.success) {
+                  setMessage({ text: res.message, type: "success" });
+                } else {
+                  setMessage({ text: res.message || "Failed to load board defaults", type: "error" });
+                }
+              });
+            }}
+            className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/20 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-60"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isPending ? "Loading Defaults..." : "Load Board Defaults"}</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{board || "CBSE"} Blueprint Defaults Active</span>
+            </span>
+            <span className="text-xs text-gray-500 dark:text-slate-400 hidden sm:inline">
+              ({examTypes.length} exam types, {gradeRules.length} grade rules, {cocurricularAreas.length} cocurricular areas)
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              startTransition(async () => {
+                setMessage(null);
+                const res = await loadBoardDefaultsForSchool();
+                if (res.success) {
+                  setMessage({ text: res.message, type: "success" });
+                } else {
+                  setMessage({ text: res.message || "Failed to re-sync board defaults", type: "error" });
+                }
+              });
+            }}
+            className="text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition flex items-center gap-1.5"
+            title="Ensures all board defaults exist without altering custom modifications"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
+            <span>Re-sync Defaults</span>
+          </button>
+        </div>
+      )}
+
       {/* Tab Switcher */}
       <div className="flex border-b border-gray-200 dark:border-slate-800">
         <button
