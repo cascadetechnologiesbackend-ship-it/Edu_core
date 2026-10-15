@@ -294,6 +294,9 @@ export function ExamManageClient({
 
           <button
             type="button"
+            data-ux-id="btn_load_board_defaults"
+            data-ux-label="Re-sync Board Defaults"
+            data-ux-action="click"
             disabled={isPending}
             onClick={() => {
               startTransition(async () => {
@@ -318,6 +321,9 @@ export function ExamManageClient({
       {/* Tab Switcher */}
       <div className="flex border-b border-gray-200 dark:border-slate-800">
         <button
+          data-ux-id="btn_create_exam_modal"
+          data-ux-label="Exam Setup Wizard Tab"
+          data-ux-action="tab_switch"
           onClick={() => setActiveTab("wizard")}
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "wizard"
@@ -330,6 +336,9 @@ export function ExamManageClient({
         </button>
 
         <button
+          data-ux-id="btn_manage_components"
+          data-ux-label="Co-Curricular Areas Tab"
+          data-ux-action="tab_switch"
           onClick={() => setActiveTab("cocurricular")}
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "cocurricular"
@@ -342,6 +351,9 @@ export function ExamManageClient({
         </button>
 
         <button
+          data-ux-id="btn_manage_grading_rules"
+          data-ux-label="Grading Rules Tab"
+          data-ux-action="tab_switch"
           onClick={() => setActiveTab("rules")}
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "rules"
@@ -496,6 +508,9 @@ export function ExamManageClient({
               <div className="flex justify-end pt-4">
                 <button
                   type="submit"
+                  data-ux-id="btn_wizard_next_step"
+                  data-ux-label="Proceed to Class Scopes"
+                  data-ux-action="click"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-all shadow-sm"
                 >
                   Proceed to Class Scopes →
@@ -560,6 +575,9 @@ export function ExamManageClient({
               <div className="flex justify-between pt-4 border-t border-gray-100 dark:border-slate-800">
                 <button
                   type="button"
+                  data-ux-id="btn_wizard_prev_step"
+                  data-ux-label="Back to Basic Info"
+                  data-ux-action="click"
                   onClick={() => setStep(1)}
                   className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-slate-300"
                 >
@@ -568,6 +586,9 @@ export function ExamManageClient({
 
                 <button
                   type="submit"
+                  data-ux-id="btn_submit_exam_form"
+                  data-ux-label="Save Exam & Configure Components"
+                  data-ux-action="submit"
                   disabled={isPending}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
                 >
@@ -615,6 +636,9 @@ export function ExamManageClient({
 
                 <button
                   type="submit"
+                  data-ux-id="btn_manage_components"
+                  data-ux-label="Add Component"
+                  data-ux-action="submit"
                   disabled={isPending}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all"
                 >

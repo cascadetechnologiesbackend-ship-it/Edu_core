@@ -7,6 +7,7 @@ import {
   consentRecords,
   feeInvoices,
   feePayments,
+  usageEvents,
 } from "@/db/schema";
 import { eq, and, isNull, isNotNull, lt, lte, or } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
@@ -55,6 +56,27 @@ export const retentionQueue = new Queue<RetentionJobPayload>("data-retention", {
  *   If accounting dependencies exist, PII is anonymized while preserving the FK row for audit integrity.
  * - Supports dry-run execution (options.dryRun === true or process.argv.includes("--dry-run")).
  */
+/**
+ * Purges usage interaction events older than the 90-day retention window (UX-R62 / Sprint S10 Layer 4).
+ * Returns the number of purged rows.
+ */
+export async function purgeExpiredUsageEvents(
+  schoolId?: string,
+  retentionDays: number = 90,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  const conditions = [lt(usageEvents.createdAt, cutoff)];
+  if (schoolId) {
+    conditions.push(eq(usageEvents.schoolId, schoolId));
+  }
+  const result = await db.delete(usageEvents).where(and(...conditions));
+  const purgedCount = result.rowCount ?? 0;
+  workerLogger.info(
+    `[RetentionWorker] Purged ${purgedCount} expired usage_events older than ${retentionDays} days (cutoff: ${cutoff.toISOString()})`,
+  );
+  return purgedCount;
+}
+
 export async function executeRetentionPolicy(
   schoolId: string,
   options?: RetentionOptions,
@@ -442,6 +464,11 @@ export async function executeRetentionPolicy(
         })
         .where(eq(dataRetentionPolicies.id, p.id));
     }
+  }
+
+  // Purge interaction telemetry older than 90 days (UX-R62)
+  if (!isDryRun) {
+    await purgeExpiredUsageEvents(schoolId, 90);
   }
 
   return {

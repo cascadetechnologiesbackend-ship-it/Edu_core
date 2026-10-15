@@ -355,6 +355,9 @@ export function MarksEntryClient({
               Examination
             </label>
             <select
+              data-ux-id="select_exam_filter"
+              data-ux-label="Exam Filter Select"
+              data-ux-action="filter_change"
               value={selectedExamId}
               onChange={(e) => handleExamChange(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
@@ -373,6 +376,9 @@ export function MarksEntryClient({
               Class / Standard
             </label>
             <select
+              data-ux-id="select_class_filter"
+              data-ux-label="Class Filter Select"
+              data-ux-action="filter_change"
               value={selectedClassId}
               onChange={(e) => handleClassChange(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
@@ -391,6 +397,9 @@ export function MarksEntryClient({
               Subject
             </label>
             <select
+              data-ux-id="select_subject_filter"
+              data-ux-label="Subject Filter Select"
+              data-ux-action="filter_change"
               value={selectedSubjectId}
               onChange={(e) => handleSubjectChange(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
@@ -429,6 +438,9 @@ export function MarksEntryClient({
           {canLockUnlock && (
             <button
               type="button"
+              data-ux-id={isLocked ? "btn_unlock_marks" : "btn_lock_marks"}
+              data-ux-label={isLocked ? "Unlock Marks Request" : "Lock Marks Verification"}
+              data-ux-action="click"
               disabled={isPending}
               onClick={handleLockToggle}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
@@ -491,6 +503,9 @@ export function MarksEntryClient({
 
           <button
             type="button"
+            data-ux-id="btn_save_marks_draft"
+            data-ux-label="Save Marks Draft"
+            data-ux-action="click"
             disabled={isPending || isLocked || filteredStudents.length === 0}
             onClick={handleSaveMarks}
             className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md transition ${

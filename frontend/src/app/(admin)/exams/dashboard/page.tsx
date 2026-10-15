@@ -177,6 +177,8 @@ export default async function ExamsDashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/exams/manage"
+            data-ux-id="btn_quick_create_exam"
+            data-ux-label="New Exam Setup"
             className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition-all shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow"
           >
             <PlusCircle className="w-4 h-4" />
@@ -184,6 +186,8 @@ export default async function ExamsDashboardPage() {
           </Link>
           <Link
             href="/exams/schedule"
+            data-ux-id="btn_view_schedule"
+            data-ux-label="Datesheets"
             className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 px-4 py-2.5 rounded-lg font-medium text-sm transition-all"
           >
             <Calendar className="w-4 h-4 text-gray-500" />
@@ -195,7 +199,11 @@ export default async function ExamsDashboardPage() {
       {/* KPI Cards Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Total Exams */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          data-ux-id="card_active_exams"
+          data-ux-label="Active Exams KPI"
+          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-indigo-300 transition-colors"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
               Total Exams
@@ -213,7 +221,11 @@ export default async function ExamsDashboardPage() {
         </div>
 
         {/* Active Schedules */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          data-ux-id="card_pending_marks"
+          data-ux-label="Active Schedules KPI"
+          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-emerald-300 transition-colors"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
               Active Schedules
@@ -231,7 +243,11 @@ export default async function ExamsDashboardPage() {
         </div>
 
         {/* Marks Locked Subjects */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          data-ux-id="card_pending_marks"
+          data-ux-label="Marks Locked KPI"
+          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-amber-300 transition-colors"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
               Marks Locked
@@ -249,7 +265,11 @@ export default async function ExamsDashboardPage() {
         </div>
 
         {/* Results Released */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          data-ux-id="card_published_results"
+          data-ux-label="Results Released KPI"
+          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-sky-300 transition-colors"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
               Results Released

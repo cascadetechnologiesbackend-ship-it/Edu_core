@@ -267,6 +267,13 @@
       "when": 1793300000000,
       "tag": "0037_board_exam_blueprint",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1793400000000,
+      "tag": "0038_usage_events_telemetry",
+      "breakpoints": true
     }
   ]
 }

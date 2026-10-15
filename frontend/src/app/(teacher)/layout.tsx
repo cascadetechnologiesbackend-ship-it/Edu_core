@@ -10,6 +10,7 @@ import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 import { SessionProvider } from "next-auth/react";
+import { ExamTelemetryProvider } from "@/components/telemetry/ExamTelemetryProvider";
 
 const TEACHER_NAV_ITEMS = [
   { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard" },
@@ -68,7 +69,9 @@ export default async function TeacherLayout({
         />
 
         {/* Main Content Area (Optimized for Mobile & Tablet Thumb Zone) */}
-        <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+        <ExamTelemetryProvider>
+          <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+        </ExamTelemetryProvider>
 
         {/* Persistent Bottom Navigation */}
         <BottomNav items={TEACHER_NAV_ITEMS} />

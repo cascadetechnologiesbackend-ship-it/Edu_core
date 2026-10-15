@@ -987,6 +987,36 @@ export const medicalExemptions = pgTable(
   }),
 );
 
+// ─── Table: usage_events (S10 First-Party Telemetry & Heat Map Analytics) ──────
+export const usageEvents = pgTable(
+  "usage_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    screen: text("screen").notNull(),
+    elementId: text("element_id").notNull(),
+    elementLabel: text("element_label").notNull(),
+    action: text("action").notNull(),
+    role: text("role").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => ({
+    schoolScreenCreatedIdx: index("usage_events_school_screen_created_idx").on(
+      t.schoolId,
+      t.screen,
+      t.createdAt,
+    ),
+    createdAtIdx: index("usage_events_created_at_idx").on(t.createdAt),
+  }),
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const examTypesRelations = relations(examTypes, ({ one, many }) => ({
@@ -1434,3 +1464,17 @@ export type ExamSchedule = typeof examSchedules.$inferSelect;
 export type NewExamSchedule = typeof examSchedules.$inferInsert;
 export type GradeRuleRecord = typeof gradeRules.$inferSelect;
 export type NewGradeRuleRecord = typeof gradeRules.$inferInsert;
+export type UsageEvent = typeof usageEvents.$inferSelect;
+export type NewUsageEvent = typeof usageEvents.$inferInsert;
+
+export const usageEventsRelations = relations(usageEvents, ({ one }) => ({
+  school: one(schools, {
+    fields: [usageEvents.schoolId],
+    references: [schools.id],
+  }),
+  user: one(users, {
+    fields: [usageEvents.userId],
+    references: [users.id],
+  }),
+}));
+
