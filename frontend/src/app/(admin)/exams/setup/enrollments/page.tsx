@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import { assertQueryBudget } from "@schoolmitra/database";
+import { hasExamPermission } from "@/lib/examPermissions";
 import { EnrollmentClient } from "./EnrollmentClient";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function StudentEnrollmentsPage() {
   }
 
   const schoolId = ctx.schoolId || "";
+  const canManage = hasExamPermission(ctx.role, "exam.enrollments.manage");
 
   const data = await withDataPhaseTiming("/exams/setup/enrollments", async () => {
     return assertQueryBudget(
@@ -58,6 +60,7 @@ export default async function StudentEnrollmentsPage() {
       <EnrollmentClient
         classes={data.classes}
         sections={data.sections}
+        canManage={canManage}
       />
     </div>
   );

@@ -18,10 +18,12 @@ import {
   classes,
   subjects,
   classSubjects,
+  sections,
   students,
   studentSubjectEnrollments,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { withTenant } from "../tenant";
 
 const dbUrl =
   process.env.MIGRATION_DATABASE_URL ||
@@ -31,6 +33,8 @@ const dbUrl =
 describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
   let pool: Pool;
   let testClassId: string;
+  let testSectionId: string;
+  let testSectionName: string;
   let mandatoryClassSubjId: string;
   let electiveClassSubjId: string;
   let student1Id: string;
@@ -47,91 +51,107 @@ describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
     student1Id = ISOLATION_IDS.schoolA.studentId;
 
     const runId = Math.random().toString(36).substring(2, 7);
+    testSectionName = `Sec_${runId}`;
 
-    // 1. Create mandatory and elective subjects
-    const [subMandatory] = await db
-      .insert(subjects)
-      .values({
-        schoolId,
-        code: `ENG_MAND_${runId}`,
-        name: "English Mandatory",
-        subjectType: "THEORY",
-        maxMarks: 100,
-        passingMarks: 33,
-      })
-      .returning();
+    await withTenant(schoolId, async (tx) => {
+      // 0. Create a section for this class
+      const [sec] = await tx
+        .insert(sections)
+        .values({
+          schoolId,
+          classId: testClassId,
+          name: testSectionName,
+        })
+        .returning();
+      testSectionId = sec!.id;
 
-    const [subElective] = await db
-      .insert(subjects)
-      .values({
-        schoolId,
-        code: `COMP_ELEC_${runId}`,
-        name: "Computer Science Elective",
-        subjectType: "PRACTICAL",
-        maxMarks: 100,
-        passingMarks: 33,
-      })
-      .returning();
+      // 1. Create mandatory and elective subjects
+      const [subMandatory] = await tx
+        .insert(subjects)
+        .values({
+          schoolId,
+          code: `ENG_MAND_${runId}`,
+          name: "English Mandatory",
+          subjectType: "THEORY",
+          maxMarks: 100,
+          passingMarks: 33,
+        })
+        .returning();
 
-    // 3. Map subjects to class (one mandatory, one elective)
-    const [csMand] = await db
-      .insert(classSubjects)
-      .values({
-        schoolId,
-        classId: testClassId,
-        subjectId: subMandatory!.id,
-        isElective: false,
-      })
-      .returning();
-    mandatoryClassSubjId = csMand!.id;
+      const [subElective] = await tx
+        .insert(subjects)
+        .values({
+          schoolId,
+          code: `COMP_ELEC_${runId}`,
+          name: "Computer Science Elective",
+          subjectType: "PRACTICAL",
+          maxMarks: 100,
+          passingMarks: 33,
+        })
+        .returning();
 
-    const [csElec] = await db
-      .insert(classSubjects)
-      .values({
-        schoolId,
-        classId: testClassId,
-        subjectId: subElective!.id,
-        isElective: true,
-      })
-      .returning();
-    electiveClassSubjId = csElec!.id;
+      // 3. Map subjects to class (one mandatory, one elective)
+      const [csMand] = await tx
+        .insert(classSubjects)
+        .values({
+          schoolId,
+          classId: testClassId,
+          subjectId: subMandatory!.id,
+          isElective: false,
+        })
+        .returning();
+      mandatoryClassSubjId = csMand!.id;
 
-    // 4. Create two test students in this class
-    const [st1] = await db
-      .insert(students)
-      .values({
-        schoolId,
-        academicYearId,
-        admissionNumber: `TEST-ENR-${runId}-01`,
-        firstNameEncrypted: "Aarav",
-        lastNameEncrypted: "Verma",
-        dateOfBirth: new Date("2010-01-01"),
-        gender: "MALE",
-        category: "GENERAL",
-        admissionDate: new Date("2024-04-01"),
-        currentClassId: testClassId,
-        isActive: true,
-      })
-      .returning();
-    student1Id = st1!.id;
+      const [csElec] = await tx
+        .insert(classSubjects)
+        .values({
+          schoolId,
+          classId: testClassId,
+          subjectId: subElective!.id,
+          isElective: true,
+        })
+        .returning();
+      electiveClassSubjId = csElec!.id;
 
-    const [st2] = await db
-      .insert(students)
-      .values({
-        schoolId,
-        academicYearId,
-        admissionNumber: `TEST-ENR-${runId}-02`,
-        firstNameEncrypted: "Diya",
-        lastNameEncrypted: "Sharma",
-        dateOfBirth: new Date("2010-02-02"),
-        gender: "FEMALE",
-        category: "GENERAL",
-        admissionDate: new Date("2024-04-01"),
-        currentClassId: testClassId,
-        isActive: true,
-      })
-      .returning();
-    student2Id = st2!.id;
+      // 4. Create two test students in this class
+      const [st1] = await tx
+        .insert(students)
+        .values({
+          schoolId,
+          academicYearId,
+          admissionNumber: `TEST-ENR-${runId}-01`,
+          firstNameEncrypted: "Aarav",
+          lastNameEncrypted: "Verma",
+          dateOfBirth: new Date("2010-01-01"),
+          gender: "MALE",
+          category: "GENERAL",
+          admissionDate: new Date("2024-04-01"),
+          currentClassId: testClassId,
+          currentSectionId: testSectionId,
+          isActive: true,
+        })
+        .returning();
+      student1Id = st1!.id;
+
+      const [st2] = await tx
+        .insert(students)
+        .values({
+          schoolId,
+          academicYearId,
+          admissionNumber: `TEST-ENR-${runId}-02`,
+          firstNameEncrypted: "Diya",
+          lastNameEncrypted: "Sharma",
+          dateOfBirth: new Date("2010-02-02"),
+          gender: "FEMALE",
+          category: "GENERAL",
+          admissionDate: new Date("2024-04-01"),
+          currentClassId: testClassId,
+          currentSectionId: testSectionId,
+          isActive: true,
+        })
+        .returning();
+      student2Id = st2!.id;
+    });
   });
 
   afterAll(async () => {
@@ -245,11 +265,13 @@ describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
     expect(s1Row).toBeDefined();
     expect(s1Row?.enrollments[mandatoryClassSubjId]).toBe(true);
     expect(s1Row?.enrollments[electiveClassSubjId]).toBe(true);
+    expect(s1Row?.sectionName).toBe(testSectionName);
 
     const s2Row = matrix.students.find((s) => s.studentId === student2Id);
     expect(s2Row).toBeDefined();
     expect(s2Row?.enrollments[mandatoryClassSubjId]).toBe(true);
     expect(s2Row?.enrollments[electiveClassSubjId]).toBe(false); // Unassigned elective
+    expect(s2Row?.sectionName).toBe(testSectionName);
   });
 
   it("1.5: Cross-tenant isolation probe: School A admin cannot mutate School B student enrollments", async () => {
@@ -285,5 +307,41 @@ describe("S11 Layer 1: Student Subject & Elective Enrollment Engine", () => {
     expect(elecEnr).toBeDefined();
     expect(elecEnr?.isElectiveTaken).toBe(true);
     expect(elecEnr?.enrollmentStatus).toBe("ACTIVE");
+  });
+
+  it("1.7: PRINCIPAL role fails closed on enrollment modification (requires exam.enrollments.manage)", async () => {
+    const schoolId = ISOLATION_IDS.schoolA.id;
+    const principalCtx = {
+      userId: "a5555555-5555-4555-8555-999999999999",
+      email: "principal.a@isolation.internal",
+      role: "PRINCIPAL",
+      schoolId,
+    };
+
+    // 1. assignStudentElectives must be rejected
+    await expect(
+      assignStudentElectives(
+        schoolId,
+        student1Id,
+        [{ classSubjectId: electiveClassSubjId, isElectiveTaken: true }],
+        principalCtx,
+      ),
+    ).rejects.toThrow("Forbidden: Role 'PRINCIPAL' lacks required exam permission 'exam.enrollments.manage'.");
+
+    // 2. bulkAssignElectiveBySection must be rejected
+    await expect(
+      bulkAssignElectiveBySection(
+        schoolId,
+        testSectionId,
+        electiveClassSubjId,
+        [student1Id],
+        principalCtx,
+      ),
+    ).rejects.toThrow("Forbidden: Role 'PRINCIPAL' lacks required exam permission 'exam.enrollments.manage'.");
+
+    // 3. backfillMandatoryEnrollments must be rejected
+    await expect(
+      backfillMandatoryEnrollments(schoolId, principalCtx),
+    ).rejects.toThrow("Forbidden: Role 'PRINCIPAL' lacks required exam permission 'exam.enrollments.manage'.");
   });
 });

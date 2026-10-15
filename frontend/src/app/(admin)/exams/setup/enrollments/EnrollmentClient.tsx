@@ -14,6 +14,7 @@ import {
   Upload,
   Download,
   Filter,
+  Shield,
 } from "lucide-react";
 import {
   getEnrollmentMatrixAction,
@@ -37,9 +38,10 @@ interface SectionOption {
 interface Props {
   classes: ClassOption[];
   sections: SectionOption[];
+  canManage?: boolean;
 }
 
-export function EnrollmentClient({ classes, sections }: Props) {
+export function EnrollmentClient({ classes, sections, canManage = true }: Props) {
   const [selectedClassId, setSelectedClassId] = useState<string>(classes[0]?.id || "");
   const [selectedSectionId, setSelectedSectionId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,24 +190,33 @@ export function EnrollmentClient({ classes, sections }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleRunBackfill}
-            disabled={isPending}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm disabled:opacity-50"
-            title="Idempotently ensure all active students have rows for mandatory subjects"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
-            Run Mandatory Backfill
-          </button>
+          {canManage ? (
+            <>
+              <button
+                onClick={handleRunBackfill}
+                disabled={isPending}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm disabled:opacity-50"
+                title="Idempotently ensure all active students have rows for mandatory subjects"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
+                Run Mandatory Backfill
+              </button>
 
-          <button
-            onClick={handleSaveAllChanges}
-            disabled={isPending || loading || filteredStudents.length === 0}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
-          >
-            <Check className="w-4 h-4" />
-            Save All Changes
-          </button>
+              <button
+                onClick={handleSaveAllChanges}
+                disabled={isPending || loading || filteredStudents.length === 0}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+              >
+                <Check className="w-4 h-4" />
+                Save All Changes
+              </button>
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+              <Shield className="w-3.5 h-3.5 text-gray-500" />
+              Read-Only Mode
+            </span>
+          )}
         </div>
       </div>
 
@@ -329,9 +340,11 @@ export function EnrollmentClient({ classes, sections }: Props) {
                       </div>
                     </th>
                   ))}
-                  <th className="p-3 font-semibold text-gray-700 dark:text-gray-300 text-right w-24">
-                    Action
-                  </th>
+                  {canManage && (
+                    <th className="p-3 font-semibold text-gray-700 dark:text-gray-300 text-right w-24">
+                      Action
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -348,7 +361,7 @@ export function EnrollmentClient({ classes, sections }: Props) {
                           {st.name}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Adm: {st.admissionNumber} {st.rollNumber ? `• Roll: ${st.rollNumber}` : ""}
+                          Adm: {st.admissionNumber} {st.sectionName ? `• Sec: ${st.sectionName}` : ""} {st.rollNumber ? `• Roll: ${st.rollNumber}` : ""}
                         </div>
                       </td>
 
@@ -364,7 +377,7 @@ export function EnrollmentClient({ classes, sections }: Props) {
                               <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
                                 <Check className="w-4 h-4" />
                               </div>
-                            ) : (
+                            ) : canManage ? (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -388,22 +401,44 @@ export function EnrollmentClient({ classes, sections }: Props) {
                                   </>
                                 )}
                               </button>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border cursor-default ${
+                                  isEnrolled
+                                    ? "bg-indigo-50/60 border-indigo-200/60 text-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-800/60 dark:text-indigo-400"
+                                    : "bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800/40 dark:border-gray-700 dark:text-gray-400"
+                                }`}
+                              >
+                                {isEnrolled ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    Enrolled
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="w-3.5 h-3.5" />
+                                    Unassigned
+                                  </>
+                                )}
+                              </span>
                             )}
                           </td>
                         );
                       })}
 
                       {/* Row Action */}
-                      <td className="p-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleSaveStudent(st.studentId)}
-                          disabled={isPending}
-                          className="px-2.5 py-1 text-xs font-medium rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50"
-                        >
-                          Save
-                        </button>
-                      </td>
+                      {canManage && (
+                        <td className="p-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveStudent(st.studentId)}
+                            disabled={isPending}
+                            className="px-2.5 py-1 text-xs font-medium rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
