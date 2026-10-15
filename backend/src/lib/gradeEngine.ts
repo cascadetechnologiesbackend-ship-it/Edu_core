@@ -103,8 +103,28 @@ export function calculateGrade(
     };
   }
 
-  if (input.maxMarks <= 0) {
-    throw new Error("maxMarks must be greater than zero");
+  if (
+    input.maxMarks === null ||
+    input.maxMarks === undefined ||
+    typeof input.maxMarks !== "number" ||
+    !Number.isFinite(input.maxMarks) ||
+    input.maxMarks <= 0
+  ) {
+    throw new Error(
+      `Invalid maxMarks: expected positive finite number, received ${input.maxMarks} (maxMarks must be greater than zero)`,
+    );
+  }
+
+  if (
+    input.practicalMaxMarks !== undefined &&
+    input.practicalMaxMarks !== null &&
+    (typeof input.practicalMaxMarks !== "number" ||
+      !Number.isFinite(input.practicalMaxMarks) ||
+      input.practicalMaxMarks < 0)
+  ) {
+    throw new Error(
+      `Invalid practicalMaxMarks: expected non-negative finite number, received ${input.practicalMaxMarks}`,
+    );
   }
 
   // Calculate combined marks (theory + practical)

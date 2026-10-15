@@ -37,12 +37,19 @@ describe("S12 Baseline Flaw Captures (P0 Flaws Proved Against HEAD 98f16d6)", ()
         threwError = true;
       }
 
-      // CURRENT BEHAVIOR AT 98f16d6: No error is thrown, student receives FAIL_GRADE ('E')!
-      // In Layer 1, this test will be inverted to require a typed throw for non-finite maxMarks.
-      expect(threwError).toBe(false);
-      expect(gradeResult).not.toBeNull();
-      expect(gradeResult.grade).toBe(FAIL_GRADE);
-      expect(gradeResult.isPassed).toBe(false);
+      // LAYER 1 VERIFIED: calculateGrade now rejects NaN, null, and non-positive maxMarks
+      expect(threwError).toBe(true);
+      expect(() => {
+        calculateGrade(
+          {
+            marksObtained: 85,
+            maxMarks: parsedMaxMarks, // NaN
+            isAbsent: false,
+            isMedicalExempt: false,
+          },
+          cbseRules,
+        );
+      }).toThrow(/Invalid maxMarks: expected positive finite number/);
     });
   });
 

@@ -354,6 +354,8 @@ export const academicCalendarEvents = pgTable(
     description: text("description"),
     isWorkingDay: boolean("is_working_day").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
+    examScheduleId: uuid("exam_schedule_id"),
+    examSpanSourceId: uuid("exam_span_source_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -368,6 +370,12 @@ export const academicCalendarEvents = pgTable(
       t.academicYearId,
     ),
     startDateIdx: index("calendar_events_start_date_idx").on(t.startDate),
+    examScheduleUid: uniqueIndex("ace_exam_schedule_uidx")
+      .on(t.schoolId, t.examScheduleId)
+      .where(sql`${t.examScheduleId} IS NOT NULL`),
+    examSpanUid: uniqueIndex("ace_exam_span_uidx")
+      .on(t.schoolId, t.examSpanSourceId)
+      .where(sql`${t.examSpanSourceId} IS NOT NULL`),
   }),
 );
 
