@@ -8,6 +8,7 @@ import {
   saveClassSpecificGradeRule,
   loadBoardDefaultsForSchool,
 } from "../actions/setupActions";
+import { mapGradeLevelToClassGroup } from "@/lib/examBoardBlueprints";
 import {
   BookOpen,
   PlusCircle,
@@ -26,8 +27,13 @@ interface ExamManageClientProps {
   schoolId: string;
   activeYearId: string;
   board?: string;
-  classes: Array<{ id: string; displayName: string }>;
-  examTypes: Array<{ id: string; name: string }>;
+  classes: Array<{ id: string; displayName: string; gradeLevel?: string | null }>;
+  examTypes: Array<{
+    id: string;
+    name: string;
+    code?: string;
+    applicableClassGroups?: string[] | null;
+  }>;
   exams: Array<{
     id: string;
     name: string;
@@ -106,6 +112,22 @@ export function ExamManageClient({
       return;
     }
     setMessage(null);
+
+    // Setup Wizard Preselection (Sprint S9 Layer 6)
+    // Auto-preselect classes matching selected exam type's applicableClassGroups
+    const selectedEt = examTypes.find((et) => et.id === selectedExamTypeId);
+    if (selectedEt && selectedEt.applicableClassGroups && selectedEt.applicableClassGroups.length > 0) {
+      const matchingClassIds = classes
+        .filter((c) => {
+          const group = mapGradeLevelToClassGroup(c.gradeLevel || c.displayName);
+          return selectedEt.applicableClassGroups!.includes(group);
+        })
+        .map((c) => c.id);
+      setSelectedClassIds(matchingClassIds.length > 0 ? matchingClassIds : classes.map((c) => c.id));
+    } else {
+      setSelectedClassIds(classes.map((c) => c.id));
+    }
+
     setStep(2);
   };
 
@@ -493,6 +515,17 @@ export function ExamManageClient({
                   <p className="text-xs text-gray-500">
                     Students belonging to checked classes will participate in this examination.
                   </p>
+                  {(() => {
+                    const selectedEt = examTypes.find((et) => et.id === selectedExamTypeId);
+                    if (selectedEt && selectedEt.applicableClassGroups && selectedEt.applicableClassGroups.length > 0) {
+                      return (
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-1">
+                          ✓ Auto-scoped to classes matching &quot;{selectedEt.name}&quot; blueprint groups ({selectedClassIds.length} preselected, editable).
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                 <button
                   type="button"

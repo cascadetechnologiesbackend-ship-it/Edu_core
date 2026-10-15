@@ -224,6 +224,26 @@ External candidate lookups (`POST /s/[slug]/results/lookup`) are implemented as 
 - Verifies Date of Birth against institutional student records.
 - Enforces institutional result release policies (`withholdAll`, `releaseAt`, `feeLockMode`).
 
+### 7.5 Board-Wise Examination Blueprints & Pre-Seeding (Sprint S9)
+SchoolMitra ERP features a typed, server-side examination blueprint engine across all 5 major boards of education (`CBSE`, `ICSE`, `STATE_BOARD`, `IGCSE`, and `IB`):
+- **Pure Blueprint Registry (`backend/src/lib/examBoardBlueprints.ts`)**:
+  - Maintains static, immutable blueprint specifications for exam types, grading scales, co-curricular areas, and term plans.
+  - Zero database imports; safely imported by client components (e.g., Onboarding Wizard) and server engines alike.
+  - Enforces 0.00–100.00% mathematical contiguity and gap-free coverage across all grading scales.
+- **Class Category & Group Mapping**:
+  - Maps 5 educational stages to database `class_group` enums: `PRE_PRIMARY` (`NURSERY_UKG`), `PRIMARY` (`CLASS_1_5`), `MIDDLE` (`CLASS_6_8`), `SECONDARY` (`CLASS_9_10`), `SENIOR_SECONDARY` (`CLASS_11_12`).
+  - Grading rules are provisioned strictly for the class groups the school actually operates (`deriveClassGroupsFromClasses`).
+- **Atomic Seeding Engine (`backend/src/lib/examSeeding.ts`)**:
+  - Integrated into tenant onboarding (`registerSchoolTenant`) within the primary atomic database transaction.
+  - Strict find-first-then-insert ensure-pattern: never mutates or overwrites user modifications (`class_id IS NULL` filter preserves class-specific overrides).
+- **Term Plan Creator & Proportional Dates**:
+  - Server action `createBoardTermPlan` provisions yearly examination term shells (e.g. Periodic Tests, Half-Yearly, Annual) for the active academic session in one click.
+  - Derives placeholder dates proportionally spaced within the session calendar (`computeProportionalDates`).
+  - Automatically maps class scopes by intersecting the school's configured classes with the term's applicable educational stages.
+  - Attaches explicit component breakdowns (e.g., Theory Paper + Internal Assessment) respecting `exam_components_exam_type_unique` constraints.
+- **Audit Ledger Logging**:
+  - All automated blueprint provisioning and term plan creations insert persistent audit rows in `audit_logs` (`purposeId: "exam_setup"`).
+
 
 ---
 

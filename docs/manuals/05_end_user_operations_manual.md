@@ -95,13 +95,14 @@ flowchart LR
     S5 --> S6["6. Release & Analytics<br/>(/exams/analytics)"]
 ```
 
-1. **Stage 1 — Exam Creation & Grading Standards** (`/exams/manage`):
-   - Open **Examinations** -> **Manage Exams**.
-   - Click **+ Create Exam** and enter:
-     - Exam Name (e.g., `Term 1 Summative Assessment 2026-27`), Exam Type (`TERM`, `UNIT_TEST`, `FINAL`, `PRACTICE`), and Academic Year/Term.
-     - Target Class Scope (select all participating grades or specific streams).
-     - Grading Scale Profile: Choose `CBSE_9_POINT` (A1 through E), `CBSE_PRIMARY` (A* through D), or custom percentage boundaries.
-     - Co-Curricular Areas: Enable required evaluation areas (e.g., `Work Education`, `Art Education`, `Health & Physical Education`, `Discipline`).
+1. **Stage 1 — Exam Creation & Grading Standards** (`/exams/manage` & `/exams/dashboard`):
+   - **Automated Blueprint Onboarding**: When a school completes initial onboarding (`/onboard`), selecting their affiliation board (`CBSE`, `ICSE`, `STATE_BOARD`, `IGCSE`, or `IB`) automatically provisions foundational exam types, 0–100% gap-free grade rules across operated class levels, and co-curricular domains with descriptions ending in `"Board default (editable)"`.
+   - **Load Board Defaults for Existing Schools**: Existing schools without pre-seeded configurations can click **Load Board Defaults** in `/exams/manage` to provision missing defaults in one click without altering custom overrides.
+   - **One-Click Board Term Plan Creation**: In `/exams/dashboard`, click **Create Board Term Plan** to open the Confirmation Drawer. The engine displays the exact term shells, proportionally derived dates within the academic session, automatically intersected class scopes, and explicit component weightages (e.g. Theory 80% + Internal 20%) before confirmation. Idempotency guarantees existing shells are skipped without duplicate creation.
+   - **Manual Exam Setup & Class Preselection**: Click **+ Create Exam** or **New Exam Setup**:
+     - Step 1: Provide Exam Name, select Exam Type, and enter Start/End dates.
+     - Step 2: The system automatically preselects classes matching the chosen exam type's educational group (e.g., Pre-Primary, Middle, Senior Secondary), while preserving full manual override capability.
+     - Step 3: Configure assessment components and report card visibility.
 2. **Stage 2 — Timetable & Component Mark Distributions** (`/exams/schedule`):
    - Navigate to **Examinations** -> **Schedules & Timetable**.
    - For each class and subject, configure the datesheet: Exam Date, Start/End Time, Room/Venue, and Maximum Marks.

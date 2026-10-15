@@ -7,7 +7,9 @@ import {
   examMarksLocks,
   resultSettings,
   reportCardSetups,
+  schools,
 } from "@/db/schema";
+import { BoardTermPlanCard } from "./BoardTermPlanCard";
 import { eq, and, sql, lte } from "drizzle-orm";
 import Link from "next/link";
 import {
@@ -61,6 +63,8 @@ export default async function ExamsDashboardPage() {
         if (!activeYear) {
           return {
             activeYear: null,
+            board: "CBSE",
+            hasBoardDefaults: false,
             examsList: [],
             totalSchedules: 0,
             lockedMarksCount: 0,
@@ -68,61 +72,81 @@ export default async function ExamsDashboardPage() {
           };
         }
 
-        const [examsList, schedulesCountRes, locksCountRes, releasedRes] =
-          await Promise.all([
-            db.query.exams.findMany({
-              where: and(
-                eq(exams.schoolId, schoolId),
-                eq(exams.academicYearId, activeYear.id),
-              ),
-              with: {
-                examType: true,
-                classScopes: {
-                  with: {
-                    class: true,
-                  },
+        const [
+          examsList,
+          schedulesCountRes,
+          locksCountRes,
+          releasedRes,
+          schoolRow,
+          examTypesCountRes,
+        ] = await Promise.all([
+          db.query.exams.findMany({
+            where: and(
+              eq(exams.schoolId, schoolId),
+              eq(exams.academicYearId, activeYear.id),
+            ),
+            with: {
+              examType: true,
+              classScopes: {
+                with: {
+                  class: true,
                 },
               },
-              orderBy: (t, { desc }) => [desc(t.startDate)],
-            }),
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(examSchedules)
-              .where(eq(examSchedules.schoolId, schoolId)),
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(examMarksLocks)
-              .where(
-                and(
-                  eq(examMarksLocks.schoolId, schoolId),
-                  eq(examMarksLocks.status, "LOCKED"),
-                ),
+            },
+            orderBy: (t, { desc }) => [desc(t.startDate)],
+          }),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(examSchedules)
+            .where(eq(examSchedules.schoolId, schoolId)),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(examMarksLocks)
+            .where(
+              and(
+                eq(examMarksLocks.schoolId, schoolId),
+                eq(examMarksLocks.status, "LOCKED"),
               ),
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(resultSettings)
-              .where(
-                and(
-                  eq(resultSettings.schoolId, schoolId),
-                  lte(resultSettings.releaseAt, new Date()),
-                ),
+            ),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(resultSettings)
+            .where(
+              and(
+                eq(resultSettings.schoolId, schoolId),
+                lte(resultSettings.releaseAt, new Date()),
               ),
-          ]);
+            ),
+          db.query.schools.findFirst({
+            where: eq(schools.id, schoolId),
+            columns: { board: true },
+          }),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(examTypes)
+            .where(
+              and(eq(examTypes.schoolId, schoolId), eq(examTypes.isActive, true)),
+            ),
+        ]);
 
         return {
           activeYear,
+          board: schoolRow?.board || "CBSE",
+          hasBoardDefaults: Number(examTypesCountRes[0]?.count || 0) > 0,
           examsList,
           totalSchedules: Number(schedulesCountRes[0]?.count || 0),
           lockedMarksCount: Number(locksCountRes[0]?.count || 0),
           releasedResultsCount: Number(releasedRes[0]?.count || 0),
         };
       },
-      { maxQueries: 6, label: "Exams Dashboard KPIs" },
+      { maxQueries: 8, label: "Exams Dashboard KPIs" },
     );
   });
 
   const {
     activeYear,
+    board,
+    hasBoardDefaults,
     examsList,
     totalSchedules,
     lockedMarksCount,
@@ -296,6 +320,14 @@ export default async function ExamsDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* UX-P10 & UX-P09: Board Term Plan Action Card & Confirmation Drawer */}
+      <BoardTermPlanCard
+        board={board}
+        hasExams={examsList.length > 0}
+        hasBoardDefaults={hasBoardDefaults}
+        activeYearLabel={activeYear?.label}
+      />
 
       {/* Active Exams Table */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">

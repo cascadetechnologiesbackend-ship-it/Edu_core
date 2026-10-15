@@ -58,6 +58,7 @@ export interface BlueprintGradeRule {
 export interface BlueprintTermComponent {
   name: string;
   weightPercent: number;
+  examTypeCode?: string | undefined;
   isPractical?: boolean;
 }
 
@@ -305,7 +306,7 @@ const CBSE_BLUEPRINT: ExamBoardBlueprint = {
         examTypeCode: "PT",
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.25,
-        components: [{ name: "Written Assessment", weightPercent: 100 }],
+        components: [{ name: "Written Assessment", weightPercent: 100, examTypeCode: "PT" }],
       },
       {
         name: "Half-Yearly Examination",
@@ -313,8 +314,8 @@ const CBSE_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.5,
         components: [
-          { name: "Theory Paper", weightPercent: 80 },
-          { name: "Internal Assessment", weightPercent: 20 },
+          { name: "Theory Paper", weightPercent: 80, examTypeCode: "HY" },
+          { name: "Internal Assessment", weightPercent: 20, examTypeCode: "IA" },
         ],
       },
       {
@@ -323,8 +324,8 @@ const CBSE_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.92,
         components: [
-          { name: "Theory Paper", weightPercent: 80 },
-          { name: "Internal Assessment", weightPercent: 20 },
+          { name: "Theory Paper", weightPercent: 80, examTypeCode: "ANN" },
+          { name: "Internal Assessment", weightPercent: 20, examTypeCode: "IA" },
         ],
       },
     ],
@@ -415,8 +416,8 @@ const ICSE_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.5,
         components: [
-          { name: "Written Paper", weightPercent: 80 },
-          { name: "Project / SUPW", weightPercent: 20 },
+          { name: "Written Paper", weightPercent: 80, examTypeCode: "HY" },
+          { name: "Project / SUPW", weightPercent: 20, examTypeCode: "PROJ" },
         ],
       },
       {
@@ -425,8 +426,8 @@ const ICSE_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.92,
         components: [
-          { name: "Written Paper", weightPercent: 80 },
-          { name: "Project / Practical", weightPercent: 20 },
+          { name: "Written Paper", weightPercent: 80, examTypeCode: "ANN" },
+          { name: "Project / Practical", weightPercent: 20, examTypeCode: "PROJ" },
         ],
       },
     ],
@@ -532,7 +533,7 @@ const STATE_BOARD_BLUEPRINT: ExamBoardBlueprint = {
         examTypeCode: "QT",
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.33,
-        components: [{ name: "Theory Paper", weightPercent: 100 }],
+        components: [{ name: "Theory Paper", weightPercent: 100, examTypeCode: "QT" }],
       },
       {
         name: "Half-Yearly Examination",
@@ -540,8 +541,8 @@ const STATE_BOARD_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.58,
         components: [
-          { name: "Theory Paper", weightPercent: 80 },
-          { name: "Practical / Internal", weightPercent: 20 },
+          { name: "Theory Paper", weightPercent: 80, examTypeCode: "HY" },
+          { name: "Practical / Internal", weightPercent: 20, examTypeCode: "PRAC" },
         ],
       },
       {
@@ -550,8 +551,8 @@ const STATE_BOARD_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.92,
         components: [
-          { name: "Theory Paper", weightPercent: 80 },
-          { name: "Practical / Internal", weightPercent: 20 },
+          { name: "Theory Paper", weightPercent: 80, examTypeCode: "ANN" },
+          { name: "Practical / Internal", weightPercent: 20, examTypeCode: "PRAC" },
         ],
       },
     ],
@@ -641,8 +642,8 @@ const IGCSE_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.5,
         components: [
-          { name: "Written Paper", weightPercent: 70 },
-          { name: "Coursework", weightPercent: 30 },
+          { name: "Written Paper", weightPercent: 70, examTypeCode: "MYC" },
+          { name: "Coursework", weightPercent: 30, examTypeCode: "CP" },
         ],
       },
       {
@@ -651,8 +652,8 @@ const IGCSE_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.92,
         components: [
-          { name: "Written Paper", weightPercent: 70 },
-          { name: "Coursework & Practical", weightPercent: 30 },
+          { name: "Written Paper", weightPercent: 70, examTypeCode: "EYC" },
+          { name: "Coursework & Practical", weightPercent: 30, examTypeCode: "CP" },
         ],
       },
     ],
@@ -748,8 +749,8 @@ const IB_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.5,
         components: [
-          { name: "Criterion Assessment", weightPercent: 75 },
-          { name: "Portfolio & Inquiry", weightPercent: 25 },
+          { name: "Criterion Assessment", weightPercent: 75, examTypeCode: "TR" },
+          { name: "Portfolio & Inquiry", weightPercent: 25, examTypeCode: "PORT" },
         ],
       },
       {
@@ -758,8 +759,8 @@ const IB_BLUEPRINT: ExamBoardBlueprint = {
         applicableGroups: ["CLASS_1_5", "CLASS_6_8", "CLASS_9_10", "CLASS_11_12"],
         defaultProportion: 0.92,
         components: [
-          { name: "Criterion Assessment", weightPercent: 75 },
-          { name: "Culminating Project / IA", weightPercent: 25 },
+          { name: "Criterion Assessment", weightPercent: 75, examTypeCode: "TR" },
+          { name: "Culminating Project / IA", weightPercent: 25, examTypeCode: "IA" },
         ],
       },
     ],
@@ -851,3 +852,76 @@ export function blueprintSummary(
     termPlanNames: bp.termPlan.terms.map((t) => t.name),
   };
 }
+
+/**
+ * Computes deterministic, proportionally distributed start and end placeholder dates
+ * for an examination term shell within the active academic year window (Amendment 6).
+ */
+export function computeProportionalDates(
+  yearStart: Date | string,
+  yearEnd: Date | string,
+  proportion: number,
+  durationDays: number = 7,
+): { startDate: Date; endDate: Date } {
+  const start = new Date(yearStart);
+  const end = new Date(yearEnd);
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+  const spanMs = Math.max(endMs - startMs, 86400000 * 30); // minimum 30 days
+  const clampedProp = Math.min(Math.max(proportion, 0.05), 0.95);
+  const targetMs = startMs + Math.round(spanMs * clampedProp);
+
+  const halfDurationMs = Math.round((durationDays * 86400000) / 2);
+  const examStartMs = Math.max(startMs, targetMs - halfDurationMs);
+  const examEndMs = Math.min(endMs, examStartMs + durationDays * 86400000);
+
+  return {
+    startDate: new Date(examStartMs),
+    endDate: new Date(examEndMs),
+  };
+}
+
+export interface TermPlanPreviewItem {
+  name: string;
+  examTypeCode: string;
+  startDate: string; // ISO
+  endDate: string; // ISO
+  scopedClassCount: number;
+  scopedClassNames: string[];
+  components: Array<{ name: string; weightPercent: number; examTypeCode?: string | undefined }>;
+}
+
+/**
+ * Pure helper providing preview details for the Board Term Plan Confirmation Drawer (UX-P09).
+ * Computes term names, proportional dates, and intersected class scopes from active classes (Amendment 4).
+ */
+export function previewBoardTermPlan(
+  board: SchoolBoard,
+  yearStartDate: Date | string,
+  yearEndDate: Date | string,
+  schoolClasses: Array<{ id: string; displayName: string; gradeLevel?: string | null }>,
+): TermPlanPreviewItem[] {
+  const bp = getBlueprint(board);
+  return bp.termPlan.terms.map((term) => {
+    const dates = computeProportionalDates(yearStartDate, yearEndDate, term.defaultProportion);
+    const matchingClasses = schoolClasses.filter((c) => {
+      const group = mapGradeLevelToClassGroup(c.gradeLevel || c.displayName);
+      return term.applicableGroups.includes(group);
+    });
+
+    return {
+      name: term.name,
+      examTypeCode: term.examTypeCode,
+      startDate: dates.startDate.toISOString(),
+      endDate: dates.endDate.toISOString(),
+      scopedClassCount: matchingClasses.length,
+      scopedClassNames: matchingClasses.map((c) => c.displayName),
+      components: term.components.map((cmp) => ({
+        name: cmp.name,
+        weightPercent: cmp.weightPercent,
+        examTypeCode: cmp.examTypeCode,
+      })),
+    };
+  });
+}
+

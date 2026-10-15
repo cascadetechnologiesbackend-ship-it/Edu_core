@@ -8,6 +8,8 @@ import {
   deriveClassGroupsFromClasses,
   ALL_CLASS_GROUPS,
   GROUP_TO_CATEGORY,
+  computeProportionalDates,
+  previewBoardTermPlan,
   SchoolBoard,
   ClassCategory,
   GradingScale,
@@ -198,4 +200,61 @@ describe("Exam Board Blueprint Registry (Sprint S9 Layer 1)", () => {
       expect(summaryPrePrimary.gradeRuleCountsByGroup.CLASS_11_12).toBe(0);
     });
   });
+
+  describe("Term Plan Calculations & Preview Helpers (Amendments 4, 6, 8)", () => {
+    it("computes proportional placeholder dates bounded within the academic year window", () => {
+      const yearStart = new Date("2026-04-01T00:00:00.000Z");
+      const yearEnd = new Date("2027-03-31T00:00:00.000Z");
+
+      // Mid-year (0.5)
+      const mid = computeProportionalDates(yearStart, yearEnd, 0.5, 7);
+      expect(mid.startDate.getTime()).toBeGreaterThan(yearStart.getTime());
+      expect(mid.endDate.getTime()).toBeLessThan(yearEnd.getTime());
+      expect(mid.endDate.getTime() - mid.startDate.getTime()).toBe(7 * 86400000);
+
+      // Early term (0.25)
+      const early = computeProportionalDates(yearStart, yearEnd, 0.25, 5);
+      expect(early.startDate.getTime()).toBeLessThan(mid.startDate.getTime());
+      expect(early.startDate.getTime()).toBeGreaterThanOrEqual(yearStart.getTime());
+
+      // Final annual (0.92)
+      const late = computeProportionalDates(yearStart, yearEnd, 0.92, 10);
+      expect(late.startDate.getTime()).toBeGreaterThan(mid.endDate.getTime());
+      expect(late.endDate.getTime()).toBeLessThanOrEqual(yearEnd.getTime());
+    });
+
+    it("previews board term plan with intersected class scopes and explicit components", () => {
+      const sampleClasses = [
+        { id: "c-nur", displayName: "Nursery A", gradeLevel: "NURSERY" },
+        { id: "c-1", displayName: "Class 1 A", gradeLevel: "CLASS_1" },
+        { id: "c-10", displayName: "Class 10 A", gradeLevel: "CLASS_10" },
+      ];
+
+      const preview = previewBoardTermPlan(
+        "CBSE",
+        "2026-04-01T00:00:00.000Z",
+        "2027-03-31T00:00:00.000Z",
+        sampleClasses,
+      );
+
+      expect(preview.length).toBe(3); // PT1, HY, ANN
+      expect(preview[0]!.name).toBe("Periodic Test 1");
+      expect(preview[0]!.components.length).toBe(1);
+      expect(preview[0]!.components[0]!.name).toBe("Written Assessment");
+      expect(preview[0]!.components[0]!.weightPercent).toBe(100);
+
+      // Scopes should include Class 1 and Class 10, but NOT Nursery for standard PT/HY
+      expect(preview[0]!.scopedClassCount).toBe(2);
+      expect(preview[0]!.scopedClassNames).toContain("Class 1 A");
+      expect(preview[0]!.scopedClassNames).toContain("Class 10 A");
+      expect(preview[0]!.scopedClassNames).not.toContain("Nursery A");
+
+      // HY has 2 components: Theory Paper (80%) and Internal Assessment (20%)
+      expect(preview[1]!.name).toBe("Half-Yearly Examination");
+      expect(preview[1]!.components.length).toBe(2);
+      expect(preview[1]!.components[0]!.weightPercent).toBe(80);
+      expect(preview[1]!.components[1]!.weightPercent).toBe(20);
+    });
+  });
 });
+

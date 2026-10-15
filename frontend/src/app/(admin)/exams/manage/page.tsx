@@ -94,10 +94,13 @@ export default async function ExamManagePage() {
           classes: classList.map((c) => ({
             id: c.id,
             displayName: c.displayName,
+            gradeLevel: c.gradeLevel ?? null,
           })),
           examTypes: examTypeList.map((et) => ({
             id: et.id,
             name: et.name,
+            code: et.code,
+            applicableClassGroups: (et.applicableClassGroups as string[] | null) || null,
           })),
           exams: examsList.map((ex) => ({
             id: ex.id,

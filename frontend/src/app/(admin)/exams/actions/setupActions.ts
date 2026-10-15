@@ -12,13 +12,20 @@ import {
   schools,
   classes,
   auditLogs,
+  examTypes,
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission } from "@/lib/examPermissions";
 import { seedExamBoardDefaults } from "@/lib/examSeeding";
-import { deriveClassGroupsFromClasses } from "@/lib/examBoardBlueprints";
+import {
+  getBlueprint,
+  deriveClassGroupsFromClasses,
+  mapGradeLevelToClassGroup,
+  computeProportionalDates,
+  previewBoardTermPlan,
+} from "@/lib/examBoardBlueprints";
 import { z } from "zod";
 
 const ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
@@ -372,3 +379,276 @@ export async function loadBoardDefaultsForSchool(input?: {
     stats: seedResult,
   };
 }
+
+/**
+ * Previews the board term plan for the confirmation drawer (UX-P09).
+ * Returns term names, proportional dates, and intersected class scopes from active classes.
+ */
+export async function getBoardTermPlanPreview() {
+  const ctx = await requireAuth(ADMIN_ROLES);
+  requireExamPermission(ctx, "exam.setup.manage");
+  const school = await requireSchool(ctx);
+
+  const schoolRow = await db.query.schools.findFirst({
+    where: eq(schools.id, school.id),
+  });
+  if (!schoolRow) {
+    return { success: false, message: "School not found", terms: [] };
+  }
+
+  const activeYear = await db.query.academicYears.findFirst({
+    where: and(
+      eq(academicYears.schoolId, school.id),
+      eq(academicYears.isActive, true),
+    ),
+  });
+  if (!activeYear) {
+    return {
+      success: false,
+      message: "No active academic year configured",
+      terms: [],
+    };
+  }
+
+  const schoolClasses = await db.query.classes.findMany({
+    where: and(eq(classes.schoolId, school.id), isNull(classes.deletedAt)),
+    orderBy: (t, { asc }) => [asc(t.sortOrder)],
+  });
+
+  const preview = previewBoardTermPlan(
+    schoolRow.board,
+    activeYear.startDate,
+    activeYear.endDate,
+    schoolClasses,
+  );
+
+  return {
+    success: true,
+    board: schoolRow.board,
+    activeYearLabel: activeYear.label,
+    terms: preview,
+  };
+}
+
+/**
+ * Creates examination term shells based on the school's affiliation board blueprint (Sprint S9 Layer 6).
+ *
+ * Implements:
+ * - Amendment 1: Full context requireExamPermission(ctx, "exam.setup.manage")
+ * - Amendment 2: Session-derived schoolId (never accepts client schoolId)
+ * - Amendment 4: Class scopes intersect applicable_class_groups per term
+ * - Amendment 5: Idempotency Key (schoolId, academicYearId, name)
+ * - Amendment 6: Proportionally derived placeholder dates within academic year window
+ * - Amendment 8: Explicit component mapping from blueprint (or 100% default fallback)
+ * - Amendment 11: Audit log insertion (purposeId: "exam_setup")
+ */
+export async function createBoardTermPlan() {
+  const ctx = await requireAuth(ADMIN_ROLES);
+  requireExamPermission(ctx, "exam.setup.manage");
+  const school = await requireSchool(ctx);
+
+  const schoolRow = await db.query.schools.findFirst({
+    where: eq(schools.id, school.id),
+  });
+  if (!schoolRow) {
+    return { success: false, message: "School tenant not found" };
+  }
+
+  const activeYear = await db.query.academicYears.findFirst({
+    where: and(
+      eq(academicYears.schoolId, school.id),
+      eq(academicYears.isActive, true),
+    ),
+  });
+  if (!activeYear) {
+    return {
+      success: false,
+      message: "No active academic year configured for this school.",
+    };
+  }
+
+  const schoolClasses = await db.query.classes.findMany({
+    where: and(eq(classes.schoolId, school.id), isNull(classes.deletedAt)),
+    orderBy: (t, { asc }) => [asc(t.sortOrder)],
+  });
+
+  const schoolExamTypes = await db.query.examTypes.findMany({
+    where: and(eq(examTypes.schoolId, school.id), eq(examTypes.isActive, true)),
+  });
+
+  const blueprint = getBlueprint(schoolRow.board);
+  const termItems = blueprint.termPlan.terms;
+
+  const createdExams: Array<{
+    id: string;
+    name: string;
+    componentsCount: number;
+    scopedClassesCount: number;
+  }> = [];
+  const skippedExams: Array<{ name: string; reason: string }> = [];
+
+  for (const term of termItems) {
+    // Amendment 5: Idempotency Key (schoolId, academicYearId, name)
+    const existingExam = await db.query.exams.findFirst({
+      where: and(
+        eq(exams.schoolId, school.id),
+        eq(exams.academicYearId, activeYear.id),
+        eq(exams.name, term.name),
+        isNull(exams.deletedAt),
+      ),
+    });
+
+    if (existingExam) {
+      skippedExams.push({
+        name: term.name,
+        reason: "Exam shell already exists for active academic year",
+      });
+      continue;
+    }
+
+    // Resolve primary exam type
+    const primaryExamType =
+      schoolExamTypes.find((et) => et.code === term.examTypeCode) ||
+      schoolExamTypes.find((et) =>
+        et.name.toLowerCase().includes(term.name.toLowerCase()),
+      ) ||
+      schoolExamTypes[0];
+
+    if (!primaryExamType) {
+      skippedExams.push({
+        name: term.name,
+        reason: "No active exam type available",
+      });
+      continue;
+    }
+
+    // Amendment 6: Proportionally Derived Placeholder Dates
+    const { startDate, endDate } = computeProportionalDates(
+      activeYear.startDate,
+      activeYear.endDate,
+      term.defaultProportion,
+    );
+
+    // Create the exam shell
+    const [newExam] = await db
+      .insert(exams)
+      .values({
+        schoolId: school.id,
+        academicYearId: activeYear.id,
+        examTypeId: primaryExamType.id,
+        name: term.name,
+        startDate,
+        endDate,
+        isLocked: false,
+      })
+      .returning();
+
+    if (!newExam) continue;
+
+    // Amendment 4: Term Plan Scopes Intersect applicable_class_groups
+    const matchingClasses = schoolClasses.filter((c) => {
+      const group = mapGradeLevelToClassGroup(c.gradeLevel || c.displayName);
+      return term.applicableGroups.includes(group);
+    });
+
+    if (matchingClasses.length > 0) {
+      await db.insert(examClassScopes).values(
+        matchingClasses.map((cls) => ({
+          schoolId: school.id,
+          examId: newExam.id,
+          classId: cls.id,
+        })),
+      );
+    }
+
+    // Amendment 8: Explicit Component Mapping on Term Shells
+    let compSortOrder = 0;
+    const insertedComponentTypes = new Set<string>();
+
+    for (const cmp of term.components) {
+      let compExamType = primaryExamType;
+      if (cmp.examTypeCode && cmp.examTypeCode !== primaryExamType.code) {
+        const found = schoolExamTypes.find((et) => et.code === cmp.examTypeCode);
+        if (found) compExamType = found;
+      }
+
+      // Respect exam_components_exam_type_unique on (examId, examTypeId)
+      if (insertedComponentTypes.has(compExamType.id)) {
+        const alternate = schoolExamTypes.find(
+          (et) => !insertedComponentTypes.has(et.id),
+        );
+        if (alternate) {
+          compExamType = alternate;
+        } else {
+          continue;
+        }
+      }
+
+      insertedComponentTypes.add(compExamType.id);
+
+      await db.insert(examComponents).values({
+        schoolId: school.id,
+        examId: newExam.id,
+        examTypeId: compExamType.id,
+        displayName: cmp.name,
+        sortOrder: compSortOrder++,
+        weightPercent: cmp.weightPercent.toFixed(2),
+        showOnReportCard: true,
+      });
+    }
+
+    // If no components were added, insert default 100% component
+    if (insertedComponentTypes.size === 0) {
+      await db.insert(examComponents).values({
+        schoolId: school.id,
+        examId: newExam.id,
+        examTypeId: primaryExamType.id,
+        displayName: term.name,
+        sortOrder: 0,
+        weightPercent: "100.00",
+        showOnReportCard: true,
+      });
+    }
+
+    createdExams.push({
+      id: newExam.id,
+      name: newExam.name,
+      componentsCount: Math.max(insertedComponentTypes.size, 1),
+      scopedClassesCount: matchingClasses.length,
+    });
+  }
+
+  // Amendment 11: Audit log entry
+  await db.insert(auditLogs).values({
+    userId: ctx.userId,
+    userEmail: ctx.email,
+    userRole: ctx.role,
+    schoolId: school.id,
+    action: "WRITE",
+    tableName: "examinations",
+    recordId: school.id,
+    purposeId: "exam_setup",
+    ipAddress: "127.0.0.1",
+    userAgent: "SchoolMitra/ExamSetup",
+    metadata: {
+      action: "CREATE_BOARD_TERM_PLAN",
+      board: schoolRow.board,
+      academicYearId: activeYear.id,
+      createdExamsCount: createdExams.length,
+      skippedExamsCount: skippedExams.length,
+      createdExams,
+      skippedExams,
+    },
+  });
+
+  revalidatePath("/exams/dashboard");
+  revalidatePath("/exams/manage");
+
+  return {
+    success: true,
+    message: `Provisioned ${createdExams.length} term plan shells for ${schoolRow.board} (${skippedExams.length} skipped).`,
+    createdExams,
+    skippedExams,
+  };
+}
+
