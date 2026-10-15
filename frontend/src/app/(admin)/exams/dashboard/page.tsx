@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Award,
   SlidersHorizontal,
+  Activity,
 } from "lucide-react";
 import { Metadata } from "next";
 import { requireAuth } from "@/lib/serverAuth";
@@ -175,6 +176,15 @@ export default async function ExamsDashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/exams/usage"
+            data-ux-id="btn_view_usage"
+            data-ux-label="Usage & Heat Map"
+            className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all"
+          >
+            <Activity className="w-4 h-4 text-emerald-500" />
+            <span>Usage & Heat Map</span>
+          </Link>
           <Link
             href="/exams/manage"
             data-ux-id="btn_quick_create_exam"

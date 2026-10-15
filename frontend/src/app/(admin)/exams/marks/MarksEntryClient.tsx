@@ -15,6 +15,9 @@ import {
   CheckSquare,
   Square,
   ShieldAlert,
+  MoreVertical,
+  RotateCcw,
+  Download,
 } from "lucide-react";
 import {
   saveMarkEntries,
@@ -83,6 +86,10 @@ export function MarksEntryClient({
     type: "success" | "error";
   } | null>(null);
 
+  // Unsaved changes & overflow state (UX-R10 / UX-R20)
+  const [isDirty, setIsDirty] = useState(false);
+  const [showSecondaryMenu, setShowSecondaryMenu] = useState(false);
+
   // Unlock Modal
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
@@ -100,6 +107,45 @@ export function MarksEntryClient({
       (st.rollNumber && st.rollNumber.toLowerCase().includes(q))
     );
   });
+
+  const handleExportCsv = () => {
+    const headers = ["Roll", "Admission No", "Student Name"];
+    if (hasComponents) {
+      components.forEach((c) => headers.push(`${c.name} (Max ${c.maxMarks})`));
+    } else {
+      headers.push(`Marks (Max ${defaultMaxMarks})`);
+    }
+    headers.push("Total", "Status");
+
+    const rows = filteredStudents.map((st) => {
+      const row = [st.rollNumber || "", st.admissionNumber, `"${st.name.replace(/"/g, '""')}"`];
+      if (hasComponents) {
+        components.forEach((c) => row.push(st.marks[c.id] || ""));
+      } else {
+        row.push(st.marks["_total"] || "");
+      }
+      row.push(getStudentTotal(st));
+      row.push(st.isAbsent ? "ABSENT" : st.isMedicalExempt ? "EXEMPT" : "PRESENT");
+      return row.join(",");
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Marks_${selectedExamId}_${selectedClassId}_${selectedSubjectId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleResetChanges = () => {
+    if (confirm("Discard all unsaved edits and restore original values?")) {
+      setStudents(initialStudents);
+      setIsDirty(false);
+      setShowSecondaryMenu(false);
+    }
+  };
 
   const handleExamChange = (examId: string) => {
     router.push(`/exams/marks?examId=${examId}&classId=${selectedClassId}&subjectId=${selectedSubjectId}`);
@@ -125,6 +171,7 @@ export function MarksEntryClient({
       if (num < 0 || num > maxAllowed) return; // Disallow out of bounds
     }
 
+    setIsDirty(true);
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id !== studentId) return s;
@@ -141,6 +188,7 @@ export function MarksEntryClient({
 
   const toggleAbsent = (studentId: string) => {
     if (isLocked) return;
+    setIsDirty(true);
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id !== studentId) return s;
@@ -156,6 +204,7 @@ export function MarksEntryClient({
 
   const toggleMedicalExempt = (studentId: string) => {
     if (isLocked) return;
+    setIsDirty(true);
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id !== studentId) return s;
@@ -244,6 +293,7 @@ export function MarksEntryClient({
       });
 
       if (res.success) {
+        setIsDirty(false);
         setFeedback({
           text: `✓ Saved marks for ${students.length} student(s) successfully!`,
           type: "success",
@@ -707,7 +757,127 @@ export function MarksEntryClient({
         </div>
       </div>
 
-      {/* ─── 4. Unlock Modal ──────────────────────────────────────────────────── */}
+      {/* ─── 4. Adaptive Sticky Action Dock (UX-R20 Thumb Zone & Scroll Persistence) ─── */}
+      <div className="sticky bottom-4 z-30 rounded-2xl border border-slate-700/80 bg-slate-950/95 backdrop-blur-md p-3.5 shadow-2xl shadow-black/60 flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Status & Row counts */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                isDirty ? "bg-amber-400 animate-pulse" : "bg-emerald-400"
+              }`}
+            />
+            <span className="text-xs font-semibold text-white">
+              {isDirty ? "Unsaved Edits Pending" : "All Entries Saved"}
+            </span>
+          </div>
+
+          <span className="hidden sm:inline text-xs text-slate-500">•</span>
+
+          <span className="text-xs text-slate-400">
+            <strong className="text-slate-200">{filteredStudents.length}</strong> students in sheet
+          </span>
+        </div>
+
+        {/* Right: Secondary Actions Overflow Menu & Primary Save Button */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Secondary Actions Overflow (UX-R10) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSecondaryMenu(!showSecondaryMenu)}
+              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+              title="Secondary Actions & Export"
+            >
+              <MoreVertical className="w-4 h-4" />
+              <span className="hidden sm:inline">Options</span>
+            </button>
+
+            {showSecondaryMenu && (
+              <div className="absolute right-0 bottom-full mb-2 w-56 rounded-2xl border border-slate-800 bg-slate-900/95 backdrop-blur-md shadow-2xl p-2 z-40 space-y-1">
+                <button
+                  type="button"
+                  data-ux-id="btn_export_marks_csv"
+                  data-ux-label="Export Marks CSV"
+                  data-ux-action="export"
+                  onClick={() => {
+                    handleExportCsv();
+                    setShowSecondaryMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition"
+                >
+                  <Download className="w-4 h-4 text-indigo-400" />
+                  <span>Export Marks to CSV</span>
+                </button>
+
+                {isDirty && (
+                  <button
+                    type="button"
+                    onClick={handleResetChanges}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-950/40 flex items-center gap-2 cursor-pointer transition"
+                  >
+                    <RotateCcw className="w-4 h-4 text-amber-400" />
+                    <span>Discard Unsaved Edits</span>
+                  </button>
+                )}
+
+                {canLockUnlock && (
+                  <button
+                    type="button"
+                    data-ux-id={isLocked ? "btn_unlock_marks" : "btn_lock_marks"}
+                    data-ux-label={isLocked ? "Unlock Marks Request" : "Lock Marks Verification"}
+                    data-ux-action="click"
+                    disabled={isPending}
+                    onClick={() => {
+                      setShowSecondaryMenu(false);
+                      handleLockToggle();
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 cursor-pointer transition ${
+                      isLocked
+                        ? "text-amber-300 hover:bg-amber-950/40"
+                        : "text-rose-300 hover:bg-rose-950/40"
+                    }`}
+                  >
+                    {isLocked ? (
+                      <>
+                        <Unlock className="w-4 h-4 text-amber-400" />
+                        <span>Unlock Marks Entry</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 text-rose-400" />
+                        <span>Lock & Finalize Subject</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Primary Save Action (UX-R20 Thumb Zone: prominent, 42px+ touch target) */}
+          <button
+            type="button"
+            data-ux-id="btn_save_marks_draft"
+            data-ux-label="Save Marks Draft"
+            data-ux-action="click"
+            disabled={isPending || isLocked || filteredStudents.length === 0}
+            onClick={handleSaveMarks}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition min-h-[42px] cursor-pointer ${
+              isLocked
+                ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/40 shadow-none"
+                : isDirty
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 active:scale-95 animate-pulse"
+                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-95"
+            }`}
+          >
+            <Save className="w-4 h-4" />
+            <span>{isPending ? "Saving..." : isDirty ? "Save Changes" : "Save Marks"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ─── 5. Unlock Modal ──────────────────────────────────────────────────── */}
       {showUnlockModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
