@@ -26,6 +26,11 @@ import {
   computeProportionalDates,
   previewBoardTermPlan,
 } from "@/lib/examBoardBlueprints";
+import {
+  verifyExamOwnership,
+  verifyClassOwnership,
+  verifyStudentOwnership,
+} from "@/lib/examIsolation";
 import { z } from "zod";
 
 const ADMIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
@@ -64,6 +69,40 @@ export async function createExam(input: z.infer<typeof CreateExamSchema> | FormD
 
   const { name, examTypeId, startDate, endDate, classIds } = parsed.data;
 
+  // SEC-REF-004: Validate examTypeId belongs to current school tenant
+  const validExamType = await db.query.examTypes.findFirst({
+    where: and(
+      eq(examTypes.id, examTypeId),
+      eq(examTypes.schoolId, school.id),
+    ),
+  });
+
+  if (!validExamType) {
+    return {
+      success: false,
+      errors: { examTypeId: ["Exam type not found or does not belong to this school"] },
+    };
+  }
+
+  // SEC-REF-004: Validate classIds against duplicate entries and verify tenant ownership
+  const uniqueClassIds = classIds ? Array.from(new Set(classIds)) : [];
+  if (classIds && uniqueClassIds.length !== classIds.length) {
+    return {
+      success: false,
+      errors: { classIds: ["Duplicate class IDs submitted"] },
+    };
+  }
+
+  for (const cid of uniqueClassIds) {
+    const classCheck = await verifyClassOwnership(school.id, cid, ctx, "createExamClassScope");
+    if (!classCheck.success) {
+      return {
+        success: false,
+        errors: { classIds: [`Class ${cid} does not belong to this school or is invalid`] },
+      };
+    }
+  }
+
   const activeYear = await db.query.academicYears.findFirst({
     where: and(
       eq(academicYears.isActive, true),
@@ -75,39 +114,42 @@ export async function createExam(input: z.infer<typeof CreateExamSchema> | FormD
     return { success: false, errors: { _: ["No active academic year found"] } };
   }
 
-  const [newExam] = await db
-    .insert(exams)
-    .values({
-      schoolId: school.id,
-      academicYearId: activeYear.id,
-      examTypeId,
-      name,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      isLocked: false,
-    })
-    .returning();
-
-  if (newExam && classIds && classIds.length > 0) {
-    await db.insert(examClassScopes).values(
-      classIds.map((classId) => ({
-        examId: newExam.id,
-        classId,
+  // SEC-REF-004: Atomic transaction ensures failed scope creation leaves no orphan exam
+  const newExam = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(exams)
+      .values({
         schoolId: school.id,
-      })),
-    );
-  }
+        academicYearId: activeYear.id,
+        examTypeId,
+        name,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        isLocked: false,
+      })
+      .returning();
+
+    if (!created) {
+      throw new Error("Failed to insert exam record");
+    }
+
+    if (uniqueClassIds.length > 0) {
+      await tx.insert(examClassScopes).values(
+        uniqueClassIds.map((classId) => ({
+          examId: created.id,
+          classId,
+          schoolId: school.id,
+        })),
+      );
+    }
+
+    return created;
+  });
 
   revalidatePath("/exams/dashboard");
   revalidatePath("/exams/manage");
   return { success: true, examId: newExam?.id };
 }
-
-import {
-  verifyExamOwnership,
-  verifyClassOwnership,
-  verifyStudentOwnership,
-} from "@/lib/examIsolation";
 
 export async function updateExam(
   examId: string,
@@ -205,6 +247,21 @@ export async function createExamComponent(input: {
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
 
+  const examCheck = await verifyExamOwnership(school.id, input.examId, ctx, "createExamComponent");
+  if (!examCheck.success) {
+    return { success: false, error: examCheck.error, message: examCheck.message };
+  }
+
+  const validExamType = await db.query.examTypes.findFirst({
+    where: and(
+      eq(examTypes.id, input.examTypeId),
+      eq(examTypes.schoolId, school.id),
+    ),
+  });
+  if (!validExamType) {
+    return { success: false, message: "Exam type does not belong to this school" };
+  }
+
   const [comp] = await db
     .insert(examComponents)
     .values({
@@ -226,6 +283,16 @@ export async function deleteExamComponent(componentId: string) {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
+
+  const existing = await db.query.examComponents.findFirst({
+    where: and(
+      eq(examComponents.id, componentId),
+      eq(examComponents.schoolId, school.id),
+    ),
+  });
+  if (!existing) {
+    return { success: false, message: "Exam component not found or unauthorized" };
+  }
 
   await db
     .delete(examComponents)
@@ -267,6 +334,26 @@ export async function saveCocurricularGrade(input: {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
+
+  const examCheck = await verifyExamOwnership(school.id, input.examId, ctx, "saveCocurricularGrade");
+  if (!examCheck.success) {
+    return { success: false, error: examCheck.error, message: examCheck.message };
+  }
+
+  const studentCheck = await verifyStudentOwnership(school.id, input.studentId, ctx, "saveCocurricularGrade");
+  if (!studentCheck.success) {
+    return { success: false, error: studentCheck.error, message: studentCheck.message };
+  }
+
+  const validArea = await db.query.cocurricularAreas.findFirst({
+    where: and(
+      eq(cocurricularAreas.id, input.areaId),
+      eq(cocurricularAreas.schoolId, school.id),
+    ),
+  });
+  if (!validArea) {
+    return { success: false, message: "Co-curricular area does not belong to this school" };
+  }
 
   const existing = await db.query.cocurricularGrades.findFirst({
     where: and(
@@ -314,6 +401,13 @@ export async function saveClassSpecificGradeRule(input: {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
+
+  if (input.classId) {
+    const classCheck = await verifyClassOwnership(school.id, input.classId, ctx, "saveClassSpecificGradeRule");
+    if (!classCheck.success) {
+      return { success: false, error: classCheck.error, message: classCheck.message };
+    }
+  }
 
   const [rule] = await db
     .insert(gradeRules)

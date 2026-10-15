@@ -138,47 +138,59 @@ export async function assertTeacherTeaches(params: {
     return true;
   }
 
-  // Teacher must have active assignment
+  // Fail-closed on missing essential identifiers
+  if (!teacherId || !schoolId) {
+    return false;
+  }
+
+  // Teacher evaluation operations require explicit class and subject scope
+  if (!classId || !subjectId) {
+    return false;
+  }
+
+  // Teacher must have active, verified assignment
   try {
     const { db } = await import("@/db");
     const { classSubjects, sectionSubjectTeachers } = await import("@/db/schema");
     const { eq, and } = await import("drizzle-orm");
 
     // 1. Check direct classSubjects assignment
-    if (classId && subjectId) {
-      const direct = await db.query.classSubjects.findFirst({
+    const direct = await db.query.classSubjects.findFirst({
+      where: and(
+        eq(classSubjects.schoolId, schoolId),
+        eq(classSubjects.classId, classId),
+        eq(classSubjects.subjectId, subjectId),
+        eq(classSubjects.assignedTeacherId, teacherId),
+      ),
+    });
+    if (direct) return true;
+
+    // 2. Check sectionSubjectTeachers override
+    if (sectionId) {
+      const targetClassSubject = await db.query.classSubjects.findFirst({
         where: and(
           eq(classSubjects.schoolId, schoolId),
           eq(classSubjects.classId, classId),
           eq(classSubjects.subjectId, subjectId),
-          eq(classSubjects.assignedTeacherId, teacherId),
         ),
       });
-      if (direct) return true;
+
+      if (targetClassSubject) {
+        const sectionTeacher = await db.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.schoolId, schoolId),
+            eq(sectionSubjectTeachers.classSubjectId, targetClassSubject.id),
+            eq(sectionSubjectTeachers.sectionId, sectionId),
+            eq(sectionSubjectTeachers.teacherId, teacherId),
+            eq(sectionSubjectTeachers.isActive, true),
+          ),
+        });
+        if (sectionTeacher) return true;
+      }
     }
 
-    // 2. Check sectionSubjectTeachers override
-    if (sectionId) {
-      const sectionTeacher = await db.query.sectionSubjectTeachers.findFirst({
-        where: and(
-          eq(sectionSubjectTeachers.schoolId, schoolId),
-          eq(sectionSubjectTeachers.sectionId, sectionId),
-          eq(sectionSubjectTeachers.teacherId, teacherId),
-          eq(sectionSubjectTeachers.isActive, true),
-        ),
-      });
-      if (sectionTeacher) return true;
-    }
-
-    // Fallback: check if teacher is assigned to any section or subject in the school
-    const anyAssignment = await db.query.classSubjects.findFirst({
-      where: and(
-        eq(classSubjects.schoolId, schoolId),
-        eq(classSubjects.assignedTeacherId, teacherId),
-      ),
-    });
-
-    return !!anyAssignment;
+    // Fail closed: Unrelated assignments in the school do NOT grant access
+    return false;
   } catch (err) {
     console.error("[assertTeacherTeaches] Error checking teacher assignment:", err);
     return false;
