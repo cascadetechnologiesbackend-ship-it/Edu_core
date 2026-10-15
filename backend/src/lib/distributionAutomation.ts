@@ -15,6 +15,7 @@
  */
 
 import { db } from "@/db";
+import { withTenant } from "./tenant";
 import {
   examMarkDistributions,
   examComponents,
@@ -88,10 +89,11 @@ export async function generateMarkDistributions(
     requireExamPermission(actorCtx, "exam.schedule.manage");
   }
 
-  // 2. Tenant & Exam existence validation
-  const exam = await db.query.exams.findFirst({
-    where: and(eq(exams.id, examId), eq(exams.schoolId, schoolId)),
-  });
+  return await withTenant(schoolId, async (scopedDb) => {
+    // 2. Tenant & Exam existence validation
+    const exam = await scopedDb.query.exams.findFirst({
+      where: and(eq(exams.id, examId), eq(exams.schoolId, schoolId)),
+    });
 
   if (!exam) {
     return {
@@ -107,7 +109,7 @@ export async function generateMarkDistributions(
   }
 
   // 3. Determine target classes (respecting examClassScopes if configured)
-  const classScopes = await db
+  const classScopes = await scopedDb
     .select({ classId: examClassScopes.classId })
     .from(examClassScopes)
     .where(
@@ -133,7 +135,7 @@ export async function generateMarkDistributions(
     if (classIds && classIds.length > 0) {
       targetClassIds = classIds;
     } else {
-      const allActive = await db
+      const allActive = await scopedDb
         .select({ id: classes.id })
         .from(classes)
         .where(
@@ -161,7 +163,7 @@ export async function generateMarkDistributions(
   }
 
   // 4. Fetch class metadata
-  const classRecords = await db
+  const classRecords = await scopedDb
     .select({
       id: classes.id,
       displayName: classes.displayName,
@@ -178,7 +180,7 @@ export async function generateMarkDistributions(
   const classMap = new Map(classRecords.map((c) => [c.id, c]));
 
   // 5. Fetch exam components for this exam
-  const components = await db
+  const components = await scopedDb
     .select({
       id: examComponents.id,
       displayName: examComponents.displayName,
@@ -196,7 +198,7 @@ export async function generateMarkDistributions(
   components.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
   // 6. Fetch existing distributions for (schoolId, examId)
-  const existingDistributions = await db
+  const existingDistributions = await scopedDb
     .select({
       id: examMarkDistributions.id,
       classId: examMarkDistributions.classId,
@@ -220,7 +222,7 @@ export async function generateMarkDistributions(
   }
 
   // 7. Immutability guard: identify subjects/components where markEntries already exist
-  const existingMarks = await db
+  const existingMarks = await scopedDb
     .select({
       subjectId: markEntries.subjectId,
       componentId: markEntries.componentId,
@@ -248,7 +250,7 @@ export async function generateMarkDistributions(
   }
 
   // 8. Fetch class subjects & active subjects for target classes
-  const classSubjectRows = await db
+  const classSubjectRows = await scopedDb
     .select({
       classSubjectId: classSubjects.id,
       classId: classSubjects.classId,
@@ -278,7 +280,7 @@ export async function generateMarkDistributions(
 
   const activeElectiveEnrollments = new Set<string>();
   if (electiveClassSubjectIds.length > 0) {
-    const enrollments = await db
+    const enrollments = await scopedDb
       .select({ classSubjectId: studentSubjectEnrollments.classSubjectId })
       .from(studentSubjectEnrollments)
       .where(
@@ -429,7 +431,7 @@ export async function generateMarkDistributions(
       }));
 
     if (toInsert.length > 0) {
-      await db.insert(examMarkDistributions).values(toInsert);
+      await scopedDb.insert(examMarkDistributions).values(toInsert);
     }
   }
 
@@ -445,4 +447,5 @@ export async function generateMarkDistributions(
       ? `Preview generated: ${createdCount} to create, ${preservedCount} preserved, ${protectedCount} protected.`
       : `Successfully generated ${createdCount} mark distribution rows (${preservedCount} preserved, ${protectedCount} protected).`,
   };
+  });
 }

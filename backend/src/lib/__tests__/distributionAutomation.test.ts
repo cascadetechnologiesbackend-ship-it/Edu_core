@@ -4,6 +4,7 @@ import {
   generateMarkDistributions,
 } from "../distributionAutomation";
 import { ISOLATION_IDS, seedIsolationSchools } from "../isolationFixtures";
+import { withTenant } from "../tenant";
 import { db } from "@/db";
 import {
   exams,
@@ -18,7 +19,7 @@ import {
   studentSubjectEnrollments,
   students,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 const dbUrl =
   process.env.MIGRATION_DATABASE_URL ||
@@ -29,7 +30,8 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
   let pool: Pool;
   const schoolA = ISOLATION_IDS.schoolA.id;
   const schoolB = ISOLATION_IDS.schoolB.id;
-  const classAId = ISOLATION_IDS.schoolA.classId;
+  let classAId: string;
+  let distStudentId: string;
   const academicYearAId = ISOLATION_IDS.schoolA.academicYearId;
 
   let testExamId: string;
@@ -48,129 +50,237 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
 
     const runId = Math.random().toString(36).substring(2, 7);
 
-    // 1. Create a test exam for School A
-    const [exam] = await db
-      .insert(exams)
-      .values({
-        schoolId: schoolA,
-        academicYearId: academicYearAId,
-        examTypeId: ISOLATION_IDS.schoolA.examTypeId,
-        name: `S11 Layer 6 Distribution Exam ${runId}`,
-        startDate: new Date("2026-12-01"),
-        endDate: new Date("2026-12-15"),
-      })
-      .returning();
-    testExamId = exam!.id;
+    await withTenant(schoolA, async (tx) => {
+      // 0. Clean up any leftover CLASS_9 for School A
+      const oldClasses = await tx
+        .select()
+        .from(classes)
+        .where(
+          and(
+            eq(classes.schoolId, schoolA),
+            eq(classes.gradeLevel, "CLASS_9"),
+          ),
+        );
+      for (const oc of oldClasses) {
+        const oldClassSubjects = await tx
+          .select({ id: classSubjects.id })
+          .from(classSubjects)
+          .where(eq(classSubjects.classId, oc.id));
+        const csIds = oldClassSubjects.map((cs) => cs.id);
+        if (csIds.length > 0) {
+          await tx
+            .delete(studentSubjectEnrollments)
+            .where(inArray(studentSubjectEnrollments.classSubjectId, csIds));
+        }
+        const oldStudents = await tx
+          .select({ id: students.id })
+          .from(students)
+          .where(eq(students.currentClassId, oc.id));
+        for (const os of oldStudents) {
+          await tx
+            .delete(studentSubjectEnrollments)
+            .where(eq(studentSubjectEnrollments.studentId, os.id));
+          await tx.delete(markEntries).where(eq(markEntries.studentId, os.id));
+          await tx.delete(students).where(eq(students.id, os.id));
+        }
+        await tx.delete(classSubjects).where(eq(classSubjects.classId, oc.id));
+        await tx.delete(examMarkDistributions).where(eq(examMarkDistributions.classId, oc.id));
+        await tx.delete(examClassScopes).where(eq(examClassScopes.classId, oc.id));
+        await tx.delete(classes).where(eq(classes.id, oc.id));
+      }
 
-    // Attach exam class scope
-    await db.insert(examClassScopes).values({
-      schoolId: schoolA,
-      examId: testExamId,
-      classId: classAId,
-    });
+      // Create an isolated class for this test suite
+      const [testClass] = await tx
+        .insert(classes)
+        .values({
+          schoolId: schoolA,
+          academicYearId: academicYearAId,
+          gradeLevel: "CLASS_9",
+          displayName: `DistClass_${runId}`,
+          sortOrder: 1,
+        })
+        .returning();
+      classAId = testClass!.id;
 
-    // 2. Create Mandatory Subject (max: 80, pass: 27)
-    const [subMand] = await db
-      .insert(subjects)
-      .values({
-        schoolId: schoolA,
-        name: `Mandatory Science ${runId}`,
-        code: `MSCI_${runId}`,
-        subjectType: "THEORY",
-        maxMarks: 80,
-        passingMarks: 27,
-      })
-      .returning();
-    testMandatorySubjectId = subMand!.id;
+      // Create an isolated student for this test suite
+      const [distStudent] = await tx
+        .insert(students)
+        .values({
+          schoolId: schoolA,
+          academicYearId: academicYearAId,
+          admissionNumber: `DIST_${runId}`,
+          firstNameEncrypted: "enc_dist",
+          lastNameEncrypted: "enc_student",
+          dateOfBirth: new Date("2010-01-01"),
+          gender: "MALE",
+          category: "GENERAL",
+          admissionDate: new Date("2026-04-01"),
+          currentClassId: classAId,
+          primaryParentUserId: null,
+          isActive: false,
+        })
+        .returning();
+      distStudentId = distStudent!.id;
 
-    const [csMand] = await db
-      .insert(classSubjects)
-      .values({
+      // 1. Create a test exam for School A
+      const [exam] = await tx
+        .insert(exams)
+        .values({
+          schoolId: schoolA,
+          academicYearId: academicYearAId,
+          examTypeId: ISOLATION_IDS.schoolA.examTypeId,
+          name: `S11 Layer 6 Distribution Exam ${runId}`,
+          startDate: new Date("2026-12-01"),
+          endDate: new Date("2026-12-15"),
+        })
+        .returning();
+      testExamId = exam!.id;
+
+      // Attach exam class scope
+      await tx.insert(examClassScopes).values({
         schoolId: schoolA,
+        examId: testExamId,
         classId: classAId,
-        subjectId: testMandatorySubjectId,
-        isElective: false,
-      })
-      .returning();
-    mandatoryClassSubjectId = csMand!.id;
+      });
 
-    // 3. Create Unenrolled Elective Subject (0 students enrolled)
-    const [subUnenrolled] = await db
-      .insert(subjects)
-      .values({
+      // 2. Create Mandatory Subject (max: 80, pass: 27)
+      const [subMand] = await tx
+        .insert(subjects)
+        .values({
+          schoolId: schoolA,
+          name: `Mandatory Science ${runId}`,
+          code: `MSCI_${runId}`,
+          subjectType: "THEORY",
+          maxMarks: 80,
+          passingMarks: 27,
+        })
+        .returning();
+      testMandatorySubjectId = subMand!.id;
+
+      const [csMand] = await tx
+        .insert(classSubjects)
+        .values({
+          schoolId: schoolA,
+          classId: classAId,
+          subjectId: testMandatorySubjectId,
+          isElective: false,
+        })
+        .returning();
+      mandatoryClassSubjectId = csMand!.id;
+
+      // 3. Create Unenrolled Elective Subject (0 students enrolled)
+      const [subUnenrolled] = await tx
+        .insert(subjects)
+        .values({
+          schoolId: schoolA,
+          name: `German Language ${runId}`,
+          code: `GER_${runId}`,
+          subjectType: "THEORY",
+          maxMarks: 100,
+          passingMarks: 33,
+        })
+        .returning();
+      testElectiveSubjectId = subUnenrolled!.id;
+
+      const [csUnenrolled] = await tx
+        .insert(classSubjects)
+        .values({
+          schoolId: schoolA,
+          classId: classAId,
+          subjectId: testElectiveSubjectId,
+          isElective: true,
+        })
+        .returning();
+      unEnrolledClassSubjectId = csUnenrolled!.id;
+
+      // 4. Create Enrolled Elective Subject (>= 1 student actively enrolled)
+      const [subEnrolled] = await tx
+        .insert(subjects)
+        .values({
+          schoolId: schoolA,
+          name: `Computer Science ${runId}`,
+          code: `CS_${runId}`,
+          subjectType: "PRACTICAL",
+          maxMarks: 100,
+          passingMarks: 33,
+        })
+        .returning();
+      testEnrolledElectiveSubjectId = subEnrolled!.id;
+
+      const [csEnrolled] = await tx
+        .insert(classSubjects)
+        .values({
+          schoolId: schoolA,
+          classId: classAId,
+          subjectId: testEnrolledElectiveSubjectId,
+          isElective: true,
+        })
+        .returning();
+      enrolledClassSubjectId = csEnrolled!.id;
+
+      // Enroll student in enrolled elective
+      await tx.insert(studentSubjectEnrollments).values({
         schoolId: schoolA,
-        name: `German Language ${runId}`,
-        code: `GER_${runId}`,
-        subjectType: "THEORY",
-        maxMarks: 100,
-        passingMarks: 33,
-      })
-      .returning();
-    testElectiveSubjectId = subUnenrolled!.id;
-
-    const [csUnenrolled] = await db
-      .insert(classSubjects)
-      .values({
-        schoolId: schoolA,
-        classId: classAId,
-        subjectId: testElectiveSubjectId,
-        isElective: true,
-      })
-      .returning();
-    unEnrolledClassSubjectId = csUnenrolled!.id;
-
-    // 4. Create Enrolled Elective Subject (>= 1 student actively enrolled)
-    const [subEnrolled] = await db
-      .insert(subjects)
-      .values({
-        schoolId: schoolA,
-        name: `Computer Science ${runId}`,
-        code: `CS_${runId}`,
-        subjectType: "PRACTICAL",
-        maxMarks: 100,
-        passingMarks: 33,
-      })
-      .returning();
-    testEnrolledElectiveSubjectId = subEnrolled!.id;
-
-    const [csEnrolled] = await db
-      .insert(classSubjects)
-      .values({
-        schoolId: schoolA,
-        classId: classAId,
-        subjectId: testEnrolledElectiveSubjectId,
-        isElective: true,
-      })
-      .returning();
-    enrolledClassSubjectId = csEnrolled!.id;
-
-    // Enroll student in enrolled elective
-    await db.insert(studentSubjectEnrollments).values({
-      schoolId: schoolA,
-      studentId: ISOLATION_IDS.schoolA.studentId,
-      classSubjectId: enrolledClassSubjectId,
-      isElectiveTaken: true,
-      enrollmentStatus: "ACTIVE",
+        studentId: distStudentId,
+        classSubjectId: enrolledClassSubjectId,
+        isElectiveTaken: true,
+        enrollmentStatus: "ACTIVE",
+      });
     });
   });
 
   afterAll(async () => {
     // Cleanup created distributions and exam
-    if (testExamId) {
-      await db
-        .delete(examMarkDistributions)
-        .where(eq(examMarkDistributions.examId, testExamId));
-      await db
-        .delete(markEntries)
-        .where(eq(markEntries.examId, testExamId));
-      await db
-        .delete(examComponents)
-        .where(eq(examComponents.examId, testExamId));
-      await db
-        .delete(examClassScopes)
-        .where(eq(examClassScopes.examId, testExamId));
-      await db.delete(exams).where(eq(exams.id, testExamId));
-    }
+    await withTenant(schoolA, async (tx) => {
+      if (testExamId) {
+        await tx
+          .delete(examMarkDistributions)
+          .where(eq(examMarkDistributions.examId, testExamId));
+        await tx
+          .delete(markEntries)
+          .where(eq(markEntries.examId, testExamId));
+        await tx
+          .delete(examComponents)
+          .where(eq(examComponents.examId, testExamId));
+        await tx
+          .delete(examClassScopes)
+          .where(eq(examClassScopes.examId, testExamId));
+        await tx.delete(exams).where(eq(exams.id, testExamId));
+      }
+      if (distStudentId) {
+        await tx
+          .delete(studentSubjectEnrollments)
+          .where(eq(studentSubjectEnrollments.studentId, distStudentId));
+        await tx
+          .delete(students)
+          .where(eq(students.id, distStudentId));
+      }
+      if (classAId) {
+        const oldClassSubjects = await tx
+          .select({ id: classSubjects.id })
+          .from(classSubjects)
+          .where(eq(classSubjects.classId, classAId));
+        const csIds = oldClassSubjects.map((cs) => cs.id);
+        if (csIds.length > 0) {
+          await tx
+            .delete(studentSubjectEnrollments)
+            .where(inArray(studentSubjectEnrollments.classSubjectId, csIds));
+        }
+        await tx.delete(classSubjects).where(eq(classSubjects.classId, classAId));
+        await tx.delete(examMarkDistributions).where(eq(examMarkDistributions.classId, classAId));
+        await tx.delete(examClassScopes).where(eq(examClassScopes.classId, classAId));
+        await tx.delete(classes).where(eq(classes.id, classAId));
+      }
+      if (testMandatorySubjectId) {
+        await tx.delete(subjects).where(eq(subjects.id, testMandatorySubjectId));
+      }
+      if (testElectiveSubjectId) {
+        await tx.delete(subjects).where(eq(subjects.id, testElectiveSubjectId));
+      }
+      if (testEnrolledElectiveSubjectId) {
+        await tx.delete(subjects).where(eq(subjects.id, testEnrolledElectiveSubjectId));
+      }
+    });
     await pool.end();
   });
 
@@ -186,10 +296,13 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
     expect(preview.createdCount).toBeGreaterThanOrEqual(2); // Mandatory + Enrolled elective
 
     // Verify DB still has 0 rows for this exam
-    const existing = await db
-      .select()
-      .from(examMarkDistributions)
-      .where(eq(examMarkDistributions.examId, testExamId));
+    let existing: any[] = [];
+    await withTenant(schoolA, async (tx) => {
+      existing = await tx
+        .select()
+        .from(examMarkDistributions)
+        .where(eq(examMarkDistributions.examId, testExamId));
+    });
     expect(existing.length).toBe(0);
   });
 
@@ -240,10 +353,13 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
     expect(result.success).toBe(true);
     expect(result.createdCount).toBeGreaterThanOrEqual(2);
 
-    const dbRows = await db
-      .select()
-      .from(examMarkDistributions)
-      .where(eq(examMarkDistributions.examId, testExamId));
+    let dbRows: any[] = [];
+    await withTenant(schoolA, async (tx) => {
+      dbRows = await tx
+        .select()
+        .from(examMarkDistributions)
+        .where(eq(examMarkDistributions.examId, testExamId));
+    });
 
     expect(dbRows.length).toBe(result.createdCount);
 
@@ -257,18 +373,20 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
 
   it("6.5: Ensure-semantics idempotency: Re-running generation preserves existing customized rows without alteration", async () => {
     // Customize the mandatory subject's max marks in DB to 95.00
-    await db
-      .update(examMarkDistributions)
-      .set({
-        maxMarks: "95.00",
-        passingMarks: "38.00",
-      })
-      .where(
-        and(
-          eq(examMarkDistributions.examId, testExamId),
-          eq(examMarkDistributions.subjectId, testMandatorySubjectId),
-        ),
-      );
+    await withTenant(schoolA, async (tx) => {
+      await tx
+        .update(examMarkDistributions)
+        .set({
+          maxMarks: "95.00",
+          passingMarks: "38.00",
+        })
+        .where(
+          and(
+            eq(examMarkDistributions.examId, testExamId),
+            eq(examMarkDistributions.subjectId, testMandatorySubjectId),
+          ),
+        );
+    });
 
     // Re-run generation with previewOnly = false
     const reRun = await generateMarkDistributions({
@@ -282,15 +400,18 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
     expect(reRun.preservedCount).toBeGreaterThanOrEqual(2); // Everything preserved
 
     // Verify DB still retains the custom 95.00 max marks
-    const [verifiedRow] = await db
-      .select()
-      .from(examMarkDistributions)
-      .where(
-        and(
-          eq(examMarkDistributions.examId, testExamId),
-          eq(examMarkDistributions.subjectId, testMandatorySubjectId),
-        ),
-      );
+    let verifiedRow: any;
+    await withTenant(schoolA, async (tx) => {
+      [verifiedRow] = await tx
+        .select()
+        .from(examMarkDistributions)
+        .where(
+          and(
+            eq(examMarkDistributions.examId, testExamId),
+            eq(examMarkDistributions.subjectId, testMandatorySubjectId),
+          ),
+        );
+    });
 
     expect(Number(verifiedRow?.maxMarks)).toBe(95);
     expect(Number(verifiedRow?.passingMarks)).toBe(38);
@@ -298,14 +419,16 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
 
   it("6.6: Immutability guard: Prohibits alteration or deletion when student mark entries already exist", async () => {
     // Insert a mark entry for the enrolled elective subject
-    await db.insert(markEntries).values({
-      schoolId: schoolA,
-      examId: testExamId,
-      studentId: ISOLATION_IDS.schoolA.studentId,
-      subjectId: testEnrolledElectiveSubjectId,
-      maxMarks: "100.00",
-      marksObtained: "88.00",
-      enteredById: ISOLATION_IDS.schoolA.adminUserId,
+    await withTenant(schoolA, async (tx) => {
+      await tx.insert(markEntries).values({
+        schoolId: schoolA,
+        examId: testExamId,
+        studentId: distStudentId,
+        subjectId: testEnrolledElectiveSubjectId,
+        maxMarks: "100.00",
+        marksObtained: "88.00",
+        enteredById: ISOLATION_IDS.schoolA.adminUserId,
+      });
     });
 
     // Re-evaluate proposals
@@ -329,59 +452,67 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
   it("6.7: Expands across exam components with weighted distribution", async () => {
     // Create an exam with Theory (70%) and Practical (30%) components
     const runId2 = Math.random().toString(36).substring(2, 7);
-    const [compExam] = await db
-      .insert(exams)
-      .values({
-        schoolId: schoolA,
-        academicYearId: academicYearAId,
-        examTypeId: ISOLATION_IDS.schoolA.examTypeId,
-        name: `Component Exam ${runId2}`,
-        startDate: new Date("2026-12-01"),
-        endDate: new Date("2026-12-15"),
-      })
-      .returning();
-    const compExamId = compExam!.id;
+    let compExamId: string = "";
+    let c1Id: string = "";
+    let c2Id: string = "";
 
-    await db.insert(examClassScopes).values({
-      schoolId: schoolA,
-      examId: compExamId,
-      classId: classAId,
+    await withTenant(schoolA, async (tx) => {
+      const [compExam] = await tx
+        .insert(exams)
+        .values({
+          schoolId: schoolA,
+          academicYearId: academicYearAId,
+          examTypeId: ISOLATION_IDS.schoolA.examTypeId,
+          name: `Component Exam ${runId2}`,
+          startDate: new Date("2026-12-01"),
+          endDate: new Date("2026-12-15"),
+        })
+        .returning();
+      compExamId = compExam!.id;
+
+      await tx.insert(examClassScopes).values({
+        schoolId: schoolA,
+        examId: compExamId,
+        classId: classAId,
+      });
+
+      // Attach 2 components with distinct examTypes
+      const [et2] = await tx
+        .insert(examTypes)
+        .values({
+          schoolId: schoolA,
+          name: `Practical Type ${runId2}`,
+          code: `PRAC_${runId2}`,
+          examType: "PRACTICAL",
+        })
+        .returning();
+
+      const [c1] = await tx
+        .insert(examComponents)
+        .values({
+          schoolId: schoolA,
+          examId: compExamId,
+          examTypeId: ISOLATION_IDS.schoolA.examTypeId,
+          displayName: "Theory",
+          sortOrder: 1,
+          weightPercent: "70.00",
+        })
+        .returning();
+      c1Id = c1!.id;
+
+      const [c2] = await tx
+        .insert(examComponents)
+        .values({
+          schoolId: schoolA,
+          examId: compExamId,
+          examTypeId: et2!.id,
+          displayName: "Practical",
+          sortOrder: 2,
+          weightPercent: "30.00",
+        })
+        .returning();
+      c2Id = c2!.id;
     });
-
-    // Attach 2 components with distinct examTypes
-    const [et2] = await db
-      .insert(examTypes)
-      .values({
-        schoolId: schoolA,
-        name: `Practical Type ${runId2}`,
-        code: `PRAC_${runId2}`,
-        examType: "PRACTICAL",
-      })
-      .returning();
-
-    const [c1] = await db
-      .insert(examComponents)
-      .values({
-        schoolId: schoolA,
-        examId: compExamId,
-        examTypeId: ISOLATION_IDS.schoolA.examTypeId,
-        displayName: "Theory",
-        sortOrder: 1,
-        weightPercent: "70.00",
-      })
-      .returning();
-
-    const [c2] = await db
-      .insert(examComponents)
-      .values({
-        schoolId: schoolA,
-        examId: compExamId,
-        examTypeId: et2!.id,
-        displayName: "Practical",
-        sortOrder: 2,
-        weightPercent: "30.00",
-      })
-      .returning();
 
     const compResult = await generateMarkDistributions({
       schoolId: schoolA,
@@ -393,10 +524,10 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
 
     // Filter proposals for mandatory subject (maxMarks = 80)
     const mandTheory = compResult.proposals.find(
-      (p) => p.subjectId === testMandatorySubjectId && p.componentId === c1!.id,
+      (p) => p.subjectId === testMandatorySubjectId && p.componentId === c1Id,
     );
     const mandPractical = compResult.proposals.find(
-      (p) => p.subjectId === testMandatorySubjectId && p.componentId === c2!.id,
+      (p) => p.subjectId === testMandatorySubjectId && p.componentId === c2Id,
     );
 
     expect(mandTheory).toBeDefined();
@@ -408,9 +539,11 @@ describe("S11 Layer 6: Mark Distribution Automation Engine", () => {
     expect(mandPractical?.passingMarks).toBe(7.92); // 33% of 24
 
     // Cleanup component exam
-    await db.delete(examComponents).where(eq(examComponents.examId, compExamId));
-    await db.delete(examClassScopes).where(eq(examClassScopes.examId, compExamId));
-    await db.delete(exams).where(eq(exams.id, compExamId));
+    await withTenant(schoolA, async (tx) => {
+      await tx.delete(examComponents).where(eq(examComponents.examId, compExamId));
+      await tx.delete(examClassScopes).where(eq(examClassScopes.examId, compExamId));
+      await tx.delete(exams).where(eq(exams.id, compExamId));
+    });
   });
 
   it("6.8: Tenant isolation probe: School A distribution generation never affects School B", async () => {

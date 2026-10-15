@@ -39,7 +39,7 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
   let testExamAId: string;
   let testSetupAId: string;
   let testScheduleAId: string;
-  let parentAUserId: string;
+  const parentAUserId = ISOLATION_IDS.schoolA.parentUserId;
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl });
@@ -49,24 +49,7 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
 
     // Run fixture setup inside tenant context to satisfy fail-closed RLS
     await withTenant(schoolA, async (tx) => {
-      // 1. Create a parent user in School A
-      const [pUser] = await tx
-        .insert(users)
-        .values({
-          schoolId: schoolA,
-          email: `parent_notif_${runId}@isolation.internal`,
-          isActive: true,
-        })
-        .returning();
-      parentAUserId = pUser!.id;
-
-      // 2. Link student in School A to parentAUserId
-      await tx
-        .update(students)
-        .set({ primaryParentUserId: parentAUserId })
-        .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
-
-      // 3. Create test exam for School A
+      // 1. Create test exam for School A
       const [exam] = await tx
         .insert(exams)
         .values({
@@ -80,7 +63,7 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
         .returning();
       testExamAId = exam!.id;
 
-      // 4. Create a test schedule
+      // 2. Create a test schedule
       const [sched] = await tx
         .insert(examSchedules)
         .values({
@@ -97,7 +80,7 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
         .returning();
       testScheduleAId = sched!.id;
 
-      // 5. Create a test setup for School A
+      // 3. Create a test setup for School A
       const [setup] = await tx
         .insert(reportCardSetups)
         .values({
@@ -113,12 +96,15 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
   });
 
   afterAll(async () => {
-    // Restore primaryParentUserId to original fixture within tenant context
     await withTenant(schoolA, async (tx) => {
-      await tx
-        .update(students)
-        .set({ primaryParentUserId: ISOLATION_IDS.schoolA.parentUserId })
-        .where(eq(students.id, ISOLATION_IDS.schoolA.studentId));
+      if (testSetupAId) {
+        await tx.delete(resultSettings).where(eq(resultSettings.setupId, testSetupAId));
+        await tx.delete(reportCardSetups).where(eq(reportCardSetups.id, testSetupAId));
+      }
+      if (testExamAId) {
+        await tx.delete(examSchedules).where(eq(examSchedules.examId, testExamAId));
+        await tx.delete(exams).where(eq(exams.id, testExamAId));
+      }
     });
     await pool.end();
   });
@@ -163,6 +149,9 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
   it("3.2: notifyResultReleased triggers SMS fallback only when smsNotificationsEnabled=true and parent has no push sub", async () => {
     // 1. Enable SMS on this setup in result_settings under tenant context
     await withTenant(schoolA, async (tx) => {
+      await tx
+        .delete(userPushSubscriptions)
+        .where(eq(userPushSubscriptions.userId, parentAUserId));
       await tx
         .insert(resultSettings)
         .values({

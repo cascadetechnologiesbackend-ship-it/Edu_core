@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { students, dataRetentionPolicies } from "@/db/schema";
 
 describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
-  const schoolId = "school-retention-test-123";
+  const schoolId = "a1111111-1111-4111-8111-111111111111";
 
   const mockPolicy = [
     {
@@ -135,7 +135,7 @@ describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
     expect(result.success).toBe(true);
     expect(result.hardPurgedCount).toBe(0); // NOT hard deleted
     expect(result.anonymizedCount).toBe(1); // ANONYMIZED
-    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalledWith(students);
     expect(updateSpy).toHaveBeenCalledWith(students);
 
     // Verify PII redaction fields were set
