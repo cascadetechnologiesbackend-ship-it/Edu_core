@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { feeInvoices, students, feePayments, auditLogs } from "@/db/schema";
-import { eq, desc, isNotNull } from "drizzle-orm";
+import { feeInvoices, students, feePayments, auditLogs, notices, classes, sections } from "@/db/schema";
+import { eq, desc, isNotNull, inArray, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import { getClientRequestContext } from "@/lib/requestContext";
@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   Award,
   Wallet,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react";
 
 export default async function ParentFeesPage({
@@ -63,6 +65,43 @@ export default async function ParentFeesPage({
       </div>
     );
   }
+
+  // S13 Layer 8: Resolve student class/section and active welcome notices
+  const classIds = Array.from(new Set(myStudents.map((s) => s.currentClassId).filter(Boolean))) as string[];
+  const sectionIds = Array.from(new Set(myStudents.map((s) => s.currentSectionId).filter(Boolean))) as string[];
+
+  const [studentClasses, studentSections, parentNotices] = await Promise.all([
+    classIds.length > 0
+      ? db.query.classes.findMany({
+          where: inArray(classes.id, classIds),
+        })
+      : Promise.resolve([]),
+    sectionIds.length > 0
+      ? db.query.sections.findMany({
+          where: inArray(sections.id, sectionIds),
+        })
+      : Promise.resolve([]),
+    myStudents[0]?.schoolId
+      ? db.query.notices.findMany({
+          where: and(
+            eq(notices.schoolId, myStudents[0].schoolId),
+            eq(notices.isPublished, true),
+            eq(notices.audienceType, "PARENTS"),
+          ),
+          orderBy: [desc(notices.publishedAt)],
+          limit: 5,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const welcomeNotice = parentNotices.find((n) => {
+    const filter = n.audienceFilter as any;
+    return (
+      filter?.targetParentUserId === parentUserId ||
+      myStudents.some((s) => s.id === filter?.studentId) ||
+      !filter?.targetParentUserId
+    );
+  });
 
   // Fetch dues and history
   const allInvoices: any[] = [];
@@ -183,6 +222,80 @@ export default async function ParentFeesPage({
           </div>
         </div>
       )}
+
+      {/* ─── Enrolled Children & Welcome Notice (S13 Layer 8) ─────────────── */}
+      <div className="space-y-4">
+        {welcomeNotice && (
+          <div className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-4 sm:p-5 shadow-lg flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wide">
+                  Welcome Notice
+                </span>
+                <span className="text-xs text-slate-400">
+                  {welcomeNotice.publishedAt ? new Date(welcomeNotice.publishedAt).toLocaleDateString() : "Recent"}
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">
+                {welcomeNotice.title}
+              </h3>
+              <div
+                className="text-xs text-slate-300 prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: welcomeNotice.content }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {myStudents.map((student) => {
+            const studentName = `${decryptData(student.firstNameEncrypted) || "Child"} ${decryptData(student.lastNameEncrypted) || ""}`.trim();
+            const cls = studentClasses.find((c) => c.id === student.currentClassId);
+            const sec = studentSections.find((s) => s.id === student.currentSectionId);
+            const studentPending = pendingInvoices.filter((i) => i.student.id === student.id);
+            const studentDues = studentPending.reduce((acc, i) => acc + parseFloat(i.balanceAmount || "0"), 0);
+
+            return (
+              <div
+                key={student.id}
+                className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 sm:p-5 shadow-md flex flex-col justify-between space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-indigo-400 font-bold shrink-0">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-white flex items-center gap-2">
+                        <span>{studentName}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          ✓ Enrolled
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        Adm No: <strong className="text-slate-300">{student.admissionNumber}</strong>
+                        {cls && (
+                          <span> • Class {cls.displayName}{sec ? ` - ${sec.name}` : ""}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                  <span className="text-slate-400">Assigned Invoices Dues:</span>
+                  <span className={`font-bold ${studentDues > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                    {studentDues > 0 ? `₹${studentDues.toFixed(2)}` : "Fully Cleared"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ─── 2. Outstanding Invoices & Dues ─────────────────────────────────── */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4">

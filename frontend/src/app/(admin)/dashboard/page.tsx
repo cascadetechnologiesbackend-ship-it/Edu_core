@@ -433,6 +433,7 @@ export default async function DashboardPage() {
     feeCollectedSubtext: string;
     outstandingDuesStr: string;
     outstandingSubtext: string;
+    newAdmissionsToday: number;
     pendingTasks: Array<{
       label: string;
       href: string;
@@ -458,6 +459,7 @@ export default async function DashboardPage() {
         feeCollectedSubtext: "0 transactions today",
         outstandingDuesStr: "₹0",
         outstandingSubtext: "No outstanding dues",
+        newAdmissionsToday: 0,
         pendingTasks: [],
         examLifecycle: {
           pendingMarksLocks: 0,
@@ -495,6 +497,7 @@ export default async function DashboardPage() {
         SELECT 
           (SELECT count(*) FROM students WHERE school_id = ${schoolId})::int as total_students,
           (SELECT count(*) FROM admission_applications WHERE school_id = ${schoolId} AND status IN ('APPLIED', 'SCREENING'))::int as pending_admissions,
+          (SELECT count(*) FROM usage_events WHERE school_id = ${schoolId} AND event_type = 'STUDENT_ENROLLED' AND created_at >= ${startOfDay} AND created_at <= ${endOfDay})::int as new_admissions_today,
           (SELECT count(*) FROM leave_requests WHERE school_id = ${schoolId} AND status = 'PENDING')::int as pending_leaves,
           (SELECT count(*) FROM rights_requests WHERE school_id = ${schoolId} AND status IN ('SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'))::int as pending_rights,
           (SELECT count(*) FROM exam_marks_locks WHERE school_id = ${schoolId} AND status = 'SUBMITTED')::int as pending_marks_locks,
@@ -552,6 +555,7 @@ export default async function DashboardPage() {
     const countsRow = ((consolidatedCountsRaw as any)?.rows && (consolidatedCountsRaw as any).rows[0]) || (consolidatedCountsRaw as any)[0] || {};
     const totalStudents = Number(countsRow.total_students || 0);
     const pendingAdmissionsCount = Number(countsRow.pending_admissions || 0);
+    const newAdmissionsToday = Number(countsRow.new_admissions_today || 0);
     const pendingLeavesCount = Number(countsRow.pending_leaves || 0);
     const pendingRightsCount = Number(countsRow.pending_rights || 0);
     const pendingMarksLocksCount = Number(countsRow.pending_marks_locks || 0);
@@ -609,6 +613,14 @@ export default async function DashboardPage() {
       urgency: "warning" | "danger" | "info";
     }> = [];
 
+    if (newAdmissionsToday > 0) {
+      pendingTasksList.push({
+        label: `${newAdmissionsToday} new student admission${newAdmissionsToday === 1 ? "" : "s"} enrolled today`,
+        href: "/students",
+        urgency: "info",
+      });
+    }
+
     if (pendingMarksLocksCount > 0) {
       pendingTasksList.push({
         label: `${pendingMarksLocksCount} class-subject marks submission${pendingMarksLocksCount === 1 ? "" : "s"} awaiting final lock`,
@@ -658,6 +670,7 @@ export default async function DashboardPage() {
       feeCollectedSubtext,
       outstandingDuesStr,
       outstandingSubtext,
+      newAdmissionsToday,
       pendingTasks: pendingTasksList,
       examLifecycle: {
         pendingMarksLocks: pendingMarksLocksCount,
@@ -760,6 +773,34 @@ export default async function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* New Admissions Enrolled Today Card (S13 Layer 8) */}
+      {summary.newAdmissionsToday > 0 && (
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/20 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-extrabold text-base shrink-0">
+              +{summary.newAdmissionsToday}
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>New Admissions Enrolled Today</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200">
+                  Lifecycle Active
+                </span>
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-slate-400 mt-0.5">
+                {summary.newAdmissionsToday} student{summary.newAdmissionsToday === 1 ? "" : "s"} admitted and provisioned with mandatory subject enrollments, fee structures, and parent portal access.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/students"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition whitespace-nowrap self-stretch sm:self-auto text-center"
+          >
+            View in Directory →
+          </a>
+        </div>
+      )}
 
       {/* School Profile Completeness Alert Card */}
       {schoolCompleteness && schoolCompleteness.percent < 90 && (

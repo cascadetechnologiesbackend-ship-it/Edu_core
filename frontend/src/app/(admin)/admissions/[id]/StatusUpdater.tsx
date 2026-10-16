@@ -4,6 +4,12 @@ import { useState } from "react";
 import { updateApplicationStatus } from "./actions";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ADMISSION_STATUSES,
+  LEGAL_ADMISSION_TRANSITIONS,
+  AdmissionStatus,
+  isAdmissionStatus,
+} from "@schoolmitra/validators";
 
 interface Section {
   id: string;
@@ -33,13 +39,14 @@ export function StatusUpdater({
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const router = useRouter();
 
-  const statuses = [
-    "APPLIED",
-    "SCREENING",
-    "OFFER_LETTER",
-    "ENROLLED",
-    "REJECTED",
-  ];
+  const isTerminal =
+    currentStatus === "ENROLLED" ||
+    currentStatus === "REJECTED" ||
+    currentStatus === "WITHDRAWN";
+
+  const legalTransitions: readonly AdmissionStatus[] = isAdmissionStatus(currentStatus)
+    ? LEGAL_ADMISSION_TRANSITIONS[currentStatus]
+    : [];
 
   const currentClassObj = availableClasses.find(
     (c) => c.id === selectedClassId,
@@ -111,6 +118,18 @@ export function StatusUpdater({
             View Student 360 →
           </Link>
         </div>
+      ) : currentStatus === "REJECTED" ? (
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+            ✕ REJECTED (Terminal)
+          </span>
+        </div>
+      ) : currentStatus === "WITHDRAWN" ? (
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+            ⊘ WITHDRAWN (Terminal)
+          </span>
+        </div>
       ) : (
         <>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -119,14 +138,20 @@ export function StatusUpdater({
           <select
             defaultValue={currentStatus}
             onChange={handleStatusChange}
-            disabled={loading || currentStatus === "ENROLLED"}
+            disabled={loading || isTerminal || legalTransitions.length === 0}
             className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           >
-            {statuses.map((s) => (
-              <option key={s} value={s}>
-                {s.replace("_", " ")}
-              </option>
-            ))}
+            <option value={currentStatus} disabled>
+              {currentStatus.replace("_", " ")} (Current)
+            </option>
+            {ADMISSION_STATUSES.filter((s) => s !== currentStatus).map((s) => {
+              const allowed = legalTransitions.includes(s);
+              return (
+                <option key={s} value={s} disabled={!allowed}>
+                  {s.replace("_", " ")} {!allowed ? "(Not Allowed)" : ""}
+                </option>
+              );
+            })}
           </select>
           {loading && (
             <span className="text-sm text-blue-500">Updating...</span>
