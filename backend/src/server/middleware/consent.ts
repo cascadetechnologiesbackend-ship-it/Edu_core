@@ -18,6 +18,8 @@ import { ConsentRequiredError } from "@schoolmitra/dpdp";
  *
  * The studentId MUST be in the input (extracted from context or input).
  */
+import { withPlatformContext, withTenant } from "../../lib/tenant";
+
 export function requireConsent(purposeId: ConsentPurposeId) {
   return async function consentMiddleware({
     next,
@@ -27,151 +29,153 @@ export function requireConsent(purposeId: ConsentPurposeId) {
     next: () => Promise<unknown>;
     rawInput: unknown;
   }) {
-    // Extract studentId from input (supports both direct and nested)
     const studentId = extractStudentId(rawInput);
-
     if (!studentId) {
-      // No student involved — skip consent check (e.g., school-level operations)
       return next();
     }
 
-    // Check active consent record
-    const consentRecord = await db.query.consentRecords.findFirst({
-      where: and(
-        eq(consentRecords.studentId, studentId),
-        eq(consentRecords.purposeId, purposeId),
-        eq(consentRecords.granted, true),
-        isNull(consentRecords.withdrawnAt),
-      ),
-    });
-
-    if (!consentRecord) {
-      const activeConsent = await db.query.consentRecords.findFirst({
-        where: and(
-          eq(consentRecords.studentId, studentId),
-          eq(consentRecords.granted, true),
-          isNull(consentRecords.withdrawnAt),
-        ),
-      });
-
-      if (
-        activeConsent &&
-        (purposeId === "attendance" ||
-          purposeId === "academic_records" ||
-          purposeId === "admission_data")
-      ) {
-        await db
-          .insert(consentRecords)
-          .values({
-            schoolId: activeConsent.schoolId,
-            studentId: studentId,
-            parentUserId: activeConsent.parentUserId,
-            purposeId: purposeId,
-            granted: true,
-            method: activeConsent.method,
-            privacyNoticeVersion: activeConsent.privacyNoticeVersion,
-            ipAddress: activeConsent.ipAddress,
-            userAgent: activeConsent.userAgent,
-          })
-          .catch(() => {});
-        return next();
+    try {
+      await assertConsent(studentId, purposeId);
+      return next();
+    } catch (err) {
+      if (err instanceof ConsentRequiredError) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: err.message,
+          cause: err,
+        });
       }
-
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: new ConsentRequiredError(studentId, purposeId).message,
-        cause: new ConsentRequiredError(studentId, purposeId),
-      });
+      throw err;
     }
-
-    return next();
   };
 }
 
 /**
  * Assert consent imperatively — for use in server actions and service functions.
  * Throws ConsentRequiredError if consent is absent or withdrawn.
+ *
+ * Implements S13 Layer 4 Reconciliation Rule:
+ * 1. Queries the most recent record for (studentId, purposeId) ordered by grantedAt desc, createdAt desc.
+ * 2. If a record exists, its status is authoritative: granted === true && !withdrawnAt passes; else throws.
+ * 3. If no record exists for purposeId:
+ *    - For statutory education functions (academic_records, admission_data, attendance),
+ *      if the student has active statutory attestation, auto-provisions and passes.
+ *    - For all optional purposes (transport, health_records, communication, etc.),
+ *      consent is deferred and throws ConsentRequiredError until parent opts in.
  */
 export async function assertConsent(
   studentId: string,
   purposeId: ConsentPurposeId,
+  txOrDb?: any,
 ): Promise<void> {
-  const consentRecord = await db.query.consentRecords.findFirst({
+  if (txOrDb) {
+    return await executeAssertConsent(txOrDb, studentId, purposeId);
+  }
+  return await withPlatformContext(async (tx) => {
+    return await executeAssertConsent(tx, studentId, purposeId);
+  });
+}
+
+async function executeAssertConsent(
+  executor: any,
+  studentId: string,
+  purposeId: ConsentPurposeId,
+): Promise<void> {
+  const latestRecord = await executor.query.consentRecords.findFirst({
     where: and(
       eq(consentRecords.studentId, studentId),
       eq(consentRecords.purposeId, purposeId),
+    ),
+    orderBy: (t: any, { desc }: any) => [desc(t.grantedAt), desc(t.createdAt)],
+  });
+
+  if (latestRecord) {
+    if (latestRecord.granted && !latestRecord.withdrawnAt) {
+      return;
+    }
+    throw new ConsentRequiredError(studentId, purposeId);
+  }
+
+  // Statutory education fallback for active enrolled students
+  const activeStatutory = await executor.query.consentRecords.findFirst({
+    where: and(
+      eq(consentRecords.studentId, studentId),
       eq(consentRecords.granted, true),
       isNull(consentRecords.withdrawnAt),
     ),
   });
 
-  if (!consentRecord) {
-    const activeConsent = await db.query.consentRecords.findFirst({
-      where: and(
-        eq(consentRecords.studentId, studentId),
-        eq(consentRecords.granted, true),
-        isNull(consentRecords.withdrawnAt),
-      ),
-    });
-
-    if (
-      activeConsent &&
-      (purposeId === "attendance" ||
-        purposeId === "academic_records" ||
-        purposeId === "admission_data")
-    ) {
-      await db
+  if (
+    activeStatutory &&
+    (purposeId === "academic_records" ||
+      purposeId === "admission_data" ||
+      purposeId === "attendance")
+  ) {
+    await withTenant(activeStatutory.schoolId, async (tenantTx) => {
+      await tenantTx
         .insert(consentRecords)
         .values({
-          schoolId: activeConsent.schoolId,
+          schoolId: activeStatutory.schoolId,
           studentId: studentId,
-          parentUserId: activeConsent.parentUserId,
+          parentUserId: activeStatutory.parentUserId,
           purposeId: purposeId,
           granted: true,
-          method: activeConsent.method,
-          privacyNoticeVersion: activeConsent.privacyNoticeVersion,
-          ipAddress: activeConsent.ipAddress,
-          userAgent: activeConsent.userAgent,
+          method: activeStatutory.method,
+          privacyNoticeVersion: activeStatutory.privacyNoticeVersion,
+          ipAddress: activeStatutory.ipAddress,
+          userAgent: activeStatutory.userAgent,
         })
         .catch(() => {});
-      return;
-    }
-
-    throw new ConsentRequiredError(studentId, purposeId);
+    });
+    return;
   }
+
+  throw new ConsentRequiredError(studentId, purposeId);
 }
 
 /**
  * Check multiple consents at once — returns a map of purpose → granted.
+ * Implements S13 reconciliation: latest record per purpose wins.
  */
 export async function getConsentStatus(
   studentId: string,
+  txOrDb?: any,
 ): Promise<Record<ConsentPurposeId, boolean>> {
-  const records = await db.query.consentRecords.findMany({
-    where: and(
-      eq(consentRecords.studentId, studentId),
-      eq(consentRecords.granted, true),
-      isNull(consentRecords.withdrawnAt),
-    ),
+  if (txOrDb) {
+    return await executeGetConsentStatus(txOrDb, studentId);
+  }
+  return await withPlatformContext(async (tx) => {
+    return await executeGetConsentStatus(tx, studentId);
+  });
+}
+
+async function executeGetConsentStatus(
+  executor: any,
+  studentId: string,
+): Promise<Record<ConsentPurposeId, boolean>> {
+  const records = await executor.query.consentRecords.findMany({
+    where: eq(consentRecords.studentId, studentId),
+    orderBy: (t: any, { asc }: any) => [asc(t.grantedAt), asc(t.createdAt)],
   });
 
-  const grantedPurposes = new Set(
-    records.map((r) => r.purposeId as ConsentPurposeId),
-  );
+  const statusMap = new Map<string, boolean>();
+  for (const r of records) {
+    statusMap.set(r.purposeId, Boolean(r.granted && !r.withdrawnAt));
+  }
 
   return {
-    admission_data: grantedPurposes.has("admission_data"),
-    academic_records: grantedPurposes.has("academic_records"),
-    attendance: grantedPurposes.has("attendance"),
-    health_records: grantedPurposes.has("health_records"),
-    photos_videos: grantedPurposes.has("photos_videos"),
-    transport: grantedPurposes.has("transport"),
-    communication: grantedPurposes.has("communication"),
-    biometric: grantedPurposes.has("biometric"),
-    third_party_apps: grantedPurposes.has("third_party_apps"),
-    cctv: grantedPurposes.has("cctv"),
-    published_results: grantedPurposes.has("published_results"),
-    alumni_data: grantedPurposes.has("alumni_data"),
+    admission_data: statusMap.get("admission_data") ?? false,
+    academic_records: statusMap.get("academic_records") ?? false,
+    attendance: statusMap.get("attendance") ?? false,
+    health_records: statusMap.get("health_records") ?? false,
+    photos_videos: statusMap.get("photos_videos") ?? false,
+    transport: statusMap.get("transport") ?? false,
+    communication: statusMap.get("communication") ?? false,
+    biometric: statusMap.get("biometric") ?? false,
+    third_party_apps: statusMap.get("third_party_apps") ?? false,
+    cctv: statusMap.get("cctv") ?? false,
+    published_results: statusMap.get("published_results") ?? false,
+    alumni_data: statusMap.get("alumni_data") ?? false,
   };
 }
 

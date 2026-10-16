@@ -15,13 +15,14 @@ import {
   studentDocuments,
   consentPurposes,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import { sendSMS } from "@/lib/sms";
 import { fetchParentStudentFeeLedger } from "@/lib/parentStudentFeeLedger";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 // ─── OTP Generator Stub ──────────────────────────────────────────────────────
 export async function generateConsentChangeOtp(
@@ -82,9 +83,28 @@ export async function submitConsentChange(input: {
     }
 
     const now = new Date();
+    const reqCtx = getClientRequestContext();
 
     // Withdrawal confirms processing halt timestamp immediately (compliance: within 24h)
     const processingHaltedAt = !input.granted ? now : null;
+
+    if (!input.granted) {
+      // Mark prior active records as withdrawn
+      await db
+        .update(consentRecords)
+        .set({
+          withdrawnAt: now,
+          withdrawalReason: input.withdrawalReason || "Withdrawn by parent",
+          processingHaltedAt,
+        })
+        .where(
+          and(
+            eq(consentRecords.studentId, input.studentId),
+            eq(consentRecords.purposeId, input.purposeId),
+            isNull(consentRecords.withdrawnAt),
+          ),
+        );
+    }
 
     // Insert new consent log entry (events are immutable logs)
     await db.insert(consentRecords).values({
@@ -95,8 +115,8 @@ export async function submitConsentChange(input: {
       privacyNoticeVersion: "1.0",
       granted: input.granted,
       method: "web_form",
-      ipAddress: "127.0.0.1",
-      userAgent: "Parent Web Portal",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent || "Parent Web Portal",
       otpVerified: true,
       grantedAt: now,
       withdrawnAt: !input.granted ? now : null,
@@ -526,6 +546,7 @@ export async function submitParentLoginConsent(input: {
 
     const parentUserId = session.user.id;
     const now = new Date();
+    const reqCtx = getClientRequestContext();
 
     for (const item of input.consents) {
       const student = await db.query.students.findFirst({
@@ -539,6 +560,23 @@ export async function submitParentLoginConsent(input: {
         continue;
       }
 
+      if (!item.granted) {
+        await db
+          .update(consentRecords)
+          .set({
+            withdrawnAt: now,
+            withdrawalReason: "Declined during parent login consent opt-in",
+            processingHaltedAt: now,
+          })
+          .where(
+            and(
+              eq(consentRecords.studentId, student.id),
+              eq(consentRecords.purposeId, item.purposeId),
+              isNull(consentRecords.withdrawnAt),
+            ),
+          );
+      }
+
       await db.insert(consentRecords).values({
         schoolId: student.schoolId,
         studentId: student.id,
@@ -547,8 +585,8 @@ export async function submitParentLoginConsent(input: {
         privacyNoticeVersion: "1.0",
         granted: item.granted,
         method: "web_form",
-        ipAddress: "127.0.0.1",
-        userAgent: "Parent Companion App - Login Opt-In",
+        ipAddress: reqCtx.ipAddress,
+        userAgent: reqCtx.userAgent || "Parent Companion App - Login Opt-In",
         otpVerified: false,
         grantedAt: now,
         withdrawnAt: !item.granted ? now : null,

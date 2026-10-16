@@ -67,6 +67,7 @@ export interface StudentEnrollmentInput {
   performedByUserEmail?: string;
   performedByUserRole?: string;
   requestIp?: string;
+  clientIp?: string;
   userAgent?: string;
   skipCapacityCheck?: boolean;
 }
@@ -107,15 +108,17 @@ export class StudentLifecycleEngine {
       performedByUserId,
       performedByUserEmail = "admin@schoolmitra.internal",
       performedByUserRole = "SCHOOL_ADMIN",
-      requestIp = "0.0.0.0",
+      requestIp,
+      clientIp,
       userAgent = "SchoolMitra Lifecycle Engine",
     } = input;
 
     // Sanitize client IP: never allow fallback to 127.0.0.1 in audit/consent records
+    const rawIp = requestIp || clientIp || "0.0.0.0";
     const cleanIp =
-      !requestIp || requestIp === "127.0.0.1" || requestIp === "::1"
+      !rawIp || rawIp === "127.0.0.1" || rawIp === "::1"
         ? "0.0.0.0"
-        : requestIp;
+        : rawIp;
 
     return await withTenant(schoolId, async (tx) => {
       // 1. Fetch Application Record with Tenant Scope Guard

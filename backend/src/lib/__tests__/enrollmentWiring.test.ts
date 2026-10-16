@@ -12,6 +12,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "@/db";
 import {
+  schools,
+  academicYears,
   classes,
   sections,
   subjects,
@@ -42,11 +44,38 @@ describe("S13 Layer 3: Enrollment Backfill & Marks Entry Matrix Wiring Drill", (
   let classSubjectElective: string;
 
   beforeAll(async () => {
-    await seedIsolationSchools();
-    schoolId = ISOLATION_IDS.schoolA.id;
-    academicYearId = ISOLATION_IDS.schoolA.academicYearId;
-
     const runId = Math.random().toString(36).substring(2, 7);
+
+    const [school] = await db
+      .insert(schools)
+      .values({
+        name: `Enrollment Wiring School ${runId}`,
+        slug: `ew-${runId}`,
+        udiseCode: `UD${Math.floor(100000000 + Math.random() * 900000000)}`,
+        board: "CBSE",
+        address: "123 Testway",
+        city: "New Delhi",
+        state: "Delhi",
+        pincode: "110001",
+        phone: "9876543210",
+        email: `school_${runId}@example.com`,
+        principalName: "Principal Test",
+        establishedYear: 2010,
+      })
+      .returning();
+    schoolId = school!.id;
+
+    const [ay] = await db
+      .insert(academicYears)
+      .values({
+        schoolId,
+        label: `2026-2027 EW ${runId}`,
+        startDate: new Date("2026-04-01"),
+        endDate: new Date("2027-03-31"),
+        isActive: true,
+      })
+      .returning();
+    academicYearId = ay!.id;
 
     await withTenant(schoolId, async (tx) => {
       // 1. Create a dedicated class and section
@@ -55,7 +84,6 @@ describe("S13 Layer 3: Enrollment Backfill & Marks Entry Matrix Wiring Drill", (
         .values({
           schoolId,
           academicYearId,
-          name: `L3_Class_${runId}`,
           displayName: `L3 Class ${runId}`,
           gradeLevel: "CLASS_8",
           sortOrder: 8,
@@ -118,7 +146,7 @@ describe("S13 Layer 3: Enrollment Backfill & Marks Entry Matrix Wiring Drill", (
           classId,
           subjectId: mandatorySubject1Id,
           isElective: false, // Mandatory
-          creditHours: "4.00",
+          periodsPerWeek: 4,
         })
         .returning();
       classSubjectMandatory1 = cs1!.id;
@@ -130,7 +158,7 @@ describe("S13 Layer 3: Enrollment Backfill & Marks Entry Matrix Wiring Drill", (
           classId,
           subjectId: mandatorySubject2Id,
           isElective: false, // Mandatory
-          creditHours: "3.00",
+          periodsPerWeek: 3,
         })
         .returning();
       classSubjectMandatory2 = cs2!.id;
@@ -142,7 +170,7 @@ describe("S13 Layer 3: Enrollment Backfill & Marks Entry Matrix Wiring Drill", (
           classId,
           subjectId: electiveSubjectId,
           isElective: true, // Elective
-          creditHours: "2.00",
+          periodsPerWeek: 2,
         })
         .returning();
       classSubjectElective = cs3!.id;

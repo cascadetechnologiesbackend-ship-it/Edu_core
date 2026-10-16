@@ -91,7 +91,7 @@ describe("S13 Layer 2: Student Lifecycle Engine & Admissions State Machine", () 
             schoolId: schoolAId,
             code: `L2_SUB_${runId}`,
             name: "L2 Core Subject",
-            type: "THEORY",
+            subjectType: "THEORY",
           })
           .returning();
         mandatorySubjectId = sub!.id;
@@ -101,7 +101,7 @@ describe("S13 Layer 2: Student Lifecycle Engine & Admissions State Machine", () 
           classId: classAId,
           subjectId: mandatorySubjectId,
           isElective: false,
-          creditHours: "3.00",
+          periodsPerWeek: 3,
         });
       }
     });
