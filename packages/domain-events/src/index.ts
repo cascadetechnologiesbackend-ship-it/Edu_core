@@ -52,48 +52,8 @@ export interface UserProvisionedPayload {
   role: string;
 }
 
-// ─── Event Handler Interface ──────────────────────────────────────────────────
-
-export interface EventHandler<T extends DomainEvent = DomainEvent> {
-  handle(event: T): Promise<void>;
-}
-
-// ─── Domain Event Publisher (In-Memory + Redis Bridge Ready) ─────────────────
-
-export class DomainEventPublisher {
-  private static handlers: Map<string, EventHandler[]> = new Map();
-
-  /**
-   * Registers a subscriber for a specific domain event type.
-   */
-  public static subscribe(eventType: string, handler: EventHandler): void {
-    const existing = this.handlers.get(eventType) || [];
-    this.handlers.set(eventType, [...existing, handler]);
-  }
-
-  /**
-   * Publishes an event to all registered local in-memory subscribers.
-   */
-  public static async publish<T = any>(event: DomainEvent<T>): Promise<void> {
-    const handlers = this.handlers.get(event.eventType) || [];
-    await Promise.all(
-      handlers.map(async (h) => {
-        try {
-          await h.handle(event);
-        } catch (error) {
-          console.error(
-            `[DomainEventPublisher] Error handling event ${event.eventType} (${event.eventId}):`,
-            error,
-          );
-        }
-      }),
-    );
-  }
-
-  /**
-   * Clears all subscribers (useful for test isolation).
-   */
-  public static clearAllSubscribers(): void {
-    this.handlers.clear();
-  }
-}
+// ─── Durable Outbox Architecture Note ──────────────────────────────────────────
+// S13 Layer 6: In-memory DomainEventPublisher with 0 subscribers has been purged.
+// All domain events are now transactionally persisted into the `domain_events` outbox table
+// (Migration 0042) and asynchronously consumed by the BullMQ/Valkey worker
+// in `backend/src/workers/domainEventWorker.ts` with strict tenant isolation.

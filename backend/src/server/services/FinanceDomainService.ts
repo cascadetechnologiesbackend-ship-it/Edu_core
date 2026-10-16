@@ -1,8 +1,6 @@
 import { db } from "@/db";
-import { feePayments, feeInvoices } from "@/db/schema";
+import { feePayments, feeInvoices, domainEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { DomainEventPublisher } from "@schoolmitra/domain-events";
-import crypto from "crypto";
 
 export interface RecordFeePaymentInput {
   schoolId: string;
@@ -73,13 +71,11 @@ export class FinanceDomainService {
         })
         .where(eq(feeInvoices.id, invoiceId));
 
-      // 4. Publish FeePaidEvent to Event Bus
-      await DomainEventPublisher.publish({
-        eventId: crypto.randomUUID(),
-        eventType: "FeePaidEvent",
+      // 4. Insert durable outbox domain event (Migration 0042)
+      await tx.insert(domainEvents).values({
+        schoolId,
         aggregateId: payment.id,
-        tenantId: schoolId,
-        occurredOn: new Date(),
+        eventType: "FeePaidEvent",
         payload: {
           paymentId: payment.id,
           invoiceId,
@@ -88,6 +84,7 @@ export class FinanceDomainService {
           paymentMode: paymentMethod,
           transactionReference: payment.transactionReference || "",
         },
+        status: "PENDING",
       });
 
       return { payment, newStatus };

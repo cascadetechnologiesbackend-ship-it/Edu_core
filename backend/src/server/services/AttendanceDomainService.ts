@@ -1,8 +1,6 @@
 import { db } from "@/db";
-import { studentAttendance } from "@/db/schema";
+import { studentAttendance, domainEvents } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { DomainEventPublisher } from "@schoolmitra/domain-events";
-import crypto from "crypto";
 
 export interface AttendanceRecordEntry {
   studentId: string;
@@ -66,13 +64,11 @@ export class AttendanceDomainService {
         }
       }
 
-      // Publish AttendanceMarkedEvent
-      await DomainEventPublisher.publish({
-        eventId: crypto.randomUUID(),
-        eventType: "AttendanceMarkedEvent",
+      // Insert durable outbox domain event (Migration 0042)
+      await tx.insert(domainEvents).values({
+        schoolId,
         aggregateId: sectionId,
-        tenantId: schoolId,
-        occurredOn: new Date(),
+        eventType: "AttendanceMarkedEvent",
         payload: {
           sectionId,
           date: date.toISOString().split("T")[0],
@@ -80,6 +76,7 @@ export class AttendanceDomainService {
           totalAbsent,
           markedByUserId,
         },
+        status: "PENDING",
       });
 
       return { totalPresent, totalAbsent, totalRecords: records.length };

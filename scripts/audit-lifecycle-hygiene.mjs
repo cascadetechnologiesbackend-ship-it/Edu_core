@@ -15,6 +15,7 @@ const projectRoot = path.resolve(".");
 const searchDirs = [
   path.join(projectRoot, "backend", "src"),
   path.join(projectRoot, "frontend", "src"),
+  path.join(projectRoot, "packages"),
 ];
 
 const ALLOWED_STUDENT_INSERT_FILES = new Set([
@@ -31,8 +32,13 @@ function scanDirectory(dir) {
     const fullPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      // Skip test directories and node_modules
-      if (entry.name === "__tests__" || entry.name === "node_modules" || entry.name === ".next") {
+      // Skip test directories, node_modules, and dist
+      if (
+        entry.name === "__tests__" ||
+        entry.name === "node_modules" ||
+        entry.name === ".next" ||
+        entry.name === "dist"
+      ) {
         continue;
       }
       scanDirectory(fullPath);
@@ -64,6 +70,19 @@ function scanDirectory(dir) {
           message: "Reference to deleted ghost service AdmissionsDomainService found",
         });
       }
+
+      // Check 3: Dead in-memory event publisher elimination (Layer 6)
+      if (
+        content.includes("DomainEventPublisher.publish") ||
+        content.includes("DomainEventPublisher.subscribe") ||
+        content.includes("class DomainEventPublisher")
+      ) {
+        violations.push({
+          file: path.relative(projectRoot, fullPath),
+          type: "DEAD_IN_MEMORY_EVENT_PUBLISHER",
+          message: "Reference to dead in-memory DomainEventPublisher found. Use durable domainEvents outbox table (Migration 0042) and domainEventWorker.",
+        });
+      }
     }
   }
 }
@@ -80,6 +99,7 @@ if (violations.length > 0) {
   }
   process.exit(1);
 } else {
-  console.log("✅ S13 Lifecycle Hygiene Guard PASSED: student creation is strictly engine-scoped, zero ghost references.");
+  console.log("✅ S13 Lifecycle Hygiene Guard PASSED: student creation is strictly engine-scoped, zero ghost references, zero dead in-memory event publisher references.");
   process.exit(0);
 }
+
