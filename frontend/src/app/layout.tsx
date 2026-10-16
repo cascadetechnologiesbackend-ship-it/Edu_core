@@ -77,19 +77,11 @@ export const viewport: Viewport = {
   ],
 };
 
-import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { Suspense } from "react";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { ClarityScript } from "@/components/analytics/ClarityScript";
 import { PwaManager } from "@/components/pwa/PwaManager";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  adjustFontFallback: true,
-  variable: "--font-inter",
-});
 
 export default function RootLayout({
   children,
@@ -97,8 +89,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className={`min-h-screen bg-background antialiased ${inter.className}`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen bg-background antialiased font-sans">
         <Providers>
           <Suspense fallback={null}>
             <TopProgressBar />

@@ -164,7 +164,7 @@ const nextConfig = {
       ],
     },
     externalDir: true,
-    typedRoutes: true,
+    typedRoutes: false,
     serverComponentsExternalPackages: [
       "pg",
       "ioredis",
