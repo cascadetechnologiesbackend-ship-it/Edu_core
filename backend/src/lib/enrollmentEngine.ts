@@ -401,3 +401,57 @@ export async function backfillMandatoryEnrollments(
     return { insertedCount: Number(result.rowCount ?? 0) };
   });
 }
+
+/**
+ * Enrolls a single student in all non-elective (mandatory) subjects configured for their class.
+ * Executed transactionally inside the studentLifecycleEngine.
+ */
+export async function enrollStudentInMandatorySubjects(
+  schoolId: string,
+  studentId: string,
+  tx?: any,
+): Promise<{ insertedCount: number }> {
+  const runner = async (executor: any) => {
+    // Ensure tenant RLS context is set
+    await executor.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
+
+    const result = await executor.execute(sql`
+      INSERT INTO "student_subject_enrollments" (
+        "id",
+        "school_id",
+        "student_id",
+        "class_subject_id",
+        "is_elective_taken",
+        "enrollment_status",
+        "enrolled_at",
+        "updated_at"
+      )
+      SELECT
+        gen_random_uuid(),
+        s.school_id,
+        s.id AS student_id,
+        cs.id AS class_subject_id,
+        true,
+        'ACTIVE'::enrollment_status_enum,
+        now(),
+        now()
+      FROM "students" s
+      JOIN "class_subjects" cs ON cs.class_id = s.current_class_id AND cs.school_id = s.school_id
+      WHERE s.school_id = ${schoolId}
+        AND s.id = ${studentId}
+        AND s.deleted_at IS NULL
+        AND s.is_active = true
+        AND cs.is_elective = false
+      ON CONFLICT ("student_id", "class_subject_id") DO NOTHING;
+    `);
+
+    return { insertedCount: Number(result.rowCount ?? 0) };
+  };
+
+  if (tx) {
+    return await runner(tx);
+  } else {
+    return await withTenant(schoolId, runner);
+  }
+}
+

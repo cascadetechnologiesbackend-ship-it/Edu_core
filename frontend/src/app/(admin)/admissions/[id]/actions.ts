@@ -4,34 +4,13 @@ import { db } from "@/db";
 import {
   admissionApplications,
   admissionWorkflowSteps,
-  admissionDocuments,
-  students,
-  studentFamilyMembers,
-  studentClassHistory,
-  studentDocuments,
-  persons,
-  consentRecords,
-  feeConcessions,
-  classes,
-  sections,
-  auditLogs,
-  users,
-  roles,
-  userRoles,
 } from "@/db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { autoAssignFeeStructuresToStudent } from "@/lib/feeAssignmentEngine";
-import { generateAdmissionNumber } from "@schoolmitra/backend/lib/sequenceGenerator";
-import bcrypt from "bcryptjs";
-import { sendSMS } from "@/lib/sms";
-import {
-  encryptData,
-  decryptData,
-  computeSearchHash,
-  ENCRYPTION_KEY,
-} from "@/lib/encryption";
+import { StudentLifecycleEngine } from "@schoolmitra/backend/lib/studentLifecycleEngine";
+import { validateAdmissionTransition } from "@schoolmitra/validators";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 function safeRevalidate(path: string) {
   try {
@@ -46,8 +25,7 @@ export interface EnrollApplicantOptions {
 
 /**
  * Authoritative, atomic enrollment action.
- * Transforms an approved application into an active student within an existing class & section.
- * Safe and idempotent: returns existing student if already enrolled.
+ * Thin server-action wrapper delegating to StudentLifecycleEngine.
  */
 export async function enrollApplicant(
   applicationId: string,
@@ -59,543 +37,37 @@ export async function enrollApplicant(
     "PRINCIPAL",
   ] as const);
   const school = await requireSchool(ctx);
+  const clientContext = getClientRequestContext();
 
-  const application = await db.query.admissionApplications.findFirst({
-    where: and(
-      eq(admissionApplications.id, applicationId),
-      eq(admissionApplications.schoolId, school.id),
-    ),
-    with: {
-      workflowSteps: true,
-      documents: true,
-    },
+  const result = await StudentLifecycleEngine.enrollApplicant({
+    schoolId: school.id,
+    applicationId,
+    classId: options.classId,
+    sectionId: options.sectionId,
+    performedByUserId: ctx.userId,
+    performedByUserEmail: ctx.email,
+    performedByUserRole: ctx.role,
+    requestIp: clientContext.ipAddress,
+    userAgent: clientContext.userAgent,
   });
 
-  if (!application) {
-    throw new Error("Application not found or does not belong to school");
-  }
+  safeRevalidate(`/admissions`);
+  safeRevalidate(`/admissions/${applicationId}`);
+  safeRevalidate(`/students`);
+  safeRevalidate(`/students/${result.studentId}`);
 
-  // Idempotency: Return existing student if already enrolled
-  if (application.status === "ENROLLED" && application.enrolledStudentId) {
-    const existing = await db.query.students.findFirst({
-      where: and(
-        eq(students.id, application.enrolledStudentId),
-        eq(students.schoolId, school.id),
-      ),
-    });
-    if (existing) {
-      return {
-        success: true as const,
-        studentId: existing.id,
-        alreadyEnrolled: true,
-      };
-    }
-  }
-
-  // Validate target class and section belong to this school
-  const targetClass = await db.query.classes.findFirst({
-    where: and(
-      eq(classes.id, options.classId),
-      eq(classes.schoolId, school.id),
-      eq(classes.isActive, true),
-    ),
-  });
-  if (!targetClass) {
-    throw new Error("Target class not found or inactive");
-  }
-
-  const targetSection = await db.query.sections.findFirst({
-    where: and(
-      eq(sections.id, options.sectionId),
-      eq(sections.classId, options.classId),
-      eq(sections.schoolId, school.id),
-      eq(sections.isActive, true),
-    ),
-  });
-  if (!targetSection) {
-    throw new Error("Target section not found or does not belong to class");
-  }
-
-  // Parse applicant names
-  const applicantName =
-    decryptData(application.applicantNameEncrypted) || "Unknown Student";
-  const nameParts = applicantName.split(" ");
-  const firstName = nameParts[0] || "Unknown";
-  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
-  const firstNameHash = computeSearchHash(firstName);
-  const lastNameHash = computeSearchHash(lastName);
-
-  const rawAadhaar = decryptData(application.aadhaarNumberEncrypted);
-  const aadhaarLast4 = rawAadhaar ? rawAadhaar.slice(-4) : null;
-
-  return await db.transaction(async (tx) => {
-    // Generate institutional monotonic admission number
-    const admissionNum = await generateAdmissionNumber(school.id, undefined, tx);
-
-    // 1. Provision canonical Person Master record
-    const [person] = await tx
-      .insert(persons)
-      .values({
-        schoolId: school.id,
-        primaryType: "STUDENT",
-        firstNameEncrypted: encryptData(firstName),
-        lastNameEncrypted: encryptData(lastName),
-        firstNameSearchHash: firstNameHash,
-        lastNameSearchHash: lastNameHash,
-        gender: application.gender,
-        dateOfBirth: application.dateOfBirth,
-        aadhaarLast4,
-        createdBy: ctx.userId,
-      })
-      .returning({ id: persons.id });
-
-    // 2. Provision Student Profile record
-    const [newStudent] = await tx
-      .insert(students)
-      .values({
-        schoolId: school.id,
-        academicYearId: application.academicYearId,
-        admissionNumber: admissionNum,
-        firstNameEncrypted: encryptData(firstName),
-        lastNameEncrypted: encryptData(lastName),
-        firstNameSearchHash: firstNameHash,
-        lastNameSearchHash: lastNameHash,
-        dateOfBirth: application.dateOfBirth!,
-        gender: application.gender,
-        bloodGroup: application.bloodGroup,
-        category: application.category,
-        currentClassId: options.classId,
-        currentSectionId: options.sectionId,
-        admissionDate: new Date(),
-        admissionApplicationId: application.id,
-        rteApplicant: application.isRteApplicant,
-        optInTransport: application.optInTransport,
-        optInHostel: application.optInHostel,
-        isActive: true,
-      })
-      .returning({ id: students.id });
-
-    if (!newStudent) {
-      throw new Error("Failed to insert student record");
-    }
-
-    // 3. Provision initial student_class_history record
-    await tx.insert(studentClassHistory).values({
-      studentId: newStudent.id,
-      schoolId: school.id,
-      academicYearId: application.academicYearId,
-      classId: options.classId,
-      sectionId: options.sectionId,
-      promotionStatus: "ENROLLED",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // 4. Provision family members
-    const fatherName = decryptData(application.fatherNameEncrypted);
-    const motherName = decryptData(application.motherNameEncrypted);
-    const guardianName = decryptData(application.guardianNameEncrypted);
-    const primaryMobile = decryptData(
-      application.primaryContactMobileEncrypted,
-    );
-    const primaryEmail = decryptData(
-      application.primaryContactEmailEncrypted,
-    );
-
-    // 4. Provision parent login user account if primaryEmail exists
-    let parentUserId: string | null = null;
-    if (primaryEmail) {
-      const emailNormalized = primaryEmail.trim().toLowerCase();
-      let parentUser = await tx.query.users.findFirst({
-        where: eq(users.email, emailNormalized),
-      });
-
-      if (!parentUser) {
-        const rawDigits = primaryMobile ? primaryMobile.replace(/[^0-9]/g, "") : "";
-        const defaultPassword = `Parent@${rawDigits.length >= 4 ? rawDigits.slice(-4) : "1234"}`;
-        const passwordHash = await bcrypt.hash(defaultPassword, 12);
-        const [nu] = await tx
-          .insert(users)
-          .values({
-            schoolId: school.id,
-            email: emailNormalized,
-            mobileEncrypted: primaryMobile ? encryptData(primaryMobile.trim()) : null,
-            passwordHash,
-            mustChangePassword: true,
-            isActive: true,
-            isEmailVerified: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
-        if (nu) {
-          parentUser = nu;
-
-          // Insert canonical person row for parent
-          const parentNameDecrypted = fatherName || motherName || guardianName || "Parent Guardian";
-          const pNameParts = parentNameDecrypted.trim().split(/\s+/);
-          const pFirstName = pNameParts[0] || "Parent";
-          const pLastName = pNameParts.slice(1).join(" ") || "Guardian";
-
-          await tx.insert(persons).values({
-            schoolId: school.id,
-            userId: nu.id,
-            primaryType: "PARENT",
-            firstNameEncrypted: encryptData(pFirstName),
-            lastNameEncrypted: encryptData(pLastName),
-            firstNameSearchHash: computeSearchHash(pFirstName),
-            lastNameSearchHash: computeSearchHash(pLastName),
-            gender: "OTHER",
-            primaryEmailEncrypted: encryptData(emailNormalized),
-            primaryMobileEncrypted: primaryMobile ? encryptData(primaryMobile.trim()) : null,
-            createdBy: ctx.userId,
-            isActive: true,
-          });
-        }
-
-        // Send SMS with credentials
-        if (primaryMobile) {
-          const formattedMobile = primaryMobile.trim().startsWith("+91")
-            ? primaryMobile.trim()
-            : `+91${primaryMobile.trim()}`;
-          const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3002";
-          await sendSMS(
-            formattedMobile,
-            `Welcome to ${school.name}!\n` +
-              `Your Parent Portal login credentials:\n` +
-              `Email: ${emailNormalized}\n` +
-              `Password: ${defaultPassword}\n` +
-              `Portal: ${pwaUrl}\n` +
-              `Please change your password upon first login.`
-          );
-        }
-      }
-
-      if (parentUser) {
-        parentUserId = parentUser.id;
-
-        // Ensure PARENT role exists
-        let parentRole = await tx.query.roles.findFirst({
-          where: and(eq(roles.schoolId, school.id), eq(roles.name, "PARENT")),
-        });
-        if (!parentRole) {
-          const [cr] = await tx
-            .insert(roles)
-            .values({
-              schoolId: school.id,
-              name: "PARENT",
-              displayName: "Parent / Guardian",
-              isSystemRole: true,
-            })
-            .returning();
-          parentRole = cr;
-        }
-
-        if (parentRole) {
-          const existingRole = await tx.query.userRoles.findFirst({
-            where: and(
-              eq(userRoles.userId, parentUser.id),
-              eq(userRoles.roleId, parentRole.id),
-            ),
-          });
-          if (!existingRole) {
-            await tx.insert(userRoles).values({
-              userId: parentUser.id,
-              roleId: parentRole.id,
-              schoolId: school.id,
-            });
-          }
-        }
-
-        // Link student to primaryParentUserId
-        await tx
-          .update(students)
-          .set({ primaryParentUserId: parentUserId })
-          .where(
-            and(
-              eq(students.id, newStudent.id),
-              eq(students.schoolId, school.id),
-            ),
-          );
-      }
-    }
-
-    if (fatherName) {
-      await tx.insert(studentFamilyMembers).values({
-        studentId: newStudent.id,
-        schoolId: school.id,
-        userId: parentUserId,
-        relation: "FATHER",
-        nameEncrypted: encryptData(fatherName),
-        mobileEncrypted: primaryMobile ? encryptData(primaryMobile) : null,
-        emailEncrypted: primaryEmail ? encryptData(primaryEmail) : null,
-        isPrimaryContact: true,
-        isEmergencyContact: true,
-        hasConsentAuthority: true,
-      });
-    }
-
-    if (motherName) {
-      await tx.insert(studentFamilyMembers).values({
-        studentId: newStudent.id,
-        schoolId: school.id,
-        userId: !fatherName ? parentUserId : null,
-        relation: "MOTHER",
-        nameEncrypted: encryptData(motherName),
-        mobileEncrypted: primaryMobile ? encryptData(primaryMobile) : null,
-        emailEncrypted: primaryEmail ? encryptData(primaryEmail) : null,
-        isPrimaryContact: !fatherName,
-        isEmergencyContact: true,
-        hasConsentAuthority: true,
-      });
-    }
-
-    if (guardianName) {
-      await tx.insert(studentFamilyMembers).values({
-        studentId: newStudent.id,
-        schoolId: school.id,
-        userId: !fatherName && !motherName ? parentUserId : null,
-        relation: "GUARDIAN",
-        nameEncrypted: encryptData(guardianName),
-        mobileEncrypted: primaryMobile ? encryptData(primaryMobile) : null,
-        emailEncrypted: primaryEmail ? encryptData(primaryEmail) : null,
-        isPrimaryContact: !fatherName && !motherName,
-        isEmergencyContact: true,
-        hasConsentAuthority: true,
-      });
-    }
-
-    // 5. Link / copy admission documents to student_documents
-    const appDocs = await tx.query.admissionDocuments.findMany({
-      where: eq(admissionDocuments.applicationId, application.id),
-    });
-    for (const doc of appDocs) {
-      await tx.insert(studentDocuments).values({
-        studentId: newStudent.id,
-        schoolId: school.id,
-        documentType: doc.documentType,
-        s3Key: doc.s3Key,
-        originalFileName: doc.originalFileName,
-        mimeType: doc.mimeType,
-        fileSizeBytes: 0,
-        uploadedById: ctx.userId,
-        isVerified: doc.isVerified,
-        verifiedById: doc.verifiedById,
-        verifiedAt: doc.verifiedAt,
-      });
-    }
-
-    // 6. DPDP Consent records
-    const consentPrefs = (application.consentPreferences as Record<string, boolean>) || {};
-    const standardPurposes = [
-      "admission_data",
-      "academic_records",
-      "attendance",
-      "health_records",
-      "communication",
-      "transport",
-    ];
-    const grantedPurposes = new Set<string>(standardPurposes);
-    for (const [purpose, granted] of Object.entries(consentPrefs)) {
-      if (granted) {
-        grantedPurposes.add(purpose);
-      } else if (purpose !== "admission_data" && purpose !== "academic_records" && purpose !== "attendance") {
-        grantedPurposes.delete(purpose);
-      }
-    }
-
-    for (const purposeId of grantedPurposes) {
-      await tx.insert(consentRecords).values({
-        schoolId: school.id,
-        studentId: newStudent.id,
-        parentUserId: ctx.userId,
-        purposeId,
-        granted: true,
-        method: "web_form",
-        privacyNoticeVersion: "1.0",
-        ipAddress: "127.0.0.1",
-        userAgent: "SchoolMitra Admissions",
-      });
-    }
-
-    // 6.5. Automated Multi-Factor Sibling Detection
-    let isSiblingDetected = Boolean(application.hasSiblingInSchool);
-    let detectedSiblingId: string | null = application.siblingStudentId || null;
-
-    if (!isSiblingDetected && school.id) {
-      // Check 1: Other active students with matching primaryParentUserId
-      if (parentUserId) {
-        const existingSibling = await tx.query.students.findFirst({
-          where: and(
-            eq(students.schoolId, school.id),
-            eq(students.primaryParentUserId, parentUserId),
-            ne(students.id, newStudent.id),
-            eq(students.isActive, true),
-          ),
-        });
-        if (existingSibling) {
-          isSiblingDetected = true;
-          detectedSiblingId = existingSibling.id;
-        }
-      }
-
-      // Check 2: Matching phone or email in studentFamilyMembers
-      if (!isSiblingDetected && (primaryMobile || primaryEmail)) {
-        const allFamilyMembers = await tx.query.studentFamilyMembers.findMany({
-          where: and(
-            eq(studentFamilyMembers.schoolId, school.id),
-            ne(studentFamilyMembers.studentId, newStudent.id),
-          ),
-        });
-
-        for (const fam of allFamilyMembers) {
-          const famMobile = fam.mobileEncrypted ? decryptData(fam.mobileEncrypted) : null;
-          const famEmail = fam.emailEncrypted ? decryptData(fam.emailEncrypted) : null;
-
-          const phoneMatch =
-            primaryMobile &&
-            famMobile &&
-            primaryMobile.replace(/\D/g, "").slice(-10) ===
-              famMobile.replace(/\D/g, "").slice(-10);
-          const emailMatch =
-            primaryEmail &&
-            famEmail &&
-            primaryEmail.trim().toLowerCase() === famEmail.trim().toLowerCase();
-
-          if (phoneMatch || emailMatch) {
-            isSiblingDetected = true;
-            detectedSiblingId = fam.studentId;
-            break;
-          }
-        }
-      }
-
-      // If sibling was detected, update application record
-      if (isSiblingDetected) {
-        await tx
-          .update(admissionApplications)
-          .set({
-            hasSiblingInSchool: true,
-            siblingStudentId: detectedSiblingId,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(admissionApplications.id, application.id),
-              eq(admissionApplications.schoolId, school.id),
-            ),
-          );
-      }
-    }
-
-    // 7. Automatic Fee Concession assignment
-    if (application.isRteApplicant) {
-      await tx.insert(feeConcessions).values({
-        schoolId: school.id,
-        academicYearId: application.academicYearId,
-        studentId: newStudent.id,
-        concessionType: "RTE_FREE",
-        concessionName: "RTE 25% Statutory Free Quota",
-        appliesTo: "ALL",
-        discountPercentage: "100.00",
-        approvedById: ctx.userId,
-      });
-    }
-    if (isSiblingDetected) {
-      await tx.insert(feeConcessions).values({
-        schoolId: school.id,
-        academicYearId: application.academicYearId,
-        studentId: newStudent.id,
-        concessionType: "SIBLING",
-        concessionName: "Sibling Concession (10%)",
-        appliesTo: "ALL",
-        discountPercentage: "10.00",
-        approvedById: ctx.userId,
-      });
-    }
-
-    if (application.isStaffWard) {
-      await tx.insert(feeConcessions).values({
-        schoolId: school.id,
-        academicYearId: application.academicYearId,
-        studentId: newStudent.id,
-        concessionType: "STAFF_WARD",
-        concessionName: "Staff Ward Concession",
-        appliesTo: "ALL",
-        discountPercentage: "50.00",
-        approvedById: ctx.userId,
-      });
-    }
-
-    // 7.5. Automatically assign class fee structures & generate initial invoices for enrolled student
-    await autoAssignFeeStructuresToStudent(newStudent.id, tx);
-
-    // 8. Update admission application
-    const nextStepNumber = (application.workflowSteps?.length || 0) + 1;
-    await tx
-      .update(admissionApplications)
-      .set({
-        status: "ENROLLED",
-        enrolledStudentId: newStudent.id,
-        enrolledAt: new Date(),
-        currentWorkflowStep: nextStepNumber,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(admissionApplications.id, applicationId),
-          eq(admissionApplications.schoolId, school.id),
-        ),
-      );
-
-    // 9. Workflow step record
-    await tx.insert(admissionWorkflowSteps).values({
-      applicationId: application.id,
-      schoolId: school.id,
-      stepNumber: nextStepNumber,
-      stepName: "ENROLLED",
-      status: "COMPLETED",
-      completedAt: new Date(),
-      completedById: ctx.userId,
-      notes: `Enrolled into ${targetClass.displayName} - ${targetSection.name}. Student ID: ${newStudent.id}`,
-    });
-
-    // 10. Audit log
-    await tx.insert(auditLogs).values({
-      schoolId: school.id,
-      userId: ctx.userId,
-      userEmail: ctx.email,
-      userRole: ctx.role,
-      action: "WRITE",
-      tableName: "students",
-      recordId: newStudent.id,
-      purposeId: "student_enrollment",
-      ipAddress: "127.0.0.1",
-      userAgent: "SchoolMitra SIS",
-      metadata: {
-        admissionNumber: admissionNum,
-        classId: options.classId,
-        sectionId: options.sectionId,
-        applicationId: application.id,
-        personId: person?.id,
-      },
-    });
-
-    safeRevalidate(`/admissions`);
-    safeRevalidate(`/admissions/${applicationId}`);
-    safeRevalidate(`/students`);
-    safeRevalidate(`/students/${newStudent.id}`);
-
-    return {
-      success: true as const,
-      studentId: newStudent.id,
-      admissionNumber: admissionNum,
-    };
-  });
+  return {
+    success: true as const,
+    studentId: result.studentId,
+    admissionNumber: result.admissionNumber,
+    alreadyEnrolled: result.alreadyEnrolled,
+    capacityWarning: result.capacityWarning,
+  };
 }
 
 /**
  * Updates application status through the admissions funnel.
+ * Enforces server-side transition legality via the Admissions State Machine.
  * If status is ENROLLED, options with classId and sectionId must be provided.
  */
 export async function updateApplicationStatus(
@@ -638,8 +110,16 @@ export async function updateApplicationStatus(
       });
     }
 
-    if (application.status === newStatus) {
-      return { success: false, message: "Status is already " + newStatus };
+    // Validate transition via canonical Admissions State Machine
+    const transitionCheck = validateAdmissionTransition(
+      application.status,
+      newStatus,
+    );
+    if (!transitionCheck.valid) {
+      return {
+        success: false,
+        message: transitionCheck.error.message,
+      };
     }
 
     // Insert Workflow Step
@@ -648,17 +128,20 @@ export async function updateApplicationStatus(
       applicationId: application.id,
       schoolId: school.id,
       stepNumber: nextStepNumber,
-      stepName: newStatus,
+      stepName: transitionCheck.targetStatus,
       status: "COMPLETED",
       completedAt: new Date(),
       completedById: ctx.userId,
-      notes: `Status changed to ${newStatus}`,
+      notes: `Status changed to ${transitionCheck.targetStatus}`,
     });
 
     // Update Application Status
     await db
       .update(admissionApplications)
-      .set({ status: newStatus as any, updatedAt: new Date() })
+      .set({
+        status: transitionCheck.targetStatus,
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(admissionApplications.id, applicationId),
