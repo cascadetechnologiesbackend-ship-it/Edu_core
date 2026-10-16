@@ -43,12 +43,17 @@ import {
   roles,
   userRoles,
   domainEvents,
+  smsLogs,
+  notices,
+  usageEvents,
+  passwordResetTokens,
 } from "@schoolmitra/database";
 import { eq, and, ne, sql, count } from "drizzle-orm";
 import { assertValidAdmissionTransition } from "@schoolmitra/validators";
 import { generateAdmissionNumber } from "./sequenceGenerator";
 import { autoAssignFeeStructuresToStudent } from "./feeAssignmentEngine";
 import { enrollStudentInMandatorySubjects } from "./enrollmentEngine";
+import { invalidateDashboardCache } from "./dashboardCache";
 import {
   encryptData,
   decryptData,
@@ -64,12 +69,13 @@ export interface StudentEnrollmentInput {
   classId: string;
   sectionId: string;
   performedByUserId: string;
-  performedByUserEmail?: string;
-  performedByUserRole?: string;
-  requestIp?: string;
-  clientIp?: string;
-  userAgent?: string;
-  skipCapacityCheck?: boolean;
+  performedByUserEmail?: string | undefined;
+  performedByUserRole?: string | undefined;
+  requestIp?: string | undefined;
+  clientIp?: string | undefined;
+  userAgent?: string | undefined;
+  skipCapacityCheck?: boolean | undefined;
+  forceSmsFailure?: boolean | undefined; // Testing hook for verifying resilient decoupled SMS failure
 }
 
 export interface StudentEnrollmentResult {
@@ -85,12 +91,20 @@ export interface StudentEnrollmentResult {
   parentCredentials?:
     | {
         email: string;
+        claimToken: string;
+        claimUrl: string;
         temporaryPassword?: string | undefined;
-        claimToken?: string | undefined;
         mustChangePassword: true;
         mobile?: string | null | undefined;
       }
     | undefined;
+  notificationDelivery?: {
+    smsQueued: boolean;
+    noticeCreated: boolean;
+    telemetryLogged: boolean;
+    cacheInvalidated: boolean;
+    failureReason?: string | undefined;
+  } | undefined;
 }
 
 export class StudentLifecycleEngine {
@@ -120,7 +134,7 @@ export class StudentLifecycleEngine {
         ? "0.0.0.0"
         : rawIp;
 
-    return await withTenant(schoolId, async (tx) => {
+    const enrollmentTxResult = await withTenant(schoolId, async (tx) => {
       // 1. Fetch Application Record with Tenant Scope Guard
       const application = await tx.query.admissionApplications.findFirst({
         where: and(
@@ -321,9 +335,10 @@ export class StudentLifecycleEngine {
         });
 
         if (!parentUser) {
-          // Cryptographically random initial temporary password
-          const tempPassword = `P@ss-${crypto.randomBytes(4).toString("hex")}!`;
-          const claimToken = crypto.randomBytes(24).toString("hex");
+          // Cryptographically random claim token and unguessable credential
+          const claimToken = crypto.randomBytes(32).toString("hex");
+          const tokenHash = crypto.createHash("sha256").update(claimToken).digest("hex");
+          const tempPassword = `P@ss-${crypto.randomBytes(6).toString("hex")}!`;
           const passwordHash = await bcrypt.hash(tempPassword, 12);
 
           const [createdUser] = await tx
@@ -344,11 +359,21 @@ export class StudentLifecycleEngine {
             .returning();
 
           if (createdUser) {
+            // Decoupled claim credential: store claim token in password_reset_tokens
+            await tx.insert(passwordResetTokens).values({
+              userId: createdUser.id,
+              tokenHash,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            });
+
+            const appBaseUrl =
+              process.env["NEXT_PUBLIC_APP_URL"] || "https://app.schoolmitra.in";
             parentUser = createdUser;
             parentCredentials = {
               email: emailNormalized,
-              temporaryPassword: tempPassword,
               claimToken,
+              claimUrl: `${appBaseUrl}/claim-account?token=${claimToken}`,
+              temporaryPassword: tempPassword,
               mustChangePassword: true,
               mobile: primaryMobile ? primaryMobile.trim() : null,
             };
@@ -685,7 +710,7 @@ export class StudentLifecycleEngine {
       });
 
       return {
-        success: true,
+        success: true as const,
         studentId: newStudent.id,
         admissionNumber: admissionNum,
         personId: person.id,
@@ -695,7 +720,192 @@ export class StudentLifecycleEngine {
         mandatorySubjectsEnrolledCount: mandatoryCount,
         capacityWarning,
         parentCredentials,
+        classDisplayName: targetClass.displayName,
+        sectionName: targetSection.name,
       };
     });
+
+    if (enrollmentTxResult.alreadyEnrolled) {
+      return {
+        success: true,
+        studentId: enrollmentTxResult.studentId,
+        admissionNumber: enrollmentTxResult.admissionNumber,
+        personId: enrollmentTxResult.personId,
+        parentUserId: enrollmentTxResult.parentUserId,
+        alreadyEnrolled: true,
+        concessionsApplied: enrollmentTxResult.concessionsApplied,
+        mandatorySubjectsEnrolledCount: enrollmentTxResult.mandatorySubjectsEnrolledCount,
+        capacityWarning: enrollmentTxResult.capacityWarning,
+        parentCredentials: enrollmentTxResult.parentCredentials,
+      };
+    }
+
+    // Post-commit delivery decoupled from database transaction
+    const delivery = await StudentLifecycleEngine.deliverPostCommitNotifications({
+      schoolId,
+      studentId: enrollmentTxResult.studentId,
+      admissionNumber: enrollmentTxResult.admissionNumber,
+      classDisplayName: (enrollmentTxResult as any).classDisplayName,
+      sectionName: (enrollmentTxResult as any).sectionName,
+      parentUserId: enrollmentTxResult.parentUserId,
+      parentCredentials: enrollmentTxResult.parentCredentials,
+      performedByUserId,
+      performedByUserRole,
+      forceSmsFailure: input.forceSmsFailure,
+    });
+
+    return {
+      success: true,
+      studentId: enrollmentTxResult.studentId,
+      admissionNumber: enrollmentTxResult.admissionNumber,
+      personId: enrollmentTxResult.personId,
+      parentUserId: enrollmentTxResult.parentUserId,
+      alreadyEnrolled: false,
+      concessionsApplied: enrollmentTxResult.concessionsApplied,
+      mandatorySubjectsEnrolledCount: enrollmentTxResult.mandatorySubjectsEnrolledCount,
+      capacityWarning: enrollmentTxResult.capacityWarning,
+      parentCredentials: enrollmentTxResult.parentCredentials,
+      notificationDelivery: delivery,
+    };
+  }
+
+  /**
+   * Post-commit notification and credential delivery.
+   * Decoupled from the database enrollment transaction:
+   * 1. Enqueues SMS log to sms_logs without plaintext credentials.
+   * 2. Writes in-app parent welcome notice to notices table.
+   * 3. Logs first-party telemetry event in usage_events.
+   * 4. Invalidates the school's dashboard summary cache keys.
+   * Any downstream delivery or carrier failure NEVER rolls back the committed enrollment.
+   */
+  public static async deliverPostCommitNotifications(params: {
+    schoolId: string;
+    studentId: string;
+    admissionNumber: string;
+    classDisplayName: string;
+    sectionName: string;
+    parentUserId: string | null;
+    parentCredentials?: StudentEnrollmentResult["parentCredentials"];
+    performedByUserId: string;
+    performedByUserRole: string;
+    forceSmsFailure?: boolean | undefined;
+  }): Promise<{
+    smsQueued: boolean;
+    noticeCreated: boolean;
+    telemetryLogged: boolean;
+    cacheInvalidated: boolean;
+    failureReason?: string | undefined;
+  }> {
+    const {
+      schoolId,
+      studentId,
+      admissionNumber,
+      classDisplayName,
+      sectionName,
+      parentUserId,
+      parentCredentials,
+      performedByUserId,
+      performedByUserRole,
+      forceSmsFailure,
+    } = params;
+
+    let smsQueued = false;
+    let noticeCreated = false;
+    let telemetryLogged = false;
+    let cacheInvalidated = false;
+    let failureReason: string | undefined;
+
+    // 1. Decoupled SMS Enqueue (never contains plaintext password)
+    if (parentUserId && parentCredentials?.mobile) {
+      try {
+        if (forceSmsFailure) {
+          throw new Error("Simulated SMS Gateway Outage (504 Gateway Timeout)");
+        }
+        await withTenant(schoolId, async (tenantDb) => {
+          await tenantDb.insert(smsLogs).values({
+            schoolId,
+            recipientUserId: parentUserId,
+            templateId: "PARENT_WELCOME_CLAIM",
+            messageType: "NOTICE",
+            status: "QUEUED",
+          });
+        });
+        smsQueued = true;
+      } catch (smsErr: any) {
+        console.warn("[StudentLifecycleEngine] Failed to enqueue SMS:", smsErr?.message);
+        failureReason = smsErr?.message || "SMS enqueue failed";
+        try {
+          await withTenant(schoolId, async (tenantDb) => {
+            await tenantDb.insert(smsLogs).values({
+              schoolId,
+              recipientUserId: parentUserId,
+              templateId: "PARENT_WELCOME_CLAIM",
+              messageType: "NOTICE",
+              status: "FAILED",
+              failureReason: smsErr?.message || "Failed to enqueue SMS",
+            });
+          });
+        } catch (logErr) {
+          console.error("[StudentLifecycleEngine] Failed to record FAILED row in sms_logs:", logErr);
+        }
+      }
+    }
+
+    // 2. Parent Welcome In-App Notice
+    try {
+      await withTenant(schoolId, async (tenantDb) => {
+        await tenantDb.insert(notices).values({
+          schoolId,
+          title: `Welcome to SchoolMitra! Student ${admissionNumber} Enrolled`,
+          content: `<p>Your child has been successfully enrolled into ${classDisplayName} - ${sectionName}. You can view the fee schedule, syllabus, and academic updates in your portal.</p>`,
+          audienceType: "PARENTS",
+          audienceFilter: {
+            targetParentUserId: parentUserId,
+            studentId,
+          },
+          isPublished: true,
+          publishedAt: new Date(),
+          createdById: performedByUserId,
+        });
+      });
+      noticeCreated = true;
+    } catch (noticeErr: any) {
+      console.error("[StudentLifecycleEngine] Failed to create welcome notice:", noticeErr);
+    }
+
+    // 3. Telemetry Usage Event (S10 First-Party Telemetry)
+    try {
+      await withTenant(schoolId, async (tenantDb) => {
+        await tenantDb.insert(usageEvents).values({
+          schoolId,
+          screen: "/admissions",
+          elementId: "btn_enroll_applicant",
+          elementLabel: "Enroll Applicant",
+          action: "submit",
+          role: performedByUserRole,
+          userId: performedByUserId,
+          createdAt: new Date(),
+        });
+      });
+      telemetryLogged = true;
+    } catch (telemErr: any) {
+      console.error("[StudentLifecycleEngine] Failed to log telemetry:", telemErr);
+    }
+
+    // 4. Invalidate Dashboard Cache
+    try {
+      await invalidateDashboardCache(schoolId);
+      cacheInvalidated = true;
+    } catch (cacheErr: any) {
+      console.error("[StudentLifecycleEngine] Failed to invalidate dashboard cache:", cacheErr);
+    }
+
+    return {
+      smsQueued,
+      noticeCreated,
+      telemetryLogged,
+      cacheInvalidated,
+      failureReason,
+    };
   }
 }
