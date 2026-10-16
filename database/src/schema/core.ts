@@ -477,3 +477,67 @@ export const platformAuditLogs = pgTable(
     targetSchoolDateIdx: index("pal_target_school_date_idx").on(t.targetSchoolId, t.createdAt),
   }),
 );
+
+// ─── school_counters (S13 Monotonic Sequences) ─────────────────────────────────
+export const schoolCounters = pgTable(
+  "school_counters",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    counterKey: text("counter_key").notNull(),
+    lastValue: integer("last_value").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolKeyUnique: unique("school_counters_school_key_unique").on(
+      t.schoolId,
+      t.counterKey,
+    ),
+    schoolKeyIdx: index("school_counters_school_key_idx").on(
+      t.schoolId,
+      t.counterKey,
+    ),
+  }),
+);
+
+// ─── domain_events (S13 Durable Outbox Backbone) ──────────────────────────────
+export const domainEvents = pgTable(
+  "domain_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").notNull().defaultRandom(),
+    eventType: text("event_type").notNull(),
+    aggregateId: text("aggregate_id").notNull(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    payload: jsonb("payload").notNull(),
+    status: text("status").notNull().default("PENDING"),
+    retryCount: integer("retry_count").notNull().default(0),
+    error: text("error"),
+    occurredOn: timestamp("occurred_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    schoolStatusIdx: index("domain_events_school_status_idx").on(
+      t.schoolId,
+      t.status,
+    ),
+    statusCreatedIdx: index("domain_events_status_created_idx").on(
+      t.status,
+      t.createdAt,
+    ),
+  }),
+);

@@ -178,6 +178,8 @@ export const studentFamilyMembers = pgTable(
     nameEncrypted: text("name_encrypted").notNull(),
     mobileEncrypted: text("mobile_encrypted"),
     emailEncrypted: text("email_encrypted"),
+    mobileSearchHash: text("mobile_search_hash"),
+    emailSearchHash: text("email_search_hash"),
     occupationEncrypted: text("occupation_encrypted"),
     aadhaarLast4: text("aadhaar_last4"), // last 4 only — NEVER full
     // Linked user account
@@ -202,6 +204,14 @@ export const studentFamilyMembers = pgTable(
   (t) => ({
     studentIdx: index("student_family_members_student_idx").on(t.studentId),
     schoolIdx: index("student_family_members_school_idx").on(t.schoolId),
+    mobileHashIdx: index("student_family_members_mobile_hash_idx").on(
+      t.schoolId,
+      t.mobileSearchHash,
+    ),
+    emailHashIdx: index("student_family_members_email_hash_idx").on(
+      t.schoolId,
+      t.emailSearchHash,
+    ),
   }),
 );
 

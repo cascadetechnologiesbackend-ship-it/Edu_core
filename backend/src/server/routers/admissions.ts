@@ -8,6 +8,8 @@ import { logAuditEvent } from "@/lib/auditLogger";
 import crypto from "crypto";
 import { encryptData } from "@/lib/encryption";
 
+import { generateApplicationNumber } from "@/lib/sequenceGenerator";
+
 const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 
 export const admissionsRouter = createTRPCRouter({
@@ -52,14 +54,14 @@ export const admissionsRouter = createTRPCRouter({
         });
       }
 
-      const admissionNum = `APP/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`;
+      const applicationNumber = await generateApplicationNumber(targetSchoolId, undefined, ctx.db);
 
       const [application] = await ctx.db
         .insert(admissionApplications)
         .values({
           schoolId: targetSchoolId,
           academicYearId: input.academicYearId,
-          applicationNumber: admissionNum,
+          applicationNumber,
           applicantNameEncrypted: encryptData(input.applicantName),
           dateOfBirth: new Date(input.dateOfBirth),
           gender: input.gender,

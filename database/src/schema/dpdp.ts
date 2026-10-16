@@ -25,6 +25,7 @@ export const consentMethodEnum = pgEnum("consent_method", [
   "web_form",
   "app",
   "physical_scan",
+  "admin_attestation",
 ]);
 
 export const rightsRequestTypeEnum = pgEnum("rights_request_type", [

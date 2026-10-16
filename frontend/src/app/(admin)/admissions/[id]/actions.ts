@@ -23,6 +23,7 @@ import { eq, and, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { autoAssignFeeStructuresToStudent } from "@/lib/feeAssignmentEngine";
+import { generateAdmissionNumber } from "@schoolmitra/backend/lib/sequenceGenerator";
 import bcrypt from "bcryptjs";
 import { sendSMS } from "@/lib/sms";
 import {
@@ -115,9 +116,6 @@ export async function enrollApplicant(
     throw new Error("Target section not found or does not belong to class");
   }
 
-  // Generate institutional admission number
-  const admissionNum = `ADM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
   // Parse applicant names
   const applicantName =
     decryptData(application.applicantNameEncrypted) || "Unknown Student";
@@ -131,6 +129,9 @@ export async function enrollApplicant(
   const aadhaarLast4 = rawAadhaar ? rawAadhaar.slice(-4) : null;
 
   return await db.transaction(async (tx) => {
+    // Generate institutional monotonic admission number
+    const admissionNum = await generateAdmissionNumber(school.id, undefined, tx);
+
     // 1. Provision canonical Person Master record
     const [person] = await tx
       .insert(persons)

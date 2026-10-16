@@ -70,7 +70,7 @@ describe("S13 Layer 0 Failing-Capture Tests (Empirical Confirmation of F2, F3, F
           isActive: true,
         })
         .returning({ id: students.id });
-      testStudentId = newStu.id;
+      testStudentId = newStu!.id;
     });
 
     // Verify 0 rows in student_subject_enrollments
