@@ -20,6 +20,7 @@ COPY frontend/package.json ./frontend/
 COPY packages/domain-events/package.json ./packages/domain-events/
 COPY packages/dpdp/package.json ./packages/dpdp/
 COPY packages/validators/package.json ./packages/validators/
+COPY packages/eslint-plugin-schoolmitra/package.json ./packages/eslint-plugin-schoolmitra/
 
 RUN pnpm install --frozen-lockfile
 
