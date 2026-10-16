@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { classes, sections } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { getActiveAcademicYear } from "../actions/auth-helper";
@@ -30,24 +30,26 @@ export default async function AcademicReportsPage() {
   }
 
   const allClasses = activeYear
-    ? await db.query.classes.findMany({
-        where: and(
-          eq(classes.schoolId, schoolId),
-          eq(classes.academicYearId, activeYear.id),
-          eq(classes.isActive, true),
-        ),
-        with: {
-          sections: {
-            where: eq(sections.isActive, true),
-            orderBy: [asc(sections.name)],
-          },
-          classSubjects: {
-            with: {
-              subject: { columns: { name: true, code: true } },
+    ? await withTenant(schoolId, async (tx) => {
+        return tx.query.classes.findMany({
+          where: and(
+            eq(classes.schoolId, schoolId),
+            eq(classes.academicYearId, activeYear.id),
+            eq(classes.isActive, true),
+          ),
+          with: {
+            sections: {
+              where: eq(sections.isActive, true),
+              orderBy: [asc(sections.name)],
+            },
+            classSubjects: {
+              with: {
+                subject: { columns: { name: true, code: true } },
+              },
             },
           },
-        },
-        orderBy: [asc(classes.sortOrder), asc(classes.gradeLevel)],
+          orderBy: [asc(classes.sortOrder), asc(classes.gradeLevel)],
+        });
       })
     : [];
 

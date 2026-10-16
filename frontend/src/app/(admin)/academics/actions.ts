@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   classes,
   sections,
@@ -50,20 +50,22 @@ async function getAuditContext(session: any) {
 
 export async function getClassrooms() {
   const session = await checkAuth();
-  return await db.query.classes.findMany({
-    where: and(
-      eq(classes.schoolId, session.user.schoolId!),
-      eq(classes.isActive, true),
-    ),
-    orderBy: [classes.sortOrder],
-    with: {
-      sections: {
-        where: and(
-          eq(sections.schoolId, session.user.schoolId!),
-          eq(sections.isActive, true),
-        ),
+  return await withTenant(session.user.schoolId!, async (tx) => {
+    return tx.query.classes.findMany({
+      where: and(
+        eq(classes.schoolId, session.user.schoolId!),
+        eq(classes.isActive, true),
+      ),
+      orderBy: [classes.sortOrder],
+      with: {
+        sections: {
+          where: and(
+            eq(sections.schoolId, session.user.schoolId!),
+            eq(sections.isActive, true),
+          ),
+        },
       },
-    },
+    });
   });
 }
 
@@ -90,30 +92,32 @@ export async function saveClassroom(data: {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const activeYear = await getActiveAcademicYear(session.user.schoolId!);
 
-  if (data.id) {
-    await db
-      .update(classes)
-      .set({
+  await withTenant(session.user.schoolId!, async (tx) => {
+    if (data.id) {
+      await tx
+        .update(classes)
+        .set({
+          gradeLevel: data.gradeLevel,
+          displayName: data.displayName,
+          sortOrder: data.sortOrder,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(classes.id, data.id),
+            eq(classes.schoolId, session.user.schoolId!),
+          ),
+        );
+    } else {
+      await tx.insert(classes).values({
+        schoolId: session.user.schoolId!,
+        academicYearId: activeYear.id,
         gradeLevel: data.gradeLevel,
         displayName: data.displayName,
         sortOrder: data.sortOrder,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(classes.id, data.id),
-          eq(classes.schoolId, session.user.schoolId!),
-        ),
-      );
-  } else {
-    await db.insert(classes).values({
-      schoolId: session.user.schoolId!,
-      academicYearId: activeYear.id,
-      gradeLevel: data.gradeLevel,
-      displayName: data.displayName,
-      sortOrder: data.sortOrder,
-    });
-  }
+      });
+    }
+  });
   try {
     revalidatePath("/academics");
   } catch {}
@@ -129,50 +133,53 @@ export async function saveSection(data: {
   roomNumber?: string | null;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
-  const cls = await db.query.classes.findFirst({
-    where: and(
-      eq(classes.id, data.classId),
-      eq(classes.schoolId, session.user.schoolId!),
-    ),
-  });
-  if (!cls) throw new Error("Invalid class specified");
 
-  const capacityVal = data.capacity ?? 40;
-  const teacherIdVal = data.classTeacherId || null;
-  const roomNumberVal = data.roomNumber || null;
+  return await withTenant(session.user.schoolId!, async (tx) => {
+    const cls = await tx.query.classes.findFirst({
+      where: and(
+        eq(classes.id, data.classId),
+        eq(classes.schoolId, session.user.schoolId!),
+      ),
+    });
+    if (!cls) throw new Error("Invalid class specified");
 
-  if (data.id) {
-    await db
-      .update(sections)
-      .set({
+    const capacityVal = data.capacity ?? 40;
+    const teacherIdVal = data.classTeacherId || null;
+    const roomNumberVal = data.roomNumber || null;
+
+    if (data.id) {
+      await tx
+        .update(sections)
+        .set({
+          name: data.name,
+          capacity: capacityVal,
+          ...(teacherIdVal !== undefined
+            ? { classTeacherId: teacherIdVal }
+            : {}),
+          ...(roomNumberVal !== undefined ? { roomNumber: roomNumberVal } : {}),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(sections.id, data.id),
+            eq(sections.schoolId, session.user.schoolId!),
+          ),
+        );
+    } else {
+      await tx.insert(sections).values({
+        schoolId: session.user.schoolId!,
+        classId: data.classId,
         name: data.name,
         capacity: capacityVal,
-        ...(teacherIdVal !== undefined
-          ? { classTeacherId: teacherIdVal }
-          : {}),
-        ...(roomNumberVal !== undefined ? { roomNumber: roomNumberVal } : {}),
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(sections.id, data.id),
-          eq(sections.schoolId, session.user.schoolId!),
-        ),
-      );
-  } else {
-    await db.insert(sections).values({
-      schoolId: session.user.schoolId!,
-      classId: data.classId,
-      name: data.name,
-      capacity: capacityVal,
-      ...(teacherIdVal ? { classTeacherId: teacherIdVal } : {}),
-      ...(roomNumberVal ? { roomNumber: roomNumberVal } : {}),
-    });
-  }
-  try {
-    revalidatePath("/academics");
-  } catch {}
-  return { success: true };
+        ...(teacherIdVal ? { classTeacherId: teacherIdVal } : {}),
+        ...(roomNumberVal ? { roomNumber: roomNumberVal } : {}),
+      });
+    }
+    try {
+      revalidatePath("/academics");
+    } catch {}
+    return { success: true };
+  });
 }
 
 // ─── 2. Subject Master Actions ────────────────────────────────────────────────

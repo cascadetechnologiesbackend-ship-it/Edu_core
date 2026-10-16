@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { requireAuth } from "@/lib/serverAuth";
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   classes,
   sections,
@@ -48,66 +48,77 @@ export default async function AcademicsPage() {
   const data = await withDataPhaseTiming("/academics", async () => {
     return assertQueryBudget(
       async () => {
-        // Fetch all School Data in parallel with strict tenant scoping
-        const [activeYear, classroomsList, subjectsList, mappingsList, teachersList, pendingSubsResult] =
-          await Promise.all([
-            schoolId
-              ? getActiveAcademicYear(schoolId).catch(() => null)
-              : Promise.resolve(null),
+        // Fetch all School Data with strict tenant scoping
+        const [activeYear, teachersList] = await Promise.all([
+          schoolId
+            ? getActiveAcademicYear(schoolId).catch(() => null)
+            : Promise.resolve(null),
+          getCanonicalTeachingStaff(schoolId).catch(() => []),
+        ]);
 
-            db.query.classes.findMany({
-              where: and(
-                eq(classes.schoolId, schoolId),
-                eq(classes.isActive, true),
-              ),
-              orderBy: [classes.sortOrder],
-              with: {
-                sections: {
-                  where: and(
-                    eq(sections.schoolId, schoolId),
-                    eq(sections.isActive, true),
-                  ),
-                },
-              },
-            }),
-
-            db.query.subjects.findMany({
-              where: and(
-                eq(subjects.schoolId, schoolId),
-                eq(subjects.isActive, true),
-              ),
-              orderBy: [subjects.name],
-            }),
-
-            db.query.classSubjects.findMany({
-              where: eq(classSubjects.schoolId, schoolId),
-              with: {
-                class: true,
-                subject: true,
-              },
-            }),
-
-            getCanonicalTeachingStaff(schoolId).catch(() => []),
-
-            db
-              .select({ c: count() })
-              .from(timetableSubstitutions)
-              .where(
-                and(
-                  eq(timetableSubstitutions.schoolId, schoolId),
-                  eq(timetableSubstitutions.status, "PENDING"),
+        const tenantData = schoolId
+          ? await withTenant(schoolId, async (tx) => {
+              const classroomsList = await tx.query.classes.findMany({
+                where: and(
+                  eq(classes.schoolId, schoolId),
+                  eq(classes.isActive, true),
                 ),
-              )
-              .catch(() => [{ c: 0 }]),
-          ]);
+                orderBy: [classes.sortOrder],
+                with: {
+                  sections: {
+                    where: and(
+                      eq(sections.schoolId, schoolId),
+                      eq(sections.isActive, true),
+                    ),
+                  },
+                },
+              });
+
+              const subjectsList = await tx.query.subjects.findMany({
+                where: and(
+                  eq(subjects.schoolId, schoolId),
+                  eq(subjects.isActive, true),
+                ),
+                orderBy: [subjects.name],
+              });
+
+              const mappingsList = await tx.query.classSubjects.findMany({
+                where: eq(classSubjects.schoolId, schoolId),
+                with: {
+                  class: true,
+                  subject: true,
+                },
+              });
+
+              const pendingSubsResult = await tx
+                .select({ c: count() })
+                .from(timetableSubstitutions)
+                .where(
+                  and(
+                    eq(timetableSubstitutions.schoolId, schoolId),
+                    eq(timetableSubstitutions.status, "PENDING"),
+                  ),
+                )
+                .catch(() => [{ c: 0 }]);
+
+              return {
+                classroomsList,
+                subjectsList,
+                mappingsList,
+                pendingSubsResult,
+              };
+            })
+          : {
+              classroomsList: [],
+              subjectsList: [],
+              mappingsList: [],
+              pendingSubsResult: [{ c: 0 }],
+            };
 
         return {
           activeYear,
-          classroomsList,
-          subjectsList,
-          mappingsList,
           teachersList,
-          pendingSubsResult,
+          ...tenantData,
         };
       },
       { maxQueries: 10, label: "Academics Hub" }

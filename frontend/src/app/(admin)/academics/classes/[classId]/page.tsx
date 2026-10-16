@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   timetablePeriods,
   assignments,
@@ -65,68 +65,62 @@ export default async function ClassHubPage({
   const secIds = cls.sections.map((s: any) => s.id);
   const csIds = cls.classSubjects.map((cs: any) => cs.id);
 
-  // Fetch initial timetable periods for all sections in this class
-  const timetable =
-    secIds.length > 0
-      ? await db.query.timetablePeriods.findMany({
-          where: and(
-            eq(timetablePeriods.schoolId, schoolId),
-            inArray(timetablePeriods.sectionId, secIds),
-            eq(timetablePeriods.isActive, true),
-          ),
-          with: {
-            subject: { columns: { id: true, name: true, code: true } },
-            teacher: { columns: { id: true, email: true } },
-          },
-        })
-      : [];
-
-  // Fetch initial assignments for this class
-  const classAssignments =
-    csIds.length > 0
-      ? await db.query.assignments.findMany({
-          where: and(
-            eq(assignments.schoolId, schoolId),
-            inArray(assignments.classSubjectId, csIds),
-          ),
-          with: {
-            classSubject: { with: { subject: { columns: { name: true } } } },
-            section: { columns: { id: true, name: true } },
-          },
-          limit: 20,
-        })
-      : [];
-
-  // Fetch initial lesson plans
-  const classLessons =
-    csIds.length > 0
-      ? await db.query.lessonPlans.findMany({
-          where: and(
-            eq(lessonPlans.schoolId, schoolId),
-            inArray(lessonPlans.classSubjectId, csIds),
-          ),
-          with: {
-            classSubject: { with: { subject: { columns: { name: true } } } },
-          },
-          limit: 20,
-        })
-      : [];
-
-  // Fetch initial assessments
-  const classAssessments =
-    csIds.length > 0
-      ? await db.query.assessments.findMany({
-          where: and(
-            eq(assessments.schoolId, schoolId),
-            inArray(assessments.classSubjectId, csIds),
-          ),
-          with: {
-            classSubject: { with: { subject: { columns: { name: true } } } },
-            section: { columns: { id: true, name: true } },
-          },
-          limit: 20,
-        })
-      : [];
+  const [timetable, classAssignments, classLessons, classAssessments] =
+    await withTenant(schoolId, async (tx) => {
+      return Promise.all([
+        secIds.length > 0
+          ? tx.query.timetablePeriods.findMany({
+              where: and(
+                eq(timetablePeriods.schoolId, schoolId),
+                inArray(timetablePeriods.sectionId, secIds),
+                eq(timetablePeriods.isActive, true),
+              ),
+              with: {
+                subject: { columns: { id: true, name: true, code: true } },
+                teacher: { columns: { id: true, email: true } },
+              },
+            })
+          : [],
+        csIds.length > 0
+          ? tx.query.assignments.findMany({
+              where: and(
+                eq(assignments.schoolId, schoolId),
+                inArray(assignments.classSubjectId, csIds),
+              ),
+              with: {
+                classSubject: { with: { subject: { columns: { name: true } } } },
+                section: { columns: { id: true, name: true } },
+              },
+              limit: 20,
+            })
+          : [],
+        csIds.length > 0
+          ? tx.query.lessonPlans.findMany({
+              where: and(
+                eq(lessonPlans.schoolId, schoolId),
+                inArray(lessonPlans.classSubjectId, csIds),
+              ),
+              with: {
+                classSubject: { with: { subject: { columns: { name: true } } } },
+              },
+              limit: 20,
+            })
+          : [],
+        csIds.length > 0
+          ? tx.query.assessments.findMany({
+              where: and(
+                eq(assessments.schoolId, schoolId),
+                inArray(assessments.classSubjectId, csIds),
+              ),
+              with: {
+                classSubject: { with: { subject: { columns: { name: true } } } },
+                section: { columns: { id: true, name: true } },
+              },
+              limit: 20,
+            })
+          : [],
+      ]);
+    });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

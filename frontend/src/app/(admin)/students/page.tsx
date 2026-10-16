@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   students,
   classes,
@@ -46,20 +46,22 @@ export default async function StudentsDirectoryPage() {
                 )`
               );
 
-          // Run classes, sections, and initial students in a single parallel Promise.all (zero sequential roundtrip)
-          const [classesList, allSections, initialStudentRows] = await Promise.all([
-            db.query.classes.findMany({
+          // Run classes, sections, and initial students within withTenant to satisfy RLS
+          const { classesList, allSections, initialStudentRows } = await withTenant(school.id, async (tx) => {
+            const classesList = await tx.query.classes.findMany({
               where: and(
                 eq(classes.schoolId, school.id),
                 eq(classes.isActive, true),
               ),
               orderBy: [classes.sortOrder, classes.displayName],
-            }),
-            db.query.sections.findMany({
+            });
+
+            const allSections = await tx.query.sections.findMany({
               where: eq(sections.schoolId, school.id),
               with: { class: true },
-            }),
-            db.query.students.findMany({
+            });
+
+            const initialStudentRows = await tx.query.students.findMany({
               where: studentCondition,
               columns: {
                 id: true,
@@ -74,8 +76,10 @@ export default async function StudentsDirectoryPage() {
               },
               orderBy: [desc(students.createdAt)],
               limit: INITIAL_PAGE_SIZE + 1, // +1 for cursor computation
-            }),
-          ]);
+            });
+
+            return { classesList, allSections, initialStudentRows };
+          });
 
           const hasNextPage = initialStudentRows.length > INITIAL_PAGE_SIZE;
           const pagedRows = hasNextPage ? initialStudentRows.slice(0, INITIAL_PAGE_SIZE) : initialStudentRows;

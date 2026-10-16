@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   academicYears,
   classes,
@@ -108,95 +108,98 @@ export async function verifyTeacherAccessToClassSubject(
   classSubjectId: string,
   sectionId?: string,
 ): Promise<void> {
-  // 1. Verify classSubject exists and belongs to this school
-  const cs = await db.query.classSubjects.findFirst({
-    where: and(
-      eq(classSubjects.id, classSubjectId),
-      eq(classSubjects.schoolId, session.user.schoolId),
-    ),
-    with: {
-      class: true,
-    },
-  });
-  if (!cs || !cs.class || !cs.class.isActive) {
-    throw new Error("Invalid or inactive class subject");
-  }
-
-  // 2. Verify class belongs to active academic year
-  const activeYear = await getActiveAcademicYear(session.user.schoolId);
-  if (cs.class.academicYearId !== activeYear.id) {
-    throw new Error("Class subject does not belong to the active academic year");
-  }
-
-  // 3. If sectionId is specified, verify it belongs to this exact class and school
-  if (sectionId) {
-    const sec = await db.query.sections.findFirst({
+  return withTenant(session.user.schoolId, async (tx) => {
+    // 1. Verify classSubject exists and belongs to this school
+    const cs = await tx.query.classSubjects.findFirst({
       where: and(
-        eq(sections.id, sectionId),
-        eq(sections.schoolId, session.user.schoolId),
-        eq(sections.classId, cs.classId),
-        eq(sections.isActive, true),
+        eq(classSubjects.id, classSubjectId),
+        eq(classSubjects.schoolId, session.user.schoolId),
       ),
+      with: {
+        class: true,
+      },
     });
-    if (!sec) {
-      throw new Error(
-        "Invalid section: section does not belong to this class or is inactive",
-      );
+
+    if (!cs || !cs.class || !cs.class.isActive) {
+      throw new Error("Invalid or inactive class subject");
     }
-  }
 
-  // 4. Role & Assignment authorization check
-  if (["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role)) {
-    return;
-  }
+    // 2. Verify class belongs to active academic year
+    const activeYear = await getActiveAcademicYear(session.user.schoolId);
+    if (cs.class.academicYearId !== activeYear.id) {
+      throw new Error("Class subject does not belong to the active academic year");
+    }
 
-  if (session.user.role === "TEACHER") {
-    // If sectionId is specified, check section-level allocation first
+    // 3. If sectionId is specified, verify it belongs to this exact class and school
     if (sectionId) {
-      const sectionAlloc = await db.query.sectionSubjectTeachers.findFirst({
+      const sec = await tx.query.sections.findFirst({
         where: and(
-          eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
-          eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
-          eq(sectionSubjectTeachers.sectionId, sectionId),
-          eq(sectionSubjectTeachers.isActive, true),
-          isNull(sectionSubjectTeachers.effectiveTo),
+          eq(sections.id, sectionId),
+          eq(sections.schoolId, session.user.schoolId),
+          eq(sections.classId, cs.classId),
+          eq(sections.isActive, true),
         ),
       });
-
-      if (sectionAlloc) {
-        // Section-specific teacher allocation takes absolute precedence
-        if (sectionAlloc.teacherId === session.user.id) {
-          return;
-        }
+      if (!sec) {
         throw new Error(
-          "Access Denied: Another teacher is specifically allocated to this section.",
+          "Invalid section: section does not belong to this class or is inactive",
         );
       }
-    } else {
-      // If no sectionId specified (e.g. class-level syllabus), check if teacher is allocated to any section
-      const anySectionAlloc = await db.query.sectionSubjectTeachers.findFirst({
-        where: and(
-          eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
-          eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
-          eq(sectionSubjectTeachers.teacherId, session.user.id),
-          eq(sectionSubjectTeachers.isActive, true),
-          isNull(sectionSubjectTeachers.effectiveTo),
-        ),
-      });
-      if (anySectionAlloc) {
+    }
+
+    // 4. Role & Assignment authorization check
+    if (["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role)) {
+      return;
+    }
+
+    if (session.user.role === "TEACHER") {
+      // If sectionId is specified, check section-level allocation first
+      if (sectionId) {
+        const sectionAlloc = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+            eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
+            eq(sectionSubjectTeachers.sectionId, sectionId),
+            eq(sectionSubjectTeachers.isActive, true),
+            isNull(sectionSubjectTeachers.effectiveTo),
+          ),
+        });
+
+        if (sectionAlloc) {
+          // Section-specific teacher allocation takes absolute precedence
+          if (sectionAlloc.teacherId === session.user.id) {
+            return;
+          }
+          throw new Error(
+            "Access Denied: Another teacher is specifically allocated to this section.",
+          );
+        }
+      } else {
+        // If no sectionId specified (e.g. class-level syllabus), check if teacher is allocated to any section
+        const anySectionAlloc = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+            eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
+            eq(sectionSubjectTeachers.teacherId, session.user.id),
+            eq(sectionSubjectTeachers.isActive, true),
+            isNull(sectionSubjectTeachers.effectiveTo),
+          ),
+        });
+        if (anySectionAlloc) {
+          return;
+        }
+      }
+
+      // Class-level default teacher mapping (only applies if no section-specific allocation exists)
+      if (cs.assignedTeacherId === session.user.id) {
         return;
       }
     }
 
-    // Class-level default teacher mapping (only applies if no section-specific allocation exists)
-    if (cs.assignedTeacherId === session.user.id) {
-      return;
-    }
-  }
-
-  throw new Error(
-    "Access Denied: You are not assigned or authorized for this subject/section.",
-  );
+    throw new Error(
+      "Access Denied: You are not assigned or authorized for this subject/section.",
+    );
+  });
 }
 
 /**

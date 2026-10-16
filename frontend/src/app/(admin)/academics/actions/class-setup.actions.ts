@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   classes,
   sections,
@@ -49,7 +49,7 @@ export async function createClassSetup(data: {
     const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
     const activeYear = await getActiveAcademicYear(session.user.schoolId);
 
-    return await db.transaction(async (tx) => {
+    return await withTenant(session.user.schoolId, async (tx) => {
       // Pre-check for duplicate gradeLevel in the same school and academic year
       const existingClass = await tx.query.classes.findFirst({
         where: and(
@@ -125,189 +125,193 @@ export async function createClassSetup(data: {
 export async function getClassWithDetails(classId: string) {
   const session = await checkAuth();
 
-  return await db.query.classes.findFirst({
-    where: and(
-      eq(classes.id, classId),
-      eq(classes.schoolId, session.user.schoolId),
-      eq(classes.isActive, true),
-    ),
-    with: {
-      sections: {
-        where: eq(sections.isActive, true),
-        with: {
-          classTeacher: {
-            columns: { id: true, email: true },
+  return await withTenant(session.user.schoolId, async (tx) => {
+    return await tx.query.classes.findFirst({
+      where: and(
+        eq(classes.id, classId),
+        eq(classes.schoolId, session.user.schoolId),
+        eq(classes.isActive, true),
+      ),
+      with: {
+        sections: {
+          where: eq(sections.isActive, true),
+          with: {
+            classTeacher: {
+              columns: { id: true, email: true },
+            },
+          },
+        },
+        classSubjects: {
+          with: {
+            subject: true,
+            teacher: {
+              columns: { id: true, email: true },
+            },
           },
         },
       },
-      classSubjects: {
-        with: {
-          subject: true,
-          teacher: {
-            columns: { id: true, email: true },
-          },
-        },
-      },
-    },
+    });
   });
 }
 
 export async function getClassHubOverview(classId: string) {
   const session = await checkAuth();
 
-  const cls = await db.query.classes.findFirst({
-    where: and(
-      eq(classes.id, classId),
-      eq(classes.schoolId, session.user.schoolId),
-    ),
-    with: {
-      sections: {
-        where: eq(sections.isActive, true),
-        with: {
-          classTeacher: { columns: { id: true, email: true } },
-        },
-      },
-      classSubjects: {
-        with: {
-          subject: true,
-          teacher: { columns: { id: true, email: true } },
-        },
-      },
-    },
-  });
-
-  if (!cls) return null;
-
-  const csIds = cls.classSubjects.map((cs: any) => cs.id);
-  let pendingLessonPlansCount = 0;
-  let pendingAssignmentsCount = 0;
-
-  if (csIds.length > 0) {
-    const [lp, asg] = await Promise.all([
-      db
-        .select({ c: count() })
-        .from(lessonPlans)
-        .where(
-          and(
-            eq(lessonPlans.schoolId, session.user.schoolId),
-            inArray(lessonPlans.classSubjectId, csIds),
-            eq(lessonPlans.status, "PLANNED"),
-          ),
-        ),
-      db
-        .select({ c: count() })
-        .from(assignments)
-        .where(
-          and(
-            eq(assignments.schoolId, session.user.schoolId),
-            inArray(assignments.classSubjectId, csIds),
-            eq(assignments.status, "PUBLISHED"),
-          ),
-        ),
-    ]);
-    pendingLessonPlansCount = Number(lp[0]?.c ?? 0);
-    pendingAssignmentsCount = Number(asg[0]?.c ?? 0);
-  }
-
-  // Calculate syllabus progress for each subject in this class
-  const subjectProgress = await Promise.all(
-    cls.classSubjects.map(async (cs: any) => {
-      // Find all syllabus topic IDs for this classSubject
-      const units = await db.query.syllabusUnits.findMany({
-        where: and(
-          eq(syllabusUnits.classSubjectId, cs.id),
-          eq(syllabusUnits.isActive, true),
-          isNull(syllabusUnits.deletedAt),
-        ),
-        with: {
-          chapters: {
-            where: and(
-              eq(syllabusChapters.isActive, true),
-              isNull(syllabusChapters.deletedAt),
-            ),
-            with: {
-              topics: {
-                where: and(
-                  eq(syllabusTopics.isActive, true),
-                  isNull(syllabusTopics.deletedAt),
-                ),
-                columns: { id: true },
-              },
-            },
+  return await withTenant(session.user.schoolId, async (tx) => {
+    const cls = await tx.query.classes.findFirst({
+      where: and(
+        eq(classes.id, classId),
+        eq(classes.schoolId, session.user.schoolId),
+      ),
+      with: {
+        sections: {
+          where: eq(sections.isActive, true),
+          with: {
+            classTeacher: { columns: { id: true, email: true } },
           },
         },
-      });
+        classSubjects: {
+          with: {
+            subject: true,
+            teacher: { columns: { id: true, email: true } },
+          },
+        },
+      },
+    });
 
-      const topicIds = units.flatMap((u) =>
-        u.chapters.flatMap((c) => c.topics.map((t) => t.id)),
-      );
+    if (!cls) return null;
 
-      const total = topicIds.length;
-      let completed = 0;
+    const csIds = cls.classSubjects.map((cs: any) => cs.id);
+    let pendingLessonPlansCount = 0;
+    let pendingAssignmentsCount = 0;
 
-      if (total > 0) {
-        const completedPlans = await db
-          .select({ c: countDistinct(lessonPlans.syllabusTopicId) })
+    if (csIds.length > 0) {
+      const [lp, asg] = await Promise.all([
+        tx
+          .select({ c: count() })
           .from(lessonPlans)
           .where(
             and(
-              eq(lessonPlans.classSubjectId, cs.id),
-              eq(lessonPlans.status, "COMPLETED"),
-              inArray(lessonPlans.syllabusTopicId, topicIds),
+              eq(lessonPlans.schoolId, session.user.schoolId),
+              inArray(lessonPlans.classSubjectId, csIds),
+              eq(lessonPlans.status, "PLANNED"),
             ),
-          );
-        completed = Number(completedPlans[0]?.c ?? 0);
-      } else {
-        // Fallback to general lesson plan count if no syllabus topics defined
-        const [allPlans, donePlans] = await Promise.all([
-          db
-            .select({ c: count() })
-            .from(lessonPlans)
-            .where(eq(lessonPlans.classSubjectId, cs.id)),
-          db
-            .select({ c: count() })
+          ),
+        tx
+          .select({ c: count() })
+          .from(assignments)
+          .where(
+            and(
+              eq(assignments.schoolId, session.user.schoolId),
+              inArray(assignments.classSubjectId, csIds),
+              eq(assignments.status, "PUBLISHED"),
+            ),
+          ),
+      ]);
+      pendingLessonPlansCount = Number(lp[0]?.c ?? 0);
+      pendingAssignmentsCount = Number(asg[0]?.c ?? 0);
+    }
+
+    // Calculate syllabus progress for each subject in this class
+    const subjectProgress = await Promise.all(
+      cls.classSubjects.map(async (cs: any) => {
+        // Find all syllabus topic IDs for this classSubject
+        const units = await tx.query.syllabusUnits.findMany({
+          where: and(
+            eq(syllabusUnits.classSubjectId, cs.id),
+            eq(syllabusUnits.isActive, true),
+            isNull(syllabusUnits.deletedAt),
+          ),
+          with: {
+            chapters: {
+              where: and(
+                eq(syllabusChapters.isActive, true),
+                isNull(syllabusChapters.deletedAt),
+              ),
+              with: {
+                topics: {
+                  where: and(
+                    eq(syllabusTopics.isActive, true),
+                    isNull(syllabusTopics.deletedAt),
+                  ),
+                  columns: { id: true },
+                },
+              },
+            },
+          },
+        });
+
+        const topicIds = units.flatMap((u) =>
+          u.chapters.flatMap((c) => c.topics.map((t) => t.id)),
+        );
+
+        const total = topicIds.length;
+        let completed = 0;
+
+        if (total > 0) {
+          const completedPlans = await tx
+            .select({ c: countDistinct(lessonPlans.syllabusTopicId) })
             .from(lessonPlans)
             .where(
               and(
                 eq(lessonPlans.classSubjectId, cs.id),
                 eq(lessonPlans.status, "COMPLETED"),
+                inArray(lessonPlans.syllabusTopicId, topicIds),
               ),
-            ),
-        ]);
-        const fallbackTotal = Number(allPlans[0]?.c ?? 0);
-        const fallbackDone = Number(donePlans[0]?.c ?? 0);
+            );
+          completed = Number(completedPlans[0]?.c ?? 0);
+        } else {
+          // Fallback to general lesson plan count if no syllabus topics defined
+          const [allPlans, donePlans] = await Promise.all([
+            tx
+              .select({ c: count() })
+              .from(lessonPlans)
+              .where(eq(lessonPlans.classSubjectId, cs.id)),
+            tx
+              .select({ c: count() })
+              .from(lessonPlans)
+              .where(
+                and(
+                  eq(lessonPlans.classSubjectId, cs.id),
+                  eq(lessonPlans.status, "COMPLETED"),
+                ),
+              ),
+          ]);
+          const fallbackTotal = Number(allPlans[0]?.c ?? 0);
+          const fallbackDone = Number(donePlans[0]?.c ?? 0);
+          return {
+            classSubjectId: cs.id,
+            subjectName: cs.subject.name,
+            total: fallbackTotal,
+            completed: fallbackDone,
+            percentage: calculateSyllabusProgress(fallbackTotal, fallbackDone),
+          };
+        }
+
         return {
           classSubjectId: cs.id,
           subjectName: cs.subject.name,
-          total: fallbackTotal,
-          completed: fallbackDone,
-          percentage: calculateSyllabusProgress(fallbackTotal, fallbackDone),
+          total,
+          completed,
+          percentage: calculateSyllabusProgress(total, completed),
         };
-      }
+      }),
+    );
 
-      return {
-        classSubjectId: cs.id,
-        subjectName: cs.subject.name,
-        total,
-        completed,
-        percentage: calculateSyllabusProgress(total, completed),
-      };
-    }),
-  );
+    const totalTopicsAll = subjectProgress.reduce((sum, s) => sum + s.total, 0);
+    const totalCompletedAll = subjectProgress.reduce((sum, s) => sum + s.completed, 0);
+    const overallProgress = calculateSyllabusProgress(totalTopicsAll, totalCompletedAll);
 
-  const totalTopicsAll = subjectProgress.reduce((sum, s) => sum + s.total, 0);
-  const totalCompletedAll = subjectProgress.reduce((sum, s) => sum + s.completed, 0);
-  const overallProgress = calculateSyllabusProgress(totalTopicsAll, totalCompletedAll);
-
-  return {
-    class: cls,
-    sectionCount: cls.sections.length,
-    subjectCount: cls.classSubjects.length,
-    pendingLessonPlansCount,
-    pendingAssignmentsCount,
-    overallProgress,
-    subjectProgress,
-  };
+    return {
+      class: cls,
+      sectionCount: cls.sections.length,
+      subjectCount: cls.classSubjects.length,
+      pendingLessonPlansCount,
+      pendingAssignmentsCount,
+      overallProgress,
+      subjectProgress,
+    };
+  });
 }
 
 // ─── 3. Section Teacher Allocation (Rules #10, #14) ───────────────────────────
@@ -357,7 +361,7 @@ export async function assignSectionTeacher(data: {
   if (!sec) throw new Error("Invalid section specified");
 
   // Transactionally close active allocation and insert new allocation
-  await db.transaction(async (tx) => {
+  await withTenant(session.user.schoolId, async (tx) => {
     // Check current active allocation for temporal integrity
     const currentActive = await tx.query.sectionSubjectTeachers.findFirst({
       where: and(
@@ -413,117 +417,118 @@ export async function assignSectionTeacher(data: {
 export async function deleteClass(classId: string): Promise<{ success: true; message: string }> {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
-  // 1. Fetch class with sections and class subjects
-  const cls = await db.query.classes.findFirst({
-    where: and(
-      eq(classes.id, classId),
-      eq(classes.schoolId, session.user.schoolId),
-    ),
-    with: {
-      sections: true,
-      classSubjects: true,
-    },
-  });
-
-  if (!cls) {
-    throw new Error("Class not found or does not belong to your school.");
-  }
-
-  const sectionIds = cls.sections.map((s) => s.id);
-
-  // 2. Safeguard check: enrolled students in class or its sections
-  const [enrolledInClass] = await db
-    .select({ count: count() })
-    .from(students)
-    .where(
-      and(
-        eq(students.schoolId, session.user.schoolId),
-        eq(students.currentClassId, classId),
+  return await withTenant(session.user.schoolId, async (tx) => {
+    // 1. Fetch class with sections and class subjects
+    const cls = await tx.query.classes.findFirst({
+      where: and(
+        eq(classes.id, classId),
+        eq(classes.schoolId, session.user.schoolId),
       ),
-    );
+      with: {
+        sections: true,
+        classSubjects: true,
+      },
+    });
 
-  if (enrolledInClass && Number(enrolledInClass.count) > 0) {
-    throw new Error(
-      `Cannot delete "${cls.displayName}": ${enrolledInClass.count} active student(s) are currently enrolled in this class. Please reassign or graduate students first.`,
-    );
-  }
+    if (!cls) {
+      throw new Error("Class not found or does not belong to your school.");
+    }
 
-  if (sectionIds.length > 0) {
-    const [enrolledInSections] = await db
+    const sectionIds = cls.sections.map((s) => s.id);
+
+    // 2. Safeguard check: enrolled students in class or its sections
+    const [enrolledInClass] = await tx
       .select({ count: count() })
       .from(students)
       .where(
         and(
           eq(students.schoolId, session.user.schoolId),
-          inArray(students.currentSectionId, sectionIds),
+          eq(students.currentClassId, classId),
         ),
       );
 
-    if (enrolledInSections && Number(enrolledInSections.count) > 0) {
+    if (enrolledInClass && Number(enrolledInClass.count) > 0) {
       throw new Error(
-        `Cannot delete "${cls.displayName}": ${enrolledInSections.count} active student(s) are currently enrolled in sections of this class. Please reassign students first.`,
+        `Cannot delete "${cls.displayName}": ${enrolledInClass.count} active student(s) are currently enrolled in this class. Please reassign or graduate students first.`,
       );
     }
-  }
 
-  // 4. Safeguard check: fee structures
-  const [linkedFees] = await db
-    .select({ count: count() })
-    .from(feeStructures)
-    .where(
-      and(
-        eq(feeStructures.schoolId, session.user.schoolId),
-        eq(feeStructures.classId, classId),
-        eq(feeStructures.isActive, true),
-      ),
-    );
+    if (sectionIds.length > 0) {
+      const [enrolledInSections] = await tx
+        .select({ count: count() })
+        .from(students)
+        .where(
+          and(
+            eq(students.schoolId, session.user.schoolId),
+            inArray(students.currentSectionId, sectionIds),
+          ),
+        );
 
-  if (linkedFees && Number(linkedFees.count) > 0) {
-    throw new Error(
-      `Cannot delete "${cls.displayName}": Active fee structures are associated with this class. Please remove or update fee structures first.`,
-    );
-  }
+      if (enrolledInSections && Number(enrolledInSections.count) > 0) {
+        throw new Error(
+          `Cannot delete "${cls.displayName}": ${enrolledInSections.count} active student(s) are currently enrolled in sections of this class. Please reassign students first.`,
+        );
+      }
+    }
 
-  // 5. Safeguard check: exam schedules
-  const [linkedExams] = await db
-    .select({ count: count() })
-    .from(examSchedules)
-    .where(
-      and(
-        eq(examSchedules.schoolId, session.user.schoolId),
-        eq(examSchedules.classId, classId),
-      ),
-    );
-
-  if (linkedExams && Number(linkedExams.count) > 0) {
-    throw new Error(
-      `Cannot delete "${cls.displayName}": Examination schedules are linked to this class. Please delete or reassign exam schedules first.`,
-    );
-  }
-
-  // 6. Safeguard check: student attendance
-  if (sectionIds.length > 0) {
-    const [attendanceCount] = await db
+    // 4. Safeguard check: fee structures
+    const [linkedFees] = await tx
       .select({ count: count() })
-      .from(studentAttendance)
+      .from(feeStructures)
       .where(
         and(
-          eq(studentAttendance.schoolId, session.user.schoolId),
-          inArray(studentAttendance.sectionId, sectionIds),
+          eq(feeStructures.schoolId, session.user.schoolId),
+          eq(feeStructures.classId, classId),
+          eq(feeStructures.isActive, true),
         ),
       );
 
-    if (attendanceCount && Number(attendanceCount.count) > 0) {
+    if (linkedFees && Number(linkedFees.count) > 0) {
       throw new Error(
-        `Cannot delete "${cls.displayName}": Attendance records exist for sections in this class.`,
+        `Cannot delete "${cls.displayName}": Active fee structures are associated with this class. Please remove or update fee structures first.`,
       );
     }
-  }
 
-  const classSubjectIds = cls.classSubjects.map((cs) => cs.id);
+    // 5. Safeguard check: exam schedules
+    const [linkedExams] = await tx
+      .select({ count: count() })
+      .from(examSchedules)
+      .where(
+        and(
+          eq(examSchedules.schoolId, session.user.schoolId),
+          eq(examSchedules.classId, classId),
+        ),
+      );
 
-  // 7. Atomic cascade cleanup
-  await db.transaction(async (tx) => {
+    if (linkedExams && Number(linkedExams.count) > 0) {
+      throw new Error(
+        `Cannot delete "${cls.displayName}": Examination schedules are linked to this class. Please delete or reassign exam schedules first.`,
+      );
+    }
+
+    // 6. Safeguard check: student attendance
+    if (sectionIds.length > 0) {
+      const [attendanceCount] = await tx
+        .select({ count: count() })
+        .from(studentAttendance)
+        .where(
+          and(
+            eq(studentAttendance.schoolId, session.user.schoolId),
+            inArray(studentAttendance.sectionId, sectionIds),
+          ),
+        );
+
+      if (attendanceCount && Number(attendanceCount.count) > 0) {
+        throw new Error(
+          `Cannot delete "${cls.displayName}": Attendance records exist for sections in this class.`,
+        );
+      }
+    }
+
+    const classSubjectIds = cls.classSubjects.map((cs) => cs.id);
+
+    // 7. Atomic cascade cleanup
+    // Delete in-progress or historical report card jobs if any
     // Delete in-progress or historical report card jobs if any
     await tx
       .delete(reportCardJobs)
@@ -713,10 +718,10 @@ export async function deleteClass(classId: string): Promise<{ success: true; mes
     await tx
       .delete(classes)
       .where(and(eq(classes.id, classId), eq(classes.schoolId, session.user.schoolId)));
-  });
 
-  try {
-    revalidatePath("/academics");
-  } catch {}
-  return { success: true as const, message: `Class "${cls.displayName}" was deleted successfully.` };
+    try {
+      revalidatePath("/academics");
+    } catch {}
+    return { success: true as const, message: `Class "${cls.displayName}" was deleted successfully.` };
+  });
 }

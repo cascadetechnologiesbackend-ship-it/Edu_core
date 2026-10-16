@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   classSubjects,
   sections,
@@ -21,23 +21,25 @@ import { cache } from "react";
 const getAuthSession = cache(async () => auth());
 
 const getClassSubjectCached = cache(async (classSubjectId: string, schoolId: string) => {
-  return db.query.classSubjects.findFirst({
-    where: and(
-      eq(classSubjects.id, classSubjectId),
-      eq(classSubjects.schoolId, schoolId),
-    ),
-    with: {
-      subject: true,
-      class: {
-        with: {
-          sections: {
-            where: eq(sections.isActive, true),
-            orderBy: [asc(sections.name)],
+  return withTenant(schoolId, async (tx) => {
+    return tx.query.classSubjects.findFirst({
+      where: and(
+        eq(classSubjects.id, classSubjectId),
+        eq(classSubjects.schoolId, schoolId),
+      ),
+      with: {
+        subject: true,
+        class: {
+          with: {
+            sections: {
+              where: eq(sections.isActive, true),
+              orderBy: [asc(sections.name)],
+            },
           },
         },
+        teacher: { columns: { id: true, email: true } },
       },
-      teacher: { columns: { id: true, email: true } },
-    },
+    });
   });
 });
 
@@ -105,26 +107,30 @@ export default async function SubjectWorkspacePage({
     getSectionSubjectTeachers(params.classSubjectId).catch(() => []),
     getSubjectSyllabusProgress(params.classSubjectId).catch(() => null),
     getTeachersList().catch(() => []),
-    db.query.assignments.findMany({
-      where: and(
-        eq(assignments.schoolId, schoolId),
-        eq(assignments.classSubjectId, params.classSubjectId),
-      ),
-      with: {
-        section: { columns: { name: true } },
-      },
-      orderBy: [desc(assignments.dueDate)],
-    }),
-    db.query.assessments.findMany({
-      where: and(
-        eq(assessments.schoolId, schoolId),
-        eq(assessments.classSubjectId, params.classSubjectId),
-      ),
-      with: {
-        section: { columns: { name: true } },
-      },
-      orderBy: [desc(assessments.date)],
-    }),
+    withTenant(schoolId, async (tx) =>
+      tx.query.assignments.findMany({
+        where: and(
+          eq(assignments.schoolId, schoolId),
+          eq(assignments.classSubjectId, params.classSubjectId),
+        ),
+        with: {
+          section: { columns: { name: true } },
+        },
+        orderBy: [desc(assignments.dueDate)],
+      }),
+    ),
+    withTenant(schoolId, async (tx) =>
+      tx.query.assessments.findMany({
+        where: and(
+          eq(assessments.schoolId, schoolId),
+          eq(assessments.classSubjectId, params.classSubjectId),
+        ),
+        with: {
+          section: { columns: { name: true } },
+        },
+        orderBy: [desc(assessments.date)],
+      }),
+    ),
   ]);
 
   const initialProgress = {
