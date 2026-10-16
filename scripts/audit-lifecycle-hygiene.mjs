@@ -83,6 +83,18 @@ function scanDirectory(dir) {
           message: "Reference to dead in-memory DomainEventPublisher found. Use durable domainEvents outbox table (Migration 0042) and domainEventWorker.",
         });
       }
+
+      // Check 4: Hardcoded localhost IP in audit/consent writes (Layer 7)
+      if (
+        content.includes('ipAddress: "127.0.0.1"') ||
+        content.includes("ipAddress: '127.0.0.1'")
+      ) {
+        violations.push({
+          file: path.relative(projectRoot, fullPath),
+          type: "HARDCODED_LOOPBACK_IP",
+          message: "Hardcoded 127.0.0.1 audit/consent IP address found. Use getClientRequestContext() instead.",
+        });
+      }
     }
   }
 }
@@ -99,7 +111,7 @@ if (violations.length > 0) {
   }
   process.exit(1);
 } else {
-  console.log("✅ S13 Lifecycle Hygiene Guard PASSED: student creation is strictly engine-scoped, zero ghost references, zero dead in-memory event publisher references.");
+  console.log("✅ S13 Lifecycle Hygiene Guard PASSED: student creation is strictly engine-scoped, zero ghost references, zero dead in-memory event publisher references, zero hardcoded 127.0.0.1 audit/consent IPs.");
   process.exit(0);
 }
 

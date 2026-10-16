@@ -3,6 +3,7 @@ import { feeInvoices, students, feePayments, auditLogs } from "@/db/schema";
 import { eq, desc, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { getStudentAdvanceBalance } from "@/lib/advanceFeesEngine";
 import { CheckoutButton } from "./CheckoutButton";
 import Link from "next/link";
@@ -67,6 +68,7 @@ export default async function ParentFeesPage({
   const allInvoices: any[] = [];
   const allPayments: any[] = [];
 
+  const reqCtx = getClientRequestContext();
   for (const student of myStudents) {
     // DPDP AUDIT LOGGING
     await db.insert(auditLogs).values({
@@ -77,8 +79,8 @@ export default async function ParentFeesPage({
       action: "READ",
       tableName: "fee_invoices",
       recordId: student.id,
-      ipAddress: "127.0.0.1",
-      userAgent: "ParentPortal",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: { note: "Parent viewed student fee ledger" },
     });
 

@@ -5,6 +5,7 @@ import { academicYears, auditLogs } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 export async function toggleAcademicYearFiscalLockAction(input: {
   academicYearId: string;
@@ -48,6 +49,7 @@ export async function toggleAcademicYearFiscalLockAction(input: {
       })
       .where(and(eq(academicYears.id, ay.id), eq(academicYears.schoolId, school.id)));
 
+    const reqCtx = getClientRequestContext();
     // Mandatory Audit Log
     await db.insert(auditLogs).values({
       userId: ctx.userId,
@@ -58,8 +60,8 @@ export async function toggleAcademicYearFiscalLockAction(input: {
       tableName: "academic_years",
       recordId: ay.id,
       purposeId: "fiscal_governance",
-      ipAddress: "127.0.0.1",
-      userAgent: "Fees Dashboard Action",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: {
         action: input.isLocked ? "LOCK_FISCAL_YEAR" : "UNLOCK_FISCAL_YEAR",
         academicYearLabel: ay.label,

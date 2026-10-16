@@ -14,7 +14,7 @@ import { eq, and, isNull, desc, sql } from "drizzle-orm";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { z } from "zod";
 
-import { headers } from "next/headers";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 const ALLOWED_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"] as const;
 
@@ -25,13 +25,7 @@ async function checkAuth() {
 }
 
 function makeAuditCtx(ctx: any) {
-  let ip = "127.0.0.1";
-  let userAgent = "system/server-action";
-  try {
-    const h = headers();
-    ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "127.0.0.1";
-    userAgent = h.get("user-agent") || "system/server-action";
-  } catch {}
+  const reqCtx = getClientRequestContext();
   return {
     session: {
       user: {
@@ -44,8 +38,8 @@ function makeAuditCtx(ctx: any) {
     userId: ctx.userId,
     userEmail: ctx.email,
     userRole: ctx.role,
-    ip,
-    userAgent,
+    ip: reqCtx.ipAddress,
+    userAgent: reqCtx.userAgent,
   } as any;
 }
 

@@ -192,6 +192,8 @@ export async function persistUnauthorizedRouteAudit(params: {
   try {
     const { db } = await import("@/db");
     const { auditLogs } = await import("@/db/schema");
+    const { getClientRequestContext } = await import("./requestContext");
+    const reqCtx = getClientRequestContext();
     const now = new Date();
 
     const isUuid = (val?: string | null) =>
@@ -209,8 +211,8 @@ export async function persistUnauthorizedRouteAudit(params: {
       tableName: "routes",
       recordId: params.pathname,
       purposeId: "rbac_security_enforcement",
-      ipAddress: "127.0.0.1",
-      userAgent: "RouteGuard",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: {
         event: "UNAUTHORIZED_ROUTE_ATTEMPT",
         pathname: params.pathname,

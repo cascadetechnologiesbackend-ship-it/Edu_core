@@ -63,6 +63,33 @@ import { withTenant } from "./tenant";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+export class InactiveAcademicYearError extends Error {
+  public readonly code = "INACTIVE_ACADEMIC_YEAR";
+  constructor(
+    public readonly academicYearId: string,
+    public readonly schoolId: string,
+  ) {
+    super(
+      `Application references academic year '${academicYearId}' which is not currently active for school '${schoolId}'`,
+    );
+    this.name = "InactiveAcademicYearError";
+  }
+}
+
+export class SectionCapacityExceededError extends Error {
+  public readonly code = "SECTION_CAPACITY_EXCEEDED";
+  constructor(
+    public readonly sectionId: string,
+    public readonly capacity: number,
+    public readonly currentCount: number,
+  ) {
+    super(
+      `Target section '${sectionId}' is at capacity (${currentCount}/${capacity})`,
+    );
+    this.name = "SectionCapacityExceededError";
+  }
+}
+
 export interface StudentEnrollmentInput {
   schoolId: string;
   applicationId: string;
@@ -75,6 +102,7 @@ export interface StudentEnrollmentInput {
   clientIp?: string | undefined;
   userAgent?: string | undefined;
   skipCapacityCheck?: boolean | undefined;
+  blockOnCapacity?: boolean | undefined;
   forceSmsFailure?: boolean | undefined; // Testing hook for verifying resilient decoupled SMS failure
 }
 
@@ -133,6 +161,67 @@ export class StudentLifecycleEngine {
       !rawIp || rawIp === "127.0.0.1" || rawIp === "::1"
         ? "0.0.0.0"
         : rawIp;
+
+    // ─── Layer 7: Pre-Transaction Sibling Detection ──────────────────────────
+    // Pre-computed outside the transaction lock window using indexed search hashes.
+    // Guarantees zero O(all families) decryption and zero search scans inside the tx.
+    let precomputedSibling = {
+      isDetected: false,
+      siblingStudentId: null as string | null,
+    };
+
+    const preApp = await withTenant(schoolId, async (tenantDb) => {
+      return await tenantDb.query.admissionApplications.findFirst({
+        where: and(
+          eq(admissionApplications.id, applicationId),
+          eq(admissionApplications.schoolId, schoolId),
+        ),
+      });
+    });
+
+    if (preApp) {
+      if (preApp.hasSiblingInSchool && preApp.siblingStudentId) {
+        precomputedSibling = {
+          isDetected: true,
+          siblingStudentId: preApp.siblingStudentId,
+        };
+      } else {
+        const rawMobile = preApp.primaryContactMobileEncrypted
+          ? decryptData(preApp.primaryContactMobileEncrypted)
+          : null;
+        const rawEmail = preApp.primaryContactEmailEncrypted
+          ? decryptData(preApp.primaryContactEmailEncrypted)
+          : null;
+        const mobileHash = rawMobile
+          ? computeSearchHash(rawMobile.replace(/\D/g, "").slice(-10))
+          : null;
+        const emailHash = rawEmail
+          ? computeSearchHash(rawEmail.trim().toLowerCase())
+          : null;
+
+        if (mobileHash || emailHash) {
+          const matchingFamily = await withTenant(schoolId, async (tenantDb) => {
+            return await tenantDb.query.studentFamilyMembers.findFirst({
+              where: and(
+                eq(studentFamilyMembers.schoolId, schoolId),
+                mobileHash && emailHash
+                  ? sql`(${studentFamilyMembers.mobileSearchHash} = ${mobileHash} OR ${studentFamilyMembers.emailSearchHash} = ${emailHash})`
+                  : mobileHash
+                    ? eq(studentFamilyMembers.mobileSearchHash, mobileHash)
+                    : eq(studentFamilyMembers.emailSearchHash, emailHash!),
+              ),
+            });
+          });
+
+          if (matchingFamily) {
+            precomputedSibling = {
+              isDetected: true,
+              siblingStudentId: matchingFamily.studentId,
+            };
+          }
+        }
+      }
+    }
 
     const enrollmentTxResult = await withTenant(schoolId, async (tx) => {
       // 1. Fetch Application Record with Tenant Scope Guard
@@ -206,7 +295,7 @@ export class StudentLifecycleEngine {
         );
       }
 
-      // 4. Validate Active Academic Year
+      // 4. Validate Active Academic Year (L7 Typed Error)
       const activeYear = await tx.query.academicYears.findFirst({
         where: and(
           eq(academicYears.id, application.academicYearId),
@@ -215,12 +304,10 @@ export class StudentLifecycleEngine {
         ),
       });
       if (!activeYear) {
-        throw new Error(
-          `Application references academic year '${application.academicYearId}' which is not currently active for school '${schoolId}'`,
-        );
+        throw new InactiveAcademicYearError(application.academicYearId, schoolId);
       }
 
-      // 5. Section Capacity Guard (Warn and allow overflow per Decision D4)
+      // 5. Section Capacity Guard (Warn or block per Decision D4 / L7)
       let capacityWarning = false;
       if (!input.skipCapacityCheck && targetSection.capacity) {
         const [enrolledCountRow] = await tx
@@ -235,6 +322,13 @@ export class StudentLifecycleEngine {
           );
         const currentCount = Number(enrolledCountRow?.count ?? 0);
         if (currentCount >= targetSection.capacity) {
+          if (input.blockOnCapacity) {
+            throw new SectionCapacityExceededError(
+              sectionId,
+              targetSection.capacity,
+              currentCount,
+            );
+          }
           capacityWarning = true;
         }
       }
@@ -509,24 +603,26 @@ export class StudentLifecycleEngine {
         });
       }
 
-      // 12. Document Linkage
+      // 12. Document Linkage (L7: Batched Insertion)
       const appDocs = await tx.query.admissionDocuments.findMany({
         where: eq(admissionDocuments.applicationId, application.id),
       });
-      for (const doc of appDocs) {
-        await tx.insert(studentDocuments).values({
-          studentId: newStudent.id,
-          schoolId,
-          documentType: doc.documentType,
-          s3Key: doc.s3Key,
-          originalFileName: doc.originalFileName,
-          mimeType: doc.mimeType,
-          fileSizeBytes: 0,
-          uploadedById: performedByUserId,
-          isVerified: doc.isVerified,
-          verifiedById: doc.verifiedById,
-          verifiedAt: doc.verifiedAt,
-        });
+      if (appDocs.length > 0) {
+        await tx.insert(studentDocuments).values(
+          appDocs.map((doc) => ({
+            studentId: newStudent.id,
+            schoolId,
+            documentType: doc.documentType,
+            s3Key: doc.s3Key,
+            originalFileName: doc.originalFileName,
+            mimeType: doc.mimeType,
+            fileSizeBytes: 0,
+            uploadedById: performedByUserId,
+            isVerified: doc.isVerified,
+            verifiedById: doc.verifiedById,
+            verifiedAt: doc.verifiedAt,
+          })),
+        );
       }
 
       // 13. DPDP Truthful Consent Attestation (L4 foundation)
@@ -546,45 +642,24 @@ export class StudentLifecycleEngine {
         });
       }
 
-      // 14. Multi-Factor Sibling Detection & Concessions
-      let isSiblingDetected = Boolean(application.hasSiblingInSchool);
-      let detectedSiblingId: string | null = application.siblingStudentId || null;
+      // 14. Sibling Concessions (L7: Records outcome from pre-computed hash scan)
+      const isSiblingDetected = precomputedSibling.isDetected;
+      const detectedSiblingId = precomputedSibling.siblingStudentId;
 
-      if (!isSiblingDetected) {
-        // Fast search-hash match on family members
-        if (primaryMobileHash || primaryEmailHash) {
-          const matchingFamily = await tx.query.studentFamilyMembers.findFirst({
-            where: and(
-              eq(studentFamilyMembers.schoolId, schoolId),
-              ne(studentFamilyMembers.studentId, newStudent.id),
-              primaryMobileHash && primaryEmailHash
-                ? sql`(${studentFamilyMembers.mobileSearchHash} = ${primaryMobileHash} OR ${studentFamilyMembers.emailSearchHash} = ${primaryEmailHash})`
-                : primaryMobileHash
-                  ? eq(studentFamilyMembers.mobileSearchHash, primaryMobileHash)
-                  : eq(studentFamilyMembers.emailSearchHash, primaryEmailHash!),
+      if (isSiblingDetected && !application.hasSiblingInSchool) {
+        await tx
+          .update(admissionApplications)
+          .set({
+            hasSiblingInSchool: true,
+            siblingStudentId: detectedSiblingId,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(admissionApplications.id, application.id),
+              eq(admissionApplications.schoolId, schoolId),
             ),
-          });
-          if (matchingFamily) {
-            isSiblingDetected = true;
-            detectedSiblingId = matchingFamily.studentId;
-          }
-        }
-
-        if (isSiblingDetected) {
-          await tx
-            .update(admissionApplications)
-            .set({
-              hasSiblingInSchool: true,
-              siblingStudentId: detectedSiblingId,
-              updatedAt: new Date(),
-            })
-            .where(
-              and(
-                eq(admissionApplications.id, application.id),
-                eq(admissionApplications.schoolId, schoolId),
-              ),
-            );
-        }
+          );
       }
 
       const concessionsApplied: string[] = [];

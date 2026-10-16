@@ -17,6 +17,7 @@ import {
 import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { requireExamPermission } from "@/lib/examPermissions";
 import { seedExamBoardDefaults } from "@/lib/examSeeding";
 import {
@@ -458,6 +459,7 @@ export async function loadBoardDefaultsForSchool(input?: {
     { activeClassGroups: activeGroups },
   );
 
+  const reqCtx = getClientRequestContext();
   // Audit log entry per Amendment 11
   await db.insert(auditLogs).values({
     userId: ctx.userId,
@@ -468,8 +470,8 @@ export async function loadBoardDefaultsForSchool(input?: {
     tableName: "examinations",
     recordId: school.id,
     purposeId: "exam_setup",
-    ipAddress: "127.0.0.1",
-    userAgent: "SchoolMitra/ExamSetup",
+    ipAddress: reqCtx.ipAddress,
+    userAgent: reqCtx.userAgent,
     metadata: {
       action: "LOAD_BOARD_DEFAULTS",
       board: schoolRow.board,
@@ -557,6 +559,7 @@ export async function createBoardTermPlan() {
   const ctx = await requireAuth(ADMIN_ROLES);
   requireExamPermission(ctx, "exam.setup.manage");
   const school = await requireSchool(ctx);
+  const reqCtx = await getClientRequestContext();
 
   const schoolRow = await db.query.schools.findFirst({
     where: eq(schools.id, school.id),
@@ -739,8 +742,8 @@ export async function createBoardTermPlan() {
     tableName: "examinations",
     recordId: school.id,
     purposeId: "exam_setup",
-    ipAddress: "127.0.0.1",
-    userAgent: "SchoolMitra/ExamSetup",
+    ipAddress: reqCtx.ipAddress,
+    userAgent: reqCtx.userAgent,
     metadata: {
       action: "CREATE_BOARD_TERM_PLAN",
       board: schoolRow.board,

@@ -158,7 +158,7 @@ export async function executeRetentionPolicy(
             tableName: "students",
             recordId: s.id,
             purposeId: p.purposeId,
-            ipAddress: "127.0.0.1",
+            ipAddress: "0.0.0.0",
             userAgent: "Retention Worker",
             metadata: { policyId: p.id, action: "SOFT_DELETE" },
           });
@@ -215,7 +215,7 @@ export async function executeRetentionPolicy(
             tableName: "staff",
             recordId: st.id,
             purposeId: p.purposeId,
-            ipAddress: "127.0.0.1",
+            ipAddress: "0.0.0.0",
             userAgent: "Retention Worker",
             metadata: { policyId: p.id, action: "SOFT_DELETE" },
           });
@@ -293,7 +293,7 @@ export async function executeRetentionPolicy(
               tableName: "students",
               recordId: s.id,
               purposeId: p.purposeId,
-              ipAddress: "127.0.0.1",
+              ipAddress: "0.0.0.0",
               userAgent: "Retention Worker",
               metadata: {
                 policyId: p.id,
@@ -326,7 +326,7 @@ export async function executeRetentionPolicy(
                 tableName: "students",
                 recordId: s.id,
                 purposeId: p.purposeId,
-                ipAddress: "127.0.0.1",
+                ipAddress: "0.0.0.0",
                 userAgent: "Retention Worker",
                 metadata: { policyId: p.id, action: "HARD_PURGE" },
               });
@@ -360,7 +360,7 @@ export async function executeRetentionPolicy(
                 tableName: "students",
                 recordId: s.id,
                 purposeId: p.purposeId,
-                ipAddress: "127.0.0.1",
+                ipAddress: "0.0.0.0",
                 userAgent: "Retention Worker",
                 metadata: {
                   policyId: p.id,
@@ -406,7 +406,7 @@ export async function executeRetentionPolicy(
               tableName: "staff",
               recordId: st.id,
               purposeId: p.purposeId,
-              ipAddress: "127.0.0.1",
+              ipAddress: "0.0.0.0",
               userAgent: "Retention Worker",
               metadata: { policyId: p.id, action: "HARD_PURGE" },
             });
@@ -439,7 +439,7 @@ export async function executeRetentionPolicy(
               tableName: "staff",
               recordId: st.id,
               purposeId: p.purposeId,
-              ipAddress: "127.0.0.1",
+              ipAddress: "0.0.0.0",
               userAgent: "Retention Worker",
               metadata: {
                 policyId: p.id,
@@ -511,7 +511,7 @@ export async function executeConsentWithdrawals(schoolId: string) {
       tableName: "consent_records",
       recordId: record.id,
       purposeId: record.purposeId,
-      ipAddress: "127.0.0.1",
+      ipAddress: "0.0.0.0",
       userAgent: "Retention Worker",
       metadata: { action: "CONSENT_WITHDRAWAL_ENFORCED" },
     });

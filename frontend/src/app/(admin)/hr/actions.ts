@@ -30,6 +30,7 @@ import { eq, and, gte, lte, sql, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { encryptData, decryptData, computeSearchHash } from "@/lib/encryption";
 import { z } from "zod";
 import { runPayrollCalculations } from "@/lib/payrollEngine";
@@ -54,6 +55,7 @@ async function logHrAudit(
   metadata?: any,
 ) {
   try {
+    const reqCtx = getClientRequestContext();
     await db.insert(auditLogs).values({
       userId: ctx.userId,
       userEmail: "[audit-system]",
@@ -63,8 +65,8 @@ async function logHrAudit(
       tableName,
       recordId,
       purposeId: "hr_records",
-      ipAddress: "127.0.0.1",
-      userAgent: "HR Phase 1 Server Action",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: metadata || {},
     });
   } catch (err) {

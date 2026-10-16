@@ -243,6 +243,7 @@ export async function fetchStudentCompleteData(studentId: string) {
     const { assertConsent } = await import("@/server/middleware/consent");
     await assertConsent(targetStudent.id, "academic_records");
 
+    const reqCtx = getClientRequestContext();
     // Log this PII access to Audit Logs! (Crucial DPDP requirement)
     await db.insert(auditLogs).values({
       schoolId: targetStudent.schoolId,
@@ -252,8 +253,8 @@ export async function fetchStudentCompleteData(studentId: string) {
       action: "READ",
       tableName: "students",
       recordId: targetStudent.id,
-      ipAddress: "127.0.0.1",
-      userAgent: "Parent Subject Rights Portal",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: { action: "SUBJECT_ACCESS_REQUEST" },
     });
 

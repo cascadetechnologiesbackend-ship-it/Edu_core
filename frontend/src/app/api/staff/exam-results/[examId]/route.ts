@@ -18,6 +18,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const forwarded = req.headers.get("x-forwarded-for");
+    const rawIp = forwarded ? forwarded.split(",")[0]?.trim() : req.headers.get("x-real-ip");
+    const clientIp = !rawIp || rawIp === "127.0.0.1" || rawIp === "::1" ? "0.0.0.0" : rawIp;
+    const clientUa = req.headers.get("user-agent") || "StaffAPI";
+
     const role = session.user.role;
     if (!STAFF_ROLES.includes(role as any)) {
       return NextResponse.json(
@@ -69,8 +74,8 @@ export async function GET(
               tableName: "exams",
               recordId: params.examId,
               purposeId: "cross_tenant_violation",
-              ipAddress: "127.0.0.1",
-              userAgent: "StaffAPI",
+              ipAddress: clientIp,
+              userAgent: clientUa,
               metadata: {
                 event: "CROSS_TENANT_EXAM_RESULTS_ACCESS_ATTEMPT",
                 attemptedExamId: params.examId,
@@ -113,8 +118,8 @@ export async function GET(
             tableName: "mark_entries",
             recordId: params.examId,
             purposeId: "rbac_security_enforcement",
-            ipAddress: "127.0.0.1",
-            userAgent: "StaffAPI",
+            ipAddress: clientIp,
+            userAgent: clientUa,
             metadata: {
               event: "TEACHER_UNASSIGNED_EXAM_QUERY",
               examId: params.examId,

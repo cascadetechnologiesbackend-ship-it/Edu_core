@@ -57,7 +57,7 @@ export async function logExamIsolationViolation(params: {
       tableName: params.tableName,
       recordId: params.recordId ?? null,
       purposeId: params.purposeId || "cross_tenant_violation",
-      ipAddress: "127.0.0.1",
+      ipAddress: "0.0.0.0",
       userAgent: "ExamIsolationGuard",
       metadata: {
         timestamp: new Date().toISOString(),

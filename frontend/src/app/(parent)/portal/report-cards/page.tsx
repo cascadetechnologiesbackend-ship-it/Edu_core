@@ -14,6 +14,7 @@ import {
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { resolveResultVisibility } from "@/lib/gradeEngine";
 import Link from "next/link";
 import {
@@ -122,6 +123,7 @@ export default async function ParentReportCardsPage() {
   }> = [];
 
   for (const st of myStudents) {
+    const reqCtx = getClientRequestContext();
     // DPDP AUDIT LOGGING
     await db.insert(auditLogs).values({
       schoolId: st.schoolId,
@@ -131,8 +133,8 @@ export default async function ParentReportCardsPage() {
       action: "READ",
       tableName: "result_snapshots",
       recordId: st.id,
-      ipAddress: "127.0.0.1",
-      userAgent: "PortalReportCard",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: { note: "Parent/Student accessed report card portal" },
     });
 

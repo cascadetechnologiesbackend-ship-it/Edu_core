@@ -13,6 +13,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { auth } from "@/lib/auth";
 import { executeRetentionPolicy } from "@/workers/retention";
 
@@ -39,6 +40,7 @@ export async function toggleLegalHold(
         .where(and(eq(staff.id, recordId), eq(staff.schoolId, school.id)));
     }
 
+    const reqCtx = getClientRequestContext();
     // Log to DPDP Audit Log
     await db.insert(auditLogs).values({
       userId: ctx.userId,
@@ -49,8 +51,8 @@ export async function toggleLegalHold(
       tableName: targetTable,
       recordId,
       purposeId: "legal_compliance",
-      ipAddress: "127.0.0.1",
-      userAgent: "Server Action",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: { legalHoldChanged: hold },
     });
 

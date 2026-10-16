@@ -234,7 +234,7 @@ export async function persistUnauthorizedRouteAudit(params: {
       tableName: "routes",
       recordId: params.pathname,
       purposeId: "rbac_security_enforcement",
-      ipAddress: "127.0.0.1",
+      ipAddress: "0.0.0.0",
       userAgent: "RouteGuard",
       metadata: {
         event: "UNAUTHORIZED_ROUTE_ATTEMPT",

@@ -12,6 +12,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 function safeRevalidate(path: string) {
   try {
@@ -172,6 +173,7 @@ export async function promoteStudent(
         })
         .where(and(eq(students.id, studentId), eq(students.schoolId, school.id)));
 
+      const reqCtx = getClientRequestContext();
       // 3. Audit log
       await tx.insert(auditLogs).values({
         schoolId: school.id,
@@ -182,8 +184,8 @@ export async function promoteStudent(
         tableName: "student_class_history",
         recordId: studentId,
         purposeId: "student_promotion",
-        ipAddress: "127.0.0.1",
-        userAgent: "SchoolMitra SIS",
+        ipAddress: reqCtx.ipAddress,
+        userAgent: reqCtx.userAgent,
         metadata: {
           previousClassId: student.currentClassId,
           previousSectionId: student.currentSectionId,

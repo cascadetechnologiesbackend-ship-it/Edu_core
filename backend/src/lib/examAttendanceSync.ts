@@ -279,7 +279,7 @@ export async function syncExamAttendance(
           tableName: "student_attendance",
           recordId: existing.id,
           purposeId: "exam_attendance_correction",
-          ipAddress: "127.0.0.1",
+          ipAddress: "0.0.0.0",
           userAgent: "SchoolMitra/ExamSyncEngine",
           metadata: {
             event: "EXAM_ATTENDANCE_RECONCILED",

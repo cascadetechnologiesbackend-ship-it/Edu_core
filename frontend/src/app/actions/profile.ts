@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/serverAuth";
 import { auth } from "@/lib/auth";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { db } from "@/db";
 import {
   users,
@@ -450,6 +451,7 @@ export async function updateSelfProfileAction(
       await tx.update(students).set(studentUpdates).where(eq(students.id, studentRow.id));
     }
 
+    const reqCtx = getClientRequestContext();
     // 5. Audit Log (No Plaintext PII logged)
     await tx.insert(auditLogs).values({
       userId,
@@ -460,8 +462,8 @@ export async function updateSelfProfileAction(
       tableName: "persons",
       recordId: person?.id || userId,
       purposeId: "self_service_profile_update",
-      ipAddress: "127.0.0.1",
-      userAgent: "NextServerAction",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: {
         updatedKeys: Object.keys(validated).filter(
           (k) => k !== "hasGivenDpdpConsent" && validated[k as keyof typeof validated] !== undefined
@@ -533,6 +535,7 @@ export async function uploadAvatarAction(
       .where(eq(staff.id, staffRow.id));
   }
 
+  const reqCtx = getClientRequestContext();
   // Audit log
   await db.insert(auditLogs).values({
     userId,
@@ -543,8 +546,8 @@ export async function uploadAvatarAction(
     tableName: "persons",
     recordId: personId,
     purposeId: "avatar_upload",
-    ipAddress: "127.0.0.1",
-    userAgent: "NextServerAction",
+    ipAddress: reqCtx.ipAddress,
+    userAgent: reqCtx.userAgent,
     metadata: { s3Key, mimeType: file.type, sizeBytes: file.size },
   });
 

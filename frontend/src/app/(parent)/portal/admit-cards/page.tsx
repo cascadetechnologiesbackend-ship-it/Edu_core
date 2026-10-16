@@ -15,6 +15,7 @@ import {
 import { eq, and, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
+import { getClientRequestContext } from "@/lib/requestContext";
 import Link from "next/link";
 import { FileCheck2 } from "lucide-react";
 import {
@@ -137,6 +138,7 @@ export default async function ParentPortalAdmitCardsPage() {
   // 2. Build cards for linked students
   const cards: StudentAdmitCardData[] = [];
 
+  const reqCtx = getClientRequestContext();
   for (const st of myStudents) {
     // Audit log
     await db.insert(auditLogs).values({
@@ -147,8 +149,8 @@ export default async function ParentPortalAdmitCardsPage() {
       action: "READ",
       tableName: "exam_admit_card_settings",
       recordId: st.id,
-      ipAddress: "127.0.0.1",
-      userAgent: "PortalAdmitCard",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: { note: "Student/Parent viewed admit card portal" },
     });
 

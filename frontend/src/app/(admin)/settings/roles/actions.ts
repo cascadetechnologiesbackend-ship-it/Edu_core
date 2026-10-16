@@ -19,6 +19,7 @@ import { sendSMSWithStatus } from "@/lib/sms";
 import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
 import { generateRandomTempPassword } from "@/lib/tempPassword";
 import bcrypt from "bcryptjs";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 // ─── Internal Audit Helper ───────────────────────────────────────────────────
 async function logRbacAudit(
@@ -29,6 +30,7 @@ async function logRbacAudit(
   metadata?: Record<string, unknown>,
 ) {
   try {
+    const reqCtx = getClientRequestContext();
     await db.insert(auditLogs).values({
       userId: ctx.userId,
       userEmail: ctx.role === "SUPER_ADMIN" ? "super-admin@schoolmitra.internal" : "[admin-system]",
@@ -38,8 +40,8 @@ async function logRbacAudit(
       tableName,
       recordId,
       purposeId: "rbac_governance",
-      ipAddress: "127.0.0.1",
-      userAgent: "RBAC Governance Action",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
       metadata: metadata || {},
     });
   } catch (err) {
