@@ -6,6 +6,14 @@ import { ParentIdentityHeader, type StudentWardOption } from "./ParentIdentityHe
 import { FeedCard } from "./FeedCard";
 import { PaymentCard } from "./PaymentCard";
 import { BusLiveCard } from "./BusLiveCard";
+import { AttendanceCard } from "./AttendanceCard";
+import { HomeworkCard } from "./HomeworkCard";
+import { ReportCardCard } from "./ReportCardCard";
+import { PTMCard } from "./PTMCard";
+import { NoticeCard } from "./NoticeCard";
+import { ConsentCard } from "./ConsentCard";
+import { InsightCard } from "./InsightCard";
+import { MessageCard } from "./MessageCard";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -81,6 +89,87 @@ export function ParentFeedContainer({
             if (card.cardType === "BusLiveCard") {
               return (
                 <BusLiveCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "AttendanceCard") {
+              return (
+                <AttendanceCard
+                  key={card.id}
+                  card={card}
+                  studentName={selectedStudent.name}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "HomeworkCard") {
+              return (
+                <HomeworkCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "ReportCardCard") {
+              return (
+                <ReportCardCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "PTMCard") {
+              return (
+                <PTMCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "NoticeCard") {
+              return (
+                <NoticeCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "ConsentCard") {
+              return (
+                <ConsentCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "InsightCard") {
+              return (
+                <InsightCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "MessageCard") {
+              return (
+                <MessageCard
                   key={card.id}
                   card={card}
                   locale={locale}
