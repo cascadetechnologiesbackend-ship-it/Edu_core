@@ -5,6 +5,7 @@ import { TodayStrip } from "./TodayStrip";
 import { ParentIdentityHeader, type StudentWardOption } from "./ParentIdentityHeader";
 import { FeedCard } from "./FeedCard";
 import { PaymentCard } from "./PaymentCard";
+import { BusLiveCard } from "./BusLiveCard";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -73,6 +74,16 @@ export function ParentFeedContainer({
                   key={card.id}
                   card={card}
                   studentName={selectedStudent.name}
+                />
+              );
+            }
+
+            if (card.cardType === "BusLiveCard") {
+              return (
+                <BusLiveCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
                 />
               );
             }

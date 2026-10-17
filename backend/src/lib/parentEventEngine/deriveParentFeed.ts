@@ -4,6 +4,7 @@ import {
   DerivedFeedCard,
   ParentDataSnapshot,
 } from "./types";
+import { computeBusTracking } from "./busEta";
 
 /**
  * Checks if the current time falls inside a standard school commute window.
@@ -201,20 +202,28 @@ export function deriveParentFeed(
       const latestPing = snapshot.latestBusPing;
       const routeStops = snapshot.routeStops || [];
 
-      // Determine stops away
-      let stopsAway = 1;
-      let nearestStopName = busPass.stopName || "Your stop";
+      // Derive tracking using pure ETA engine
+      const tracking = computeBusTracking(
+        latestPing || null,
+        routeStops,
+        busPass.stopId,
+        now
+      );
 
-      if (routeStops.length > 0) {
-        const studentStop = routeStops.find((s) => s.id === busPass.stopId || s.stopOrder === busPass.stopOrder);
-        if (studentStop) {
-          // If latest ping exists, estimate bus stop position
-          const currentStopOrder = Math.max(1, (studentStop.stopOrder || 1) - 2);
-          stopsAway = Math.max(0, (studentStop.stopOrder || 1) - currentStopOrder);
-        }
+      const isApproaching = tracking.isApproaching;
+      const stopsAway = tracking.stopsAway;
+      const nearestStopName = tracking.studentStop?.name || busPass.stopName || "Your stop";
+
+      let cardTitleEn = "School Bus is En Route";
+      let cardTitleHi = "स्कूल बस रास्ते में है";
+
+      if (tracking.lifecycleState === "ARRIVED") {
+        cardTitleEn = `School Bus arrived at ${nearestStopName}`;
+        cardTitleHi = `स्कूल बस ${nearestStopName} पर पहुँच गई है`;
+      } else if (tracking.lifecycleState === "APPROACHING" && stopsAway > 0) {
+        cardTitleEn = `School Bus is ${stopsAway} stop${stopsAway > 1 ? "s" : ""} away`;
+        cardTitleHi = `स्कूल बस ${stopsAway} स्टॉप दूर है`;
       }
-
-      const isApproaching = stopsAway <= 2;
 
       cards.push({
         id: `bus-live-${busPass.routeId}`,
@@ -223,13 +232,10 @@ export function deriveParentFeed(
         tier: isApproaching ? "T1_action_required" : "T2_informational",
         priority: 100, // Pinned top during commute window!
         title: {
-          en: isApproaching ? `School Bus is ${stopsAway} stops away` : "School Bus is En Route",
-          hi: isApproaching ? `स्कूल बस ${stopsAway} स्टॉप दूर है` : "स्कूल बस रास्ते में है",
+          en: cardTitleEn,
+          hi: cardTitleHi,
         },
-        summary: {
-          en: `Bus on ${busPass.routeName || "transit route"} approaching ${nearestStopName}.`,
-          hi: `${nearestStopName} की ओर बढ़ रही बस रास्ते में है।`,
-        },
+        summary: tracking.summaryText,
         payload: {
           routeId: busPass.routeId,
           routeName: busPass.routeName || "Route",
@@ -237,8 +243,13 @@ export function deriveParentFeed(
           stopName: nearestStopName,
           stopsAway,
           isApproaching,
+          lifecycleState: tracking.lifecycleState,
+          etaMinutes: tracking.etaMinutes,
+          estimatedArrival: tracking.estimatedArrivalFormatted,
           vehiclePing: latestPing || null,
-          stopCoords: busPass.stopCoords || null,
+          stopCoords: busPass.stopCoords || (tracking.studentStop ? { lat: tracking.studentStop.lat, lng: tracking.studentStop.lng } : null),
+          routeStops,
+          distanceMeters: tracking.distanceToStudentStopMeters,
         },
         activatedAt: now,
         // Card expires at the end of the commute window (2 hours max)
