@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/dpdp",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "private": true,
   "description": "DPDP Act 2023 Consent Engine for SchoolMitra ERP",
   "main": "./src/index.ts",
