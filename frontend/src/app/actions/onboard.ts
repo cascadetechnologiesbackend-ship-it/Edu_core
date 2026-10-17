@@ -29,12 +29,14 @@ export interface ClassSetupItem {
   gradeLevel: string;
   displayName: string;
   sections: string[]; // e.g. ["A", "B"]
+  subjectCodes?: string[];
 }
 
 export interface SubjectSetupItem {
   name: string;
   code: string;
   subjectType: "THEORY" | "PRACTICAL" | "CO_SCHOLASTIC" | "LANGUAGE" | "ACTIVITY";
+  applicableClassGroups?: string[];
 }
 
 export interface FeeHeadSetupItem {
@@ -283,17 +285,18 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
         }).onConflictDoNothing();
       }
 
-      // Attach provisioned subjects to all created classes
+      // Attach provisioned subjects to created classes
       const createdClassesList = await tx
-        .select({ id: classes.id })
+        .select({ id: classes.id, displayName: classes.displayName, gradeLevel: classes.gradeLevel })
         .from(classes)
         .where(eq(classes.schoolId, newSchool.id));
       const createdSubjectsList = await tx
-        .select({ id: subjects.id })
+        .select({ id: subjects.id, code: subjects.code })
         .from(subjects)
         .where(eq(subjects.schoolId, newSchool.id));
 
       if (createdClassesList.length > 0 && createdSubjectsList.length > 0) {
+        const subjectCodeToId = new Map(createdSubjectsList.map((s) => [s.code, s.id]));
         const mappingsToInsert: Array<{
           schoolId: string;
           classId: string;
@@ -301,18 +304,43 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
           periodsPerWeek: number;
           isElective: boolean;
         }> = [];
+
         for (const cls of createdClassesList) {
-          for (const sub of createdSubjectsList) {
-            mappingsToInsert.push({
-              schoolId: newSchool.id,
-              classId: cls.id,
-              subjectId: sub.id,
-              periodsPerWeek: 5,
-              isElective: false,
-            });
+          const matchingSetup = sortedClasses.find(
+            (sc) => sc.displayName === cls.displayName || sc.gradeLevel === cls.gradeLevel
+          );
+
+          if (matchingSetup?.subjectCodes && matchingSetup.subjectCodes.length > 0) {
+            // Blueprint review selections: only attach specified subjects
+            for (const code of matchingSetup.subjectCodes) {
+              const subId = subjectCodeToId.get(code);
+              if (subId) {
+                mappingsToInsert.push({
+                  schoolId: newSchool.id,
+                  classId: cls.id,
+                  subjectId: subId,
+                  periodsPerWeek: 5,
+                  isElective: false,
+                });
+              }
+            }
+          } else {
+            // Fallback for setups without explicit subjectCodes
+            for (const sub of createdSubjectsList) {
+              mappingsToInsert.push({
+                schoolId: newSchool.id,
+                classId: cls.id,
+                subjectId: sub.id,
+                periodsPerWeek: 5,
+                isElective: false,
+              });
+            }
           }
         }
-        await tx.insert(classSubjects).values(mappingsToInsert).onConflictDoNothing();
+
+        if (mappingsToInsert.length > 0) {
+          await tx.insert(classSubjects).values(mappingsToInsert).onConflictDoNothing();
+        }
       }
 
       // 5. Create Fee Heads
