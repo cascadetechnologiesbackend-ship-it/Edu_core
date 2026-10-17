@@ -53,4 +53,86 @@ describe("Parent Feed Primitives & Zero-Clutter Invariant (Phase P3 / AC-P1)", (
     expect(containerCode).toContain("cards.length > 0 &&");
     expect(containerCode).toContain("cards.map");
   });
+
+  describe("PaymentCard & AC-P2 Invariants", () => {
+    it("PaymentCard: renders due invoice with amber countdown chip and CheckoutButton", async () => {
+      const { PaymentCard } = await import("../PaymentCard");
+      const card = {
+        id: "feed-pay-1",
+        studentId: "std-1",
+        cardType: "PaymentCard" as const,
+        tier: "T1_action_required" as const,
+        priority: 95,
+        title: { en: "Pay Term 2 Fee", hi: "सत्र 2 शुल्क का भुगतान करें" },
+        summary: { en: "Balance of ₹12,500 due in 3 days", hi: "₹12,500 का शुल्क 3 दिनों में देय है" },
+        payload: {
+          invoiceId: "inv-001",
+          balanceAmount: 12500,
+          termName: "Term 2",
+          status: "PENDING",
+          daysUntilDue: 3,
+        },
+        activatedAt: new Date(),
+        expiresAt: new Date(Date.now() + 86400000),
+      };
+
+      const el = React.createElement(PaymentCard, { card, studentName: "Aarav" });
+      expect(React.isValidElement(el)).toBe(true);
+      expect(el.props.card.id).toBe("feed-pay-1");
+      expect(el.props.studentName).toBe("Aarav");
+    });
+
+    it("PaymentCard: renders OVERDUE invoice correctly", async () => {
+      const { PaymentCard } = await import("../PaymentCard");
+      const card = {
+        id: "feed-pay-2",
+        studentId: "std-1",
+        cardType: "PaymentCard" as const,
+        tier: "T1_action_required" as const,
+        priority: 95,
+        title: { en: "Overdue Fee Payment", hi: "विलंबित शुल्क भुगतान" },
+        summary: { en: "Balance of ₹12,500 is overdue", hi: "₹12,500 का शुल्क देय तिथि पार कर चुका है" },
+        payload: {
+          invoiceId: "inv-002",
+          balanceAmount: 12500,
+          lateFeeAmount: 500,
+          termName: "Term 2",
+          status: "OVERDUE",
+        },
+        activatedAt: new Date(),
+        expiresAt: new Date(Date.now() + 86400000),
+      };
+
+      const el = React.createElement(PaymentCard, { card, studentName: "Aarav" });
+      expect(React.isValidElement(el)).toBe(true);
+      expect(el.props.card.payload.status).toBe("OVERDUE");
+      expect(el.props.card.payload.lateFeeAmount).toBe(500);
+    });
+
+    it("PaymentCard: renders PaymentSuccessCard view when paid", async () => {
+      const { PaymentCard } = await import("../PaymentCard");
+      const card = {
+        id: "feed-pay-3",
+        studentId: "std-1",
+        cardType: "PaymentCard" as const,
+        tier: "T3_system_state" as const,
+        priority: 95,
+        title: { en: "Fee Paid", hi: "शुल्क का भुगतान हो गया" },
+        summary: { en: "Payment confirmed", hi: "भुगतान की पुष्टि हो गई" },
+        payload: {
+          invoiceId: "inv-003",
+          balanceAmount: 12500,
+          termName: "Term 2",
+          lastPaymentStatus: "PAID",
+          receiptNumber: "REC-2026-99",
+        },
+        activatedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7200000),
+      };
+
+      const el = React.createElement(PaymentCard, { card, studentName: "Aarav" });
+      expect(React.isValidElement(el)).toBe(true);
+      expect(el.props.card.payload.lastPaymentStatus).toBe("PAID");
+    });
+  });
 });

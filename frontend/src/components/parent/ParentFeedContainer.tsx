@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { TodayStrip } from "./TodayStrip";
 import { ParentIdentityHeader, type StudentWardOption } from "./ParentIdentityHeader";
 import { FeedCard } from "./FeedCard";
+import { PaymentCard } from "./PaymentCard";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -66,6 +67,16 @@ export function ParentFeedContainer({
       {cards.length > 0 && (
         <div className="space-y-3.5 pt-1" data-testid="parent-feed-cards">
           {cards.map((card) => {
+            if (card.cardType === "PaymentCard") {
+              return (
+                <PaymentCard
+                  key={card.id}
+                  card={card}
+                  studentName={selectedStudent.name}
+                />
+              );
+            }
+
             const titleStr = card.title[locale as "en" | "hi"] || card.title.en;
             const summaryStr = card.summary[locale as "en" | "hi"] || card.summary.en;
 
