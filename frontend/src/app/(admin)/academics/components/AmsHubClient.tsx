@@ -20,14 +20,24 @@ import {
   UserCheck,
   Trash2,
   Loader2,
+  ChevronRight,
+  Edit2,
+  FileText,
+  ListOrdered,
+  Sparkles,
 } from "lucide-react";
 import ClassCreationWizard from "./ClassCreationWizard";
 import { deleteClass } from "../actions/class-setup.actions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SetupProgressBar } from "@/components/ui/SetupProgressBar";
+import { NextBestAction } from "@/components/ui/NextBestAction";
+import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
 import AcademicBlockTabs, {
   AcademicBlockKey,
   getGradeBlock,
   getCanonicalSortOrder,
 } from "@/components/academics/AcademicBlockTabs";
+import { toast } from "sonner";
 
 type Classroom = {
   id: string;
@@ -118,19 +128,34 @@ export default function AmsHubClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Dynamic NextBestAction outcome strip state
+  const [postActionStrip, setPostActionStrip] = useState<{
+    outcome: string;
+    suggestion: { label: string; href?: string; action?: () => void; primary?: boolean };
+    alternates?: Array<{ label: string; href?: string; action?: () => void }>;
+  } | null>(null);
+
   useEffect(() => {
     setClassList(sortClassroomsCanonically(classrooms));
   }, [classrooms]);
 
   const isTeacher = role === "TEACHER";
 
-  // Calculate subject counts per class
+  // Calculate subject counts and teacher assignments per class
   const classSubjectCounts = new Map<string, number>();
+  const classTeacherAssignedCounts = new Map<string, number>();
+
   mappings.forEach((m) => {
     classSubjectCounts.set(
       m.classId,
       (classSubjectCounts.get(m.classId) ?? 0) + 1,
     );
+    if (m.assignedTeacherId) {
+      classTeacherAssignedCounts.set(
+        m.classId,
+        (classTeacherAssignedCounts.get(m.classId) ?? 0) + 1,
+      );
+    }
   });
 
   // Block counts for tabs
@@ -162,58 +187,155 @@ export default function AmsHubClient({
     0,
   );
 
-  return (
-    <div className="space-y-8">
-      {/* ─── 1. Header & Active Academic Year Banner ─────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/10 via-primary/5 to-purple-900/10 dark:from-slate-800/60 dark:to-slate-900/60 border border-primary/20 dark:border-slate-800 rounded-2xl p-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Active Session
-            </span>
-            <span className="text-xs text-gray-500 font-medium">
-              Academic Management System
-            </span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            {activeYear ? activeYear.name : "Academic Year Not Set"}
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            {activeYear
-              ? `${activeYear.startDate} to ${activeYear.endDate}`
-              : "Please activate an academic year to manage curriculum and timetables."}
-          </p>
-        </div>
+  // School-wide Readiness stats
+  const totalClasses = classList.length;
+  const classesWithSubjects = classList.filter(
+    (c) => (classSubjectCounts.get(c.id) ?? 0) > 0,
+  ).length;
+  const classesWithSections = classList.filter((c) => c.sections.length > 0).length;
 
-        <div className="flex items-center gap-2.5">
-          <Link
-            href="/academics/setup/calendar"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-sm"
-          >
-            <Calendar className="w-4 h-4 text-blue-500" />
-            Calendar & Terms
+  return (
+    <div className="space-y-6 max-w-[1280px] mx-auto px-4 md:px-6">
+      {/* ─── 1. Header with Breadcrumbs & Single Primary Action (Law L4, O3, O4) ─── */}
+      <div className="border-b border-gray-100 dark:border-slate-800 pb-4">
+        <nav className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-1">
+          <Link href="/dashboard" className="hover:text-primary transition">
+            Home
           </Link>
-          <Link
-            href="/academics/reports"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-sm"
-          >
-            <BarChart3 className="w-4 h-4 text-purple-500" />
-            Academic Reports
-          </Link>
-          {isAdmin && (
-            <button
-              onClick={() => setShowWizard(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/95 text-white transition shadow-md shadow-primary/20"
+          <ChevronRight className="w-3.5 h-3.5" />
+          <span className="text-gray-700 dark:text-gray-300 font-medium">
+            Academics Hub
+          </span>
+        </nav>
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                {activeYear ? activeYear.name : "Active Session"}
+              </span>
+              <span className="text-xs text-gray-400">
+                Academic Management System
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Academics Hub
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/academics/subjects"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
             >
-              <Plus className="w-4 h-4" />
-              Create Class
-            </button>
-          )}
+              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+              Manage Subjects
+            </Link>
+            <Link
+              href="/academics/mapping"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
+            >
+              <ListOrdered className="w-3.5 h-3.5 text-purple-500" />
+              Subject Matrix
+            </Link>
+            <Link
+              href="/academics/setup/calendar"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-500" />
+              Calendar
+            </Link>
+
+            {/* Exactly ONE Primary Action Button (Law O3) */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowWizard(true)}
+                className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md shadow-primary/20 min-h-[40px] cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Create Class
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ─── 2. Operational Summary Metrics Cards ───────────────────────────────── */}
+      {/* ─── 2. School-Wide Setup Health Readiness Banner (Surface 1 Spec) ────── */}
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-gray-900 dark:text-white block">
+              School Academic Readiness
+            </span>
+            <span className="text-[11px] text-gray-500">
+              Module-wide setup signals and curriculum completion
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs font-semibold">
+          <a
+            href="#classes-grid"
+            className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 hover:text-primary transition"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                classesWithSections === totalClasses && totalClasses > 0
+                  ? "bg-emerald-500"
+                  : "bg-amber-500"
+              }`}
+            />
+            <span>
+              Classes: <strong className="font-bold text-gray-900 dark:text-white">{classesWithSections}/{totalClasses}</strong> configured
+            </span>
+          </a>
+
+          <span className="text-gray-300 dark:text-slate-700">·</span>
+
+          <Link
+            href="/academics/mapping"
+            className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 hover:text-primary transition"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                classesWithSubjects === totalClasses && totalClasses > 0
+                  ? "bg-emerald-500"
+                  : "bg-amber-500"
+              }`}
+            />
+            <span>
+              Subjects mapped: <strong className="font-bold text-gray-900 dark:text-white">{classesWithSubjects}/{totalClasses}</strong>
+            </span>
+          </Link>
+
+          <span className="text-gray-300 dark:text-slate-700 hidden md:inline">·</span>
+
+          <Link
+            href="/academics/setup/bell-schedule"
+            className="hidden md:flex items-center gap-1.5 text-gray-700 dark:text-gray-300 hover:text-primary transition"
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span>Bell Schedule: Active</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* ─── 3. Next Best Action Strip (Law L8 & Feedback Spec) ────────────────── */}
+      {postActionStrip && (
+        <NextBestAction
+          outcome={postActionStrip.outcome}
+          suggestion={postActionStrip.suggestion}
+          alternates={postActionStrip.alternates}
+          onDismiss={() => setPostActionStrip(null)}
+        />
+      )}
+
+      {/* ─── 4. Workloads Section (Merge Plan: Assignments & Lesson Plans) ─────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between text-gray-400 mb-2">
@@ -295,259 +417,249 @@ export default function AmsHubClient({
         </div>
       </div>
 
-      {/* ─── 3. Header & Filter Bar ─────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-3">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-primary" />
-            Class Hubs & Sections ({classrooms.length})
-          </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Manage classroom blocks, subjects, and section assignments
-          </p>
+      {/* ─── 5. Pinned Search Input (Law L1: width 320px pinned left) ─────────── */}
+      <div id="classes-grid" className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-80 relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search classes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[40px]"
+            />
+          </div>
+
+          <div className="text-xs text-gray-400 font-medium">
+            Showing {filteredClassrooms.length} of {classList.length} classes
+          </div>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search classes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-      </div>
+        {/* ─── 6. Academic Block Tabs ────────────────────────────────────────── */}
+        <AcademicBlockTabs
+          activeBlock={activeBlock}
+          onBlockChange={setActiveBlock}
+          counts={blockCounts}
+        />
 
-      {/* ─── 4. Class-Centric Hub Grid ────────────────────────────────────────── */}
-      <div className="space-y-6">
-          <AcademicBlockTabs
-            activeBlock={activeBlock}
-            onBlockChange={setActiveBlock}
-            counts={blockCounts}
-          />
-          {filteredClassrooms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredClassrooms.map((cls) => {
-                const subCount = classSubjectCounts.get(cls.id) ?? 0;
-                return (
-                  <div
-                    key={cls.id}
-                    className="group bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md hover:border-primary/40 transition duration-150 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-mono">
-                          {cls.gradeLevel}
+        {/* ─── 7. Class Hub Cards Grid (Surface 1 Layout) ────────────────────── */}
+        {filteredClassrooms.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredClassrooms.map((cls) => {
+              const subCount = classSubjectCounts.get(cls.id) ?? 0;
+              const teacherAssignedCount = classTeacherAssignedCounts.get(cls.id) ?? 0;
+              const hasSections = cls.sections.length > 0;
+              const hasSubjects = subCount > 0;
+              const hasTeachers = teacherAssignedCount > 0;
+
+              return (
+                <div
+                  key={cls.id}
+                  onClick={() => router.push(`/academics/classes/${cls.id}`)}
+                  className="group bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md hover:border-primary/40 transition duration-150 flex flex-col justify-between cursor-pointer animate-fade-in"
+                >
+                  <div>
+                    {/* Card Top: displayName + gradeLevel badge */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-mono">
+                        {cls.gradeLevel}
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>
+                          {cls.sections.length} Section{cls.sections.length === 1 ? "" : "s"}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-400">
-                            {cls.sections.length} Section
-                            {cls.sections.length === 1 ? "" : "s"}
-                          </span>
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setDeleteError(null);
-                                setClassToDelete(cls);
-                              }}
-                              title={`Delete ${cls.displayName}`}
-                              className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition opacity-80 group-hover:opacity-100"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition">
-                        {cls.displayName}
-                      </h3>
-
-                      {/* Sections badges */}
-                      <div className="flex flex-wrap gap-1.5 mt-3 mb-4">
-                        {cls.sections.map((sec) => (
-                          <span
-                            key={sec.id}
-                            className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                          >
-                            Section {sec.name}
-                          </span>
-                        ))}
-                        {cls.sections.length === 0 && (
-                          <span className="text-xs text-amber-500 font-medium">
-                            No sections configured
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 py-3 border-t border-gray-100 dark:border-slate-800/80 text-xs text-gray-500">
-                        <div>
-                          <span className="text-[11px] uppercase text-gray-400 font-semibold block">
-                            Subjects
-                          </span>
-                          <span className="font-bold text-gray-800 dark:text-gray-200">
-                            {subCount} Mapped
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[11px] uppercase text-gray-400 font-semibold block">
-                            Status
-                          </span>
-                          <span className="font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Ready
-                          </span>
-                        </div>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-gray-100 dark:border-slate-800/80 mt-2 flex items-center gap-2">
-                      <Link
-                        href={`/academics/classes/${cls.id}`}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-bold bg-primary/10 hover:bg-primary text-primary hover:text-white transition duration-150"
-                      >
-                        Open Class Hub <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setDeleteError(null);
-                            setClassToDelete(cls);
-                          }}
-                          title={`Delete ${cls.displayName}`}
-                          className="p-2.5 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-gray-200 dark:border-slate-800 transition"
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition tracking-tight">
+                      {cls.displayName}
+                    </h3>
+
+                    {/* Sections Chips */}
+                    <div className="flex flex-wrap gap-1.5 mt-2.5 mb-4">
+                      {cls.sections.map((sec) => (
+                        <span
+                          key={sec.id}
+                          className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          Section {sec.name}
+                        </span>
+                      ))}
+                      {cls.sections.length === 0 && (
+                        <span className="text-xs text-amber-500 font-medium">
+                          No sections configured
+                        </span>
                       )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-slate-900 border border-dashed border-gray-300 dark:border-slate-800 rounded-2xl p-12 text-center">
-              <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-gray-800 dark:text-white">
-                No classes found
-              </h3>
-              <p className="text-xs text-gray-400 max-w-sm mx-auto mt-1 mb-4">
-                {searchQuery
-                  ? `No classes matching "${searchQuery}".`
-                  : "Get started by creating your school's first class."}
-              </p>
-              {isAdmin && (
-                <button
-                  onClick={() => setShowWizard(true)}
-                  className="inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold"
-                >
-                  <Plus className="w-4 h-4" /> Create Class
-                </button>
-              )}
-            </div>
-          )}
-        </div>
 
-      {/* ─── 5. Progressive Class Creation Wizard ──────────────────────────────── */}
+                    {/* Card Middle: SetupProgressBar 4-dot */}
+                    <div className="py-3 border-t border-gray-100 dark:border-slate-800/80">
+                      <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider block mb-2">
+                        Setup Progress
+                      </span>
+                      <SetupProgressBar
+                        classId={cls.id}
+                        variant="mini"
+                        progress={{
+                          sections: hasSections ? "done" : "empty",
+                          subjects: hasSubjects ? "done" : "empty",
+                          teachers: hasSubjects
+                            ? teacherAssignedCount >= subCount
+                              ? "done"
+                              : hasTeachers
+                              ? "partial"
+                              : "empty"
+                            : "empty",
+                          timetable: hasSubjects && hasSections ? "done" : "empty",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card Bottom Row: 'Open Hub' (primary), 'Edit' (secondary), 'Delete' (tertiary danger) */}
+                  <div
+                    className="pt-4 border-t border-gray-100 dark:border-slate-800/80 mt-2 flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link
+                      href={`/academics/classes/${cls.id}`}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/95 transition duration-150 min-h-[36px]"
+                    >
+                      Open Hub <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+
+                    <Link
+                      href={`/academics/classes/${cls.id}?tab=sections`}
+                      className="inline-flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-semibold border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200 transition min-h-[36px]"
+                      title="Edit class & sections"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-gray-500" />
+                      Edit
+                    </Link>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError(null);
+                          setClassToDelete(cls);
+                        }}
+                        title={`Delete ${cls.displayName}`}
+                        className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-gray-200 dark:border-slate-800 transition min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyStateCTA
+            icon={GraduationCap}
+            title={searchQuery ? "No matching classes" : "No classes configured yet"}
+            hint={
+              searchQuery
+                ? `No academic classrooms match "${searchQuery}". Try a different keyword.`
+                : "Create your school's first class and configure sections and curriculum."
+            }
+            ctaLabel={isAdmin ? "Create Class" : undefined}
+            onCta={isAdmin ? () => setShowWizard(true) : undefined}
+          />
+        )}
+      </div>
+
+      {/* ─── 8. Class Creation Wizard ────────────────────────────────────────── */}
       {isAdmin && (
         <ClassCreationWizard
           isOpen={showWizard}
           onClose={() => setShowWizard(false)}
           existingSubjects={subjects}
           teachers={teachers}
+          existingClassrooms={classList}
+          onCreated={({ classId, displayName }) => {
+            setPostActionStrip({
+              outcome: `Class "${displayName}" was created successfully.`,
+              suggestion: {
+                label: `Attach subjects to ${displayName}`,
+                href: `/academics/classes/${classId}?tab=subjects`,
+                primary: true,
+              },
+              alternates: [
+                {
+                  label: "Open Class Hub",
+                  href: `/academics/classes/${classId}`,
+                },
+              ],
+            });
+          }}
         />
       )}
 
-      {/* ─── 6. Delete Class Confirmation Modal ──────────────────────────────── */}
-      {classToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-xl bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 shrink-0">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Delete {classToDelete.displayName}?
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  This action will permanently delete <span className="font-semibold text-gray-800 dark:text-gray-200">{classToDelete.displayName}</span>, its {classToDelete.sections.length} section(s), and related configurations.
-                </p>
-              </div>
-            </div>
+      {/* ─── 9. Delete Class Confirmation Modal ──────────────────────────────── */}
+      <ConfirmDialog
+        open={!!classToDelete}
+        onClose={() => {
+          setClassToDelete(null);
+          setDeleteError(null);
+        }}
+        title={`Delete ${classToDelete?.displayName || "Class"}?`}
+        description={
+          classToDelete ? (
+            <p>
+              This action will permanently delete{" "}
+              <span className="font-semibold text-gray-800 dark:text-gray-200">
+                {classToDelete.displayName}
+              </span>
+              , its {classToDelete.sections.length} section(s), and related configurations.
+            </p>
+          ) : undefined
+        }
+        error={deleteError}
+        safetyChecks={[
+          "No active students enrolled in this class",
+          "No student attendance logs",
+          "No active fee structures or exam schedules",
+        ]}
+        confirmText="Delete Class"
+        isLoading={isDeleting}
+        onConfirm={async () => {
+          if (!classToDelete) return;
+          setIsDeleting(true);
+          setDeleteError(null);
+          try {
+            const res = await deleteClass(classToDelete.id);
+            if (res.success) {
+              const remaining = classList.filter((c) => c.id !== classToDelete.id);
+              setClassList(remaining);
+              toast.success(`Class "${classToDelete.displayName}" deleted.`);
+              setClassToDelete(null);
+              router.refresh();
 
-            {deleteError && (
-              <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-xs text-red-700 dark:text-red-300 space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Cannot Delete Class
-                </div>
-                <div>{deleteError}</div>
-              </div>
-            )}
-
-            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-3.5 text-xs text-gray-600 dark:text-gray-400 space-y-1 border border-gray-100 dark:border-slate-800">
-              <div className="font-semibold text-gray-700 dark:text-gray-300">Deletion Safety Checks:</div>
-              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-gray-500">
-                <li>No active students enrolled in this class</li>
-                <li>No student attendance logs</li>
-                <li>No active fee structures or exam schedules</li>
-              </ul>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => {
-                  setClassToDelete(null);
-                  setDeleteError(null);
-                }}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={async () => {
-                  if (!classToDelete) return;
-                  setIsDeleting(true);
-                  setDeleteError(null);
-                  try {
-                    const res = await deleteClass(classToDelete.id);
-                    if (res.success) {
-                      setClassList((prev) => prev.filter((c) => c.id !== classToDelete.id));
-                      setClassToDelete(null);
-                      router.refresh();
-                    }
-                  } catch (err: any) {
-                    setDeleteError(err.message || "Failed to delete class");
-                  } finally {
-                    setIsDeleting(false);
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 shadow-sm shadow-red-500/20 transition disabled:opacity-50"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-3.5 h-3.5" /> Delete Class
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              // Suggest Create Class only if class count becomes 0
+              if (remaining.length === 0) {
+                setPostActionStrip({
+                  outcome: "All classes have been removed from this school.",
+                  suggestion: {
+                    label: "Create Class",
+                    action: () => setShowWizard(true),
+                    primary: true,
+                  },
+                });
+              } else {
+                setPostActionStrip(null);
+              }
+            }
+          } catch (err: any) {
+            setDeleteError(err.message || "Failed to delete class");
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
     </div>
   );
 }

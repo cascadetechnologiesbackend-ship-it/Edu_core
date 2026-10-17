@@ -333,6 +333,94 @@ export async function saveClassSubject(data: {
   return { success: true };
 }
 
+export async function batchUpdateClassSubjectMappings(data: {
+  toAdd: Array<{
+    classId: string;
+    subjectId: string;
+    isElective?: boolean;
+    periodsPerWeek?: number;
+    assignedTeacherId?: string | null;
+  }>;
+  toRemove: Array<{ classId: string; subjectId: string }>;
+  toUpdate?: Array<{
+    id: string;
+    isElective?: boolean;
+    periodsPerWeek?: number;
+    assignedTeacherId?: string | null;
+  }>;
+}) {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const schoolId = session.user.schoolId!;
+
+  return await withTenant(schoolId, async (tx) => {
+    // 1. Process removals
+    for (const rem of data.toRemove) {
+      await tx
+        .delete(classSubjects)
+        .where(
+          and(
+            eq(classSubjects.classId, rem.classId),
+            eq(classSubjects.subjectId, rem.subjectId),
+            eq(classSubjects.schoolId, schoolId),
+          ),
+        );
+    }
+
+    // 2. Process additions
+    for (const add of data.toAdd) {
+      const existing = await tx.query.classSubjects.findFirst({
+        where: and(
+          eq(classSubjects.classId, add.classId),
+          eq(classSubjects.subjectId, add.subjectId),
+          eq(classSubjects.schoolId, schoolId),
+        ),
+      });
+
+      if (!existing) {
+        await tx.insert(classSubjects).values({
+          schoolId,
+          classId: add.classId,
+          subjectId: add.subjectId,
+          assignedTeacherId: add.assignedTeacherId || null,
+          periodsPerWeek: add.periodsPerWeek ?? 5,
+          isElective: add.isElective ?? false,
+        });
+      }
+    }
+
+    // 3. Process updates
+    if (data.toUpdate) {
+      for (const upd of data.toUpdate) {
+        await tx
+          .update(classSubjects)
+          .set({
+            ...(upd.assignedTeacherId !== undefined
+              ? { assignedTeacherId: upd.assignedTeacherId }
+              : {}),
+            ...(upd.periodsPerWeek !== undefined
+              ? { periodsPerWeek: upd.periodsPerWeek }
+              : {}),
+            ...(upd.isElective !== undefined ? { isElective: upd.isElective } : {}),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(classSubjects.id, upd.id),
+              eq(classSubjects.schoolId, schoolId),
+            ),
+          );
+      }
+    }
+
+    try {
+      revalidatePath("/academics");
+      revalidatePath("/academics/mapping");
+    } catch {}
+
+    return { success: true };
+  });
+}
+
 // ─── 4. Assignment Actions ────────────────────────────────────────────────────
 
 export async function getAssignments(

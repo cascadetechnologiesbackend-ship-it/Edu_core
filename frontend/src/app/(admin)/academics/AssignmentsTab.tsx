@@ -16,6 +16,7 @@ import {
   Award,
   ClipboardList,
 } from "lucide-react";
+import AppModal from "@/components/ui/AppModal";
 
 type Assignment = {
   id: string;
@@ -401,120 +402,77 @@ export default function AssignmentsTab({
       </div>
 
       {/* Assignment Post Modal */}
-      {showAssignForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleCreateAssignment}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
-          >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Post New Assignment
-            </h3>
+      <AppModal
+        open={showAssignForm}
+        onClose={() => setShowAssignForm(false)}
+        title="Post New Assignment"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowAssignForm(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="assignment-create-form"
+              disabled={isPending}
+              className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+            >
+              {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+              Post Assignment
+            </button>
+          </>
+        }
+      >
+        <form
+          id="assignment-create-form"
+          onSubmit={handleCreateAssignment}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              required
+              value={assignData.title}
+              onChange={(e) =>
+                setAssignData({ ...assignData, title: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Description
+            </label>
+            <textarea
+              required
+              value={assignData.description}
+              onChange={(e) =>
+                setAssignData({ ...assignData, description: e.target.value })
+              }
+              rows={3}
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Title
-              </label>
-              <input
-                type="text"
-                required
-                value={assignData.title}
-                onChange={(e) =>
-                  setAssignData({ ...assignData, title: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Description
-              </label>
-              <textarea
-                required
-                value={assignData.description}
-                onChange={(e) =>
-                  setAssignData({ ...assignData, description: e.target.value })
-                }
-                rows={3}
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Max Marks
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={assignData.maxMarks}
-                  onChange={(e) =>
-                    setAssignData({
-                      ...assignData,
-                      maxMarks: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={assignData.dueDate}
-                  onChange={(e) =>
-                    setAssignData({ ...assignData, dueDate: e.target.value })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAssignForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
-              >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-                Post Assignment
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Grading Form Modal */}
-      {showGradeForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleGradeSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
-          >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Evaluate Submission
-            </h3>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Marks Awarded
+                Max Marks
               </label>
               <input
                 type="number"
                 required
-                max={selectedAssignment?.maxMarks || 100}
-                value={gradeData.marksAwarded}
+                value={assignData.maxMarks}
                 onChange={(e) =>
-                  setGradeData({
-                    ...gradeData,
-                    marksAwarded: parseInt(e.target.value),
+                  setAssignData({
+                    ...assignData,
+                    maxMarks: parseInt(e.target.value),
                   })
                 }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -522,100 +480,152 @@ export default function AssignmentsTab({
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Feedback Remarks
+                Due Date
               </label>
               <input
-                type="text"
-                value={gradeData.remarks}
+                type="date"
+                required
+                value={assignData.dueDate}
                 onChange={(e) =>
-                  setGradeData({ ...gradeData, remarks: e.target.value })
+                  setAssignData({ ...assignData, dueDate: e.target.value })
                 }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowGradeForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
-              >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-                Submit Grades
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          </div>
+        </form>
+      </AppModal>
+
+      {/* Grading Form Modal */}
+      <AppModal
+        open={showGradeForm}
+        onClose={() => setShowGradeForm(false)}
+        title="Evaluate Submission"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowGradeForm(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="grade-form"
+              disabled={isPending}
+              className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+            >
+              {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+              Submit Grades
+            </button>
+          </>
+        }
+      >
+        <form
+          id="grade-form"
+          onSubmit={handleGradeSubmit}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Marks Awarded
+            </label>
+            <input
+              type="number"
+              required
+              max={selectedAssignment?.maxMarks || 100}
+              value={gradeData.marksAwarded}
+              onChange={(e) =>
+                setGradeData({
+                  ...gradeData,
+                  marksAwarded: parseInt(e.target.value),
+                })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Feedback Remarks
+            </label>
+            <input
+              type="text"
+              value={gradeData.remarks}
+              onChange={(e) =>
+                setGradeData({ ...gradeData, remarks: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </form>
+      </AppModal>
 
       {/* Student Submit Modal */}
-      {showSubmitForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleStudentSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
-          >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Submit Assignment
-            </h3>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Attachment S3 Key / Document Link
-              </label>
-              <input
-                type="text"
-                required
-                value={submitData.attachmentS3Key}
-                onChange={(e) =>
-                  setSubmitData({
-                    ...submitData,
-                    attachmentS3Key: e.target.value,
-                  })
-                }
-                placeholder="s3://bucket/path/homework.pdf"
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Remarks
-              </label>
-              <input
-                type="text"
-                value={submitData.remarks}
-                onChange={(e) =>
-                  setSubmitData({ ...submitData, remarks: e.target.value })
-                }
-                placeholder="Explain details of your submission"
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSubmitForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
-              >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-                Submit Homework
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <AppModal
+        open={showSubmitForm}
+        onClose={() => setShowSubmitForm(false)}
+        title="Submit Assignment"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowSubmitForm(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="student-submit-form"
+              disabled={isPending}
+              className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+            >
+              {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+              Submit Homework
+            </button>
+          </>
+        }
+      >
+        <form
+          id="student-submit-form"
+          onSubmit={handleStudentSubmit}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Attachment S3 Key / Document Link
+            </label>
+            <input
+              type="text"
+              required
+              value={submitData.attachmentS3Key}
+              onChange={(e) =>
+                setSubmitData({
+                  ...submitData,
+                  attachmentS3Key: e.target.value,
+                })
+              }
+              placeholder="s3://bucket/path/homework.pdf"
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Remarks
+            </label>
+            <input
+              type="text"
+              value={submitData.remarks}
+              onChange={(e) =>
+                setSubmitData({ ...submitData, remarks: e.target.value })
+              }
+              placeholder="Explain details of your submission"
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </form>
+      </AppModal>
     </div>
   );
 }

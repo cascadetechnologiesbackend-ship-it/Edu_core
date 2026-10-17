@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { getLessonPlans, saveLessonPlan } from "./actions";
 import { Plus, RefreshCw, Layers, CheckSquare } from "lucide-react";
+import AppModal from "@/components/ui/AppModal";
 
 type LessonPlan = {
   id: string;
@@ -235,121 +236,124 @@ export default function LessonPlansTab({
       </div>
 
       {/* Plan Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
-          >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Plan Chapter Lesson
-            </h3>
+      <AppModal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="Plan Chapter Lesson"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="lesson-plan-form"
+              disabled={isPending}
+              className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+            >
+              {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+              Save Plan
+            </button>
+          </>
+        }
+      >
+        <form
+          id="lesson-plan-form"
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Chapter Name (e.g. Chapter 1: Introduction)
+            </label>
+            <input
+              type="text"
+              required
+              value={planData.chapterName}
+              onChange={(e) =>
+                setPlanData({ ...planData, chapterName: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Lesson Title
+            </label>
+            <input
+              type="text"
+              required
+              value={planData.title}
+              onChange={(e) =>
+                setPlanData({ ...planData, title: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              NCERT Book Chapter Reference
+            </label>
+            <input
+              type="text"
+              value={planData.ncertReference}
+              onChange={(e) =>
+                setPlanData({ ...planData, ncertReference: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Objectives
+            </label>
+            <textarea
+              value={planData.objectives}
+              onChange={(e) =>
+                setPlanData({ ...planData, objectives: e.target.value })
+              }
+              rows={2}
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Chapter Name (e.g. Chapter 1: Introduction)
+                Planned Date
               </label>
               <input
-                type="text"
+                type="date"
                 required
-                value={planData.chapterName}
+                value={planData.plannedDate}
                 onChange={(e) =>
-                  setPlanData({ ...planData, chapterName: e.target.value })
+                  setPlanData({ ...planData, plannedDate: e.target.value })
                 }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Lesson Title
+                Status
               </label>
-              <input
-                type="text"
-                required
-                value={planData.title}
+              <select
+                value={planData.status}
                 onChange={(e) =>
-                  setPlanData({ ...planData, title: e.target.value })
+                  setPlanData({ ...planData, status: e.target.value as any })
                 }
                 className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                NCERT Book Chapter Reference
-              </label>
-              <input
-                type="text"
-                value={planData.ncertReference}
-                onChange={(e) =>
-                  setPlanData({ ...planData, ncertReference: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Objectives
-              </label>
-              <textarea
-                value={planData.objectives}
-                onChange={(e) =>
-                  setPlanData({ ...planData, objectives: e.target.value })
-                }
-                rows={2}
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Planned Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={planData.plannedDate}
-                  onChange={(e) =>
-                    setPlanData({ ...planData, plannedDate: e.target.value })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Status
-                </label>
-                <select
-                  value={planData.status}
-                  onChange={(e) =>
-                    setPlanData({ ...planData, status: e.target.value as any })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="PLANNED">PLANNED</option>
-                  <option value="IN_PROGRESS">IN PROGRESS</option>
-                  <option value="COMPLETED">COMPLETED</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
-              >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-                Save Plan
-              </button>
+                <option value="PLANNED">PLANNED</option>
+                <option value="IN_PROGRESS">IN PROGRESS</option>
+                <option value="COMPLETED">COMPLETED</option>
+              </select>
             </div>
-          </form>
-        </div>
-      )}
+          </div>
+        </form>
+      </AppModal>
     </div>
   );
 }

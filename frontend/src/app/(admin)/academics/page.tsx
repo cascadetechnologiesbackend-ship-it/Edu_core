@@ -121,7 +121,7 @@ export default async function AcademicsPage() {
           ...tenantData,
         };
       },
-      { maxQueries: 10, label: "Academics Hub" }
+      { maxQueries: 12, label: "Academics Hub" }
     );
   });
 

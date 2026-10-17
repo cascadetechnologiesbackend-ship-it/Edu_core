@@ -614,3 +614,232 @@ export async function saveTimetableSubstitution(
 ) {
   return createSubstitution(...args);
 }
+
+// ─── 4. QuickTimetable Copy & Clear Tools (Surface 5 Spec) ───────────────────
+
+export async function copyMondayToAllDays(sectionId: string) {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+
+  const mondayPeriods = await db.query.timetablePeriods.findMany({
+    where: and(
+      eq(timetablePeriods.schoolId, session.user.schoolId),
+      eq(timetablePeriods.academicYearId, activeYear.id),
+      eq(timetablePeriods.sectionId, sectionId),
+      eq(timetablePeriods.dayOfWeek, "MONDAY"),
+      eq(timetablePeriods.isActive, true),
+    ),
+  });
+
+  if (mondayPeriods.length === 0) {
+    throw new Error("No Monday periods configured to copy.");
+  }
+
+  const targetDays: Array<"TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY"> = [
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+  ];
+
+  let copiedCount = 0;
+  let conflictCount = 0;
+
+  for (const day of targetDays) {
+    for (const p of mondayPeriods) {
+      // Check for teacher clash on this target day & period
+      let hasConflict = false;
+      if (p.teacherId) {
+        const conflict = await db.query.timetablePeriods.findFirst({
+          where: and(
+            eq(timetablePeriods.schoolId, session.user.schoolId),
+            eq(timetablePeriods.academicYearId, activeYear.id),
+            eq(timetablePeriods.dayOfWeek, day),
+            eq(timetablePeriods.periodNumber, p.periodNumber),
+            eq(timetablePeriods.teacherId, p.teacherId),
+            eq(timetablePeriods.isActive, true),
+            ne(timetablePeriods.sectionId, sectionId),
+          ),
+        });
+        if (conflict) {
+          hasConflict = true;
+          conflictCount++;
+          continue;
+        }
+      }
+
+      if (!hasConflict) {
+        // Upsert into target day
+        const existing = await db.query.timetablePeriods.findFirst({
+          where: and(
+            eq(timetablePeriods.schoolId, session.user.schoolId),
+            eq(timetablePeriods.academicYearId, activeYear.id),
+            eq(timetablePeriods.sectionId, sectionId),
+            eq(timetablePeriods.dayOfWeek, day),
+            eq(timetablePeriods.periodNumber, p.periodNumber),
+            eq(timetablePeriods.isActive, true),
+          ),
+        });
+
+        if (existing) {
+          await db
+            .update(timetablePeriods)
+            .set({
+              startTime: p.startTime,
+              endTime: p.endTime,
+              periodType: p.periodType,
+              subjectId: p.subjectId,
+              teacherId: p.teacherId,
+              roomNumber: p.roomNumber,
+              updatedAt: new Date(),
+            })
+            .where(eq(timetablePeriods.id, existing.id));
+        } else {
+          await db.insert(timetablePeriods).values({
+            schoolId: session.user.schoolId,
+            academicYearId: activeYear.id,
+            sectionId,
+            dayOfWeek: day,
+            periodNumber: p.periodNumber,
+            startTime: p.startTime,
+            endTime: p.endTime,
+            periodType: p.periodType,
+            subjectId: p.subjectId,
+            teacherId: p.teacherId,
+            roomNumber: p.roomNumber,
+          });
+        }
+        copiedCount++;
+      }
+    }
+  }
+
+  try {
+    revalidatePath("/academics");
+  } catch {}
+
+  return { success: true, copiedCount, conflictCount };
+}
+
+export async function copyTimetableToSection(sourceSectionId: string, targetSectionId: string) {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+
+  if (sourceSectionId === targetSectionId) {
+    throw new Error("Source and target sections cannot be the same.");
+  }
+
+  const sourcePeriods = await db.query.timetablePeriods.findMany({
+    where: and(
+      eq(timetablePeriods.schoolId, session.user.schoolId),
+      eq(timetablePeriods.academicYearId, activeYear.id),
+      eq(timetablePeriods.sectionId, sourceSectionId),
+      eq(timetablePeriods.isActive, true),
+    ),
+  });
+
+  if (sourcePeriods.length === 0) {
+    throw new Error("Source section has no timetable periods to copy.");
+  }
+
+  let copiedCount = 0;
+  let conflictCount = 0;
+
+  for (const p of sourcePeriods) {
+    let hasConflict = false;
+    if (p.teacherId) {
+      const conflict = await db.query.timetablePeriods.findFirst({
+        where: and(
+          eq(timetablePeriods.schoolId, session.user.schoolId),
+          eq(timetablePeriods.academicYearId, activeYear.id),
+          eq(timetablePeriods.dayOfWeek, p.dayOfWeek),
+          eq(timetablePeriods.periodNumber, p.periodNumber),
+          eq(timetablePeriods.teacherId, p.teacherId),
+          eq(timetablePeriods.isActive, true),
+          ne(timetablePeriods.sectionId, targetSectionId),
+        ),
+      });
+      if (conflict) {
+        hasConflict = true;
+        conflictCount++;
+        continue;
+      }
+    }
+
+    if (!hasConflict) {
+      const existing = await db.query.timetablePeriods.findFirst({
+        where: and(
+          eq(timetablePeriods.schoolId, session.user.schoolId),
+          eq(timetablePeriods.academicYearId, activeYear.id),
+          eq(timetablePeriods.sectionId, targetSectionId),
+          eq(timetablePeriods.dayOfWeek, p.dayOfWeek),
+          eq(timetablePeriods.periodNumber, p.periodNumber),
+          eq(timetablePeriods.isActive, true),
+        ),
+      });
+
+      if (existing) {
+        await db
+          .update(timetablePeriods)
+          .set({
+            startTime: p.startTime,
+            endTime: p.endTime,
+            periodType: p.periodType,
+            subjectId: p.subjectId,
+            teacherId: p.teacherId,
+            roomNumber: p.roomNumber,
+            updatedAt: new Date(),
+          })
+          .where(eq(timetablePeriods.id, existing.id));
+      } else {
+        await db.insert(timetablePeriods).values({
+          schoolId: session.user.schoolId,
+          academicYearId: activeYear.id,
+          sectionId: targetSectionId,
+          dayOfWeek: p.dayOfWeek,
+          periodNumber: p.periodNumber,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          periodType: p.periodType,
+          subjectId: p.subjectId,
+          teacherId: p.teacherId,
+          roomNumber: p.roomNumber,
+        });
+      }
+      copiedCount++;
+    }
+  }
+
+  try {
+    revalidatePath("/academics");
+  } catch {}
+
+  return { success: true, copiedCount, conflictCount };
+}
+
+export async function clearSectionTimetable(sectionId: string) {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+
+  await db
+    .update(timetablePeriods)
+    .set({
+      isActive: false,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(timetablePeriods.schoolId, session.user.schoolId),
+        eq(timetablePeriods.academicYearId, activeYear.id),
+        eq(timetablePeriods.sectionId, sectionId),
+        eq(timetablePeriods.isActive, true),
+      ),
+    );
+
+  try {
+    revalidatePath("/academics");
+  } catch {}
+
+  return { success: true };
+}

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveClassroom, saveSection } from "./actions";
 import { Plus, Edit2, Check, RefreshCw } from "lucide-react";
+import AppModal from "@/components/ui/AppModal";
 
 type Section = {
   id: string;
@@ -94,195 +95,201 @@ export default function ClassroomsTab({
       </div>
 
       {/* Class Form Modal */}
-      {showClassForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleClassSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
-          >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Create New Classroom
-            </h3>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Grade Level
-              </label>
-              <select
-                value={classData.gradeLevel}
-                onChange={(e) =>
-                  setClassData({ ...classData, gradeLevel: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {[
-                  "NURSERY",
-                  "LKG",
-                  "UKG",
-                  "CLASS_1",
-                  "CLASS_2",
-                  "CLASS_3",
-                  "CLASS_4",
-                  "CLASS_5",
-                  "CLASS_6",
-                  "CLASS_7",
-                  "CLASS_8",
-                  "CLASS_9",
-                  "CLASS_10",
-                ].map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Display Name
-              </label>
-              <input
-                type="text"
-                required
-                value={classData.displayName}
-                onChange={(e) =>
-                  setClassData({ ...classData, displayName: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Sort Order
-              </label>
-              <input
-                type="number"
-                required
-                value={classData.sortOrder}
-                onChange={(e) =>
-                  setClassData({
-                    ...classData,
-                    sortOrder: parseInt(e.target.value),
-                  })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowClassForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
-              >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-                Save Class
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <AppModal
+        open={showClassForm}
+        onClose={() => setShowClassForm(false)}
+        title="Create New Classroom"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowClassForm(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="classroom-form"
+              disabled={isPending}
+              className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+            >
+              {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+              Save Class
+            </button>
+          </>
+        }
+      >
+        <form
+          id="classroom-form"
+          onSubmit={handleClassSubmit}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Grade Level
+            </label>
+            <select
+              value={classData.gradeLevel}
+              onChange={(e) =>
+                setClassData({ ...classData, gradeLevel: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {[
+                "NURSERY",
+                "LKG",
+                "UKG",
+                "CLASS_1",
+                "CLASS_2",
+                "CLASS_3",
+                "CLASS_4",
+                "CLASS_5",
+                "CLASS_6",
+                "CLASS_7",
+                "CLASS_8",
+                "CLASS_9",
+                "CLASS_10",
+              ].map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Display Name
+            </label>
+            <input
+              type="text"
+              required
+              value={classData.displayName}
+              onChange={(e) =>
+                setClassData({ ...classData, displayName: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Sort Order
+            </label>
+            <input
+              type="number"
+              required
+              value={classData.sortOrder}
+              onChange={(e) =>
+                setClassData({
+                  ...classData,
+                  sortOrder: parseInt(e.target.value),
+                })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </form>
+      </AppModal>
 
       {/* Section Form Modal */}
-      {showSectionForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleSectionSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4"
-          >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Create New Section
-            </h3>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Section Name (e.g. A, B)
-              </label>
-              <input
-                type="text"
-                required
-                value={sectionData.name}
-                onChange={(e) =>
-                  setSectionData({ ...sectionData, name: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Capacity
-              </label>
-              <input
-                type="number"
-                required
-                value={sectionData.capacity}
-                onChange={(e) =>
-                  setSectionData({
-                    ...sectionData,
-                    capacity: parseInt(e.target.value),
-                  })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Class Teacher
-              </label>
-              <select
-                value={sectionData.classTeacherId}
-                onChange={(e) =>
-                  setSectionData({
-                    ...sectionData,
-                    classTeacherId: e.target.value,
-                  })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="">Select Class Teacher</option>
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Room Number
-              </label>
-              <input
-                type="text"
-                value={sectionData.roomNumber}
-                onChange={(e) =>
-                  setSectionData({ ...sectionData, roomNumber: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSectionForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
-              >
-                {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-                Save Section
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <AppModal
+        open={showSectionForm}
+        onClose={() => setShowSectionForm(false)}
+        title="Create New Section"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowSectionForm(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="section-form"
+              disabled={isPending}
+              className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+            >
+              {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
+              Save Section
+            </button>
+          </>
+        }
+      >
+        <form
+          id="section-form"
+          onSubmit={handleSectionSubmit}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Section Name (e.g. A, B)
+            </label>
+            <input
+              type="text"
+              required
+              value={sectionData.name}
+              onChange={(e) =>
+                setSectionData({ ...sectionData, name: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Capacity
+            </label>
+            <input
+              type="number"
+              required
+              value={sectionData.capacity}
+              onChange={(e) =>
+                setSectionData({
+                  ...sectionData,
+                  capacity: parseInt(e.target.value),
+                })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Class Teacher
+            </label>
+            <select
+              value={sectionData.classTeacherId}
+              onChange={(e) =>
+                setSectionData({
+                  ...sectionData,
+                  classTeacherId: e.target.value,
+                })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">Select Class Teacher</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.email}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Room Number
+            </label>
+            <input
+              type="text"
+              value={sectionData.roomNumber}
+              onChange={(e) =>
+                setSectionData({ ...sectionData, roomNumber: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </form>
+      </AppModal>
 
       {/* Classroom List Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
