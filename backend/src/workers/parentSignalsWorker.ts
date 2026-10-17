@@ -16,8 +16,11 @@ import {
   reportCards,
   assignmentSubmissions,
   studentBusPasses,
+  pushNotificationLogs,
+  parentNotificationPreferences,
 } from "@/db/schema";
 import { eq, and, desc, gte, isNotNull } from "drizzle-orm";
+import { dispatchParentNotification } from "../lib/parentEventEngine/notificationMatrix";
 import {
   evalAttendanceRisk,
   evalPerformanceDip,
@@ -63,7 +66,7 @@ export async function evaluateStudentSignalsAndFeed(
     // 1. Fetch student
     const student = await tx.query.students.findFirst({
       where: and(eq(students.id, studentId), eq(students.schoolId, schoolId)),
-      columns: { id: true, admissionNumber: true, isActive: true },
+      columns: { id: true, admissionNumber: true, isActive: true, primaryParentUserId: true },
     });
 
     if (!student) return { success: false, reason: "Student not found" };
@@ -240,11 +243,80 @@ export async function evaluateStudentSignalsAndFeed(
     // 9. Reconcile with DB
     await syncParentFeedCards(schoolId, studentId, derivedCards, tx);
 
+    // 10. Dispatch Web Push for Action-Required (T1) cards & Report Cards (Spec Notification Matrix)
+    let dispatchedPushesCount = 0;
+    if (student.primaryParentUserId) {
+      const parentUserId = student.primaryParentUserId;
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      // Fetch today's push logs for this parent
+      const todayLogs = await tx.query.pushNotificationLogs.findMany({
+        where: and(
+          eq(pushNotificationLogs.schoolId, schoolId),
+          eq(pushNotificationLogs.userId, parentUserId),
+          gte(pushNotificationLogs.createdAt, startOfDay)
+        ),
+      });
+
+      const todayPushCount = todayLogs.length;
+      const previouslyDispatchedDedupeKeys = new Set<string>();
+      for (const log of todayLogs) {
+        if (log.title) {
+          previouslyDispatchedDedupeKeys.add(log.title);
+        }
+      }
+
+      // Check parent notification preferences
+      const notifPrefs = await tx.query.parentNotificationPreferences.findFirst({
+        where: and(
+          eq(parentNotificationPreferences.schoolId, schoolId),
+          eq(parentNotificationPreferences.parentUserId, parentUserId)
+        ),
+      });
+
+      for (const card of derivedCards) {
+        // T1 cards or ReportCard in T2 trigger push evaluation
+        const isEligibleForPush =
+          card.tier === "T1_action_required" ||
+          (card.tier === "T2_informational" && card.cardType === "ReportCardCard");
+
+        if (isEligibleForPush) {
+          const outcome = await dispatchParentNotification(
+            schoolId,
+            {
+              studentId,
+              parentUserId,
+              tier: card.tier,
+              eventKind: card.cardType,
+              now,
+              todayPushCountForParent: todayPushCount + dispatchedPushesCount,
+              previouslyDispatchedDedupeKeys,
+              quietHoursStart: notifPrefs?.quietHoursStart || "21:30",
+              quietHoursEnd: notifPrefs?.quietHoursEnd || "07:00",
+              tierOptOuts: (notifPrefs?.tierOptOuts as string[]) || [],
+            },
+            {
+              title: card.title.en,
+              body: card.summary.en,
+            },
+            tx
+          );
+
+          if (outcome.decision.shouldPushNow) {
+            dispatchedPushesCount++;
+            previouslyDispatchedDedupeKeys.add(outcome.decision.dedupeKey);
+          }
+        }
+      }
+    }
+
     return {
       success: true,
       studentId,
       derivedCardsCount: derivedCards.length,
       insightsCount: insights.length,
+      dispatchedPushesCount,
     };
   });
 }
