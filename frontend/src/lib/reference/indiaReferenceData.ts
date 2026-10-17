@@ -26,7 +26,7 @@ export interface DistrictItem {
 export interface DemographicsOption {
   en: string;
   hi: string;
-  code?: string;
+  code?: string | undefined;
 }
 
 // ─── 1. Canonical States & Union Territories (36 Total) ──────────────────────
@@ -1394,7 +1394,7 @@ export const CANONICAL_MOTHER_TONGUES: DemographicsOption[] = [
 export interface PincodeResolutionResult {
   state: string;
   stateCode: string;
-  district?: string;
+  district?: string | undefined;
 }
 
 /**

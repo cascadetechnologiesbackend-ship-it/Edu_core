@@ -3,7 +3,7 @@ import { INDIAN_STATES, STATE_BY_CODE } from "./indiaReferenceData";
 export interface GeoHintResult {
   state: string;
   stateCode: string;
-  city?: string;
+  city?: string | undefined;
   source: "ip";
 }
 
