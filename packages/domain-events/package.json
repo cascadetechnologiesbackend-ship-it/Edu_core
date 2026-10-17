@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/domain-events",
-  "version": "11.3.0",
+  "version": "11.3.1",
   "private": true,
   "description": "SchoolOS Shared Domain Events Bus and Event Definitions",
   "main": "./src/index.ts",
