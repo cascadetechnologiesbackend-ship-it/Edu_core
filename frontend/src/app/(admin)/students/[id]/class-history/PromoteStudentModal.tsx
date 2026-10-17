@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { promoteStudent } from "./actions";
 import { useRouter } from "next/navigation";
+import { AppModal } from "@/components/ui/AppModal";
+import { UserCheck, RefreshCw } from "lucide-react";
 
 export interface YearOption {
   id: string;
@@ -60,8 +62,8 @@ export function PromoteStudentModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError("");
 
@@ -104,118 +106,108 @@ export function PromoteStudentModal({
           }
           setIsOpen(true);
         }}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg shadow-sm transition-colors text-xs inline-flex items-center gap-1.5"
+        className="bg-primary hover:bg-primary/95 text-white font-bold py-2 px-3.5 rounded-xl shadow-xs transition-colors text-xs inline-flex items-center gap-1.5 min-h-[40px]"
       >
+        <UserCheck className="w-3.5 h-3.5" />
         <span>Promote / Reassign Student</span>
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-slate-800">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-slate-800">
-              <div>
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                  Promote / Reassign Student
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Select the target academic year, class, and section.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                ✕
-              </button>
+      <AppModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        size="md"
+        title="Promote / Reassign Student"
+        description="Select the target academic year, class, and section."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              disabled={loading}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition disabled:opacity-50 min-h-[40px]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={loading || !selectedSectionId}
+              onClick={() => handleSubmit()}
+              className="bg-primary hover:bg-primary/95 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center gap-1.5 min-h-[40px] shadow-sm"
+            >
+              {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>{loading ? "Promoting..." : "Confirm Promotion"}</span>
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-4 py-1">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl text-xs font-medium border border-red-200 dark:border-red-800">
+              {error}
             </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-medium">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Target Academic Year
-                </label>
-                <select
-                  value={selectedYearId}
-                  onChange={(e) => setSelectedYearId(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"
-                >
-                  {availableYears.map((yr) => (
-                    <option key={yr.id} value={yr.id}>
-                      {yr.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Target Class
-                </label>
-                <select
-                  value={selectedClassId}
-                  onChange={(e) => handleClassChange(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"
-                >
-                  {availableClasses.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Target Section
-                </label>
-                <select
-                  value={selectedSectionId}
-                  onChange={(e) => setSelectedSectionId(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"
-                >
-                  {sectionsForClass.length === 0 ? (
-                    <option value="">No sections available</option>
-                  ) : (
-                    sectionsForClass.map((sec) => (
-                      <option key={sec.id} value={sec.id}>
-                        Section {sec.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-2 border-t border-gray-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  disabled={loading}
-                  className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-slate-700 rounded-md hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !selectedSectionId}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-md shadow-sm transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Promoting..." : "Confirm Promotion"}
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
+              Target Academic Year
+            </label>
+            <select
+              value={selectedYearId}
+              onChange={(e) => setSelectedYearId(e.target.value)}
+              required
+              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+            >
+              {availableYears.map((yr) => (
+                <option key={yr.id} value={yr.id}>
+                  {yr.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
+              Target Class
+            </label>
+            <select
+              value={selectedClassId}
+              onChange={(e) => handleClassChange(e.target.value)}
+              required
+              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+            >
+              {availableClasses.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
+              Target Section
+            </label>
+            <select
+              value={selectedSectionId}
+              onChange={(e) => setSelectedSectionId(e.target.value)}
+              required
+              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+            >
+              {sectionsForClass.length === 0 ? (
+                <option value="">No sections available</option>
+              ) : (
+                sectionsForClass.map((sec) => (
+                  <option key={sec.id} value={sec.id}>
+                    Section {sec.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+        </form>
+      </AppModal>
     </>
   );
 }
+
+export default PromoteStudentModal;

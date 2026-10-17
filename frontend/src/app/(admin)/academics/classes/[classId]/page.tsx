@@ -7,8 +7,14 @@ import {
   assignments,
   lessonPlans,
   assessments,
+  students,
+  feeInvoices,
+  studentAttendance,
+  examSchedules,
+  examMarksLocks,
 } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gte, desc } from "drizzle-orm";
+import { decryptData } from "@/lib/encryption";
 import { getActiveAcademicYear } from "../../actions/auth-helper";
 import {
   getClassWithDetails,
@@ -65,9 +71,17 @@ export default async function ClassHubPage({
   const secIds = cls.sections.map((s: any) => s.id);
   const csIds = cls.classSubjects.map((cs: any) => cs.id);
 
-  const [timetable, classAssignments, classLessons, classAssessments] =
-    await withTenant(schoolId, async (tx) => {
-      return Promise.all([
+  const {
+    timetable,
+    classAssignments,
+    classLessons,
+    classAssessments,
+    rosterStudents,
+    classExams,
+  } = await withTenant(schoolId, async (tx) => {
+    // 1. Fetch Class Timetable, Assignments, Lessons, Assessments
+    const [timetable, classAssignments, classLessons, classAssessments] =
+      await Promise.all([
         secIds.length > 0
           ? tx.query.timetablePeriods.findMany({
               where: and(
@@ -91,7 +105,7 @@ export default async function ClassHubPage({
                 classSubject: { with: { subject: { columns: { name: true } } } },
                 section: { columns: { id: true, name: true } },
               },
-              limit: 20,
+              limit: 30,
             })
           : [],
         csIds.length > 0
@@ -103,7 +117,7 @@ export default async function ClassHubPage({
               with: {
                 classSubject: { with: { subject: { columns: { name: true } } } },
               },
-              limit: 20,
+              limit: 30,
             })
           : [],
         csIds.length > 0
@@ -116,14 +130,168 @@ export default async function ClassHubPage({
                 classSubject: { with: { subject: { columns: { name: true } } } },
                 section: { columns: { id: true, name: true } },
               },
-              limit: 20,
+              limit: 30,
             })
           : [],
       ]);
+
+    // 2. Query Roster Stream: Students belonging to this class
+    const rawStudents = await tx.query.students.findMany({
+      where: and(
+        eq(students.schoolId, schoolId),
+        eq(students.currentClassId, params.classId),
+        eq(students.isActive, true),
+      ),
+      columns: {
+        id: true,
+        admissionNumber: true,
+        rollNumber: true,
+        firstNameEncrypted: true,
+        lastNameEncrypted: true,
+        gender: true,
+        currentSectionId: true,
+        isActive: true,
+      },
+      orderBy: [students.rollNumber, students.admissionNumber],
     });
 
+    const studentIds = rawStudents.map((s) => s.id);
+
+    // 3. Aggregate Student Fee Status and 30-day Attendance
+    let invoices: Array<{ studentId: string; status: string; balanceAmount: string; dueDate: Date }> = [];
+    let attendanceRecords: Array<{ studentId: string; status: string }> = [];
+
+    if (studentIds.length > 0) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [invRes, attRes] = await Promise.all([
+        tx.query.feeInvoices.findMany({
+          where: and(
+            eq(feeInvoices.schoolId, schoolId),
+            inArray(feeInvoices.studentId, studentIds),
+          ),
+          columns: {
+            studentId: true,
+            status: true,
+            balanceAmount: true,
+            dueDate: true,
+          },
+        }),
+        tx.query.studentAttendance.findMany({
+          where: and(
+            eq(studentAttendance.schoolId, schoolId),
+            inArray(studentAttendance.studentId, studentIds),
+            gte(studentAttendance.attendanceDate, thirtyDaysAgo),
+          ),
+          columns: {
+            studentId: true,
+            status: true,
+          },
+        }),
+      ]);
+
+      invoices = invRes as any;
+      attendanceRecords = attRes as any;
+    }
+
+    const now = new Date();
+    const rosterStudents = rawStudents.map((s) => {
+      const firstName = decryptData(s.firstNameEncrypted) || "Student";
+      const lastName = decryptData(s.lastNameEncrypted) || "";
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      // Fee status
+      const sInvoices = invoices.filter((inv) => inv.studentId === s.id);
+      let feeStatus: "PAID" | "DUE" | "DEFAULTER" = "PAID";
+      for (const inv of sInvoices) {
+        const bal = parseFloat(inv.balanceAmount || "0");
+        if (bal > 0) {
+          if (inv.status === "OVERDUE" || (inv.dueDate && new Date(inv.dueDate) < now)) {
+            feeStatus = "DEFAULTER";
+            break;
+          } else {
+            feeStatus = "DUE";
+          }
+        }
+      }
+
+      // Attendance %
+      const sAtt = attendanceRecords.filter((att) => att.studentId === s.id);
+      let attendancePct: number | null = null;
+      if (sAtt.length > 0) {
+        const presentCount = sAtt.filter(
+          (a) => a.status === "PRESENT" || a.status === "LATE",
+        ).length;
+        attendancePct = Math.round((presentCount / sAtt.length) * 100);
+      }
+
+      return {
+        id: s.id,
+        admissionNumber: s.admissionNumber,
+        rollNumber: s.rollNumber || "—",
+        fullName,
+        gender: s.gender,
+        sectionId: s.currentSectionId,
+        feeStatus,
+        attendancePct,
+        lastExamAverage: null as number | null,
+      };
+    });
+
+    // 4. Query Exam Schedules Stream touching this class
+    const [rawExams, marksLocks] = await Promise.all([
+      tx.query.examSchedules.findMany({
+        where: and(
+          eq(examSchedules.schoolId, schoolId),
+          eq(examSchedules.classId, params.classId),
+        ),
+        with: {
+          exam: { columns: { id: true, name: true } },
+          subject: { columns: { id: true, name: true, code: true } },
+        },
+        orderBy: [desc(examSchedules.examDate)],
+      }),
+      tx.query.examMarksLocks.findMany({
+        where: and(
+          eq(examMarksLocks.schoolId, schoolId),
+          eq(examMarksLocks.classId, params.classId),
+        ),
+      }),
+    ]);
+
+    const classExams = rawExams.map((es) => {
+      const lock = marksLocks.find(
+        (l) => l.examId === es.examId && l.subjectId === es.subjectId,
+      );
+      return {
+        id: es.id,
+        examId: es.examId,
+        examName: es.exam?.name || "Exam",
+        subjectName: es.subject?.name || "Subject",
+        subjectCode: es.subject?.code || "",
+        examDate: es.examDate,
+        startTime: es.startTime,
+        roomNumber: es.roomNumber,
+        maxMarks: es.maxMarks,
+        passingMarks: es.passingMarks,
+        isLocked: lock ? lock.status === "LOCKED" || Boolean(lock.lockedAt) : false,
+        classAverage: null as number | null,
+      };
+    });
+
+    return {
+      timetable,
+      classAssignments,
+      classLessons,
+      classAssessments,
+      rosterStudents,
+      classExams,
+    };
+  });
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
       <ClassHubClient
         cls={cls as any}
         overview={overview}
@@ -135,6 +303,8 @@ export default async function ClassHubPage({
         initialAssignments={classAssignments}
         initialLessonPlans={classLessons}
         initialAssessments={classAssessments}
+        rosterStudents={rosterStudents}
+        classExams={classExams}
         isAdmin={isAdmin}
         isTeacher={isTeacher}
         userId={session.user.id}

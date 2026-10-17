@@ -48,35 +48,35 @@ export default async function StudentsDirectoryPage() {
 
           // Run classes, sections, and initial students within withTenant to satisfy RLS
           const { classesList, allSections, initialStudentRows } = await withTenant(school.id, async (tx) => {
-            const classesList = await tx.query.classes.findMany({
-              where: and(
-                eq(classes.schoolId, school.id),
-                eq(classes.isActive, true),
-              ),
-              orderBy: [classes.sortOrder, classes.displayName],
-            });
-
-            const allSections = await tx.query.sections.findMany({
-              where: eq(sections.schoolId, school.id),
-              with: { class: true },
-            });
-
-            const initialStudentRows = await tx.query.students.findMany({
-              where: studentCondition,
-              columns: {
-                id: true,
-                admissionNumber: true,
-                firstNameEncrypted: true,
-                lastNameEncrypted: true,
-                gender: true,
-                currentClassId: true,
-                currentSectionId: true,
-                isActive: true,
-                createdAt: true,
-              },
-              orderBy: [desc(students.createdAt)],
-              limit: INITIAL_PAGE_SIZE + 1, // +1 for cursor computation
-            });
+            const [classesList, allSections, initialStudentRows] = await Promise.all([
+              tx.query.classes.findMany({
+                where: and(
+                  eq(classes.schoolId, school.id),
+                  eq(classes.isActive, true),
+                ),
+                orderBy: [classes.sortOrder, classes.displayName],
+              }),
+              tx.query.sections.findMany({
+                where: eq(sections.schoolId, school.id),
+                with: { class: true },
+              }),
+              tx.query.students.findMany({
+                where: studentCondition,
+                columns: {
+                  id: true,
+                  admissionNumber: true,
+                  firstNameEncrypted: true,
+                  lastNameEncrypted: true,
+                  gender: true,
+                  currentClassId: true,
+                  currentSectionId: true,
+                  isActive: true,
+                  createdAt: true,
+                },
+                orderBy: [desc(students.createdAt)],
+                limit: INITIAL_PAGE_SIZE + 1, // +1 for cursor computation
+              }),
+            ]);
 
             return { classesList, allSections, initialStudentRows };
           });
@@ -115,7 +115,7 @@ export default async function StudentsDirectoryPage() {
             initialNextCursor: nextCursor,
           };
         },
-        { maxQueries: 5, label: "Students SIS Directory" }
+        { maxQueries: 8, label: "Students SIS Directory" }
       );
     }
   );

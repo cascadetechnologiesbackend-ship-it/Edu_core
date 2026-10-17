@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   students,
   studentFamilyMembers,
@@ -17,6 +17,9 @@ import {
   feeConcessions,
   users,
   staff,
+  markEntries,
+  resultSnapshots,
+  assignmentSubmissions,
 } from "@/db/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -55,6 +58,7 @@ export default async function StudentProfilePage({
   }
 
   // 2. Role-Based Access Control Verification for Teachers
+  let isTeacherAssigned = false;
   if (ctx.role === "TEACHER") {
     const [isClassTeacher, isSubjectTeacher, isClassSubjectTeacher] = await Promise.all([
       student.currentSectionId
@@ -97,6 +101,7 @@ export default async function StudentProfilePage({
         </div>
       );
     }
+    isTeacherAssigned = true;
   }
 
   const canViewFees = [
@@ -111,6 +116,8 @@ export default async function StudentProfilePage({
     "SCHOOL_ADMIN",
     "ACCOUNTANT",
   ].includes(ctx.role);
+
+  const canViewExams = ctx.role !== "TEACHER" || isTeacherAssigned;
 
   // 3. Parallel Execution: Run all independent queries simultaneously in a single Promise.all
   const [
@@ -127,6 +134,9 @@ export default async function StudentProfilePage({
     history,
     allClasses,
     allSecs,
+    studentMarkEntriesList,
+    studentResultSnapshotsList,
+    studentSubmissionsList,
   ] = await Promise.all([
     // Current Class
     student.currentClassId
@@ -246,13 +256,68 @@ export default async function StudentProfilePage({
     }),
 
     // All Classes (for history resolution)
-    db.query.classes.findMany({
-      where: eq(classes.schoolId, school.id),
-    }),
+    withTenant(school.id, async (tx) =>
+      tx.query.classes.findMany({
+        where: eq(classes.schoolId, school.id),
+      })
+    ),
 
     // All Sections (for history resolution)
-    db.query.sections.findMany({
-      where: eq(sections.schoolId, school.id),
+    withTenant(school.id, async (tx) =>
+      tx.query.sections.findMany({
+        where: eq(sections.schoolId, school.id),
+      })
+    ),
+
+    // Mark Entries (Exams)
+    canViewExams
+      ? db.query.markEntries.findMany({
+          where: and(
+            eq(markEntries.studentId, student.id),
+            eq(markEntries.schoolId, school.id),
+          ),
+          with: {
+            exam: true,
+            subject: true,
+            component: true,
+          },
+          orderBy: [desc(markEntries.enteredAt)],
+        })
+      : Promise.resolve([]),
+
+    // Result Snapshots (Report cards)
+    canViewExams
+      ? db.query.resultSnapshots.findMany({
+          where: and(
+            eq(resultSnapshots.studentId, student.id),
+            eq(resultSnapshots.schoolId, school.id),
+            eq(resultSnapshots.isCurrent, true),
+          ),
+          with: {
+            setup: true,
+          },
+          orderBy: [desc(resultSnapshots.frozenAt)],
+        })
+      : Promise.resolve([]),
+
+    // Assignment Submissions (Homework)
+    db.query.assignmentSubmissions.findMany({
+      where: and(
+        eq(assignmentSubmissions.studentId, student.id),
+        eq(assignmentSubmissions.schoolId, school.id),
+      ),
+      with: {
+        assignment: {
+          with: {
+            classSubject: {
+              with: {
+                subject: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [desc(assignmentSubmissions.submittedAt)],
     }),
   ]);
 
@@ -392,24 +457,76 @@ export default async function StudentProfilePage({
     }
   }
 
+  // Absorb Fee payments into timeline
+  for (const inv of studentInvoicesList) {
+    if (parseFloat(inv.paidAmount || "0") > 0) {
+      timelineEvents.push({
+        id: `fee-paid-${inv.id}`,
+        date: (inv as any).updatedAt ? (inv as any).updatedAt.toISOString() : (inv as any).createdAt.toISOString(),
+        title: `Fee Payment Received (₹${inv.paidAmount})`,
+        description: `Payment recorded towards invoice #${inv.invoiceNumber} (${(inv as any).feeStructure?.feeHead?.name || inv.term}).`,
+        type: "FEE",
+      });
+    }
+  }
+
+  // Absorb Exam marks into timeline
+  for (const entry of studentMarkEntriesList) {
+    timelineEvents.push({
+      id: `exam-${entry.id}`,
+      date: entry.enteredAt.toISOString(),
+      title: `Exam Score: ${entry.exam?.name || "Exam"} • ${entry.subject?.name || "Subject"}`,
+      description: entry.isAbsent
+        ? "Marked absent for this examination."
+        : `Recorded ${entry.marksObtained} / ${entry.maxMarks}${entry.grade ? ` (Grade ${entry.grade})` : ""}.`,
+      type: "ACADEMIC",
+    });
+  }
+
+  // Absorb Report cards into timeline
+  for (const snap of studentResultSnapshotsList) {
+    if (snap.publishedAt) {
+      timelineEvents.push({
+        id: `report-${snap.id}`,
+        date: snap.publishedAt.toISOString(),
+        title: `Report Card Released: ${snap.setup?.name || "Evaluation Report"}`,
+        description: "Official consolidated performance report card published for academic record.",
+        type: "ACADEMIC",
+      });
+    }
+  }
+
+  // Absorb Homework submissions into timeline
+  for (const sub of studentSubmissionsList) {
+    timelineEvents.push({
+      id: `homework-${sub.id}`,
+      date: sub.submittedAt.toISOString(),
+      title: `Homework Submitted: ${sub.assignment?.title || "Assignment"}`,
+      description: `${sub.assignment?.classSubject?.subject?.name || "Subject"} assignment submitted${sub.isLate ? " (late submission)" : ""}.`,
+      type: "ACADEMIC",
+    });
+  }
+
   // Sort timeline chronologically descending
   timelineEvents.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 
   // Available classes and academic years for Promotion Modal
-  const availableClasses = await db.query.classes.findMany({
-    where: and(
-      eq(classes.schoolId, school.id),
-      eq(classes.isActive, true),
-    ),
-    with: {
-      sections: {
-        where: eq(sections.isActive, true),
+  const availableClasses = await withTenant(school.id, async (tx) =>
+    tx.query.classes.findMany({
+      where: and(
+        eq(classes.schoolId, school.id),
+        eq(classes.isActive, true),
+      ),
+      with: {
+        sections: {
+          where: eq(sections.isActive, true),
+        },
       },
-    },
-    orderBy: [classes.sortOrder, classes.displayName],
-  });
+      orderBy: [classes.sortOrder, classes.displayName],
+    })
+  );
 
   const availableYears = await db.query.academicYears.findMany({
     where: eq(academicYears.schoolId, school.id),
@@ -428,6 +545,64 @@ export default async function StudentProfilePage({
   const lastName = decryptData(student.lastNameEncrypted) || "";
   const fullName = `${firstName} ${lastName}`.trim();
 
+  // Map exam marks
+  const examMarks = studentMarkEntriesList.map((entry) => {
+    const obtained = entry.marksObtained !== null ? parseFloat(entry.marksObtained) : null;
+    const max = parseFloat(entry.maxMarks || "100");
+    const pct = obtained !== null && max > 0 ? Math.round((obtained / max) * 100) : null;
+
+    return {
+      id: entry.id,
+      examName: entry.exam?.name || "Exam",
+      subjectName: entry.subject?.name || "Subject",
+      subjectCode: entry.subject?.code || "",
+      componentName: (entry as any).component?.displayName || null,
+      marksObtained: obtained,
+      maxMarks: max,
+      percentage: pct,
+      grade: entry.grade,
+      isAbsent: entry.isAbsent,
+      isMedicalExempt: entry.isMedicalExempt,
+      remarks: entry.remarks,
+      enteredAt: entry.enteredAt.toISOString(),
+    };
+  });
+
+  // Map report cards
+  const reportCards = studentResultSnapshotsList.map((snap) => {
+    const p = (snap.payload as any) || {};
+    return {
+      id: snap.id,
+      setupName: snap.setup?.name || "Evaluation Report",
+      version: snap.version,
+      frozenAt: snap.frozenAt.toISOString(),
+      publishedAt: snap.publishedAt ? snap.publishedAt.toISOString() : null,
+      rank: p.rank ?? p.classRank ?? null,
+      percentage: p.percentage ?? p.overallPercentage ?? null,
+      totalMarks: p.totalMarks ?? p.marksObtained ?? null,
+      maxMarks: p.maxMarks ?? p.totalMaxMarks ?? null,
+      grade: p.grade ?? p.overallGrade ?? null,
+    };
+  });
+
+  // Map homework submissions
+  const homeworkSubmissions = studentSubmissionsList.map((sub) => {
+    const asgn = sub.assignment;
+    return {
+      id: sub.id,
+      assignmentTitle: asgn?.title || "Assignment",
+      subjectName: asgn?.classSubject?.subject?.name || "Subject",
+      subjectCode: asgn?.classSubject?.subject?.code || "",
+      dueDate: asgn?.dueDate ? asgn.dueDate.toISOString() : null,
+      submittedAt: sub.submittedAt.toISOString(),
+      isLate: sub.isLate,
+      marksAwarded: sub.marksAwarded,
+      maxMarks: asgn?.maxMarks ?? null,
+      plagiarismFlagged: sub.plagiarismFlagged,
+      remarks: sub.remarks,
+    };
+  });
+
   const student360Data: Student360Data = {
     id: student.id,
     admissionNumber: student.admissionNumber,
@@ -443,6 +618,7 @@ export default async function StudentProfilePage({
     admissionDate: student.admissionDate.toISOString(),
     leavingDate: student.leavingDate?.toISOString() || null,
     leavingReason: student.leavingReason,
+    classId: student.currentClassId || null,
     className: currentClass?.displayName || "",
     sectionName: currentSection?.name || "",
     academicYearLabel: student.academicYear?.label || "",
@@ -510,6 +686,10 @@ export default async function StudentProfilePage({
     })),
     classHistory: mappedHistory,
     timelineEvents,
+    canViewExams,
+    examMarks,
+    reportCards,
+    homeworkSubmissions,
   };
 
   return (
