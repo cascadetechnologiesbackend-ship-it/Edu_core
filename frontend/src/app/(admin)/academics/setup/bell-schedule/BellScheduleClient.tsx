@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { saveBellSchedulePeriod, deleteBellSchedulePeriod } from "../../actions/timetable.actions";
+import { AppModal } from "@/components/ui/AppModal";
 
 type BellPeriod = {
   id: string;
@@ -278,136 +279,129 @@ export default function BellScheduleClient({
       </div>
 
       {/* ─── Period Form Modal ────────────────────────────────────────────── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <form
-            onSubmit={handleSave}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl animate-in zoom-in-95"
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                {editingPeriod ? "Edit Period" : "Add Bell Schedule Period"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-1">
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Period #
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formData.periodNumber}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      periodNumber: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-bold"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="Period 1, Assembly"
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  Start Time (HH:MM)
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                  End Time (HH:MM)
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={formData.endTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endTime: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
-                />
-              </div>
-            </div>
-
-            <div>
+      <AppModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingPeriod ? "Edit Period" : "Add Bell Schedule Period"}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="px-3.5 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="bell-period-form"
+              disabled={isPending}
+              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-primary text-white disabled:opacity-50 flex items-center gap-1"
+            >
+              {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              Save Period
+            </button>
+          </div>
+        }
+      >
+        <form
+          id="bell-period-form"
+          onSubmit={handleSave}
+          className="space-y-4"
+        >
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-1">
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Period Type
+                Period #
               </label>
-              <select
-                value={formData.periodType}
+              <input
+                type="number"
+                required
+                value={formData.periodNumber}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    periodType: e.target.value as any,
+                    periodNumber: parseInt(e.target.value) || 1,
                   })
                 }
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-bold"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="Period 1, Assembly"
                 className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
-              >
-                <option value="REGULAR">Regular Class</option>
-                <option value="ASSEMBLY">Morning Assembly</option>
-                <option value="BREAK">Short Break</option>
-                <option value="LUNCH">Lunch Break</option>
-                <option value="LAB">Practical Lab</option>
-                <option value="PT">Physical Training</option>
-                <option value="LIBRARY">Library Period</option>
-                <option value="FREE">Free Period</option>
-              </select>
+              />
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-primary text-white disabled:opacity-50 flex items-center gap-1"
-              >
-                {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                Save Period
-              </button>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Start Time (HH:MM)
+              </label>
+              <input
+                type="time"
+                required
+                value={formData.startTime}
+                onChange={(e) =>
+                  setFormData({ ...formData, startTime: e.target.value })
+                }
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
+              />
             </div>
-          </form>
-        </div>
-      )}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                End Time (HH:MM)
+              </label>
+              <input
+                type="time"
+                required
+                value={formData.endTime}
+                onChange={(e) =>
+                  setFormData({ ...formData, endTime: e.target.value })
+                }
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              Period Type
+            </label>
+            <select
+              value={formData.periodType}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  periodType: e.target.value as any,
+                })
+              }
+              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+            >
+              <option value="REGULAR">Regular Class</option>
+              <option value="ASSEMBLY">Morning Assembly</option>
+              <option value="BREAK">Short Break</option>
+              <option value="LUNCH">Lunch Break</option>
+              <option value="LAB">Practical Lab</option>
+              <option value="PT">Physical Training</option>
+              <option value="LIBRARY">Library Period</option>
+              <option value="FREE">Free Period</option>
+            </select>
+          </div>
+        </form>
+      </AppModal>
     </div>
   );
 }
