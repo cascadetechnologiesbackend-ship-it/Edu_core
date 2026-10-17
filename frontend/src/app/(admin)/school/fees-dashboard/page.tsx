@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   feeInvoices,
   feePayments,
@@ -84,9 +84,11 @@ export default async function FeesDashboardPage({
               where: eq(academicYears.schoolId, schoolId),
               orderBy: [desc(academicYears.startDate)],
             }),
-            db.query.classes.findMany({
-              where: eq(classes.schoolId, schoolId),
-            }),
+            withTenant(schoolId, async (tx) =>
+              tx.query.classes.findMany({
+                where: eq(classes.schoolId, schoolId),
+              })
+            ),
           ]);
 
           if (!activeSchool) return null;

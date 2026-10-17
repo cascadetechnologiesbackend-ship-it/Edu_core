@@ -1,7 +1,7 @@
 import { AdmissionsWizard } from "./AdmissionsWizard";
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { privacyNotices, classes } from "@/db/schema";
-import { desc, eq, asc } from "drizzle-orm";
+import { desc, eq, asc, and } from "drizzle-orm";
 import { CONSENT_PURPOSES } from "@schoolmitra/dpdp";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -12,14 +12,21 @@ export default async function NewAdmissionPage() {
     redirect("/login");
   }
 
+  const schoolId = session.user.schoolId;
+
   const [latestPrivacyNotice, schoolClasses] = await Promise.all([
     db.query.privacyNotices.findFirst({
       orderBy: [desc(privacyNotices.publishedAt)],
     }),
-    db.query.classes.findMany({
-      where: eq(classes.schoolId, session.user.schoolId),
-      orderBy: [asc(classes.sortOrder)],
-    }),
+    withTenant(schoolId, async (tx) =>
+      tx.query.classes.findMany({
+        where: and(
+          eq(classes.schoolId, schoolId),
+          eq(classes.isActive, true),
+        ),
+        orderBy: [asc(classes.sortOrder)],
+      })
+    ),
   ]);
 
   const availableGrades = schoolClasses.map((c) => ({

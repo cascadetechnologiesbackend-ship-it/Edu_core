@@ -1,4 +1,3 @@
-// ─── Communication Schema ─────────────────────────────────────────────────────
 import {
   pgTable,
   uuid,
@@ -8,8 +7,10 @@ import {
   pgEnum,
   index,
   jsonb,
+  integer,
 } from "drizzle-orm/pg-core";
 import { schools, users } from "./core";
+import { students } from "./students";
 
 export const noticeAudienceEnum = pgEnum("notice_audience_type", [
   "ALL",
@@ -207,5 +208,72 @@ export const userPushSubscriptions = pgTable(
     userIdx: index("user_push_subscriptions_user_idx").on(t.userId),
     schoolIdx: index("user_push_subscriptions_school_idx").on(t.schoolId),
   }),
+);
+
+// Parent Feed Cards (Active UI events cache per Spec v1.0)
+export const parentFeedCards = pgTable(
+  "parent_feed_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    cardType: text("card_type").notNull(),
+    tier: text("tier").notNull(),
+    priority: integer("priority").notNull().default(0),
+    title: jsonb("title").notNull(),
+    summary: jsonb("summary").notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    activatedAt: timestamp("activated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    studentIdx: index("parent_feed_cards_student_idx").on(t.studentId),
+    schoolIdx: index("parent_feed_cards_school_idx").on(t.schoolId),
+    studentTypeIdx: index("parent_feed_cards_student_type_idx").on(
+      t.studentId,
+      t.cardType
+    ),
+    expiresIdx: index("parent_feed_cards_expires_idx").on(t.expiresAt),
+  })
+);
+
+// Parent Notification Preferences (Tier opt-outs & quiet hours override)
+export const parentNotificationPreferences = pgTable(
+  "parent_notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    parentUserId: uuid("parent_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tierOptOuts: jsonb("tier_opt_outs").notNull().default([]),
+    quietHoursStart: text("quiet_hours_start").notNull().default("21:30"),
+    quietHoursEnd: text("quiet_hours_end").notNull().default("07:00"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    parentUserIdx: index("parent_notif_prefs_user_idx").on(t.parentUserId),
+    schoolIdx: index("parent_notif_prefs_school_idx").on(t.schoolId),
+  })
 );
 

@@ -71,8 +71,8 @@ const nextConfig = {
               process.env.NODE_ENV === "production"
                 ? "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com https://www.clarity.ms https://scripts.clarity.ms"
                 : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com https://www.clarity.ms https://scripts.clarity.ms",
-              "style-src 'self' 'unsafe-inline'",
-              "font-src 'self' data:",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://api.razorpay.com https://*.razorpay.com https://*.clarity.ms https://c.bing.com",
               "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",

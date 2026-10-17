@@ -33,7 +33,8 @@ if (process.env["NODE_ENV"] !== "production") {
 const skipSetRole =
   process.env["DB_SKIP_SET_ROLE"] === "true" ||
   process.env["npm_lifecycle_event"]?.includes("seed") ||
-  process.env["npm_lifecycle_event"]?.includes("migrate");
+  process.env["npm_lifecycle_event"]?.includes("migrate") ||
+  process.env["npm_lifecycle_event"]?.includes("reset");
 
 if (!skipSetRole) {
   pool.on("connect", (client) => {

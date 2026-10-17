@@ -497,7 +497,7 @@ export default async function DashboardPage() {
         SELECT 
           (SELECT count(*) FROM students WHERE school_id = ${schoolId})::int as total_students,
           (SELECT count(*) FROM admission_applications WHERE school_id = ${schoolId} AND status IN ('APPLIED', 'SCREENING'))::int as pending_admissions,
-          (SELECT count(*) FROM usage_events WHERE school_id = ${schoolId} AND event_type = 'STUDENT_ENROLLED' AND created_at >= ${startOfDay} AND created_at <= ${endOfDay})::int as new_admissions_today,
+          (SELECT count(*) FROM students WHERE school_id = ${schoolId} AND created_at >= ${startOfDay} AND created_at <= ${endOfDay})::int as new_admissions_today,
           (SELECT count(*) FROM leave_requests WHERE school_id = ${schoolId} AND status = 'PENDING')::int as pending_leaves,
           (SELECT count(*) FROM rights_requests WHERE school_id = ${schoolId} AND status IN ('SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'))::int as pending_rights,
           (SELECT count(*) FROM exam_marks_locks WHERE school_id = ${schoolId} AND status = 'SUBMITTED')::int as pending_marks_locks,

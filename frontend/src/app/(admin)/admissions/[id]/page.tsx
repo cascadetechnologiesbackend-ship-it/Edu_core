@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { admissionApplications, admissionWorkflowSteps, classes, sections } from "@/db/schema";
 import { eq, desc, and, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -24,18 +24,20 @@ export default async function AdmissionDetailPage({
     notFound();
   }
 
-  const schoolClasses = await db.query.classes.findMany({
-    where: and(
-      eq(classes.schoolId, application.schoolId),
-      eq(classes.isActive, true),
-    ),
-    with: {
-      sections: {
-        where: eq(sections.isActive, true),
+  const schoolClasses = await withTenant(application.schoolId, async (tx) =>
+    tx.query.classes.findMany({
+      where: and(
+        eq(classes.schoolId, application.schoolId),
+        eq(classes.isActive, true),
+      ),
+      with: {
+        sections: {
+          where: eq(sections.isActive, true),
+        },
       },
-    },
-    orderBy: [asc(classes.sortOrder), asc(classes.displayName)],
-  });
+      orderBy: [asc(classes.sortOrder), asc(classes.displayName)],
+    })
+  );
 
   const availableClasses = schoolClasses.map((c) => ({
     id: c.id,

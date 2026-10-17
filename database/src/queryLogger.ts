@@ -68,11 +68,33 @@ export class NPlusOneQueryError extends Error {
 export const queryBudgetStorage = new AsyncLocalStorage<QueryBudgetScope>();
 
 /**
+ * Infrastructure queries (such as transaction control and RLS session configuration)
+ * are excluded from the application query budget and N+1 detection.
+ */
+export function isInfrastructureQuery(query: string): boolean {
+  const q = query.trim().toLowerCase();
+  return (
+    q.startsWith("select set_config") ||
+    q.startsWith("set local") ||
+    q.startsWith("set role") ||
+    q.startsWith("begin") ||
+    q.startsWith("commit") ||
+    q.startsWith("rollback") ||
+    q.startsWith("savepoint") ||
+    q.startsWith("release savepoint")
+  );
+}
+
+/**
  * Custom Drizzle Logger that intercepts queries to track budget limits (PF 1.2 <= 10 queries)
  * and detects N+1 loops (PF-R11) when executing within a QueryBudgetScope.
  */
 export class BudgetQueryLogger implements Logger {
   logQuery(query: string, params: unknown[]): void {
+    if (isInfrastructureQuery(query)) {
+      return;
+    }
+
     const store = queryBudgetStorage.getStore();
 
     if (store) {

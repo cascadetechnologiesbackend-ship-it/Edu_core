@@ -54,33 +54,47 @@ async function factoryReset() {
   }
 
   // 3. Ensure Super Admin credentials are preserved & valid
-  const targetEmail = "vaibhavbg8080@gmail.com";
-  const targetPass = "9902850039";
-  const passwordHash = await bcrypt.hash(targetPass, 12);
+  const superAdminsToEnsure = [
+    {
+      email: "vaibhavbg8080@gmail.com",
+      pass: "9902850039",
+      name: "Super Admin (Vaibhav)",
+    },
+    {
+      email: (process.env.SUPER_ADMIN_EMAIL || "cascadetechnologiessolutions@gmail.com").trim().toLowerCase(),
+      pass: process.env.SUPER_ADMIN_PASSWORD || "P4jkbnixj4@",
+      name: "Platform Super Admin",
+    },
+  ];
 
-  const [existingSA] = await db
-    .select()
-    .from(superAdminUsers)
-    .where(eq(superAdminUsers.email, targetEmail));
+  for (const admin of superAdminsToEnsure) {
+    const passwordHash = await bcrypt.hash(admin.pass, 12);
+    const [existingSA] = await db
+      .select()
+      .from(superAdminUsers)
+      .where(sql`lower(${superAdminUsers.email}) = ${admin.email.toLowerCase()}`);
 
-  if (existingSA) {
-    console.log(`🔐 Verifying Super Admin (${targetEmail})...`);
-    await db
-      .update(superAdminUsers)
-      .set({
+    if (existingSA) {
+      console.log(`🔐 Verifying Super Admin (${admin.email})...`);
+      await db
+        .update(superAdminUsers)
+        .set({
+          passwordHash,
+          isActive: true,
+          totpEnabled: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(superAdminUsers.id, existingSA.id));
+    } else {
+      console.log(`➕ Seeding primary Super Admin (${admin.email})...`);
+      await db.insert(superAdminUsers).values({
+        email: admin.email.toLowerCase(),
         passwordHash,
+        fullName: admin.name,
         isActive: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(superAdminUsers.id, existingSA.id));
-  } else {
-    console.log(`➕ Seeding primary Super Admin (${targetEmail})...`);
-    await db.insert(superAdminUsers).values({
-      email: targetEmail,
-      passwordHash,
-      fullName: "Super Admin (Vaibhav)",
-      isActive: true,
-    });
+        totpEnabled: false,
+      });
+    }
   }
 
   // 4. Verification check
@@ -112,8 +126,9 @@ async function factoryReset() {
   console.log(`   - Regular Users in DB:     ${usersCount}`);
   console.log(`   - Super Admins Preserved:  ${superAdminCount}`);
   console.log(`   - Students in Database:    ${studentsCount}`);
-  console.log("==========================================");
-  console.log(`Super Admin Login: ${targetEmail} / ${targetPass}`);
+  for (const admin of superAdminsToEnsure) {
+    console.log(`Super Admin Login: ${admin.email} / ${admin.pass}`);
+  }
 
   process.exit(0);
 }

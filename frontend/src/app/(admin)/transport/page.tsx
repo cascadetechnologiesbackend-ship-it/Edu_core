@@ -96,7 +96,7 @@ export default async function TransportPage() {
             driversList: d,
           };
         },
-        { maxQueries: 6, label: "Transport Management" }
+        { maxQueries: 8, label: "Transport Management" }
       );
     });
 
