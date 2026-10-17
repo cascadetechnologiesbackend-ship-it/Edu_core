@@ -21,11 +21,10 @@ export const metadata: Metadata = {
 };
 
 const PARENT_NAV_ITEMS = [
-  { label: "Overview", href: "/parent/dashboard", icon: "LayoutDashboard" },
-  { label: "Attendance", href: "/parent/dashboard?tab=attendance", icon: "CalendarCheck" },
-  { label: "Fee Portal", href: "/parent/dashboard?tab=fees", icon: "Receipt" },
-  { label: "Bus Tracker", href: "/parent/dashboard?tab=bus", icon: "Bus" },
-  { label: "Documents", href: "/parent/documents", icon: "FileText" },
+  { label: "Home", href: "/parent/dashboard", icon: "LayoutDashboard" },
+  { label: "Child", href: "/parent/profile", icon: "User" },
+  { label: "Messages", href: "/parent/messages", icon: "MessageSquare" },
+  { label: "More", href: "/parent/more", icon: "MoreHorizontal" },
 ];
 
 export default async function ParentLayout({

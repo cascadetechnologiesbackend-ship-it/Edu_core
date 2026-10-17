@@ -10,6 +10,8 @@
     "./trpc": "./src/server/trpc.ts",
     "./services/*": "./src/server/services/*.ts",
     "./lib/*": "./src/lib/*.ts",
+    "./parentEventEngine/*": "./src/lib/parentEventEngine/*.ts",
+    "./analytics/*": "./src/lib/analytics/*.ts",
     "./workers/*": "./src/workers/*.ts"
   },
   "scripts": {
