@@ -1,0 +1,438 @@
+{
+  "prompt_version": "1.2",
+  "intent": "Refactor and enhance the UI/UX of the Edu_core Academic Management module (AMS), ClassHub, Student 360, and Onboarding wizard so that every task completes in fewer clicks, every screen has one primary action, and after every completed action the next best step is always visible and predictable. This prompt is written for an AI coding agent working inside the Edu_core repository. Follow every constraint. Implement surface by surface in the given order. This revision (1.1) additionally covers: categorized teaching/non-teaching staff onboarding pickers, a shared India address autofill experience (states, districts, pincode-first autofill, IP-based location hints), and pick-from-list demographics (religion, caste/category, mother tongue) across every form in the product, so that users never type what they can select. Revision 1.2 adds the design feel layer: no surface may read like an Excel sheet. People render as people, time renders as chronology, color carries meaning, and every 360 surface tells the day's story on its first tab before any data table appears.",
+  "meta": {
+    "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
+    "stack": {
+      "framework": "Next.js App Router (frontend/src/app), React 18, TypeScript",
+      "styling": "Tailwind CSS with existing dark mode (dark: variants mandatory on every new element)",
+      "icons": "lucide-react only, no new icon packages",
+      "data_layer": "Drizzle ORM schema in database/src/schema, server actions in frontend/src/app/(admin)/**/actions*.ts, tRPC routers in backend/src/server/routers",
+      "state": "React useState + useTransition + router.refresh(); no new global state libraries",
+      "deps_policy": "Do not add NEW npm dependencies. The following are already in package.json and should be used freely: all installed @radix-ui primitives (dialog, tabs, select, avatar, popover, tooltip, switch, toast), cmdk for the command palette, sonner for toasts, recharts for sparklines, tailwindcss-animate for motion, class-variance-authority, date-fns, react-hook-form. Build AppModal on @radix-ui/react-dialog, CommandPalette on cmdk, toasts on sonner. The ban applies only to packages not yet installed."
+    },
+    "role_groups": ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTANT", "PARENT", "STUDENT"],
+    "files_in_scope": [
+      "frontend/src/app/onboard/page.tsx",
+      "frontend/src/app/(admin)/academics/page.tsx",
+      "frontend/src/app/(admin)/academics/AcademicsClientTabs.tsx",
+      "frontend/src/app/(admin)/academics/components/AmsHubClient.tsx",
+      "frontend/src/app/(admin)/academics/components/ClassCreationWizard.tsx",
+      "frontend/src/app/(admin)/academics/ClassroomsTab.tsx",
+      "frontend/src/app/(admin)/academics/SubjectsTab.tsx",
+      "frontend/src/app/(admin)/academics/SubjectMappingTab.tsx",
+      "frontend/src/app/(admin)/academics/TimetableTab.tsx",
+      "frontend/src/app/(admin)/academics/AssignmentsTab.tsx",
+      "frontend/src/app/(admin)/academics/LessonPlansTab.tsx",
+      "frontend/src/app/(admin)/academics/classes/[classId]/page.tsx",
+      "frontend/src/app/(admin)/academics/classes/[classId]/ClassHubClient.tsx",
+      "frontend/src/app/(admin)/students/page.tsx",
+      "frontend/src/app/(admin)/students/StudentDirectoryClient.tsx",
+      "frontend/src/app/(admin)/students/[id]/page.tsx",
+      "frontend/src/app/(admin)/students/[id]/Student360Client.tsx",
+      "frontend/src/components/ui/* (new shared components)",
+      "frontend/src/app/(admin)/layout.tsx (command palette mount)",
+      "frontend/src/app/(admin)/hr/HRDashboardClient.tsx",
+      "frontend/src/app/(admin)/hr/actions.ts",
+      "frontend/src/app/(admin)/hr/staff/[id]/Staff360Client.tsx",
+      "frontend/src/app/(admin)/admissions/new/AdmissionsWizard.tsx",
+      "frontend/src/app/(admin)/admissions/new/actions.ts",
+      "frontend/src/lib/reference/indiaReferenceData.ts (new, pure data)",
+      "frontend/src/lib/reference/addressGeo.ts (new, server-only IP hint resolver)",
+      "frontend/src/components/forms/* (new form primitives: Combobox, AddressAutofill, PersonalDemographicsPicker)"
+    ]
+  },
+  "context_engineering": {
+    "current_state_audit": [
+      "TWO COMPETING NAVIGATION SYSTEMS on /academics: AmsHubClient (class card hub with block tabs, wizard, delete) and AcademicsClientTabs (six flat tabs: classrooms, subjects, mapping, timetable, assignments, lessons). A user cannot predict which surface holds which action. MERGE them into one hub (see surface_1).",
+      "SubjectMappingTab adds one mapping at a time via a 5-field form (class select, subject select, teacher select, periods, elective). With a 13-class school this is the highest-click surface in the module. Replace with a per-class matrix editor (see surface_4).",
+      "The mapping form silently prefills classroom[0] and subjects[0], so a careless submit creates a wrong mapping in 1 click. Prefill must be empty with inline validation instead.",
+      "TimetableTab requires: select section dropdown, find slot, open modal, fill 4 fields, submit = 5+ clicks per period, 30-48 clicks per section-week. No copy-day, copy-section, or quick-fill exists. ClassHub timetable tab duplicates this flow with a second, inconsistent modal. Unify into one editor with quick-fill (see surface_5).",
+      "ClassHub has 8 tabs (overview, sections, subjects, timetable, syllabus, assignments, lessons, assessments) but NO student roster tab, NO exams tab, and tab state lives in useState only, so a refresh or share loses the active tab. Tabs must sync to ?tab= in the URL.",
+      "ClassHub already has a setup checklist chip row (sections, subjects, teachers, syllabus) and a delete-safety modal with clear consequence copy. Keep both; formalize the chips into a persistent Setup Progress bar (see surface_3).",
+      "Student360Client has 8 tabs and role gating, but no exam marks, homework, or timetable stream, and no deep links back to ClassHub or to the class roster.",
+      "Every modal in the module is hand-rolled (fixed inset-0, varying max-w-sm/md/lg, no Escape handler, no focus trap, inconsistent Cancel/Submit alignment). Standardize via one AppModal component (see shared_components).",
+      "Empty states exist but are dead ends: 'No mappings found for the selected academic block.' with no CTA button. Every empty state must carry its next action.",
+      "Onboarding wizard (frontend/src/app/onboard/page.tsx, ~69KB single file, steps 1-6) collects classes and subjects as two unrelated flat lists. The UI cannot express board-wise subject applicability, which is the root cause of the all-subjects-to-all-classes onboarding bug. The wizard needs a blueprint-driven review drawer (see surface_0) paired with the backend payload fix.",
+      "No global search or command palette on admin surfaces; navigation to a student currently costs 3-5 clicks via directory pagination.",
+      "STAFF ONBOARDING IS A 143KB SINGLE FILE (HRDashboardClient.tsx) where departments and designations are flat native <select> dropdowns of per-school free-text records. There is no teaching/non-teaching categorization in the picker even though designations.isTeaching and designations.mappedRole already exist in the schema. The user scrolls an ungrouped list to find 'Mathematics' among 'Accounts', 'Housekeeping', 'Transport'. Departments must become a categorized, searchable picker (see surface_8).",
+      "professionalTaxState is free text with inconsistent conventions across the codebase: the staff schema defaults to 'DL', the salary template form uses 'KARNATAKA'. There is no canonical Indian state list anywhere in the repository.",
+      "ADDRESS IS A SINGLE FREE-TEXT FIELD: staff.addressEncrypted and admissionApplications.addressEncrypted are one encrypted blob; the admissions wizard collects only address + pincode (6-digit validated) with NO state and NO district fields, and nothing maps pincode to district. There is no Indian states/districts dataset anywhere in the repo.",
+      "RELIGION IS FREE TEXT (students.religion is a text column), and caste is only partially modeled: categoryEnum (GENERAL, SC, ST, OBC, EWS) exists as a select in forms, but religion and sub-caste are typed by hand with inconsistent spellings. Caste exists as a document type (CASTE_CERTIFICATE) but not as structured pickable form data.",
+      "The AdmissionsWizard already has a Hindi language toggle (isHindi) and a DPDP consent-first step. Both are correct; keep them and make every new reference list bilingual (English/Hindi labels)."
+    ],
+    "supporting_code_to_reuse": {
+      "board_blueprints": "backend/src/lib/examBoardBlueprints.ts exports mapGradeLevelToClassGroup, deriveClassGroupsFromClasses, getBlueprint, ALL_CLASS_GROUPS, previewBoardTermPlan. Reuse the same ClassGroup machinery for the subject-mapping matrix and onboarding subject review. Do not duplicate these helpers.",
+      "canonical_ordering": "backend/src/lib/academicOrdering.ts getCanonicalSortOrder already sorts Nursery..Class 12. Use it for every class list; never sort alphabetically.",
+      "existing_server_actions": "createClassSetup (per-class subjectIds already supported), saveClassSubject, saveSubject, saveSection, deleteClass, saveTimetablePeriod, getSectionTimetable, saveAssessment, saveAssignment. Extend these, do not fork them.",
+      "design_language": "Existing conventions to keep: rounded-xl/rounded-2xl cards, border-gray-200 dark:border-slate-800 borders, text-xs uppercase bold labels in text-gray-400, primary buttons bg-primary text-white rounded-xl text-xs font-bold, chips with checkmarks for completed setup items, backdrop-blur modal overlay.",
+      "hr_schema": "designations.isTeaching and designations.mappedRole already encode teaching vs non-teaching; departments and designations are per-school rows (unique per school + name). Drive the categorized staff picker from these existing columns; do NOT add new schema columns for categorization.",
+      "admissions_schema": "admission_applications stores addressEncrypted (PII blob) + pincode (plaintext). Keep the encrypted blob for street-level lines; add plaintext non-PII state and district columns for autofill and filtering. students.religion and students.motherTongue remain text columns: persist the selected canonical label as text, no enum migration required.",
+      "reference_data_pattern": "Follow the examBoardBlueprints.ts pure-data pattern for the India reference dataset: pure data + pure functions, zero imports, client-safe, fully functional offline."
+    }
+  },
+  "objectives": {
+    "o1_fewer_clicks": "Reduce clicks for every measured flow to at or below the click_budget defined in flows_and_click_budgets. A click counts any tap on a button, select, tab, or grid cell that is required to complete the task.",
+    "o2_predictable_next_step": "After any create/update/delete completes, the SAME screen shows a NextBestAction strip with exactly one highlighted suggestion and up to two alternates. No flow ends on a dead-end screen.",
+    "o3_one_primary_action_per_screen": "Every screen has exactly one filled-primary button. All other actions are secondary (bordered) or tertiary (text link).",
+    "o4_position_consistency": "Same entity type always renders in the same region: page header top-left with breadcrumb above title, primary action top-right, tabs directly under header, filter chips left of content, bulk actions in a sticky bottom bar when selection exists, modal primary button bottom-right.",
+    "o5_progressive_disclosure": "Never show more than 7 form fields at once. Group the rest behind collapsible Advanced sections. Multi-step tasks use a visible stepper, never hidden modal stacks. Maximum one modal deep, always.",
+    "o6_no_data_entry_feeling": "Tables become workbenches: inline edit on click, keyboard navigation, bulk select, smart defaults from board blueprints, autofill from context (a subject attached in ClassHub already knows its class)."
+  },
+  "global_ux_laws": [
+    "L1: Any list longer than 8 items gets a search input pinned above it, left-aligned, width 320px, placeholder 'Search...'.",
+    "L2: Any tab container syncs activeTab to the URL query (?tab=) and restores it on mount, so refresh/share/back preserve state.",
+    "L3: Every destructive action uses ConfirmDialog showing item name, exact consequence list, and what blocks deletion (reuse the deleteClass safety-check copy pattern).",
+    "L4: Every mutation button shows a spinner inside the button (existing Loader2 pattern) and stays disabled until done. Never leave a button without feedback.",
+    "L5: Every empty state = one icon + one sentence of current reality + one primary CTA that opens the correct creation surface pre-focused.",
+    "L6: Numbers in tables are right-aligned with tabular-nums; text left; status badges centered; header row uppercase text-xs.",
+    "L7: Escape closes the topmost modal; focus is trapped inside modals; Enter submits the active form.",
+    "L8: The next best action is computed from data, not guessed: a class with 0 subjects suggests Attach Subjects; a class with subjects but 0 timetable rows suggests Build Timetable; a school year with classes but no exams suggests Set Up Exams.",
+    "L9: Mobile-first stacking (grid-cols-1) is mandatory; touch targets minimum 40px height.",
+    "L10: Dark mode variants required on every class string; use existing slate palette.",
+    "L11: The default tab of every 360 surface (ClassHub, Student 360, Staff 360) is a story, never a table. It renders: a 'Today' strip (date, weekday, one human sentence like '3 things need you today'), a chronological activity feed with relative timestamps ('2h ago', date-fns formatDistance) and colored actor chips, and needs-attention cards. Raw tables live only in scanning tabs (Roster, Directory, Exams).",
+    "L12: People render as people. Every student, teacher, and staff record shows an avatar (@radix-ui/react-avatar, already installed) with initials on a deterministic color derived from a name hash, the person's name as the loudest element, and any ID de-emphasized to text-[11px] text-gray-400."
+  ],
+  "design_system": {
+    "layout_grid": {
+      "page_max_width": "1280px centered, px-4 md:px-6",
+      "header_block": "mb-5 border-b border-gray-100 dark:border-slate-800 pb-4; breadcrumb line text-xs text-gray-500 above an h1 text-2xl font-extrabold; primary action button absolute right of the h1 row",
+      "tabs_bar": "border-b border-gray-200 dark:border-slate-800, py-3 px-1 font-bold text-xs, active tab border-b-2 border-primary text-primary, horizontal scroll on mobile (overflow-x-auto)",
+      "content_cards": "grid gap-4; metric cards grid-cols-2 md:grid-cols-4; detail cards grid-cols-1 md:grid-cols-3",
+      "sticky_regions": "list headers sticky top-0 with bg blur when list exceeds viewport; bulk-action bar sticky bottom-0 when row selection is active"
+    },
+    "spacing": "Tailwind scale only: gap-1.5 inside chips, gap-2 inside form rows, gap-4 between cards, space-y-6 between sections",
+    "typography": "h1 text-2xl md:text-3xl font-extrabold; h3 text-sm font-bold; labels text-xs uppercase font-bold text-gray-400; body text-xs or text-sm; timestamps text-[11px] text-gray-400",
+    "buttons": {
+      "primary": "bg-primary text-white rounded-xl px-4 py-2 text-xs font-bold, hover:bg-primary/95, disabled:opacity-50, contains icon w-3.5",
+      "secondary": "border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 rounded-xl px-3.5 py-2 text-xs font-semibold",
+      "tertiary": "text-primary text-xs font-bold hover:underline",
+      "danger": "bg-red-600 text-white rounded-xl text-xs font-bold",
+      "grid_cell_action": "clickable cell shows dashed border + Add placeholder on hover for empty slots (existing ClassHub pattern)"
+    },
+    "feedback": {
+      "success_toast": "bottom-right slide-in, green check, auto-dismiss 4s, one line: what was created + id",
+      "next_best_action_strip": "appears directly under the tabs bar after a completed action: left = check + outcome sentence, right = [primary suggested action] [secondary alternate]; never more than 56px tall"
+    }
+  },
+  "design_feel": {
+    "anti_excel_laws": [
+      "F1: A screen fails review if it can be screenshotted and mistaken for a spreadsheet. Every list of entities shows avatars, badges, and at most 5 columns; deeper facts open on click.",
+      "F2: Chronology is the default sort for anything time-based. Activity feeds render as vertical timelines (connector line, colored dot per event type, relative timestamp, one-line human description), not tables with a date column.",
+      "F3: Progress is visual, never numeric-only: setup state = SetupProgressBar dots, attendance = colored ring or badge, trends = recharts sparklines (already in package.json) inside metric cards, not bare numbers.",
+      "F4: Motion budget: use only the existing tailwindcss-animate keyframes — animate-fade-in on content mount, animate-slide-in-left for slide-overs, animate-shimmer for skeletons, animate-pulse-soft for live/pending states. Durations at or under 300ms. No new animation library.",
+      "F5: Color carries fixed meaning from the existing tailwind.config.ts tokens: primary deep blue #1e40af = actions and authority; secondary emerald #059669 = success, complete, positive; warning amber = attention and partial; danger rose = errors and critical; sidebar slate. Never repurpose a semantic color, never introduce a new hue, use bg-gradient-primary only for onboarding/celebration hero moments.",
+      "F6: Microcopy is human, short, present tense: 'No timetable yet. This class is one step from its first bell.' not 'Timetable records: 0'. Numbers in copy are written as words when small ('3 things need you today').",
+      "F7: Empty states have personality but stay professional: one icon, one honest sentence of current reality, one primary CTA. Never a dead grid.",
+      "F8: Emotional milestones are acknowledged: when a class completes all 4 setup dots, the NextBestAction strip becomes a brief celebration ('Class 8-B is fully set up. One down, 12 to go.') with a subtle emerald glow; same pattern for a school finishing onboarding and a staff member's first day record.",
+      "F9: The 10-tab surfaces are fine because tabs are retrieval, not the experience. Rule: first tab is always the story (law L11), most-used tabs sit leftmost, tab bar is horizontally scrollable chips, and every tab renders its content against the same design language so nothing feels bolted on.",
+      "F10: Contextual headers ground the user: 360 surfaces show the entity's identity block at top (avatar, name, one-line status like 'Class 8-B - 34 students - 2 fee defaulters' or 'Aarav Sharma - Class 8-B - attendance 91%'), sticky and always visible, so long tabs never orphan the user from what they are looking at."
+    ],
+    "reference_components": {
+      "ActivityFeed": "Vertical timeline used by the Overview tabs and Timeline tab; props: events[] { icon, color, actor, text, timestamp }. Relative time via date-fns formatDistanceToNow, absolute date on hover.",
+      "NeedsAttentionCard": "Compact card on Overview tabs: colored left border by severity (amber = act this week, rose = act now), one-line problem, primary action button. Drives the 'what needs me' story.",
+      "IdentityHeader": "Sticky entity header block described in F10; collapses to avatar + name on scroll on mobile."
+    }
+  },
+  "shared_components": [
+    {
+      "id": "AppModal",
+      "file": "frontend/src/components/ui/AppModal.tsx",
+      "spec": "Props: open, onClose, title, size ('sm'|'md'|'lg'|'xl'), children, footer (ReactNode). Fixed inset-0 z-50 bg-black/60 backdrop-blur-xs. Card: rounded-2xl border shadow-xl, size sm=max-w-sm md=max-w-md lg=max-w-lg xl=max-w-2xl. Header row: title left, X button right, border-b pb-3. Footer row: Cancel (secondary) left of Submit (primary), both right-aligned, border-t pt-2. Escape closes; focus trap; body scroll locked while open. Replace ALL hand-rolled modals in ClassHubClient, AmsHubClient, SubjectMappingTab, TimetableTab, ClassCreationWizard, Student360Client with this component."
+    },
+    {
+      "id": "CommandPalette",
+      "file": "frontend/src/components/ui/CommandPalette.tsx",
+      "spec": "Opens on Cmd+K / Ctrl+K and on a Search icon in the admin layout header. Single input + grouped result list. Groups: 'Jump to' (classes, subjects, students by fuzzy match over prefetched name lists via a lightweight server action searchEverything), 'Actions' (role-filtered: Create Class, Create Subject, Map Subjects, Build Timetable, Open Student Directory). Keyboard: up/down to move, Enter to go, Esc to close. Rendered inside (admin) layout.tsx so it is available on every admin screen."
+    },
+    {
+      "id": "EmptyStateCTA",
+      "file": "frontend/src/components/ui/EmptyStateCTA.tsx",
+      "spec": "Props: icon, title, hint, ctaLabel, onCta. Centered py-12, icon w-10 text-gray-300, title text-sm font-bold, hint text-xs text-gray-500, CTA = primary button. Used by every tab whose list can be empty."
+    },
+    {
+      "id": "NextBestAction",
+      "file": "frontend/src/components/ui/NextBestAction.tsx",
+      "spec": "Props: outcome (string), suggestion {label, href|action, primary}, alternates[] (max 2). Renders the post-action strip defined in design_system.feedback. Auto-computed variant: props in = { classId?, studentId? } and the component derives the suggestion from passed readiness data (hasSubjects, hasTimetable, hasSections, hasRoster) following law L8."
+    },
+    {
+      "id": "SetupProgressBar",
+      "file": "frontend/src/components/ui/SetupProgressBar.tsx",
+      "spec": "Four-step dot progress for a class: Sections, Subjects, Teachers, Timetable. Dots: filled green when done, amber when partially done (teachers assigned < subjects), gray when empty. Click a dot = jump to that ClassHub tab. Replaces the current loose chip row in ClassHubClient and is reused on class cards in AmsHubClient as a 4-dot mini indicator."
+    },
+    {
+      "id": "Stepper",
+      "file": "frontend/src/components/ui/Stepper.tsx",
+      "spec": "Horizontal numbered steps with labels, used in ClassCreationWizard and onboarding wizard. Current step: primary border; completed: green check clickable to go back. Never more than 6 steps. Shows 'Step X of N' on mobile."
+    },
+    {
+      "id": "ConfirmDialog",
+      "file": "frontend/src/components/ui/ConfirmDialog.tsx",
+      "spec": "AppModal size sm variant for destructive actions: red icon top-left, title, consequence bullet list (items that block deletion are listed with why), Cancel secondary + Delete danger right-aligned. Migrate the existing deleteClass modal body copy into it unchanged."
+    },
+    {
+      "id": "BulkActionBar",
+      "file": "frontend/src/components/ui/BulkActionBar.tsx",
+      "spec": "Sticky bottom bar appearing when table rows are selected: 'N selected' left, action buttons right (primary bulk action first). Used by SubjectMappingTab matrix, student directory, subjects catalog."
+    },
+    {
+      "id": "Combobox",
+      "file": "frontend/src/components/forms/Combobox.tsx",
+      "spec": "Searchable dropdown that replaces every native <select> with more than 8 options. Props: options (with optional group and secondary label), value, onChange, placeholder, allowCreate (shows an inline '+ Create New' row that calls onCreate, mirroring the inline subject creation pattern in ClassHub), groups (renders section headers like Teaching/Non-Teaching). Typeahead filtering across label and secondary label, keyboard up/down/Enter/Esc, selected value shown as a chip with an X to clear. Used by: department picker, designation picker, state, district, religion, mother tongue, and professional tax state fields."
+    },
+    {
+      "id": "AddressAutofill",
+      "file": "frontend/src/components/forms/AddressAutofill.tsx",
+      "spec": "One address block used by every form in the product. Field order, top to bottom: pincode (autofocus) -> state (Combobox, autofilled from pincode, editable) -> district (Combobox, options filtered by state, autofilled from pincode, editable) -> city/locality -> address line 1 -> address line 2 (optional). Typing a valid 6-digit pincode calls the pure resolver pincodeToStateDistrict from indiaReferenceData and fills state + district in under 50ms with a 'Auto-filled from pincode - change if wrong' microcopy under the fields. Accepts an optional geoHint prop ({ state, district, city, source }) from the server; the hint pre-selects state only while pincode is empty, with 'Detected from your location - change if wrong' microcopy. Emits { addressLine1, addressLine2, cityLocality, district, state, pincode, country: 'India' }. Works fully offline from bundled data."
+    },
+    {
+      "id": "PersonalDemographicsPicker",
+      "file": "frontend/src/components/forms/PersonalDemographicsPicker.tsx",
+      "spec": "One demographics block used by admission, student, and staff forms. Religion = Combobox from the canonical list with 'Other' revealing a free-text input. Category = existing enum select (GENERAL, SC, ST, OBC, EWS). Sub-caste/community = Combobox with a curated per-category list, input revealed only when category is not GENERAL, always with free-text fallback. Mother tongue = Combobox from the languages list. All lists render Hindi labels when the form is in Hindi mode (admissions isHindi toggle). Emits { religion, category, subCaste, motherTongue } as plain strings matching existing text columns."
+    }
+  ],
+  "reference_data_layer": {
+    "india_reference_data": {
+      "file": "frontend/src/lib/reference/indiaReferenceData.ts",
+      "pattern": "Pure data + pure functions, zero imports, client-safe and offline-capable. Mirrors the backend/src/lib/examBoardBlueprints.ts conventions exactly.",
+      "contents": {
+        "states": "All 28 states + 8 union territories, each with canonical English name, Hindi name, and a simple stable 2-letter code (e.g. 'Karnataka' / 'KA'). This list is the single source of truth for every state field in the product, including professionalTaxState.",
+        "districts": "Full district list per state (~775 districts), structure Record<stateCode, Array<{ en, hi }>>, alphabetized.",
+        "pincode_prefix_map": "India Post first-2/3-digit prefix allocation mapped to state code, enabling pincode-first autofill: 6 digits -> state + district where the prefix narrows to one district, otherwise state only.",
+        "religions": "Canonical list: Hinduism, Islam, Christianity, Sikhism, Buddhism, Jainism, Zoroastrianism, Judaism, Bahai, Other (Other reveals free text).",
+        "categories_and_castes": "Aligned to the existing categoryEnum (GENERAL, SC, ST, OBC, EWS). Curated sub-caste/community lists per category, with free-text fallback always available.",
+        "mother_tongues": "The 22 scheduled Indian languages + common others, bilingual labels.",
+        "size_budget": "Total bundled size of states + districts + pincode prefix map + demographics lists must stay under 80KB gzipped."
+      },
+      "seed_department_presets": "On school provisioning (registerSchoolTenant), seed default departments and designations via the existing createDepartment/createDesignation server actions: Teaching track: Pre-Primary Wing, Primary Wing, Mathematics, Science, Languages, Social Science, Computer Science, Physical Education, Arts & Crafts; Non-Teaching track: Administration, Accounts, Library, Transport, Hostel, Housekeeping, Security, Front Office, Maintenance. Every designation row gets isTeaching set correctly and a mappedRole where applicable. Admins can rename or archive these later like any department."
+    },
+    "geo_autofill": {
+      "resolver": "Server-only helper frontend/src/lib/reference/addressGeo.ts: resolveGeoHint() reads platform request geo headers (x-vercel-ip-country-region / x-vercel-ip-city, or Cloudflare Cf- headers where present) and returns { state, city, source: 'ip' } | null. NO third-party IP geolocation API, NO client-side navigator.geolocation permission prompt (permission dialogs feel invasive and fail on desktop/offline).",
+      "priority_chain": "1. values the user already chose in the form; 2. pincode-derived state + district (strongest signal, local data); 3. IP geo header hint (state-level preselection with visible 'detected - change if wrong' note); 4. the school's registered state (tenant default, used for parent/student-facing forms); 5. empty.",
+      "privacy": "The IP-derived hint is a UI preselection only and is never persisted by itself. Only values present in the submitted form are stored. District is never inferred from IP (state-level only); district comes from pincode or user selection. This respects the existing DPDP posture of the product.",
+      "offline_first": "indiaReferenceData is bundled locally, so pincode -> state/district autofill works fully offline; the IP hint is simply skipped offline."
+    }
+  },
+  "surfaces": [
+    {
+      "id": "surface_0_onboarding_wizard",
+      "route": "/onboard",
+      "file": "frontend/src/app/onboard/page.tsx",
+      "purpose": "Board-first provisioning: school structure derived from board blueprint, reviewed not typed.",
+      "changes": [
+        "Insert the board selector as step 1 and make it the root of everything visible after (already partially true for exams; extend to subjects and classes).",
+        "After selecting the board, prefill the class list from the board blueprint (grade levels per board) and show class groups as colored group headers (Pre-Primary, Primary, Middle, Secondary, Senior Secondary) above the class chips, using mapGradeLevelToClassGroup.",
+        "Replace the flat subject list step with a Review Drawer: a matrix of class-group rows x subject chips, prefilled from the board subject blueprint, where each chip is a toggle (on = offered). The admin edits exceptions, not the whole list. Zero clicks if defaults are accepted.",
+        "Show the derived exam blueprint summary (existing previewBoardTermPlan) in the same drawer's right column so the admin sees exam defaults and subject defaults in one review.",
+        "Split the 69KB single file: extract each step into frontend/src/app/onboard/steps/*.tsx with a small shared context object. Keep registerSchoolTenant payload shape but extend ClassSetupItem with optional subjectCodes[] and SubjectSetupItem with applicableClassGroups[] (backend contract change is allowed here and expected).",
+        "Add a completion screen with NextBestAction links: 'Create first section teachers', 'Build timetable for Class X', 'Open Academics Hub'.",
+        "Click budget: full onboarding with defaults accepted must complete in <= 12 clicks beyond typing school details."
+      ]
+    },
+    {
+      "id": "surface_1_academics_hub",
+      "route": "/academics",
+      "file": "frontend/src/app/(admin)/academics/page.tsx + components/AmsHubClient.tsx",
+      "purpose": "Single entry hub for AMS. Kills the dual-navigation problem.",
+      "layout": {
+        "header": "Title 'Academics Hub', breadcrumb 'Home / Academics', primary action top-right = 'Create Class' (opens ClassCreationWizard via AppModal, size xl).",
+        "readiness_banner": "Under header: one slim strip showing school-wide setup health: 'Classes 12/13 - Subjects mapped 8/12 - Timetables 3/12' where each number deep-links to the relevant surface. This is the module's always-visible progress signal.",
+        "block_tabs": "Keep the existing AcademicBlockTabs (pre_primary, primary, middle_school, high_school) as the only horizontal filter above the class cards.",
+        "class_cards": "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4. Card top: displayName + gradeLevel badge. Middle: SetupProgressBar 4-dot. Bottom row: 'Open Hub' (primary), 'Edit' (secondary), 'Delete' (tertiary danger text). Whole card is clickable and routes to ClassHub; buttons stopPropagation.",
+        "search": "Search input per law L1 above block tabs, filtering cards client-side by displayName and gradeLevel."
+      },
+      "actions_after_delete_or_create": "After createClassSetup success: card appears with entry animation, toast shows, NextBestAction strip appears with 'Attach subjects to <class>' (primary) and 'Open Class Hub' (secondary). After delete: strip suggests 'Create Class' again only if class count is 0, else stays silent.",
+      "merge_plan": "Delete the AcademicsClientTabs six-tab surface as a separate page-level tab system. Its six concerns become: classrooms -> covered by hub cards + ClassHub; subjects -> a 'Subjects Catalog' route /academics/subjects (existing SubjectsTab, kept as a dedicated page reached from hub header secondary button 'Manage Subjects'); mapping -> new matrix page /academics/mapping (surface_4); timetable -> reach ClassHub timetable tab directly per class (never per school); assignments and lessons -> live only inside ClassHub (their school-level lists added as two hub cards in a 'Workloads' section: 'Assignments (24 active)' and 'Lesson Plans (11 pending)', each opening a filtered list slide-over)."
+    },
+    {
+      "id": "surface_2_class_creation_wizard",
+      "file": "frontend/src/app/(admin)/academics/components/ClassCreationWizard.tsx",
+      "purpose": "Create class + sections + subject mapping in one guided pass.",
+      "changes": [
+        "Wrap in AppModal size xl; keep 3 steps with Stepper: 1 Class (gradeLevel select auto-fills displayName and filters subject preselect by class group), 2 Sections (repeatable rows with capacity default 40, teacher select optional), 3 Subjects (checkbox grid grouped by subject type, prechecked from board blueprint for that class group).",
+        "Step 3 must be the default-preselected board blueprint set; admin unchecks exceptions. Show '6 subjects selected' counter at the bottom-right near the primary button.",
+        "Primary button label per step: 'Continue' then 'Continue' then 'Create Class & Open Hub'. After success route to ClassHub with ?tab=subjects and show NextBestAction: 'Build Timetable' (primary), 'Assign Teachers' (secondary).",
+        "Inline validation on every step (duplicate grade error already exists server-side; mirror it client-side before submit).",
+        "Click budget: class with 2 sections and default subjects = 8 clicks (vs ~15 today)."
+      ]
+    },
+    {
+      "id": "surface_3_classhub",
+      "route": "/academics/classes/[classId]",
+      "file": "frontend/src/app/(admin)/academics/classes/[classId]/page.tsx + ClassHubClient.tsx",
+      "purpose": "The class 360 workspace: everything about one class in one page.",
+      "changes": [
+        "Tabs become 10, reordered by user value: Overview, Roster (NEW), Subjects, Timetable, Exams (NEW), Syllabus, Assignments, Lessons, Assessments, Sections. Persist active tab in URL via ?tab= (law L2). Tab bar horizontally scrollable as today.",
+        "SetupProgressBar replaces the current chip row under the header: Sections, Subjects, Teachers, Timetable dots, clickable to jump tabs.",
+        "Roster tab (NEW): table of students in this class grouped by section switcher (reuse the timetable's section-switcher UI), columns: student name (link to /students/[id]), roll number, attendance % (30-day), fee status badge (paid/due/defaulter), last exam average. Row click opens Student 360 in the same tab. Data: extend classes/[classId]/page.tsx to query students by currentClassId, aggregate attendance and feeInvoices; mark clearly as class-roster stream.",
+        "Exams tab (NEW): list of exam schedules touching this class (from exams, exam_class_scopes, exam_schedules), columns: exam name, subject, date, marks lock status, class average if published. Read-only for teachers; admin sees 'Open in Exams module' tertiary link per row. This is the first cross-module surface in ClassHub.",
+        "Attach Subject modal: migrate to AppModal; keep the inline 'Create New Subject' toggle (it is good UX); after attach, keep modal open with the just-attached subject greyed out in the select and toast + NextBestAction 'Assign Teacher to <subject>' so the admin can chain-attach without reopening.",
+        "Timetable tab: switch from modal-per-slot to the unified QuickTimetable editor (surface_5).",
+        "Overview tab: keep 4 metric cards but replace 'Pending Lessons' and 'Open Assignments' cards with 'Roster Size' and 'Fee Defaulters' cards (cross-module value); move pending lesson/assignment counts into the Assignments and Lessons tabs headers.",
+        "Delete Class stays as ConfirmDialog with the existing safety-check copy.",
+        "Empty roster: EmptyStateCTA 'No students enrolled yet' with CTA 'Open Student Directory' linking to /students?classId=<id> (add classId filter param support in directory)."
+      ]
+    },
+    {
+      "id": "surface_4_subject_mapping_matrix",
+      "route": "/academics/mapping",
+      "file": "frontend/src/app/(admin)/academics/SubjectMappingTab.tsx (promoted to page)",
+      "purpose": "Replace the one-row-at-a-time mapping form with a class x subject matrix.",
+      "layout": {
+        "matrix": "Rows = subjects (sorted by type then name), columns = classes (canonically ordered, horizontally scrollable, sticky first column with subject name). Cell = toggle chip: gray outline (not offered), filled primary (offered, click cell toggles). Column header click = select whole class column for bulk toggle. Row header click = bulk toggle subject across all classes.",
+        "teachers_drawer": "Clicking a filled cell once more opens a right slide-over (not a modal): subject + class context, teacher select, periods per week stepper, elective toggle, 'Save' primary. One mapping detail = 1 cell click + 1 slide-over.",
+        "legend": "Top-right of matrix: 'Core' blue chip, 'Elective' amber chip, 'Not offered' gray chip, so cell states are self-explanatory.",
+        "bulk_actions": "With selection active, BulkActionBar bottom: 'Attach selected to class', 'Detach selected'.",
+        "hierarchy_guard": "Cells where the subject's class group does not match the class group per board blueprint render with a subtle amber corner marker; tooltip: 'Not in default <board> blueprint for this group'. Allowed but flagged, never blocked."
+      },
+      "interactions": [
+        "Toggle cell = optimistic local state change; 'Review N changes' bar appears with Save All (primary) and Discard (secondary). Never autosave single toggles; batch them.",
+        "After Save All: toast 'N mappings updated' + NextBestAction 'Build timetables for classes missing one' (primary) or 'Open Class Hub' (secondary).",
+        "Remove the old 5-field form and the prefilled first-class/first-subject default entirely."
+      ],
+      "click_budget": "Reviewing and correcting one wrong mapping: 3 clicks (click cell, click again for drawer, Save). Adding 10 subjects to one class: 11 clicks (column select, click apply, confirm) vs 50+ today."
+    },
+    {
+      "id": "surface_5_timetable_editor",
+      "file": "frontend/src/components/academics/QuickTimetable.tsx (new, shared)",
+      "consumers": "ClassHub Timetable tab AND the old TimetableTab (which should be retired per surface_1 merge plan)",
+      "spec": {
+        "grid": "6 days x N periods table, existing visual pattern (Period column sticky-left, day headers top). Empty slot = dashed 'Add' on hover (keep).",
+        "quick_fill": "Clicking an empty slot opens AppModal size sm containing ONLY a horizontal list of the class's subjects as chips (from classSubjects, respecting the mapping fix) plus teacher auto-suggestion (the subject's assigned teacher preselected, substitute picker only on the advanced toggle). Click chip = period saved. This is 2 clicks per period instead of 5.",
+        "copy_tools": "Toolbar above the grid, left-aligned: 'Copy Monday to all days', 'Copy to section...' (section select inline), 'Clear week'. Each uses ConfirmDialog only for Clear.",
+        "conflicts": "If timetableClashEngine reports a teacher clash on quick-fill, show inline red error on the slot and keep the modal open with the clashing teacher marked. Do not silently save clashes.",
+        "after_save": "Toast + NextBestAction: 'Copy to another section' (primary) or 'Done - open Class Hub overview' (secondary).",
+        "click_budget": "Fill a 30-period week with the same 6 subjects: <= 8 clicks using copy tools; <= 60 worst case manual vs ~150 today."
+      }
+    },
+    {
+      "id": "surface_6_student_directory",
+      "route": "/students",
+      "file": "frontend/src/app/(admin)/students/StudentDirectoryClient.tsx",
+      "changes": [
+        "Add a search input (law L1) with fuzzy match on name and admission number; support ?classId= URL param to arrive pre-filtered from ClassHub roster empty state.",
+        "Row click = navigate to Student 360 (1 click, no intermediate detail modal).",
+        "Keep add-student as primary header action; after creation success, NextBestAction strip: 'Enroll in class' or 'Open Student 360'.",
+        "Fee status and attendance % columns as colored badges (green/amber/red), right-aligned per law L6."
+      ]
+    },
+    {
+      "id": "surface_7_student_360",
+      "route": "/students/[id]",
+      "file": "frontend/src/app/(admin)/students/[id]/Student360Client.tsx (+ page.tsx queries)",
+      "changes": [
+        "Tabs become 10: Overview, Academics, Attendance, Fees, Family, Documents, History, Timeline, Exams (NEW), Homework (NEW). Keep existing role gating for fees (canViewFees / canMutateFees) and apply the same gate to Exams marks for TEACHER visibility only if the teacher is subject- or class-teacher for this student (the page already computes exactly this triple check; reuse its result).",
+        "Exams tab (NEW): table of the student's markEntries joined with report cards: exam, subject, marks, grade, class rank (if available); header strip with average, best, weakest subject. Server: add two queries to the existing Promise.all block in page.tsx reading examinations schema (markEntries, reportCards) for this student.",
+        "Homework tab (NEW): assignmentSubmissions for this student: assignment title, subject, submitted date vs due date (late = amber badge), grade, plagiarism flag (red badge) if present.",
+        "Academics tab: add a 'View in Class Hub' tertiary link next to the class name, deep-linking to /academics/classes/[id]?tab=roster, closing the class-student navigation loop.",
+        "Timeline tab: absorb one event from each new stream (exam published, homework submitted late, fee paid, book issued) into the existing chronological timeline format.",
+        "Keep the 8-tab layout skeleton, metric cards grid, and PromoteStudentModal flow as-is except migrate the modal to AppModal.",
+        "Click budget: from anywhere, find a student and see their exam performance = Cmd+K, type 3-4 chars, Enter, click Exams tab = 4 interactions total."
+      ]
+    },
+    {
+      "id": "surface_8_staff_onboarding",
+      "route": "/hr",
+      "file": "frontend/src/app/(admin)/hr/HRDashboardClient.tsx (extracted into hr/tabs/*.tsx) + actions.ts",
+      "purpose": "Categorized, searchable staff onboarding: pick track, then department, then designation, then type the address. Never scroll a flat mixed list.",
+      "changes": [
+        "Split the 143KB HRDashboardClient.tsx into frontend/src/app/(admin)/hr/tabs/*.tsx (Overview, Staff, Departments, Designations, Salary, Attendance or whatever the existing tab set is), each tab a self-contained component receiving its data slice as props from a thin HRDashboardClient shell. No behavior change in this refactor step; it is a prerequisite for every later HR edit.",
+        "Staff creation form opens in AppModal size lg. First control is a segmented Teaching / Non-Teaching track selector (two large cards with icons: GraduationCap for Teaching, Briefcase for Non-Teaching). It defaults from designations.isTeaching of the currently viewed list and drives everything below it.",
+        "Department picker becomes a Combobox with groups: 'Teaching' and 'Non-Teaching' section headers, options sourced from existing per-school departments. When a track is selected, the Combobox opens pre-scrolled to that track's group and the typeahead matches only that group by default (an 'All departments' toggle exists for cross-picks). New departments can be created inline via the Combobox allowCreate row ('+ Create New Department'), reusing the existing createDepartment action.",
+        "Designation picker becomes a Combobox filtered by the chosen department AND the chosen track (designations.departmentId + designations.isTeaching). Choosing a designation auto-fills the mappedRole field (already in schema) and disables manual role selection unless mappedRole is null. allowCreate for new designations with an isTeaching checkbox inside the create row.",
+        "Replace the single addressEncrypted textarea with the shared AddressAutofill block (surface_9): pincode first, state + district autofilled, locality, street lines. Street lines go into the existing encrypted blob; state, district, pincode persist as plaintext non-PII columns alongside it.",
+        "professionalTaxState becomes a Combobox over the canonical state list (indiaReferenceData.states), defaulting to the school's registered state (tenant default). Add a one-time migration mapping legacy values: 'DL' -> 'Delhi'/'DL' canonical code, 'KARNATAKA' -> 'Karnataka'/'KA', and any other legacy free-text values normalized by case-insensitive match, unmatched left null for re-pick.",
+        "Staff list view gains the Combobox-based filters as well (department filter, designation filter, teaching/non-teaching chip filter) so the list and the creation form speak the same language.",
+        "Click budget: full staff onboarding (track, department, designation, address autofilled from pincode, tax state defaulted) = 10 clicks max beyond typing name and contact details."
+      ]
+    },
+    {
+      "id": "surface_9_address_and_demographics_everywhere",
+      "file": "frontend/src/app/(admin)/admissions/new/AdmissionsWizard.tsx + every student/staff/school form with an address or demographics block",
+      "purpose": "One address experience and one demographics experience across every form in the product. Pincode does the typing; lists do the spelling.",
+      "changes": [
+        "AdmissionsWizard family details step: replace the free-text address + pincode with the shared AddressAutofill block. Field order: pincode (autofocus) -> state -> district (both autofilled from pincode, editable Comboboxes) -> city/locality -> address lines. Keep the existing 6-digit pincode validation and the isHindi toggle; the 'Auto-filled from pincode - change if wrong' microcopy renders in the active language.",
+        "Insert the PersonalDemographicsPicker into the admission applicant step and the student creation/edit forms: religion (canonical list with Other free-text reveal), category (existing enum), sub-caste/community (per-category curated list, revealed only when category is not GENERAL, always with free-text fallback), mother tongue (scheduled languages list). All lists bilingual, driven by indiaReferenceData. Persist selections as plain strings into the existing text columns; no enum migration.",
+        "Schema change (paired commits, backend PR): add plaintext non-PII columns state (text), district (text) next to the existing pincode on admission_applications and students, and next to the address blob on staff. Street-level lines stay inside addressEncrypted. This is what makes addresses filterable and autofillable without weakening the DPDP posture.",
+        "School onboarding wizard (surface_0) collects the school's own address via the same AddressAutofill block; the school's state is stored on the tenant record and becomes the default state for every downstream form of that school (priority chain step 4 in reference_data_layer.geo_autofill).",
+        "Wire resolveGeoHint server-side: the school onboarding and admission forms receive { state, city, source: 'ip' } from platform geo headers via the server component and pass it as geoHint to AddressAutofill, which pre-selects the state (never the district) with 'Detected from your location - change if wrong' microcopy. Skipped entirely when headers are absent or offline.",
+        "Consistency sweep: after both primitives land, grep every form for textarea-address and free-text religion/caste/motherTongue inputs and replace them one by one with AddressAutofill and PersonalDemographicsPicker so no form diverges from the shared experience."
+      ]
+    }
+  ],
+  "flows_and_click_budgets": [
+    { "flow": "Onboard a school accepting board defaults", "today_clicks": "~40 (typing classes + subjects separately)", "target_clicks": 12, "measured_by": "board select + session dates + admin details + review drawer confirm + submit" },
+    { "flow": "Create a class with 2 sections and default subjects", "today_clicks": 15, "target_clicks": 8, "measured_by": "grade select, 2 section adds, continue x2, create" },
+    { "flow": "Correct one wrong subject mapping", "today_clicks": 5, "target_clicks": 3, "measured_by": "matrix cell toggle, drawer save" },
+    { "flow": "Detach 10 wrong mappings from one class (remediation)", "today_clicks": "impossible in bulk", "target_clicks": 4, "measured_by": "column select, select rows, Detach, confirm" },
+    { "flow": "Fill one section's weekly timetable", "today_clicks": 150, "target_clicks": 8, "measured_by": "quick-fill 6 subject chips + copy tools" },
+    { "flow": "Attach subject to a class", "today_clicks": 4, "target_clicks": 3, "measured_by": "Attach Subject, chip select, submit (modal stays open for chaining)" },
+    { "flow": "Find a student and view exam marks", "today_clicks": "6-8 (directory pagination, profile, no exams data)", "target_clicks": 4, "measured_by": "Cmd+K search, Enter, Exams tab" },
+    { "flow": "See who defaulted on fees in Class 8-B", "today_clicks": "impossible (no roster, no fees in ClassHub)", "target_clicks": 3, "measured_by": "hub card, Roster tab, fee status column" },
+    { "flow": "Staff onboarding: pick the 'Mathematics' department", "today_clicks": "6-10 (open flat native select, scroll a mixed teaching/non-teaching list, miss, retry)", "target_clicks": 3, "measured_by": "Teaching track tab, combobox typeahead 'mat', Enter" },
+    { "flow": "Enter a full address in any form", "today_clicks": "n/a - state and district fields do not exist anywhere; only a free-text textarea + pincode", "target_clicks": "3 typed fields, 0 selects", "measured_by": "pincode typed, state+district autofilled and confirmed, locality + street lines typed" },
+    { "flow": "Enter religion and caste for a student or applicant", "today_clicks": "free typing with inconsistent spellings and no validation", "target_clicks": 2, "measured_by": "religion select, category select (+ optional sub-caste reveal)" }
+  ],
+  "acceptance_criteria": [
+    "AC1: No hand-rolled modal markup remains in the touched files; grep for 'fixed inset-0 z-50' returns only AppModal internals.",
+    "AC2: Every tabbed surface reflects active tab in URL and restores it after refresh.",
+    "AC3: Every empty state in the module renders an EmptyStateCTA; grep for 'No ' followed by 'found'/'yet'/'recorded' shows CTA usage.",
+    "AC4: Every successful mutation in the module shows a toast plus a NextBestAction strip; the suggestion is data-derived per law L8.",
+    "AC5: Click budgets in flows_and_click_budgets verified manually per flow and listed in the PR description.",
+    "AC6: All flows work in dark mode with no unstyled elements; all touch targets >= 40px.",
+    "AC7: Escape closes every modal; no modal opens on top of another modal anywhere in the module.",
+    "AC8: Existing server action signatures unchanged unless listed under surface changes; RBAC role checks and schoolId scoping untouched.",
+    "AC9: No new npm dependencies; pnpm-lock.yaml unchanged.",
+    "AC10: Existing behavior preserved: deleteClass safety checks, teacher access triple-check in Student 360, fee role gating, exam fee locks.",
+    "AC11: Subject mapping UI never silently creates a mapping: no prefilled class/subject defaults; matrix changes require explicit Save All.",
+    "AC12: The board blueprint helpers are imported from examBoardBlueprints/academicOrdering, not duplicated.",
+    "AC13: No native <select> with more than 8 options remains anywhere in the touched surfaces; department, designation, state, district, religion, category sub-caste, mother tongue, and professional tax state all use the Combobox.",
+    "AC14: Every address block in the product is the shared AddressAutofill component with the pinned field order pincode -> state -> district -> locality -> lines; grep finds no free-text address textarea outside it.",
+    "AC15: Typing a valid 6-digit pincode autofills state and district in under 50ms with no network call, and the user can still override both fields.",
+    "AC16: professionalTaxState stores canonical codes everywhere; a legacy migration normalizes 'DL', 'KARNATAKA', and case-variant free text, with unmatched values nulled and listed for re-pick.",
+    "AC17: Religion, category, sub-caste, and mother tongue are always selected from lists with an 'Other'/free-text fallback, and stored values remain compatible with the existing text and enum columns.",
+    "AC18: Staff creation offers a Teaching / Non-Teaching track selector driven by designations.isTeaching with zero new schema columns for categorization.",
+    "AC19: The IP geo hint renders 'detected - change if wrong' microcopy, pre-selects state only, and is never persisted by itself; the full reference dataset works offline with zero network calls.",
+    "AC20: The default tab of every 360 surface renders the story per law L11 — Today strip, chronological activity feed, needs-attention cards — with zero raw table rows on that tab; design feel laws F1-F10 verified on Overview tabs of ClassHub, Student 360, and the HR staff list."
+  ],
+  "constraints": [
+    "Do not alter tenant isolation, RBAC checks, or fiscal/exam lock logic.",
+    "Do not touch the backend Cartesian-mapping bug in onboard.ts here EXCEPT the payload extension listed in surface_0; the mapping matrix and remediation flows depend on that backend fix landing in the same PR set but as separate commits.",
+    "Preserve all existing server action names used by untouched screens.",
+    "No analytics, no tracking, no external UI kit, no CSS-in-JS.",
+    "All new components must be presentational where possible; data continues to arrive as props from server components, matching the existing pattern.",
+    "Geo hint comes only from platform request headers (x-vercel-ip-* or Cf-*); no third-party IP geolocation API, no navigator.geolocation permission prompt anywhere.",
+    "The India reference dataset (states, districts, pincode prefix map, demographics lists) is static, bundled, and under 80KB gzipped; no runtime fetch, no CDN dependency.",
+    "Address and demographics changes must not weaken DPDP consent flows or PII encryption: street-level address lines stay encrypted in the existing blobs; state, district, and pincode are treated as non-PII plaintext; the IP hint is never persisted by itself."
+  ],
+  "out_of_scope": [
+    "Offline-first sync architecture",
+    "AI layer and janitor agent",
+    "Transport, HR, Library modules' own UIs",
+    "Backend exam mark-entry flows"
+  ],
+  "implementation_order": [
+    "Phase 1: shared_components (AppModal, Stepper, ConfirmDialog, EmptyStateCTA, NextBestAction, SetupProgressBar, BulkActionBar, CommandPalette) + migrate all existing modals to AppModal.",
+    "Phase 2: surface_1 academics hub merge + surface_2 wizard (3-step with subject precheck).",
+    "Phase 3: surface_4 mapping matrix + hierarchy guard.",
+    "Phase 4: surface_5 QuickTimetable + ClassHub timetable migration.",
+    "Phase 5: surface_3 ClassHub new tabs (Roster, Exams) + URL tabs + SetupProgressBar.",
+    "Phase 6: surface_6 directory + surface_7 Student 360 new tabs.",
+    "Phase 7: surface_0 onboarding wizard split + review drawer (paired with backend payload change).",
+    "Phase 8: acceptance pass per AC1-AC12, click-budget audit, dark mode sweep.",
+    "Phase 9: reference_data_layer — build indiaReferenceData.ts (states, districts, pincode prefix map, religions, categories_and_castes, mother_tongues) and addressGeo.ts, plus unit tests for pincode prefix mapping and professionalTaxState legacy-value canonicalization. No UI in this phase.",
+    "Phase 10: form primitives (Combobox, AddressAutofill, PersonalDemographicsPicker) + surface_8 staff onboarding + surface_9 address and demographics everywhere + professionalTaxState legacy migration + seed department/designation presets on school provisioning.",
+    "Phase 11: acceptance pass per AC13-AC20, design-feel review (laws L11-L12, F1-F10) on the Overview tabs of every 360 surface, consistency sweep grep for stray native selects and free-text address/demographics inputs, click-budget audit for the new flows."
+  ],
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this spec as docs/uiux-spec.json in the repository root and reference it from AGENTS.md so every agent session loads it automatically.",
+      "Work one surface per agent task; use the implementation_order phases as task boundaries and never mix phases in a single session.",
+      "Before editing any file listed in files_in_scope, read it in full first; the current_state_audit describes the code as of commit 669047d and the agent must re-verify anchors before refactor.",
+      "On any conflict between this spec and security constraints (RBAC, tenant isolation, DPDP, PII encryption), the security constraint wins; log the conflict in the task notes instead of silently deviating.",
+      "Never edit a schema column or server action signature outside the explicit backend contract changes listed in surface_0 (payload extension) and surface_9 (plaintext state/district columns); pair each with its own migration commit."
+    ]
+  },
+  "definition_of_done": "Every task in this module is reachable in at most 3 interactions from Cmd+K or the hub; every completed action shows its outcome and the next best step; every screen has exactly one primary action in a consistent position; nothing in the module feels like a data entry form: lists are workbenches, defaults come from the board blueprint, and users spend clicks only on decisions, never on navigation. Nobody types what they can pick: departments, designations, states, districts, religions, categories, and languages are always searchable selections with smart defaults, and a pincode fills the geography on its own. And nothing feels like an Excel sheet: opening any surface answers 'what needs me today' with a story — people, colors, chronology, and motion — before a single table row appears."
+}

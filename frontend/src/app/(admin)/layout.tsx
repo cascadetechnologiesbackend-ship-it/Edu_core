@@ -9,6 +9,7 @@ import { ImpersonationBanner } from "@/components/platform/ImpersonationBanner";
 import { SessionProvider } from "next-auth/react";
 import { verifyImpersonationToken } from "@/lib/impersonation";
 import { FpsOverlay } from "@/components/dev/FpsOverlay";
+import { CommandPalette } from "@/components/ui/CommandPalette";
 
 export const metadata: Metadata = {
   title: {
@@ -121,6 +122,7 @@ export default async function AdminLayout({
           {children}
         </AdminShell>
 
+        <CommandPalette />
         <FpsOverlay />
       </div>
     </SessionProvider>
