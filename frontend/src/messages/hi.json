@@ -1,0 +1,109 @@
+{
+  "parentFeed": {
+    "today": "आज",
+    "allGood": "आज सब ठीक है • कोई कार्रवाई आवश्यक नहीं",
+    "cardsWaiting": "मामलों पर आपके ध्यान की आवश्यकता है",
+    "singleCardWaiting": "मामले पर आपके ध्यान की आवश्यकता है",
+    "emptyFeedTitle": "सब कुछ नियंत्रण में है",
+    "emptyFeedSubtitle": "कोई लंबित शुल्क, अनुपस्थिति चेतावनी, या समय-सीमा नहीं है।",
+    "switchWard": "बच्चा बदलें",
+    "todaySchedule": "आज की समय-सारिणी और रिकॉर्ड"
+  },
+  "paymentCard": {
+    "dueInDays": "{days} दिनों में देय",
+    "dueToday": "आज देय",
+    "dueTomorrow": "कल देय",
+    "overdue": "अतिदेय - विलंब शुल्क जोड़ा गया",
+    "payNow": "शुल्क भरें",
+    "viewBreakdown": "विवरण देखें",
+    "initiating": "प्रारंभ हो रहा है",
+    "processing": "प्रक्रियाधीन",
+    "paid": "सफलतापूर्वक भुगतान",
+    "receiptReady": "रसीद तैयार",
+    "receiptNumber": "रसीद #{receiptNumber}",
+    "downloadReceipt": "रसीद डाउनलोड करें",
+    "backToToday": "वापस आज पर जाएँ"
+  },
+  "attendanceCard": {
+    "absent": "अनुपस्थित",
+    "late": "देर से",
+    "halfDay": "आधा दिन",
+    "leave": "अवकाश पर",
+    "markedAt": "{time} पर दर्ज किया गया",
+    "teacherRemark": "शिक्षक टिप्पणी",
+    "messageTeacher": "कक्षा शिक्षक को संदेश भेजें",
+    "questionPrompt": "यदि कोई प्रश्न है तो शिक्षक से संपर्क करें।"
+  },
+  "busLiveCard": {
+    "liveTracking": "लाइव ट्रैकिंग",
+    "stopsAway": "{count} स्टॉप दूर",
+    "oneStopAway": "1 स्टॉप दूर",
+    "enRoute": "स्कूल बस रास्ते में है",
+    "arrivedAtStop": "बस {stopName} पर पहुँच गई है",
+    "departed": "बस {stopName} से निकल चुकी है",
+    "completed": "मार्ग समाप्त",
+    "estArrival": "पहुँच समय",
+    "speed": "बस गति",
+    "distance": "दूरी",
+    "fullMap": "पूरा मैप",
+    "expand": "विस्तार",
+    "scheduled": "निर्धारित",
+    "arrived": "पहुँच गई",
+    "liveCommuteGps": "लाइव आवागमन GPS",
+    "scheduleView": "समय-सारिणी देखें",
+    "trackingOffDuty": "लाइव GPS ट्रैकिंग बंद है",
+    "trackingOffDutyDetail": "लाइव वाहन ट्रैकिंग स्कूल के दिनों में सुबह (06:30 - 08:30) और दोपहर (02:00 - 05:30) के दौरान स्वतः सक्रिय होती है।"
+  },
+  "homeworkCard": {
+    "dueTomorrow": "कल देय",
+    "dueSoon": "शीघ्र देय",
+    "overdue": "अतिदेय",
+    "grade": "ग्रेड: {grade}",
+    "assigned": "आवंटित",
+    "submitted": "जमा किया",
+    "checked": "जाँचा गया",
+    "openHomework": "गृहकार्य खोलें",
+    "teacherFeedback": "शिक्षक प्रतिक्रिया"
+  },
+  "reportCardCard": {
+    "reportCardReady": "{termName} रिपोर्ट कार्ड तैयार है",
+    "published": "प्रकाशित",
+    "average": "औसत",
+    "openReportCard": "रिपोर्ट कार्ड खोलें",
+    "offlineNotice": "डाउनलोड करने के बाद ऑफ़लाइन देखने के लिए उपलब्ध"
+  },
+  "ptmCard": {
+    "ptmTitle": "अभिभावक-शिक्षक बैठक",
+    "inDays": "{days} दिनों में",
+    "today": "आज",
+    "tomorrow": "कल",
+    "addReminder": "रिमाइंडर जोड़ें"
+  },
+  "noticeCard": {
+    "officialNotice": "आधिकारिक स्कूल सूचना",
+    "pinned": "पिन किया गया",
+    "readNotice": "पूरी सूचना पढ़ें"
+  },
+  "consentCard": {
+    "dpdpReview": "DPDP सहमति समीक्षा आवश्यक है",
+    "compliance": "वैधानिक व्यक्तिगत डेटा संरक्षण अनुपालन",
+    "reviewConsent": "सहमति की समीक्षा करें"
+  },
+  "insightCard": {
+    "attention": "सुझाव",
+    "support": "एकेडेमिक प्रोग्रेस इनसाइट",
+    "talkTeacher": "शिक्षक से बात करें",
+    "viewDetails": "विवरण देखें"
+  },
+  "messageCard": {
+    "newMessage": "नया संदेश",
+    "replyTeacher": "शिक्षक को उत्तर दें",
+    "secureChat": "सुरक्षित सीधा संवाद"
+  },
+  "navigation": {
+    "home": "होम",
+    "child": "बच्चा",
+    "messages": "संदेश",
+    "more": "अधिक"
+  }
+}

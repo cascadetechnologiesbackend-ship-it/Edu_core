@@ -57,6 +57,20 @@
       "description": "Collect fees and view dues",
       "url": "/school/collect-fees",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Pay Fees",
+      "short_name": "Pay",
+      "description": "Pay student fees and download receipts",
+      "url": "/parent/fees",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Bus Live Tracking",
+      "short_name": "Bus Live",
+      "description": "Track school bus live GPS during commute",
+      "url": "/parent/bus",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

@@ -1,0 +1,109 @@
+{
+  "parentFeed": {
+    "today": "Today",
+    "allGood": "All good today • No actions required",
+    "cardsWaiting": "items require your review or action",
+    "singleCardWaiting": "item requires your attention",
+    "emptyFeedTitle": "All Good Today",
+    "emptyFeedSubtitle": "No pending fees, attendance flags, or urgent deadlines.",
+    "switchWard": "Switch Ward",
+    "todaySchedule": "Today's Schedule & Records"
+  },
+  "paymentCard": {
+    "dueInDays": "Due in {days} days",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "overdue": "Overdue - late fee added",
+    "payNow": "Pay Now",
+    "viewBreakdown": "View breakdown",
+    "initiating": "Initiating",
+    "processing": "Processing",
+    "paid": "Paid",
+    "receiptReady": "Receipt ready",
+    "receiptNumber": "Receipt #{receiptNumber}",
+    "downloadReceipt": "Download receipt",
+    "backToToday": "Back to today"
+  },
+  "attendanceCard": {
+    "absent": "Absent",
+    "late": "Late",
+    "halfDay": "Half Day",
+    "leave": "On Leave",
+    "markedAt": "Marked at {time}",
+    "teacherRemark": "Teacher Remark",
+    "messageTeacher": "Message class teacher",
+    "questionPrompt": "Have a question? Reach out to the teacher."
+  },
+  "busLiveCard": {
+    "liveTracking": "LIVE TRACKING",
+    "stopsAway": "{count} stops away",
+    "oneStopAway": "1 stop away",
+    "enRoute": "School Bus is En Route",
+    "arrivedAtStop": "Bus has arrived at {stopName}",
+    "departed": "Bus departed {stopName}",
+    "completed": "Trip completed",
+    "estArrival": "Est. Arrival",
+    "speed": "Speed",
+    "distance": "Distance",
+    "fullMap": "Full Map",
+    "expand": "Expand",
+    "scheduled": "Scheduled",
+    "arrived": "Arrived",
+    "liveCommuteGps": "LIVE COMMUTE GPS",
+    "scheduleView": "Schedule View",
+    "trackingOffDuty": "Live GPS Tracking is Off-Duty",
+    "trackingOffDutyDetail": "Live vehicle tracking automatically activates on the home feed and map during morning (06:30 - 08:30 AM) and afternoon (02:00 - 05:30 PM) commute hours on school days."
+  },
+  "homeworkCard": {
+    "dueTomorrow": "Due Tomorrow",
+    "dueSoon": "Due Soon",
+    "overdue": "Overdue",
+    "grade": "Grade: {grade}",
+    "assigned": "Assigned",
+    "submitted": "Submitted",
+    "checked": "Checked",
+    "openHomework": "Open Homework",
+    "teacherFeedback": "Teacher Feedback"
+  },
+  "reportCardCard": {
+    "reportCardReady": "{termName} report card is ready",
+    "published": "PUBLISHED",
+    "average": "Average",
+    "openReportCard": "Open Report Card",
+    "offlineNotice": "Available offline once downloaded"
+  },
+  "ptmCard": {
+    "ptmTitle": "Parent-Teacher Meeting",
+    "inDays": "In {days} days",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "addReminder": "Add Reminder"
+  },
+  "noticeCard": {
+    "officialNotice": "Official School Notice",
+    "pinned": "PINNED",
+    "readNotice": "Read Full Notice"
+  },
+  "consentCard": {
+    "dpdpReview": "DPDP Consent Review Required",
+    "compliance": "Statutory Personal Data Protection Compliance",
+    "reviewConsent": "Review & Consent"
+  },
+  "insightCard": {
+    "attention": "ATTENTION",
+    "support": "Academic & Attendance Support",
+    "talkTeacher": "Talk to class teacher",
+    "viewDetails": "View Details"
+  },
+  "messageCard": {
+    "newMessage": "NEW MESSAGE",
+    "replyTeacher": "Reply to Teacher",
+    "secureChat": "Secure direct conversation"
+  },
+  "navigation": {
+    "home": "Home",
+    "child": "Child",
+    "messages": "Messages",
+    "more": "More"
+  }
+}
