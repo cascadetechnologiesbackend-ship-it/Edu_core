@@ -152,22 +152,22 @@ export interface InsightSnapshot {
   model: "attendance_risk" | "performance_dip" | "fee_stress" | "homework_neglect";
   severity: "AMBER" | "ROSE";
   finding: LocalizedString;
-  actionLink?: string;
+  actionLink?: string | undefined;
 }
 
 export interface ParentDataSnapshot {
-  studentName?: string;
-  invoices?: InvoiceSnapshot[];
-  attendanceToday?: AttendanceSnapshot;
-  busPass?: BusPassSnapshot;
-  latestBusPing?: GpsPingSnapshot;
-  routeStops?: RouteStopSnapshot[];
-  isCommuteWindowOverride?: boolean;
-  homework?: HomeworkSnapshot[];
-  reportCards?: ReportCardSnapshot[];
-  upcomingEvents?: UpcomingEventSnapshot[];
-  notices?: NoticeSnapshot[];
-  pendingConsents?: PendingConsentSnapshot[];
-  unreadMessages?: UnreadMessageSnapshot[];
-  insights?: InsightSnapshot[];
+  studentName?: string | undefined;
+  invoices?: InvoiceSnapshot[] | undefined;
+  attendanceToday?: AttendanceSnapshot | undefined;
+  busPass?: BusPassSnapshot | undefined;
+  latestBusPing?: GpsPingSnapshot | undefined;
+  routeStops?: RouteStopSnapshot[] | undefined;
+  isCommuteWindowOverride?: boolean | undefined;
+  homework?: HomeworkSnapshot[] | undefined;
+  reportCards?: ReportCardSnapshot[] | undefined;
+  upcomingEvents?: UpcomingEventSnapshot[] | undefined;
+  notices?: NoticeSnapshot[] | undefined;
+  pendingConsents?: PendingConsentSnapshot[] | undefined;
+  unreadMessages?: UnreadMessageSnapshot[] | undefined;
+  insights?: InsightSnapshot[] | undefined;
 }
