@@ -254,7 +254,7 @@ export async function evaluateStudentSignalsAndFeed(
       const todayLogs = await tx.query.pushNotificationLogs.findMany({
         where: and(
           eq(pushNotificationLogs.schoolId, schoolId),
-          eq(pushNotificationLogs.userId, parentUserId),
+          eq(pushNotificationLogs.recipientUserId, parentUserId),
           gte(pushNotificationLogs.createdAt, startOfDay)
         ),
       });

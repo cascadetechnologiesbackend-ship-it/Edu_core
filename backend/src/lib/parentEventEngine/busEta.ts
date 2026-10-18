@@ -70,8 +70,10 @@ export function isInsideCommuteWindow(
 
   const parseMinutes = (timeStr: string, fallbackMinutes: number) => {
     if (!timeStr) return fallbackMinutes;
-    const [h, m] = timeStr.split(":").map(Number);
-    return isNaN(h) || isNaN(m) ? fallbackMinutes : h * 60 + m;
+    const parts = timeStr.split(":");
+    const h = Number(parts[0]);
+    const m = Number(parts[1]);
+    return Number.isNaN(h) || Number.isNaN(m) ? fallbackMinutes : h * 60 + m;
   };
 
   const morningStart = parseMinutes(options.morningStart || "06:30", 390); // 6*60+30 = 390
@@ -101,7 +103,7 @@ export function findNearestStop(
 
   for (let i = 0; i < stops.length; i++) {
     const s = stops[i];
-    if (s.lat == null || s.lng == null) continue;
+    if (!s || s.lat == null || s.lng == null) continue;
     const dist = haversineDistance(currentLat, currentLon, s.lat, s.lng);
     if (dist < minDistance) {
       minDistance = dist;
@@ -186,7 +188,27 @@ export function computeBusTracking(
 
   // Find nearest stop to current bus GPS location
   const nearestResult = findNearestStop(latestPing.lat, latestPing.lng, sortedStops);
-  const nearestStop = nearestResult?.stop || sortedStops[0];
+  const fallbackStop = sortedStops[0];
+  const lastStop = sortedStops[sortedStops.length - 1];
+  if (!fallbackStop || !lastStop) {
+    return {
+      lifecycleState: "SCHEDULED",
+      stopsAway: Math.max(0, studentStopOrder - 1),
+      nearestStop: fallbackStop || null,
+      studentStop,
+      distanceToStudentStopMeters: 0,
+      etaMinutes: 15,
+      estimatedArrivalFormatted: studentStop?.estimatedTime || "--:--",
+      isApproaching: false,
+      hasPassed: false,
+      summaryText: {
+        en: `Scheduled pickup at ${studentStop?.name || "your stop"}.`,
+        hi: `${studentStop?.name || "आपके स्टॉप"} पर निर्धारित पिकअप।`,
+      },
+    };
+  }
+
+  const nearestStop = nearestResult?.stop || fallbackStop;
   const distanceToNearestMeters = nearestResult?.distanceMeters || 0;
   const currentBusStopOrder = nearestStop.stopOrder;
 
@@ -199,7 +221,6 @@ export function computeBusTracking(
   );
 
   // Check if bus has completed its full route
-  const lastStop = sortedStops[sortedStops.length - 1];
   const isTerminus = nearestStop.id === lastStop.id && distanceToNearestMeters < 150;
 
   // Determine state transitions

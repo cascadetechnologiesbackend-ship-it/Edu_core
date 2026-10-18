@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     // Verify access to student
     const student = await db.query.students.findFirst({
       where: and(eq(students.id, studentId), eq(students.schoolId, schoolId)),
-      columns: { id: true, primaryParentUserId: true, fullName: true },
+      columns: { id: true, primaryParentUserId: true, firstNameEncrypted: true, lastNameEncrypted: true },
     });
 
     if (!student) {

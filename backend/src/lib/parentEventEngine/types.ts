@@ -89,7 +89,7 @@ export interface RouteStopSnapshot {
   lat: number;
   lng: number;
   name: string;
-  estimatedTime?: string;
+  estimatedTime?: string | undefined;
 }
 
 export interface HomeworkSnapshot {

@@ -1,9 +1,11 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { feeInvoices, students, feePayments } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { GenerateInvoicesButton } from "./GenerateInvoicesButton";
 
 export default async function StudentFeeLedgerPage({
@@ -11,26 +13,54 @@ export default async function StudentFeeLedgerPage({
 }: {
   params: { id: string };
 }) {
-  const student = await db.query.students.findFirst({
-    where: eq(students.id, params.id),
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, `/students/${params.id}`, { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
+  const school = await requireSchool(ctx);
+  const studentId = decodeURIComponent(params.id).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentId);
+  const studentWhere = isUuid
+    ? and(eq(students.id, studentId), eq(students.schoolId, school.id))
+    : and(eq(students.admissionNumber, studentId), eq(students.schoolId, school.id));
+
+  const result = await withTenant(school.id, async (tx) => {
+    const student = await tx.query.students.findFirst({
+      where: studentWhere,
+    });
+
+    if (!student) {
+      return null;
+    }
+
+    const studentInvoices = await tx.query.feeInvoices.findMany({
+      where: and(
+        eq(feeInvoices.studentId, student.id),
+        eq(feeInvoices.schoolId, school.id),
+      ),
+      with: { feeStructure: { with: { feeHead: true } } },
+      orderBy: [desc(feeInvoices.dueDate)],
+    });
+
+    const studentPayments = await tx.query.feePayments.findMany({
+      where: and(
+        eq(feePayments.studentId, student.id),
+        eq(feePayments.schoolId, school.id),
+      ),
+      orderBy: [desc(feePayments.paymentDate)],
+    });
+
+    return { student, studentInvoices, studentPayments };
   });
 
-  if (!student) {
+  if (!result) {
     notFound();
   }
 
-  const name = `${decryptData(student.firstNameEncrypted)} ${decryptData(student.lastNameEncrypted)}`;
-
-  const studentInvoices = await db.query.feeInvoices.findMany({
-    where: eq(feeInvoices.studentId, student.id),
-    with: { feeStructure: { with: { feeHead: true } } },
-    orderBy: [desc(feeInvoices.dueDate)],
-  });
-
-  const studentPayments = await db.query.feePayments.findMany({
-    where: eq(feePayments.studentId, student.id),
-    orderBy: [desc(feePayments.paymentDate)],
-  });
+  const { student, studentInvoices, studentPayments } = result;
+  const name = `${decryptData(student.firstNameEncrypted) || "Student"} ${decryptData(student.lastNameEncrypted) || ""}`.trim();
 
   // Calculate totals
   let totalBilled = 0;
@@ -39,10 +69,10 @@ export default async function StudentFeeLedgerPage({
   let totalConcessions = 0;
 
   studentInvoices.forEach((inv) => {
-    totalBilled += parseFloat(inv.grossAmount);
-    totalConcessions += parseFloat(inv.discountAmount);
-    totalPaid += parseFloat(inv.paidAmount);
-    totalBalance += parseFloat(inv.balanceAmount);
+    totalBilled += parseFloat(inv.grossAmount || "0");
+    totalConcessions += parseFloat(inv.discountAmount || "0");
+    totalPaid += parseFloat(inv.paidAmount || "0");
+    totalBalance += parseFloat(inv.balanceAmount || "0");
   });
 
   return (

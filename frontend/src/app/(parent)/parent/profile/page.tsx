@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { db, withTenant } from "@/db";
+import { decryptData } from "@/lib/encryption";
 import {
   students,
   classes,
@@ -82,21 +83,27 @@ export default async function ParentProfilePage({
       ? allStudents.find((s) => s.id === searchParams.studentId)
       : null) || allStudents[0]!;
 
+  const getStudentName = (s: typeof activeStudent) => {
+    const first = decryptData(s.firstNameEncrypted) || "";
+    const last = decryptData(s.lastNameEncrypted) || "";
+    return `${first} ${last}`.trim() || "Student";
+  };
+
   // 2. Fetch Class, Attendance, Bus Pass, Fees, and Guardian
   const data = await withTenant(school.id, async (tx) => {
     // Class and Section
     let className = "Class";
     let sectionName = "Section";
-    if (activeStudent.classId) {
+    if (activeStudent.currentClassId) {
       const cls = await tx.query.classes.findFirst({
-        where: eq(classes.id, activeStudent.classId),
+        where: eq(classes.id, activeStudent.currentClassId),
         columns: { displayName: true },
       });
       if (cls?.displayName) className = cls.displayName;
     }
-    if (activeStudent.sectionId) {
+    if (activeStudent.currentSectionId) {
       const sec = await tx.query.sections.findFirst({
-        where: eq(sections.id, activeStudent.sectionId),
+        where: eq(sections.id, activeStudent.currentSectionId),
         columns: { name: true },
       });
       if (sec?.name) sectionName = sec.name;
@@ -175,7 +182,7 @@ export default async function ParentProfilePage({
     // Guardian Details
     const guardianUser = await tx.query.users.findFirst({
       where: eq(users.id, ctx.userId),
-      columns: { fullName: true, email: true, phone: true },
+      columns: { email: true, mobileEncrypted: true },
     });
 
     return {
@@ -203,9 +210,9 @@ export default async function ParentProfilePage({
         ],
       },
       guardian: {
-        name: guardianUser?.fullName || "Parent / Guardian",
-        email: guardianUser?.email || "",
-        phone: guardianUser?.phone || null,
+        name: ctx.email ? ctx.email.split("@")[0]! : "Parent / Guardian",
+        email: guardianUser?.email || ctx.email || "",
+        phone: guardianUser?.mobileEncrypted ? decryptData(guardianUser.mobileEncrypted) : null,
       },
     };
   });
@@ -215,7 +222,7 @@ export default async function ParentProfilePage({
       <ChildProfileView
         student={{
           id: activeStudent.id,
-          fullName: activeStudent.fullName,
+          fullName: getStudentName(activeStudent),
           admissionNumber: activeStudent.admissionNumber,
           rollNumber: activeStudent.rollNumber,
           className: data.className,
@@ -228,7 +235,7 @@ export default async function ParentProfilePage({
         }}
         availableStudents={allStudents.map((s) => ({
           id: s.id,
-          fullName: s.fullName,
+          fullName: getStudentName(s),
           className: data.className,
         }))}
         attendanceSummary={data.attendanceSummary}

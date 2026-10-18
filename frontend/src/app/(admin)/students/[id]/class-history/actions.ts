@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   studentClassHistory,
   students,
@@ -84,58 +84,57 @@ export async function promoteStudent(
       return { success: false, message: "Missing required fields" };
     }
 
-    // Verify student belongs to school
-    const student = await db.query.students.findFirst({
-      where: and(
-        eq(students.id, studentId),
-        eq(students.schoolId, school.id),
-      ),
-    });
-    if (!student) {
-      return { success: false, message: "Student not found or access denied" };
-    }
+    const result = await withTenant(school.id, async (tx) => {
+      // Verify student belongs to school
+      const student = await tx.query.students.findFirst({
+        where: and(
+          eq(students.id, studentId),
+          eq(students.schoolId, school.id),
+        ),
+      });
+      if (!student) {
+        return { success: false, message: "Student not found or access denied" };
+      }
 
-    // Verify target academic year belongs to school
-    const year = await db.query.academicYears.findFirst({
-      where: and(
-        eq(academicYears.id, academicYearId),
-        eq(academicYears.schoolId, school.id),
-      ),
-    });
-    if (!year) {
-      return { success: false, message: "Academic year not found or invalid" };
-    }
+      // Verify target academic year belongs to school
+      const year = await tx.query.academicYears.findFirst({
+        where: and(
+          eq(academicYears.id, academicYearId),
+          eq(academicYears.schoolId, school.id),
+        ),
+      });
+      if (!year) {
+        return { success: false, message: "Academic year not found or invalid" };
+      }
 
-    // Verify target class belongs to school
-    const targetClass = await db.query.classes.findFirst({
-      where: and(
-        eq(classes.id, classId),
-        eq(classes.schoolId, school.id),
-        eq(classes.isActive, true),
-      ),
-    });
-    if (!targetClass) {
-      return { success: false, message: "Target class not found or inactive" };
-    }
+      // Verify target class belongs to school
+      const targetClass = await tx.query.classes.findFirst({
+        where: and(
+          eq(classes.id, classId),
+          eq(classes.schoolId, school.id),
+          eq(classes.isActive, true),
+        ),
+      });
+      if (!targetClass) {
+        return { success: false, message: "Target class not found or inactive" };
+      }
 
-    // Verify target section belongs to target class and school
-    const targetSection = await db.query.sections.findFirst({
-      where: and(
-        eq(sections.id, sectionId),
-        eq(sections.classId, classId),
-        eq(sections.schoolId, school.id),
-        eq(sections.isActive, true),
-      ),
-    });
-    if (!targetSection) {
-      return {
-        success: false,
-        message: "Target section not found or does not belong to class",
-      };
-    }
+      // Verify target section belongs to target class and school
+      const targetSection = await tx.query.sections.findFirst({
+        where: and(
+          eq(sections.id, sectionId),
+          eq(sections.classId, classId),
+          eq(sections.schoolId, school.id),
+          eq(sections.isActive, true),
+        ),
+      });
+      if (!targetSection) {
+        return {
+          success: false,
+          message: "Target section not found or does not belong to class",
+        };
+      }
 
-    // Atomic transaction
-    await db.transaction(async (tx) => {
       // 1. Insert or update studentClassHistory
       await tx
         .insert(studentClassHistory)
@@ -194,7 +193,13 @@ export async function promoteStudent(
           academicYearId,
         },
       });
+
+      return { success: true as const };
     });
+
+    if (!result.success) {
+      return result;
+    }
 
     safeRevalidate(`/students/${studentId}`);
     safeRevalidate(`/students/${studentId}/class-history`);

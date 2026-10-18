@@ -17,6 +17,7 @@ import {
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+export type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 
 export interface FeedCardAction {
   label: string;

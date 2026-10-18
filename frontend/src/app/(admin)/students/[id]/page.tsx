@@ -42,479 +42,468 @@ export default async function StudentProfilePage({
 
   const school = await requireSchool(ctx);
 
-  // 1. Fetch Student Record scoped strictly to school
-  const student = await db.query.students.findFirst({
-    where: and(
-      eq(students.id, params.id),
-      eq(students.schoolId, school.id),
-    ),
-    with: {
-      academicYear: true,
-    },
-  });
+  const studentId = decodeURIComponent(params.id).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentId);
+  const studentWhere = isUuid
+    ? and(eq(students.id, studentId), eq(students.schoolId, school.id))
+    : and(eq(students.admissionNumber, studentId), eq(students.schoolId, school.id));
 
-  if (!student) {
-    notFound();
-  }
-
-  // 2. Role-Based Access Control Verification for Teachers
-  let isTeacherAssigned = false;
-  if (ctx.role === "TEACHER") {
-    const [isClassTeacher, isSubjectTeacher, isClassSubjectTeacher] = await Promise.all([
-      student.currentSectionId
-        ? db.query.sections.findFirst({
-            where: and(
-              eq(sections.id, student.currentSectionId),
-              eq(sections.classTeacherId, ctx.userId),
-            ),
-          })
-        : Promise.resolve(null),
-      student.currentSectionId
-        ? db.query.sectionSubjectTeachers.findFirst({
-            where: and(
-              eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
-              eq(sectionSubjectTeachers.teacherId, ctx.userId),
-              eq(sectionSubjectTeachers.isActive, true),
-            ),
-          })
-        : Promise.resolve(null),
-      student.currentClassId
-        ? db.query.classSubjects.findFirst({
-            where: and(
-              eq(classSubjects.classId, student.currentClassId),
-              eq(classSubjects.assignedTeacherId, ctx.userId),
-            ),
-          })
-        : Promise.resolve(null),
-    ]);
-
-    if (!isClassTeacher && !isSubjectTeacher && !isClassSubjectTeacher) {
-      return (
-        <div className="p-12 max-w-lg mx-auto text-center space-y-4">
-          <div className="text-4xl">🔒</div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Access Denied
-          </h2>
-          <p className="text-sm text-gray-500">
-            You are not assigned to this student's class or subjects.
-          </p>
-        </div>
-      );
-    }
-    isTeacherAssigned = true;
-  }
-
-  const canViewFees = [
-    "SUPER_ADMIN",
-    "SCHOOL_ADMIN",
-    "PRINCIPAL",
-    "ACCOUNTANT",
-    "PARENT",
-  ].includes(ctx.role);
-  const canMutateFees = [
-    "SUPER_ADMIN",
-    "SCHOOL_ADMIN",
-    "ACCOUNTANT",
-  ].includes(ctx.role);
-
-  const canViewExams = ctx.role !== "TEACHER" || isTeacherAssigned;
-
-  // 3. Parallel Execution: Run all independent queries simultaneously in a single Promise.all
-  const [
-    currentClass,
-    currentSection,
-    classSubjectsList,
-    sectionAllocations,
-    attendanceEntries,
-    feeStructuresList,
-    studentInvoicesList,
-    studentConcessionsList,
-    familyMembers,
-    documents,
-    history,
-    allClasses,
-    allSecs,
-    studentMarkEntriesList,
-    studentResultSnapshotsList,
-    studentSubmissionsList,
-  ] = await Promise.all([
-    // Current Class
-    student.currentClassId
-      ? db.query.classes.findFirst({
-          where: eq(classes.id, student.currentClassId),
-        })
-      : Promise.resolve(null),
-
-    // Current Section with classTeacher relation
-    student.currentSectionId
-      ? db.query.sections.findFirst({
-          where: eq(sections.id, student.currentSectionId),
-          with: { classTeacher: true },
-        })
-      : Promise.resolve(null),
-
-    // Class Subjects
-    student.currentClassId
-      ? db.query.classSubjects.findMany({
-          where: eq(classSubjects.classId, student.currentClassId),
-          with: {
-            subject: true,
-            teacher: true,
-          },
-        })
-      : Promise.resolve([]),
-
-    // Section Allocations
-    student.currentSectionId
-      ? db.query.sectionSubjectTeachers.findMany({
-          where: and(
-            eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
-            eq(sectionSubjectTeachers.isActive, true),
-          ),
-          with: {
-            teacher: true,
-          },
-        })
-      : Promise.resolve([]),
-
-    // Attendance
-    db.query.studentAttendance.findMany({
-      where: and(
-        eq(studentAttendance.studentId, student.id),
-        eq(studentAttendance.schoolId, school.id),
-      ),
-      orderBy: [desc(studentAttendance.attendanceDate)],
-      limit: 50,
-    }),
-
-    // Fee Structures
-    canViewFees && student.currentClassId
-      ? db.query.feeStructures.findMany({
-          where: and(
-            eq(feeStructures.classId, student.currentClassId),
-            eq(feeStructures.schoolId, school.id),
-          ),
-          with: { feeHead: true },
-        })
-      : Promise.resolve([]),
-
-    // Fee Invoices
-    canViewFees
-      ? db.query.feeInvoices.findMany({
-          where: and(
-            eq(feeInvoices.studentId, student.id),
-            eq(feeInvoices.schoolId, school.id),
-          ),
-          with: {
-            feeStructure: {
-              with: {
-                feeHead: true,
-              },
-            },
-          },
-          orderBy: [desc(feeInvoices.createdAt)],
-        })
-      : Promise.resolve([]),
-
-    // Fee Concessions
-    canViewFees
-      ? db.query.feeConcessions.findMany({
-          where: and(
-            eq(feeConcessions.studentId, student.id),
-            eq(feeConcessions.schoolId, school.id),
-          ),
-        })
-      : Promise.resolve([]),
-
-    // Family Members
-    db.query.studentFamilyMembers.findMany({
-      where: and(
-        eq(studentFamilyMembers.studentId, student.id),
-        eq(studentFamilyMembers.schoolId, school.id),
-      ),
-    }),
-
-    // Documents
-    db.query.studentDocuments.findMany({
-      where: and(
-        eq(studentDocuments.studentId, student.id),
-        eq(studentDocuments.schoolId, school.id),
-      ),
-      orderBy: [desc(studentDocuments.createdAt)],
-    }),
-
-    // Class History
-    db.query.studentClassHistory.findMany({
-      where: and(
-        eq(studentClassHistory.studentId, student.id),
-        eq(studentClassHistory.schoolId, school.id),
-      ),
+  const result = await withTenant(school.id, async (tx) => {
+    // 1. Fetch Student Record scoped strictly to school
+    const student = await tx.query.students.findFirst({
+      where: studentWhere,
       with: {
         academicYear: true,
       },
-      orderBy: [desc(studentClassHistory.createdAt)],
-    }),
+    });
 
-    // All Classes (for history resolution)
-    withTenant(school.id, async (tx) =>
+    if (!student) {
+      return null;
+    }
+
+    // 2. Role-Based Access Control Verification for Teachers
+    let isTeacherAssigned = false;
+    if (ctx.role === "TEACHER") {
+      const [isClassTeacher, isSubjectTeacher, isClassSubjectTeacher] = await Promise.all([
+        student.currentSectionId
+          ? tx.query.sections.findFirst({
+              where: and(
+                eq(sections.id, student.currentSectionId),
+                eq(sections.classTeacherId, ctx.userId),
+              ),
+            })
+          : Promise.resolve(null),
+        student.currentSectionId
+          ? tx.query.sectionSubjectTeachers.findFirst({
+              where: and(
+                eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
+                eq(sectionSubjectTeachers.teacherId, ctx.userId),
+                eq(sectionSubjectTeachers.isActive, true),
+              ),
+            })
+          : Promise.resolve(null),
+        student.currentClassId
+          ? tx.query.classSubjects.findFirst({
+              where: and(
+                eq(classSubjects.classId, student.currentClassId),
+                eq(classSubjects.assignedTeacherId, ctx.userId),
+              ),
+            })
+          : Promise.resolve(null),
+      ]);
+
+      if (!isClassTeacher && !isSubjectTeacher && !isClassSubjectTeacher) {
+        return { accessDenied: true as const };
+      }
+      isTeacherAssigned = true;
+    }
+
+    const canViewFees = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+      "ACCOUNTANT",
+      "PARENT",
+    ].includes(ctx.role);
+    const canMutateFees = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "ACCOUNTANT",
+    ].includes(ctx.role);
+
+    const canViewExams = ctx.role !== "TEACHER" || isTeacherAssigned;
+
+    // 3. Parallel Execution: Run all independent queries simultaneously in a single Promise.all
+    const [
+      currentClass,
+      currentSection,
+      classSubjectsList,
+      sectionAllocations,
+      attendanceEntries,
+      feeStructuresList,
+      studentInvoicesList,
+      studentConcessionsList,
+      familyMembers,
+      documents,
+      history,
+      allClasses,
+      allSecs,
+      studentMarkEntriesList,
+      studentResultSnapshotsList,
+      studentSubmissionsList,
+    ] = await Promise.all([
+      // Current Class
+      student.currentClassId
+        ? tx.query.classes.findFirst({
+            where: eq(classes.id, student.currentClassId),
+          })
+        : Promise.resolve(null),
+
+      // Current Section with classTeacher relation
+      student.currentSectionId
+        ? tx.query.sections.findFirst({
+            where: eq(sections.id, student.currentSectionId),
+            with: { classTeacher: true },
+          })
+        : Promise.resolve(null),
+
+      // Class Subjects
+      student.currentClassId
+        ? tx.query.classSubjects.findMany({
+            where: eq(classSubjects.classId, student.currentClassId),
+            with: {
+              subject: true,
+              teacher: true,
+            },
+          })
+        : Promise.resolve([]),
+
+      // Section Allocations
+      student.currentSectionId
+        ? tx.query.sectionSubjectTeachers.findMany({
+            where: and(
+              eq(sectionSubjectTeachers.sectionId, student.currentSectionId),
+              eq(sectionSubjectTeachers.isActive, true),
+            ),
+            with: {
+              teacher: true,
+            },
+          })
+        : Promise.resolve([]),
+
+      // Attendance
+      tx.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.studentId, student.id),
+          eq(studentAttendance.schoolId, school.id),
+        ),
+        orderBy: [desc(studentAttendance.attendanceDate)],
+        limit: 50,
+      }),
+
+      // Fee Structures
+      canViewFees && student.currentClassId
+        ? tx.query.feeStructures.findMany({
+            where: and(
+              eq(feeStructures.classId, student.currentClassId),
+              eq(feeStructures.schoolId, school.id),
+            ),
+            with: { feeHead: true },
+          })
+        : Promise.resolve([]),
+
+      // Fee Invoices
+      canViewFees
+        ? tx.query.feeInvoices.findMany({
+            where: and(
+              eq(feeInvoices.studentId, student.id),
+              eq(feeInvoices.schoolId, school.id),
+            ),
+            with: {
+              feeStructure: {
+                with: {
+                  feeHead: true,
+                },
+              },
+            },
+            orderBy: [desc(feeInvoices.createdAt)],
+          })
+        : Promise.resolve([]),
+
+      // Fee Concessions
+      canViewFees
+        ? tx.query.feeConcessions.findMany({
+            where: and(
+              eq(feeConcessions.studentId, student.id),
+              eq(feeConcessions.schoolId, school.id),
+            ),
+          })
+        : Promise.resolve([]),
+
+      // Family Members
+      tx.query.studentFamilyMembers.findMany({
+        where: and(
+          eq(studentFamilyMembers.studentId, student.id),
+          eq(studentFamilyMembers.schoolId, school.id),
+        ),
+      }),
+
+      // Documents
+      tx.query.studentDocuments.findMany({
+        where: and(
+          eq(studentDocuments.studentId, student.id),
+          eq(studentDocuments.schoolId, school.id),
+        ),
+        orderBy: [desc(studentDocuments.createdAt)],
+      }),
+
+      // Class History
+      tx.query.studentClassHistory.findMany({
+        where: and(
+          eq(studentClassHistory.studentId, student.id),
+          eq(studentClassHistory.schoolId, school.id),
+        ),
+        with: {
+          academicYear: true,
+        },
+        orderBy: [desc(studentClassHistory.createdAt)],
+      }),
+
+      // All Classes (for history resolution)
       tx.query.classes.findMany({
         where: eq(classes.schoolId, school.id),
-      })
-    ),
+      }),
 
-    // All Sections (for history resolution)
-    withTenant(school.id, async (tx) =>
+      // All Sections (for history resolution)
       tx.query.sections.findMany({
         where: eq(sections.schoolId, school.id),
-      })
-    ),
+      }),
 
-    // Mark Entries (Exams)
-    canViewExams
-      ? db.query.markEntries.findMany({
-          where: and(
-            eq(markEntries.studentId, student.id),
-            eq(markEntries.schoolId, school.id),
-          ),
-          with: {
-            exam: true,
-            subject: true,
-            component: true,
-          },
-          orderBy: [desc(markEntries.enteredAt)],
-        })
-      : Promise.resolve([]),
+      // Mark Entries (Exams)
+      canViewExams
+        ? tx.query.markEntries.findMany({
+            where: and(
+              eq(markEntries.studentId, student.id),
+              eq(markEntries.schoolId, school.id),
+            ),
+            with: {
+              exam: true,
+              subject: true,
+              component: true,
+            },
+            orderBy: [desc(markEntries.enteredAt)],
+          })
+        : Promise.resolve([]),
 
-    // Result Snapshots (Report cards)
-    canViewExams
-      ? db.query.resultSnapshots.findMany({
-          where: and(
-            eq(resultSnapshots.studentId, student.id),
-            eq(resultSnapshots.schoolId, school.id),
-            eq(resultSnapshots.isCurrent, true),
-          ),
-          with: {
-            setup: true,
-          },
-          orderBy: [desc(resultSnapshots.frozenAt)],
-        })
-      : Promise.resolve([]),
+      // Result Snapshots (Report cards)
+      canViewExams
+        ? tx.query.resultSnapshots.findMany({
+            where: and(
+              eq(resultSnapshots.studentId, student.id),
+              eq(resultSnapshots.schoolId, school.id),
+              eq(resultSnapshots.isCurrent, true),
+            ),
+            with: {
+              setup: true,
+            },
+            orderBy: [desc(resultSnapshots.frozenAt)],
+          })
+        : Promise.resolve([]),
 
-    // Assignment Submissions (Homework)
-    db.query.assignmentSubmissions.findMany({
-      where: and(
-        eq(assignmentSubmissions.studentId, student.id),
-        eq(assignmentSubmissions.schoolId, school.id),
-      ),
-      with: {
-        assignment: {
-          with: {
-            classSubject: {
-              with: {
-                subject: true,
+      // Assignment Submissions (Homework)
+      tx.query.assignmentSubmissions.findMany({
+        where: and(
+          eq(assignmentSubmissions.studentId, student.id),
+          eq(assignmentSubmissions.schoolId, school.id),
+        ),
+        with: {
+          assignment: {
+            with: {
+              classSubject: {
+                with: {
+                  subject: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: [desc(assignmentSubmissions.submittedAt)],
-    }),
-  ]);
+        orderBy: [desc(assignmentSubmissions.submittedAt)],
+      }),
+    ]);
 
-  // 4. Resolve Subject Teachers & Staff Profiles
-  const classTeacherUser = currentSection?.classTeacher;
-  const allocationMap = new Map(
-    sectionAllocations.map((a) => [a.classSubjectId, a.teacher]),
-  );
+    // 4. Resolve Subject Teachers & Staff Profiles
+    const classTeacherUser = currentSection?.classTeacher;
+    const allocationMap = new Map(
+      sectionAllocations.map((a) => [a.classSubjectId, a.teacher]),
+    );
 
-  const teacherUserIds = Array.from(
-    new Set(
-      [
-        currentSection?.classTeacherId,
-        ...sectionAllocations.map((a) => a.teacherId),
-        ...classSubjectsList.map((cs) => cs.assignedTeacherId),
-      ].filter(Boolean) as string[],
-    ),
-  );
+    const teacherUserIds = Array.from(
+      new Set(
+        [
+          currentSection?.classTeacherId,
+          ...sectionAllocations.map((a) => a.teacherId),
+          ...classSubjectsList.map((cs) => cs.assignedTeacherId),
+        ].filter(Boolean) as string[],
+      ),
+    );
 
-  const staffProfiles =
-    teacherUserIds.length > 0
-      ? await db.query.staff.findMany({
-          where: and(
-            eq(staff.schoolId, school.id),
-            inArray(staff.userId, teacherUserIds),
-          ),
-        })
-      : [];
+    const staffProfiles =
+      teacherUserIds.length > 0
+        ? await tx.query.staff.findMany({
+            where: and(
+              eq(staff.schoolId, school.id),
+              inArray(staff.userId, teacherUserIds),
+            ),
+          })
+        : [];
 
-  const staffNameMap = new Map<string, string>();
-  for (const s of staffProfiles) {
-    if (s.userId) {
-      const fName = decryptData(s.firstNameEncrypted) || "";
-      const lName = decryptData(s.lastNameEncrypted) || "";
-      const fullName = `${fName} ${lName}`.trim();
-      if (fullName) staffNameMap.set(s.userId, fullName);
+    const staffNameMap = new Map<string, string>();
+    for (const s of staffProfiles) {
+      if (s.userId) {
+        const fName = decryptData(s.firstNameEncrypted) || "";
+        const lName = decryptData(s.lastNameEncrypted) || "";
+        const fullName = `${fName} ${lName}`.trim();
+        if (fullName) staffNameMap.set(s.userId, fullName);
+      }
     }
-  }
 
-  const subjects = classSubjectsList.map((cs) => {
-    const overrideTeacher = allocationMap.get(cs.id);
-    const teacherId = overrideTeacher?.id || cs.teacher?.id;
-    const teacherName =
-      (teacherId && staffNameMap.get(teacherId)) ||
-      overrideTeacher?.email?.split("@")[0] ||
-      cs.teacher?.email?.split("@")[0] ||
-      "Not Assigned";
+    const subjects = classSubjectsList.map((cs) => {
+      const overrideTeacher = allocationMap.get(cs.id);
+      const teacherId = overrideTeacher?.id || cs.teacher?.id;
+      const teacherName =
+        (teacherId && staffNameMap.get(teacherId)) ||
+        overrideTeacher?.email?.split("@")[0] ||
+        cs.teacher?.email?.split("@")[0] ||
+        "Not Assigned";
 
-    return {
-      id: cs.id,
-      name: cs.subject?.name || "Subject",
-      code: cs.subject?.code || "SUB",
-      teacherName,
-    };
-  });
-
-  // 5. Compute Attendance Percentages
-  const totalAtt = attendanceEntries.length;
-  const presentCount = attendanceEntries.filter(
-    (a) => a.status === "PRESENT",
-  ).length;
-  const absentCount = attendanceEntries.filter(
-    (a) => a.status === "ABSENT",
-  ).length;
-  const lateCount = attendanceEntries.filter((a) => a.status === "LATE").length;
-  const attendancePercentage =
-    totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
-
-  const applicableFeeStructures = feeStructuresList;
-  const studentInvoices = studentInvoicesList;
-  const studentConcessions = studentConcessionsList;
-
-  const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
-  const secMap = new Map(allSecs.map((s) => [s.id, s.name]));
-
-  const mappedHistory = history.map((h) => ({
-    id: h.id,
-    academicYearLabel: h.academicYear?.label || "Session",
-    className: classMap.get(h.classId) || "Class",
-    sectionName: secMap.get(h.sectionId) || "A",
-    promotionStatus: h.promotionStatus,
-    createdAt: h.createdAt.toISOString(),
-  }));
-
-  // 10. Compile Chronological Timeline Events
-  const timelineEvents: Student360Data["timelineEvents"] = [];
-
-  // Admission application milestones
-  if (student.admissionApplicationId) {
-    const app = await db.query.admissionApplications.findFirst({
-      where: eq(admissionApplications.id, student.admissionApplicationId),
-      with: { workflowSteps: true },
+      return {
+        id: cs.id,
+        name: cs.subject?.name || "Subject",
+        code: cs.subject?.code || "SUB",
+        teacherName,
+      };
     });
-    if (app) {
-      timelineEvents.push({
-        id: `app-${app.id}`,
-        date: app.createdAt.toISOString(),
-        title: `Application Submitted (${app.applicationNumber})`,
-        description: `Admission application submitted for Grade ${app.gradeAppliedFor}.`,
-        type: "ADMISSION",
+
+    // 5. Compute Attendance Percentages
+    const totalAtt = attendanceEntries.length;
+    const presentCount = attendanceEntries.filter(
+      (a) => a.status === "PRESENT",
+    ).length;
+    const absentCount = attendanceEntries.filter(
+      (a) => a.status === "ABSENT",
+    ).length;
+    const lateCount = attendanceEntries.filter((a) => a.status === "LATE").length;
+    const attendancePercentage =
+      totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
+
+    const applicableFeeStructures = feeStructuresList;
+    const studentInvoices = studentInvoicesList;
+    const studentConcessions = studentConcessionsList;
+
+    const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
+    const secMap = new Map(allSecs.map((s) => [s.id, s.name]));
+
+    const mappedHistory = history.map((h) => ({
+      id: h.id,
+      academicYearLabel: h.academicYear?.label || "Session",
+      className: classMap.get(h.classId) || "Class",
+      sectionName: secMap.get(h.sectionId) || "A",
+      promotionStatus: h.promotionStatus,
+      createdAt: h.createdAt.toISOString(),
+    }));
+
+    // 10. Compile Chronological Timeline Events
+    const timelineEvents: Student360Data["timelineEvents"] = [];
+
+    // Admission application milestones
+    if (student.admissionApplicationId) {
+      const app = await tx.query.admissionApplications.findFirst({
+        where: eq(admissionApplications.id, student.admissionApplicationId),
+        with: { workflowSteps: true },
       });
-      if (app.workflowSteps) {
-        for (const step of app.workflowSteps) {
-          if (step.stepName !== "APPLICATION_SUBMITTED" && step.completedAt) {
-            timelineEvents.push({
-              id: `step-${step.id}`,
-              date: step.completedAt.toISOString(),
-              title: `Workflow: ${step.stepName}`,
-              description: step.notes || `Application progressed to ${step.stepName}.`,
-              type: "ADMISSION",
-            });
+      if (app) {
+        timelineEvents.push({
+          id: `app-${app.id}`,
+          date: app.createdAt.toISOString(),
+          title: `Application Submitted (${app.applicationNumber})`,
+          description: `Admission application submitted for Grade ${app.gradeAppliedFor}.`,
+          type: "ADMISSION",
+        });
+        if (app.workflowSteps) {
+          for (const step of app.workflowSteps) {
+            if (step.stepName !== "APPLICATION_SUBMITTED" && step.completedAt) {
+              timelineEvents.push({
+                id: `step-${step.id}`,
+                date: step.completedAt.toISOString(),
+                title: `Workflow: ${step.stepName}`,
+                description: step.notes || `Application progressed to ${step.stepName}.`,
+                type: "ADMISSION",
+              });
+            }
           }
         }
       }
     }
-  }
 
-  // Enrollment milestone
-  timelineEvents.push({
-    id: `enroll-${student.id}`,
-    date: student.admissionDate.toISOString(),
-    title: `Enrolled into ${currentClass?.displayName || "Class"} • Section ${currentSection?.name || "A"}`,
-    description: `Official institutional admission record established under Admission No ${student.admissionNumber}.`,
-    type: "ENROLLMENT",
-  });
+    // Enrollment milestone
+    timelineEvents.push({
+      id: `enroll-${student.id}`,
+      date: student.admissionDate.toISOString(),
+      title: `Enrolled into ${currentClass?.displayName || "Class"} • Section ${currentSection?.name || "A"}`,
+      description: `Official institutional admission record established under Admission No ${student.admissionNumber}.`,
+      type: "ENROLLMENT",
+    });
 
-  // History / promotion events
-  for (const h of mappedHistory) {
-    if (h.promotionStatus === "PROMOTED") {
+    // History / promotion events
+    for (const h of mappedHistory) {
+      if (h.promotionStatus === "PROMOTED") {
+        timelineEvents.push({
+          id: `history-${h.id}`,
+          date: h.createdAt,
+          title: `Promoted to ${h.className} • Section ${h.sectionName}`,
+          description: `Academic advancement recorded for session ${h.academicYearLabel}.`,
+          type: "ACADEMIC",
+        });
+      }
+    }
+
+    // Absorb Fee payments into timeline
+    for (const inv of studentInvoicesList) {
+      if (parseFloat(inv.paidAmount || "0") > 0) {
+        timelineEvents.push({
+          id: `fee-paid-${inv.id}`,
+          date: (inv as any).updatedAt ? (inv as any).updatedAt.toISOString() : (inv as any).createdAt.toISOString(),
+          title: `Fee Payment Received (₹${inv.paidAmount})`,
+          description: `Payment recorded towards invoice #${inv.invoiceNumber} (${(inv as any).feeStructure?.feeHead?.name || inv.term}).`,
+          type: "FEE",
+        });
+      }
+    }
+
+    // Absorb Exam marks into timeline
+    for (const entry of studentMarkEntriesList) {
       timelineEvents.push({
-        id: `history-${h.id}`,
-        date: h.createdAt,
-        title: `Promoted to ${h.className} • Section ${h.sectionName}`,
-        description: `Academic advancement recorded for session ${h.academicYearLabel}.`,
+        id: `exam-${entry.id}`,
+        date: entry.enteredAt.toISOString(),
+        title: `Exam Score: ${entry.exam?.name || "Exam"} • ${entry.subject?.name || "Subject"}`,
+        description: entry.isAbsent
+          ? "Marked absent for this examination."
+          : `Recorded ${entry.marksObtained} / ${entry.maxMarks}${entry.grade ? ` (Grade ${entry.grade})` : ""}.`,
         type: "ACADEMIC",
       });
     }
-  }
 
-  // Absorb Fee payments into timeline
-  for (const inv of studentInvoicesList) {
-    if (parseFloat(inv.paidAmount || "0") > 0) {
-      timelineEvents.push({
-        id: `fee-paid-${inv.id}`,
-        date: (inv as any).updatedAt ? (inv as any).updatedAt.toISOString() : (inv as any).createdAt.toISOString(),
-        title: `Fee Payment Received (₹${inv.paidAmount})`,
-        description: `Payment recorded towards invoice #${inv.invoiceNumber} (${(inv as any).feeStructure?.feeHead?.name || inv.term}).`,
-        type: "FEE",
-      });
+    // Absorb Report cards into timeline
+    for (const snap of studentResultSnapshotsList) {
+      if (snap.publishedAt) {
+        timelineEvents.push({
+          id: `report-${snap.id}`,
+          date: snap.publishedAt.toISOString(),
+          title: `Report Card Released: ${snap.setup?.name || "Evaluation Report"}`,
+          description: "Official consolidated performance report card published for academic record.",
+          type: "ACADEMIC",
+        });
+      }
     }
-  }
 
-  // Absorb Exam marks into timeline
-  for (const entry of studentMarkEntriesList) {
-    timelineEvents.push({
-      id: `exam-${entry.id}`,
-      date: entry.enteredAt.toISOString(),
-      title: `Exam Score: ${entry.exam?.name || "Exam"} • ${entry.subject?.name || "Subject"}`,
-      description: entry.isAbsent
-        ? "Marked absent for this examination."
-        : `Recorded ${entry.marksObtained} / ${entry.maxMarks}${entry.grade ? ` (Grade ${entry.grade})` : ""}.`,
-      type: "ACADEMIC",
-    });
-  }
-
-  // Absorb Report cards into timeline
-  for (const snap of studentResultSnapshotsList) {
-    if (snap.publishedAt) {
+    // Absorb Homework submissions into timeline
+    for (const sub of studentSubmissionsList) {
       timelineEvents.push({
-        id: `report-${snap.id}`,
-        date: snap.publishedAt.toISOString(),
-        title: `Report Card Released: ${snap.setup?.name || "Evaluation Report"}`,
-        description: "Official consolidated performance report card published for academic record.",
+        id: `homework-${sub.id}`,
+        date: sub.submittedAt.toISOString(),
+        title: `Homework Submitted: ${sub.assignment?.title || "Assignment"}`,
+        description: `${sub.assignment?.classSubject?.subject?.name || "Subject"} assignment submitted${sub.isLate ? " (late submission)" : ""}.`,
         type: "ACADEMIC",
       });
     }
-  }
 
-  // Absorb Homework submissions into timeline
-  for (const sub of studentSubmissionsList) {
-    timelineEvents.push({
-      id: `homework-${sub.id}`,
-      date: sub.submittedAt.toISOString(),
-      title: `Homework Submitted: ${sub.assignment?.title || "Assignment"}`,
-      description: `${sub.assignment?.classSubject?.subject?.name || "Subject"} assignment submitted${sub.isLate ? " (late submission)" : ""}.`,
-      type: "ACADEMIC",
-    });
-  }
+    // Sort timeline chronologically descending
+    timelineEvents.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
-  // Sort timeline chronologically descending
-  timelineEvents.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
-
-  // Available classes and academic years for Promotion Modal
-  const availableClasses = await withTenant(school.id, async (tx) =>
-    tx.query.classes.findMany({
+    // Available classes and academic years for Promotion Modal
+    const availableClasses = await tx.query.classes.findMany({
       where: and(
         eq(classes.schoolId, school.id),
         eq(classes.isActive, true),
@@ -525,13 +514,91 @@ export default async function StudentProfilePage({
         },
       },
       orderBy: [classes.sortOrder, classes.displayName],
-    })
-  );
+    });
 
-  const availableYears = await db.query.academicYears.findMany({
-    where: eq(academicYears.schoolId, school.id),
-    orderBy: [desc(academicYears.startDate)],
+    const availableYears = await tx.query.academicYears.findMany({
+      where: eq(academicYears.schoolId, school.id),
+      orderBy: [desc(academicYears.startDate)],
+    });
+
+    return {
+      student,
+      currentClass,
+      currentSection,
+      classTeacherUser,
+      staffNameMap,
+      familyMembers,
+      subjects,
+      totalAtt,
+      presentCount,
+      absentCount,
+      lateCount,
+      attendancePercentage,
+      attendanceEntries,
+      applicableFeeStructures,
+      studentInvoices,
+      studentConcessions,
+      documents,
+      mappedHistory,
+      timelineEvents,
+      canViewFees,
+      canMutateFees,
+      canViewExams,
+      studentMarkEntriesList,
+      studentResultSnapshotsList,
+      studentSubmissionsList,
+      availableClasses,
+      availableYears,
+    };
   });
+
+  if (!result) {
+    notFound();
+  }
+
+  if ("accessDenied" in result) {
+    return (
+      <div className="p-12 max-w-lg mx-auto text-center space-y-4">
+        <div className="text-4xl">🔒</div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Access Denied
+        </h2>
+        <p className="text-sm text-gray-500">
+          You are not assigned to this student's class or subjects.
+        </p>
+      </div>
+    );
+  }
+
+  const {
+    student,
+    currentClass,
+    currentSection,
+    classTeacherUser,
+    staffNameMap,
+    familyMembers,
+    subjects,
+    totalAtt,
+    presentCount,
+    absentCount,
+    lateCount,
+    attendancePercentage,
+    attendanceEntries,
+    applicableFeeStructures,
+    studentInvoices,
+    studentConcessions,
+    documents,
+    mappedHistory,
+    timelineEvents,
+    canViewFees,
+    canMutateFees,
+    canViewExams,
+    studentMarkEntriesList,
+    studentResultSnapshotsList,
+    studentSubmissionsList,
+    availableClasses,
+    availableYears,
+  } = result;
 
   // Photo signed URL
   const photoUrl = student.photoS3Key
