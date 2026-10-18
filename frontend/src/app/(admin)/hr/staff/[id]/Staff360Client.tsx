@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { AppModal } from "@/components/ui/AppModal";
+import {
+  AddressAutofill,
+  type AddressValue,
+  formatAddressForStorage,
+} from "@/components/forms/AddressAutofill";
+import { getAvatarColor, getInitials } from "@/lib/utils";
 import {
   updateStaff,
   confirmStaffProbation,
@@ -28,9 +35,28 @@ export function Staff360Client({
   schoolName,
 }: Staff360Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const tabParam = searchParams.get("tab") as any;
+  const validTabs = ["overview", "employment", "academics", "compensation", "leaves"];
   const [activeTab, setActiveTab] = useState<
     "overview" | "employment" | "academics" | "compensation" | "leaves"
-  >("overview");
+  >(validTabs.includes(tabParam) ? tabParam : "overview");
+
+  useEffect(() => {
+    const currentTab = searchParams.get("tab") as any;
+    if (currentTab && validTabs.includes(currentTab) && currentTab !== activeTab) {
+      setActiveTab(currentTab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: "overview" | "employment" | "academics" | "compensation" | "leaves") => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -54,6 +80,16 @@ export function Staff360Client({
     bankIfsc: "",
     pan: "",
   });
+
+  const [addressValue, setAddressValue] = useState<AddressValue>({
+    pincode: profile.pincode || "",
+    state: profile.state || "",
+    district: profile.district || "",
+    city: "",
+    line1: profile.address || "",
+    line2: "",
+  });
+
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -100,7 +136,14 @@ export function Staff360Client({
     setEditLoading(true);
     setEditError(null);
     try {
-      const res = await updateStaff(profile.id, editFormData);
+      const formattedAddress = formatAddressForStorage(addressValue);
+      const res = await updateStaff(profile.id, {
+        ...editFormData,
+        address: formattedAddress,
+        pincode: addressValue.pincode || undefined,
+        state: addressValue.state || undefined,
+        district: addressValue.district || undefined,
+      });
       if (!res.success) {
         setEditError(res.message || "Failed to update staff profile");
       } else {
@@ -236,46 +279,57 @@ export function Staff360Client({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-              {profile.fullName}
-            </h1>
+          <div className="flex items-center gap-3.5 pt-1">
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0 ${getAvatarColor(
+                profile.fullName,
+              )}`}
+            >
+              {getInitials(profile.fullName)}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                  {profile.fullName}
+                </h1>
 
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-              Code: {profile.employeeCode}
-            </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                  Code: {profile.employeeCode}
+                </span>
 
-            {profile.isTeaching ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                Teaching Faculty
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                Non-Teaching
-              </span>
-            )}
+                {profile.isTeaching ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    Teaching Faculty
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    Non-Teaching
+                  </span>
+                )}
 
-            {profile.legalHold && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 flex items-center gap-1">
-                🔒 Legal Hold Active
-              </span>
-            )}
+                {profile.legalHold && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 flex items-center gap-1">
+                    🔒 Legal Hold Active
+                  </span>
+                )}
 
-            {profile.isActive ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
-                Active
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300">
-                Separated ({profile.separationType || "Inactive"})
-              </span>
-            )}
+                {profile.isActive ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
+                    Active
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300">
+                    Separated ({profile.separationType || "Inactive"})
+                  </span>
+                )}
 
-            {profile.contractType === "PROBATION" && profile.isActive && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300">
-                On Probation
-              </span>
-            )}
+                {profile.contractType === "PROBATION" && profile.isActive && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300">
+                    On Probation
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -354,7 +408,7 @@ export function Staff360Client({
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => handleTabChange(tab.key as any)}
             className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.key
                 ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
@@ -419,6 +473,25 @@ export function Staff360Client({
               <p className="text-sm text-gray-800 dark:text-gray-200">
                 {profile.address || "No address provided."}
               </p>
+              {(profile.pincode || profile.district || profile.state) && (
+                <div className="flex flex-wrap gap-2 pt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {profile.pincode && (
+                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-mono">
+                      PIN: {profile.pincode}
+                    </span>
+                  )}
+                  {profile.district && (
+                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800">
+                      {profile.district}
+                    </span>
+                  )}
+                  {profile.state && (
+                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800">
+                      {profile.state}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -901,361 +974,340 @@ export function Staff360Client({
       )}
 
       {/* ─── MODAL: EDIT STAFF PROFILE ────────────────────────────────────────── */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-2xl w-full border border-gray-200 dark:border-gray-800 shadow-2xl p-6 space-y-5 my-8">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Edit Staff Profile — {profile.fullName}
-              </h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                ✕
-              </button>
+      <AppModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title={`Edit Staff Profile — ${profile.fullName}`}
+        size="xl"
+      >
+        <div className="space-y-4">
+          {editError && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
+              {editError}
             </div>
+          )}
 
-            {editError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
-                {editError}
-              </div>
-            )}
-
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editFormData.firstName}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, firstName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editFormData.lastName}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, lastName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Official Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={editFormData.email}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, email: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Mobile Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editFormData.mobile}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, mobile: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Department *
-                  </label>
-                  <select
-                    value={editFormData.departmentId}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, departmentId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id} className="dark:bg-gray-800">
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Designation *
-                  </label>
-                  <select
-                    value={editFormData.designationId}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, designationId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {designations.map((d) => (
-                      <option key={d.id} value={d.id} className="dark:bg-gray-800">
-                        {d.name} {d.isTeaching ? "(Teaching)" : "(Non-Teaching)"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Contract Type
-                  </label>
-                  <select
-                    value={editFormData.contractType}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, contractType: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="PERMANENT" className="dark:bg-gray-800">Permanent</option>
-                    <option value="PROBATION" className="dark:bg-gray-800">Probation</option>
-                    <option value="CONTRACTUAL" className="dark:bg-gray-800">Contractual</option>
-                    <option value="PART_TIME" className="dark:bg-gray-800">Part Time</option>
-                    <option value="GUEST_FACULTY" className="dark:bg-gray-800">Guest Faculty</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Joining Date
-                  </label>
-                  <input
-                    type="date"
-                    value={editFormData.joiningDate}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, joiningDate: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Emergency Contact
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.emergencyContact}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, emergencyContact: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Qualifications
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.qualification}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, qualification: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Residential Address
+                  First Name *
                 </label>
-                <textarea
-                  rows={2}
-                  value={editFormData.address}
+                <input
+                  type="text"
+                  required
+                  value={editFormData.firstName}
                   onChange={(e) =>
-                    setEditFormData({ ...editFormData, address: e.target.value })
+                    setEditFormData({ ...editFormData, firstName: e.target.value })
                   }
                   className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={editLoading}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition disabled:opacity-50"
-                >
-                  {editLoading ? "Saving Changes..." : "Save Profile"}
-                </button>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.lastName}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, lastName: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
-            </form>
-          </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Official Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={editFormData.email}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, email: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Mobile Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.mobile}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, mobile: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Department *
+                </label>
+                <select
+                  value={editFormData.departmentId}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, departmentId: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                >
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id} className="dark:bg-gray-800">
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Designation *
+                </label>
+                <select
+                  value={editFormData.designationId}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, designationId: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                >
+                  {designations.map((d) => (
+                    <option key={d.id} value={d.id} className="dark:bg-gray-800">
+                      {d.name} {d.isTeaching ? "(Teaching)" : "(Non-Teaching)"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Contract Type
+                </label>
+                <select
+                  value={editFormData.contractType}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, contractType: e.target.value as any })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="PERMANENT" className="dark:bg-gray-800">Permanent</option>
+                  <option value="PROBATION" className="dark:bg-gray-800">Probation</option>
+                  <option value="CONTRACTUAL" className="dark:bg-gray-800">Contractual</option>
+                  <option value="PART_TIME" className="dark:bg-gray-800">Part Time</option>
+                  <option value="GUEST_FACULTY" className="dark:bg-gray-800">Guest Faculty</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Joining Date
+                </label>
+                <input
+                  type="date"
+                  value={editFormData.joiningDate}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, joiningDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Emergency Contact
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.emergencyContact}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, emergencyContact: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Qualifications
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.qualification}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, qualification: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Residential Address & Location (DPDP / Tax Compliant)
+              </label>
+              <AddressAutofill
+                value={addressValue}
+                onChange={setAddressValue}
+                disabled={editLoading}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={editLoading}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition disabled:opacity-50"
+              >
+                {editLoading ? "Saving Changes..." : "Save Profile"}
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </AppModal>
 
       {/* ─── MODAL: OFFBOARD STAFF ────────────────────────────────────────────── */}
-      {showOffboardModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full border border-gray-200 dark:border-gray-800 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Offboard Staff Member — {profile.fullName}
-              </h3>
+      <AppModal
+        open={showOffboardModal}
+        onClose={() => {
+          setShowOffboardModal(false);
+          setOffboardWarning(null);
+        }}
+        title={`Offboard Staff Member — ${profile.fullName}`}
+        size="lg"
+      >
+        <div className="space-y-4">
+          {offboardError && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
+              {offboardError}
+            </div>
+          )}
+
+          {/* Academic Reassignment Warning */}
+          {offboardWarning && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2 text-xs text-amber-900 dark:text-amber-200">
+              <div className="font-semibold text-sm flex items-center gap-1">
+                ⚠️ Active Academic Assignments Detected
+              </div>
+              <p>{offboardWarning.message}</p>
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                  <input
+                    type="checkbox"
+                    checked={offboardData.forceReassign}
+                    onChange={(e) =>
+                      setOffboardData({
+                        ...offboardData,
+                        forceReassign: e.target.checked,
+                      })
+                    }
+                    className="rounded text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>
+                    I understand. Safely unassign active classes and timetable periods. Historical attendance & assessments will remain intact.
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleOffboardSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Separation Type *
+              </label>
+              <select
+                value={offboardData.separationType}
+                onChange={(e) =>
+                  setOffboardData({
+                    ...offboardData,
+                    separationType: e.target.value as any,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="RESIGNATION" className="dark:bg-gray-800">Resignation</option>
+                <option value="TERMINATION" className="dark:bg-gray-800">Termination</option>
+                <option value="RETIREMENT" className="dark:bg-gray-800">Retirement</option>
+                <option value="OTHER" className="dark:bg-gray-800">Other Separation</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Relieving / Separation Date *
+              </label>
+              <input
+                type="date"
+                required
+                value={offboardData.relievingDate}
+                onChange={(e) =>
+                  setOffboardData({
+                    ...offboardData,
+                    relievingDate: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Reason / Remarks
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Record formal exit reasons, handover details, or remarks..."
+                value={offboardData.separationReason}
+                onChange={(e) =>
+                  setOffboardData({
+                    ...offboardData,
+                    separationReason: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
               <button
+                type="button"
                 onClick={() => {
                   setShowOffboardModal(false);
                   setOffboardWarning(null);
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
-                ✕
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={offboardLoading}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition disabled:opacity-50"
+              >
+                {offboardLoading ? "Processing..." : "Complete Offboarding"}
               </button>
             </div>
-
-            {offboardError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
-                {offboardError}
-              </div>
-            )}
-
-            {/* Academic Reassignment Warning */}
-            {offboardWarning && (
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2 text-xs text-amber-900 dark:text-amber-200">
-                <div className="font-semibold text-sm flex items-center gap-1">
-                  ⚠️ Active Academic Assignments Detected
-                </div>
-                <p>{offboardWarning.message}</p>
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer font-medium">
-                    <input
-                      type="checkbox"
-                      checked={offboardData.forceReassign}
-                      onChange={(e) =>
-                        setOffboardData({
-                          ...offboardData,
-                          forceReassign: e.target.checked,
-                        })
-                      }
-                      className="rounded text-amber-600 focus:ring-amber-500"
-                    />
-                    <span>
-                      I understand. Safely unassign active classes and timetable periods. Historical attendance & assessments will remain intact.
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleOffboardSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Separation Type *
-                </label>
-                <select
-                  value={offboardData.separationType}
-                  onChange={(e) =>
-                    setOffboardData({
-                      ...offboardData,
-                      separationType: e.target.value as any,
-                    })
-                  }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="RESIGNATION" className="dark:bg-gray-800">Resignation</option>
-                  <option value="TERMINATION" className="dark:bg-gray-800">Termination</option>
-                  <option value="RETIREMENT" className="dark:bg-gray-800">Retirement</option>
-                  <option value="OTHER" className="dark:bg-gray-800">Other Separation</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Relieving / Separation Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={offboardData.relievingDate}
-                  onChange={(e) =>
-                    setOffboardData({
-                      ...offboardData,
-                      relievingDate: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Reason / Remarks
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Record formal exit reasons, handover details, or remarks..."
-                  value={offboardData.separationReason}
-                  onChange={(e) =>
-                    setOffboardData({
-                      ...offboardData,
-                      separationReason: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowOffboardModal(false);
-                    setOffboardWarning(null);
-                  }}
-                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={offboardLoading}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition disabled:opacity-50"
-                >
-                  {offboardLoading ? "Processing..." : "Complete Offboarding"}
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
-      )}
+      </AppModal>
     </div>
   );
 }
