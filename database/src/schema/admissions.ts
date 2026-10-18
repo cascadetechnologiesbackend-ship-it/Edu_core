@@ -77,6 +77,8 @@ export const admissionApplications = pgTable(
     ).notNull(),
     addressEncrypted: text("address_encrypted").notNull(),
     pincode: text("pincode").notNull(),
+    state: text("state"),
+    district: text("district"),
     // Workflow
     status: admissionStatusEnum("status").notNull().default("APPLIED"),
     currentWorkflowStep: integer("current_workflow_step").notNull().default(1),

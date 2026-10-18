@@ -98,6 +98,8 @@ export async function submitAdmissionApplication(
         primaryContactEmailEncrypted: encryptData(parsed.primaryContactEmail),
         addressEncrypted: encryptData(parsed.address),
         pincode: parsed.pincode,
+        state: parsed.state || formData.state || null,
+        district: parsed.district || formData.district || null,
         isRteApplicant: parsed.isRteApplicant,
         optInTransport: parsed.optInTransport,
         optInHostel: parsed.optInHostel,

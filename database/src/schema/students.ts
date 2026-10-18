@@ -92,6 +92,10 @@ export const students = pgTable(
     motherTongue: text("mother_tongue"),
     religion: text("religion"),
     nationality: text("nationality").notNull().default("Indian"),
+    // Address & Location (non-PII plaintext for regional analytics/filtering)
+    state: text("state"),
+    district: text("district"),
+    pincode: text("pincode"),
     // Aadhaar — last 4 digits ONLY (DPDP mandatory)
     aadhaarLast4: text("aadhaar_last4"), // "1234" only — NEVER full number
     apaarId: text("apaar_id"), // Academic Bank of Credits ID

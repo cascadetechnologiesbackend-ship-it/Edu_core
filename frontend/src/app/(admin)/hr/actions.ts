@@ -395,14 +395,14 @@ export async function createDesignation(
   input:
     | {
         name: string;
-        departmentId?: string;
-        isTeaching?: boolean;
-        mappedRole?: string;
+        departmentId?: string | undefined;
+        isTeaching?: boolean | undefined;
+        mappedRole?: string | undefined;
       }
     | string,
-  departmentId?: string,
-  isTeaching?: boolean,
-  mappedRole?: string,
+  departmentId?: string | undefined,
+  isTeaching?: boolean | undefined,
+  mappedRole?: string | undefined,
 ) {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
@@ -643,6 +643,9 @@ const CreateStaffSchema = z.object({
   mobile: z.string().min(10, "Mobile must be at least 10 digits"),
   email: z.string().email("Invalid email address"),
   address: z.string().optional(),
+  state: z.string().optional(),
+  district: z.string().optional(),
+  pincode: z.string().optional(),
   emergencyContact: z.string().optional(),
   employeeCode: z.string().min(2, "Employee code must be at least 2 characters"),
   departmentId: z.string().uuid(),
@@ -796,6 +799,9 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
           mobileEncrypted: encryptData(parsed.mobile.trim()),
           emailEncrypted: encryptData(emailNormalized),
           addressEncrypted: parsed.address ? encryptData(parsed.address.trim()) : null,
+          state: parsed.state || null,
+          district: parsed.district || null,
+          pincode: parsed.pincode || null,
           emergencyContactEncrypted: parsed.emergencyContact
             ? encryptData(parsed.emergencyContact.trim())
             : null,
@@ -882,6 +888,9 @@ export async function updateStaff(
     mobile?: string | undefined;
     email?: string | undefined;
     address?: string | undefined;
+    state?: string | undefined;
+    district?: string | undefined;
+    pincode?: string | undefined;
     emergencyContact?: string | undefined;
     departmentId?: string | undefined;
     designationId?: string | undefined;
@@ -916,6 +925,9 @@ export async function updateStaff(
     if (input.address !== undefined) {
       updates.addressEncrypted = input.address ? encryptData(input.address.trim()) : null;
     }
+    if (input.state !== undefined) updates.state = input.state;
+    if (input.district !== undefined) updates.district = input.district;
+    if (input.pincode !== undefined) updates.pincode = input.pincode;
     if (input.emergencyContact !== undefined) {
       updates.emergencyContactEncrypted = input.emergencyContact
         ? encryptData(input.emergencyContact.trim())

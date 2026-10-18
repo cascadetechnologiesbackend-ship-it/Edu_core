@@ -24,6 +24,7 @@ import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 import { encryptData, computeSearchHash } from "@/lib/encryption";
 import { seedExamBoardDefaults } from "@/lib/examSeeding";
 import { deriveClassGroupsFromClasses, SchoolBoard, GradingScale } from "@/lib/examBoardBlueprints";
+import { normalizeProfessionalTaxState } from "@/lib/reference/indiaReferenceData";
 
 export interface ClassSetupItem {
   gradeLevel: string;
@@ -405,20 +406,20 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
       }
 
       const standardDesignations = [
-        { name: "Principal", deptKey: "ADMIN", isTeaching: false },
-        { name: "Vice Principal", deptKey: "ADMIN", isTeaching: false },
-        { name: "Academic Coordinator", deptKey: "ADMIN", isTeaching: true },
-        { name: "Head of Department (HoD)", deptKey: "ADMIN", isTeaching: true },
-        { name: "Pre-Primary Teacher (PRT)", deptKey: "PRE_PRI", isTeaching: true },
-        { name: "Primary Teacher (PRT)", deptKey: "PRI", isTeaching: true },
-        { name: "Trained Graduate Teacher (TGT) - Science", deptKey: "MID", isTeaching: true },
-        { name: "Trained Graduate Teacher (TGT) - Mathematics", deptKey: "MID", isTeaching: true },
-        { name: "High School Teacher (TGT) - Physics", deptKey: "HIGH", isTeaching: true },
-        { name: "Chief Accountant / Bursar", deptKey: "FIN", isTeaching: false },
-        { name: "HR Manager / Executive", deptKey: "HR", isTeaching: false },
-        { name: "Head Librarian", deptKey: "LIB", isTeaching: false },
-        { name: "Transport Operations Manager", deptKey: "TRN", isTeaching: false },
-        { name: "System Administrator / IT Support", deptKey: "IT", isTeaching: false },
+        { name: "Principal", deptKey: "ADMIN", isTeaching: false, mappedRole: "PRINCIPAL" },
+        { name: "Vice Principal", deptKey: "ADMIN", isTeaching: false, mappedRole: "PRINCIPAL" },
+        { name: "Academic Coordinator", deptKey: "ADMIN", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "Head of Department (HoD)", deptKey: "ADMIN", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "Pre-Primary Teacher (PRT)", deptKey: "PRE_PRI", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "Primary Teacher (PRT)", deptKey: "PRI", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "Trained Graduate Teacher (TGT) - Science", deptKey: "MID", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "Trained Graduate Teacher (TGT) - Mathematics", deptKey: "MID", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "High School Teacher (TGT) - Physics", deptKey: "HIGH", isTeaching: true, mappedRole: "TEACHER" },
+        { name: "Chief Accountant / Bursar", deptKey: "FIN", isTeaching: false, mappedRole: "ACCOUNTANT" },
+        { name: "HR Manager / Executive", deptKey: "HR", isTeaching: false, mappedRole: "SCHOOL_ADMIN" },
+        { name: "Head Librarian", deptKey: "LIB", isTeaching: false, mappedRole: "LIBRARIAN" },
+        { name: "Transport Operations Manager", deptKey: "TRN", isTeaching: false, mappedRole: "TRANSPORT_MANAGER" },
+        { name: "System Administrator / IT Support", deptKey: "IT", isTeaching: false, mappedRole: "SCHOOL_ADMIN" },
       ];
 
       for (const des of standardDesignations) {
@@ -428,6 +429,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
             schoolId: newSchool.id,
             departmentId: deptId,
             name: des.name,
+            mappedRole: des.mappedRole,
             isTeaching: des.isTeaching,
             isActive: true,
           }).onConflictDoNothing();
@@ -435,11 +437,12 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
       }
 
       // 7. Seed 4 Standard Default Salary Templates
+      const defaultTaxState = (state && normalizeProfessionalTaxState(state)) || "DL";
       const defaultTemplates = [
-        { name: "Standard Teaching Faculty", basicPercent: "50.00", daPercent: "10.00", hraPercent: "20.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: false, professionalTaxState: "DL" },
-        { name: "Admin Cadre", basicPercent: "45.00", daPercent: "10.00", hraPercent: "25.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: false, professionalTaxState: "DL" },
-        { name: "Support Staff", basicPercent: "60.00", daPercent: "15.00", hraPercent: "15.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: true, professionalTaxState: "DL" },
-        { name: "Fixed Contract Staff", basicPercent: "100.00", daPercent: "0.00", hraPercent: "0.00", pfEmployeePercent: "0.00", pfEmployerPercent: "0.00", esiApplicable: false, professionalTaxState: "DL" },
+        { name: "Standard Teaching Faculty", basicPercent: "50.00", daPercent: "10.00", hraPercent: "20.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: false, professionalTaxState: defaultTaxState },
+        { name: "Admin Cadre", basicPercent: "45.00", daPercent: "10.00", hraPercent: "25.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: false, professionalTaxState: defaultTaxState },
+        { name: "Support Staff", basicPercent: "60.00", daPercent: "15.00", hraPercent: "15.00", pfEmployeePercent: "12.00", pfEmployerPercent: "12.00", esiApplicable: true, professionalTaxState: defaultTaxState },
+        { name: "Fixed Contract Staff", basicPercent: "100.00", daPercent: "0.00", hraPercent: "0.00", pfEmployeePercent: "0.00", pfEmployerPercent: "0.00", esiApplicable: false, professionalTaxState: defaultTaxState },
       ];
 
       for (const tpl of defaultTemplates) {

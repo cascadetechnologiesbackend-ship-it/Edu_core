@@ -129,6 +129,9 @@ export const staff = pgTable(
     mobileEncrypted: text("mobile_encrypted").notNull(),
     emailEncrypted: text("email_encrypted").notNull(),
     addressEncrypted: text("address_encrypted"),
+    state: text("state"),
+    district: text("district"),
+    pincode: text("pincode"),
     emergencyContactEncrypted: text("emergency_contact_encrypted"),
     // Aadhaar — last 4 only
     aadhaarLast4: text("aadhaar_last4"),

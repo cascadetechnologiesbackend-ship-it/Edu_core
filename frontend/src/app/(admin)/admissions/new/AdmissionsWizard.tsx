@@ -3,6 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitAdmissionApplication } from "./actions";
+import {
+  AddressAutofill,
+  type AddressValue,
+  formatAddressForStorage,
+} from "@/components/forms/AddressAutofill";
+import {
+  PersonalDemographicsPicker,
+  type DemographicsValue,
+} from "@/components/forms/PersonalDemographicsPicker";
 
 export function AdmissionsWizard({
   privacyNoticeVersion,
@@ -43,6 +52,13 @@ export function AdmissionsWizard({
     hasSiblingInSchool: false,
   });
 
+  const [demographics, setDemographics] = useState<DemographicsValue>({
+    religion: "Hinduism",
+    category: "GENERAL",
+    subCaste: "",
+    motherTongue: "Hindi",
+  });
+
   const [familyDetails, setFamilyDetails] = useState({
     fatherName: "",
     motherName: "",
@@ -51,6 +67,15 @@ export function AdmissionsWizard({
     primaryContactEmail: "",
     address: "",
     pincode: "",
+  });
+
+  const [addressValue, setAddressValue] = useState<AddressValue>({
+    pincode: "",
+    state: "",
+    district: "",
+    city: "",
+    line1: "",
+    line2: "",
   });
 
   const [documents, setDocuments] = useState<{
@@ -99,12 +124,12 @@ export function AdmissionsWizard({
         setError("Please enter a valid email address");
         return;
       }
-      if (!familyDetails.address.trim()) {
-        setError("Please enter the residential address");
+      if (!/^\d{6}$/.test(addressValue.pincode)) {
+        setError("Please enter a valid 6-digit PIN code for residential address");
         return;
       }
-      if (!/^\d{6}$/.test(familyDetails.pincode)) {
-        setError("Please enter a valid 6-digit pincode");
+      if (!addressValue.state.trim() || !addressValue.district.trim() || !addressValue.line1.trim()) {
+        setError("Please enter complete address details (State, District, and Street Line)");
         return;
       }
       setStep(4);
@@ -125,10 +150,19 @@ export function AdmissionsWizard({
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
+    const formattedAddress = formatAddressForStorage(addressValue);
     const formData = {
       ...basicInfo,
+      category: demographics.category,
+      religion: demographics.religion,
+      motherTongue: demographics.motherTongue,
+      subCaste: demographics.subCaste || undefined,
       bloodGroup: basicInfo.bloodGroup ? basicInfo.bloodGroup : undefined,
       ...familyDetails,
+      address: formattedAddress,
+      pincode: addressValue.pincode,
+      state: addressValue.state,
+      district: addressValue.district,
       primaryContactMobile: familyDetails.primaryContactMobile,
     };
     
@@ -397,25 +431,6 @@ export function AdmissionsWizard({
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
-                <select
-                  value={basicInfo.category}
-                  onChange={(e) =>
-                    setBasicInfo({ ...basicInfo, category: e.target.value })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
-                >
-                  <option value="GENERAL">General</option>
-                  <option value="OBC">OBC</option>
-                  <option value="SC">SC</option>
-                  <option value="ST">ST</option>
-                  <option value="EWS">EWS</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
                   Aadhaar Number
                 </label>
                 <input
@@ -427,6 +442,18 @@ export function AdmissionsWizard({
                   }
                   maxLength={12}
                   className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                />
+              </div>
+
+              <div className="col-span-2 pt-2 border-t border-gray-200 dark:border-slate-800">
+                <PersonalDemographicsPicker
+                  value={demographics}
+                  onChange={(val) => {
+                    setDemographics(val);
+                    setBasicInfo((prev) => ({ ...prev, category: val.category }));
+                  }}
+                  isHindi={isHindi}
+                  required={false}
                 />
               </div>
 
@@ -616,41 +643,20 @@ export function AdmissionsWizard({
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Pincode <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="pincode"
-                  maxLength={6}
-                  placeholder="6-digit pincode"
-                  value={familyDetails.pincode}
-                  onChange={(e) =>
-                    setFamilyDetails({
-                      ...familyDetails,
-                      pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
-                    })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">
-                  Residential Address <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="address"
-                  value={familyDetails.address}
-                  onChange={(e) =>
-                    setFamilyDetails({
-                      ...familyDetails,
-                      address: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+              <div className="col-span-2 pt-3 border-t border-gray-200 dark:border-slate-800">
+                <AddressAutofill
+                  value={addressValue}
+                  onChange={(val) => {
+                    setAddressValue(val);
+                    setFamilyDetails((prev) => ({
+                      ...prev,
+                      pincode: val.pincode,
+                      address: formatAddressForStorage(val),
+                    }));
+                  }}
+                  isHindi={isHindi}
+                  required={true}
+                  autoFocusPincode={true}
                 />
               </div>
             </div>
@@ -778,7 +784,15 @@ export function AdmissionsWizard({
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Category</dt>
-                    <dd className="font-medium">{basicInfo.category}</dd>
+                    <dd className="font-medium">{demographics.category}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Religion</dt>
+                    <dd className="font-medium">{demographics.religion || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Mother Tongue</dt>
+                    <dd className="font-medium">{demographics.motherTongue || "-"}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Blood Group</dt>
