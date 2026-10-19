@@ -7,10 +7,12 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./migrations": "./src/migrations/index.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
+    "db:inspect-ner": "pnpm exec tsx src/migrations/cli.ts",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "pnpm exec tsx src/migrate.ts",
     "db:check-migrations": "pnpm exec tsx src/check-migrations.ts",

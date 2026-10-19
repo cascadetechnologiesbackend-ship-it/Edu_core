@@ -101,7 +101,9 @@ export async function withReportSession<T>(
 // Canonical multi-tenant & RLS context wrappers (S6-T3 consolidation)
 export * from "./tenant";
 
-// ─── Re-export schema and query logger for convenience ───────────────────────
+// ─── Re-export schema, query logger, and migration NER ───────────────────────
 
 export * from "./schema";
 export * from "./queryLogger";
+export * from "./migrations";
+
