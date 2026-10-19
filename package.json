@@ -19,6 +19,7 @@
     "audit:exam-rbac": "node scripts/audit-exam-rbac.mjs",
     "audit:unscoped-writes": "node scripts/audit-unscoped-writes.mjs",
     "audit:lifecycle": "node scripts/audit-lifecycle-hygiene.mjs",
+    "rehearse:exams": "tsx scripts/rehearse-offline-exams-e2e.ts",
     "version:auto": "node scripts/bump-version.mjs auto",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
