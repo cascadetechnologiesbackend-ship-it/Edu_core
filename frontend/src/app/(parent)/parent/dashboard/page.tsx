@@ -8,14 +8,25 @@ import {
   sections,
   studentAttendance,
   feeInvoices,
+  feePayments,
+  paymentGatewayLogs,
   reportCards,
+  assignments,
   assignmentSubmissions,
+  classSubjects,
+  subjects,
   studentBusPasses,
+  routes,
+  routeStops,
+  gpsPings,
   notices,
   events,
   parentTeacherMessages,
+  parentFeedCards,
+  auditLogs,
+  staff,
 } from "@/db/schema";
-import { eq, and, desc, asc, gte, lte, isNotNull, inArray } from "drizzle-orm";
+import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import { deriveParentFeed } from "@schoolmitra/backend/parentEventEngine/deriveParentFeed";
 import type {
@@ -23,6 +34,8 @@ import type {
   InvoiceSnapshot,
   AttendanceSnapshot,
   BusPassSnapshot,
+  RouteStopSnapshot,
+  GpsPingSnapshot,
   HomeworkSnapshot,
   ReportCardSnapshot,
   NoticeSnapshot,
@@ -64,14 +77,34 @@ export default async function ParentDashboardPage({
       });
     }
 
-    // Admins / Principals previewing parent portal
+    // D7 FIX: Admins / Principals previewing parent portal require explicit ?studentId=
+    if (!searchParams?.studentId) {
+      return [];
+    }
+
     return await tx.query.students.findMany({
-      where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
-      limit: 5,
+      where: and(
+        eq(students.schoolId, school.id),
+        eq(students.id, searchParams.studentId),
+        eq(students.isActive, true)
+      ),
+      limit: 1,
     });
   });
 
   if (studentRows.length === 0) {
+    if (ctx.role !== "PARENT") {
+      return (
+        <div className="py-12 text-center" data-testid="admin-preview-prompt">
+          <h2 className="text-base font-semibold text-slate-200">
+            Parent Companion Feed Preview
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            Please specify an active student ID via <code className="text-emerald-400 font-mono">?studentId=</code> to preview their personalized companion feed.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="py-12 text-center">
         <h2 className="text-base font-semibold text-slate-200">
@@ -141,6 +174,8 @@ export default async function ParentDashboardPage({
     homeworkSnaps,
     reportCardSnaps,
     busPassSnap,
+    routeStopsSnap,
+    latestBusPingSnap,
     noticeSnaps,
     eventSnaps,
     unreadMessageSnaps,
@@ -175,7 +210,15 @@ export default async function ParentDashboardPage({
     ).length;
     const attRate = schoolDays.length > 0 ? attendedDays / schoolDays.length : 1.0;
 
-    // B. Invoices
+    // B. Invoices (D1: lastPayment join, D8: term name mapping)
+    const feeTermNames: Record<string, string> = {
+      MONTHLY: "Monthly Fee",
+      QUARTERLY: "Quarterly Fee",
+      HALF_YEARLY: "Half-Yearly Fee",
+      ANNUAL: "Annual Fee",
+      ONE_TIME: "One-Time Fee",
+    };
+
     const invRows = await tx.query.feeInvoices.findMany({
       where: and(
         eq(feeInvoices.studentId, currentStudentRow.id),
@@ -184,47 +227,169 @@ export default async function ParentDashboardPage({
       orderBy: [desc(feeInvoices.dueDate)],
     });
 
-    const invoiceSnaps: InvoiceSnapshot[] = invRows.map((inv) => ({
-      id: inv.id,
-      termName: inv.invoiceNumber || "School Term",
-      status: inv.status as any,
-      dueDate: inv.dueDate,
-      balanceAmount: Number(inv.balanceAmount || 0),
-      lateFeeAmount: Number(inv.lateFeeAmount || 0),
-      reminderSentFlags: {
-        d7: Boolean(inv.reminderSentD7),
-        d15: Boolean(inv.reminderSentD15),
-        d30: Boolean(inv.reminderSentD30),
-      },
-    }));
+    const invoiceIds = invRows.map((i) => i.id);
 
-    // C. Homework (last 14 days)
-    const cutoff14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const subRows = await tx.query.assignmentSubmissions.findMany({
-      where: and(
-        eq(assignmentSubmissions.studentId, currentStudentRow.id),
-        eq(assignmentSubmissions.schoolId, school.id),
-        gte(assignmentSubmissions.submittedAt, cutoff14d)
-      ),
-      with: {
-        assignment: true,
-      },
+    // Fetch recent payments for invoices to map lastPayment (D1)
+    const recentPayments =
+      invoiceIds.length > 0
+        ? await tx.query.feePayments.findMany({
+            where: and(
+              eq(feePayments.schoolId, school.id),
+              inArray(feePayments.feeInvoiceId, invoiceIds)
+            ),
+            orderBy: [desc(feePayments.paymentDate), desc(feePayments.createdAt)],
+          })
+        : [];
+
+    const recentLogs =
+      invoiceIds.length > 0
+        ? await tx.query.paymentGatewayLogs.findMany({
+            where: and(
+              eq(paymentGatewayLogs.schoolId, school.id),
+              inArray(paymentGatewayLogs.feeInvoiceId, invoiceIds),
+              eq(paymentGatewayLogs.status, "PAID")
+            ),
+            orderBy: [desc(paymentGatewayLogs.updatedAt), desc(paymentGatewayLogs.createdAt)],
+          })
+        : [];
+
+    const paymentByInvoice = new Map<
+      string,
+      { status: string; paidAt: Date | string; amount?: number; receiptNumber?: string }
+    >();
+
+    for (const p of recentPayments) {
+      if (!paymentByInvoice.has(p.feeInvoiceId)) {
+        const item: {
+          status: string;
+          paidAt: Date | string;
+          amount?: number;
+          receiptNumber?: string;
+        } = {
+          status: "PAID",
+          paidAt: p.paymentDate || p.createdAt,
+          amount: Number(p.amountPaid || 0),
+        };
+        if (p.receiptNumber) {
+          item.receiptNumber = p.receiptNumber;
+        }
+        paymentByInvoice.set(p.feeInvoiceId, item);
+      }
+    }
+
+    for (const l of recentLogs) {
+      if (l.feeInvoiceId && !paymentByInvoice.has(l.feeInvoiceId)) {
+        const item: {
+          status: string;
+          paidAt: Date | string;
+          amount?: number;
+          receiptNumber?: string;
+        } = {
+          status: "PAID",
+          paidAt: l.updatedAt || l.createdAt,
+          amount: Number(l.amount || 0),
+        };
+        if (l.gatewayPaymentId) {
+          item.receiptNumber = l.gatewayPaymentId;
+        }
+        paymentByInvoice.set(l.feeInvoiceId, item);
+      }
+    }
+
+    const invoiceSnaps: InvoiceSnapshot[] = invRows.map((inv) => {
+      const lastPayment = paymentByInvoice.get(inv.id);
+      return {
+        id: inv.id,
+        termName: (inv.term && feeTermNames[inv.term]) || "School Term",
+        status: inv.status as any,
+        dueDate: inv.dueDate,
+        balanceAmount: Number(inv.balanceAmount || 0),
+        lateFeeAmount: Number(inv.lateFeeAmount || 0),
+        reminderSentFlags: {
+          d7: Boolean(inv.reminderSentD7),
+          d15: Boolean(inv.reminderSentD15),
+          d30: Boolean(inv.reminderSentD30),
+        },
+        ...(lastPayment ? { lastPayment } : {}),
+      };
     });
 
-    const homeworkSnaps: HomeworkSnapshot[] = subRows.map((sub) => ({
-      id: sub.assignmentId,
-      title: sub.assignment?.title || "Homework",
-      subjectName: "Academics",
-      dueDate: sub.assignment?.dueDate || now,
-      isSubmitted: true,
-      submission: {
-        submittedAt: sub.submittedAt || now,
-        grade: sub.marksAwarded !== null ? `${sub.marksAwarded}` : null,
-        feedback: sub.remarks,
-      },
-    }));
+    // C. Homework (D2: class assignments LEFT JOIN student submissions with real subject name)
+    const cutoffPast14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const cutoffFuture14d = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-    // D. Report Cards
+    const assignmentList = await tx.query.assignments.findMany({
+      where: and(
+        eq(assignments.schoolId, school.id),
+        currentStudentRow.currentSectionId
+          ? eq(assignments.sectionId, currentStudentRow.currentSectionId)
+          : undefined,
+        gte(assignments.dueDate, cutoffPast14d),
+        lte(assignments.dueDate, cutoffFuture14d)
+      ),
+      with: {
+        classSubject: {
+          with: {
+            subject: true,
+          },
+        },
+      },
+      orderBy: [asc(assignments.dueDate)],
+    });
+
+    const assignmentIds = assignmentList.map((a) => a.id);
+    const studentSubmissions =
+      assignmentIds.length > 0
+        ? await tx.query.assignmentSubmissions.findMany({
+            where: and(
+              eq(assignmentSubmissions.studentId, currentStudentRow.id),
+              eq(assignmentSubmissions.schoolId, school.id),
+              inArray(assignmentSubmissions.assignmentId, assignmentIds)
+            ),
+          })
+        : [];
+
+    const submissionByAssignment = new Map(
+      studentSubmissions.map((s) => [s.assignmentId, s])
+    );
+
+    const homeworkSnaps: HomeworkSnapshot[] = assignmentList.map((a) => {
+      const sub = submissionByAssignment.get(a.id);
+      const subjectName = a.classSubject?.subject?.name || "Academics";
+      const isSubmitted = Boolean(sub);
+
+      let subData:
+        | {
+            submittedAt: string | Date;
+            grade?: string | null;
+            feedback?: string | null;
+          }
+        | undefined = undefined;
+
+      if (sub) {
+        subData = {
+          submittedAt: sub.submittedAt || sub.createdAt || now,
+          grade:
+            sub.marksAwarded !== null
+              ? `${sub.marksAwarded}`
+              : sub.gradedAt
+              ? "Graded"
+              : null,
+          feedback: sub.remarks,
+        };
+      }
+
+      return {
+        id: a.id,
+        title: a.title,
+        subjectName,
+        dueDate: a.dueDate,
+        isSubmitted,
+        ...(subData ? { submission: subData } : {}),
+      };
+    });
+
+    // D. Report Cards (D4: viewedAt tracking + previousAverageScore join)
     const rcRows = await tx.query.reportCards.findMany({
       where: and(
         eq(reportCards.studentId, currentStudentRow.id),
@@ -235,14 +400,56 @@ export default async function ParentDashboardPage({
       limit: 2,
     });
 
-    const reportCardSnaps: ReportCardSnapshot[] = rcRows.map((rc) => ({
-      id: rc.id,
-      termName: "Term Report",
-      publishedAt: rc.generatedAt || rc.createdAt || now,
-      averageScore: Number((rc.gradeData as any)?.percentage || 0),
-    }));
+    // Check if report card was previously viewed or dismissed in feed
+    const existingRcCard = await tx.query.parentFeedCards.findFirst({
+      where: and(
+        eq(parentFeedCards.studentId, currentStudentRow.id),
+        eq(parentFeedCards.cardType, "ReportCardCard")
+      ),
+    });
 
-    // E. Bus Pass
+    // Also check DPDP auditLogs for parent view of report cards
+    const reportCardAudit = await tx.query.auditLogs.findFirst({
+      where: and(
+        eq(auditLogs.schoolId, school.id),
+        eq(auditLogs.recordId, currentStudentRow.id),
+        eq(auditLogs.action, "READ")
+      ),
+      orderBy: [desc(auditLogs.createdAt)],
+    });
+
+    let viewedTimestamp: Date | undefined = undefined;
+    if (existingRcCard?.dismissedAt) {
+      viewedTimestamp = existingRcCard.dismissedAt;
+    } else if (existingRcCard && (existingRcCard.payload as any)?.viewedAt) {
+      viewedTimestamp = new Date((existingRcCard.payload as any).viewedAt);
+    } else if (
+      reportCardAudit?.createdAt &&
+      rcRows[0]?.generatedAt &&
+      reportCardAudit.createdAt >= rcRows[0].generatedAt
+    ) {
+      viewedTimestamp = reportCardAudit.createdAt;
+    }
+
+    const prevAverage =
+      rcRows.length > 1 && rcRows[1]
+        ? Number((rcRows[1].gradeData as any)?.percentage || 0)
+        : null;
+
+    const reportCardSnaps: ReportCardSnapshot[] = [];
+    if (rcRows.length > 0 && rcRows[0]) {
+      const latestRc = rcRows[0];
+      reportCardSnaps.push({
+        id: latestRc.id,
+        termName: "Term Report",
+        publishedAt: latestRc.generatedAt || latestRc.createdAt || now,
+        averageScore: Number((latestRc.gradeData as any)?.percentage || 0),
+        previousAverageScore: prevAverage,
+        ...(viewedTimestamp ? { viewedAt: viewedTimestamp } : {}),
+      });
+    }
+
+    // E. Bus Pass (D3: fetch routeStops, stopOrder, stopName, stopCoords, and latest gpsPing)
     const bp = await tx.query.studentBusPasses.findFirst({
       where: and(
         eq(studentBusPasses.studentId, currentStudentRow.id),
@@ -252,24 +459,83 @@ export default async function ParentDashboardPage({
     });
 
     let busPassSnap: BusPassSnapshot | undefined;
+    let routeStopsSnap: RouteStopSnapshot[] = [];
+    let latestBusPingSnap: GpsPingSnapshot | undefined;
+
     if (bp) {
+      const stops = await tx.query.routeStops.findMany({
+        where: and(
+          eq(routeStops.routeId, bp.routeId),
+          eq(routeStops.schoolId, school.id)
+        ),
+        orderBy: (t, { asc }) => [asc(t.stopOrder)],
+      });
+
+      const myStop = stops.find((s) => s.id === bp.routeStopId);
+      const routeRow = await tx.query.routes.findFirst({
+        where: and(eq(routes.id, bp.routeId), eq(routes.schoolId, school.id)),
+      });
+
+      const stopCoords =
+        myStop?.gpsLatitude && myStop?.gpsLongitude
+          ? {
+              lat: Number(myStop.gpsLatitude),
+              lng: Number(myStop.gpsLongitude),
+            }
+          : undefined;
+
       busPassSnap = {
         isActive: true,
         routeId: bp.routeId,
+        routeName: routeRow?.routeName || "School Bus Route",
         stopId: bp.routeStopId,
-        stopOrder: 1,
+        stopName: myStop?.stopName || "Bus Stop",
+        stopOrder: myStop?.stopOrder ?? 1,
+        ...(stopCoords ? { stopCoords } : {}),
       };
+
+      routeStopsSnap = stops.map((s) => ({
+        id: s.id,
+        stopOrder: s.stopOrder,
+        lat: Number(s.gpsLatitude || 0),
+        lng: Number(s.gpsLongitude || 0),
+        name: s.stopName,
+        ...(s.estimatedArrivalTime ? { estimatedTime: s.estimatedArrivalTime } : {}),
+      }));
+
+      if (routeRow?.vehicleId) {
+        const pingRow = await tx.query.gpsPings.findFirst({
+          where: eq(gpsPings.vehicleId, routeRow.vehicleId),
+          orderBy: [desc(gpsPings.recordedAt)],
+        });
+
+        if (pingRow) {
+          latestBusPingSnap = {
+            lat: Number(pingRow.latitude),
+            lng: Number(pingRow.longitude),
+            speed: Number(pingRow.speed || 0),
+            recordedAt: pingRow.recordedAt,
+          };
+        }
+      }
     }
 
-    // F. Notices (within 72h or pinned)
+    // F. Notices (D5: within 72h OR isPinned, unexpired)
     const cutoff72h = new Date(now.getTime() - 72 * 60 * 60 * 1000);
     const noticeRows = await tx.query.notices.findMany({
       where: and(
         eq(notices.schoolId, school.id),
-        gte(notices.publishedAt, cutoff72h)
+        or(
+          gte(notices.publishedAt, cutoff72h),
+          eq(notices.isPinned, true)
+        ),
+        or(
+          isNull(notices.expiresAt),
+          gt(notices.expiresAt, now)
+        )
       ),
       orderBy: [desc(notices.isPinned), desc(notices.publishedAt)],
-      limit: 3,
+      limit: 5,
     });
 
     const noticeSnaps: NoticeSnapshot[] = noticeRows.map((n) => ({
@@ -278,7 +544,7 @@ export default async function ParentDashboardPage({
       contentPreview: n.content?.slice(0, 100) || "",
       publishedAt: n.publishedAt || now,
       isPinned: Boolean(n.isPinned),
-      expiresAt: n.expiresAt,
+      ...(n.expiresAt ? { expiresAt: n.expiresAt } : {}),
     }));
 
     // G. Upcoming Events (e.g. PTM within 7 days)
@@ -302,24 +568,58 @@ export default async function ParentDashboardPage({
       venue: e.description,
     }));
 
-    // H. Unread Messages
+    // H. Unread Messages (D6: real teacher names resolved from staff/users)
     let unreadMessageSnaps: UnreadMessageSnapshot[] = [];
     if (ctx.role === "PARENT") {
       const msgRows = await tx.query.parentTeacherMessages.findMany({
         where: and(
           eq(parentTeacherMessages.schoolId, school.id),
+          eq(parentTeacherMessages.studentId, currentStudentRow.id),
           eq(parentTeacherMessages.recipientUserId, ctx.userId),
           eq(parentTeacherMessages.isRead, false)
         ),
-        limit: 1,
+        orderBy: [desc(parentTeacherMessages.createdAt)],
+        limit: 3,
       });
 
-      unreadMessageSnaps = msgRows.map((m) => ({
-        threadId: m.parentMessageId || m.id,
-        teacherName: "Class Teacher",
-        lastMessagePreview: m.content?.slice(0, 80) || "",
-        sentAt: m.createdAt,
-      }));
+      const teacherUserIds = Array.from(
+        new Set(msgRows.map((m) => m.senderUserId).filter(Boolean))
+      );
+
+      const staffProfiles =
+        teacherUserIds.length > 0
+          ? await tx.query.staff.findMany({
+              where: and(
+                eq(staff.schoolId, school.id),
+                inArray(staff.userId, teacherUserIds)
+              ),
+            })
+          : [];
+
+      const staffNameMap = new Map<string, string>();
+      for (const s of staffProfiles) {
+        if (s.userId) {
+          try {
+            const fName = decryptData(s.firstNameEncrypted) || "";
+            const lName = s.lastNameEncrypted ? decryptData(s.lastNameEncrypted) : "";
+            const fullName = `${fName} ${lName}`.trim();
+            if (fullName) staffNameMap.set(s.userId, fullName);
+          } catch {
+            // Decryption fallback
+          }
+        }
+      }
+
+      unreadMessageSnaps = msgRows.map((m) => {
+        const teacherName =
+          (m.senderUserId && staffNameMap.get(m.senderUserId)) || "Class Teacher";
+        return {
+          threadId: m.parentMessageId || m.id,
+          teacherName,
+          lastMessagePreview: m.content?.slice(0, 80) || "",
+          sentAt: m.createdAt,
+        };
+      });
     }
 
     return {
@@ -329,6 +629,8 @@ export default async function ParentDashboardPage({
       homeworkSnaps,
       reportCardSnaps,
       busPassSnap,
+      routeStopsSnap,
+      latestBusPingSnap,
       noticeSnaps,
       eventSnaps,
       unreadMessageSnaps,
@@ -345,6 +647,8 @@ export default async function ParentDashboardPage({
     homework: homeworkSnaps,
     reportCards: reportCardSnaps,
     busPass: busPassSnap,
+    routeStops: routeStopsSnap,
+    latestBusPing: latestBusPingSnap,
     notices: noticeSnaps,
     upcomingEvents: eventSnaps,
     unreadMessages: unreadMessageSnaps,

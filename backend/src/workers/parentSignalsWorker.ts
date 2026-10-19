@@ -112,9 +112,17 @@ export async function evaluateStudentSignalsAndFeed(
       orderBy: [desc(feeInvoices.dueDate)],
     });
 
+    const feeTermNames: Record<string, string> = {
+      MONTHLY: "Monthly Fee",
+      QUARTERLY: "Quarterly Fee",
+      HALF_YEARLY: "Half-Yearly Fee",
+      ANNUAL: "Annual Fee",
+      ONE_TIME: "One-Time Fee",
+    };
+
     const invoiceSnapshots: InvoiceSnapshot[] = invoices.map((inv) => ({
       id: inv.id,
-      termName: inv.invoiceNumber || "School Term",
+      termName: (inv.term && feeTermNames[inv.term]) || "School Term",
       status: inv.status as any,
       dueDate: inv.dueDate,
       balanceAmount: Number(inv.balanceAmount || 0),

@@ -23,6 +23,13 @@ export interface ParentFeedContainerProps {
   currentStudent: StudentWardOption;
   availableStudents: StudentWardOption[];
   locale?: string;
+  now?: Date;
+  isNightOverride?: boolean;
+}
+
+export function isNightChoreography(date: Date = new Date()): boolean {
+  const hours = date.getHours() + date.getMinutes() / 60;
+  return hours >= 21.5 || hours < 6.5;
 }
 
 export function ParentFeedContainer({
@@ -30,12 +37,16 @@ export function ParentFeedContainer({
   currentStudent,
   availableStudents,
   locale = "en",
+  now,
+  isNightOverride,
 }: ParentFeedContainerProps) {
   const router = useRouter();
   const [activeStudentId, setActiveStudentId] = useState(currentStudent.id);
 
+  const isNight = isNightOverride ?? isNightChoreography(now ?? new Date());
+
   // Poll for latest feed cards
-  // Tier 1 cards poll every 60s; standard feed polls every 120s
+  // Tier 1 cards poll every 60s; standard feed polls every 120s; paused during night quiet hours
   const { data: cards = initialCards } = useQuery<DerivedFeedCard[]>({
     queryKey: ["parent-feed", activeStudentId],
     queryFn: async () => {
@@ -46,6 +57,7 @@ export function ParentFeedContainer({
     },
     initialData: initialCards,
     refetchInterval: (query) => {
+      if (isNight) return false; // Feed frozen during quiet hours
       const currentList = query.state.data ?? initialCards;
       const hasTier1 = currentList.some((c) => c.tier === "T1_action_required");
       return hasTier1 ? 60000 : 300000; // 60s for Tier 1, else 5m
@@ -71,6 +83,26 @@ export function ParentFeedContainer({
 
       {/* 2. Today Strip (Date + Calm State / Count) */}
       <TodayStrip activeCardsCount={cards.length} locale={locale} />
+
+      {/* Night Choreography Staleness Note (D9) */}
+      {isNight && (
+        <div
+          data-testid="night-staleness-note"
+          className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3.5 text-xs text-slate-300 flex items-center justify-between backdrop-blur-sm shadow-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+            <span>
+              {locale === "hi"
+                ? "रात के शांत घंटे (21:30 - 06:30) • फ़ीड स्थिर है, सुबह नई सूचनाएं आएंगी"
+                : "Quiet hours active (21:30 - 06:30) • Feed paused until morning"}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-2">
+            {locale === "hi" ? "स्थिर फ़ीड" : "Updates paused"}
+          </span>
+        </div>
+      )}
 
       {/* 3. Event-Driven Feed: Zero cards is a valid, calm state (AC-P1) */}
       {cards.length > 0 && (

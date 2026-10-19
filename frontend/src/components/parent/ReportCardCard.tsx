@@ -26,13 +26,38 @@ export function ReportCardCard({ card, locale = "en" }: ReportCardCardProps) {
     termName = "Term Examination",
     averageScore = 0,
     previousAverageScore = null,
-    deltaScore = 0,
+    deltaScore = null,
+    scoreDelta = null,
     viewedAt = null,
   } = card.payload || {};
 
   const scoreNum = Number(averageScore);
-  const deltaNum = Number(deltaScore || (previousAverageScore != null ? scoreNum - Number(previousAverageScore) : 0));
+  const resolvedDelta = scoreDelta !== null && scoreDelta !== undefined
+    ? Number(scoreDelta)
+    : (deltaScore !== null && deltaScore !== undefined
+        ? Number(deltaScore)
+        : (previousAverageScore != null ? scoreNum - Number(previousAverageScore) : null));
+
+  const hasDelta = resolvedDelta !== null;
+  const deltaNum = resolvedDelta ?? 0;
   const isPositiveDelta = deltaNum >= 0;
+
+  const handleOpenReportCard = () => {
+    try {
+      fetch("/api/parent/feed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "VIEW_REPORT_CARD",
+          studentId: card.studentId,
+          cardId: card.id,
+          cardType: "ReportCardCard",
+        }),
+      }).catch(() => {});
+    } catch {
+      // Non-blocking beacon/telemetry
+    }
+  };
 
   return (
     <div
@@ -99,13 +124,14 @@ export function ReportCardCard({ card, locale = "en" }: ReportCardCardProps) {
           {isHi ? card.summary.hi : card.summary.en}
         </p>
 
-        {previousAverageScore != null && (
+        {hasDelta && (
           <div
             className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md shrink-0 ml-2 ${
               isPositiveDelta
                 ? isFestive ? "bg-white/20 text-emerald-100" : "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60"
                 : isFestive ? "bg-white/20 text-rose-200" : "text-rose-600 bg-rose-50 dark:bg-rose-950/60"
             }`}
+            data-testid="report-card-delta"
           >
             {isPositiveDelta ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
             <span>{isPositiveDelta ? `+${deltaNum.toFixed(1)}%` : `${deltaNum.toFixed(1)}%`}</span>
@@ -121,6 +147,7 @@ export function ReportCardCard({ card, locale = "en" }: ReportCardCardProps) {
 
         <Link
           href="/portal/report-cards"
+          onClick={handleOpenReportCard}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition-transform active:scale-95 ${
             isFestive
               ? "bg-white text-emerald-800 hover:bg-emerald-50"

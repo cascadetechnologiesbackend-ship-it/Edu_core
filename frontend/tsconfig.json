@@ -40,6 +40,8 @@
     "node_modules",
     "../backend/src/**/__tests__/**",
     "../backend/src/**/*.test.ts",
+    "../database/src/**/__tests__/**",
+    "../database/src/**/*.test.ts",
     "../scripts/**"
   ]
 }
