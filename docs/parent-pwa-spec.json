@@ -1,8 +1,8 @@
 {
-  "prompt_version": "1.0",
+  "prompt_version": "1.1",
   "spec_series": "role_pwa",
   "spec_id": "parent_pwa",
-  "intent": "Rebuild the Edu_core Parent PWA around a single principle: Zero-Clutter, High-Intent. The home screen is a chronological, event-driven feed where a UI component exists ONLY when a real data condition or deadline makes it relevant. A fee payment card appears days before a due date and disappears the moment the account is in good standing. A bus-tracking card exists only during commute windows. An absence alert exists only on the day the child was marked absent. Everything else stays out of the parent's way. The feed is sorted by time-of-day relevance and urgency, styled with the emotional design language (people, colors, chronology, motion), and backed by a server-side trigger engine that turns routine school data into active UI events. This prompt is written for an AI coding agent continuing the Edu_core implementation after the AMS UI/UX spec v1.2 (phases 1-9 landed on main; phases 10-11 of that plan are PAUSED and resume later exactly as written there).",
+  "intent": "Rebuild the Edu_core Parent PWA around a single principle: Zero-Clutter, High-Intent. The home screen is a chronological, event-driven feed where a UI component exists ONLY when a real data condition or deadline makes it relevant. A fee payment card appears days before a due date and disappears the moment the account is in good standing. A bus-tracking card exists only during commute windows. An absence alert exists only on the day the child was marked absent. Everything else stays out of the parent's way. The feed is sorted by time-of-day relevance and urgency, styled with the emotional design language (people, colors, chronology, motion), and backed by a server-side trigger engine that turns routine school data into active UI events. This prompt is written for an AI coding agent continuing the Edu_core implementation after the AMS UI/UX spec v1.2 (phases 1-9 landed on main; phases 10-11 of that plan are PAUSED and resume later exactly as written there). REVISION 1.1 STATUS: spec v1.0 phases P1-P8 are IMPLEMENTED, VERIFIED, and merged on main (commits 0ae4c6ce through 59e2cd4a, released v11.4.0-v11.11.0), and the paused AMS phases 10-11 have since landed too (commits 4ce09d1e, a6c1e8b9). This revision does three things: (1) it fixes nine verified snapshot-assembly defects that starve the pure feed engine of data; (2) it upgrades the parent app from a one-way notification feed to a full two-way operating surface (leave requests, PTM slot booking, fee queries, document submission, notice acknowledgment, bus boarding events, multi-ward operations) with complete business logic; (3) it locks the role-to-role and database relationship contracts behind every operation.",
   "meta": {
     "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
     "predecessor_spec": "docs/uiux-spec.json (AMS/ClassHub/Student 360 spec, prompt_version 1.2). All shared components (AppModal, EmptyStateCTA, NextBestAction, Stepper, ConfirmDialog, Combobox, AddressAutofill, PersonalDemographicsPicker, ActivityFeed, NeedsAttentionCard, IdentityHeader) are either landed on main or will land with the paused Phase 10; import them, never fork them.",
@@ -31,7 +31,87 @@
       "backend/src/lib/parentEventEngine/* (new: pure trigger functions + BullMQ jobs)",
       "backend/src/lib/analytics/parentSignals.ts (new: rule-based signal scoring)",
       "frontend/public/manifest.json (add parent shortcuts)",
-      "frontend/public/sw.js (extend cache rules only where marked)"
+      "frontend/public/sw.js (extend cache rules only where marked)",
+      "database/src/schema/* (new v1.1 workflow tables: student_leave_requests, ptm_events, ptm_slots, ptm_bookings, fee_queries, notice_acknowledgments, bus_boarding_events, student_document_requests, profile_change_requests, stop_change_requests)",
+      "database/migrations/* (numbered migrations + drizzle journal registration)",
+      "database/src/factory_reset.ts (truncate new tables)",
+      "backend/src/lib/parentEventEngine/* (extend card catalog and event kinds)",
+      "backend/src/lib/parentEventEngine/notificationMatrix.ts (new event kinds only, no policy changes)",
+      "backend/src/workers/* (SLA, reminder, digest, no-show workers)",
+      "frontend/src/app/(parent)/parent/more/** (workflows hub)",
+      "frontend/src/app/(teacher)/** (leave approval queue + PTM slot view only)",
+      "frontend/src/app/(driver)/** (scan action surface only)",
+      "frontend/src/app/(admin)/** (verification, acknowledgment report, fee query inbox, escalation queue only)",
+      "backend/src/lib/entity-engine/schema catalog registration for new tables"
+    ]
+  },
+  "as_built_verification": {
+    "verified_at_head": "63bd1e4d (v11.16.0)",
+    "phase_landings": [
+      {
+        "phase": "P1",
+        "commit": "0ae4c6ce",
+        "evidence": "backend/src/lib/parentEventEngine/{deriveParentFeed,feedPersistence,types}.ts + __tests__/deriveParentFeed.test.ts; docs/parent-pwa-spec.json committed to repo; parentFeedCards + parentNotificationPreferences tables added to database/src/schema/communication.ts with student/type/expires indexes"
+      },
+      {
+        "phase": "P2",
+        "commit": "5bcd3dd4",
+        "evidence": "backend/src/lib/analytics/parentSignals.ts + tests + backend/src/workers/parentSignalsWorker.ts (BullMQ)"
+      },
+      {
+        "phase": "P3",
+        "commit": "db76d897",
+        "evidence": "FeedCard, ParentFeedContainer, ParentIdentityHeader, TodayStrip components; feed API route; 4-item BottomNav; dashboard/page.tsx rewritten as feed; messages + more pages"
+      },
+      {
+        "phase": "P4",
+        "commit": "c9d9b180",
+        "evidence": "PaymentCard.tsx with Razorpay micro-progress; fees history page"
+      },
+      {
+        "phase": "P5",
+        "commit": "ac692a48",
+        "evidence": "busEta.ts pure engine + tests; BusLiveCard + BusLiveMap (Leaflet); bus API route; commute window enforcement"
+      },
+      {
+        "phase": "P6",
+        "commit": "8eeb411f",
+        "evidence": "AttendanceCard, HomeworkCard, ReportCardCard, PTMCard, NoticeCard, ConsentCard, InsightCard, MessageCard, ChildProfileView; DPDP portal deep links"
+      },
+      {
+        "phase": "P7",
+        "commit": "3bc707c9",
+        "evidence": "notificationMatrix.ts: tier router, 3/day T1 cap, (studentId, eventKind, calendarDay) dedupe, quiet hours 21:30-07:00 with morning queueing, T2 report-card-only push exception, tier opt-outs; tests"
+      },
+      {
+        "phase": "P8",
+        "commit": "59e2cd4a",
+        "evidence": "en.json/hi.json message dictionaries, i18n.ts, manifest.json parent shortcuts (Pay Fees, Bus Live), acceptanceCriteriaAudit.test.ts"
+      }
+    ],
+    "verified_behaviors": [
+      "deriveParentFeed is a true pure function honoring the zero-clutter invariant: empty snapshot yields zero cards, every card has render conditions, tier, priority, and expiresAt TTL, with morning/evening choreography sorting.",
+      "notificationMatrix implements the full v1.0 policy including the midnight-spanning quiet-hours check and morning requeue; T3 never pushes; opt-outs respected; dedupe keys deterministic.",
+      "Dashboard is server-derived inside withTenant RLS, supports multi-ward parents with a child switcher via ?studentId=, and decrypts student names with a safe fallback.",
+      "manifest.json gained parent shortcuts; sw.js was never touched (AC-P7 held)."
+    ],
+    "verified_defects": [
+      "D1 PAYMENT SUCCESS DEAD PATH: the engine's PaymentCard success branch reads inv.lastPayment, but dashboard/page.tsx never maps lastPayment into InvoiceSnapshot, so the payment-success card can never render from real data. The 2h success state is spec-required.",
+      "D2 HOMEWORK PENDING DEAD PATH: dashboard builds HomeworkSnapshot only from assignmentSubmissions of the last 14 days with isSubmitted hardcoded true, so pending homework due within 48h (the primary HomeworkCard trigger) can never fire, and subjectName is hardcoded 'Academics'. The snapshot must be built from assignments for the student's class joined LEFT with their submission.",
+      "D3 BUS ETA STARVED: dashboard maps busPass with stopOrder hardcoded 1 and fetches no routeStops, no stopName, no stopCoords; computeBusTracking receives an empty stop list, degrading stops-away/ETA to fallbacks.",
+      "D4 REPORT CARD VIEW TRACKING MISSING: ReportCardCard is spec-required to disappear once viewed, but nothing writes a viewedAt timestamp and the snapshot never sets previousAverageScore, so scoreDelta is always null and the card persists the full 7 days.",
+      "D5 PINNED NOTICES DROPPED: the dashboard query filters notices by publishedAt >= now-72h at the SQL level, so an older isPinned notice (which the engine explicitly supports) never reaches the snapshot.",
+      "D6 MESSAGE CARD GUESSWORK: unread teacher messages render teacherName as hardcoded 'Class Teacher' with limit 1 and threadId from parentMessageId; threads are not modeled as student+teacher conversations.",
+      "D7 ADMIN PREVIEW OVER-READS: for ADMIN/PRINCIPAL preview the page decrypts names of the first 5 arbitrary active students instead of requiring an explicit ?studentId= preview target.",
+      "D8 INVOICE TERM LABEL: invoiceSnaps uses invoiceNumber as termName ('School Term' fallback), so payment cards read like ledger entries, not term fees; map to the fee term name.",
+      "D9 NIGHT STALENESS MISSING: the spec's night choreography (frozen feed with staleness note) is not implemented in ParentFeedContainer."
+    ],
+    "post_v10_landings_affecting_context": [
+      "1a02486f: withTenant RLS context now enforced across fee and exam actions; all new parent-facing server actions must use the same withTenant discipline.",
+      "4ce09d1e + a6c1e8b9: AMS Phase 10-11 landed (Combobox, AddressAutofill, PersonalDemographicsPicker, modular HR tabs, Staff 360) — import these primitives; do not rebuild.",
+      "52892d54: entity-engine schema catalog + omnibox NER + DPDP PII scanner exist; reuse the schema catalog when wiring new tables.",
+      "c952e3d6: 44 migrations indexed with a schema graph; new tables in this spec must register migrations the same way.",
+      "49a8871c: examinations module has a 6-stage automated lifecycle rehearsal runner; PTM/exam-adjacent cards must not conflict with its mark locks."
     ]
   },
   "context_engineering": {
@@ -56,14 +136,62 @@
   },
   "data_flow_map": {
     "vectors": [
-      { "from": "fees", "to": "parent_feed", "data": "feeInvoices per student: status, dueDate, balanceAmount, lateFeeAmount, reminder flags", "direction": "read", "event": "INVOICE_DUE_SOON, INVOICE_OVERDUE, PAYMENT_SUCCESS" },
-      { "from": "parent_feed", "to": "fees", "data": "Razorpay order create + verify via existing actions", "direction": "write", "event": "PAYMENT_INITIATED, PAYMENT_CONFIRMED" },
-      { "from": "attendance", "to": "parent_feed", "data": "today's studentAttendance status, marked time, remarks", "direction": "read", "event": "ATTENDANCE_MARKED (ABSENT/LATE/HALF_DAY/LEAVE only trigger cards)" },
-      { "from": "transport", "to": "parent_feed", "data": "latest gpsPing for the bus on the student's active route, ordered stop list from routeStops", "direction": "read", "event": "BUS_LIVE_WINDOW (derived), BUS_APPROACHING_STOP (computed)" },
-      { "from": "examinations", "to": "parent_feed", "data": "markEntries/reportCards publication state, examSchedules dates", "direction": "read", "event": "REPORT_CARD_PUBLISHED, EXAM_SCHEDULED" },
-      { "from": "academics", "to": "parent_feed", "data": "assignments and assignmentSubmissions for the student's class: due dates, submission status, grades", "direction": "read", "event": "HOMEWORK_DUE_48H, HOMEWORK_GRADED, HOMEWORK_MISSING" },
-      { "from": "communication", "to": "parent_feed", "data": "notices (audience PARENTS or student's class/section), events (PTM within 7 days), parentTeacherMessages unread", "direction": "read", "event": "NOTICE_PUBLISHED, PTM_UPCOMING, MESSAGE_UNREAD" },
-      { "from": "dpdp", "to": "parent_feed", "data": "pending consent or rights requests", "direction": "read", "event": "CONSENT_REQUIRED" }
+      {
+        "from": "fees",
+        "to": "parent_feed",
+        "data": "feeInvoices per student: status, dueDate, balanceAmount, lateFeeAmount, reminder flags",
+        "direction": "read",
+        "event": "INVOICE_DUE_SOON, INVOICE_OVERDUE, PAYMENT_SUCCESS"
+      },
+      {
+        "from": "parent_feed",
+        "to": "fees",
+        "data": "Razorpay order create + verify via existing actions",
+        "direction": "write",
+        "event": "PAYMENT_INITIATED, PAYMENT_CONFIRMED"
+      },
+      {
+        "from": "attendance",
+        "to": "parent_feed",
+        "data": "today's studentAttendance status, marked time, remarks",
+        "direction": "read",
+        "event": "ATTENDANCE_MARKED (ABSENT/LATE/HALF_DAY/LEAVE only trigger cards)"
+      },
+      {
+        "from": "transport",
+        "to": "parent_feed",
+        "data": "latest gpsPing for the bus on the student's active route, ordered stop list from routeStops",
+        "direction": "read",
+        "event": "BUS_LIVE_WINDOW (derived), BUS_APPROACHING_STOP (computed)"
+      },
+      {
+        "from": "examinations",
+        "to": "parent_feed",
+        "data": "markEntries/reportCards publication state, examSchedules dates",
+        "direction": "read",
+        "event": "REPORT_CARD_PUBLISHED, EXAM_SCHEDULED"
+      },
+      {
+        "from": "academics",
+        "to": "parent_feed",
+        "data": "assignments and assignmentSubmissions for the student's class: due dates, submission status, grades",
+        "direction": "read",
+        "event": "HOMEWORK_DUE_48H, HOMEWORK_GRADED, HOMEWORK_MISSING"
+      },
+      {
+        "from": "communication",
+        "to": "parent_feed",
+        "data": "notices (audience PARENTS or student's class/section), events (PTM within 7 days), parentTeacherMessages unread",
+        "direction": "read",
+        "event": "NOTICE_PUBLISHED, PTM_UPCOMING, MESSAGE_UNREAD"
+      },
+      {
+        "from": "dpdp",
+        "to": "parent_feed",
+        "data": "pending consent or rights requests",
+        "direction": "read",
+        "event": "CONSENT_REQUIRED"
+      }
     ],
     "gaps_and_decisions": [
       "No boarding scan table exists. Bus tracking uses gpsPings + routeStops only: compute the bus's nearest passed stop (haversine on latest ping vs stop coordinates) and derive 'N stops away' from stopOrder distance to the student's stop. Do not create a boarding event table in this track.",
@@ -73,15 +201,47 @@
   "analytics_layer": {
     "philosophy": "Explainable rule-based signals computed server-side, never client-side, never third-party, never a black box. Every number a parent sees must be traceable to a simple rule the school can defend. No ML dependencies; threshold logic lives in pure functions with unit tests.",
     "descriptive_analytics": [
-      { "signal": "attendance_trend_30d", "compute": "present+late days / total school days, last 30 days, from studentAttendance", "display": "sparkline via recharts inside the child's profile header and attendance card" },
-      { "signal": "fee_payment_history", "compute": "feePayments timeline per term", "display": "receipt list with status chips; no chart needed" },
-      { "signal": "marks_trend", "compute": "last 2 published report card averages per subject", "display": "delta arrows on report card card and portal" }
+      {
+        "signal": "attendance_trend_30d",
+        "compute": "present+late days / total school days, last 30 days, from studentAttendance",
+        "display": "sparkline via recharts inside the child's profile header and attendance card"
+      },
+      {
+        "signal": "fee_payment_history",
+        "compute": "feePayments timeline per term",
+        "display": "receipt list with status chips; no chart needed"
+      },
+      {
+        "signal": "marks_trend",
+        "compute": "last 2 published report card averages per subject",
+        "display": "delta arrows on report card card and portal"
+      }
     ],
     "predictive_analytics": [
-      { "model": "attendance_risk", "rule": "absent/leave on 3+ of the last 10 school days OR rolling 30-day attendance below 85%", "output": "amber InsightCard 'Attendance is slipping' with trend sparkline and a 'Talk to class teacher' action (opens existing parentTeacherMessages thread)", "cadence": "nightly BullMQ job" },
-      { "model": "performance_dip", "rule": "latest published report card average dropped more than 10 points vs the previous one", "output": "amber InsightCard 'Maths dropped from 78 to 64' naming the subject, with the report card deep link", "cadence": "on REPORT_CARD_PUBLISHED" },
-      { "model": "fee_stress", "rule": "invoice OVERDUE, OR two or more reminderSent flags set on the current invoice", "output": "calm payment card escalation (see emotional_ux): neutral copy first, overdue states add late-fee facts, never shame language", "cadence": "nightly + on payment events" },
-      { "model": "homework_neglect", "rule": "2+ assignmentSubmissions missing past due date in the last 14 days", "output": "amber InsightCard listing the assignments, action opens documents/homework list", "cadence": "nightly" }
+      {
+        "model": "attendance_risk",
+        "rule": "absent/leave on 3+ of the last 10 school days OR rolling 30-day attendance below 85%",
+        "output": "amber InsightCard 'Attendance is slipping' with trend sparkline and a 'Talk to class teacher' action (opens existing parentTeacherMessages thread)",
+        "cadence": "nightly BullMQ job"
+      },
+      {
+        "model": "performance_dip",
+        "rule": "latest published report card average dropped more than 10 points vs the previous one",
+        "output": "amber InsightCard 'Maths dropped from 78 to 64' naming the subject, with the report card deep link",
+        "cadence": "on REPORT_CARD_PUBLISHED"
+      },
+      {
+        "model": "fee_stress",
+        "rule": "invoice OVERDUE, OR two or more reminderSent flags set on the current invoice",
+        "output": "calm payment card escalation (see emotional_ux): neutral copy first, overdue states add late-fee facts, never shame language",
+        "cadence": "nightly + on payment events"
+      },
+      {
+        "model": "homework_neglect",
+        "rule": "2+ assignmentSubmissions missing past due date in the last 14 days",
+        "output": "amber InsightCard listing the assignments, action opens documents/homework list",
+        "cadence": "nightly"
+      }
     ],
     "trigger_engine": {
       "service": "backend/src/lib/parentEventEngine/: pure function deriveParentFeed(studentId, now, dataSnapshot) -> FeedCard[] plus BullMQ jobs to persist derived card states in parentFeedCards (studentId, cardType, tier, payload jsonb, activatedAt, expiresAt, dismissedAt).",
@@ -93,16 +253,62 @@
   "event_driven_ui": {
     "home_contract": "The dashboard route becomes a single feed: server component derives card states, client FeedCard components render them with react-query polling per card tier (Tier 1: 60s, Tier 2: 10min, Tier 3: on-demand after action). Zero cards is a VALID state: it renders a calm Today strip and the child's identity header only, never placeholder clutter.",
     "card_catalog": [
-      { "id": "PaymentCard", "render_when": "feeInvoices where status in (PENDING, PARTIAL, OVERDUE) and (dueDate within 7 days or status = OVERDUE)", "hide_when": "all invoices PAID/WAIVED (render PaymentSuccessCard for 2h after a payment, then nothing)", "content": "student name + invoice term + balanceAmount + due countdown chip ('Due in 3 days' amber / 'Overdue - late fee added' rose); primary action 'Pay Now' opens Razorpay flow from the existing CheckoutButton action; secondary 'View breakdown' opens the fees page", "micro_progress": "after payment: 'Processing' (ATTEMPTED) -> 'Paid' (PAID from paymentGatewayLogs) with sonner toast and receipt deep link" },
-      { "id": "AttendanceCard", "render_when": "today's studentAttendance status in (ABSENT, LATE, HALF_DAY, LEAVE)", "hide_when": "status PRESENT or HOLIDAY or no record yet after the school's attendance cutoff (default 10:00 local; PRESENT renders only as a quiet line inside the Today strip, never a card)", "content": "rose/amber left border, avatar, 'Aarav was marked Absent today at 09:12', teacher remarks if present, secondary action 'Message class teacher'" },
-      { "id": "BusLiveCard", "render_when": "student has active studentBusPass AND now is inside a commute window (school-configured, defaults 06:30-08:30 and 14:00-17:30 local, weekdays)", "hide_when": "outside windows, weekends, holidays, or no active pass", "content": "leaflet mini-map (one vehicle marker + student stop marker), 'Bus is 2 stops away' from haversine + stopOrder, ETA from gpsPings speed history, auto-collapse to a chip with live dot when scrolled past", "micro_progress": "stops-away countdown updates at the Tier 1 poll interval; 'Arrived at stop' -> 'Departed' transitions" },
-      { "id": "HomeworkCard", "render_when": "assignment due within 48h with no submission OR submission graded in last 24h", "hide_when": "no pending-near-due or recently graded homework", "content": "'Maths worksheet due tomorrow' with subject icon; graded variant shows grade chip and one-line teacher feedback if present" },
-      { "id": "ReportCardCard", "render_when": "reportCard published and not yet opened by this parent (track first-viewed timestamp in payload)", "content": "emerald gradient celebration: 'Term 1 report card is ready', average + delta arrows per marks_trend, primary 'Open report card' deep-links to (parent)/portal/report-cards (offline-capable per sw.js)" },
-      { "id": "PTMCard", "render_when": "events row with eventType PTM and startDate within 7 days", "content": "date/time block, venue, 'Add reminder' secondary action; joins school calendar from events table" },
-      { "id": "NoticeCard", "render_when": "notices with isPinned or publishedAt within 72h targeting PARENTS or the student's class/section", "content": "title + 2-line DOMPurify preview, pinned badge, deep link to notice detail" },
-      { "id": "ConsentCard", "render_when": "pending DPDP consent or rights request", "content": "amber card, primary action deep-links into (parent)/portal/consent (never re-implements consent UI)" },
-      { "id": "InsightCard", "render_when": "any analytics_layer predictive model fires", "content": "NeedsAttentionCard variant: severity border, one-line finding with the actual numbers, one primary action" },
-      { "id": "MessageCard", "render_when": "unread parentTeacherMessages count > 0 in last 7 days", "content": "teacher avatar + name + last message preview, primary opens the thread" }
+      {
+        "id": "PaymentCard",
+        "render_when": "feeInvoices where status in (PENDING, PARTIAL, OVERDUE) and (dueDate within 7 days or status = OVERDUE)",
+        "hide_when": "all invoices PAID/WAIVED (render PaymentSuccessCard for 2h after a payment, then nothing)",
+        "content": "student name + invoice term + balanceAmount + due countdown chip ('Due in 3 days' amber / 'Overdue - late fee added' rose); primary action 'Pay Now' opens Razorpay flow from the existing CheckoutButton action; secondary 'View breakdown' opens the fees page",
+        "micro_progress": "after payment: 'Processing' (ATTEMPTED) -> 'Paid' (PAID from paymentGatewayLogs) with sonner toast and receipt deep link"
+      },
+      {
+        "id": "AttendanceCard",
+        "render_when": "today's studentAttendance status in (ABSENT, LATE, HALF_DAY, LEAVE)",
+        "hide_when": "status PRESENT or HOLIDAY or no record yet after the school's attendance cutoff (default 10:00 local; PRESENT renders only as a quiet line inside the Today strip, never a card)",
+        "content": "rose/amber left border, avatar, 'Aarav was marked Absent today at 09:12', teacher remarks if present, secondary action 'Message class teacher'"
+      },
+      {
+        "id": "BusLiveCard",
+        "render_when": "student has active studentBusPass AND now is inside a commute window (school-configured, defaults 06:30-08:30 and 14:00-17:30 local, weekdays)",
+        "hide_when": "outside windows, weekends, holidays, or no active pass",
+        "content": "leaflet mini-map (one vehicle marker + student stop marker), 'Bus is 2 stops away' from haversine + stopOrder, ETA from gpsPings speed history, auto-collapse to a chip with live dot when scrolled past",
+        "micro_progress": "stops-away countdown updates at the Tier 1 poll interval; 'Arrived at stop' -> 'Departed' transitions"
+      },
+      {
+        "id": "HomeworkCard",
+        "render_when": "assignment due within 48h with no submission OR submission graded in last 24h",
+        "hide_when": "no pending-near-due or recently graded homework",
+        "content": "'Maths worksheet due tomorrow' with subject icon; graded variant shows grade chip and one-line teacher feedback if present"
+      },
+      {
+        "id": "ReportCardCard",
+        "render_when": "reportCard published and not yet opened by this parent (track first-viewed timestamp in payload)",
+        "content": "emerald gradient celebration: 'Term 1 report card is ready', average + delta arrows per marks_trend, primary 'Open report card' deep-links to (parent)/portal/report-cards (offline-capable per sw.js)"
+      },
+      {
+        "id": "PTMCard",
+        "render_when": "events row with eventType PTM and startDate within 7 days",
+        "content": "date/time block, venue, 'Add reminder' secondary action; joins school calendar from events table"
+      },
+      {
+        "id": "NoticeCard",
+        "render_when": "notices with isPinned or publishedAt within 72h targeting PARENTS or the student's class/section",
+        "content": "title + 2-line DOMPurify preview, pinned badge, deep link to notice detail"
+      },
+      {
+        "id": "ConsentCard",
+        "render_when": "pending DPDP consent or rights request",
+        "content": "amber card, primary action deep-links into (parent)/portal/consent (never re-implements consent UI)"
+      },
+      {
+        "id": "InsightCard",
+        "render_when": "any analytics_layer predictive model fires",
+        "content": "NeedsAttentionCard variant: severity border, one-line finding with the actual numbers, one primary action"
+      },
+      {
+        "id": "MessageCard",
+        "render_when": "unread parentTeacherMessages count > 0 in last 7 days",
+        "content": "teacher avatar + name + last message preview, primary opens the thread"
+      }
     ],
     "time_of_day_choreography": {
       "morning_0630_0930": "BusLiveCard pinned top; AttendanceCard appears the moment attendance is marked.",
@@ -114,15 +320,71 @@
   "notification_matrix": {
     "style_reference": "Quick-commerce micro-progress (Swiggy/Zepto/Instamart): every tracked entity has a visible lifecycle, progress updates are short and factual, and tracking lives where the user already is.",
     "tiers": [
-      { "tier": "T1_action_required", "channels": ["web push (userPushSubscriptions)", "persistent feed card"], "events": ["ABSENT/LATE/HALF_DAY attendance marked", "fee OVERDUE with late fee accruing", "bus within 2 stops of student's stop (only inside commute window)", "DPDP consent deadline within 48h"], "limits": "max 3 T1 pushes per parent per day; dedupe by (studentId, eventKind, calendarDay); quiet hours 21:30-07:00 local queue the push for 07:00 but render the feed card immediately" },
-      { "tier": "T2_informational", "channels": ["feed card only; no push except report card ready which gets one push"], "events": ["report card published", "homework graded", "notice published", "PTM scheduled", "message received", "exam scheduled"], "limits": "no push sounds; batched digest never (feed is the digest)" },
-      { "tier": "T3_system_state", "channels": ["sonner toast in-app + quiet feed line", "no push"], "events": ["payment success + receipt generated", "consent recorded", "push subscription confirmed", "profile updated"], "limits": "toasts auto-dismiss 4s" }
+      {
+        "tier": "T1_action_required",
+        "channels": [
+          "web push (userPushSubscriptions)",
+          "persistent feed card"
+        ],
+        "events": [
+          "ABSENT/LATE/HALF_DAY attendance marked",
+          "fee OVERDUE with late fee accruing",
+          "bus within 2 stops of student's stop (only inside commute window)",
+          "DPDP consent deadline within 48h"
+        ],
+        "limits": "max 3 T1 pushes per parent per day; dedupe by (studentId, eventKind, calendarDay); quiet hours 21:30-07:00 local queue the push for 07:00 but render the feed card immediately"
+      },
+      {
+        "tier": "T2_informational",
+        "channels": [
+          "feed card only; no push except report card ready which gets one push"
+        ],
+        "events": [
+          "report card published",
+          "homework graded",
+          "notice published",
+          "PTM scheduled",
+          "message received",
+          "exam scheduled"
+        ],
+        "limits": "no push sounds; batched digest never (feed is the digest)"
+      },
+      {
+        "tier": "T3_system_state",
+        "channels": [
+          "sonner toast in-app + quiet feed line",
+          "no push"
+        ],
+        "events": [
+          "payment success + receipt generated",
+          "consent recorded",
+          "push subscription confirmed",
+          "profile updated"
+        ],
+        "limits": "toasts auto-dismiss 4s"
+      }
     ],
     "micro_progress_catalog": [
-      { "track": "bus", "states": "Scheduled -> En route -> N stops away -> Arrived at stop -> Departed -> Completed", "source": "gpsPings + routeStops.stopOrder" },
-      { "track": "payment", "states": "Initiating -> Processing (Razorpay ATTEMPTED) -> Paid (PAID) -> Receipt ready", "source": "paymentGatewayLogs.status" },
-      { "track": "report_card", "states": "Exams done -> Being graded (all examSchedules past, marks not yet published) -> Published -> Opened", "source": "examinations schedule + reportCards" },
-      { "track": "homework", "states": "Assigned -> Submitted -> Checked (grade published)", "source": "assignmentSubmissions" }
+      {
+        "track": "bus",
+        "states": "Scheduled -> En route -> N stops away -> Arrived at stop -> Departed -> Completed",
+        "source": "gpsPings + routeStops.stopOrder"
+      },
+      {
+        "track": "payment",
+        "states": "Initiating -> Processing (Razorpay ATTEMPTED) -> Paid (PAID) -> Receipt ready",
+        "source": "paymentGatewayLogs.status"
+      },
+      {
+        "track": "report_card",
+        "states": "Exams done -> Being graded (all examSchedules past, marks not yet published) -> Published -> Opened",
+        "source": "examinations schedule + reportCards"
+      },
+      {
+        "track": "homework",
+        "states": "Assigned -> Submitted -> Checked (grade published)",
+        "source": "assignmentSubmissions"
+      }
     ]
   },
   "emotional_ux": {
@@ -134,6 +396,270 @@
       "People over data: child's avatar + first name everywhere (AMS law L12 applies); teacher messages show teacher avatars."
     ],
     "language": "next-intl keys for every string: en + hi. Card titles use sentence case, verbs first where an action exists ('Pay Term 2 fee', 'Open report card')."
+  },
+  "operations_and_workflows": {
+    "principle": "v1.0 made the parent app a read-and-pay surface. v1.1 completes it: every routine parent-school interaction becomes a tracked workflow with states, an owner on the school side, and a card + notification at each state transition. Every workflow follows the same shape: parent action -> persisted request -> school-side actor action -> state machine transition -> parent feed card + tiered notification -> record visible in history.",
+    "catalog": [
+      {
+        "id": "OP1_pay_fee",
+        "name": "Pay fee (full or partial)",
+        "current_state": "Landed in P4 (Razorpay micro-progress).",
+        "v11_extension": "Partial payment with explicit allocation order; receipt PDF download; refund status visibility; see business_logic_rules.fees for the allocation and late-fee display rules."
+      },
+      {
+        "id": "OP2_fee_query",
+        "name": "Raise a fee query to the school",
+        "workflow": "Parent taps 'Question this fee' on the fee breakdown -> creates feeQuery (studentId, invoiceId, category BREAKDOWN/LATE_FEE/WAIVER_REQUEST/DOUBLE_PAYMENT, message) -> status OPEN -> accountant/school admin answers (public reply stored) -> ANSWERED -> parent confirms or escalates -> RESOLVED or ESCALATED.",
+        "states": "OPEN -> ANSWERED -> RESOLVED | ESCALATED (auto after 7 days unanswered, routes to principal), all states timestamped.",
+        "sla": "48h first response, visible on the card ('Typical response: 2 days').",
+        "cards": "FeeQueryCard on state changes, T2; ESCALATED is T1 for the principal, not the parent."
+      },
+      {
+        "id": "OP3_leave_request",
+        "name": "Apply for student leave",
+        "workflow": "Parent applies from feed card or child profile -> leaveRequest (studentId, type CASUAL/SICK/EMERGENCY/OTHER, startDate, endDate, reason, optional attachment) -> class teacher approves/rejects with note -> APPROVED leaves suppress the day-of absence T1 push and render on the attendance calendar as planned leave -> REJECTED shows the teacher's reason and the normal absence flow applies.",
+        "states": "PENDING -> APPROVED | REJECTED | CANCELLED_BY_PARENT (allowed until start of the school day).",
+        "rules": "Max 2 overlapping requests per student blocked; teacher sees requests in their approval queue with 1-tap approve/reject; auto-reminder to teacher after 24h pending; approved leave writes a studentAttendance LEAVE row automatically on the leave dates (or marks pre-approved so the daily marking skips the absence alert).",
+        "cards": "LeaveApprovedCard / LeaveRejectedCard (T2), LeavePendingCard on the teacher's side."
+      },
+      {
+        "id": "OP4_ptm_booking",
+        "name": "Book a PTM slot",
+        "workflow": "School admin publishes PTM event + slot inventory (per class-teacher, 10-minute slots, capacity 1 parent each) -> PTMCard gains 'Book a slot' once slots publish -> parent picks a free slot -> booking confirms -> reminder at T-1d (T2) and T-2h (T1) -> parent can cancel/reschedule until T-12h -> after meeting, teacher marks HELD with optional note.",
+        "states": "PUBLISHED -> BOOKED -> HELD | CANCELLED (slot returns to inventory on cancel).",
+        "rules": "One active booking per parent per PTM event; one slot per student per event (sibling case: separate bookings allowed, adjacent slots suggested by the booking UI); booking window opens T-7d, closes T-12h; conflicts resolve with optimistic locking on slot version."
+      },
+      {
+        "id": "OP5_stop_change_request",
+        "name": "Request bus stop change",
+        "workflow": "Parent requests from bus surface (new stopId from routeStops of the same route, reason) -> transport-manager approves/rejects -> on approval the studentBusPass routeStopId updates with an effectiveDate -> old stop remains active until effective date.",
+        "states": "PENDING -> APPROVED (effectiveDate) | REJECTED (reason)."
+      },
+      {
+        "id": "OP6_document_submission",
+        "name": "Submit and track documents",
+        "workflow": "School requests a document type (birth certificate, transfer certificate, address proof, caste certificate, medical form; some with expiry like yearly address proof) -> DocumentRequestCard on parent feed -> parent uploads (S3 presigned, size/type validated) -> school admin verifies -> VERIFIED (acknowledgment card) or REJECTED (reason, re-upload allowed).",
+        "states": "REQUESTED -> SUBMITTED -> VERIFIED | REJECTED; expired documents re-enter REQUESTED automatically.",
+        "rules": "Reuse the existing documents/CASTE_CERTIFICATE document-type registry; DPDP: documents are PII, stored encrypted per existing pattern, only verification status and type are non-PII."
+      },
+      {
+        "id": "OP7_notice_acknowledgment",
+        "name": "Acknowledge important notices",
+        "workflow": "Notices flagged requiresAcknowledgment render an 'I have read this' action -> acknowledgment stored per parentUser -> unacknowledged parents get a T1 reminder at 24h and 48h -> admin report shows per-notice acknowledgment percentage with a drill-down to non-acknowledged parents (message them in one tap).",
+        "rules": "Acknowledgment is per parent user, not per student; sibling households acknowledge once."
+      },
+      {
+        "id": "OP8_messaging_threads",
+        "name": "Parent-teacher messaging threads",
+        "v11_extension": "Model threads as (studentId, teacherUserId, channel CLASS_CHAT) conversations instead of the current flat rows: thread view groups parentMessageId chains; teacher identity resolved from users (fixes D6); unread counts per thread; parent may only open threads with the class teacher or subject teachers of the student's current class-subject mappings (RBAC rule, not UI convention); admin moderation queue keeps existing isModerated audit.",
+        "rules": "Threads are read-only for archived students; message content DOMPurify-sanitized on write (existing pattern); DPDP audit trail preserved."
+      },
+      {
+        "id": "OP9_bus_boarding_events",
+        "name": "Boarding and alighting scans",
+        "workflow": "Driver scans the student's existing qrCodeData at boarding and alighting (scan page in the driver app) -> busBoardingEvents row -> parent gets T2 'Aarav boarded the bus at 07:42' / 'alighted at 16:05' -> cross-check: boarded but daily attendance ABSENT triggers a T1 'Boarded the bus but marked absent - please contact the class teacher' and an admin flag; pass active but not boarded by stop ETA + 15 minutes triggers T1 no-show alert.",
+        "v10_deferred_rationale_resolved": "v1.0 forbade inventing a boarding table because no scan producer existed; the driver app surface now ships (driver route group exists), so the table is justified in v1.1."
+      },
+      {
+        "id": "OP10_profile_changes",
+        "name": "Request profile and demographics changes",
+        "workflow": "Parent edits address (via shared AddressAutofill), phone (OTP re-verify), or demographics (PersonalDemographicsPicker) -> change lands as a PENDING_CHANGE with old/new values -> school admin verifies -> applied on approval; until then the old value renders with a 'change pending' chip.",
+        "rules": "PII fields (address lines, phone) require verification before persisting; non-PII (state/district/pincode plaintext columns) apply immediately per the AMS v1.2 schema contract."
+      },
+      {
+        "id": "OP11_consent_management",
+        "name": "Granular DPDP consent",
+        "v11_extension": "Per-purpose consent list (fees records, transport tracking, photos in school media, medical data) with grant/withdraw per purpose, consent history log, and a ConsentCard that aggregates multiple pending purposes into one card with a checklist (not one card per purpose). Deep-links into the existing portal consent routes; never duplicates its logic."
+      },
+      {
+        "id": "OP12_multi_ward_operations",
+        "name": "Sibling and multi-ward operations",
+        "workflow": "Child switcher exists; v1.1 adds: merged Today feed across wards (cards carry ward chips when the same card type fires for two children), combined payment (pay two siblings' invoices in one Razorpay order while keeping per-invoice receipts and allocation), one consolidated notification when the same event kind fires for both wards within 30 minutes ('Both buses are on the way').",
+        "rules": "Sibling linkage uses the existing pre-computed sibling detection (landed s13-l7); notifications dedupe key extends to (parentUserId, eventKind, calendarDay) when the merged variant dispatches."
+      }
+    ]
+  },
+  "business_logic_rules": {
+    "fees": {
+      "invoice_lifecycle": "DRAFT -> ISSUED (publishedAt set) -> PARTIAL (paidAmount > 0, balance > 0) -> PAID (balance 0) with OVERDUE derived at dueDate + graceDays (school config, default 7) while unpaid; WAIVED and CANCELLED are terminal admin actions with reason and audit.",
+      "late_fee": "lateFeeAmount accrues once at dueDate + graceDays per school config; displayed separately from balance, never silently added: total payable = balance + late fee.",
+      "allocation_order": "A payment allocates to late fee first, then the oldest outstanding invoice, then the next; partial payments never split a single allocation across invoices when one can be cleared.",
+      "reminders": "D7 (due in 7 days, T2 card, no push), D15 (overdue 8 days, T1 push if cap allows), D30 (overdue 23 days, T1 push + fee query CTA); reminder flags already exist on feeInvoices (reminderSentD7/D15/D30) and the tier router reads them.",
+      "idempotency": "Razorpay order creation is idempotent per invoice attempt window via the existing idempotencyKey; paymentGatewayLogs remains the single lifecycle source (CREATED/ATTEMPTED/PAID/FAILED/REFUNDED).",
+      "refund_visibility": "REFUNDED renders a T3 card with amount and timeline; refunds are initiated school-side only."
+    },
+    "attendance": {
+      "cutoff": "Daily marking cutoff per school config (default 10:00 local); PRESENT/LATE never render a card, only the quiet Today strip line.",
+      "corrections": "Teacher amends an already-marked status -> parent receives a correction notification ('Updated: Aarav was marked Present after all') referencing the original card, T2; the original T1 push is never retracted.",
+      "leave_preapproval": "An APPROVED leave covering today converts the would-be absence into a quiet planned-leave line; the absence T1 push fires only if no approved leave exists at marking time.",
+      "no_show_crosscheck": "Boarded bus but marked ABSENT -> T1 parent push + admin flag (OP9)."
+    },
+    "homework": {
+      "lifecycle": "ASSIGNED -> SUBMITTED (on time) | LATE (submitted after due) -> CHECKED (grade published); MISSING derived after due + 24h with no submission.",
+      "card_triggers": "Pending due within 48h (T2, priority 75 if due tomorrow); graded within 24h (T2); MISSING feeds the homework_neglect analytics signal (2+ in 14 days)."
+    },
+    "bus": {
+      "commute_windows": "Weekday 06:30-08:30 and 14:00-17:30 local, school-configurable; outside windows the live map never renders (schedule view instead), already enforced in P5.",
+      "approaching_threshold": "T1 'approaching' push at 2 stops away OR ETA <= 10 minutes, deduped once per commute window per direction.",
+      "boarding": "Scan events are T2; the missed-boarding alert (active pass, no boarding by student-stop ETA + 15 minutes) is T1.",
+      "eta_engine": "Existing computeBusTracking (haversine + stopOrder) stays the single source; routeStops must always be fetched by every caller (fixes D3)."
+    },
+    "ptm": {
+      "slot_inventory": "10-minute slots, teacher capacity 1 parent each, generated per teacher per PTM event by the admin publisher.",
+      "windows": "Booking opens T-7d, closes T-12h; cancel/reschedule until T-12h frees the slot instantly.",
+      "conflict_rules": "One active booking per parent per event; optimistic-lock slot reservation (version column) so two parents cannot take the same slot."
+    },
+    "notifications_v11": {
+      "new_event_kinds": "FEE_QUERY_ANSWERED (T2), FEE_QUERY_ESCALATED (T1 principal), LEAVE_DECIDED (T2), LEAVE_PENDING_24H (T2 teacher-side), PTM_SLOT_CONFIRMED (T2), PTM_TOMORROW (T2), PTM_IN_2H (T1), PTM_CANCELLED (T3), STOP_CHANGE_DECIDED (T2), DOCUMENT_VERIFIED (T3), DOCUMENT_REJECTED (T2), NOTICE_ACK_REMINDER_24H/48H (T1), BOARDING/ALIGHTING (T2), MISSED_BOARDING (T1), ABSENT_BUT_BOARDED (T1), PROFILE_CHANGE_VERIFIED (T3), CONSENT_REMINDER (T1 at deadline-48h, already in P7).",
+      "daily_cap_evolution": "Cap stays 3 T1/day/parent; merged sibling events consume one slot; morning-queued pushes from quiet hours dispatch in priority order.",
+      "weekly_digest": "Monday 08:00 local T2-only digest card summarizing last week per ward: attendance days, homework graded count, fees status, upcoming PTM/exams; replaces nothing, adds one card."
+    },
+    "analytics_v11": {
+      "cohort_percentile": "Report card screen shows subject-wise class average vs student (aggregate, never ranks or other students' identities), computed from existing markEntries aggregation.",
+      "sibling_aware_risk": "attendance_risk and homework_neglect computed per student as in v1.0; the digest merges the wards' signals for the parent without cross-student data exposure.",
+      "explainability": "Every InsightCard payload keeps model + finding + the rule inputs (e.g. '3 of last 10 school days'); no scores without rule inputs visible in the payload."
+    }
+  },
+  "role_relationship_map": {
+    "parent_class_teacher": {
+      "interaction": "Messaging threads (OP8), leave approval (OP3), PTM (OP4)",
+      "data_flow": "teacher reads studentAttendance + leaveRequests for their class; parent reads teacher identity and thread messages only",
+      "rbac": "PARENT queries are always studentId-scoped through the parent-child link; teacher scope is classId-scoped via class-subject mapping"
+    },
+    "parent_subject_teacher": {
+      "interaction": "Subject-context messages (marks, homework queries)",
+      "data_flow": "thread context includes assignmentId or markEntry subject; subject teacher visible only for the student's current class-subject mappings",
+      "rbac": "thread RBAC rule from OP8 enforced server-side"
+    },
+    "parent_accountant_admin": {
+      "interaction": "Fee queries (OP2), receipts, refunds visibility",
+      "data_flow": "accountant reads feeInvoices/paymentGatewayLogs per school; parent sees only their wards' invoices",
+      "rbac": "fee dispute answer actions are ACCOUNTANT or SCHOOL_ADMIN role; parent never sees other families' ledgers"
+    },
+    "parent_transport": {
+      "interaction": "Stop change requests (OP5), boarding scans (OP9)",
+      "data_flow": "DRIVER writes busBoardingEvents via scan action (vehicle/route-scoped); TRANSPORT_MANAGER approves stop changes; parent reads only their ward's pass, stop, and scan events",
+      "rbac": "driver action cannot read student PII beyond name + QR payload; scans are append-only"
+    },
+    "parent_school_admin": {
+      "interaction": "Document verification (OP6), profile change verification (OP10), notice publishing with acknowledgment (OP7)",
+      "data_flow": "admin works verification queues; parent sees only their own submissions' states",
+      "rbac": "verification actions school-scoped, audit-logged"
+    },
+    "parent_principal": {
+      "interaction": "Escalations only: fee queries unanswered 7d, PTM conflicts, unresolved complaints",
+      "data_flow": "escalation creates an admin-flagged item, never a public feed card beyond status",
+      "rbac": "PRINCIPAL sees escalation queue school-wide"
+    },
+    "parent_platform_dpdp": {
+      "interaction": "Consent grant/withdraw (OP11), data rights requests",
+      "data_flow": "existing portal routes own this; feed only deep-links and aggregates pending consents",
+      "rbac": "untouched; consent changes remain audit-trailed in dpdp schema"
+    }
+  },
+  "database_relationship_map": {
+    "existing_tables_in_play": [
+      {
+        "table": "students",
+        "relations": "primaryParentUserId -> users (parent link); currentClassId -> classes; isActive gates feed eligibility",
+        "note": "wards query uses primaryParentUserId; sibling detection is pre-computed (s13-l7)"
+      },
+      {
+        "table": "feeInvoices",
+        "relations": "studentId -> students; status/dueDate/lateFeeAmount/balanceAmount/reminderSentD7-15-30 drive PaymentCard and reminders; lastPayment must be joined from latest feePayments/paymentGatewayLogs PAID row (fixes D1)"
+      },
+      {
+        "table": "studentAttendance",
+        "relations": "studentId + attendanceDate; status enum drives AttendanceCard; LEAVE rows written by approved leave requests (OP3)"
+      },
+      {
+        "table": "assignments + assignmentSubmissions",
+        "relations": "assignment -> classId; submission -> studentId + assignmentId; HomeworkSnapshot must be built from assignments LEFT JOIN submissions (fixes D2)"
+      },
+      {
+        "table": "routes + routeStops + gpsPings + studentBusPasses",
+        "relations": "routeStops.routeId -> routes with stopOrder + coordinates; gpsPings.vehicleId ordered by pingedAt; studentBusPasses -> routeId + routeStopId + qrCodeData + isActive; dashboard must fetch routeStops for the pass route (fixes D3)"
+      },
+      {
+        "table": "notices",
+        "relations": "audienceType + audienceFilter jsonb (class/section targeting); isPinned outranks recency — query must OR the pinned condition (fixes D5)"
+      },
+      {
+        "table": "events",
+        "relations": "eventType PTM; v1.1 adds slot inventory per event (see new tables)"
+      },
+      {
+        "table": "parentTeacherMessages",
+        "relations": "senderUserId/recipientUserId/studentId/parentMessageId; v1.1 threads derive from (studentId, teacherUserId) grouping (fixes D6)"
+      },
+      {
+        "table": "reportCards + markEntries",
+        "relations": "reportCards.studentId, gradeData jsonb holds percentage; v1.1 adds view tracking + previous average join (fixes D4)"
+      },
+      {
+        "table": "parentFeedCards + parentNotificationPreferences",
+        "relations": "landed in P1; all new cards persist through the same cache with TTLs; preferences drive tierOptOuts and quiet hours"
+      },
+      {
+        "table": "userPushSubscriptions + pushNotificationLogs",
+        "relations": "notificationMatrix dispatch path; dedupe keys logged for audit"
+      }
+    ],
+    "new_tables_v11": [
+      {
+        "table": "student_leave_requests",
+        "columns": "id, schoolId, studentId, requestedByParentUserId, leaveType enum(CASUAL,SICK,EMERGENCY,OTHER), startDate, endDate, reason text, attachmentS3Key, status enum(PENDING,APPROVED,REJECTED,CANCELLED_BY_PARENT), decidedByUserId, decisionNote, decidedAt, createdAt, updatedAt",
+        "indexes": "student+status, school+status+createdAt",
+        "relations": "studentId -> students; decidedByUserId -> users (class teacher); approval writes studentAttendance LEAVE rows"
+      },
+      {
+        "table": "ptm_events",
+        "columns": "id, schoolId, eventId -> events, classId, teacherUserId, bookingOpensAt, bookingClosesAt, slotMinutes int default 10, createdAt",
+        "indexes": "event+teacher, school+bookingOpens"
+      },
+      {
+        "table": "ptm_slots",
+        "columns": "id, schoolId, ptmEventId, teacherUserId, startAt, endAt, status enum(FREE, BOOKED, BLOCKED), version int (optimistic lock), createdAt",
+        "indexes": "ptmEvent+startAt, teacher+startAt"
+      },
+      {
+        "table": "ptm_bookings",
+        "columns": "id, schoolId, ptmEventId, slotId, parentUserId, studentId, status enum(BOOKED, HELD, CANCELLED), bookedAt, cancelledAt, teacherNote text, createdAt",
+        "indexes": "parent+event (unique partial where status=BOOKED), slot unique partial where status=BOOKED"
+      },
+      {
+        "table": "fee_queries",
+        "columns": "id, schoolId, studentId, invoiceId, parentUserId, category enum(BREAKDOWN,LATE_FEE,WAIVER_REQUEST,DOUBLE_PAYMENT,OTHER), message, status enum(OPEN,ANSWERED,RESOLVED,ESCALATED), answeredByUserId, answer text, answeredAt, escalatedAt, escalatedToUserId, createdAt, updatedAt",
+        "indexes": "invoice, school+status+createdAt, parent"
+      },
+      {
+        "table": "notice_acknowledgments",
+        "columns": "id, schoolId, noticeId, parentUserId, acknowledgedAt, source enum(FEED, PORTAL)",
+        "indexes": "notice+parent unique, notice (for percentage aggregation)"
+      },
+      {
+        "table": "bus_boarding_events",
+        "columns": "id, schoolId, studentId, routeId, direction enum(BOARDING, ALIGHTING), scannedByUserId (driver), vehicleId, scannedAt, gpsLat, gpsLng, createdAt",
+        "indexes": "student+scannedAt desc, route+scannedAt",
+        "relations": "append-only; driver never updates; feeds OP9 notifications and no-show logic"
+      },
+      {
+        "table": "student_document_requests",
+        "columns": "id, schoolId, studentId, documentType (existing registry enum), requestedByUserId, dueAt, status enum(REQUESTED, SUBMITTED, VERIFIED, REJECTED, EXPIRED), submittedS3Key (encrypted), verificationNote, verifiedByUserId, verifiedAt, expiresAt (drives re-request), createdAt, updatedAt",
+        "indexes": "student+status, school+status+dueAt"
+      },
+      {
+        "table": "profile_change_requests",
+        "columns": "id, schoolId, studentId, parentUserId, field (address/phone/demographics), oldValueEncrypted, newValueEncrypted, status enum(PENDING, APPLIED, REJECTED), verifiedByUserId, verificationNote, createdAt, decidedAt",
+        "indexes": "student+status, school+status"
+      },
+      {
+        "table": "stop_change_requests",
+        "columns": "id, schoolId, studentId, parentUserId, busPassId, requestedStopId -> routeStops, reason, status enum(PENDING, APPROVED, REJECTED), effectiveDate, decidedByUserId, decisionNote, createdAt, decidedAt",
+        "indexes": "school+status, parent"
+      }
+    ],
+    "migration_policy": "Every new table ships as a numbered drizzle migration registered in the journal exactly like migration 0043 (commit 095359f2); the entity-engine schema catalog (commit 52892d54) must be updated so omnibox/NER sees the new entities; factory_reset.ts must truncate the new tables (P1 already follows this pattern)."
   },
   "surfaces": [
     {
@@ -187,14 +713,58 @@
         "Child profile page absorbs the old attendance/bus/documents/fees pages as sections (progressive disclosure, collapsible groups, max 7 visible rows per group).",
         "ConsentCard and any consent state deep-links into (parent)/portal; no consent UI duplication."
       ]
+    },
+    {
+      "id": "surface_p6_workflows_hub",
+      "file": "frontend/src/app/(parent)/parent/more/** (becomes Requests & Records)",
+      "changes": [
+        "One list of every parent-initiated workflow with live status chips: leave requests, fee queries, stop changes, document submissions, profile changes, PTM bookings. Chronological, filter by status, one row = one request with next-step action.",
+        "Every card in the feed that starts a workflow deep-links here for its history."
+      ]
+    },
+    {
+      "id": "surface_p7_teacher_side_minimals",
+      "file": "frontend/src/app/(teacher)/** (approval queue only)",
+      "changes": [
+        "Teacher approval queue for leave requests: 1-tap approve/reject with optional note, honoring the 24h auto-reminder. Do not redesign the teacher app here; this is the minimal counterparty surface the workflows need.",
+        "PTM slot view for teachers: today's booked slots list, mark HELD with note."
+      ]
+    },
+    {
+      "id": "surface_p8_admin_queues",
+      "file": "frontend/src/app/(admin)/** (verification + moderation queues only)",
+      "changes": [
+        "Document verification queue (approve/reject with note), profile change verification queue, notice acknowledgment report (per-notice percentage + message-non-acknowledgers action), fee query inbox for accountant/admin with SLA aging, escalation queue for principal.",
+        "Minimal list views with BulkActionBar where bulk actions make sense (e.g. remind all non-acknowledgers). Reuse shared components; no new design language."
+      ]
     }
   ],
   "click_budgets": [
-    { "flow": "Pay a due fee from notification", "target_clicks": 3, "measured_by": "push tap -> Pay Now -> Razorpay confirm" },
-    { "flow": "See today's attendance status", "target_clicks": 0, "measured_by": "it is on the feed when triggered; Today strip shows 'All good today' otherwise" },
-    { "flow": "Track the bus during commute", "target_clicks": 1, "measured_by": "open app; BusLiveCard is pinned on the feed during the window" },
-    { "flow": "Open a newly published report card", "target_clicks": 2, "measured_by": "card tap -> Open report card" },
-    { "flow": "Message the class teacher after an absence alert", "target_clicks": 3, "measured_by": "AttendanceCard -> Message class teacher -> send" }
+    {
+      "flow": "Pay a due fee from notification",
+      "target_clicks": 3,
+      "measured_by": "push tap -> Pay Now -> Razorpay confirm"
+    },
+    {
+      "flow": "See today's attendance status",
+      "target_clicks": 0,
+      "measured_by": "it is on the feed when triggered; Today strip shows 'All good today' otherwise"
+    },
+    {
+      "flow": "Track the bus during commute",
+      "target_clicks": 1,
+      "measured_by": "open app; BusLiveCard is pinned on the feed during the window"
+    },
+    {
+      "flow": "Open a newly published report card",
+      "target_clicks": 2,
+      "measured_by": "card tap -> Open report card"
+    },
+    {
+      "flow": "Message the class teacher after an absence alert",
+      "target_clicks": 3,
+      "measured_by": "AttendanceCard -> Message class teacher -> send"
+    }
   ],
   "acceptance_criteria": [
     "AC-P1: ZERO-CLUTTER RULE VERIFIED: with all invoices paid, no bus pass, attendance PRESENT, and no notices, the home feed renders only the Today strip and child header. Grep the feed page: no card renders unconditionally.",
@@ -208,7 +778,19 @@
     "AC-P9: Analytics signals are pure functions with unit tests: attendance_risk, performance_dip, fee_stress, homework_neglect.",
     "AC-P10: Dark mode complete on every card; every color used comes from the existing semantic palette; the ReportCardCard gradient is the only gradient.",
     "AC-P11: No new npm dependencies; pnpm-lock.yaml unchanged.",
-    "AC-P12: All click budgets in this spec verified manually and listed in the PR description."
+    "AC-P12: All click budgets in this spec verified manually and listed in the PR description.",
+    "AC-P13: All defects D1-D9 fixed with regression tests: payment success card renders within 2h of a real PAID payment; pending homework due tomorrow renders; bus card shows real stops-away with fetched routeStops; report card card disappears after first view and shows real score deltas; pinned old notices reach the feed; message cards show real teacher names; admin preview requires explicit studentId; invoice term name maps to the fee term; night staleness note renders.",
+    "AC-P14: Every new workflow table has a numbered migration registered in the drizzle journal, appears in the entity-engine schema catalog, and is truncated by factory_reset.ts.",
+    "AC-P15: All new event kinds route through the existing notificationMatrix tier router with dedupe keys and caps; no component dispatches push directly.",
+    "AC-P16: Leave approval suppresses the day-of absence T1 push (integration test).",
+    "AC-P17: PTM slot booking is race-safe under two concurrent bookings (optimistic lock test); one active booking per parent per event enforced.",
+    "AC-P18: Fee query auto-escalates to principal after 7 days unanswered (worker test).",
+    "AC-P19: Boarding scans are append-only and drivers can never read student PII beyond name and QR payload (RLS test).",
+    "AC-P20: Notice acknowledgment report shows correct percentage and the bulk remind action creates T1 notifications respecting caps and quiet hours.",
+    "AC-P21: Multi-ward: merged feed renders ward chips; combined payment produces one Razorpay order with per-invoice receipts and correct allocation order.",
+    "AC-P22: Every new server action runs inside withTenant RLS with schoolId scoping; no query bypasses tenant context (follows commits eda51ef0, c460e975, 1a02486f).",
+    "AC-P23: Weekly digest card renders Monday 08:00 with correct per-ward aggregates; all card strings bilingual.",
+    "AC-P24: Click budgets: apply for leave 4 clicks, book a PTM slot 3, raise a fee query 3, upload a requested document 3, acknowledge a notice 1."
   ],
   "constraints": [
     "Do not alter tenant isolation, RBAC checks, DPDP consent flows, or the fees/exam lock logic.",
@@ -219,24 +801,27 @@
     "Parent-facing copy never uses the words defaulter, risk score, or churn; insights state facts."
   ],
   "implementation_order": [
-    "Phase P1: parentEventEngine pure functions + deriveParentFeed + parentFeedCards persistence + full unit tests (no UI).",
-    "Phase P2: analytics signals (parentSignals.ts) + nightly BullMQ jobs + tests.",
-    "Phase P3: FeedCard primitive set + surface_p0 home feed + Today strip + IdentityHeader + choreography.",
-    "Phase P4: PaymentCard + payment micro-progress + fees history page.",
-    "Phase P5: BusLiveCard + ETA engine + leaflet integration.",
-    "Phase P6: remaining cards (attendance, homework, report card, PTM, notice, consent, insight, message) + portal deep links.",
-    "Phase P7: notification matrix: tier router, limiter, quiet hours, web push wiring over userPushSubscriptions.",
-    "Phase P8: emotional UX + bilingual pass + dark mode sweep + manifest.json parent shortcuts (Pay Fees, Bus Live) + AC-P1..P12 acceptance audit."
+    "Phase P1-P8: DONE, verified, merged (see as_built_verification). Do not redo.",
+    "Phase P9 DEFECT FIXES: fix D1-D9 in dashboard/page.tsx snapshot assembly (lastPayment join, assignments LEFT JOIN submissions homework query, routeStops/stopOrder/stopName/stopCoords fetch, report card viewedAt tracking + previousAverageScore join, pinned-notices query, real teacher names, admin preview explicit studentId, term name mapping, night staleness strip) + regression tests per AC-P13. No new features in this phase.",
+    "Phase P10 LEAVE REQUESTS: student_leave_requests migration + schema catalog registration + RBAC server actions + engine cards (LeaveApprovedCard/LeaveRejectedCard) + teacher approval queue (surface_p7) + attendance suppression logic (AC-P16) + worker auto-reminder.",
+    "Phase P11 PTM BOOKING: ptm_events/ptm_slots/ptm_bookings migrations + admin slot publisher + parent booking flow on PTMCard + optimistic lock (AC-P17) + reminder event kinds + teacher slot view.",
+    "Phase P12 FEE QUERIES + PAYMENT COMPLETIONS: fee_queries migration + accountant inbox (surface_p8) + fee query cards + SLA worker + escalation (AC-P18) + partial payment allocation order + receipt PDF download + combined sibling payment (OP12).",
+    "Phase P13 NOTICES + DIGEST: notice_acknowledgments migration + acknowledgment action + admin report with bulk remind (AC-P20) + weekly digest worker and card (AC-P23).",
+    "Phase P14 BUS BOARDING: bus_boarding_events migration + driver scan action (append-only, PII-minimal, AC-P19) + boarding/alighting cards + no-show and absent-but-boarded cross-checks + stop_change_requests flow.",
+    "Phase P15 DOCUMENTS + PROFILE + CONSENT: student_document_requests + profile_change_requests migrations + parent submission flows + admin verification queues + expiry-driven re-requests + aggregated consent checklist card.",
+    "Phase P16 INTEGRATION: multi-ward merged feed with ward chips + workflows hub (surface_p6) + weekly digest + full notification kind wiring through the matrix + acceptance pass AC-P13..AC-P24 + dark mode and bilingual sweep + PR description listing every AC and click budget."
   ],
-  "definition_of_done": "The parent app has no idle state and no clutter: the home feed contains exactly what today's data says matters, every card can explain when asked why it exists, money and alerts speak calmly, the bus and the report card and the payment all track like an order being fulfilled, and a parent with nothing pending sees a serene screen that says the school has everything under control. AMS phases 10-11 remain cleanly paused and resumable.",
+  "definition_of_done": "The parent app has no idle state and no clutter: the home feed contains exactly what today's data says matters, every card can explain when asked why it exists, money and alerts speak calmly, the bus and the report card and the payment all track like an order being fulfilled, and a parent with nothing pending sees a serene screen that says the school has everything under control. Beyond watching, the parent can now transact the full relationship with the school from one surface: request leave, book a PTM slot, question a fee, submit a document, change a stop, acknowledge a notice, and track every request to a decision, with each workflow owned by a named school-side role, every state transition notified per tier, every table migrated and cataloged, and every action running inside tenant-scoped RLS.",
   "target_agent": {
     "ide": "Antigravity",
     "usage": [
-      "Save as docs/parent-pwa-spec.json alongside docs/uiux-spec.json and reference it from AGENTS.md as the active track.",
-      "One phase per agent task, in order; each phase is a standalone task boundary with tests and commits, same convention as the AMS plan.",
-      "Before editing any file in files_in_scope, read it fully; the audit reflects commit 669047d and main has since received AMS phases 1-9, so re-verify anchors first.",
-      "If a shared component from the AMS spec is missing because Phase 10 is paused, build the minimal local fallback behind the same import path contract and leave a TODO referencing the paused phase; never block on it.",
-      "Security constraints (RBAC, tenant isolation, DPDP, PII encryption, sw.js privacy rules) always win over any spec conflict; log the conflict in task notes."
+      "docs/parent-pwa-spec.json already exists in the repo (commit 0ae4c6ce). UPDATE that file with this v1.1 content as the FIRST commit of this track, then implement; do not create a second spec file.",
+      "Start with Phase P9 (defect fixes) alone; the nine defects starve the existing engine of data and every later phase depends on trustworthy snapshots.",
+      "One phase per agent task, in order; each phase is a standalone task boundary with tests and commits, same convention as the v1.0 run.",
+      "Every new table follows the migration policy in database_relationship_map: numbered drizzle migration, journal registration (pattern of commit 095359f2), entity-engine schema catalog update, factory_reset truncation.",
+      "Every new notification goes through notificationMatrix.evaluateNotificationEligibility; tier assignment for new kinds is in business_logic_rules.notifications_v11; never dispatch push from a component.",
+      "Before editing any file, read it fully; head is now 63bd1e4d (v11.16.0) and RLS enforcement landed after the v1.0 audit, so re-verify anchors.",
+      "Security constraints (RBAC, tenant isolation with withTenant, DPDP, PII encryption, sw.js privacy rules, driver PII minimization) always win over any spec conflict; log the conflict in task notes."
     ]
   }
 }
