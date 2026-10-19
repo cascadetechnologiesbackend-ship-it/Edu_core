@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { academicYears, feeInvoices, feeCarryForwards, classes, sections } from "@/db/schema";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -35,15 +35,7 @@ export default async function FeesCarryForwardPage() {
     );
   }
 
-  // 2. Fetch classes & sections lookup
-  const [allClasses, allSections] = await Promise.all([
-    db.query.classes.findMany({ where: eq(classes.schoolId, schoolId) }),
-    db.query.sections.findMany({ where: eq(sections.schoolId, schoolId) }),
-  ]);
-  const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
-  const sectionMap = new Map(allSections.map((s) => [s.id, s.name]));
-
-  // 3. Fetch pending invoices for the primary/active academic year
+  // 2. Fetch classes, sections & pending invoices lookup under tenant RLS context
   const activeYear = allYears.find((y) => y.isActive) || allYears[0];
   if (!activeYear) {
     return (
@@ -53,16 +45,32 @@ export default async function FeesCarryForwardPage() {
     );
   }
 
-  const pendingInvoices = await db.query.feeInvoices.findMany({
-    where: and(
-      eq(feeInvoices.schoolId, schoolId),
-      eq(feeInvoices.academicYearId, activeYear.id),
-      gt(feeInvoices.balanceAmount, "0")
-    ),
-    with: {
-      student: true,
-    },
-  });
+  const { allClasses, allSections, pendingInvoices } = await withTenant(
+    schoolId,
+    async (tx) => {
+      const [classesRows, sectionsRows, invoicesRows] = await Promise.all([
+        tx.query.classes.findMany({ where: eq(classes.schoolId, schoolId) }),
+        tx.query.sections.findMany({ where: eq(sections.schoolId, schoolId) }),
+        tx.query.feeInvoices.findMany({
+          where: and(
+            eq(feeInvoices.schoolId, schoolId),
+            eq(feeInvoices.academicYearId, activeYear.id),
+            gt(feeInvoices.balanceAmount, "0")
+          ),
+          with: {
+            student: true,
+          },
+        }),
+      ]);
+      return {
+        allClasses: classesRows,
+        allSections: sectionsRows,
+        pendingInvoices: invoicesRows,
+      };
+    }
+  );
+  const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
+  const sectionMap = new Map(allSections.map((s) => [s.id, s.name]));
 
   // Consolidate balance dues per student
   const studentMap = new Map<

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { feeHeads, feeStructures, classes, academicYears } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -57,38 +57,47 @@ export default async function FeeStructuresPage() {
 
   // 2. Parallelized high-performance data fetching
   const cacheKey = `feeStructures:${activeYear.id}`;
-  const [allYears, allClasses, allHeads, cachedStructures] = await Promise.all([
-    db.query.academicYears.findMany({
-      where: eq(academicYears.schoolId, school.id),
-      orderBy: [asc(academicYears.startDate)],
-    }),
-    db.query.classes.findMany({
-      where: and(
-        eq(classes.schoolId, school.id),
-        eq(classes.academicYearId, activeYear.id),
-        eq(classes.isActive, true),
-      ),
-      orderBy: [asc(classes.sortOrder)],
-    }),
-    db.query.feeHeads.findMany({
-      where: and(
-        eq(feeHeads.schoolId, school.id),
-        eq(feeHeads.isActive, true),
-      ),
-      orderBy: [asc(feeHeads.priority)],
+  const [tenantData, cachedStructures] = await Promise.all([
+    withTenant(school.id, async (tx) => {
+      const [allYears, allClasses, allHeads] = await Promise.all([
+        tx.query.academicYears.findMany({
+          where: eq(academicYears.schoolId, school.id),
+          orderBy: [asc(academicYears.startDate)],
+        }),
+        tx.query.classes.findMany({
+          where: and(
+            eq(classes.schoolId, school.id),
+            eq(classes.academicYearId, activeYear.id),
+            eq(classes.isActive, true),
+          ),
+          orderBy: [asc(classes.sortOrder)],
+        }),
+        tx.query.feeHeads.findMany({
+          where: and(
+            eq(feeHeads.schoolId, school.id),
+            eq(feeHeads.isActive, true),
+          ),
+          orderBy: [asc(feeHeads.priority)],
+        }),
+      ]);
+      return { allYears, allClasses, allHeads };
     }),
     getCached<any[]>(cacheKey),
   ]);
 
+  const { allYears, allClasses, allHeads } = tenantData;
+
   let existingStructures = cachedStructures;
   if (!existingStructures) {
-    existingStructures = await db.query.feeStructures.findMany({
-      where: and(
-        eq(feeStructures.schoolId, school.id),
-        eq(feeStructures.academicYearId, activeYear.id),
-        eq(feeStructures.isActive, true),
-      ),
-    });
+    existingStructures = await withTenant(school.id, async (tx) =>
+      tx.query.feeStructures.findMany({
+        where: and(
+          eq(feeStructures.schoolId, school.id),
+          eq(feeStructures.academicYearId, activeYear.id),
+          eq(feeStructures.isActive, true),
+        ),
+      })
+    );
     await setCached(cacheKey, existingStructures);
   }
 

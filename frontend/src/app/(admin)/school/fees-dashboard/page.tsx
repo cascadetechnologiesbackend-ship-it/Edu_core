@@ -126,15 +126,17 @@ export default async function FeesDashboardPage({
 
         if (cachedBands23) {
           // Cache HIT: Only 1 fresh query for Band 1 S1 Live Counter! (0 queries for Bands 2 & 3)
-          const todayPayments = await db.query.feePayments.findMany({
-            where: and(
-              eq(feePayments.schoolId, schoolId),
-              gte(feePayments.paymentDate, today)
-            ),
-            columns: {
-              amountPaid: true,
-            },
-          });
+          const todayPayments = await withTenant(schoolId, async (tx) =>
+            tx.query.feePayments.findMany({
+              where: and(
+                eq(feePayments.schoolId, schoolId),
+                gte(feePayments.paymentDate, today)
+              ),
+              columns: {
+                amountPaid: true,
+              },
+            })
+          );
           let todayCollected = 0;
           for (const p of todayPayments) {
             todayCollected += parseFloat(p.amountPaid || "0");
@@ -152,29 +154,36 @@ export default async function FeesDashboardPage({
         }
 
         // Cache MISS: Run invoices and payments in parallel (2 queries) to populate Band 1, 2, & 3
-        const [invoices, payments, dailyRollup] = await Promise.all([
-          db.query.feeInvoices.findMany({
-            where: selectedAyId
-              ? and(
-                  eq(feeInvoices.schoolId, schoolId),
-                  eq(feeInvoices.academicYearId, selectedAyId)
-                )
-              : eq(feeInvoices.schoolId, schoolId),
-            with: {
-              student: true,
-            },
-            limit: 500,
-          }),
-          db.query.feePayments.findMany({
-            where: eq(feePayments.schoolId, schoolId),
-            with: {
-              student: true,
-            },
-            orderBy: [desc(feePayments.paymentDate)],
-            limit: 100,
+        const [tenantDataMiss, dailyRollup] = await Promise.all([
+          withTenant(schoolId, async (tx) => {
+            const [invoicesRows, paymentsRows] = await Promise.all([
+              tx.query.feeInvoices.findMany({
+                where: selectedAyId
+                  ? and(
+                      eq(feeInvoices.schoolId, schoolId),
+                      eq(feeInvoices.academicYearId, selectedAyId)
+                    )
+                  : eq(feeInvoices.schoolId, schoolId),
+                with: {
+                  student: true,
+                },
+                limit: 500,
+              }),
+              tx.query.feePayments.findMany({
+                where: eq(feePayments.schoolId, schoolId),
+                with: {
+                  student: true,
+                },
+                orderBy: [desc(feePayments.paymentDate)],
+                limit: 100,
+              }),
+            ]);
+            return { invoices: invoicesRows, payments: paymentsRows };
           }),
           getCachedFinanceData<any>(schoolId, "rollups_daily"),
         ]);
+
+        const { invoices, payments } = tenantDataMiss;
 
         let todayCollected = 0;
         let todayPaymentsCount = 0;

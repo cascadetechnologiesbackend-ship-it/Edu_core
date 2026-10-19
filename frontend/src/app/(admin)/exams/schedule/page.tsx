@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   exams,
   academicYears,
@@ -7,6 +7,7 @@ import {
   examComponents,
   classes,
   subjects,
+  schools,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
@@ -38,123 +39,132 @@ export default async function ExamSchedulePage({
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
 
   const data = await withDataPhaseTiming("/exams/schedule", async () => {
     return assertQueryBudget(
       async () => {
-        const activeYear = await db.query.academicYears.findFirst({
-          where: and(
-            eq(academicYears.schoolId, schoolId),
-            eq(academicYears.isActive, true),
-          ),
-        });
+        return await withTenant(schoolId, async (tx) => {
+          const activeYear = await tx.query.academicYears.findFirst({
+            where: and(
+              eq(academicYears.schoolId, schoolId),
+              eq(academicYears.isActive, true),
+            ),
+          });
 
-        if (!activeYear) {
+          if (!activeYear) {
+            return {
+              examsList: [],
+              selectedExamId: "",
+              classList: [],
+              subjectList: [],
+              componentsList: [],
+              schedulesList: [],
+              distributionsList: [],
+            };
+          }
+
+          const examsList = await tx.query.exams.findMany({
+            where: and(
+              eq(exams.schoolId, schoolId),
+              eq(exams.academicYearId, activeYear.id),
+            ),
+            orderBy: (t, { desc }) => [desc(t.startDate)],
+          });
+
+          const selectedExamId =
+            searchParams.examId && examsList.some((e) => e.id === searchParams.examId)
+              ? searchParams.examId
+              : examsList[0]?.id || "";
+
+          const [classList, subjectList, componentsList, schedulesList, distributionsList] =
+            await Promise.all([
+              tx.query.classes.findMany({
+                where: and(
+                  eq(classes.schoolId, schoolId),
+                  eq(classes.isActive, true),
+                ),
+                orderBy: (t, { asc }) => [asc(t.sortOrder)],
+              }),
+              tx.query.subjects.findMany({
+                where: and(
+                  eq(subjects.schoolId, schoolId),
+                  eq(subjects.isActive, true),
+                ),
+                orderBy: (t, { asc }) => [asc(t.name)],
+              }),
+              selectedExamId
+                ? tx.query.examComponents.findMany({
+                    where: and(
+                      eq(examComponents.schoolId, schoolId),
+                      eq(examComponents.examId, selectedExamId),
+                    ),
+                    orderBy: (t, { asc }) => [asc(t.sortOrder)],
+                  })
+                : [],
+              selectedExamId
+                ? tx.query.examSchedules.findMany({
+                    where: and(
+                      eq(examSchedules.schoolId, schoolId),
+                      eq(examSchedules.examId, selectedExamId),
+                    ),
+                    with: {
+                      class: true,
+                      subject: true,
+                    },
+                    orderBy: (t, { asc }) => [asc(t.examDate), asc(t.startTime)],
+                  })
+                : [],
+              selectedExamId
+                ? tx.query.examMarkDistributions.findMany({
+                    where: and(
+                      eq(examMarkDistributions.schoolId, schoolId),
+                      eq(examMarkDistributions.examId, selectedExamId),
+                    ),
+                  })
+                : [],
+            ]);
+
           return {
-            examsList: [],
-            selectedExamId: "",
-            classList: [],
-            subjectList: [],
-            componentsList: [],
-            schedulesList: [],
-            distributionsList: [],
+            examsList: examsList.map((e) => ({ id: e.id, name: e.name })),
+            selectedExamId,
+            classList: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+            subjectList: subjectList.map((s) => ({ id: s.id, name: s.name, code: s.code })),
+            componentsList: componentsList.map((c) => ({
+              id: c.id,
+              displayName: c.displayName,
+            })),
+            schedulesList: schedulesList.map((s) => ({
+              id: s.id,
+              classId: s.classId,
+              subjectId: s.subjectId,
+              examDate: s.examDate,
+              startTime: s.startTime,
+              durationMinutes: s.durationMinutes,
+              maxMarks: s.maxMarks,
+              passingMarks: s.passingMarks,
+              roomNumber: s.roomNumber,
+              datesheetPublishedAt: s.datesheetPublishedAt,
+              class: s.class ? { displayName: s.class.displayName } : null,
+              subject: s.subject ? { name: s.subject.name, code: s.subject.code } : null,
+            })),
+            distributionsList: distributionsList.map((d) => ({
+              id: d.id,
+              classId: d.classId,
+              subjectId: d.subjectId,
+              componentId: d.componentId,
+              maxMarks: d.maxMarks,
+              passingMarks: d.passingMarks,
+            })),
           };
-        }
-
-        const examsList = await db.query.exams.findMany({
-          where: and(
-            eq(exams.schoolId, schoolId),
-            eq(exams.academicYearId, activeYear.id),
-          ),
-          orderBy: (t, { desc }) => [desc(t.startDate)],
         });
-
-        const selectedExamId =
-          searchParams.examId && examsList.some((e) => e.id === searchParams.examId)
-            ? searchParams.examId
-            : examsList[0]?.id || "";
-
-        const [classList, subjectList, componentsList, schedulesList, distributionsList] =
-          await Promise.all([
-            db.query.classes.findMany({
-              where: and(
-                eq(classes.schoolId, schoolId),
-                eq(classes.isActive, true),
-              ),
-              orderBy: (t, { asc }) => [asc(t.sortOrder)],
-            }),
-            db.query.subjects.findMany({
-              where: and(
-                eq(subjects.schoolId, schoolId),
-                eq(subjects.isActive, true),
-              ),
-              orderBy: (t, { asc }) => [asc(t.name)],
-            }),
-            selectedExamId
-              ? db.query.examComponents.findMany({
-                  where: and(
-                    eq(examComponents.schoolId, schoolId),
-                    eq(examComponents.examId, selectedExamId),
-                  ),
-                  orderBy: (t, { asc }) => [asc(t.sortOrder)],
-                })
-              : [],
-            selectedExamId
-              ? db.query.examSchedules.findMany({
-                  where: and(
-                    eq(examSchedules.schoolId, schoolId),
-                    eq(examSchedules.examId, selectedExamId),
-                  ),
-                  with: {
-                    class: true,
-                    subject: true,
-                  },
-                  orderBy: (t, { asc }) => [asc(t.examDate), asc(t.startTime)],
-                })
-              : [],
-            selectedExamId
-              ? db.query.examMarkDistributions.findMany({
-                  where: and(
-                    eq(examMarkDistributions.schoolId, schoolId),
-                    eq(examMarkDistributions.examId, selectedExamId),
-                  ),
-                })
-              : [],
-          ]);
-
-        return {
-          examsList: examsList.map((e) => ({ id: e.id, name: e.name })),
-          selectedExamId,
-          classList: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
-          subjectList: subjectList.map((s) => ({ id: s.id, name: s.name, code: s.code })),
-          componentsList: componentsList.map((c) => ({
-            id: c.id,
-            displayName: c.displayName,
-          })),
-          schedulesList: schedulesList.map((s) => ({
-            id: s.id,
-            classId: s.classId,
-            subjectId: s.subjectId,
-            examDate: s.examDate,
-            startTime: s.startTime,
-            durationMinutes: s.durationMinutes,
-            maxMarks: s.maxMarks,
-            passingMarks: s.passingMarks,
-            roomNumber: s.roomNumber,
-            datesheetPublishedAt: s.datesheetPublishedAt,
-            class: s.class ? { displayName: s.class.displayName } : null,
-            subject: s.subject ? { name: s.subject.name, code: s.subject.code } : null,
-          })),
-          distributionsList: distributionsList.map((d) => ({
-            id: d.id,
-            classId: d.classId,
-            subjectId: d.subjectId,
-            componentId: d.componentId,
-            maxMarks: d.maxMarks,
-            passingMarks: d.passingMarks,
-          })),
-        };
       },
       { maxQueries: 10, label: "Exam Schedules Data" },
     );

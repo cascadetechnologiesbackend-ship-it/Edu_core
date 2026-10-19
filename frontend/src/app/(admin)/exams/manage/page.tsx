@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   exams,
   academicYears,
@@ -34,7 +34,14 @@ export default async function ExamManagePage() {
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
 
   const data = await withDataPhaseTiming("/exams/manage", async () => {
     return assertQueryBudget(
@@ -47,46 +54,48 @@ export default async function ExamManagePage() {
         });
 
         const [classList, examTypeList, examsList, cocurricularList, rulesList, schoolRow] =
-          await Promise.all([
-            db.query.classes.findMany({
-              where: and(
-                eq(classes.schoolId, schoolId),
-                eq(classes.isActive, true),
-              ),
-              orderBy: (t, { asc }) => [asc(t.sortOrder)],
-            }),
-            db.query.examTypes.findMany({
-              where: and(
-                eq(examTypes.schoolId, schoolId),
-                eq(examTypes.isActive, true),
-              ),
-              orderBy: (t, { asc }) => [asc(t.name)],
-            }),
-            activeYear
-              ? db.query.exams.findMany({
-                  where: and(
-                    eq(exams.schoolId, schoolId),
-                    eq(exams.academicYearId, activeYear.id),
-                  ),
-                  with: {
-                    examType: true,
-                    components: true,
-                  },
-                  orderBy: (t, { desc }) => [desc(t.startDate)],
-                })
-              : [],
-            db.query.cocurricularAreas.findMany({
-              where: eq(cocurricularAreas.schoolId, schoolId),
-              orderBy: (t, { asc }) => [asc(t.name)],
-            }),
-            db.query.gradeRules.findMany({
-              where: eq(gradeRules.schoolId, schoolId),
-              orderBy: (t, { desc }) => [desc(t.minPercent)],
-            }),
-            db.query.schools.findFirst({
-              where: eq(schools.id, schoolId),
-            }),
-          ]);
+          await withTenant(schoolId, async (tx) => {
+            return await Promise.all([
+              tx.query.classes.findMany({
+                where: and(
+                  eq(classes.schoolId, schoolId),
+                  eq(classes.isActive, true),
+                ),
+                orderBy: (t, { asc }) => [asc(t.sortOrder)],
+              }),
+              tx.query.examTypes.findMany({
+                where: and(
+                  eq(examTypes.schoolId, schoolId),
+                  eq(examTypes.isActive, true),
+                ),
+                orderBy: (t, { asc }) => [asc(t.name)],
+              }),
+              activeYear
+                ? tx.query.exams.findMany({
+                    where: and(
+                      eq(exams.schoolId, schoolId),
+                      eq(exams.academicYearId, activeYear.id),
+                    ),
+                    with: {
+                      examType: true,
+                      components: true,
+                    },
+                    orderBy: (t, { desc }) => [desc(t.startDate)],
+                  })
+                : Promise.resolve([]),
+              tx.query.cocurricularAreas.findMany({
+                where: eq(cocurricularAreas.schoolId, schoolId),
+                orderBy: (t, { asc }) => [asc(t.name)],
+              }),
+              tx.query.gradeRules.findMany({
+                where: eq(gradeRules.schoolId, schoolId),
+                orderBy: (t, { desc }) => [desc(t.minPercent)],
+              }),
+              tx.query.schools.findFirst({
+                where: eq(schools.id, schoolId),
+              }),
+            ]);
+          });
 
         return {
           activeYear,

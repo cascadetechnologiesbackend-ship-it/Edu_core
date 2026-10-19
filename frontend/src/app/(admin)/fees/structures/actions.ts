@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { feeHeads, feeStructures, classes } from "@/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -408,82 +408,90 @@ export async function cloneCohortFeeStructures(payload: {
       return { success: false, message: "Source and Target academic years are required." };
     }
 
-    // 1. Fetch all source structures
-    const sourceStructures = await db.query.feeStructures.findMany({
-      where: and(
-        eq(feeStructures.schoolId, school.id),
-        eq(feeStructures.academicYearId, sourceYearId),
-        eq(feeStructures.isActive, true),
-      ),
-    });
-
-    if (!sourceStructures.length) {
-      return { success: false, message: "No active fee structures found in the source cohort." };
-    }
-
-    // 2. Fetch classes in target year to map by gradeLevel / displayName
-    const sourceClasses = await db.query.classes.findMany({
-      where: and(eq(classes.schoolId, school.id), eq(classes.academicYearId, sourceYearId)),
-    });
-    const targetClasses = await db.query.classes.findMany({
-      where: and(eq(classes.schoolId, school.id), eq(classes.academicYearId, targetYearId)),
-    });
-
-    const sourceClassMap = new Map(sourceClasses.map((c) => [c.id, c.gradeLevel]));
-    const targetClassMap = new Map(targetClasses.map((c) => [c.gradeLevel, c.id]));
-
-    let clonedCount = 0;
-    const multiplier = 1 + percentageUplift / 100;
-
-    for (const src of sourceStructures) {
-      const gradeLevel = sourceClassMap.get(src.classId);
-      if (!gradeLevel) continue;
-
-      const targetClassId = targetClassMap.get(gradeLevel);
-      if (!targetClassId) continue;
-
-      const originalAmount = parseFloat(src.amount);
-      const newAmount = Math.round(originalAmount * multiplier);
-
-      // Advance due date by 1 year
-      const targetDueDate = new Date(src.dueDate);
-      targetDueDate.setFullYear(targetDueDate.getFullYear() + 1);
-
-      await db.insert(feeStructures).values({
-        schoolId: school.id,
-        academicYearId: targetYearId,
-        classId: targetClassId,
-        feeHeadId: src.feeHeadId,
-        term: src.term,
-        amount: newAmount.toFixed(2),
-        dueDate: targetDueDate,
-        lateFeeType: src.lateFeeType,
-        lateFeeAmount: src.lateFeeAmount,
-        lateFeeStartAfterDays: src.lateFeeStartAfterDays,
-        isActive: true,
-      }).onConflictDoUpdate({
-        target: [
-          feeStructures.schoolId,
-          feeStructures.academicYearId,
-          feeStructures.classId,
-          feeStructures.feeHeadId,
-          feeStructures.term,
-        ],
-        targetWhere: sql`"deleted_at" IS NULL`,
-        set: {
-          amount: newAmount.toFixed(2),
-          dueDate: targetDueDate,
-          isActive: true,
-          deletedAt: null,
-          updatedAt: new Date(),
-        },
+    const result = await withTenant(school.id, async (tx) => {
+      // 1. Fetch all source structures
+      const sourceStructures = await tx.query.feeStructures.findMany({
+        where: and(
+          eq(feeStructures.schoolId, school.id),
+          eq(feeStructures.academicYearId, sourceYearId),
+          eq(feeStructures.isActive, true),
+        ),
       });
 
-      clonedCount++;
+      if (!sourceStructures.length) {
+        return { success: false, message: "No active fee structures found in the source cohort." };
+      }
+
+      // 2. Fetch classes in target year to map by gradeLevel / displayName
+      const sourceClasses = await tx.query.classes.findMany({
+        where: and(eq(classes.schoolId, school.id), eq(classes.academicYearId, sourceYearId)),
+      });
+      const targetClasses = await tx.query.classes.findMany({
+        where: and(eq(classes.schoolId, school.id), eq(classes.academicYearId, targetYearId)),
+      });
+
+      const sourceClassMap = new Map(sourceClasses.map((c) => [c.id, c.gradeLevel]));
+      const targetClassMap = new Map(targetClasses.map((c) => [c.gradeLevel, c.id]));
+
+      let clonedCount = 0;
+      const multiplier = 1 + percentageUplift / 100;
+
+      for (const src of sourceStructures) {
+        const gradeLevel = sourceClassMap.get(src.classId);
+        if (!gradeLevel) continue;
+
+        const targetClassId = targetClassMap.get(gradeLevel);
+        if (!targetClassId) continue;
+
+        const originalAmount = parseFloat(src.amount);
+        const newAmount = Math.round(originalAmount * multiplier);
+
+        // Advance due date by 1 year
+        const targetDueDate = new Date(src.dueDate);
+        targetDueDate.setFullYear(targetDueDate.getFullYear() + 1);
+
+        await tx.insert(feeStructures).values({
+          schoolId: school.id,
+          academicYearId: targetYearId,
+          classId: targetClassId,
+          feeHeadId: src.feeHeadId,
+          term: src.term,
+          amount: newAmount.toFixed(2),
+          dueDate: targetDueDate,
+          lateFeeType: src.lateFeeType,
+          lateFeeAmount: src.lateFeeAmount,
+          lateFeeStartAfterDays: src.lateFeeStartAfterDays,
+          isActive: true,
+        }).onConflictDoUpdate({
+          target: [
+            feeStructures.schoolId,
+            feeStructures.academicYearId,
+            feeStructures.classId,
+            feeStructures.feeHeadId,
+            feeStructures.term,
+          ],
+          targetWhere: sql`"deleted_at" IS NULL`,
+          set: {
+            amount: newAmount.toFixed(2),
+            dueDate: targetDueDate,
+            isActive: true,
+            deletedAt: null,
+            updatedAt: new Date(),
+          },
+        });
+
+        clonedCount++;
+      }
+
+      return { success: true, clonedCount, targetClasses };
+    });
+
+    if (!result.success) {
+      return result;
     }
 
     // Automatically sync/assign fee structures to all enrolled students in target classes
-    for (const targetClass of targetClasses) {
+    for (const targetClass of result.targetClasses || []) {
       await autoAssignFeeStructuresForClass(school.id, targetYearId, targetClass.id);
     }
 
@@ -497,7 +505,7 @@ export async function cloneCohortFeeStructures(payload: {
 
     return {
       success: true,
-      message: `Successfully cloned ${clonedCount} fee structures to target cohort with ${percentageUplift}% uplift.`,
+      message: `Successfully cloned ${result.clonedCount} fee structures to target cohort with ${percentageUplift}% uplift.`,
     };
   } catch (err: any) {
     return { success: false, message: err.message };

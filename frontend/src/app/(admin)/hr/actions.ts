@@ -38,7 +38,7 @@ import bcrypt from "bcryptjs";
 import { sendSMS, sendSMSWithStatus } from "@/lib/sms";
 import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
 import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
-import { generateRandomTempPassword } from "@/lib/tempPassword";
+import { generateRoleTempPassword, generateRandomTempPassword } from "@/lib/tempPassword";
 
 function safeRevalidate(path: string) {
   try {
@@ -706,9 +706,9 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
     }
 
-    // 5. Generate secure random temp password (DECIDE-17) and resolve authoritative role
+    // 5. Generate role-based temp password: Role@<last4mobile> (fallback to 1234)
     const authoritativeRole = (desig.isTeaching ? "TEACHER" : (desig.mappedRole || "STAFF")) as UserRole;
-    const defaultPassword = generateRandomTempPassword();
+    const defaultPassword = generateRoleTempPassword(authoritativeRole, parsed.mobile);
     const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
     const { newUser, newStaff } = await db.transaction(async (tx) => {

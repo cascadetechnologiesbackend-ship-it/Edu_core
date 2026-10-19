@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { classes, sections, academicYears } from "@/db/schema";
+import { db, withTenant } from "@/db";
+import { classes, sections, academicYears, schools } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
 import { requireAuth } from "@/lib/serverAuth";
@@ -25,31 +25,41 @@ export default async function StudentEnrollmentsPage() {
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
+
   const canManage = hasExamPermission(ctx.role, "exam.enrollments.manage");
 
   const data = await withDataPhaseTiming("/exams/setup/enrollments", async () => {
     return assertQueryBudget(
       async () => {
-        const [classList, sectionList] = await Promise.all([
-          db.query.classes.findMany({
-            where: and(eq(classes.schoolId, schoolId), eq(classes.isActive, true)),
-            orderBy: (t, { asc }) => [asc(t.sortOrder)],
-          }),
-          db.query.sections.findMany({
-            where: and(eq(sections.schoolId, schoolId), eq(sections.isActive, true)),
-            orderBy: (t, { asc }) => [asc(t.name)],
-          }),
-        ]);
+        return await withTenant(schoolId, async (tx) => {
+          const [classList, sectionList] = await Promise.all([
+            tx.query.classes.findMany({
+              where: and(eq(classes.schoolId, schoolId), eq(classes.isActive, true)),
+              orderBy: (t, { asc }) => [asc(t.sortOrder)],
+            }),
+            tx.query.sections.findMany({
+              where: and(eq(sections.schoolId, schoolId), eq(sections.isActive, true)),
+              orderBy: (t, { asc }) => [asc(t.name)],
+            }),
+          ]);
 
-        return {
-          classes: classList.map((c) => ({ id: c.id, gradeLevel: c.gradeLevel })),
-          sections: sectionList.map((s) => ({
-            id: s.id,
-            classId: s.classId,
-            name: s.name,
-          })),
-        };
+          return {
+            classes: classList.map((c) => ({ id: c.id, gradeLevel: c.gradeLevel })),
+            sections: sectionList.map((s) => ({
+              id: s.id,
+              classId: s.classId,
+              name: s.name,
+            })),
+          };
+        });
       },
       { maxQueries: 5 },
     );

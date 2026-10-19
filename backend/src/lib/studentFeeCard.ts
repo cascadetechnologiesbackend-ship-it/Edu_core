@@ -16,6 +16,7 @@ import {
 import { decryptData } from "./encryption";
 import {
   students,
+  studentClassHistory,
   classes,
   sections,
   feeInvoices,
@@ -23,6 +24,7 @@ import {
   feeConcessions,
 } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { withTenant } from "@/db";
 
 /**
  * Validates that an object contains zero prohibited student PII keys.
@@ -100,104 +102,124 @@ export async function fetchStudentFeeCard(
   schoolId: string,
   studentId: string
 ): Promise<StudentFeeCard | null> {
-  const student = await dbInstance.query.students.findFirst({
-    where: and(eq(students.id, studentId), eq(students.schoolId, schoolId)),
-    with: {
-      class: true,
-      section: true,
-    },
-  });
+  return await withTenant(schoolId, async (tx) => {
+    const client = tx || dbInstance;
+    const student = await client.query.students.findFirst({
+      where: and(eq(students.id, studentId), eq(students.schoolId, schoolId)),
+    });
 
-  if (!student) return null;
+    if (!student) return null;
 
-  const firstName = decryptData(student.firstNameEncrypted) || "";
-  const lastName = decryptData(student.lastNameEncrypted) || "";
-  const fullName = `${firstName} ${lastName}`.trim() || "Student";
+    const classHistory = await client.query.studentClassHistory.findFirst({
+      where: and(eq(studentClassHistory.studentId, studentId), eq(studentClassHistory.schoolId, schoolId)),
+      orderBy: [desc(studentClassHistory.createdAt)],
+    });
 
-  // Fetch invoices with fee head details
-  const invoices = await dbInstance.query.feeInvoices.findMany({
-    where: and(eq(feeInvoices.schoolId, schoolId), eq(feeInvoices.studentId, studentId)),
-    with: {
-      feeStructure: {
-        with: {
-          feeHead: true,
+    let currentClass: any = null;
+    let currentSection: any = null;
+
+    if (classHistory) {
+      if (classHistory.classId) {
+        currentClass = await client.query.classes.findFirst({
+          where: and(eq(classes.id, classHistory.classId), eq(classes.schoolId, schoolId)),
+        });
+      }
+      if (classHistory.sectionId) {
+        currentSection = await client.query.sections.findFirst({
+          where: and(eq(sections.id, classHistory.sectionId), eq(sections.schoolId, schoolId)),
+        });
+      }
+    }
+
+    const firstName = decryptData(student.firstNameEncrypted) || "";
+    const lastName = decryptData(student.lastNameEncrypted) || "";
+    const fullName = `${firstName} ${lastName}`.trim() || "Student";
+
+    // Fetch invoices with fee head details
+    const invoices = await client.query.feeInvoices.findMany({
+      where: and(eq(feeInvoices.schoolId, schoolId), eq(feeInvoices.studentId, studentId)),
+      with: {
+        feeStructure: {
+          with: {
+            feeHead: true,
+          },
         },
       },
-    },
-    orderBy: [desc(feeInvoices.dueDate)],
-  });
+      orderBy: [desc(feeInvoices.dueDate)],
+    });
 
-  // Fetch payments
-  const payments = await dbInstance.query.feePayments.findMany({
-    where: and(eq(feePayments.schoolId, schoolId), eq(feePayments.studentId, studentId)),
-    orderBy: [desc(feePayments.paymentDate)],
-  });
+    // Fetch payments
+    const payments = await client.query.feePayments.findMany({
+      where: and(eq(feePayments.schoolId, schoolId), eq(feePayments.studentId, studentId)),
+      orderBy: [desc(feePayments.paymentDate)],
+    });
 
-  // Fetch concessions
-  const concessions = await dbInstance.query.feeConcessions.findMany({
-    where: and(eq(feeConcessions.schoolId, schoolId), eq(feeConcessions.studentId, studentId)),
-  });
+    // Fetch concessions
+    const concessions = await client.query.feeConcessions.findMany({
+      where: and(eq(feeConcessions.schoolId, schoolId), eq(feeConcessions.studentId, studentId)),
+    });
 
-  const invoiceSummaries: FeeCardInvoiceSummary[] = invoices.map((inv: any) => ({
-    id: inv.id,
-    invoiceNumber: inv.invoiceNumber,
-    feeHeadName: inv.feeStructure?.feeHead?.name || "Fee Invoice",
-    term: inv.term,
-    grossAmount: parseFloat(inv.grossAmount),
-    discountAmount: parseFloat(inv.discountAmount || "0"),
-    lateFeeAmount: parseFloat(inv.lateFeeAmount || "0"),
-    taxAmount: parseFloat(inv.taxAmount || "0"),
-    netAmount: parseFloat(inv.netAmount),
-    paidAmount: parseFloat(inv.paidAmount || "0"),
-    balanceAmount: parseFloat(inv.balanceAmount),
-    dueDate: inv.dueDate instanceof Date ? inv.dueDate.toISOString() : String(inv.dueDate),
-    status: inv.status,
-  }));
+    const invoiceSummaries: FeeCardInvoiceSummary[] = invoices.map((inv: any) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      feeHeadName: inv.feeStructure?.feeHead?.name || "Fee Invoice",
+      term: inv.term,
+      grossAmount: parseFloat(inv.grossAmount),
+      discountAmount: parseFloat(inv.discountAmount || "0"),
+      lateFeeAmount: parseFloat(inv.lateFeeAmount || "0"),
+      taxAmount: parseFloat(inv.taxAmount || "0"),
+      netAmount: parseFloat(inv.netAmount),
+      paidAmount: parseFloat(inv.paidAmount || "0"),
+      balanceAmount: parseFloat(inv.balanceAmount),
+      dueDate: inv.dueDate instanceof Date ? inv.dueDate.toISOString() : String(inv.dueDate),
+      status: inv.status,
+    }));
 
-  const paymentSummaries: FeeCardPaymentSummary[] = payments.map((p: any) => ({
-    receiptNumber: p.receiptNumber,
-    receiptGroupId: p.receiptGroupId || null,
-    amountPaid: parseFloat(p.amountPaid),
-    paymentMode: p.paymentMethod,
-    paymentDate: p.paymentDate instanceof Date ? p.paymentDate.toISOString() : String(p.paymentDate),
-  }));
+    const paymentSummaries: FeeCardPaymentSummary[] = payments.map((p: any) => ({
+      receiptNumber: p.receiptNumber,
+      receiptGroupId: p.receiptGroupId || null,
+      amountPaid: parseFloat(p.amountPaid),
+      paymentMode: p.paymentMethod,
+      paymentDate: p.paymentDate instanceof Date ? p.paymentDate.toISOString() : String(p.paymentDate),
+    }));
 
-  const concessionSummaries: FeeCardConcessionSummary[] = concessions.map((c: any) => ({
-    policy: c.concessionName,
-    status: c.isActive ? "ACTIVE" : "INACTIVE",
-    approvedBy: c.approvedById || null,
-  }));
+    const concessionSummaries: FeeCardConcessionSummary[] = concessions.map((c: any) => ({
+      policy: c.concessionName,
+      status: c.isActive ? "ACTIVE" : "INACTIVE",
+      approvedBy: c.approvedById || null,
+    }));
 
-  const reminderSummaries: FeeCardReminderSummary[] = invoices.map((inv: any) => ({
-    d7SentAt: inv.reminderSentD7 ? "SENT" : null,
-    d15SentAt: inv.reminderSentD15 ? "SENT" : null,
-    d30SentAt: inv.reminderSentD30 ? "SENT" : null,
-  }));
+    const reminderSummaries: FeeCardReminderSummary[] = invoices.map((inv: any) => ({
+      d7SentAt: inv.reminderSentD7 ? "SENT" : null,
+      d15SentAt: inv.reminderSentD15 ? "SENT" : null,
+      d30SentAt: inv.reminderSentD30 ? "SENT" : null,
+    }));
 
-  const totalDue = invoiceSummaries.reduce(
-    (sum, inv) => (["PENDING", "PARTIAL", "OVERDUE"].includes(inv.status) ? sum + inv.balanceAmount : sum),
-    0
-  );
+    const totalDue = invoiceSummaries.reduce(
+      (sum, inv) => (["PENDING", "PARTIAL", "OVERDUE"].includes(inv.status) ? sum + inv.balanceAmount : sum),
+      0
+    );
 
-  const pendingCount = invoiceSummaries.filter((inv) =>
-    ["PENDING", "PARTIAL", "OVERDUE"].includes(inv.status)
-  ).length;
+    const pendingCount = invoiceSummaries.filter((inv) =>
+      ["PENDING", "PARTIAL", "OVERDUE"].includes(inv.status)
+    ).length;
 
-  return projectToStudentFeeCard({
-    id: student.id,
-    admissionNumber: student.admissionNumber || "",
-    fullName,
-    className: student.class?.displayName || student.class?.name || "Class",
-    sectionName: student.section?.name || null,
-    academicYearId: student.academicYearId || undefined,
-    enrollmentStatus: student.isActive ? "ACTIVE" : "INACTIVE",
-    creditBalance: 0,
-    advanceBalance: 0,
-    totalDue,
-    pendingInvoiceCount: pendingCount,
-    invoices: invoiceSummaries,
-    payments: paymentSummaries,
-    concessions: concessionSummaries,
-    reminders: reminderSummaries,
+    return projectToStudentFeeCard({
+      id: student.id,
+      admissionNumber: student.admissionNumber || "",
+      fullName,
+      className: currentClass?.displayName || currentClass?.name || "Class",
+      sectionName: currentSection?.name || null,
+      academicYearId: student.academicYearId || undefined,
+      enrollmentStatus: student.isActive ? "ACTIVE" : "INACTIVE",
+      creditBalance: 0,
+      advanceBalance: 0,
+      totalDue,
+      pendingInvoiceCount: pendingCount,
+      invoices: invoiceSummaries,
+      payments: paymentSummaries,
+      concessions: concessionSummaries,
+      reminders: reminderSummaries,
+    });
   });
 }

@@ -1,9 +1,10 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   reportCardSetups,
   classes,
   students,
   resultSnapshots,
+  schools,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
@@ -42,78 +43,86 @@ export default async function ExamsAnalyticsPage({
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
 
   const data = await withDataPhaseTiming("/exams/analytics", async () => {
     return assertQueryBudget(
       async () => {
-        const [setupsList, classList] = await Promise.all([
-          db.query.reportCardSetups.findMany({
-            where: eq(reportCardSetups.schoolId, schoolId),
-            orderBy: (t, { desc }) => [desc(t.createdAt)],
-          }),
-          db.query.classes.findMany({
-            where: eq(classes.schoolId, schoolId),
-            orderBy: (t, { asc }) => [asc(t.displayName)],
-          }),
-        ]);
+        return await withTenant(schoolId, async (tx) => {
+          const [setupsList, classList] = await Promise.all([
+            tx.query.reportCardSetups.findMany({
+              where: eq(reportCardSetups.schoolId, schoolId),
+              orderBy: (t, { desc }) => [desc(t.createdAt)],
+            }),
+            tx.query.classes.findMany({
+              where: eq(classes.schoolId, schoolId),
+              orderBy: (t, { asc }) => [asc(t.displayName)],
+            }),
+          ]);
 
-        const selectedSetupId =
-          searchParams.setupId && setupsList.some((s) => s.id === searchParams.setupId)
-            ? searchParams.setupId
-            : setupsList[0]?.id || "";
+          const selectedSetupId =
+            searchParams.setupId && setupsList.some((s) => s.id === searchParams.setupId)
+              ? searchParams.setupId
+              : setupsList[0]?.id || "";
 
-        const selectedClassId =
-          searchParams.classId && classList.some((c) => c.id === searchParams.classId)
-            ? searchParams.classId
-            : classList[0]?.id || "";
+          const selectedClassId =
+            searchParams.classId && classList.some((c) => c.id === searchParams.classId)
+              ? searchParams.classId
+              : classList[0]?.id || "";
 
-        if (!selectedSetupId || !selectedClassId) {
-          return {
-            setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
-            selectedSetupId,
-            classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
-            selectedClassId,
-            metrics: {
-              totalAssessed: 0,
-              passCount: 0,
-              failCount: 0,
-              passPercentage: 0,
-              averagePercentage: 0,
-              highestPercentage: 0,
-              lowestPercentage: 0,
-            },
-            gradeDistribution: [],
-            subjectAnalysis: [],
-            toppers: [],
-            remedialStudents: [],
-          };
-        }
+          if (!selectedSetupId || !selectedClassId) {
+            return {
+              setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
+              selectedSetupId,
+              classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+              selectedClassId,
+              metrics: {
+                totalAssessed: 0,
+                passCount: 0,
+                failCount: 0,
+                passPercentage: 0,
+                averagePercentage: 0,
+                highestPercentage: 0,
+                lowestPercentage: 0,
+              },
+              gradeDistribution: [],
+              subjectAnalysis: [],
+              toppers: [],
+              remedialStudents: [],
+            };
+          }
 
-        // Fetch students and snapshots
-        const [rawStudents, rawSnapshots] = await Promise.all([
-          db.query.students.findMany({
-            where: and(
-              eq(students.schoolId, schoolId),
-              eq(students.currentClassId, selectedClassId),
-              eq(students.isActive, true),
-            ),
-          }),
-          db.query.resultSnapshots.findMany({
-            where: and(
-              eq(resultSnapshots.schoolId, schoolId),
-              eq(resultSnapshots.setupId, selectedSetupId),
-              eq(resultSnapshots.isCurrent, true),
-            ),
-          }),
-        ]);
+          // Fetch students and snapshots
+          const [rawStudents, rawSnapshots] = await Promise.all([
+            tx.query.students.findMany({
+              where: and(
+                eq(students.schoolId, schoolId),
+                eq(students.currentClassId, selectedClassId),
+                eq(students.isActive, true),
+              ),
+            }),
+            tx.query.resultSnapshots.findMany({
+              where: and(
+                eq(resultSnapshots.schoolId, schoolId),
+                eq(resultSnapshots.setupId, selectedSetupId),
+                eq(resultSnapshots.isCurrent, true),
+              ),
+            }),
+          ]);
 
-        const studentsMap = new Map(rawStudents.map((s) => [s.id, s]));
+          const studentsMap = new Map(rawStudents.map((s) => [s.id, s]));
 
-        // Filter snapshots for students in selected class
-        const snapshotsForClass = rawSnapshots.filter((snap) =>
-          studentsMap.has(snap.studentId),
-        );
+          // Filter snapshots for students in selected class
+          const snapshotsForClass = rawSnapshots.filter((snap) =>
+            studentsMap.has(snap.studentId),
+          );
 
         if (snapshotsForClass.length === 0) {
           return {
@@ -348,25 +357,26 @@ export default async function ExamsAnalyticsPage({
         // Sort remedial students by percentage ascending
         remedialCandidates.sort((a, b) => a.percentage - b.percentage);
 
-        return {
-          setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
-          selectedSetupId,
-          classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
-          selectedClassId,
-          metrics: {
-            totalAssessed,
-            passCount,
-            failCount,
-            passPercentage,
-            averagePercentage,
-            highestPercentage: highestPct === -Infinity ? 0 : highestPct,
-            lowestPercentage: lowestPct === Infinity ? 0 : lowestPct,
-          },
-          gradeDistribution,
-          subjectAnalysis,
-          toppers: top5,
-          remedialStudents: remedialCandidates,
-        };
+          return {
+            setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
+            selectedSetupId,
+            classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+            selectedClassId,
+            metrics: {
+              totalAssessed,
+              passCount,
+              failCount,
+              passPercentage,
+              averagePercentage,
+              highestPercentage: highestPct === -Infinity ? 0 : highestPct,
+              lowestPercentage: lowestPct === Infinity ? 0 : lowestPct,
+            },
+            gradeDistribution,
+            subjectAnalysis,
+            toppers: top5,
+            remedialStudents: remedialCandidates,
+          };
+        });
       },
       { maxQueries: 8 },
     );

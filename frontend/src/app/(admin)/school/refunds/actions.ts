@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   feeRefunds,
   feePayments,
@@ -41,66 +41,68 @@ export async function searchPaidPaymentsForRefundAction(query?: string) {
 
     const cleanQuery = (query || "").trim().toLowerCase();
 
-    // Fetch classes for class name mapping
-    const allClasses = await db.query.classes.findMany({
-      where: eq(classes.schoolId, school.id),
+    const results = await withTenant(school.id, async (tx) => {
+      // Fetch classes for class name mapping
+      const allClasses = await tx.query.classes.findMany({
+        where: eq(classes.schoolId, school.id),
+      });
+      const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
+
+      // Fetch payments with relations
+      const payments = await tx.query.feePayments.findMany({
+        where: eq(feePayments.schoolId, school.id),
+        with: {
+          student: true,
+          invoice: true,
+          refunds: true,
+        },
+        orderBy: [desc(feePayments.paymentDate)],
+        limit: 100,
+      });
+
+      return payments
+        .map((p) => {
+          const student = p.student;
+          const studentName = student
+            ? `${decryptData(student.firstNameEncrypted) || ""} ${decryptData(student.lastNameEncrypted) || ""}`.trim()
+            : "Unknown Student";
+          const admissionNumber = student?.admissionNumber || "";
+
+          // Calculate already refunded or pending amount
+          const activeRefunds = (p.refunds || []).filter((r) => r.status !== "REJECTED");
+          const totalRefundedOrPending = activeRefunds.reduce(
+            (acc, r) => acc + parseFloat(r.refundAmount || "0"),
+            0
+          );
+          const originalAmount = parseFloat(p.amountPaid || "0");
+          const maxRefundable = Math.max(0, originalAmount - totalRefundedOrPending);
+
+          return {
+            paymentId: p.id,
+            receiptNumber: p.receiptNumber,
+            paymentDate: p.paymentDate.toISOString(),
+            paymentMethod: p.paymentMethod,
+            amountPaid: originalAmount,
+            maxRefundable,
+            studentName,
+            admissionNumber,
+            className: "Enrolled",
+            invoiceNumber: p.invoice?.invoiceNumber || "N/A",
+            feeHeadName: "Tuition / General",
+          };
+        })
+        .filter((item) => {
+          if (!cleanQuery) return item.maxRefundable > 0;
+          return (
+            item.maxRefundable > 0 &&
+            (item.receiptNumber.toLowerCase().includes(cleanQuery) ||
+              item.studentName.toLowerCase().includes(cleanQuery) ||
+              item.admissionNumber.toLowerCase().includes(cleanQuery) ||
+              item.invoiceNumber.toLowerCase().includes(cleanQuery))
+          );
+        })
+        .slice(0, 20);
     });
-    const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
-
-    // Fetch payments with relations
-    const payments = await db.query.feePayments.findMany({
-      where: eq(feePayments.schoolId, school.id),
-      with: {
-        student: true,
-        invoice: true,
-        refunds: true,
-      },
-      orderBy: [desc(feePayments.paymentDate)],
-      limit: 100,
-    });
-
-    const results = payments
-      .map((p) => {
-        const student = p.student;
-        const studentName = student
-          ? `${decryptData(student.firstNameEncrypted) || ""} ${decryptData(student.lastNameEncrypted) || ""}`.trim()
-          : "Unknown Student";
-        const admissionNumber = student?.admissionNumber || "";
-
-        // Calculate already refunded or pending amount
-        const activeRefunds = (p.refunds || []).filter((r) => r.status !== "REJECTED");
-        const totalRefundedOrPending = activeRefunds.reduce(
-          (acc, r) => acc + parseFloat(r.refundAmount || "0"),
-          0
-        );
-        const originalAmount = parseFloat(p.amountPaid || "0");
-        const maxRefundable = Math.max(0, originalAmount - totalRefundedOrPending);
-
-        return {
-          paymentId: p.id,
-          receiptNumber: p.receiptNumber,
-          paymentDate: p.paymentDate.toISOString(),
-          paymentMethod: p.paymentMethod,
-          amountPaid: originalAmount,
-          maxRefundable,
-          studentName,
-          admissionNumber,
-          className: "Enrolled",
-          invoiceNumber: p.invoice?.invoiceNumber || "N/A",
-          feeHeadName: "Tuition / General",
-        };
-      })
-      .filter((item) => {
-        if (!cleanQuery) return item.maxRefundable > 0;
-        return (
-          item.maxRefundable > 0 &&
-          (item.receiptNumber.toLowerCase().includes(cleanQuery) ||
-            item.studentName.toLowerCase().includes(cleanQuery) ||
-            item.admissionNumber.toLowerCase().includes(cleanQuery) ||
-            item.invoiceNumber.toLowerCase().includes(cleanQuery))
-        );
-      })
-      .slice(0, 20);
 
     return { success: true, results };
   } catch (error: any) {
@@ -128,12 +130,14 @@ export async function requestFeeRefund(payload: RefundRequestPayload) {
     }
 
     // Verify payment belongs to this school
-    const payment = await db.query.feePayments.findFirst({
-      where: and(eq(feePayments.id, feePaymentId), eq(feePayments.schoolId, school.id)),
-      with: {
-        refunds: true,
-        invoice: true,
-      },
+    const payment = await withTenant(school.id, async (tx) => {
+      return await tx.query.feePayments.findFirst({
+        where: and(eq(feePayments.id, feePaymentId), eq(feePayments.schoolId, school.id)),
+        with: {
+          refunds: true,
+          invoice: true,
+        },
+      });
     });
 
     if (!payment) {
@@ -307,15 +311,17 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
     const school = await requireSchool(ctx);
 
-    const refund = await db.query.feeRefunds.findFirst({
-      where: and(eq(feeRefunds.id, refundId), eq(feeRefunds.schoolId, school.id)),
-      with: {
-        payment: {
-          with: {
-            invoice: true,
+    const refund = await withTenant(school.id, async (tx) => {
+      return await tx.query.feeRefunds.findFirst({
+        where: and(eq(feeRefunds.id, refundId), eq(feeRefunds.schoolId, school.id)),
+        with: {
+          payment: {
+            with: {
+              invoice: true,
+            },
           },
         },
-      },
+      });
     });
 
     if (!refund) return { success: false, message: "Refund request not found" };
@@ -342,7 +348,7 @@ export async function processFeeRefund(refundId: string, bankAccountId?: string)
       if (defaultBank) resolvedBankId = defaultBank.id;
     }
 
-    await db.transaction(async (tx) => {
+    await withTenant(school.id, async (tx) => {
       const now = new Date();
 
       // 1. Mark refund as PROCESSED

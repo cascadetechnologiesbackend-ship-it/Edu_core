@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   feeInvoices,
   feePayments,
@@ -58,9 +58,11 @@ export async function getCachedClassMap(schoolId: string): Promise<Map<string, s
   if (cached && cached.expiresAt > now) {
     return cached.classMap;
   }
-  const schoolClasses = await db.query.classes.findMany({
-    where: eq(classes.schoolId, schoolId),
-    columns: { id: true, displayName: true },
+  const schoolClasses = await withTenant(schoolId, async (tx) => {
+    return await tx.query.classes.findMany({
+      where: eq(classes.schoolId, schoolId),
+      columns: { id: true, displayName: true },
+    });
   });
   const map = new Map(schoolClasses.map((c) => [c.id, c.displayName]));
   classCache.set(schoolId, { expiresAt: now + CLASS_CACHE_TTL_MS, classMap: map });
@@ -91,124 +93,126 @@ export async function searchStudentsAction(query?: string) {
     // 1. Fetch cached classes for class name mapping (zero DB round-trip on warm searches)
     const classMap = await getCachedClassMap(school.id);
 
-    // 2. Query students matching search hash or admission prefix, capped at LIMIT 20 at DB level
-    let studentRows: Array<{
-      id: string;
-      admissionNumber: string;
-      firstNameEncrypted: string;
-      lastNameEncrypted: string;
-      currentClassId: string | null;
-    }> = [];
+    const result = await withTenant(school.id, async (tx) => {
+      // 2. Query students matching search hash or admission prefix, capped at LIMIT 20 at DB level
+      let studentRows: Array<{
+        id: string;
+        admissionNumber: string;
+        firstNameEncrypted: string;
+        lastNameEncrypted: string;
+        currentClassId: string | null;
+      }> = [];
 
-    if (!cleanQuery) {
-      // Empty query: fetch first 20 active students for this school
-      studentRows = await db.query.students.findMany({
-        where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
-        columns: {
-          id: true,
-          admissionNumber: true,
-          firstNameEncrypted: true,
-          lastNameEncrypted: true,
-          currentClassId: true,
-        },
-        limit: 20,
-      });
-    } else {
-      // Indexed dual search hash (HKDF + legacy) and admission number prefix match
-      const hash = computeSearchHash(cleanQuery);
-      const legacyHash = computeLegacySearchHash(cleanQuery);
+      if (!cleanQuery) {
+        // Empty query: fetch first 20 active students for this school
+        studentRows = await tx.query.students.findMany({
+          where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
+          columns: {
+            id: true,
+            admissionNumber: true,
+            firstNameEncrypted: true,
+            lastNameEncrypted: true,
+            currentClassId: true,
+          },
+          limit: 20,
+        });
+      } else {
+        // Indexed dual search hash (HKDF + legacy) and admission number prefix match
+        const hash = computeSearchHash(cleanQuery);
+        const legacyHash = computeLegacySearchHash(cleanQuery);
 
-      // Escape LIKE metacharacters (%, _, \) to prevent wildcard injection in admission number match (OPEN-16)
-      const escapedLikeQuery = cleanQuery.replace(/[%_\\]/g, "\\$&");
+        // Escape LIKE metacharacters (%, _, \) to prevent wildcard injection in admission number match (OPEN-16)
+        const escapedLikeQuery = cleanQuery.replace(/[%_\\]/g, "\\$&");
 
-      const searchConditions = [
-        ilike(students.admissionNumber, `${escapedLikeQuery}%`),
-        eq(students.firstNameSearchHash, hash),
-        eq(students.lastNameSearchHash, hash),
-        eq(students.firstNameSearchHash, legacyHash),
-        eq(students.lastNameSearchHash, legacyHash),
-      ];
+        const searchConditions = [
+          ilike(students.admissionNumber, `${escapedLikeQuery}%`),
+          eq(students.firstNameSearchHash, hash),
+          eq(students.lastNameSearchHash, hash),
+          eq(students.firstNameSearchHash, legacyHash),
+          eq(students.lastNameSearchHash, legacyHash),
+        ];
 
-      // Multi-word name support (e.g. "Rahul Sharma")
-      const parts = cleanQuery.split(/\s+/).filter(Boolean);
-      if (parts.length > 1) {
-        for (const part of parts) {
-          const pHash = computeSearchHash(part);
-          const pLegacy = computeLegacySearchHash(part);
-          searchConditions.push(
-            eq(students.firstNameSearchHash, pHash),
-            eq(students.lastNameSearchHash, pHash),
-            eq(students.firstNameSearchHash, pLegacy),
-            eq(students.lastNameSearchHash, pLegacy)
-          );
+        // Multi-word name support (e.g. "Rahul Sharma")
+        const parts = cleanQuery.split(/\s+/).filter(Boolean);
+        if (parts.length > 1) {
+          for (const part of parts) {
+            const pHash = computeSearchHash(part);
+            const pLegacy = computeLegacySearchHash(part);
+            searchConditions.push(
+              eq(students.firstNameSearchHash, pHash),
+              eq(students.lastNameSearchHash, pHash),
+              eq(students.firstNameSearchHash, pLegacy),
+              eq(students.lastNameSearchHash, pLegacy)
+            );
+          }
         }
+
+        studentRows = await tx.query.students.findMany({
+          where: and(
+            eq(students.schoolId, school.id),
+            eq(students.isActive, true),
+            or(...searchConditions)
+          ),
+          columns: {
+            id: true,
+            admissionNumber: true,
+            firstNameEncrypted: true,
+            lastNameEncrypted: true,
+            currentClassId: true,
+          },
+          limit: 20,
+        });
       }
 
-      studentRows = await db.query.students.findMany({
-        where: and(
-          eq(students.schoolId, school.id),
-          eq(students.isActive, true),
-          or(...searchConditions)
-        ),
-        columns: {
-          id: true,
-          admissionNumber: true,
-          firstNameEncrypted: true,
-          lastNameEncrypted: true,
-          currentClassId: true,
-        },
-        limit: 20,
+      if (studentRows.length === 0) {
+        return [];
+      }
+
+      // 3. Decrypt ONLY returned rows (<= 20 rows, at most 40 decrypts instead of full table)
+      const matchedStudents = studentRows.map((s) => {
+        const firstName = decryptData(s.firstNameEncrypted) || "";
+        const lastName = decryptData(s.lastNameEncrypted) || "";
+        const fullName = `${firstName} ${lastName}`.trim();
+        const admNo = s.admissionNumber || "";
+        const className = s.currentClassId ? classMap.get(s.currentClassId) || "Class" : "Unassigned";
+
+        return {
+          id: s.id,
+          admissionNumber: admNo,
+          name: fullName || "Student",
+          className,
+        };
       });
-    }
 
-    if (studentRows.length === 0) {
-      return { success: true, students: [] };
-    }
+      // 4. Fetch pending/overdue invoices for matched students to compute total dues
+      const matchedIds = matchedStudents.map((s) => s.id);
+      const studentInvoices = await tx.query.feeInvoices.findMany({
+        where: and(
+          eq(feeInvoices.schoolId, school.id),
+          inArray(feeInvoices.studentId, matchedIds),
+          inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"])
+        ),
+      });
 
-    // 3. Decrypt ONLY returned rows (<= 20 rows, at most 40 decrypts instead of full table)
-    const matchedStudents = studentRows.map((s) => {
-      const firstName = decryptData(s.firstNameEncrypted) || "";
-      const lastName = decryptData(s.lastNameEncrypted) || "";
-      const fullName = `${firstName} ${lastName}`.trim();
-      const admNo = s.admissionNumber || "";
-      const className = s.currentClassId ? classMap.get(s.currentClassId) || "Class" : "Unassigned";
+      const duesMap = new Map<string, { totalDue: number; count: number }>();
+      for (const inv of studentInvoices) {
+        const existing = duesMap.get(inv.studentId) || { totalDue: 0, count: 0 };
+        existing.totalDue += parseFloat(inv.balanceAmount || "0");
+        existing.count += 1;
+        duesMap.set(inv.studentId, existing);
+      }
 
-      return {
-        id: s.id,
-        admissionNumber: admNo,
-        name: fullName || "Student",
-        className,
-      };
-    });
-
-    // 4. Fetch pending/overdue invoices for matched students to compute total dues
-    const matchedIds = matchedStudents.map((s) => s.id);
-    const studentInvoices = await db.query.feeInvoices.findMany({
-      where: and(
-        eq(feeInvoices.schoolId, school.id),
-        inArray(feeInvoices.studentId, matchedIds),
-        inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"])
-      ),
-    });
-
-    const duesMap = new Map<string, { totalDue: number; count: number }>();
-    for (const inv of studentInvoices) {
-      const existing = duesMap.get(inv.studentId) || { totalDue: 0, count: 0 };
-      existing.totalDue += parseFloat(inv.balanceAmount || "0");
-      existing.count += 1;
-      duesMap.set(inv.studentId, existing);
-    }
-
-    const result = matchedStudents.map((s) => {
-      const dueInfo = duesMap.get(s.id) || { totalDue: 0, count: 0 };
-      return projectToStudentFeeCard({
-        id: s.id,
-        admissionNumber: s.admissionNumber,
-        fullName: s.name,
-        name: s.name,
-        className: s.className,
-        totalDue: dueInfo.totalDue,
-        pendingInvoiceCount: dueInfo.count,
+      return matchedStudents.map((s) => {
+        const dueInfo = duesMap.get(s.id) || { totalDue: 0, count: 0 };
+        return projectToStudentFeeCard({
+          id: s.id,
+          admissionNumber: s.admissionNumber,
+          fullName: s.name,
+          name: s.name,
+          className: s.className,
+          totalDue: dueInfo.totalDue,
+          pendingInvoiceCount: dueInfo.count,
+        });
       });
     });
 
@@ -256,20 +260,22 @@ export async function getStudentInvoicesAction(studentId: string) {
       return { success: false, message: "Student ID is required", invoices: [] };
     }
 
-    const invoices = await db.query.feeInvoices.findMany({
-      where: and(
-        eq(feeInvoices.schoolId, school.id),
-        eq(feeInvoices.studentId, studentId),
-        inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"])
-      ),
-      with: {
-        feeStructure: {
-          with: {
-            feeHead: true,
+    const invoices = await withTenant(school.id, async (tx) => {
+      return await tx.query.feeInvoices.findMany({
+        where: and(
+          eq(feeInvoices.schoolId, school.id),
+          eq(feeInvoices.studentId, studentId),
+          inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"])
+        ),
+        with: {
+          feeStructure: {
+            with: {
+              feeHead: true,
+            },
           },
         },
-      },
-      orderBy: [desc(feeInvoices.dueDate)],
+        orderBy: [desc(feeInvoices.dueDate)],
+      });
     });
 
     const now = new Date();
@@ -400,30 +406,34 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
     // FIX-02: Idempotency check (within last 24 hours)
     if (idempotencyKey) {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const existingPayments = await db.query.feePayments.findMany({
-        where: and(
-          eq(feePayments.schoolId, school.id),
-          eq(feePayments.collectedById, ctx.userId),
-          eq(feePayments.idempotencyKey, idempotencyKey),
-          gt(feePayments.createdAt, yesterday),
-        ),
-        with: {
-          invoice: {
-            with: {
-              feeStructure: {
-                with: {
-                  feeHead: true,
+      const existingPayments = await withTenant(school.id, async (tx) => {
+        return await tx.query.feePayments.findMany({
+          where: and(
+            eq(feePayments.schoolId, school.id),
+            eq(feePayments.collectedById, ctx.userId),
+            eq(feePayments.idempotencyKey, idempotencyKey!),
+            gt(feePayments.createdAt, yesterday),
+          ),
+          with: {
+            invoice: {
+              with: {
+                feeStructure: {
+                  with: {
+                    feeHead: true,
+                  },
                 },
               },
             },
           },
-        },
+        });
       });
 
       if (existingPayments.length > 0 && existingPayments[0]) {
         const firstPayment = existingPayments[0];
-        const student = await db.query.students.findFirst({
-          where: eq(students.id, firstPayment.studentId),
+        const student = await withTenant(school.id, async (tx) => {
+          return await tx.query.students.findFirst({
+            where: eq(students.id, firstPayment.studentId),
+          });
         });
         const firstName = decryptData(student?.firstNameEncrypted || null) || "";
         const lastName = decryptData(student?.lastNameEncrypted || null) || "";
@@ -488,7 +498,7 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
 
     let primaryPaymentId = "";
 
-    await db.transaction(async (tx) => {
+    await withTenant(school.id, async (tx) => {
       let itemIndex = 0;
       for (const item of items) {
         itemIndex++;

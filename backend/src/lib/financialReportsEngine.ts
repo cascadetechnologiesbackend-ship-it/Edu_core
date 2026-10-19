@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   chartOfAccounts,
   accountLedgerTransactions,
@@ -335,11 +335,14 @@ export async function generateConcessionSummaryReport(
   academicYearId?: string | null,
   executor?: any,
 ): Promise<ConcessionSummaryReport> {
-  const client = executor || db;
+  const runReport = async (client: any) => {
+    await client.execute(
+      sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`
+    );
 
-  const school = await client.query.schools.findFirst({
-    where: eq(schools.id, schoolId),
-  });
+    const school = await client.query.schools.findFirst({
+      where: eq(schools.id, schoolId),
+    });
 
   // Resolve target academic year
   let targetYear: any = null;
@@ -595,18 +598,27 @@ export async function generateConcessionSummaryReport(
     };
   }).sort((a, b) => b.concessionAmount - a.concessionAmount);
 
-  return {
-    schoolId,
-    schoolName: school?.name || "SchoolMitra Campus",
-    academicYearId: effectiveYearId || null,
-    academicYearName,
-    generatedAt: new Date().toISOString(),
-    rows,
-    totalGross,
-    totalConcessions,
-    totalNetRealized,
-    totalBeneficiaries: allBeneficiaryIds.size,
-    overallRealizationRate,
-    policyBreakdown,
+    return {
+      schoolId,
+      schoolName: school?.name || "SchoolMitra Campus",
+      academicYearId: effectiveYearId || null,
+      academicYearName,
+      generatedAt: new Date().toISOString(),
+      rows,
+      totalGross,
+      totalConcessions,
+      totalNetRealized,
+      totalBeneficiaries: allBeneficiaryIds.size,
+      overallRealizationRate,
+      policyBreakdown,
+    };
   };
+
+  if (executor) {
+    return await runReport(executor);
+  } else {
+    return await withTenant(schoolId, async (trx) => {
+      return await runReport(trx);
+    });
+  }
 }

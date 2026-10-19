@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   exams,
   academicYears,
@@ -7,6 +7,7 @@ import {
   feeInvoices,
   examAdmitCardSettings,
   examAdmitCardHolds,
+  schools,
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { Metadata } from "next";
@@ -39,162 +40,171 @@ export default async function AdmitCardsAdminPage({
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
 
   const data = await withDataPhaseTiming("/exams/admit-cards", async () => {
     return assertQueryBudget(
       async () => {
-        const activeYear = await db.query.academicYears.findFirst({
-          where: and(
-            eq(academicYears.schoolId, schoolId),
-            eq(academicYears.isActive, true),
-          ),
-        });
+        return await withTenant(schoolId, async (tx) => {
+          const activeYear = await tx.query.academicYears.findFirst({
+            where: and(
+              eq(academicYears.schoolId, schoolId),
+              eq(academicYears.isActive, true),
+            ),
+          });
 
-        if (!activeYear) {
-          return {
-            examsList: [],
-            selectedExamId: "",
-            classList: [],
-            settings: null,
-            studentsList: [],
-          };
-        }
+          if (!activeYear) {
+            return {
+              examsList: [],
+              selectedExamId: "",
+              classList: [],
+              settings: null,
+              studentsList: [],
+            };
+          }
 
-        const examsList = await db.query.exams.findMany({
-          where: and(
-            eq(exams.schoolId, schoolId),
-            eq(exams.academicYearId, activeYear.id),
-          ),
-          orderBy: (t, { desc }) => [desc(t.startDate)],
-        });
+          const examsList = await tx.query.exams.findMany({
+            where: and(
+              eq(exams.schoolId, schoolId),
+              eq(exams.academicYearId, activeYear.id),
+            ),
+            orderBy: (t, { desc }) => [desc(t.startDate)],
+          });
 
-        const selectedExamId =
-          searchParams.examId && examsList.some((e) => e.id === searchParams.examId)
-            ? searchParams.examId
-            : examsList[0]?.id || "";
+          const selectedExamId =
+            searchParams.examId && examsList.some((e) => e.id === searchParams.examId)
+              ? searchParams.examId
+              : examsList[0]?.id || "";
 
-        const classList = await db.query.classes.findMany({
-          where: eq(classes.schoolId, schoolId),
-          orderBy: (t, { asc }) => [asc(t.displayName)],
-        });
+          const classList = await tx.query.classes.findMany({
+            where: eq(classes.schoolId, schoolId),
+            orderBy: (t, { asc }) => [asc(t.displayName)],
+          });
 
-        if (!selectedExamId) {
+          if (!selectedExamId) {
+            return {
+              examsList: examsList.map((e) => ({ id: e.id, name: e.name })),
+              selectedExamId: "",
+              classList: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+              settings: null,
+              studentsList: [],
+            };
+          }
+
+          const [settingsRecord, holdsRecords, rawStudents, rawInvoices] =
+            await Promise.all([
+              tx.query.examAdmitCardSettings.findFirst({
+                where: and(
+                  eq(examAdmitCardSettings.schoolId, schoolId),
+                  eq(examAdmitCardSettings.examId, selectedExamId),
+                ),
+              }),
+              tx.query.examAdmitCardHolds.findMany({
+                where: and(
+                  eq(examAdmitCardHolds.schoolId, schoolId),
+                  eq(examAdmitCardHolds.examId, selectedExamId),
+                ),
+              }),
+              tx.query.students.findMany({
+                where: and(
+                  eq(students.schoolId, schoolId),
+                  eq(students.isActive, true),
+                ),
+                orderBy: (t, { asc }) => [asc(t.rollNumber)],
+              }),
+              tx.query.feeInvoices.findMany({
+                where: and(
+                  eq(feeInvoices.schoolId, schoolId),
+                  isNull(feeInvoices.deletedAt),
+                ),
+                columns: {
+                  studentId: true,
+                  balanceAmount: true,
+                },
+              }),
+            ]);
+
+          // Build dues lookup
+          const studentDueMap = new Map<string, number>();
+          for (const inv of rawInvoices) {
+            const bal = parseFloat(inv.balanceAmount || "0");
+            if (bal > 0) {
+              studentDueMap.set(
+                inv.studentId,
+                (studentDueMap.get(inv.studentId) || 0) + bal,
+              );
+            }
+          }
+
+          // Build holds lookup
+          const holdsMap = new Map<string, string>();
+          for (const h of holdsRecords) {
+            holdsMap.set(h.studentId, h.reason);
+          }
+
+          // Build class lookup
+          const classMap = new Map<string, string>();
+          for (const c of classList) {
+            classMap.set(c.id, c.displayName);
+          }
+
+          const formattedSettings = settingsRecord
+            ? {
+                ...(settingsRecord.id ? { id: settingsRecord.id } : {}),
+                isReleased: settingsRecord.isReleased,
+                availableFrom: settingsRecord.availableFrom
+                  ? settingsRecord.availableFrom.toISOString()
+                  : null,
+                availableUntil: settingsRecord.availableUntil
+                  ? settingsRecord.availableUntil.toISOString()
+                  : null,
+                instructions: settingsRecord.instructions,
+                examCentre: settingsRecord.examCentre,
+                reportingTime: settingsRecord.reportingTime,
+                feeLockMode: settingsRecord.feeLockMode as "OFF" | "SOFT" | "HARD",
+                feeLockThresholdAmount: settingsRecord.feeLockThresholdAmount || "0",
+              }
+            : null;
+
+          const studentsList = rawStudents.map((st) => {
+            const first = decryptData(st.firstNameEncrypted) || "";
+            const last = decryptData(st.lastNameEncrypted) || "";
+            const fullName = `${first} ${last}`.trim() || "Student";
+            const due = studentDueMap.get(st.id) || 0;
+            const isHeld = holdsMap.has(st.id);
+            const holdReason = holdsMap.get(st.id) || null;
+            const className = st.currentClassId
+              ? classMap.get(st.currentClassId) || "Unassigned"
+              : "Unassigned";
+
+            return {
+              id: st.id,
+              rollNumber: st.rollNumber,
+              admissionNumber: st.admissionNumber,
+              name: fullName,
+              classId: st.currentClassId,
+              className,
+              dueAmount: due,
+              isHeld,
+              holdReason,
+            };
+          });
+
           return {
             examsList: examsList.map((e) => ({ id: e.id, name: e.name })),
-            selectedExamId: "",
+            selectedExamId,
             classList: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
-            settings: null,
-            studentsList: [],
-          };
-        }
-
-        const [settingsRecord, holdsRecords, rawStudents, rawInvoices] =
-          await Promise.all([
-            db.query.examAdmitCardSettings.findFirst({
-              where: and(
-                eq(examAdmitCardSettings.schoolId, schoolId),
-                eq(examAdmitCardSettings.examId, selectedExamId),
-              ),
-            }),
-            db.query.examAdmitCardHolds.findMany({
-              where: and(
-                eq(examAdmitCardHolds.schoolId, schoolId),
-                eq(examAdmitCardHolds.examId, selectedExamId),
-              ),
-            }),
-            db.query.students.findMany({
-              where: and(
-                eq(students.schoolId, schoolId),
-                eq(students.isActive, true),
-              ),
-              orderBy: (t, { asc }) => [asc(t.rollNumber)],
-            }),
-            db.query.feeInvoices.findMany({
-              where: and(
-                eq(feeInvoices.schoolId, schoolId),
-                isNull(feeInvoices.deletedAt),
-              ),
-              columns: {
-                studentId: true,
-                balanceAmount: true,
-              },
-            }),
-          ]);
-
-        // Build dues lookup
-        const studentDueMap = new Map<string, number>();
-        for (const inv of rawInvoices) {
-          const bal = parseFloat(inv.balanceAmount || "0");
-          if (bal > 0) {
-            studentDueMap.set(
-              inv.studentId,
-              (studentDueMap.get(inv.studentId) || 0) + bal,
-            );
-          }
-        }
-
-        // Build holds lookup
-        const holdsMap = new Map<string, string>();
-        for (const h of holdsRecords) {
-          holdsMap.set(h.studentId, h.reason);
-        }
-
-        // Build class lookup
-        const classMap = new Map<string, string>();
-        for (const c of classList) {
-          classMap.set(c.id, c.displayName);
-        }
-
-        const formattedSettings = settingsRecord
-          ? {
-              ...(settingsRecord.id ? { id: settingsRecord.id } : {}),
-              isReleased: settingsRecord.isReleased,
-              availableFrom: settingsRecord.availableFrom
-                ? settingsRecord.availableFrom.toISOString()
-                : null,
-              availableUntil: settingsRecord.availableUntil
-                ? settingsRecord.availableUntil.toISOString()
-                : null,
-              instructions: settingsRecord.instructions,
-              examCentre: settingsRecord.examCentre,
-              reportingTime: settingsRecord.reportingTime,
-              feeLockMode: settingsRecord.feeLockMode as "OFF" | "SOFT" | "HARD",
-              feeLockThresholdAmount: settingsRecord.feeLockThresholdAmount || "0",
-            }
-          : null;
-
-        const studentsList = rawStudents.map((st) => {
-          const first = decryptData(st.firstNameEncrypted) || "";
-          const last = decryptData(st.lastNameEncrypted) || "";
-          const fullName = `${first} ${last}`.trim() || "Student";
-          const due = studentDueMap.get(st.id) || 0;
-          const isHeld = holdsMap.has(st.id);
-          const holdReason = holdsMap.get(st.id) || null;
-          const className = st.currentClassId
-            ? classMap.get(st.currentClassId) || "Unassigned"
-            : "Unassigned";
-
-          return {
-            id: st.id,
-            rollNumber: st.rollNumber,
-            admissionNumber: st.admissionNumber,
-            name: fullName,
-            classId: st.currentClassId,
-            className,
-            dueAmount: due,
-            isHeld,
-            holdReason,
+            settings: formattedSettings,
+            studentsList,
           };
         });
-
-        return {
-          examsList: examsList.map((e) => ({ id: e.id, name: e.name })),
-          selectedExamId,
-          classList: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
-          settings: formattedSettings,
-          studentsList,
-        };
       },
       { maxQueries: 10 },
     );

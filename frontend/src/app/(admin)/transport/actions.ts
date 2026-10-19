@@ -21,6 +21,7 @@ import { assertConsent } from "@/server/middleware/consent";
 import { logAuditEvent } from "@/lib/auditLogger";
 import bcrypt from "bcryptjs";
 import { sendSMS } from "@/lib/sms";
+import { generateRoleTempPassword } from "@/lib/tempPassword";
 
 import { getClientRequestContext } from "@/lib/requestContext";
 
@@ -141,7 +142,7 @@ export async function registerDriver(data: {
     });
 
     if (!driverUser) {
-      const defaultPassword = `Driver@${mobileClean.slice(-4)}`;
+      const defaultPassword = generateRoleTempPassword("DRIVER", mobileClean);
       const passwordHash = await bcrypt.hash(defaultPassword, 12);
       const [u] = await tx
         .insert(users)
@@ -488,7 +489,7 @@ export async function createDriver(data: {
     return { success: false, message: `A user account with email "${loginEmail}" already exists.` };
   }
 
-  const defaultPassword = `Driver@${rawMobile.slice(-4)}`;
+  const defaultPassword = generateRoleTempPassword("DRIVER", rawMobile);
   const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
   const [newUser] = await db

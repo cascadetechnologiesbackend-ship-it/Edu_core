@@ -43,8 +43,8 @@ const mockClassesFindMany = vi.fn();
 const mockStudentsFindMany = vi.fn();
 const mockFeeInvoicesFindMany = vi.fn();
 
-vi.mock("@/db", () => ({
-  db: {
+vi.mock("@/db", () => {
+  const mockDb = {
     query: {
       classes: {
         findMany: (...args: any[]) => mockClassesFindMany(...args),
@@ -56,8 +56,12 @@ vi.mock("@/db", () => ({
         findMany: (...args: any[]) => mockFeeInvoicesFindMany(...args),
       },
     },
-  },
-}));
+  };
+  return {
+    db: mockDb,
+    withTenant: vi.fn(async (_schoolId: string, cb: any) => cb(mockDb)),
+  };
+});
 
 describe("S1-T2: POS searchStudentsAction Indexed Rewrite", () => {
   beforeEach(async () => {

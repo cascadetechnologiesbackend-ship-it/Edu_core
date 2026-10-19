@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { feeDiscounts, feeHeads, feeConcessions, classes } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -21,30 +21,35 @@ export default async function FeesDiscountPage() {
 
   const schoolId = session.user.schoolId;
 
-  const [discounts, heads, studentConcessions, allClasses] = await Promise.all([
-    db.query.feeDiscounts.findMany({
-      where: eq(feeDiscounts.schoolId, schoolId),
-      with: {
-        feeHead: true,
-      },
-      orderBy: [desc(feeDiscounts.createdAt)],
-    }),
-    db.query.feeHeads.findMany({
-      where: eq(feeHeads.schoolId, schoolId),
-      orderBy: [desc(feeHeads.priority)],
-    }),
-    db.query.feeConcessions.findMany({
-      where: eq(feeConcessions.schoolId, schoolId),
-      with: {
-        student: true,
-      },
-      orderBy: [desc(feeConcessions.createdAt)],
-      limit: 100,
-    }),
-    db.query.classes.findMany({
-      where: eq(classes.schoolId, schoolId),
-    }),
-  ]);
+  const [discounts, heads, studentConcessions, allClasses] = await withTenant(
+    schoolId,
+    async (tx) => {
+      return await Promise.all([
+        tx.query.feeDiscounts.findMany({
+          where: eq(feeDiscounts.schoolId, schoolId),
+          with: {
+            feeHead: true,
+          },
+          orderBy: [desc(feeDiscounts.createdAt)],
+        }),
+        tx.query.feeHeads.findMany({
+          where: eq(feeHeads.schoolId, schoolId),
+          orderBy: [desc(feeHeads.priority)],
+        }),
+        tx.query.feeConcessions.findMany({
+          where: eq(feeConcessions.schoolId, schoolId),
+          with: {
+            student: true,
+          },
+          orderBy: [desc(feeConcessions.createdAt)],
+          limit: 100,
+        }),
+        tx.query.classes.findMany({
+          where: eq(classes.schoolId, schoolId),
+        }),
+      ]);
+    }
+  );
 
   const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
 

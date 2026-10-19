@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   feeStructures,
   feeInvoices,
@@ -6,7 +6,7 @@ import {
   feeConcessions,
   academicYears,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import crypto from "crypto";
 
 /**
@@ -16,15 +16,34 @@ import crypto from "crypto";
  */
 export async function autoAssignFeeStructuresToStudent(
   studentId: string,
-  tx?: any
+  tx?: any,
+  schoolIdHint?: string
 ): Promise<number> {
   const executeLogic = async (currentTx: any) => {
+    if (typeof currentTx.execute === "function") {
+      if (schoolIdHint) {
+        await currentTx.execute(
+          sql`SELECT set_config('app.current_school_id', ${schoolIdHint}, true)`
+        );
+      } else {
+        await currentTx.execute(
+          sql`SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)`
+        );
+      }
+    }
+
     const student = await currentTx.query.students.findFirst({
       where: eq(students.id, studentId),
     });
 
     if (!student || !student.currentClassId || !student.isActive) {
       return 0;
+    }
+
+    if (typeof currentTx.execute === "function") {
+      await currentTx.execute(
+        sql`SELECT set_config('app.current_school_id', ${student.schoolId}, true)`
+      );
     }
 
     // Find active academic year for student
@@ -178,6 +197,10 @@ export async function autoAssignFeeStructuresForClass(
   tx?: any
 ): Promise<number> {
   const executeLogic = async (currentTx: any) => {
+    await currentTx.execute(
+      sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`
+    );
+
     const classStudents = await currentTx.query.students.findMany({
       where: and(
         eq(students.schoolId, schoolId),
@@ -188,7 +211,7 @@ export async function autoAssignFeeStructuresForClass(
 
     let totalGenerated = 0;
     for (const student of classStudents) {
-      const count = await autoAssignFeeStructuresToStudent(student.id, currentTx);
+      const count = await autoAssignFeeStructuresToStudent(student.id, currentTx, schoolId);
       totalGenerated += count;
     }
 
@@ -198,7 +221,7 @@ export async function autoAssignFeeStructuresForClass(
   if (tx) {
     return await executeLogic(tx);
   } else {
-    return await db.transaction(async (trx) => {
+    return await withTenant(schoolId, async (trx) => {
       return await executeLogic(trx);
     });
   }
@@ -211,14 +234,29 @@ export async function autoAssignFeeStructuresForClass(
  */
 export async function recalculateStudentInvoices(
   studentId: string,
-  tx?: any
+  tx?: any,
+  schoolIdHint?: string
 ): Promise<number> {
   const executeLogic = async (currentTx: any) => {
+    if (schoolIdHint) {
+      await currentTx.execute(
+        sql`SELECT set_config('app.current_school_id', ${schoolIdHint}, true)`
+      );
+    } else {
+      await currentTx.execute(
+        sql`SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)`
+      );
+    }
+
     const student = await currentTx.query.students.findFirst({
       where: eq(students.id, studentId),
     });
 
     if (!student || !student.isActive) return 0;
+
+    await currentTx.execute(
+      sql`SELECT set_config('app.current_school_id', ${student.schoolId}, true)`
+    );
 
     // Fetch all active concessions for this student
     const concessions = await currentTx.query.feeConcessions.findMany({

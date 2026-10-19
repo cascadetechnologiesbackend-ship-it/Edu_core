@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { feeStructures, feeHeads, classes, academicYears } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -15,27 +15,32 @@ export default async function AssignFeesPage() {
 
   const schoolId = session.user.schoolId;
 
-  const [activeYear, allClasses, allHeads, structures] = await Promise.all([
-    db.query.academicYears.findFirst({
-      where: and(eq(academicYears.schoolId, schoolId), eq(academicYears.isActive, true)),
-    }),
-    db.query.classes.findMany({
-      where: eq(classes.schoolId, schoolId),
-      orderBy: [asc(classes.sortOrder)],
-    }),
-    db.query.feeHeads.findMany({
-      where: eq(feeHeads.schoolId, schoolId),
-      orderBy: [desc(feeHeads.priority)],
-    }),
-    db.query.feeStructures.findMany({
-      where: eq(feeStructures.schoolId, schoolId),
-      with: {
-        class: true,
-        feeHead: true,
-      },
-      orderBy: [desc(feeStructures.createdAt)],
-    }),
-  ]);
+  const [activeYear, allClasses, allHeads, structures] = await withTenant(
+    schoolId,
+    async (tx) => {
+      return await Promise.all([
+        tx.query.academicYears.findFirst({
+          where: and(eq(academicYears.schoolId, schoolId), eq(academicYears.isActive, true)),
+        }),
+        tx.query.classes.findMany({
+          where: eq(classes.schoolId, schoolId),
+          orderBy: [asc(classes.sortOrder)],
+        }),
+        tx.query.feeHeads.findMany({
+          where: eq(feeHeads.schoolId, schoolId),
+          orderBy: [desc(feeHeads.priority)],
+        }),
+        tx.query.feeStructures.findMany({
+          where: eq(feeStructures.schoolId, schoolId),
+          with: {
+            class: true,
+            feeHead: true,
+          },
+          orderBy: [desc(feeStructures.createdAt)],
+        }),
+      ]);
+    }
+  );
 
   if (!activeYear) {
     return (

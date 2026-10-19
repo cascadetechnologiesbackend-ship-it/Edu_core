@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { classes, academicYears } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -17,15 +17,17 @@ export default async function GenerateDueSlipPage() {
 
   const schoolId = session.user.schoolId;
 
-  const [activeYear, allClasses] = await Promise.all([
-    db.query.academicYears.findFirst({
-      where: and(eq(academicYears.schoolId, schoolId), eq(academicYears.isActive, true)),
-    }),
-    db.query.classes.findMany({
-      where: eq(classes.schoolId, schoolId),
-      orderBy: [asc(classes.sortOrder)],
-    }),
-  ]);
+  const [activeYear, allClasses] = await withTenant(schoolId, async (tx) => {
+    return await Promise.all([
+      tx.query.academicYears.findFirst({
+        where: and(eq(academicYears.schoolId, schoolId), eq(academicYears.isActive, true)),
+      }),
+      tx.query.classes.findMany({
+        where: eq(classes.schoolId, schoolId),
+        orderBy: [asc(classes.sortOrder)],
+      }),
+    ]);
+  });
 
   if (!activeYear) return <div>No active academic session found.</div>;
 

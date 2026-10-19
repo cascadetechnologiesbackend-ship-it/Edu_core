@@ -17,7 +17,7 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
 import { sendSMSWithStatus } from "@/lib/sms";
 import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
-import { generateRandomTempPassword } from "@/lib/tempPassword";
+import { generateRoleTempPassword, generateRandomTempPassword } from "@/lib/tempPassword";
 import bcrypt from "bcryptjs";
 import { getClientRequestContext } from "@/lib/requestContext";
 
@@ -556,8 +556,16 @@ export async function resetStaffCredentialAction(input: {
     const defaultDashboard =
       ROLE_CONFIGS[primaryRole]?.defaultDashboard || "/dashboard";
 
-    // Generate random 8-char temp password (DECIDE-17)
-    const tempPassword = generateRandomTempPassword();
+    // Decrypt mobile number if available
+    let phone = "";
+    if (staffRecord?.mobileEncrypted) {
+      phone = decryptData(staffRecord.mobileEncrypted) || "";
+    } else if (targetUser.mobileEncrypted) {
+      phone = decryptData(targetUser.mobileEncrypted) || "";
+    }
+
+    // Generate role-based temp password: Role@<last4mobile> (fallback to 1234)
+    const tempPassword = generateRoleTempPassword(primaryRole, phone);
     const passwordHash = await bcrypt.hash(tempPassword, 12);
 
     await db.transaction(async (tx) => {
@@ -575,14 +583,6 @@ export async function resetStaffCredentialAction(input: {
       // Revoke existing sessions so old credentials cannot continue
       await tx.delete(sessions).where(eq(sessions.userId, targetUser.id));
     });
-
-    // Decrypt mobile number if available
-    let phone = "";
-    if (staffRecord?.mobileEncrypted) {
-      phone = decryptData(staffRecord.mobileEncrypted) || "";
-    } else if (targetUser.mobileEncrypted) {
-      phone = decryptData(targetUser.mobileEncrypted) || "";
-    }
 
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
     const smsMessage = `Welcome to ${school.name}! Your credentials have been reset. Role: ${roleDisplayName}. Login: ${targetUser.email} / Temp password: ${tempPassword}. Dashboard: ${defaultDashboard}. You must change your password on first login.`;

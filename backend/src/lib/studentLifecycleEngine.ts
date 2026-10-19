@@ -60,6 +60,7 @@ import {
   computeSearchHash,
 } from "./encryption";
 import { withTenant } from "./tenant";
+import { generateRoleTempPassword } from "./tempPassword";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -429,10 +430,10 @@ export class StudentLifecycleEngine {
         });
 
         if (!parentUser) {
-          // Cryptographically random claim token and unguessable credential
+          // Cryptographically random claim token and role-based initial credential (Parent@<last4mobile>)
           const claimToken = crypto.randomBytes(32).toString("hex");
           const tokenHash = crypto.createHash("sha256").update(claimToken).digest("hex");
-          const tempPassword = `P@ss-${crypto.randomBytes(6).toString("hex")}!`;
+          const tempPassword = generateRoleTempPassword("PARENT", primaryMobile);
           const passwordHash = await bcrypt.hash(tempPassword, 12);
 
           const [createdUser] = await tx

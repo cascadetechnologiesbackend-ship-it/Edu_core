@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   reportCardSetups,
   resultSnapshots,
@@ -6,6 +6,7 @@ import {
   resultHolds,
   classes,
   students,
+  schools,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Metadata } from "next";
@@ -47,121 +48,130 @@ export default async function ReportCardsAdminPage({
     redirect(access.redirectUrl || "/login");
   }
 
-  const schoolId = ctx.schoolId || "";
+  let schoolId = ctx.schoolId || "";
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    const activeSchool = await db.query.schools.findFirst({
+      where: eq(schools.isActive, true),
+      columns: { id: true },
+    });
+    schoolId = activeSchool?.id || "";
+  }
 
   const data = await withDataPhaseTiming("/exams/report-cards", async () => {
     return assertQueryBudget(
       async () => {
-        const setupsList = await db.query.reportCardSetups.findMany({
-          where: eq(reportCardSetups.schoolId, schoolId),
-          orderBy: (t, { desc }) => [desc(t.createdAt)],
-        });
+        return await withTenant(schoolId, async (tx) => {
+          const setupsList = await tx.query.reportCardSetups.findMany({
+            where: eq(reportCardSetups.schoolId, schoolId),
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+          });
 
-        const selectedSetupId =
-          searchParams.setupId && setupsList.some((s) => s.id === searchParams.setupId)
-            ? searchParams.setupId
-            : setupsList[0]?.id || "";
+          const selectedSetupId =
+            searchParams.setupId && setupsList.some((s) => s.id === searchParams.setupId)
+              ? searchParams.setupId
+              : setupsList[0]?.id || "";
 
-        const classList = await db.query.classes.findMany({
-          where: eq(classes.schoolId, schoolId),
-          orderBy: (t, { asc }) => [asc(t.displayName)],
-        });
+          const classList = await tx.query.classes.findMany({
+            where: eq(classes.schoolId, schoolId),
+            orderBy: (t, { asc }) => [asc(t.displayName)],
+          });
 
-        const selectedClassId =
-          searchParams.classId && classList.some((c) => c.id === searchParams.classId)
-            ? searchParams.classId
-            : classList[0]?.id || "";
+          const selectedClassId =
+            searchParams.classId && classList.some((c) => c.id === searchParams.classId)
+              ? searchParams.classId
+              : classList[0]?.id || "";
 
-        if (!selectedSetupId || !selectedClassId) {
+          if (!selectedSetupId || !selectedClassId) {
+            return {
+              setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
+              selectedSetupId,
+              classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
+              selectedClassId,
+              snapshots: [],
+              settings: null,
+            };
+          }
+
+          const [rawSnapshots, holdsList, settingsRecord, rawStudents] =
+            await Promise.all([
+              tx.query.resultSnapshots.findMany({
+                where: and(
+                  eq(resultSnapshots.schoolId, schoolId),
+                  eq(resultSnapshots.setupId, selectedSetupId),
+                  eq(resultSnapshots.isCurrent, true),
+                ),
+                orderBy: (t, { desc }) => [desc(t.version)],
+              }),
+              tx.query.resultHolds.findMany({
+                where: and(
+                  eq(resultHolds.schoolId, schoolId),
+                  eq(resultHolds.setupId, selectedSetupId),
+                ),
+              }),
+              tx.query.resultSettings.findFirst({
+                where: and(
+                  eq(resultSettings.schoolId, schoolId),
+                  eq(resultSettings.setupId, selectedSetupId),
+                ),
+              }),
+              tx.query.students.findMany({
+                where: and(
+                  eq(students.schoolId, schoolId),
+                  eq(students.currentClassId, selectedClassId),
+                  eq(students.isActive, true),
+                ),
+              }),
+            ]);
+
+          const holdsMap = new Map(holdsList.map((h) => [h.studentId, h.reason]));
+          const studentsMap = new Map(rawStudents.map((s) => [s.id, s]));
+
+          // Filter snapshots belonging to students in selected class
+          const snapshotsForClass: SnapshotItem[] = rawSnapshots
+            .filter((snap) => studentsMap.has(snap.studentId))
+            .map((snap) => {
+              const st = studentsMap.get(snap.studentId);
+              const first = st ? decryptData(st.firstNameEncrypted) || "" : "";
+              const last = st ? decryptData(st.lastNameEncrypted) || "" : "";
+              const fullName = `${first} ${last}`.trim() || "Student";
+
+              return {
+                id: snap.id,
+                studentId: snap.studentId,
+                studentName: fullName,
+                rollNumber: st?.rollNumber || null,
+                admissionNumber: st?.admissionNumber || "",
+                version: snap.version,
+                isCurrent: snap.isCurrent,
+                frozenAt: snap.frozenAt.toISOString(),
+                payload: snap.payload,
+                isHeld: holdsMap.has(snap.studentId),
+                holdReason: holdsMap.get(snap.studentId) || null,
+              };
+            });
+
+          const formattedSettings = settingsRecord
+            ? {
+                withholdAll: settingsRecord.withholdAll,
+                releaseAt: settingsRecord.releaseAt
+                  ? settingsRecord.releaseAt.toISOString()
+                  : null,
+                feeLockMode: settingsRecord.feeLockMode as "OFF" | "SOFT" | "HARD",
+                feeLockThresholdAmount: settingsRecord.feeLockThresholdAmount || "0",
+                publicLookupEnabled: settingsRecord.publicLookupEnabled,
+                publicToppersEnabled: settingsRecord.publicToppersEnabled,
+              }
+            : null;
+
           return {
             setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
             selectedSetupId,
             classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
             selectedClassId,
-            snapshots: [],
-            settings: null,
+            snapshots: snapshotsForClass,
+            settings: formattedSettings,
           };
-        }
-
-        const [rawSnapshots, holdsList, settingsRecord, rawStudents] =
-          await Promise.all([
-            db.query.resultSnapshots.findMany({
-              where: and(
-                eq(resultSnapshots.schoolId, schoolId),
-                eq(resultSnapshots.setupId, selectedSetupId),
-                eq(resultSnapshots.isCurrent, true),
-              ),
-              orderBy: (t, { desc }) => [desc(t.version)],
-            }),
-            db.query.resultHolds.findMany({
-              where: and(
-                eq(resultHolds.schoolId, schoolId),
-                eq(resultHolds.setupId, selectedSetupId),
-              ),
-            }),
-            db.query.resultSettings.findFirst({
-              where: and(
-                eq(resultSettings.schoolId, schoolId),
-                eq(resultSettings.setupId, selectedSetupId),
-              ),
-            }),
-            db.query.students.findMany({
-              where: and(
-                eq(students.schoolId, schoolId),
-                eq(students.currentClassId, selectedClassId),
-                eq(students.isActive, true),
-              ),
-            }),
-          ]);
-
-        const holdsMap = new Map(holdsList.map((h) => [h.studentId, h.reason]));
-        const studentsMap = new Map(rawStudents.map((s) => [s.id, s]));
-
-        // Filter snapshots belonging to students in selected class
-        const snapshotsForClass: SnapshotItem[] = rawSnapshots
-          .filter((snap) => studentsMap.has(snap.studentId))
-          .map((snap) => {
-            const st = studentsMap.get(snap.studentId);
-            const first = st ? decryptData(st.firstNameEncrypted) || "" : "";
-            const last = st ? decryptData(st.lastNameEncrypted) || "" : "";
-            const fullName = `${first} ${last}`.trim() || "Student";
-
-            return {
-              id: snap.id,
-              studentId: snap.studentId,
-              studentName: fullName,
-              rollNumber: st?.rollNumber || null,
-              admissionNumber: st?.admissionNumber || "",
-              version: snap.version,
-              isCurrent: snap.isCurrent,
-              frozenAt: snap.frozenAt.toISOString(),
-              payload: snap.payload,
-              isHeld: holdsMap.has(snap.studentId),
-              holdReason: holdsMap.get(snap.studentId) || null,
-            };
-          });
-
-        const formattedSettings = settingsRecord
-          ? {
-              withholdAll: settingsRecord.withholdAll,
-              releaseAt: settingsRecord.releaseAt
-                ? settingsRecord.releaseAt.toISOString()
-                : null,
-              feeLockMode: settingsRecord.feeLockMode as "OFF" | "SOFT" | "HARD",
-              feeLockThresholdAmount: settingsRecord.feeLockThresholdAmount || "0",
-              publicLookupEnabled: settingsRecord.publicLookupEnabled,
-              publicToppersEnabled: settingsRecord.publicToppersEnabled,
-            }
-          : null;
-
-        return {
-          setups: setupsList.map((s) => ({ id: s.id, name: s.name })),
-          selectedSetupId,
-          classes: classList.map((c) => ({ id: c.id, displayName: c.displayName })),
-          selectedClassId,
-          snapshots: snapshotsForClass,
-          settings: formattedSettings,
-        };
+        });
       },
       { maxQueries: 10 },
     );

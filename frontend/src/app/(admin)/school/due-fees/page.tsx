@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { feeInvoices, classes } from "@/db/schema";
 import { eq, and, inArray, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -34,11 +34,35 @@ export default async function DueFeesPage({
   const data = await withDataPhaseTiming("/school/due-fees", async () => {
     return assertQueryBudget(
       async () => {
-        // 1. Fetch classes in parallel
-        const allClasses = await db.query.classes.findMany({
-          where: eq(classes.schoolId, schoolId),
-          orderBy: [asc(classes.sortOrder)],
-        });
+        // 1 & 3: Fetch classes and pending invoices in parallel under tenant context
+        const { allClasses, pendingInvoices } = await withTenant(
+          schoolId,
+          async (tx) => {
+            const [classesRows, invoicesRows] = await Promise.all([
+              tx.query.classes.findMany({
+                where: eq(classes.schoolId, schoolId),
+                orderBy: [asc(classes.sortOrder)],
+              }),
+              tx.query.feeInvoices.findMany({
+                where: and(
+                  eq(feeInvoices.schoolId, schoolId),
+                  inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"])
+                ),
+                with: {
+                  student: true,
+                  feeStructure: {
+                    with: {
+                      feeHead: true,
+                    },
+                  },
+                },
+                orderBy: [asc(feeInvoices.dueDate)],
+                limit: 100, // Keyset / bounded window
+              }),
+            ]);
+            return { allClasses: classesRows, pendingInvoices: invoicesRows };
+          }
+        );
 
         // 2. Fetch or compute S2 cached bucket totals (PF-R80)
         let bucketSummary = await getCachedFinanceData<DuesBucketSummary>(
@@ -46,24 +70,6 @@ export default async function DueFeesPage({
           "dues_buckets",
           searchParams.classId || "all"
         );
-
-        // 3. Keyset paging on pending invoices (limit 50 per page, PF-R82)
-        const pendingInvoices = await db.query.feeInvoices.findMany({
-          where: and(
-            eq(feeInvoices.schoolId, schoolId),
-            inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"])
-          ),
-          with: {
-            student: true,
-            feeStructure: {
-              with: {
-                feeHead: true,
-              },
-            },
-          },
-          orderBy: [asc(feeInvoices.dueDate)],
-          limit: 100, // Keyset / bounded window
-        });
 
         const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
         const now = new Date().getTime();
