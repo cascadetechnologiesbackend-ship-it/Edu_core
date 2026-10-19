@@ -1,0 +1,25 @@
+{
+  "name": "@schoolmitra/entity-engine",
+  "version": "11.13.2",
+  "private": true,
+  "description": "Database Schema Entity Catalog, Relationship Graph, Query NER, and DPDP PII Scanner for SchoolMitra ERP",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./catalog": "./src/catalog/index.ts",
+    "./query-ner": "./src/query-ner/index.ts",
+    "./dpdp-ner": "./src/dpdp-ner/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
