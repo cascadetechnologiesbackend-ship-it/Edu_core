@@ -74,6 +74,11 @@ const DEFAULT_ICONS: Record<string, React.ReactNode> = {
   StopChangeCard: <Navigation className="w-5 h-5 text-amber-400" />,
   DocumentRequestCard: <FileText className="w-5 h-5 text-amber-400" />,
   ProfileChangeCard: <UserCheck className="w-5 h-5 text-indigo-400" />,
+  HomeworkPostCard: <FileText className="w-5 h-5 text-blue-400" />,
+  ClassworkPostCard: <CalendarCheck className="w-5 h-5 text-emerald-400" />,
+  SyllabusCoverageCard: <Sparkles className="w-5 h-5 text-purple-400" />,
+  CurriculumProgressCard: <Sparkles className="w-5 h-5 text-indigo-400" />,
+  AssessmentScheduledCard: <Award className="w-5 h-5 text-pink-400" />,
 };
 
 export function FeedCard({

@@ -262,8 +262,8 @@ describe("Phase P11: PTM Slot Booking, Optimistic Locking (AC-P17) & Real Venue 
       "../../../../../packages/entity-engine/src/catalog/entityGraph.ts"
     );
     const entityGraphContent = fs.readFileSync(entityGraphPath, "utf-8");
-    expect(entityGraphContent).toContain("ptm_events:");
-    expect(entityGraphContent).toContain("ptm_slots:");
-    expect(entityGraphContent).toContain("ptm_bookings:");
+    expect(entityGraphContent).toContain('"ptm_events":');
+    expect(entityGraphContent).toContain('"ptm_slots":');
+    expect(entityGraphContent).toContain('"ptm_bookings":');
   });
 });

@@ -80,7 +80,7 @@ export default async function ParentDashboardPage({
   // 1. Identify the parent's wards using unified resolver
   const wards = await resolveParentWards(ctx, school.id, searchParams?.studentId);
 
-  if (wards.length === 0) {
+    // D7 FIX: Admins / Principals previewing parent portal require explicit ?studentId=
     if (ctx.role !== "PARENT") {
       return (
         <div className="py-12 text-center" data-testid="admin-preview-prompt">
