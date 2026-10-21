@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
@@ -13,13 +13,35 @@ import {
   Layers,
   ArrowRight,
   Sparkles,
+  Zap,
+  Tag,
 } from "lucide-react";
 import { searchEverything, type SearchResultItem } from "@/app/(admin)/actions/searchEverything";
 import { cn } from "@/lib/utils";
+// parseOmniboxQuery is client-safe (pure, no server imports)
+// catalog and dpdp-ner are NEVER imported here (AC-E3 bundle hygiene)
+import { parseOmniboxQuery, type ParsedQuery, type RecognizedEntity } from "@schoolmitra/entity-engine/query-ner";
 
 export interface CommandPaletteProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+}
+
+const INTENT_CONFIDENCE_THRESHOLD = 0.80;
+const isDev = process.env.NEXT_PUBLIC_DEBUG_NER === "true";
+
+/** Map EntityType to a friendly label color class. */
+function entityChipClass(type: RecognizedEntity["type"]): string {
+  switch (type) {
+    case "CLASS_SECTION": return "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300";
+    case "SUBJECT": return "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300";
+    case "EXAM_NAME": return "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300";
+    case "FEE_HEAD": return "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300";
+    case "BUS_ROUTE": return "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300";
+    case "DATE_TEMPORAL": return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300";
+    case "ACTION_INTENT": return "bg-primary/10 text-primary dark:text-blue-400";
+    default: return "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300";
+  }
 }
 
 export function CommandPalette({
@@ -63,7 +85,19 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Initial load or search debounced
+  // NER parse runs synchronously on every keystroke (< 5ms, no debounce)
+  const parsed: ParsedQuery | null = useMemo(() => {
+    if (!query.trim()) return null;
+    return parseOmniboxQuery(query);
+  }, [query]);
+
+  // High-confidence intent to show as pinned row
+  const intentResult =
+    parsed && parsed.confidenceScore >= INTENT_CONFIDENCE_THRESHOLD && parsed.targetRoute
+      ? parsed
+      : null;
+
+  // searchEverything: 150ms debounce, unchanged
   useEffect(() => {
     if (!isOpen) return;
 
@@ -94,6 +128,29 @@ export function CommandPalette({
     if (item.badge === "Setup") return <PlusCircle className="w-4 h-4 text-primary" />;
     if (item.badge === "Matrix") return <Layers className="w-4 h-4 text-indigo-500" />;
     return <Sparkles className="w-4 h-4 text-gray-400" />;
+  };
+
+  // Render entity chips for the intent row
+  const renderEntityChips = (entities: RecognizedEntity[]) => {
+    // Filter out ACTION_INTENT itself — it's already shown as the actionLabel
+    const chips = entities.filter((e) => e.type !== "ACTION_INTENT");
+    if (chips.length === 0) return null;
+    return (
+      <div className="flex items-center gap-1 flex-wrap mt-1">
+        {chips.map((e, i) => (
+          <span
+            key={i}
+            className={cn(
+              "inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md",
+              entityChipClass(e.type)
+            )}
+          >
+            <Tag className="w-2.5 h-2.5" />
+            {e.normalized}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -134,6 +191,49 @@ export function CommandPalette({
             <Command.Empty className="py-8 text-center text-xs text-gray-400">
               No matching classes, subjects, students or actions found.
             </Command.Empty>
+
+            {/* ── PINNED INTENT ROW (AC-E1) ─────────────────────────────────── */}
+            {intentResult && (
+              <Command.Group
+                heading="Smart Action"
+                className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-blue-400 px-2 py-1"
+              >
+                <Command.Item
+                  // value includes actionLabel + all entity chip texts for keyboard search
+                  value={[
+                    intentResult.actionLabel,
+                    ...intentResult.recognizedEntities.map((e) => e.normalized),
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onSelect={() => handleSelect(intentResult.targetRoute!)}
+                  className={cn(
+                    "p-3 rounded-xl flex items-start justify-between text-xs cursor-pointer transition group",
+                    "border border-primary/30 dark:border-blue-700/50 bg-primary/5 dark:bg-blue-950/30",
+                    "hover:bg-primary/10 dark:hover:bg-blue-950/50",
+                    "aria-selected:bg-primary/10 dark:aria-selected:bg-blue-950/50"
+                  )}
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="p-2 rounded-lg bg-primary/10 dark:bg-blue-900/40 text-primary dark:text-blue-400 shrink-0 mt-0.5">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-gray-900 dark:text-white truncate">
+                        {intentResult.actionLabel}
+                      </div>
+                      {renderEntityChips(intentResult.recognizedEntities)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2 mt-1">
+                    <span className="text-[10px] font-semibold text-primary dark:text-blue-400 bg-primary/10 dark:bg-blue-900/40 px-1.5 py-0.5 rounded">
+                      ↵ Go
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-primary dark:text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </Command.Item>
+              </Command.Group>
+            )}
 
             {/* Jump To Group */}
             {jumpToItems.length > 0 && (
@@ -219,6 +319,12 @@ export function CommandPalette({
             <div className="flex items-center gap-2">
               <span>Navigate: ↑↓</span>
               <span>Select: ↵</span>
+              {/* Dev-only NER parse timing (NEXT_PUBLIC_DEBUG_NER=true) */}
+              {isDev && parsed && (
+                <span className="text-primary/70 dark:text-blue-400/70 font-mono">
+                  parsed in {parsed.parseDurationMs}ms
+                </span>
+              )}
             </div>
           </div>
         </Command>

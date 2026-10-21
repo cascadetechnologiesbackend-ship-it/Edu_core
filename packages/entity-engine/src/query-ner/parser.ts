@@ -9,6 +9,7 @@ import {
   SUBJECT_DICTIONARY,
   TokenDictionaryEntry,
 } from "./patterns";
+import { ROUTE_REGISTRY } from "./routes";
 import {
   EntityType,
   IntentType,
@@ -300,8 +301,9 @@ function resolveIntentAndRoute(
     };
   }
 
-  // Scenario B: Implicit Intent from recognized entities
+  // Scenario B: Implicit Intent from recognized entities (uses ROUTE_REGISTRY — no hardcoded paths)
   if (busEntity) {
+    const base = ROUTE_REGISTRY["TRACK_BUS"];
     return {
       intent: {
         type: "TRACK_BUS",
@@ -309,13 +311,14 @@ function resolveIntentAndRoute(
         confidence: 0.88,
         description: `Track ${busEntity.normalized}`,
       },
-      route: `/admin/transport/live${queryString}`,
+      route: `${base}${queryString}`,
       actionLabel: `Track ${busEntity.normalized}`,
       confidence: 0.88,
     };
   }
 
   if (feeEntity) {
+    const base = ROUTE_REGISTRY["VIEW_FEE_DUES"];
     return {
       intent: {
         type: "VIEW_FEE_DUES",
@@ -323,13 +326,14 @@ function resolveIntentAndRoute(
         confidence: 0.85,
         description: `View fee dues for ${feeEntity.normalized}`,
       },
-      route: `/admin/fees/dues${queryString}`,
+      route: `${base}${queryString}`,
       actionLabel: `Inspect ${feeEntity.normalized} Dues`,
       confidence: 0.85,
     };
   }
 
   if (examEntity && classEntity) {
+    const base = ROUTE_REGISTRY["VIEW_MARKS"];
     return {
       intent: {
         type: "VIEW_MARKS",
@@ -337,13 +341,14 @@ function resolveIntentAndRoute(
         confidence: 0.88,
         description: `View ${examEntity.normalized} marks for ${classEntity.normalized}`,
       },
-      route: `/admin/exams/marks${queryString}`,
+      route: `${base}${queryString}`,
       actionLabel: `View ${examEntity.normalized} Marks for ${classEntity.normalized}`,
       confidence: 0.88,
     };
   }
 
   if (examEntity) {
+    const base = ROUTE_REGISTRY["VIEW_MARKS"];
     return {
       intent: {
         type: "VIEW_MARKS",
@@ -351,13 +356,14 @@ function resolveIntentAndRoute(
         confidence: 0.82,
         description: `View examination details for ${examEntity.normalized}`,
       },
-      route: `/admin/exams/results${queryString}`,
+      route: `${base}${queryString}`,
       actionLabel: `View ${examEntity.normalized} Results`,
       confidence: 0.82,
     };
   }
 
   if (classEntity) {
+    const base = ROUTE_REGISTRY["VIEW_STUDENT_PROFILE"];
     return {
       intent: {
         type: "VIEW_STUDENT_PROFILE",
@@ -365,13 +371,13 @@ function resolveIntentAndRoute(
         confidence: 0.80,
         description: `View students enrolled in ${classEntity.normalized}`,
       },
-      route: `/admin/students${queryString}`,
+      route: `${base}${queryString}`,
       actionLabel: `Open ${classEntity.normalized} Roster`,
       confidence: 0.80,
     };
   }
 
-  // General fallback search
+  // General fallback — SEARCH_GENERAL emits NO route; the palette shows searchEverything results.
   return {
     intent: {
       type: "SEARCH_GENERAL",
@@ -379,7 +385,7 @@ function resolveIntentAndRoute(
       confidence: 0.50,
       description: `Search across records for "${rawQuery}"`,
     },
-    route: `/admin/search?q=${encodeURIComponent(rawQuery)}`,
+    route: undefined,
     actionLabel: `Search for "${rawQuery}"`,
     confidence: 0.50,
   };

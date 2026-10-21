@@ -174,7 +174,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "EXAMINATIONS",
     metadata: {
       action: "ENTER_MARKS",
-      route: "/admin/exams/marks",
+      route: "/exams/marks",
       label: "Open Marks Entry",
     },
   },
@@ -187,7 +187,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "EXAMINATIONS",
     metadata: {
       action: "VIEW_MARKS",
-      route: "/admin/exams/results",
+      route: "/exams/results",
       label: "View Examination Results",
     },
   },
@@ -200,7 +200,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "EXAMINATIONS",
     metadata: {
       action: "VIEW_REPORT_CARD",
-      route: "/admin/exams/report-cards",
+      route: "/exams/report-cards",
       label: "Generate / View Report Cards",
     },
   },
@@ -213,7 +213,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "EXAMINATIONS",
     metadata: {
       action: "MANAGE_EXAM_SCHEDULE",
-      route: "/admin/exams/schedule",
+      route: "/exams/schedule",
       label: "Manage Exam Schedule & Timetable",
     },
   },
@@ -226,7 +226,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "ATTENDANCE",
     metadata: {
       action: "TAKE_ATTENDANCE",
-      route: "/admin/attendance/entry",
+      route: "/attendance",
       label: "Mark Class Attendance",
     },
   },
@@ -239,7 +239,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "ATTENDANCE",
     metadata: {
       action: "VIEW_ATTENDANCE",
-      route: "/admin/attendance/reports",
+      route: "/attendance",
       label: "View Attendance Reports",
     },
   },
@@ -252,7 +252,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "FEES_FINANCE",
     metadata: {
       action: "COLLECT_FEE",
-      route: "/admin/fees/collect",
+      route: "/fees/collect",
       label: "Collect / Record Fee Payment",
     },
   },
@@ -265,7 +265,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "FEES_FINANCE",
     metadata: {
       action: "VIEW_FEE_DUES",
-      route: "/admin/fees/dues",
+      route: "/fees",
       label: "View Pending Fee Dues",
     },
   },
@@ -278,7 +278,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "TRANSPORT",
     metadata: {
       action: "TRACK_BUS",
-      route: "/admin/transport/live",
+      route: "/transport",
       label: "Open Live Transport GPS Tracking",
     },
   },
@@ -291,7 +291,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "ACADEMICS",
     metadata: {
       action: "VIEW_TIMETABLE",
-      route: "/admin/academics/timetable",
+      route: "/academics",
       label: "View Timetable & Schedules",
     },
   },
@@ -304,7 +304,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "COMMUNICATION",
     metadata: {
       action: "CREATE_NOTICE",
-      route: "/admin/communication/notices/new",
+      route: "/communication/notices",
       label: "Create Broadcast Notice",
     },
   },
@@ -317,7 +317,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "STUDENTS_LIFECYCLE",
     metadata: {
       action: "VIEW_STUDENT_PROFILE",
-      route: "/admin/students",
+      route: "/students",
       label: "Search & View Student 360 Profile",
     },
   },
@@ -330,7 +330,7 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     category: "HR_STAFF",
     metadata: {
       action: "VIEW_STAFF_PROFILE",
-      route: "/admin/staff",
+      route: "/hr",
       label: "Staff Directory & HR Profiles",
     },
   },
