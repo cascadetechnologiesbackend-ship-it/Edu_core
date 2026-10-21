@@ -14,6 +14,8 @@ import { NoticeCard } from "./NoticeCard";
 import { ConsentCard } from "./ConsentCard";
 import { InsightCard } from "./InsightCard";
 import { MessageCard } from "./MessageCard";
+import { LeaveApprovedCard } from "./LeaveApprovedCard";
+import { LeaveRejectedCard } from "./LeaveRejectedCard";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -204,6 +206,28 @@ export function ParentFeedContainer({
                 <MessageCard
                   key={card.id}
                   card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "LeaveApprovedCard") {
+              return (
+                <LeaveApprovedCard
+                  key={card.id}
+                  card={card}
+                  studentName={currentStudent.name}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "LeaveRejectedCard") {
+              return (
+                <LeaveRejectedCard
+                  key={card.id}
+                  card={card}
+                  studentName={currentStudent.name}
                   locale={locale}
                 />
               );

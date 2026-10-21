@@ -666,6 +666,28 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
     rlsPoliciesAdded: ["rls_student_addresses"],
     breakingChange: false,
   },
+  {
+    index: 44,
+    tag: "0044_student_leave_requests",
+    filename: "0044_student_leave_requests.sql",
+    domain: "ATTENDANCE",
+    title: "Student Leave Requests & Absence Suppression",
+    description: "Parent-initiated leave applications, teacher approval queue, strict RLS isolation, and automated attendance suppression.",
+    tablesCreated: ["student_leave_requests"],
+    tablesAltered: [],
+    foreignKeysAdded: [
+      { sourceTable: "student_leave_requests", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id" },
+      { sourceTable: "student_leave_requests", sourceColumn: "student_id", targetTable: "students", targetColumn: "id" },
+      { sourceTable: "student_leave_requests", sourceColumn: "requested_by_parent_user_id", targetTable: "users", targetColumn: "id" },
+      { sourceTable: "student_leave_requests", sourceColumn: "decided_by_user_id", targetTable: "users", targetColumn: "id" },
+    ],
+    indexesCreated: [
+      "student_leave_requests_student_status_idx",
+      "student_leave_requests_school_status_created_idx",
+    ],
+    rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
+    breakingChange: false,
+  },
 ];
 
 export function getMigrationByIndex(idx: number): MigrationMetadata | undefined {

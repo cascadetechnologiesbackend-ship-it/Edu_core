@@ -10,9 +10,10 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { isNotNull } from "drizzle-orm";
-import { schools, academicYears } from "./core";
+import { schools, academicYears, users } from "./core";
 import { sections } from "./academics";
 import { examSchedules } from "./examinations";
+import { students } from "./students";
 
 export const attendanceStatusEnum = pgEnum("attendance_status", [
   "PRESENT",
@@ -21,6 +22,20 @@ export const attendanceStatusEnum = pgEnum("attendance_status", [
   "HALF_DAY",
   "LEAVE",
   "HOLIDAY",
+]);
+
+export const studentLeaveTypeEnum = pgEnum("student_leave_type", [
+  "CASUAL",
+  "SICK",
+  "EMERGENCY",
+  "OTHER",
+]);
+
+export const leaveRequestStatusEnum = pgEnum("student_leave_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED_BY_PARENT",
 ]);
 
 export const studentAttendance = pgTable(
@@ -135,3 +150,47 @@ export const attendanceNotifications = pgTable("attendance_notifications", {
     .notNull()
     .defaultNow(),
 });
+
+// Student Leave Requests (Workflow OP3 per Parent PWA Spec v1.2)
+export const studentLeaveRequests = pgTable(
+  "student_leave_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    requestedByParentUserId: uuid("requested_by_parent_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    leaveType: studentLeaveTypeEnum("leave_type").notNull(),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+    reason: text("reason").notNull(),
+    attachmentS3Key: text("attachment_s3_key"),
+    status: leaveRequestStatusEnum("status").notNull().default("PENDING"),
+    decidedByUserId: uuid("decided_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    decisionNote: text("decision_note"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    studentStatusIdx: index("student_leave_requests_student_status_idx").on(
+      t.studentId,
+      t.status
+    ),
+    schoolStatusCreatedIdx: index(
+      "student_leave_requests_school_status_created_idx"
+    ).on(t.schoolId, t.status, t.createdAt),
+  })
+);
+

@@ -31,6 +31,13 @@ const MORE_LINKS = [
         color: "text-rose-400 bg-rose-500/10 border-rose-500/20",
       },
       {
+        title: "Student Leave Requests",
+        description: "Apply for planned leave and track teacher approval status",
+        href: "/parent/more/leave",
+        icon: CalendarCheck,
+        color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+      },
+      {
         title: "Documents & Report Cards",
         description: "Exams, term report cards, and homework submissions",
         href: "/parent/documents",

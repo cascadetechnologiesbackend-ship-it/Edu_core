@@ -6,6 +6,7 @@ import {
   studentClassHistory,
   students,
   studentAttendance,
+  studentLeaveRequests,
   academicYears,
   classSubjects,
   sectionSubjectTeachers,
@@ -135,8 +136,8 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
     throw new Error("No active academic year found.");
   }
 
-  // Fetch history and attendance records in parallel
-  const [history, attendanceRecords] = await Promise.all([
+  // Fetch history, attendance records, and approved leaves in parallel
+  const [history, attendanceRecords, approvedLeaves] = await Promise.all([
     db.query.studentClassHistory.findMany({
       where: and(
         eq(studentClassHistory.sectionId, sectionId),
@@ -156,6 +157,14 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
         ),
       ),
     }),
+    db.query.studentLeaveRequests.findMany({
+      where: and(
+        eq(studentLeaveRequests.schoolId, school.id),
+        eq(studentLeaveRequests.status, "APPROVED"),
+        sql`${studentLeaveRequests.startDate} <= ${endOfDay}`,
+        sql`${studentLeaveRequests.endDate} >= ${startOfDay}`,
+      ),
+    }),
   ]);
 
   const attendanceMap = new Map(
@@ -165,11 +174,20 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
     ]),
   );
 
+  const approvedLeaveMap = new Map(
+    approvedLeaves.map((l) => [l.studentId, l.reason]),
+  );
+
   // Map history back to a decrypted student list with existing attendance status
   return history
     .map((h) => {
       const student = h.student;
       const record = attendanceMap.get(student.id);
+      const approvedReason = approvedLeaveMap.get(student.id);
+
+      // AC-P16: Pre-populate planned LEAVE if approved leave exists and not yet manually marked
+      const resolvedStatus = record?.status || (approvedReason ? "LEAVE" : null);
+      const resolvedRemarks = record?.remarks || (approvedReason ? `Planned Leave: ${approvedReason}` : "");
 
       return {
         studentId: student.id,
@@ -177,8 +195,8 @@ export async function getSectionStudents(sectionId: string, dateStr: string) {
         firstName: decryptData(student.firstNameEncrypted) || "Unknown",
         lastName: decryptData(student.lastNameEncrypted) || "",
         admissionNumber: student.admissionNumber,
-        attendanceStatus: record?.status || null,
-        remarks: record?.remarks || "",
+        attendanceStatus: resolvedStatus,
+        remarks: resolvedRemarks,
         attendanceRecordId: record?.id || null,
       };
     })
@@ -290,19 +308,46 @@ export async function markSectionAttendance(
     existingRecords.map((r) => [r.studentId, r]),
   );
 
+  // AC-P16: Fetch approved leaves covering this date to enforce planned leave & suppress absence alerts
+  const approvedLeaves = await db
+    .select({
+      studentId: studentLeaveRequests.studentId,
+      reason: studentLeaveRequests.reason,
+    })
+    .from(studentLeaveRequests)
+    .where(
+      and(
+        eq(studentLeaveRequests.schoolId, school.id),
+        inArray(studentLeaveRequests.studentId, studentIds),
+        eq(studentLeaveRequests.status, "APPROVED"),
+        sql`${studentLeaveRequests.startDate} <= ${endOfDay}`,
+        sql`${studentLeaveRequests.endDate} >= ${startOfDay}`
+      )
+    );
+  const approvedLeaveMap = new Map(approvedLeaves.map((l) => [l.studentId, l.reason]));
+
   // Execute bulk operations in a high-speed transaction
   await db.transaction(async (tx) => {
     const toInsert: Array<typeof studentAttendance.$inferInsert> = [];
 
     for (const record of records) {
       const existing = existingMap.get(record.studentId);
+      const approvedReason = approvedLeaveMap.get(record.studentId);
+
+      // AC-P16: An approved leave covering today suppresses ABSENT into planned LEAVE
+      const isAbsent = record.status === "ABSENT";
+      const finalStatus = approvedReason && isAbsent ? "LEAVE" : record.status;
+      const finalRemarks = approvedReason && isAbsent
+        ? `Approved leave: ${approvedReason}`
+        : (record.remarks || null);
+
       if (existing) {
         await tx
           .update(studentAttendance)
           .set({
-            status: record.status,
+            status: finalStatus,
             markedById: userId,
-            remarks: record.remarks || null,
+            remarks: finalRemarks,
             updatedAt: new Date(),
           })
           .where(
@@ -318,9 +363,9 @@ export async function markSectionAttendance(
           sectionId,
           academicYearId: activeYear.id,
           attendanceDate: parsedDate,
-          status: record.status,
+          status: finalStatus,
           markedById: userId,
-          remarks: record.remarks || null,
+          remarks: finalRemarks,
         });
       }
     }

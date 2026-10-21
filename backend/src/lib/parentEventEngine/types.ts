@@ -14,7 +14,9 @@ export type CardType =
   | "NoticeCard"
   | "ConsentCard"
   | "InsightCard"
-  | "MessageCard";
+  | "MessageCard"
+  | "LeaveApprovedCard"
+  | "LeaveRejectedCard";
 
 export type CardTier =
   | "T1_action_required"
@@ -155,6 +157,18 @@ export interface InsightSnapshot {
   actionLink?: string | undefined;
 }
 
+export interface LeaveRequestSnapshot {
+  id: string;
+  leaveType: "CASUAL" | "SICK" | "EMERGENCY" | "OTHER";
+  startDate: Date | string;
+  endDate: Date | string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED_BY_PARENT";
+  decidedAt?: Date | string | null;
+  decisionNote?: string | null;
+  teacherName?: string | null;
+}
+
 export interface ParentDataSnapshot {
   studentName?: string | undefined;
   invoices?: InvoiceSnapshot[] | undefined;
@@ -170,4 +184,5 @@ export interface ParentDataSnapshot {
   pendingConsents?: PendingConsentSnapshot[] | undefined;
   unreadMessages?: UnreadMessageSnapshot[] | undefined;
   insights?: InsightSnapshot[] | undefined;
+  leaveRequests?: LeaveRequestSnapshot[] | undefined;
 }

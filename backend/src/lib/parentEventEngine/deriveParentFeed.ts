@@ -527,6 +527,97 @@ export function deriveParentFeed(
     }
   }
 
+  // ─── 11. Leave Request Cards (LeaveApprovedCard / LeaveRejectedCard) ─────────
+  if (snapshot.leaveRequests && snapshot.leaveRequests.length > 0) {
+    for (const lr of snapshot.leaveRequests) {
+      const startD = new Date(lr.startDate);
+      const endD = new Date(lr.endDate);
+      const decidedD = lr.decidedAt ? new Date(lr.decidedAt) : null;
+      const startMs = startD.getTime();
+      const endMs = endD.getTime();
+      const decidedMs = decidedD ? decidedD.getTime() : null;
+
+      const dateRangeStr =
+        startD.toISOString().slice(0, 10) === endD.toISOString().slice(0, 10)
+          ? startD.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+          : `${startD.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} - ${endD.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`;
+
+      if (lr.status === "APPROVED") {
+        // Active if approved in last 24h, active today, or upcoming in next 48h
+        const isRecentApproval = decidedMs !== null && nowMs - decidedMs <= 24 * 3600000 && nowMs >= decidedMs;
+        const isActiveToday = nowMs >= startMs - 86400000 && nowMs <= endMs + 86400000;
+        const isUpcomingNear = startMs > nowMs && startMs - nowMs <= 48 * 3600000;
+
+        if (isRecentApproval || isActiveToday || isUpcomingNear) {
+          const endOfDay = new Date(endD);
+          endOfDay.setHours(23, 59, 59, 999);
+          const expiryDate = new Date(Math.max(endOfDay.getTime(), (decidedMs || nowMs) + 24 * 3600000));
+
+          cards.push({
+            id: `leave-approved-${lr.id}`,
+            studentId,
+            cardType: "LeaveApprovedCard",
+            tier: "T2_informational",
+            priority: 65,
+            title: {
+              en: `Leave Approved: ${dateRangeStr}`,
+              hi: `अवकाश स्वीकृत: ${dateRangeStr}`,
+            },
+            summary: {
+              en: `Leave request for ${studentName} was approved.${lr.decisionNote ? ` Note: "${lr.decisionNote}"` : " Attendance is marked as planned leave."}`,
+              hi: `${studentName} का अवकाश अनुरोध स्वीकृत हो गया है।${lr.decisionNote ? ` टिप्पणी: "${lr.decisionNote}"` : " उपस्थिति को नियोजित अवकाश के रूप में दर्ज किया गया है।"}`,
+            },
+            payload: {
+              leaveRequestId: lr.id,
+              leaveType: lr.leaveType,
+              startDate: lr.startDate,
+              endDate: lr.endDate,
+              reason: lr.reason,
+              decisionNote: lr.decisionNote || null,
+              teacherName: lr.teacherName || null,
+              dateRangeStr,
+            },
+            activatedAt: decidedD || startD,
+            expiresAt: expiryDate,
+          });
+        }
+      } else if (lr.status === "REJECTED") {
+        // Show rejected notice for 48h after decision
+        const isRecentRejection = decidedMs !== null && nowMs - decidedMs <= 48 * 3600000 && nowMs >= decidedMs;
+
+        if (isRecentRejection) {
+          cards.push({
+            id: `leave-rejected-${lr.id}`,
+            studentId,
+            cardType: "LeaveRejectedCard",
+            tier: "T2_informational",
+            priority: 70,
+            title: {
+              en: `Leave Request Declined: ${dateRangeStr}`,
+              hi: `अवकाश अनुरोध अस्वीकृत: ${dateRangeStr}`,
+            },
+            summary: {
+              en: `Leave for ${studentName} was declined.${lr.decisionNote ? ` Reason: "${lr.decisionNote}"` : ""}`,
+              hi: `${studentName} का अवकाश अनुरोध अस्वीकृत कर दिया गया।${lr.decisionNote ? ` कारण: "${lr.decisionNote}"` : ""}`,
+            },
+            payload: {
+              leaveRequestId: lr.id,
+              leaveType: lr.leaveType,
+              startDate: lr.startDate,
+              endDate: lr.endDate,
+              reason: lr.reason,
+              decisionNote: lr.decisionNote || null,
+              teacherName: lr.teacherName || null,
+              dateRangeStr,
+            },
+            activatedAt: decidedD || now,
+            expiresAt: new Date((decidedMs || nowMs) + 48 * 3600000),
+          });
+        }
+      }
+    }
+  }
+
   // ─── Time-of-Day Choreography & Sorting ────────────────────────────────────
   const currentHour = now.getHours() + now.getMinutes() / 60;
   const isMorning = currentHour >= 6.5 && currentHour < 9.5;

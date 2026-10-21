@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import TeacherAttendanceClient from "./TeacherAttendanceClient";
+import { TeacherLeaveQueue } from "./TeacherLeaveQueue";
 import { getAssignedSections, getSectionStudents } from "@/app/(admin)/attendance/actions";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default async function TeacherAttendancePage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
           Class Attendance Register
@@ -31,6 +32,9 @@ export default async function TeacherAttendancePage() {
           Mark and submit morning roll call for your assigned sections.
         </p>
       </div>
+
+      {/* Surface p7: Teacher Leave Approval Queue */}
+      <TeacherLeaveQueue />
 
       <TeacherAttendanceClient
         sections={initialSections}

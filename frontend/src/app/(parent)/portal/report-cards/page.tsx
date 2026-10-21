@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   students,
   resultSnapshots,
@@ -10,8 +10,9 @@ import {
   auditLogs,
   reportCards,
   exams,
+  parentFeedCards,
 } from "@/db/schema";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import { getClientRequestContext } from "@/lib/requestContext";
@@ -137,6 +138,30 @@ export default async function ParentReportCardsPage() {
       userAgent: reqCtx.userAgent,
       metadata: { note: "Parent/Student accessed report card portal" },
     });
+
+    // RC-C1: Write explicit viewedAt into parentFeedCards for ReportCardCard so feed engine knows it was opened
+    try {
+      await withTenant(st.schoolId, async (tx) => {
+        const rcCards = await tx.query.parentFeedCards.findMany({
+          where: and(
+            eq(parentFeedCards.studentId, st.id),
+            eq(parentFeedCards.cardType, "ReportCardCard")
+          ),
+        });
+        for (const card of rcCards) {
+          await tx
+            .update(parentFeedCards)
+            .set({
+              dismissedAt: now,
+              payload: sql`jsonb_set(COALESCE(${parentFeedCards.payload}, '{}'::jsonb), '{viewedAt}', ${JSON.stringify(now.toISOString())}::jsonb)`,
+              updatedAt: now,
+            })
+            .where(eq(parentFeedCards.id, card.id));
+        }
+      });
+    } catch (_err) {
+      // non-fatal view tracking
+    }
 
     // Class display name
     let className = "Standard / Class";

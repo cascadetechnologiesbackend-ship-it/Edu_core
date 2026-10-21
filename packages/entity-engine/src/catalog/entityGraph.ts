@@ -506,6 +506,49 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
     ],
   },
 
+  student_leave_requests: {
+    tableName: "student_leave_requests",
+    drizzleExport: "studentLeaveRequests",
+    domain: "ATTENDANCE",
+    displayName: "Student Leave Request",
+    description: "Parent-initiated leave applications, teacher approval queue, and attendance suppression.",
+    primaryKey: ["id"],
+    tenantKey: "schoolId",
+    isTenantScoped: true,
+    piiColumns: ["reason", "decisionNote"],
+    searchableFields: ["reason", "status"],
+    tags: ["leave", "absence", "attendance", "parent", "workflow"],
+    relationships: [
+      {
+        sourceTable: "student_leave_requests",
+        targetTable: "schools",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "school_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Owning school tenant.",
+      },
+      {
+        sourceTable: "student_leave_requests",
+        targetTable: "students",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "student_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Student requesting leave.",
+      },
+      {
+        sourceTable: "student_leave_requests",
+        targetTable: "users",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "requested_by_parent_user_id",
+        targetColumn: "id",
+        onDelete: "RESTRICT",
+        description: "Parent initiating request.",
+      },
+    ],
+  },
+
   // ─── 6. EXAMINATIONS ────────────────────────────────────────────────────────
   exam_types: {
     tableName: "exam_types",

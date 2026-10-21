@@ -216,6 +216,16 @@ export function ChildProfileView({
                 </div>
               ))}
             </div>
+
+            <div className="pt-2 flex justify-end">
+              <Link
+                href={`/parent/more/leave?studentId=${student.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
+              >
+                <CalendarCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Apply for Leave</span>
+              </Link>
+            </div>
           </div>
         )}
       </div>

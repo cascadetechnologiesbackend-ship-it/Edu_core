@@ -25,6 +25,7 @@ import {
   parentFeedCards,
   auditLogs,
   staff,
+  studentLeaveRequests,
 } from "@/db/schema";
 import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -41,6 +42,7 @@ import type {
   NoticeSnapshot,
   UpcomingEventSnapshot,
   UnreadMessageSnapshot,
+  LeaveRequestSnapshot,
 } from "@schoolmitra/backend/parentEventEngine/types";
 import { ParentFeedContainer } from "@/components/parent/ParentFeedContainer";
 import type { StudentWardOption } from "@/components/parent/ParentIdentityHeader";
@@ -179,6 +181,7 @@ export default async function ParentDashboardPage({
     noticeSnaps,
     eventSnaps,
     unreadMessageSnaps,
+    leaveRequestSnaps,
   } = await withTenant(school.id, async (tx) => {
     // A. Attendance (last 30 days)
     const cutoff30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -408,27 +411,14 @@ export default async function ParentDashboardPage({
       ),
     });
 
-    // Also check DPDP auditLogs for parent view of report cards
-    const reportCardAudit = await tx.query.auditLogs.findFirst({
-      where: and(
-        eq(auditLogs.schoolId, school.id),
-        eq(auditLogs.recordId, currentStudentRow.id),
-        eq(auditLogs.action, "READ")
-      ),
-      orderBy: [desc(auditLogs.createdAt)],
-    });
-
+    // RC-C1 Hardening: The report card viewedAt auditLogs fallback matched ANY READ audit on the student record;
+    // Phase P10 writes explicit viewedAt into parentFeedCards.payload when the parent opens the report card,
+    // and the engine stops inferring from unrelated auditLogs.
     let viewedTimestamp: Date | undefined = undefined;
     if (existingRcCard?.dismissedAt) {
       viewedTimestamp = existingRcCard.dismissedAt;
     } else if (existingRcCard && (existingRcCard.payload as any)?.viewedAt) {
       viewedTimestamp = new Date((existingRcCard.payload as any).viewedAt);
-    } else if (
-      reportCardAudit?.createdAt &&
-      rcRows[0]?.generatedAt &&
-      reportCardAudit.createdAt >= rcRows[0].generatedAt
-    ) {
-      viewedTimestamp = reportCardAudit.createdAt;
     }
 
     const prevAverage =
@@ -622,6 +612,27 @@ export default async function ParentDashboardPage({
       });
     }
 
+    // I. Leave Requests (Workflow OP3 & Phase P10)
+    const leaveRows = await tx.query.studentLeaveRequests.findMany({
+      where: and(
+        eq(studentLeaveRequests.schoolId, school.id),
+        eq(studentLeaveRequests.studentId, currentStudentRow.id),
+      ),
+      orderBy: [desc(studentLeaveRequests.createdAt)],
+      limit: 5,
+    });
+
+    const leaveRequestSnaps: LeaveRequestSnapshot[] = leaveRows.map((lr) => ({
+      id: lr.id,
+      leaveType: lr.leaveType,
+      startDate: lr.startDate,
+      endDate: lr.endDate,
+      reason: lr.reason,
+      status: lr.status,
+      decidedAt: lr.decidedAt,
+      decisionNote: lr.decisionNote,
+    }));
+
     return {
       attendanceSnap: attendanceToday,
       attendanceRate30d: attRate,
@@ -634,6 +645,7 @@ export default async function ParentDashboardPage({
       noticeSnaps,
       eventSnaps,
       unreadMessageSnaps,
+      leaveRequestSnaps,
     };
   });
 
@@ -652,6 +664,7 @@ export default async function ParentDashboardPage({
     notices: noticeSnaps,
     upcomingEvents: eventSnaps,
     unreadMessages: unreadMessageSnaps,
+    leaveRequests: leaveRequestSnaps,
   };
 
   const initialCards = deriveParentFeed(currentStudent.id, now, snapshot);
