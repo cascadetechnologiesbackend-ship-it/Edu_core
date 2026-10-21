@@ -18,6 +18,7 @@ import {
   AlertCircle,
   HelpCircle,
   Navigation,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 export type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
@@ -70,6 +71,8 @@ const DEFAULT_ICONS: Record<string, React.ReactNode> = {
   BusBoardingCard: <Bus className="w-5 h-5 text-emerald-400" />,
   BusAlertCard: <AlertCircle className="w-5 h-5 text-rose-400" />,
   StopChangeCard: <Navigation className="w-5 h-5 text-amber-400" />,
+  DocumentRequestCard: <FileText className="w-5 h-5 text-amber-400" />,
+  ProfileChangeCard: <UserCheck className="w-5 h-5 text-indigo-400" />,
 };
 
 export function FeedCard({

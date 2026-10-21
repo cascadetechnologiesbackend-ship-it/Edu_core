@@ -6,6 +6,11 @@ import {
 } from "./types";
 import { computeBusTracking } from "./busEta";
 import { checkAbsentButBoarded, checkMissedBoarding } from "./busBoardingEngine";
+import {
+  aggregatePendingConsents,
+  evaluateDocumentExpiry,
+  formatProfileChangeSummary,
+} from "./documentProfileEngine";
 
 /**
  * Checks if the current time falls inside a standard school commute window.
@@ -495,33 +500,44 @@ export function deriveParentFeed(
     }
   }
 
-  // ─── 8. ConsentCard ────────────────────────────────────────────────────────
+  // ─── 8. ConsentCard (Aggregated DPDP Checklist, OP11) ───────────────────────
   if (snapshot.pendingConsents && snapshot.pendingConsents.length > 0) {
-    for (const consent of snapshot.pendingConsents) {
-      const deadline = consent.deadline ? new Date(consent.deadline) : null;
-      const isUrgent = deadline && deadline.getTime() - nowMs <= 48 * 3600000;
+    const agg = aggregatePendingConsents(snapshot.pendingConsents, now);
+    if (agg.totalPending > 0) {
+      const earliestDeadline = agg.items
+        .map((i) => (i.deadline ? new Date(i.deadline).getTime() : Infinity))
+        .reduce((min, d) => Math.min(min, d), Infinity);
+
+      const expiresAt =
+        earliestDeadline !== Infinity
+          ? new Date(earliestDeadline)
+          : new Date(nowMs + 7 * 86400000);
 
       cards.push({
-        id: `consent-${consent.id}`,
+        id: `consent-checklist-${studentId}`,
         studentId,
         cardType: "ConsentCard",
-        tier: isUrgent ? "T1_action_required" : "T2_informational",
-        priority: isUrgent ? 88 : 55,
+        tier: agg.feedTier,
+        priority: agg.priority,
         title: {
-          en: "Data Privacy Consent Required",
-          hi: "डेटा गोपनीयता सहमति आवश्यक",
+          en: agg.hasUrgent
+            ? "Action Required: Privacy Consents Pending"
+            : "Data Privacy Consents",
+          hi: agg.hasUrgent
+            ? "आवश्यक कार्रवाई: डेटा गोपनीयता सहमति लंबित"
+            : "डेटा गोपनीयता सहमति",
         },
         summary: {
-          en: `Action needed: "${consent.title}" requires your consent under DPDP.`,
-          hi: `आवश्यक कार्रवाई: "${consent.title}" पर आपकी सहमति अपेक्षित है।`,
+          en: `${agg.totalPending} consent request${agg.totalPending > 1 ? "s" : ""} awaiting your review under DPDP.`,
+          hi: `डीपीडीपी के तहत ${agg.totalPending} सहमति अनुरोध आपकी समीक्षा हेतु लंबित हैं।`,
         },
         payload: {
-          consentId: consent.id,
-          title: consent.title,
-          deadline: consent.deadline || null,
+          items: agg.items,
+          totalPending: agg.totalPending,
+          hasUrgent: agg.hasUrgent,
         },
         activatedAt: now,
-        expiresAt: deadline || new Date(nowMs + 7 * 86400000),
+        expiresAt,
       });
     }
   }
@@ -1030,6 +1046,127 @@ export function deriveParentFeed(
         },
         activatedAt: now,
         expiresAt: new Date(nowMs + 72 * 3600000),
+      });
+    }
+  }
+
+  // ─── 17. DocumentRequestCard (Workflow OP6, AC-P24) ───────────────────────
+  if (snapshot.documentRequests && snapshot.documentRequests.length > 0) {
+    for (const doc of snapshot.documentRequests) {
+      // Zero-Clutter (AC-P1): Verified documents do NOT render on the home feed
+      if (doc.status === "VERIFIED") continue;
+
+      const expiryEval = evaluateDocumentExpiry(doc, now);
+      const dueDate = doc.dueAt ? new Date(doc.dueAt) : null;
+      const isDueSoon = dueDate !== null && dueDate.getTime() - nowMs <= 48 * 3600000;
+      const isUrgent = isDueSoon || expiryEval.isExpired || doc.status === "REJECTED";
+
+      const tier: CardTier = isUrgent ? "T1_action_required" : "T2_informational";
+      const priority = isUrgent ? 85 : 58;
+
+      let titleEn = `Document Requested: ${doc.title}`;
+      let titleHi = `दस्तावेज़ आवश्यक: ${doc.title}`;
+      let summaryEn = `Please upload the requested document${dueDate ? ` by ${dueDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}` : ""}.`;
+      let summaryHi = `कृपया अनुरोधित दस्तावेज़ अपलोड करें${dueDate ? ` (${dueDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} तक)` : ""}।`;
+
+      if (doc.status === "REJECTED") {
+        titleEn = `Document Resubmission Required: ${doc.title}`;
+        titleHi = `दस्तावेज़ पुनः अपलोड आवश्यक: ${doc.title}`;
+        summaryEn = `Previous submission was not approved: ${doc.rejectionReason || "Please upload a clearer copy."}`;
+        summaryHi = `पिछला दस्तावेज़ स्वीकृत नहीं हुआ: ${doc.rejectionReason || "कृपया स्पष्ट प्रति पुनः अपलोड करें।"}`;
+      } else if (doc.status === "SUBMITTED") {
+        titleEn = `Document Under Verification: ${doc.title}`;
+        titleHi = `दस्तावेज़ सत्यापन प्रक्रिया में: ${doc.title}`;
+        summaryEn = `Uploaded copy submitted for school review.`;
+        summaryHi = `विद्यालय प्रशासन द्वारा सत्यापन प्रक्रिया में है।`;
+      } else if (expiryEval.isExpired) {
+        titleEn = `Document Expired: ${doc.title}`;
+        titleHi = `दस्तावेज़ की वैधता समाप्त: ${doc.title}`;
+        summaryEn = `Previous document has expired. Please submit a renewed copy.`;
+        summaryHi = `दस्तावेज़ की अवधि समाप्त हो चुकी है। कृपया नवीनीकृत प्रति जमा करें।`;
+      }
+
+      cards.push({
+        id: `doc-${doc.id}`,
+        studentId,
+        cardType: "DocumentRequestCard",
+        tier,
+        priority,
+        title: {
+          en: titleEn,
+          hi: titleHi,
+        },
+        summary: {
+          en: summaryEn,
+          hi: summaryHi,
+        },
+        payload: {
+          requestId: doc.id,
+          title: doc.title,
+          documentType: doc.documentType,
+          status: doc.status,
+          dueAt: doc.dueAt || null,
+          expiresAt: doc.expiresAt || null,
+          rejectionReason: doc.rejectionReason || null,
+          fileName: doc.fileName || null,
+          uploadedAt: doc.uploadedAt || null,
+          isExpired: expiryEval.isExpired,
+        },
+        activatedAt: now,
+        expiresAt: dueDate || new Date(nowMs + 7 * 86400000),
+      });
+    }
+  }
+
+  // ─── 18. ProfileChangeCard (Workflow OP10) ──────────────────────────────────
+  if (snapshot.profileChanges && snapshot.profileChanges.length > 0) {
+    for (const change of snapshot.profileChanges) {
+      const summary = formatProfileChangeSummary(change, now);
+
+      // Zero-Clutter (AC-P1): Once decided, only show for 48 hours
+      if (change.status !== "PENDING" && !summary.isRecentDecision) {
+        continue;
+      }
+
+      const isPending = change.status === "PENDING";
+      const isApplied = change.status === "APPLIED";
+
+      let titleEn = `Profile Change Pending: ${summary.fieldDisplay}`;
+      let titleHi = `प्रोफ़ाइल परिवर्तन समीक्षाधीन: ${summary.fieldDisplay}`;
+
+      if (isApplied) {
+        titleEn = `Profile Update Approved: ${summary.fieldDisplay}`;
+        titleHi = `प्रोफ़ाइल विवरण अपडेट स्वीकृत: ${summary.fieldDisplay}`;
+      } else if (change.status === "REJECTED") {
+        titleEn = `Profile Request Reviewed: ${summary.fieldDisplay}`;
+        titleHi = `प्रोफ़ाइल अनुरोध की समीक्षा पूर्ण: ${summary.fieldDisplay}`;
+      }
+
+      cards.push({
+        id: `profile-${change.id}`,
+        studentId,
+        cardType: "ProfileChangeCard",
+        tier: "T2_informational",
+        priority: isPending ? 52 : 40,
+        title: {
+          en: titleEn,
+          hi: titleHi,
+        },
+        summary: {
+          en: summary.summaryText,
+          hi: summary.summaryText,
+        },
+        payload: {
+          requestId: change.id,
+          field: change.field,
+          fieldDisplay: summary.fieldDisplay,
+          status: change.status,
+          diffItems: summary.diffItems,
+          decisionReason: change.decisionReason || null,
+          decidedAt: change.decidedAt || null,
+        },
+        activatedAt: now,
+        expiresAt: new Date(nowMs + 48 * 3600000),
       });
     }
   }

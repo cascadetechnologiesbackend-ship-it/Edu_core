@@ -164,6 +164,33 @@
     "effectiveDate": "Effective Date: {date}",
     "viewPass": "View Bus Pass"
   },
+  "documentRequestCard": {
+    "title": "Document Requested",
+    "upload": "Upload Document",
+    "submit": "Submit",
+    "inVerification": "In Verification",
+    "resubmissionNeeded": "Resubmission Needed",
+    "expired": "Expired",
+    "actionRequired": "Action Required",
+    "schoolNote": "School Note",
+    "uploadedFile": "Uploaded File",
+    "reviewing": "School is reviewing this document"
+  },
+  "profileChangeCard": {
+    "title": "Profile Change Request",
+    "pendingReview": "Pending Review",
+    "applied": "Applied",
+    "reviewed": "Reviewed",
+    "adminNote": "Admin Note",
+    "viewProfile": "View Profile"
+  },
+  "consentCard": {
+    "dpdpStatutory": "Statutory Personal Data Protection Compliance",
+    "guardianRequired": "Guardian consent required",
+    "reviewConsent": "Review & Consent",
+    "pending": "Pending",
+    "due48h": "Due <48h"
+  },
   "navigation": {
     "home": "Home",
     "child": "Child",

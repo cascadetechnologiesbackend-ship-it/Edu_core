@@ -21,7 +21,9 @@ export type CardType =
   | "WeeklyDigestCard"
   | "BusBoardingCard"
   | "BusAlertCard"
-  | "StopChangeCard";
+  | "StopChangeCard"
+  | "DocumentRequestCard"
+  | "ProfileChangeCard";
 
 export type CardTier =
   | "T1_action_required"
@@ -159,8 +161,11 @@ export interface NoticeSnapshot {
 export interface PendingConsentSnapshot {
   id: string;
   title: string;
-  deadline?: Date | string | null;
-  consentType?: string;
+  purpose?: string | undefined;
+  description?: string | undefined;
+  isMandatory?: boolean | undefined;
+  deadline?: Date | string | null | undefined;
+  consentType?: string | undefined;
 }
 
 export interface UnreadMessageSnapshot {
@@ -228,6 +233,8 @@ export interface ParentDataSnapshot {
   busBoardingEvents?: BusBoardingSnapshot[] | undefined;
   stopChangeRequests?: StopChangeSnapshot[] | undefined;
   scheduledStopMinutes?: number | undefined;
+  documentRequests?: DocumentRequestSnapshot[] | undefined;
+  profileChanges?: ProfileChangeSnapshot[] | undefined;
 }
 
 export interface WeeklyDigestSnapshot {
@@ -259,3 +266,30 @@ export interface StopChangeSnapshot {
   decisionNote?: string | null;
   decidedAt?: Date | string | null;
 }
+
+export interface DocumentRequestSnapshot {
+  id: string;
+  documentType: string;
+  title: string;
+  description?: string | null | undefined;
+  status: "PENDING" | "SUBMITTED" | "VERIFIED" | "REJECTED" | "EXPIRED";
+  dueAt?: Date | string | null | undefined;
+  expiresAt?: Date | string | null | undefined;
+  rejectionReason?: string | null | undefined;
+  verificationNote?: string | null | undefined;
+  fileName?: string | null | undefined;
+  uploadedAt?: Date | string | null | undefined;
+  verifiedAt?: Date | string | null | undefined;
+}
+
+export interface ProfileChangeSnapshot {
+  id: string;
+  field: string;
+  oldValue: Record<string, unknown> | string | null;
+  newValue: Record<string, unknown> | string;
+  status: "PENDING" | "APPLIED" | "REJECTED";
+  decisionReason?: string | null | undefined;
+  decidedAt?: Date | string | null | undefined;
+  requestedAt?: Date | string | undefined;
+}
+

@@ -14,7 +14,7 @@ import {
   bigint,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { schools, academicYears } from "./core";
+import { schools, academicYears, users } from "./core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -450,3 +450,145 @@ export const alumniRelations = relations(alumni, ({ one }) => ({
   }),
   school: one(schools, { fields: [alumni.schoolId], references: [schools.id] }),
 }));
+
+// ─── Enums for Document Requests & Profile Changes (Phase P15) ─────────────────
+
+export const studentDocumentRequestStatusEnum = pgEnum("student_document_request_status", [
+  "REQUESTED",
+  "SUBMITTED",
+  "VERIFIED",
+  "REJECTED",
+  "EXPIRED",
+]);
+
+export const profileChangeRequestStatusEnum = pgEnum("profile_change_request_status", [
+  "PENDING",
+  "APPLIED",
+  "REJECTED",
+]);
+
+// ─── student_document_requests (Workflow OP6, AC-P24) ──────────────────────────
+
+export const studentDocumentRequests = pgTable(
+  "student_document_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    documentType: text("document_type").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    status: studentDocumentRequestStatusEnum("status").notNull().default("REQUESTED"),
+    submittedS3Key: text("submitted_s3_key"),
+    originalFileName: text("original_filename"),
+    mimeType: text("mime_type"),
+    fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
+    verificationNote: text("verification_note"),
+    verifiedByUserId: uuid("verified_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    studentStatusIdx: index("doc_req_student_status_idx").on(t.studentId, t.status),
+    schoolStatusDueIdx: index("doc_req_school_status_due_idx").on(t.schoolId, t.status, t.dueAt),
+    expiresIdx: index("doc_req_expires_idx").on(t.expiresAt),
+  })
+);
+
+// ─── profile_change_requests (Workflow OP10) ───────────────────────────────────
+
+export const profileChangeRequests = pgTable(
+  "profile_change_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    parentUserId: uuid("parent_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    field: text("field").notNull(),
+    oldValueEncrypted: text("old_value_encrypted"),
+    newValueEncrypted: text("new_value_encrypted").notNull(),
+    status: profileChangeRequestStatusEnum("status").notNull().default("PENDING"),
+    verifiedByUserId: uuid("verified_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    verificationNote: text("verification_note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+  },
+  (t) => ({
+    studentStatusIdx: index("profile_change_student_status_idx").on(t.studentId, t.status),
+    schoolStatusIdx: index("profile_change_school_status_idx").on(t.schoolId, t.status),
+    parentIdx: index("profile_change_parent_idx").on(t.parentUserId),
+  })
+);
+
+// ─── Relations ─────────────────────────────────────────────────────────────────
+
+export const studentDocumentRequestsRelations = relations(
+  studentDocumentRequests,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [studentDocumentRequests.schoolId],
+      references: [schools.id],
+    }),
+    student: one(students, {
+      fields: [studentDocumentRequests.studentId],
+      references: [students.id],
+    }),
+    requestedByUser: one(users, {
+      fields: [studentDocumentRequests.requestedByUserId],
+      references: [users.id],
+    }),
+    verifiedByUser: one(users, {
+      fields: [studentDocumentRequests.verifiedByUserId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const profileChangeRequestsRelations = relations(
+  profileChangeRequests,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [profileChangeRequests.schoolId],
+      references: [schools.id],
+    }),
+    student: one(students, {
+      fields: [profileChangeRequests.studentId],
+      references: [students.id],
+    }),
+    parentUser: one(users, {
+      fields: [profileChangeRequests.parentUserId],
+      references: [users.id],
+    }),
+    verifiedByUser: one(users, {
+      fields: [profileChangeRequests.verifiedByUserId],
+      references: [users.id],
+    }),
+  })
+);
+

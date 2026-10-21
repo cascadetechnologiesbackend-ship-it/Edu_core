@@ -263,4 +263,10 @@ export const EVENT_KIND_TIER_MAP: Record<string, CardTier> = {
   MISSED_BOARDING: "T1_action_required",
   ABSENT_BUT_BOARDED: "T1_action_required",
   STOP_CHANGE_DECIDED: "T2_informational",
+  // Phase P15 Workflows (OP6, OP10, OP11)
+  DOCUMENT_REQUESTED: "T2_informational",
+  DOCUMENT_VERIFIED: "T3_system_state",
+  DOCUMENT_REJECTED: "T2_informational",
+  PROFILE_CHANGE_VERIFIED: "T3_system_state",
+  CONSENT_REMINDER: "T1_action_required",
 };

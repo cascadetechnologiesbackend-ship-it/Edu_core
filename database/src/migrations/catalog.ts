@@ -808,6 +808,36 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
     rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
     breakingChange: false,
   },
+  {
+    index: 49,
+    tag: "0049_documents_and_profile_changes",
+    filename: "0049_documents_and_profile_changes.sql",
+    domain: "STUDENTS_LIFECYCLE",
+    title: "Student Document Requests & Profile Change Requests",
+    description: "Tables for school document requests with verification lifecycle (OP6) and parent profile change requests (OP10).",
+    tablesCreated: ["student_document_requests", "profile_change_requests"],
+    tablesAltered: [],
+    foreignKeysAdded: [
+      { sourceTable: "student_document_requests", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "student_document_requests", sourceColumn: "student_id", targetTable: "students", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "student_document_requests", sourceColumn: "requested_by_user_id", targetTable: "users", targetColumn: "id", onDelete: "SET NULL" },
+      { sourceTable: "student_document_requests", sourceColumn: "verified_by_user_id", targetTable: "users", targetColumn: "id", onDelete: "SET NULL" },
+      { sourceTable: "profile_change_requests", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "profile_change_requests", sourceColumn: "student_id", targetTable: "students", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "profile_change_requests", sourceColumn: "parent_user_id", targetTable: "users", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "profile_change_requests", sourceColumn: "verified_by_user_id", targetTable: "users", targetColumn: "id", onDelete: "SET NULL" },
+    ],
+    indexesCreated: [
+      "doc_req_student_status_idx",
+      "doc_req_school_status_due_idx",
+      "doc_req_expires_idx",
+      "profile_change_student_status_idx",
+      "profile_change_school_status_idx",
+      "profile_change_parent_idx",
+    ],
+    rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
+    breakingChange: false,
+  },
 ];
 
 export function getMigrationByIndex(idx: number): MigrationMetadata | undefined {

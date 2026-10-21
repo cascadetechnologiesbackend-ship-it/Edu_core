@@ -164,6 +164,33 @@
     "effectiveDate": "प्रभावी तिथि: {date}",
     "viewPass": "बस पास देखें"
   },
+  "documentRequestCard": {
+    "title": "दस्तावेज़ आवश्यक",
+    "upload": "दस्तावेज़ अपलोड करें",
+    "submit": "जमा करें",
+    "inVerification": "सत्यापन प्रक्रियाधीन",
+    "resubmissionNeeded": "पुनः अपलोड आवश्यक",
+    "expired": "वैधता समाप्त",
+    "actionRequired": "अपलोड आवश्यक",
+    "schoolNote": "स्कूल की टिप्पणी",
+    "uploadedFile": "अपलोड किया गया दस्तावेज़",
+    "reviewing": "विद्यालय समीक्षाधीन है"
+  },
+  "profileChangeCard": {
+    "title": "प्रोफ़ाइल परिवर्तन अनुरोध",
+    "pendingReview": "समीक्षाधीन",
+    "applied": "स्वीकृत एवं लागू",
+    "reviewed": "समीक्षा पूर्ण",
+    "adminNote": "प्रशासन नोट",
+    "viewProfile": "प्रोफ़ाइल देखें"
+  },
+  "consentCard": {
+    "dpdpStatutory": "डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम (DPDP) अनुपालन",
+    "guardianRequired": "अभिभावक सहमति आवश्यक",
+    "reviewConsent": "सहमति की समीक्षा करें",
+    "pending": "लंबित",
+    "due48h": "48 घंटे में देय"
+  },
   "navigation": {
     "home": "होम",
     "child": "बच्चा",

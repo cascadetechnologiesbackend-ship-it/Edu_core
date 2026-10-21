@@ -19,6 +19,8 @@ import { LeaveRejectedCard } from "./LeaveRejectedCard";
 import { FeeQueryCard } from "./FeeQueryCard";
 import { WeeklyDigestCard } from "./WeeklyDigestCard";
 import { BusBoardingCard } from "./BusBoardingCard";
+import { DocumentRequestCard } from "./DocumentRequestCard";
+import { ProfileChangeCard } from "./ProfileChangeCard";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -261,6 +263,28 @@ export function ParentFeedContainer({
             if (card.cardType === "BusBoardingCard") {
               return (
                 <BusBoardingCard
+                  key={card.id}
+                  card={card}
+                  studentName={currentStudent.name}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "DocumentRequestCard") {
+              return (
+                <DocumentRequestCard
+                  key={card.id}
+                  card={card}
+                  studentName={currentStudent.name}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "ProfileChangeCard") {
+              return (
+                <ProfileChangeCard
                   key={card.id}
                   card={card}
                   studentName={currentStudent.name}
