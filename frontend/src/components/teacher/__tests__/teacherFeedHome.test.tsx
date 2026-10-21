@@ -17,6 +17,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/teacher/dashboard",
 }));
 
+// Mock AttendanceWorkbench modal
+vi.mock("../AttendanceWorkbench", () => ({
+  AttendanceWorkbench: () => <div data-testid="attendance-workbench-mock" />,
+}));
+
 describe("Phase T3: Teacher Feed Home Components & Zero-Clutter Invariant", () => {
   const queryClient = new QueryClient({
     defaultOptions: {

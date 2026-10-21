@@ -208,6 +208,20 @@
     "acceptCover": "कवर स्वीकार करें",
     "decline": "अस्वीकार करें",
     "reviewLeaves": "अनुरोध देखें",
-    "viewClasses": "कक्षाएं देखें"
+    "viewClasses": "कक्षाएं देखें",
+    "attendanceWorkbench": {
+      "title": "दैनिक उपस्थिति रजिस्टर",
+      "allPresent": "सभी उपस्थित",
+      "saveAttendance": "उपस्थिति सहेजें",
+      "present": "उपस्थित",
+      "absent": "अनुपस्थित",
+      "late": "देरी से",
+      "halfDay": "आधा दिन",
+      "leave": "अवकाश",
+      "plannedLeave": "स्वीकृत अवकाश",
+      "exceptions": "अपवाद",
+      "saved": "दर्ज",
+      "saving": "सहेजा जा रहा है..."
+    }
   }
 }

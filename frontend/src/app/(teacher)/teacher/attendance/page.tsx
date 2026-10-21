@@ -1,26 +1,19 @@
 import { Metadata } from "next";
-import TeacherAttendanceClient from "./TeacherAttendanceClient";
+import { AttendanceWorkbench } from "@/components/teacher/AttendanceWorkbench";
 import { TeacherLeaveQueue } from "./TeacherLeaveQueue";
-import { getAssignedSections, getSectionStudents } from "@/app/(admin)/attendance/actions";
 
 export const metadata: Metadata = {
   title: "Class Attendance Register | Educator PWA",
-  description: "Mark daily student attendance for assigned classrooms.",
+  description: "Mark daily student attendance for assigned classrooms with exceptions-first workflow.",
 };
 
-export default async function TeacherAttendancePage() {
-  const todayStr = new Date().toISOString().split("T")[0] || "";
-  let initialSections: any[] = [];
-  let initialStudents: any[] = [];
-
-  try {
-    initialSections = await getAssignedSections();
-    if (initialSections.length > 0 && initialSections[0]?.id) {
-      initialStudents = await getSectionStudents(initialSections[0].id, todayStr);
-    }
-  } catch (e) {
-    // If not authenticated or error, client handles gracefully
-  }
+export default async function TeacherAttendancePage({
+  searchParams,
+}: {
+  searchParams?: { sectionId?: string; date?: string; tab?: string };
+}) {
+  const initialSectionId = searchParams?.sectionId;
+  const initialDate = searchParams?.date;
 
   return (
     <div className="space-y-6">
@@ -29,18 +22,18 @@ export default async function TeacherAttendancePage() {
           Class Attendance Register
         </h1>
         <p className="text-xs text-slate-400 mt-0.5">
-          Mark and submit morning roll call for your assigned sections.
+          Mark and submit morning roll call for your assigned sections with exceptions-first workflow.
         </p>
       </div>
 
-      {/* Surface p7: Teacher Leave Approval Queue */}
+      {/* Surface p7: Teacher Leave Approval Queue (P10 Landed Foundation) */}
       <TeacherLeaveQueue />
 
-      <TeacherAttendanceClient
-        sections={initialSections}
-        initialStudents={initialStudents}
-        initialSectionId={initialSections[0]?.id || ""}
-        initialDate={todayStr}
+      {/* Surface t1: Exceptions-First Attendance Workbench (Phase T4) */}
+      <AttendanceWorkbench
+        initialSectionId={initialSectionId}
+        initialDate={initialDate}
+        isModal={false}
       />
     </div>
   );

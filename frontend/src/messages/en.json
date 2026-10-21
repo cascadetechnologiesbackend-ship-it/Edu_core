@@ -208,6 +208,20 @@
     "acceptCover": "Accept Cover",
     "decline": "Decline",
     "reviewLeaves": "Review Requests",
-    "viewClasses": "View Classes"
+    "viewClasses": "View Classes",
+    "attendanceWorkbench": {
+      "title": "Daily Attendance Workbench",
+      "allPresent": "All Present",
+      "saveAttendance": "Save Section Attendance",
+      "present": "Present",
+      "absent": "Absent",
+      "late": "Late",
+      "halfDay": "Half Day",
+      "leave": "Leave",
+      "plannedLeave": "Planned Leave",
+      "exceptions": "Exceptions",
+      "saved": "Saved",
+      "saving": "Saving..."
+    }
   }
 }

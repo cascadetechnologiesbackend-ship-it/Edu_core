@@ -13,6 +13,7 @@ import { PTMTodayFeedCard } from "./cards/PTMTodayFeedCard";
 import { MessagesFeedCard } from "./cards/MessagesFeedCard";
 import { InsightFeedCard } from "./cards/InsightFeedCard";
 import { NoticeFeedCard } from "./cards/NoticeFeedCard";
+import { AttendanceWorkbench } from "./AttendanceWorkbench";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 
@@ -53,9 +54,12 @@ export function TeacherFeedContainer({
 }: TeacherFeedContainerProps) {
   const isNight = isNightOverride ?? isNightQuietHours(now ?? new Date());
 
+  const [workbenchModalOpen, setWorkbenchModalOpen] = useState(false);
+  const [workbenchSectionId, setWorkbenchSectionId] = useState<string | undefined>(undefined);
+
   // React Query polling for live updates
   // T1 cards poll at 60s, normal feed at 5min, paused during night quiet hours
-  const { data: cards = initialCards } = useQuery<DerivedTeacherFeedCard[]>({
+  const { data: cards = initialCards, refetch } = useQuery<DerivedTeacherFeedCard[]>({
     queryKey: ["teacher-feed"],
     queryFn: async () => {
       const res = await fetch("/api/teacher/feed");
@@ -124,6 +128,10 @@ export function TeacherFeedContainer({
                   key={card.id}
                   card={card}
                   locale={locale}
+                  onOpenWorkbench={(secId) => {
+                    setWorkbenchSectionId(secId);
+                    setWorkbenchModalOpen(true);
+                  }}
                 />
               );
             }
@@ -221,6 +229,20 @@ export function TeacherFeedContainer({
             return null;
           })}
         </div>
+      )}
+
+      {/* Attendance Workbench AppModal for 1-Tap Dashboard Roll Call */}
+      {workbenchModalOpen && (
+        <AttendanceWorkbench
+          isModal={true}
+          isOpen={workbenchModalOpen}
+          initialSectionId={workbenchSectionId}
+          onClose={() => setWorkbenchModalOpen(false)}
+          onSaved={() => {
+            refetch();
+          }}
+          locale={locale}
+        />
       )}
     </div>
   );
