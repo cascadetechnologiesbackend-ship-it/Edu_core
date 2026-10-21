@@ -72,7 +72,19 @@ export function ParentIdentityHeader({
 
               {/* Multi-student selector pill if more than 1 child */}
               {availableStudents.length > 1 && (
-                <div className="shrink-0 flex items-center gap-1">
+                <div className="shrink-0 flex items-center gap-1" data-testid="ward-selector-pills">
+                  <button
+                    key="all"
+                    onClick={() => onSelectStudent?.("all")}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors border",
+                      currentStudent.id === "all"
+                        ? "bg-indigo-600/40 text-indigo-200 border-indigo-500/50 font-bold"
+                        : "bg-slate-800/60 text-slate-400 border-slate-700 hover:text-slate-200"
+                    )}
+                  >
+                    All
+                  </button>
                   {availableStudents.map((s) => (
                     <button
                       key={s.id}
@@ -80,7 +92,7 @@ export function ParentIdentityHeader({
                       className={cn(
                         "text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors border",
                         s.id === currentStudent.id
-                          ? "bg-indigo-600/40 text-indigo-200 border-indigo-500/50"
+                          ? "bg-indigo-600/40 text-indigo-200 border-indigo-500/50 font-bold"
                           : "bg-slate-800/60 text-slate-400 border-slate-700 hover:text-slate-200"
                       )}
                     >
@@ -93,12 +105,15 @@ export function ParentIdentityHeader({
 
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
               <span>
-                {currentStudent.className}
-                {currentStudent.sectionName ? ` • ${currentStudent.sectionName}` : ""}
+                {currentStudent.id === "all"
+                  ? `${availableStudents.length} Students • Merged Feed`
+                  : currentStudent.className + (currentStudent.sectionName ? ` • ${currentStudent.sectionName}` : "")}
               </span>
-              <span className="text-[11px] text-slate-500">
-                ADM: {currentStudent.admissionNumber}
-              </span>
+              {currentStudent.id !== "all" && (
+                <span className="text-[11px] text-slate-500">
+                  ADM: {currentStudent.admissionNumber}
+                </span>
+              )}
             </div>
           </div>
         </div>

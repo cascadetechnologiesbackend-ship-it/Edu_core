@@ -270,3 +270,94 @@ export const EVENT_KIND_TIER_MAP: Record<string, CardTier> = {
   PROFILE_CHANGE_VERIFIED: "T3_system_state",
   CONSENT_REMINDER: "T1_action_required",
 };
+
+/**
+ * Authoritative push notification matrix dictionary (Spec AC-P15).
+ */
+export const NOTIFICATION_MATRIX: Record<
+  string,
+  { tier: "T1_CRITICAL" | "T2_INFORMATIONAL" | "T3_SYSTEM_STATE"; dailyCap: number }
+> = {
+  BUS_APPROACHING: { tier: "T1_CRITICAL", dailyCap: 3 },
+  BUS_STOP_CHANGED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  BUS_BOARDED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  FEE_DUE: { tier: "T1_CRITICAL", dailyCap: 3 },
+  FEE_QUERY_RESOLVED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  FEE_QUERY_ESCALATED: { tier: "T1_CRITICAL", dailyCap: 3 },
+  NOTICE_PUBLISHED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  LEAVE_APPROVED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  LEAVE_REJECTED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  DOCUMENT_REQUESTED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  PROFILE_CHANGE_DECIDED: { tier: "T2_INFORMATIONAL", dailyCap: 5 },
+  PTM_REMINDER: { tier: "T1_CRITICAL", dailyCap: 3 },
+};
+
+/**
+ * Dedupe key for consolidated multi-ward notification (Spec AC-P21).
+ */
+export function generateConsolidatedDedupeKey(
+  parentUserId: string,
+  eventKind: string,
+  date: Date | string = new Date()
+): string {
+  const calendarDay = typeof date === "string" ? date.slice(0, 10) : date.toISOString().slice(0, 10);
+  return `parent:${parentUserId}:${eventKind}:${calendarDay}`;
+}
+
+export interface ConsolidatedNotificationInput {
+  parentUserId: string;
+  wardStudentIds?: string[];
+  eventKind: string;
+  tier?: CardTier;
+  now?: Date;
+  todayPushCountForParent?: number;
+  previouslyDispatchedDedupeKeys?: Set<string>;
+  recentDispatchesForWards?: Array<{ studentId: string; eventKind: string; dispatchedAt: Date }>;
+}
+
+/**
+ * Evaluates eligibility for consolidating multi-ward notifications when two or more
+ * siblings experience the same event kind within a 30-minute window (Spec AC-P21).
+ */
+export function evaluateConsolidatedNotificationEligibility(
+  input: ConsolidatedNotificationInput
+): { shouldConsolidate: boolean; dedupeKey: string; reason: string } {
+  const now = input.now || new Date();
+  const dedupeKey = generateConsolidatedDedupeKey(input.parentUserId, input.eventKind, now);
+
+  if (input.previouslyDispatchedDedupeKeys?.has(dedupeKey)) {
+    return {
+      shouldConsolidate: false,
+      dedupeKey,
+      reason: "Consolidated notification already sent for this event today.",
+    };
+  }
+
+  // If another ward triggered the same event within 30 minutes, consolidate
+  const thirtyMinutesAgo = now.getTime() - 30 * 60 * 1000;
+  const recentSiblingEvent = input.recentDispatchesForWards?.find(
+    (d) =>
+      d.eventKind === input.eventKind &&
+      new Date(d.dispatchedAt).getTime() >= thirtyMinutesAgo
+  );
+
+  const hasRecentDispatch = recentSiblingEvent !== undefined;
+  const hasStaleOnlyDispatch =
+    input.recentDispatchesForWards &&
+    input.recentDispatchesForWards.length > 0 &&
+    !hasRecentDispatch;
+
+  if (hasRecentDispatch || (input.wardStudentIds && input.wardStudentIds.length > 1 && !hasStaleOnlyDispatch)) {
+    return {
+      shouldConsolidate: true,
+      dedupeKey,
+      reason: "Same event kind detected for multiple wards within 30 minutes; consolidating notification.",
+    };
+  }
+
+  return {
+    shouldConsolidate: false,
+    dedupeKey,
+    reason: "Single ward event; standard dispatch applies.",
+  };
+}

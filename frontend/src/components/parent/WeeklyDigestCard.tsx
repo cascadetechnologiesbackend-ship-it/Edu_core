@@ -57,6 +57,14 @@ export function WeeklyDigestCard({
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                 {isHi ? card.title.hi : card.title.en}
               </h3>
+              {card.wardName && (
+                <span
+                  data-testid="ward-chip"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                >
+                  {card.wardName}
+                </span>
+              )}
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
                 DIGEST
               </span>

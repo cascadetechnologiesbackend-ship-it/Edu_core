@@ -150,6 +150,14 @@ export function PaymentCard({
           </div>
 
           <div className="min-w-0">
+            {card.wardName && (
+              <span
+                data-testid="ward-chip"
+                className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 mb-1"
+              >
+                {card.wardName}
+              </span>
+            )}
             <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight">
               {termName} Fee
             </h2>

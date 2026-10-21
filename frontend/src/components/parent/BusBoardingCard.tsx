@@ -38,17 +38,27 @@ export function BusBoardingCard({
     >
       {/* Top row: Status Badge & Time */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          {isBoarding ? (
-            <>
-              <Bus className="w-3.5 h-3.5" />
-              <span>{locale === "hi" ? "बस में सवार" : "Bus Boarded"}</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{locale === "hi" ? "गंतव्य पर पहुंचे" : "Bus Alighted"}</span>
-            </>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {isBoarding ? (
+              <>
+                <Bus className="w-3.5 h-3.5" />
+                <span>{locale === "hi" ? "बस में सवार" : "Bus Boarded"}</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{locale === "hi" ? "गंतव्य पर पहुंचे" : "Bus Alighted"}</span>
+              </>
+            )}
+          </div>
+          {card.wardName && (
+            <span
+              data-testid="ward-chip"
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+            >
+              {card.wardName}
+            </span>
           )}
         </div>
 

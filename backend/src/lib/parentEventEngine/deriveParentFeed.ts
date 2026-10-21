@@ -40,8 +40,13 @@ export function isInsideCommuteWindow(now: Date): boolean {
 export function deriveParentFeed(
   studentId: string,
   now: Date,
-  snapshot: ParentDataSnapshot
+  snapshot: ParentDataSnapshot,
+  options?: { wardName?: string | undefined }
 ): DerivedFeedCard[] {
+  if (!studentId || !studentId.trim()) {
+    throw new Error("studentId is required to derive parent feed");
+  }
+
   const cards: DerivedFeedCard[] = [];
   const nowMs = now.getTime();
   const studentName = snapshot.studentName || "Your child";
@@ -149,7 +154,21 @@ export function deriveParentFeed(
   // ─── 2. AttendanceCard ─────────────────────────────────────────────────────
   if (snapshot.attendanceToday) {
     const att = snapshot.attendanceToday;
-    if (att.status === "ABSENT" || att.status === "LATE" || att.status === "HALF_DAY" || att.status === "LEAVE") {
+    const hasApprovedLeaveToday =
+      Boolean(snapshot.activeLeaveApproved) ||
+      Boolean(
+        snapshot.leaveRequests?.some(
+          (lr) =>
+            lr.status === "APPROVED" &&
+            new Date(lr.startDate).getTime() <= nowMs &&
+            new Date(lr.endDate).getTime() + 86400000 >= nowMs
+        )
+      );
+
+    // AC-P16: Leave approval suppresses the day-of absence T1 alert
+    if (att.status === "ABSENT" && hasApprovedLeaveToday) {
+      // Suppressed: student has approved planned leave for today
+    } else if (att.status === "ABSENT" || att.status === "LATE" || att.status === "HALF_DAY" || att.status === "LEAVE") {
       const markedAtDate = new Date(att.markedAt);
       const hoursStr = markedAtDate.toLocaleTimeString("en-IN", {
         hour: "2-digit",
@@ -1176,7 +1195,7 @@ export function deriveParentFeed(
   const isMorning = currentHour >= 6.5 && currentHour < 9.5;
   const isEvening = currentHour >= 17.0 && currentHour < 21.5;
 
-  return cards.sort((a, b) => {
+  const sorted = cards.sort((a, b) => {
     // 1. In the morning, BusAlertCard, BusLiveCard, and AttendanceCard take top precedence
     if (isMorning) {
       if (a.cardType === "BusAlertCard" && b.cardType !== "BusAlertCard") return -1;
@@ -1212,5 +1231,105 @@ export function deriveParentFeed(
 
     // 5. Recency (newest activatedAt first)
     return b.activatedAt.getTime() - a.activatedAt.getTime();
+  });
+
+  if (options?.wardName) {
+    return sorted.map((c) => ({
+      ...c,
+      wardName: options.wardName,
+    }));
+  }
+
+  return sorted;
+}
+
+/**
+ * Merges feed cards across multiple wards (siblings) for multi-ward parent companion feed (AC-P21).
+ *
+ * Rules:
+ * 1. Cards retain their ward identification via `wardName`.
+ * 2. If the same card type fires for multiple wards (e.g. fees due or homework), both render with their ward chips.
+ * 3. School-wide identical notices are consolidated into one card with multi-ward attribution.
+ * 4. Cards are sorted respecting time-of-day choreography and tier priority (T1 > T2 > T3).
+ */
+export function mergeMultiWardFeeds(
+  wardFeeds: Array<
+    | {
+        studentId?: string | undefined;
+        wardName?: string | undefined;
+        cards: DerivedFeedCard[];
+      }
+    | DerivedFeedCard[]
+  >,
+  now: Date = new Date()
+): DerivedFeedCard[] {
+  const merged: DerivedFeedCard[] = [];
+  const seenNoticeIds = new Map<string, DerivedFeedCard>();
+
+  for (const ward of wardFeeds) {
+    const wardCards = Array.isArray(ward) ? ward : ward.cards;
+    const fallbackWardName = Array.isArray(ward) ? "" : ward.wardName;
+
+    for (const card of wardCards) {
+      const wardName = card.wardName || fallbackWardName;
+      const taggedCard: DerivedFeedCard = {
+        ...card,
+        wardName,
+      };
+
+      // Consolidate school-wide notices if identical across wards
+      if (card.cardType === "NoticeCard" && (card.payload?.noticeId || card.id)) {
+        const noticeKey = card.payload?.noticeId || card.id;
+        const existing = seenNoticeIds.get(noticeKey);
+        if (existing) {
+          if (wardName && !existing.wardName?.includes(wardName)) {
+            existing.wardName = existing.wardName ? `${existing.wardName}, ${wardName}` : wardName;
+          }
+          continue;
+        }
+        seenNoticeIds.set(noticeKey, taggedCard);
+      }
+
+      merged.push(taggedCard);
+    }
+  }
+
+  // Reuse time-of-day sorting rules
+  const hour = now.getHours();
+  const isMorning = hour >= 6 && hour < 11;
+  const isEvening = hour >= 16 && hour < 21;
+
+  return merged.sort((a, b) => {
+    // Top invariant: T1 Action Required comes first
+    const tierWeight: Record<CardTier, number> = {
+      T1_action_required: 3,
+      T2_informational: 2,
+      T3_system_state: 1,
+    };
+    if (tierWeight[a.tier] !== tierWeight[b.tier]) {
+      return tierWeight[b.tier] - tierWeight[a.tier];
+    }
+
+    if (isMorning) {
+      if (a.cardType === "BusAlertCard" && b.cardType !== "BusAlertCard") return -1;
+      if (b.cardType === "BusAlertCard" && a.cardType !== "BusAlertCard") return 1;
+      if (a.cardType === "BusLiveCard" && b.cardType !== "BusLiveCard") return -1;
+      if (b.cardType === "BusLiveCard" && a.cardType !== "BusLiveCard") return 1;
+      if (a.cardType === "AttendanceCard" && b.cardType !== "AttendanceCard") return -1;
+      if (b.cardType === "AttendanceCard" && a.cardType !== "AttendanceCard") return 1;
+    }
+
+    if (isEvening) {
+      const eveningFavored = (type: CardType) =>
+        type === "HomeworkCard" || type === "PaymentCard" || type === "ReportCardCard";
+      if (eveningFavored(a.cardType) && !eveningFavored(b.cardType)) return -1;
+      if (!eveningFavored(a.cardType) && eveningFavored(b.cardType)) return 1;
+    }
+
+    if (a.priority !== b.priority) {
+      return b.priority - a.priority;
+    }
+
+    return new Date(b.activatedAt).getTime() - new Date(a.activatedAt).getTime();
   });
 }

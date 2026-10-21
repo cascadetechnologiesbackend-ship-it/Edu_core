@@ -90,6 +90,14 @@ export function ReportCardCard({ card, locale = "en" }: ReportCardCardProps) {
               <h3 className={`text-base font-bold ${isFestive ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
                 {isHi ? card.title.hi : card.title.en}
               </h3>
+              {card.wardName && (
+                <span
+                  data-testid="ward-chip"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                >
+                  {card.wardName}
+                </span>
+              )}
               {isFestive && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/25 text-white border border-white/40">
                   <Sparkles className="w-3 h-3 text-amber-200" />

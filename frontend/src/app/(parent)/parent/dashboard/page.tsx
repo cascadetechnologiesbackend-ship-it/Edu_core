@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { db, withTenant } from "@/db";
+import { db, withTenant, type Db } from "@/db";
 import {
   students,
   classes,
@@ -35,8 +35,9 @@ import {
 } from "@/db/schema";
 import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
-import { deriveParentFeed } from "@schoolmitra/backend/parentEventEngine/deriveParentFeed";
+import { deriveParentFeed, mergeMultiWardFeeds } from "@schoolmitra/backend/parentEventEngine/deriveParentFeed";
 import type {
+  DerivedFeedCard,
   ParentDataSnapshot,
   InvoiceSnapshot,
   AttendanceSnapshot,
@@ -176,27 +177,17 @@ export default async function ParentDashboardPage({
 
   const currentStudent = availableStudents.find((s) => s.id === currentStudentRow.id)!;
 
-  // 4. Fetch data snapshot for selected student
-  const {
-    attendanceSnap,
-    attendanceRate30d,
-    invoiceSnaps,
-    homeworkSnaps,
-    reportCardSnaps,
-    busPassSnap,
-    routeStopsSnap,
-    latestBusPingSnap,
-    noticeSnaps,
-    eventSnaps,
-    unreadMessageSnaps,
-    leaveRequestSnaps,
-    feeQuerySnaps,
-  } = await withTenant(school.id, async (tx) => {
+  // 4. Helper to fetch data snapshot for a student
+  async function fetchStudentSnapshot(
+    tx: Db,
+    targetStudentRow: typeof currentStudentRow,
+    studentDisplayName: string
+  ): Promise<{ snapshot: ParentDataSnapshot; attendanceRate30d: number }> {
     // A. Attendance (last 30 days)
     const cutoff30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const attRows = await tx.query.studentAttendance.findMany({
       where: and(
-        eq(studentAttendance.studentId, currentStudentRow.id),
+        eq(studentAttendance.studentId, targetStudentRow.id),
         gte(studentAttendance.attendanceDate, cutoff30d)
       ),
       orderBy: [desc(studentAttendance.attendanceDate)],
@@ -233,7 +224,7 @@ export default async function ParentDashboardPage({
 
     const invRows = await tx.query.feeInvoices.findMany({
       where: and(
-        eq(feeInvoices.studentId, currentStudentRow.id),
+        eq(feeInvoices.studentId, targetStudentRow.id),
         eq(feeInvoices.schoolId, school.id)
       ),
       orderBy: [desc(feeInvoices.dueDate)],
@@ -333,8 +324,8 @@ export default async function ParentDashboardPage({
     const assignmentList = await tx.query.assignments.findMany({
       where: and(
         eq(assignments.schoolId, school.id),
-        currentStudentRow.currentSectionId
-          ? eq(assignments.sectionId, currentStudentRow.currentSectionId)
+        targetStudentRow.currentSectionId
+          ? eq(assignments.sectionId, targetStudentRow.currentSectionId)
           : undefined,
         gte(assignments.dueDate, cutoffPast14d),
         lte(assignments.dueDate, cutoffFuture14d)
@@ -354,7 +345,7 @@ export default async function ParentDashboardPage({
       assignmentIds.length > 0
         ? await tx.query.assignmentSubmissions.findMany({
             where: and(
-              eq(assignmentSubmissions.studentId, currentStudentRow.id),
+              eq(assignmentSubmissions.studentId, targetStudentRow.id),
               eq(assignmentSubmissions.schoolId, school.id),
               inArray(assignmentSubmissions.assignmentId, assignmentIds)
             ),
@@ -366,7 +357,7 @@ export default async function ParentDashboardPage({
     );
 
     const homeworkSnaps: HomeworkSnapshot[] = assignmentList.map((a) => {
-      const sub = submissionByAssignment.get(a.id);
+      const sub = submissionByAssignment.get(a.id) as any;
       const subjectName = a.classSubject?.subject?.name || "Academics";
       const isSubmitted = Boolean(sub);
 
@@ -404,7 +395,7 @@ export default async function ParentDashboardPage({
     // D. Report Cards (D4: viewedAt tracking + previousAverageScore join)
     const rcRows = await tx.query.reportCards.findMany({
       where: and(
-        eq(reportCards.studentId, currentStudentRow.id),
+        eq(reportCards.studentId, targetStudentRow.id),
         eq(reportCards.schoolId, school.id),
         isNotNull(reportCards.generatedAt)
       ),
@@ -415,7 +406,7 @@ export default async function ParentDashboardPage({
     // Check if report card was previously viewed or dismissed in feed
     const existingRcCard = await tx.query.parentFeedCards.findFirst({
       where: and(
-        eq(parentFeedCards.studentId, currentStudentRow.id),
+        eq(parentFeedCards.studentId, targetStudentRow.id),
         eq(parentFeedCards.cardType, "ReportCardCard")
       ),
     });
@@ -451,7 +442,7 @@ export default async function ParentDashboardPage({
     // E. Bus Pass (D3: fetch routeStops, stopOrder, stopName, stopCoords, and latest gpsPing)
     const bp = await tx.query.studentBusPasses.findFirst({
       where: and(
-        eq(studentBusPasses.studentId, currentStudentRow.id),
+        eq(studentBusPasses.studentId, targetStudentRow.id),
         eq(studentBusPasses.schoolId, school.id),
         eq(studentBusPasses.isActive, true)
       ),
@@ -581,8 +572,8 @@ export default async function ParentDashboardPage({
             eq(ptmEvents.schoolId, school.id),
             or(
               isNull(ptmEvents.classId),
-              currentStudentRow.currentClassId
-                ? eq(ptmEvents.classId, currentStudentRow.currentClassId)
+              targetStudentRow.currentClassId
+                ? eq(ptmEvents.classId, targetStudentRow.currentClassId)
                 : undefined
             )
           ),
@@ -617,7 +608,7 @@ export default async function ParentDashboardPage({
             .where(
               and(
                 eq(ptmBookings.ptmEventId, ptmEventRow.id),
-                eq(ptmBookings.studentId, currentStudentRow.id),
+                eq(ptmBookings.studentId, targetStudentRow.id),
                 eq(ptmBookings.schoolId, school.id),
                 eq(ptmBookings.status, "BOOKED")
               )
@@ -678,7 +669,7 @@ export default async function ParentDashboardPage({
       const msgRows = await tx.query.parentTeacherMessages.findMany({
         where: and(
           eq(parentTeacherMessages.schoolId, school.id),
-          eq(parentTeacherMessages.studentId, currentStudentRow.id),
+          eq(parentTeacherMessages.studentId, targetStudentRow.id),
           eq(parentTeacherMessages.recipientUserId, ctx.userId),
           eq(parentTeacherMessages.isRead, false)
         ),
@@ -686,8 +677,12 @@ export default async function ParentDashboardPage({
         limit: 3,
       });
 
-      const teacherUserIds = Array.from(
-        new Set(msgRows.map((m) => m.senderUserId).filter(Boolean))
+      const teacherUserIds: string[] = Array.from(
+        new Set(
+          msgRows
+            .map((m) => m.senderUserId)
+            .filter((id): id is string => typeof id === "string" && id.length > 0)
+        )
       );
 
       const staffProfiles =
@@ -730,7 +725,7 @@ export default async function ParentDashboardPage({
     const leaveRows = await tx.query.studentLeaveRequests.findMany({
       where: and(
         eq(studentLeaveRequests.schoolId, school.id),
-        eq(studentLeaveRequests.studentId, currentStudentRow.id),
+        eq(studentLeaveRequests.studentId, targetStudentRow.id),
       ),
       orderBy: [desc(studentLeaveRequests.createdAt)],
       limit: 5,
@@ -751,7 +746,7 @@ export default async function ParentDashboardPage({
     const fqRows = await tx.query.feeQueries.findMany({
       where: and(
         eq(feeQueries.schoolId, school.id),
-        eq(feeQueries.studentId, currentStudentRow.id),
+        eq(feeQueries.studentId, targetStudentRow.id),
       ),
       orderBy: [desc(feeQueries.createdAt)],
       limit: 5,
@@ -790,80 +785,125 @@ export default async function ParentDashboardPage({
       termName: invoiceSnaps.find((inv) => inv.id === fq.invoiceId)?.termName || "School Fee",
     }));
 
-    return {
-      attendanceSnap: attendanceToday,
-      attendanceRate30d: attRate,
-      invoiceSnaps,
-      homeworkSnaps,
-      reportCardSnaps,
-      busPassSnap,
-      routeStopsSnap,
-      latestBusPingSnap,
-      noticeSnaps,
-      eventSnaps,
-      unreadMessageSnaps,
-      leaveRequestSnaps,
-      feeQuerySnaps,
+    // 5. Build snapshot & derive feed cards
+    let weeklyDigestSnap: WeeklyDigestSnapshot | undefined = undefined;
+    const dayOfWeek = now.getDay();
+    const hour = now.getHours();
+    // Active Monday 08:00 through Tuesday 23:59 (AC-P23)
+    if ((dayOfWeek === 1 && hour >= 8) || dayOfWeek === 2) {
+      const diffDays = dayOfWeek - 1 + 7;
+      const lastMon = new Date(now);
+      lastMon.setDate(now.getDate() - diffDays);
+      const lastSun = new Date(lastMon);
+      lastSun.setDate(lastMon.getDate() + 6);
+      const weekLabel = `${lastMon.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} - ${lastSun.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`;
+
+      const gradedCount = homeworkSnaps.filter((h) => Boolean(h.submission?.grade)).length;
+      const hasOverdue = invoiceSnaps.some((i) => i.status === "OVERDUE");
+      const dueSoonInv = invoiceSnaps.find((i) => i.status === "PENDING" || i.status === "PARTIAL");
+      const feesStatus = hasOverdue ? "OVERDUE" : dueSoonInv ? "DUE_SOON" : "UP_TO_DATE";
+      const balanceAmount = invoiceSnaps.reduce((sum, inv) => sum + (inv.balanceAmount || 0), 0);
+
+      weeklyDigestSnap = {
+        weekLabel,
+        attendanceDays: Math.min(5, Math.round(((attRate || 1) * 5))),
+        totalSchoolDays: 5,
+        homeworkGradedCount: gradedCount,
+        feesStatus,
+        balanceAmount: balanceAmount > 0 ? balanceAmount : undefined,
+        upcomingEventsCount: eventSnaps.length,
+        upcomingEventSummary: eventSnaps[0]?.title || undefined,
+      };
+    }
+
+    const snapshot: ParentDataSnapshot = {
+      studentName: studentDisplayName,
+      attendanceToday: attendanceToday,
+      invoices: invoiceSnaps,
+      homework: homeworkSnaps,
+      reportCards: reportCardSnaps,
+      busPass: busPassSnap,
+      routeStops: routeStopsSnap,
+      latestBusPing: latestBusPingSnap,
+      notices: noticeSnaps,
+      upcomingEvents: eventSnaps,
+      unreadMessages: unreadMessageSnaps,
+      leaveRequests: leaveRequestSnaps,
+      feeQueries: feeQuerySnaps,
+      weeklyDigest: weeklyDigestSnap,
     };
-  });
 
-  currentStudent.attendanceRate = attendanceRate30d;
-
-  // 5. Build snapshot & derive feed cards
-  let weeklyDigestSnap: WeeklyDigestSnapshot | undefined = undefined;
-  const dayOfWeek = now.getDay();
-  const hour = now.getHours();
-  // Active Monday 08:00 through Tuesday 23:59 (AC-P23)
-  if ((dayOfWeek === 1 && hour >= 8) || dayOfWeek === 2) {
-    const diffDays = dayOfWeek - 1 + 7;
-    const lastMon = new Date(now);
-    lastMon.setDate(now.getDate() - diffDays);
-    const lastSun = new Date(lastMon);
-    lastSun.setDate(lastMon.getDate() + 6);
-    const weekLabel = `${lastMon.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} - ${lastSun.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`;
-
-    const gradedCount = homeworkSnaps.filter((h) => Boolean(h.submission?.grade)).length;
-    const hasOverdue = invoiceSnaps.some((i) => i.status === "OVERDUE");
-    const dueSoonInv = invoiceSnaps.find((i) => i.status === "PENDING" || i.status === "PARTIAL");
-    const feesStatus = hasOverdue ? "OVERDUE" : dueSoonInv ? "DUE_SOON" : "UP_TO_DATE";
-    const balanceAmount = invoiceSnaps.reduce((sum, inv) => sum + (inv.balanceAmount || 0), 0);
-
-    weeklyDigestSnap = {
-      weekLabel,
-      attendanceDays: Math.min(5, Math.round(((attendanceRate30d || 100) / 100) * 5)),
-      totalSchoolDays: 5,
-      homeworkGradedCount: gradedCount,
-      feesStatus,
-      balanceAmount: balanceAmount > 0 ? balanceAmount : undefined,
-      upcomingEventsCount: eventSnaps.length,
-      upcomingEventSummary: eventSnaps[0]?.title || undefined,
+    return {
+      snapshot,
+      attendanceRate30d: attRate,
     };
   }
 
-  const snapshot: ParentDataSnapshot = {
-    studentName: currentStudent.name,
-    attendanceToday: attendanceSnap,
-    invoices: invoiceSnaps,
-    homework: homeworkSnaps,
-    reportCards: reportCardSnaps,
-    busPass: busPassSnap,
-    routeStops: routeStopsSnap,
-    latestBusPing: latestBusPingSnap,
-    notices: noticeSnaps,
-    upcomingEvents: eventSnaps,
-    unreadMessages: unreadMessageSnaps,
-    leaveRequests: leaveRequestSnaps,
-    feeQueries: feeQuerySnaps,
-    weeklyDigest: weeklyDigestSnap,
-  };
+  // 5. Derive initial feed cards (multi-ward merged feed or single ward)
+  let initialCards: DerivedFeedCard[] = [];
+  const isAllWards = selectedStudentId === "all" && studentRows.length > 1;
 
-  const initialCards = deriveParentFeed(currentStudent.id, now, snapshot);
+  await withTenant(school.id, async (tx) => {
+    if (isAllWards) {
+      const wardFeeds = await Promise.all(
+        studentRows.map(async (row) => {
+          const wardOpt = availableStudents.find((s) => s.id === row.id)!;
+          const wardName = wardOpt.name.split(" ")[0] || "Child";
+          const { snapshot, attendanceRate30d } = await fetchStudentSnapshot(
+            tx,
+            row,
+            wardOpt.name
+          );
+          wardOpt.attendanceRate = attendanceRate30d;
+          const cards = deriveParentFeed(row.id, now, snapshot, { wardName });
+          return {
+            studentId: row.id,
+            wardName,
+            cards,
+          };
+        })
+      );
+      initialCards = mergeMultiWardFeeds(wardFeeds, now);
+    } else {
+      const wardOpt = availableStudents.find((s) => s.id === currentStudentRow.id)!;
+      const rawWardName =
+        availableStudents.length > 1 ? wardOpt.name.split(" ")[0] : undefined;
+      const { snapshot, attendanceRate30d } = await fetchStudentSnapshot(
+        tx,
+        currentStudentRow,
+        wardOpt.name
+      );
+      wardOpt.attendanceRate = attendanceRate30d;
+      initialCards = deriveParentFeed(
+        currentStudentRow.id,
+        now,
+        snapshot,
+        rawWardName ? { wardName: rawWardName } : undefined
+      );
+    }
+  });
+
+  const displayStudent: StudentWardOption =
+    isAllWards
+      ? {
+          id: "all",
+          name: searchParams?.locale === "hi" ? "सभी बच्चे" : "All Children",
+          className: `${availableStudents.length} Students`,
+          sectionName: "",
+          admissionNumber: "MULTI",
+          attendanceRate:
+            availableStudents.length > 0
+              ? availableStudents.reduce((sum, s) => sum + (s.attendanceRate ?? 1), 0) /
+                availableStudents.length
+              : undefined,
+        }
+      : currentStudent;
 
   return (
     <div className="py-2">
       <ParentFeedContainer
         initialCards={initialCards}
-        currentStudent={currentStudent}
+        currentStudent={displayStudent}
         availableStudents={availableStudents}
         locale={searchParams?.locale || "en"}
       />

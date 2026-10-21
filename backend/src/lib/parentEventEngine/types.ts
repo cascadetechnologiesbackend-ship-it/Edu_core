@@ -47,6 +47,7 @@ export interface DerivedFeedCard {
   activatedAt: Date;
   expiresAt: Date;
   dismissedAt?: Date | null;
+  wardName?: string | undefined;
 }
 
 export interface InvoiceSnapshot {
@@ -235,6 +236,7 @@ export interface ParentDataSnapshot {
   scheduledStopMinutes?: number | undefined;
   documentRequests?: DocumentRequestSnapshot[] | undefined;
   profileChanges?: ProfileChangeSnapshot[] | undefined;
+  activeLeaveApproved?: boolean | undefined;
 }
 
 export interface WeeklyDigestSnapshot {

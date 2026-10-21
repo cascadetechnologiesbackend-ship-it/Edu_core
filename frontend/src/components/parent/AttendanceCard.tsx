@@ -60,6 +60,14 @@ export function AttendanceCard({
 
           <div>
             <div className="flex items-center gap-2">
+              {card.wardName && (
+                <span
+                  data-testid="ward-chip"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                >
+                  {card.wardName}
+                </span>
+              )}
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                 {isHi ? card.title.hi : card.title.en}
               </h3>

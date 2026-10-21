@@ -49,6 +49,7 @@ export interface FeedCardProps {
     text: string;
     variant: "rose" | "amber" | "emerald" | "slate";
   } | undefined;
+  wardName?: string | undefined;
   children?: React.ReactNode | undefined;
   className?: string | undefined;
 }
@@ -88,6 +89,7 @@ export function FeedCard({
   secondaryAction,
   microProgress,
   countdownChip,
+  wardName,
   children,
   className,
 }: FeedCardProps) {
@@ -143,6 +145,14 @@ export function FeedCard({
           </div>
 
           <div className="min-w-0">
+            {wardName && (
+              <span
+                data-testid="ward-chip"
+                className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 mb-1"
+              >
+                {wardName}
+              </span>
+            )}
             <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight leading-snug">
               {title}
             </h2>

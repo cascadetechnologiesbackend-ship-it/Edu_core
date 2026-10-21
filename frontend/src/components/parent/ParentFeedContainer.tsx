@@ -76,8 +76,21 @@ export function ParentFeedContainer({
     router.push(`/parent/dashboard?studentId=${id}`);
   };
 
-  const selectedStudent =
-    availableStudents.find((s) => s.id === activeStudentId) || currentStudent;
+  const selectedStudent: StudentWardOption =
+    activeStudentId === "all"
+      ? {
+          id: "all",
+          name: locale === "hi" ? "सभी बच्चे" : "All Children",
+          className: `${availableStudents.length} Students`,
+          sectionName: "",
+          admissionNumber: "MULTI",
+          attendanceRate:
+            availableStudents.length > 0
+              ? availableStudents.reduce((sum, s) => sum + (s.attendanceRate ?? 1), 0) /
+                availableStudents.length
+              : undefined,
+        }
+      : availableStudents.find((s) => s.id === activeStudentId) || currentStudent;
 
   return (
     <div className="w-full space-y-4">
@@ -115,12 +128,14 @@ export function ParentFeedContainer({
       {cards.length > 0 && (
         <div className="space-y-3.5 pt-1" data-testid="parent-feed-cards">
           {cards.map((card) => {
+            const wardStudentName = card.wardName || selectedStudent.name;
+
             if (card.cardType === "PaymentCard") {
               return (
                 <PaymentCard
                   key={card.id}
                   card={card}
-                  studentName={selectedStudent.name}
+                  studentName={wardStudentName}
                 />
               );
             }
@@ -140,7 +155,7 @@ export function ParentFeedContainer({
                 <AttendanceCard
                   key={card.id}
                   card={card}
-                  studentName={selectedStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -221,7 +236,7 @@ export function ParentFeedContainer({
                 <LeaveApprovedCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -232,7 +247,7 @@ export function ParentFeedContainer({
                 <LeaveRejectedCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -243,7 +258,7 @@ export function ParentFeedContainer({
                 <FeeQueryCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -254,7 +269,7 @@ export function ParentFeedContainer({
                 <WeeklyDigestCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -265,7 +280,7 @@ export function ParentFeedContainer({
                 <BusBoardingCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -276,7 +291,7 @@ export function ParentFeedContainer({
                 <DocumentRequestCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -287,7 +302,7 @@ export function ParentFeedContainer({
                 <ProfileChangeCard
                   key={card.id}
                   card={card}
-                  studentName={currentStudent.name}
+                  studentName={wardStudentName}
                   locale={locale}
                 />
               );
@@ -317,6 +332,7 @@ export function ParentFeedContainer({
                 microProgress={microProgress}
                 primaryAction={primaryAction}
                 secondaryAction={secondaryAction}
+                wardName={card.wardName}
               />
             );
           })}

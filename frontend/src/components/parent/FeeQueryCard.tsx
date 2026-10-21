@@ -120,6 +120,17 @@ export function FeeQueryCard({
                 </span>
                 <span className="text-[10px] text-slate-500">•</span>
                 <span className="text-xs text-slate-400">{termName}</span>
+                {card.wardName && (
+                  <>
+                    <span className="text-[10px] text-slate-500">•</span>
+                    <span
+                      data-testid="ward-chip"
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                    >
+                      {card.wardName}
+                    </span>
+                  </>
+                )}
               </div>
 
               <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight mt-0.5">
@@ -203,6 +214,17 @@ export function FeeQueryCard({
                 <span className="text-xs font-semibold text-amber-400">{catText}</span>
                 <span className="text-[10px] text-slate-500">•</span>
                 <span className="text-xs text-slate-400">{termName}</span>
+                {card.wardName && (
+                  <>
+                    <span className="text-[10px] text-slate-500">•</span>
+                    <span
+                      data-testid="ward-chip"
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                    >
+                      {card.wardName}
+                    </span>
+                  </>
+                )}
               </div>
 
               <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight mt-0.5">
@@ -259,6 +281,17 @@ export function FeeQueryCard({
               <span className="text-xs font-semibold text-slate-400">{catText}</span>
               <span className="text-[10px] text-slate-600">•</span>
               <span className="text-xs text-slate-500">{termName}</span>
+              {card.wardName && (
+                <>
+                  <span className="text-[10px] text-slate-600">•</span>
+                  <span
+                    data-testid="ward-chip"
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                  >
+                    {card.wardName}
+                  </span>
+                </>
+              )}
             </div>
 
             <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight mt-0.5">
