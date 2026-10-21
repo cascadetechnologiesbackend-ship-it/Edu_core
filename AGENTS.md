@@ -18,3 +18,12 @@ The repository follows the authoritative UI/UX, workflow, design feel, and archi
    - RBAC, tenant isolation, and DPDP constraints strictly take precedence over UI convenience.
    - `sw.js` privacy rules must remain intact byte-for-byte; authenticated HTML is never cached.
    - Parent-facing copy never uses shame words (defaulter, risk score, churn); all copy remains calm, dignified, and explainable.
+
+## Role PWA & Zero-Clutter Architecture Standards
+For all role-based applications (Parent, Teacher, Student, Driver, Admin), follow:
+- [.agents/rules/role-spec-driven-architecture.md](file:///v:/Cascade/2026/Edu_core/.agents/rules/role-spec-driven-architecture.md)
+- **Zero-Clutter Invariant**: No card renders unconditionally. Calm state renders only the identity/today strip.
+- **Strict Click Budgets**: All primary user workflows must complete in 2 to 4 taps.
+- **DPDP Act 2023 Compliance & Bilingual Dignity**: English + Hindi support across all cards; zero shame words.
+- **Schema Registration**: All new tables must be cataloged in `packages/entity-engine/src/catalog/entityGraph.ts` with no duplicate keys.
+
