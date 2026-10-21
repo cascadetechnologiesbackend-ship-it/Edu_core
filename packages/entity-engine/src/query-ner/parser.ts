@@ -8,6 +8,9 @@ import {
   INTENT_DICTIONARY,
   SUBJECT_DICTIONARY,
   TokenDictionaryEntry,
+  foldDevanagariNumerals,
+  normalizeClass,
+  normalizeSection,
 } from "./patterns";
 import { ROUTE_REGISTRY } from "./routes";
 import {
@@ -31,12 +34,13 @@ function getNow(): number {
  */
 export function parseOmniboxQuery(rawQuery: string): ParsedQuery {
   const startTime = getNow();
-  const trimmed = (rawQuery || "").trim();
+  const rawTrimmed = (rawQuery || "").trim();
+  const trimmed = foldDevanagariNumerals(rawTrimmed);
   const normalized = trimmed.toLowerCase();
 
   if (!trimmed) {
     return {
-      rawQuery: "",
+      rawQuery: rawTrimmed,
       normalizedQuery: "",
       recognizedEntities: [],
       confidenceScore: 0,
@@ -84,8 +88,8 @@ export function parseOmniboxQuery(rawQuery: string): ParsedQuery {
       const start = match.index;
       const end = start + match[0].length;
       if (!isOverlapping(start, end)) {
-        const classNum = match[1].toUpperCase();
-        const section = match[2] ? match[2].toUpperCase() : undefined;
+        const classNum = normalizeClass(match[1]);
+        const section = normalizeSection(match[2]);
         const canonical = section ? `Class ${classNum}-${section}` : `Class ${classNum}`;
 
         registerEntity(
@@ -106,7 +110,8 @@ export function parseOmniboxQuery(rawQuery: string): ParsedQuery {
   for (const entry of EXAM_DICTIONARY) {
     const sortedAliases = [...entry.aliases].sort((a, b) => b.length - a.length);
     for (const alias of sortedAliases) {
-      const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, "i");
+      if (!normalized.includes(alias.toLowerCase())) continue;
+      const regex = createWordRegex(alias);
       const match = regex.exec(trimmed);
       if (match && !isOverlapping(match.index, match.index + match[0].length)) {
         registerEntity(
@@ -127,7 +132,8 @@ export function parseOmniboxQuery(rawQuery: string): ParsedQuery {
   for (const entry of SUBJECT_DICTIONARY) {
     const sortedAliases = [...entry.aliases].sort((a, b) => b.length - a.length);
     for (const alias of sortedAliases) {
-      const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, "i");
+      if (!normalized.includes(alias.toLowerCase())) continue;
+      const regex = createWordRegex(alias);
       const match = regex.exec(trimmed);
       if (match && !isOverlapping(match.index, match.index + match[0].length)) {
         registerEntity(
@@ -147,7 +153,8 @@ export function parseOmniboxQuery(rawQuery: string): ParsedQuery {
   for (const entry of FEE_HEAD_DICTIONARY) {
     const sortedAliases = [...entry.aliases].sort((a, b) => b.length - a.length);
     for (const alias of sortedAliases) {
-      const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, "i");
+      if (!normalized.includes(alias.toLowerCase())) continue;
+      const regex = createWordRegex(alias);
       const match = regex.exec(trimmed);
       if (match && !isOverlapping(match.index, match.index + match[0].length)) {
         registerEntity(
@@ -200,7 +207,8 @@ export function parseOmniboxQuery(rawQuery: string): ParsedQuery {
     // Sort aliases by length descending to match longest phrases first
     const sortedAliases = [...entry.aliases].sort((a, b) => b.length - a.length);
     for (const alias of sortedAliases) {
-      const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, "i");
+      if (!normalized.includes(alias.toLowerCase())) continue;
+      const regex = createWordRegex(alias);
       const match = regex.exec(trimmed);
       if (match && !isOverlapping(match.index, match.index + match[0].length)) {
         matchedIntentEntry = entry;
@@ -393,4 +401,16 @@ function resolveIntentAndRoute(
 
 function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const WORD_REGEX_CACHE = new Map<string, RegExp>();
+
+function createWordRegex(phrase: string): RegExp {
+  let regex = WORD_REGEX_CACHE.get(phrase);
+  if (!regex) {
+    const escaped = escapeRegExp(phrase);
+    regex = new RegExp(`(?<=^|[^\\p{L}\\p{M}\\p{N}])${escaped}(?=[^\\p{L}\\p{M}\\p{N}]|$)`, "iu");
+    WORD_REGEX_CACHE.set(phrase, regex);
+  }
+  return regex;
 }

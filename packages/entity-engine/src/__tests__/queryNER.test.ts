@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseOmniboxQuery } from "../query-ner";
+import { foldDevanagariNumerals } from "../query-ner/patterns";
 import { isKnownRoute, ROUTE_REGISTRY } from "../query-ner/routes";
 
 describe("Omnibox Query NER Parser", () => {
@@ -160,5 +161,138 @@ describe("Omnibox Query NER Parser", () => {
         `ROUTE_REGISTRY["${intent}"] = "${route}" is not a known real route`
       ).toBe(true);
     }
+  });
+
+  // ─── Phase E5: Bilingual (Devanagari / Hindi) & Numeral Folding ─────────────
+  describe("Phase E5: Bilingual (Hindi/Devanagari) NER & Numeral Folding", () => {
+    it("correctly folds Devanagari numerals ०-९ to standard ASCII digits", () => {
+      expect(foldDevanagariNumerals("०१२३४५६७८९")).toBe("0123456789");
+      expect(foldDevanagariNumerals("कक्षा १०-ए")).toBe("कक्षा 10-ए");
+      expect(foldDevanagariNumerals("बस रूट ४")).toBe("बस रूट 4");
+    });
+
+    it("parses Devanagari marks entry query with Devanagari numerals and Hindi subject", () => {
+      const res = parseOmniboxQuery("अंक दर्ज करें कक्षा १०-ए गणित");
+
+      expect(res.primaryIntent?.type).toBe("ENTER_MARKS");
+      expect(res.primaryIntent?.targetDomain).toBe("EXAMINATIONS");
+      expect(res.targetRoute).toContain("/exams/marks");
+      expect(res.targetRoute).toContain("grade=10");
+      expect(res.targetRoute).toContain("section=A");
+      expect(res.targetRoute).toContain("subject=Mathematics");
+
+      const entities = res.recognizedEntities;
+      expect(entities.some((e) => e.type === "ACTION_INTENT" && e.normalized === "ENTER_MARKS")).toBe(true);
+      expect(entities.some((e) => e.type === "CLASS_SECTION" && e.normalized === "Class 10-A")).toBe(true);
+      expect(entities.some((e) => e.type === "SUBJECT" && e.normalized === "Mathematics")).toBe(true);
+      expect(res.confidenceScore).toBeGreaterThanOrEqual(0.85);
+    });
+
+    it("parses Devanagari attendance intent with section letter and Hindi keywords", () => {
+      const res = parseOmniboxQuery("हाज़िरी लगाएं कक्षा 8-ब");
+
+      expect(res.primaryIntent?.type).toBe("TAKE_ATTENDANCE");
+      expect(res.primaryIntent?.targetDomain).toBe("ATTENDANCE");
+      expect(res.targetRoute).toContain("/attendance");
+      expect(res.targetRoute).toContain("grade=8");
+      expect(res.targetRoute).toContain("section=B");
+    });
+
+    it("parses Devanagari fee dues query with grade", () => {
+      const res = parseOmniboxQuery("बकाया फीस कक्षा 7");
+
+      expect(res.primaryIntent?.type).toBe("VIEW_FEE_DUES");
+      expect(res.primaryIntent?.targetDomain).toBe("FEES_FINANCE");
+      expect(res.targetRoute).toContain("/fees");
+      expect(res.targetRoute).toContain("grade=7");
+    });
+
+    it("parses Devanagari transport fee head query", () => {
+      const res = parseOmniboxQuery("परिवहन शुल्क");
+
+      expect(res.primaryIntent?.type).toBe("VIEW_FEE_DUES");
+      expect(res.primaryIntent?.targetDomain).toBe("FEES_FINANCE");
+      expect(res.targetRoute).toContain("/fees");
+      expect(res.targetRoute).toContain("feeHead=Transport+Fee");
+    });
+
+    it("parses Devanagari live bus tracking query with route number", () => {
+      const res = parseOmniboxQuery("बस कहां है बस रूट ४");
+
+      expect(res.primaryIntent?.type).toBe("TRACK_BUS");
+      expect(res.primaryIntent?.targetDomain).toBe("TRANSPORT");
+      expect(res.targetRoute).toContain("/transport");
+      expect(res.targetRoute).toContain("route=4");
+    });
+
+    it("parses Devanagari report card query with class", () => {
+      const res = parseOmniboxQuery("प्रगति पत्रक कक्षा 5-ब");
+
+      expect(res.primaryIntent?.type).toBe("VIEW_REPORT_CARD");
+      expect(res.primaryIntent?.targetDomain).toBe("EXAMINATIONS");
+      expect(res.targetRoute).toContain("/exams/report-cards");
+      expect(res.targetRoute).toContain("grade=5");
+      expect(res.targetRoute).toContain("section=B");
+    });
+
+    it("parses Devanagari exam marks view with exam name", () => {
+      const res = parseOmniboxQuery("अर्धवार्षिक परीक्षा परिणाम");
+
+      expect(res.primaryIntent?.type).toBe("VIEW_MARKS");
+      expect(res.primaryIntent?.targetDomain).toBe("EXAMINATIONS");
+      expect(res.targetRoute).toContain("/exams/results");
+      expect(res.targetRoute).toContain("exam=Half+Yearly");
+    });
+
+    it("parses Devanagari staff directory intent", () => {
+      const res = parseOmniboxQuery("शिक्षक सूची");
+
+      expect(res.primaryIntent?.type).toBe("VIEW_STAFF_PROFILE");
+      expect(res.primaryIntent?.targetDomain).toBe("HR_STAFF");
+      expect(res.targetRoute).toContain("/hr");
+    });
+
+    it("parses Devanagari student profile search intent", () => {
+      const res = parseOmniboxQuery("छात्र खोजें");
+
+      expect(res.primaryIntent?.type).toBe("VIEW_STUDENT_PROFILE");
+      expect(res.primaryIntent?.targetDomain).toBe("STUDENTS_LIFECYCLE");
+      expect(res.targetRoute).toContain("/students");
+    });
+
+    it("parses Devanagari notice broadcast intent", () => {
+      const res = parseOmniboxQuery("सूचना जारी करें");
+
+      expect(res.primaryIntent?.type).toBe("CREATE_NOTICE");
+      expect(res.primaryIntent?.targetDomain).toBe("COMMUNICATION");
+      expect(res.targetRoute).toContain("/communication/notices");
+    });
+
+    it("parses Romanized Hindi (Hinglish) marks entry query", () => {
+      const res = parseOmniboxQuery("marks entry kaksha 10-A ganit");
+
+      expect(res.primaryIntent?.type).toBe("ENTER_MARKS");
+      expect(res.targetRoute).toContain("/exams/marks");
+      expect(res.targetRoute).toContain("grade=10");
+      expect(res.targetRoute).toContain("section=A");
+      expect(res.targetRoute).toContain("subject=Mathematics");
+    });
+
+    it("executes bilingual parsing in < 5ms average over 50 iterations", () => {
+      const queries = [
+        "अंक दर्ज करें कक्षा १०-ए गणित",
+        "हाज़िरी लगाएं कक्षा 8-ब",
+        "बकाया फीस कक्षा 7",
+        "बस कहां है बस रूट ४",
+        "marks entry kaksha 10-A ganit",
+      ];
+      const start = performance.now();
+      for (let i = 0; i < 50; i++) {
+        parseOmniboxQuery(queries[i % queries.length]);
+      }
+      const elapsed = performance.now() - start;
+      const avgMs = elapsed / 50;
+      expect(avgMs).toBeLessThan(5);
+    });
   });
 });
