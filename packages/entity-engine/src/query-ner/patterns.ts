@@ -240,6 +240,14 @@ export const EXAM_DICTIONARY: TokenDictionaryEntry[] = [
 
 export const FEE_HEAD_DICTIONARY: TokenDictionaryEntry[] = [
   {
+    canonical: "School Fee",
+    aliases: [
+      "school fee", "school fees", "vidyalaya shulk",
+      "स्कूल फीस", "विद्यालय शुल्क"
+    ],
+    category: "FEES_FINANCE",
+  },
+  {
     canonical: "Tuition Fee",
     aliases: [
       "tuition fee", "tuition", "tution", "tuition charges", "shikshan shulk",
@@ -436,9 +444,9 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     canonical: "VIEW_TIMETABLE",
     aliases: [
       "timetable", "time table", "class schedule", "teacher timetable",
-      "period schedule", "routine", "bell schedule",
+      "period schedule", "routine", "bell schedule", "my day", "myday", "my day schedule", "schedule",
       "samay sarni", "kaksha routine",
-      "समय सारणी", "टाइम टेबल", "कक्षा समय सारणी", "रूटीन"
+      "समय सारणी", "टाइम टेबल", "कक्षा समय सारणी", "रूटीन", "माई डे"
     ],
     category: "ACADEMICS",
     metadata: {
@@ -448,12 +456,51 @@ export const INTENT_DICTIONARY: TokenDictionaryEntry[] = [
     },
   },
   {
+    canonical: "VIEW_SUBSTITUTIONS",
+    aliases: [
+      "substitutions", "substitution", "substitute", "view substitutions", "substitution workbench",
+      "प्रतिस्थापन", "सब्सटीट्यूशन"
+    ],
+    category: "ACADEMICS",
+    metadata: {
+      action: "VIEW_TIMETABLE",
+      route: "/teacher/classes?tab=substitutions",
+      label: "View Substitutions Workbench",
+    },
+  },
+  {
+    canonical: "BOOK_PTM",
+    aliases: [
+      "ptm", "parent teacher meeting", "book ptm", "book ptm slot", "ptm appointment", "parent meeting",
+      "पीटीएम", "शिक्षक अभिभावक बैठक"
+    ],
+    category: "COMMUNICATION",
+    metadata: {
+      action: "NAVIGATE_DOMAIN",
+      route: "/parent/more",
+      label: "Book PTM Appointment",
+    },
+  },
+  {
+    canonical: "APPLY_LEAVE",
+    aliases: [
+      "apply leave", "apply for leave", "student leave", "leave request", "chutti", "apply chutti",
+      "अवकाश आवेदन", "छुट्टी का आवेदन", "छुट्टी", "अवकाश"
+    ],
+    category: "ATTENDANCE",
+    metadata: {
+      action: "NAVIGATE_DOMAIN",
+      route: "/parent/more/leave",
+      label: "Apply for Student Leave",
+    },
+  },
+  {
     canonical: "CREATE_NOTICE",
     aliases: [
       "create notice", "post notice", "broadcast notice", "publish circular",
-      "send circular", "announcement", "send message", "send sms",
+      "send circular", "announcement", "send message", "send sms", "notices", "notice", "school notices",
       "notice banaye", "suchna jari", "circular bheje",
-      "सूचना जारी करें", "नोटिस बनाएं", "सर्कुलर भेजें", "सूचना भेजें", "घोषणा करें", "नोटिस"
+      "सूचना जारी करें", "नोटिस बनाएं", "सर्कुलर भेजें", "सूचना भेजें", "घोषणा करें", "नोटिस", "सूचनाएं"
     ],
     category: "COMMUNICATION",
     metadata: {

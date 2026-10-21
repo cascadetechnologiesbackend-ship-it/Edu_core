@@ -6,6 +6,7 @@ import { LogOut, Sun, Moon, Sparkles, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { ExamCommandSearch } from "@/components/exams/ExamCommandSearch";
+import { RoleCommandPalette } from "@/components/ui/RoleCommandPalette";
 
 interface PwaHeaderProps {
   role: "TEACHER" | "PARENT" | "DRIVER";
@@ -35,6 +36,7 @@ export default function PwaHeader({
   const session = sessionData;
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [examCmdOpen, setExamCmdOpen] = useState(false);
 
   useEffect(() => {
@@ -93,7 +95,7 @@ export default function PwaHeader({
       <div className="flex items-center gap-1 shrink-0">
         <button
           type="button"
-          onClick={() => setExamCmdOpen(true)}
+          onClick={() => setSearchOpen(true)}
           className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
           title="Command Search (⌘K)"
           aria-label="Command Search"
@@ -123,10 +125,11 @@ export default function PwaHeader({
         </button>
       </div>
 
-      <ExamCommandSearch
-        open={examCmdOpen}
-        onOpenChange={setExamCmdOpen}
-        userRole={role}
+      {/* Role-Scoped Omnibox Palette (Phase E6) */}
+      <RoleCommandPalette
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        role={role}
       />
     </header>
   );
