@@ -23,7 +23,11 @@ import {
   type StudentAdmitCardData,
 } from "./PortalAdmitCardView";
 
-export default async function ParentPortalAdmitCardsPage() {
+export default async function ParentPortalAdmitCardsPage({
+  searchParams,
+}: {
+  searchParams?: { studentId?: string };
+}) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -50,6 +54,7 @@ export default async function ParentPortalAdmitCardsPage() {
   let myStudents = await db.query.students.findMany({
     where: and(
       eq(students.primaryParentUserId, userId),
+      eq(students.isActive, true),
       userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
     ),
   });
@@ -59,20 +64,22 @@ export default async function ParentPortalAdmitCardsPage() {
     myStudents = await db.query.students.findMany({
       where: and(
         eq(students.userId, userId),
+        eq(students.isActive, true),
         userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
       ),
     });
   }
 
-  // Preview fallback for admins, strictly within tenant school
-  if (myStudents.length === 0 && isPrivileged) {
-    const demo = await db.query.students.findFirst({
+  // Admin preview strictly requires explicit ?studentId= within tenant school
+  if (myStudents.length === 0 && isPrivileged && searchParams?.studentId) {
+    const preview = await db.query.students.findFirst({
       where: and(
+        eq(students.id, searchParams.studentId),
         eq(students.isActive, true),
         userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
       ),
     });
-    if (demo) myStudents = [demo];
+    if (preview) myStudents = [preview];
   }
 
   if (myStudents.length === 0) {

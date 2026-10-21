@@ -46,24 +46,9 @@ export default async function ParentFeesPage({
   ] as const);
   const school = await requireSchool(ctx);
 
-  // 1. Fetch parent's active students
-  const studentRows = await withTenant(school.id, async (tx) => {
-    if (ctx.role === "PARENT") {
-      return await tx.query.students.findMany({
-        where: and(
-          eq(students.schoolId, school.id),
-          eq(students.primaryParentUserId, ctx.userId),
-          eq(students.isActive, true)
-        ),
-        orderBy: [asc(students.admissionNumber)],
-      });
-    }
-
-    return await tx.query.students.findMany({
-      where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
-      limit: 5,
-    });
-  });
+  // 1. Fetch parent's active students via authoritative shared resolver
+  const { resolveParentWards } = await import("@schoolmitra/backend/parentEventEngine/resolveParentWards");
+  const studentRows = await resolveParentWards(ctx, school.id, searchParams?.studentId);
 
   if (studentRows.length === 0) {
     return (
@@ -77,16 +62,7 @@ export default async function ParentFeesPage({
   const currentStudent =
     studentRows.find((s) => s.id === selectedStudentId) || studentRows[0]!;
 
-  let studentDisplayName = `Student ${currentStudent.admissionNumber}`;
-  try {
-    if (currentStudent.firstNameEncrypted) {
-      const first = decryptData(currentStudent.firstNameEncrypted);
-      const last = currentStudent.lastNameEncrypted
-        ? decryptData(currentStudent.lastNameEncrypted)
-        : "";
-      studentDisplayName = `${first} ${last}`.trim();
-    }
-  } catch {}
+  const studentDisplayName = currentStudent.fullName;
 
   // 2. Fetch Invoices, Items, Payments, and Queries for this student
   const { invoices, payments, queries, siblingDetails } = await withTenant(school.id, async (tx) => {

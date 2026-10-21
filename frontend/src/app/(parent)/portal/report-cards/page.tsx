@@ -31,7 +31,11 @@ import {
   CreditCard,
 } from "lucide-react";
 
-export default async function ParentReportCardsPage() {
+export default async function ParentReportCardsPage({
+  searchParams,
+}: {
+  searchParams?: { studentId?: string };
+}) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -44,6 +48,7 @@ export default async function ParentReportCardsPage() {
 
   const userId = session.user.id;
   const userRole = (session.user.role as string) || "PARENT";
+  const userSchoolId = session.user.schoolId;
   const isPrivileged = [
     "ADMIN",
     "SUPER_ADMIN",
@@ -53,10 +58,10 @@ export default async function ParentReportCardsPage() {
   ].includes(userRole);
 
   // 1. Identify students linked to this parent/student, strictly scoped to tenant schoolId
-  const userSchoolId = session.user.schoolId;
   let myStudents = await db.query.students.findMany({
     where: and(
       eq(students.primaryParentUserId, userId),
+      eq(students.isActive, true),
       userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
     ),
   });
@@ -65,20 +70,22 @@ export default async function ParentReportCardsPage() {
     myStudents = await db.query.students.findMany({
       where: and(
         eq(students.userId, userId),
+        eq(students.isActive, true),
         userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
       ),
     });
   }
 
-  // Admin preview fallback, strictly within tenant school
-  if (myStudents.length === 0 && isPrivileged) {
-    const demoStudent = await db.query.students.findFirst({
+  // Admin preview strictly requires explicit ?studentId= within tenant school
+  if (myStudents.length === 0 && isPrivileged && searchParams?.studentId) {
+    const previewStudent = await db.query.students.findFirst({
       where: and(
+        eq(students.id, searchParams.studentId),
         eq(students.isActive, true),
         userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
       ),
     });
-    if (demoStudent) myStudents = [demoStudent];
+    if (previewStudent) myStudents = [previewStudent];
   }
 
   if (myStudents.length === 0) {

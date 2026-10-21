@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
+import { resolveParentWards } from "@/lib/parentEventEngine/resolveParentWards";
 
 export type WorkflowType =
   | "leave"
@@ -67,50 +68,30 @@ export async function getUnifiedParentWorkflows(
     ] as const);
     const school = await requireSchool(ctx);
 
+    const resolvedWards = await resolveParentWards(
+      ctx,
+      school.id,
+      filterStudentId && filterStudentId !== "all" ? filterStudentId : undefined
+    );
+
+    if (resolvedWards.length === 0) {
+      return { success: true, items: [], wards: [] };
+    }
+
+    // Map ward names
+    const wardMap = new Map<string, string>(resolvedWards.map((w) => [w.id, w.fullName]));
+    const wardsList: Array<{ id: string; name: string }> = resolvedWards.map((w) => ({
+      id: w.id,
+      name: w.fullName,
+    }));
+
+    // Determine target student IDs
+    let targetStudentIds = resolvedWards.map((w) => w.id);
+    if (filterStudentId && filterStudentId !== "all") {
+      targetStudentIds = targetStudentIds.filter((id) => id === filterStudentId);
+    }
+
     return await withTenant(school.id, async (tx) => {
-      // 1. Identify active wards for this parent or preview context
-      const studentWhere =
-        ctx.role === "PARENT"
-          ? and(
-              eq(students.schoolId, school.id),
-              eq(students.primaryParentUserId, ctx.userId),
-              eq(students.isActive, true)
-            )
-          : and(eq(students.schoolId, school.id), eq(students.isActive, true));
-
-      let wardRows = await tx.query.students.findMany({
-        where: studentWhere,
-        ...(ctx.role !== "PARENT" ? { limit: 10 } : {}),
-      });
-
-      if (wardRows.length === 0) {
-        return { success: true, items: [], wards: [] };
-      }
-
-      // Map ward names
-      const wardMap = new Map<string, string>();
-      const wardsList: Array<{ id: string; name: string }> = [];
-
-      for (const w of wardRows) {
-        let name = `Student ${w.admissionNumber}`;
-        if (w.firstNameEncrypted) {
-          try {
-            const first = decryptData(w.firstNameEncrypted);
-            const last = w.lastNameEncrypted ? decryptData(w.lastNameEncrypted) : "";
-            name = `${first} ${last}`.trim();
-          } catch {
-            // fallback
-          }
-        }
-        wardMap.set(w.id, name);
-        wardsList.push({ id: w.id, name });
-      }
-
-      // Determine target student IDs
-      let targetStudentIds = wardRows.map((w) => w.id);
-      if (filterStudentId && filterStudentId !== "all") {
-        targetStudentIds = targetStudentIds.filter((id) => id === filterStudentId);
-      }
 
       if (targetStudentIds.length === 0) {
         return { success: true, items: [], wards: wardsList };

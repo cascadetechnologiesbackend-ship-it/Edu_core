@@ -3,10 +3,7 @@ export const dynamic = "force-dynamic";
 import React from "react";
 import { getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
-import { db, withTenant } from "@/db";
-import { students } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { decryptData } from "@/lib/encryption";
+import { resolveParentWards } from "@/lib/parentEventEngine/resolveParentWards";
 import { getStudentLeaveRequests } from "../../actions/leaveActions";
 import { ParentLeaveClient } from "./ParentLeaveClient";
 
@@ -30,46 +27,9 @@ export default async function ParentLeavePage({ searchParams }: ParentLeavePageP
     redirect("/auth/login");
   }
 
-  const userId = session.user.id;
-  const userRole = session.user.role || "PARENT";
+  const wards = await resolveParentWards(session.user, schoolId, searchParams?.studentId);
 
-  // 1. Fetch wards linked to this parent inside tenant context
-  const wardRows = await withTenant(schoolId, async (tx) => {
-    return await tx.query.students.findMany({
-      where: and(
-        eq(students.primaryParentUserId, userId),
-        eq(students.schoolId, schoolId),
-        eq(students.isActive, true)
-      ),
-      columns: {
-        id: true,
-        admissionNumber: true,
-        firstNameEncrypted: true,
-        lastNameEncrypted: true,
-        currentClassId: true,
-      },
-    });
-  });
-
-  if (wardRows.length === 0 && userRole !== "PARENT") {
-    // Admin/Teacher preview fallback
-    const previewRows = await withTenant(schoolId, async (tx) => {
-      return await tx.query.students.findMany({
-        where: and(eq(students.schoolId, schoolId), eq(students.isActive, true)),
-        limit: 5,
-        columns: {
-          id: true,
-          admissionNumber: true,
-          firstNameEncrypted: true,
-          lastNameEncrypted: true,
-          currentClassId: true,
-        },
-      });
-    });
-    wardRows.push(...previewRows);
-  }
-
-  if (wardRows.length === 0) {
+  if (wards.length === 0) {
     return (
       <div className="p-6 text-center space-y-2">
         <h2 className="text-base font-bold text-slate-100">No Student Records Found</h2>
@@ -80,23 +40,10 @@ export default async function ParentLeavePage({ searchParams }: ParentLeavePageP
     );
   }
 
-  // Decrypt names
-  const safeWards = wardRows.map((w) => {
-    let name = `Student ${w.admissionNumber}`;
-    try {
-      if (w.firstNameEncrypted) {
-        const first = decryptData(w.firstNameEncrypted);
-        const last = w.lastNameEncrypted ? decryptData(w.lastNameEncrypted) : "";
-        name = `${first} ${last}`.trim();
-      }
-    } catch {
-      name = `Student ${w.admissionNumber}`;
-    }
-    return {
-      id: w.id,
-      name,
-    };
-  });
+  const safeWards = wards.map((w) => ({
+    id: w.id,
+    name: w.fullName,
+  }));
 
   const selectedStudentId =
     searchParams?.studentId && safeWards.some((w) => w.id === searchParams.studentId)

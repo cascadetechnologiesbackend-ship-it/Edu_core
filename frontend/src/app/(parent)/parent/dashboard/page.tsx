@@ -53,6 +53,7 @@ import type {
   FeeQuerySnapshot,
   WeeklyDigestSnapshot,
 } from "@schoolmitra/backend/parentEventEngine/types";
+import { resolveParentWards, type ParentWard } from "@/lib/parentEventEngine/resolveParentWards";
 import { ParentFeedContainer } from "@/components/parent/ParentFeedContainer";
 import type { StudentWardOption } from "@/components/parent/ParentIdentityHeader";
 
@@ -75,35 +76,10 @@ export default async function ParentDashboardPage({
   const school = await requireSchool(ctx);
   const now = new Date();
 
-  // 1. Identify the parent's wards
-  const studentRows = await withTenant(school.id, async (tx) => {
-    if (ctx.role === "PARENT") {
-      return await tx.query.students.findMany({
-        where: and(
-          eq(students.schoolId, school.id),
-          eq(students.primaryParentUserId, ctx.userId),
-          eq(students.isActive, true)
-        ),
-        orderBy: [asc(students.admissionNumber)],
-      });
-    }
+  // 1. Identify the parent's wards using unified resolver
+  const wards = await resolveParentWards(ctx, school.id, searchParams?.studentId);
 
-    // D7 FIX: Admins / Principals previewing parent portal require explicit ?studentId=
-    if (!searchParams?.studentId) {
-      return [];
-    }
-
-    return await tx.query.students.findMany({
-      where: and(
-        eq(students.schoolId, school.id),
-        eq(students.id, searchParams.studentId),
-        eq(students.isActive, true)
-      ),
-      limit: 1,
-    });
-  });
-
-  if (studentRows.length === 0) {
+  if (wards.length === 0) {
     if (ctx.role !== "PARENT") {
       return (
         <div className="py-12 text-center" data-testid="admin-preview-prompt">
@@ -128,59 +104,27 @@ export default async function ParentDashboardPage({
     );
   }
 
-  // Fetch class names for all ward classes
-  const classIds = studentRows
-    .map((s) => s.currentClassId)
-    .filter(Boolean) as string[];
+  // 2. Build available students list with decrypted names
+  const availableStudents: StudentWardOption[] = wards.map((w) => ({
+    id: w.id,
+    name: w.fullName,
+    className: w.className || "Class",
+    sectionName: w.sectionName || "",
+    admissionNumber: w.admissionNumber,
+    avatarUrl: w.photoS3Key,
+  }));
 
-  const schoolClasses =
-    classIds.length > 0
-      ? await withTenant(school.id, async (tx) =>
-          tx.query.classes.findMany({
-            where: inArray(classes.id, classIds),
-            columns: { id: true, displayName: true, gradeLevel: true },
-          })
-        )
-      : [];
-
-  const classMap = new Map(
-    schoolClasses.map((c) => [c.id, c.displayName || c.gradeLevel])
-  );
-
-  // 2. Select active student (searchParam or first)
-  const selectedStudentId = searchParams?.studentId || studentRows[0]!.id;
+  // 3. Select active student (searchParam or first)
+  const selectedStudentId = searchParams?.studentId || wards[0]!.id;
   const currentStudentRow =
-    studentRows.find((s) => s.id === selectedStudentId) || studentRows[0]!;
-
-  // 3. Build available students list with decrypted names
-  const availableStudents: StudentWardOption[] = studentRows.map((s) => {
-    let studentName = `Student ${s.admissionNumber}`;
-    try {
-      if (s.firstNameEncrypted) {
-        const first = decryptData(s.firstNameEncrypted);
-        const last = s.lastNameEncrypted ? decryptData(s.lastNameEncrypted) : "";
-        studentName = `${first} ${last}`.trim();
-      }
-    } catch {
-      // Fallback to admission number if decryption fails in preview/sandbox
-    }
-
-    return {
-      id: s.id,
-      name: studentName,
-      className: s.currentClassId ? classMap.get(s.currentClassId) || "Class" : "Class",
-      sectionName: "",
-      admissionNumber: s.admissionNumber,
-      avatarUrl: s.photoS3Key,
-    };
-  });
+    wards.find((s) => s.id === selectedStudentId) || wards[0]!;
 
   const currentStudent = availableStudents.find((s) => s.id === currentStudentRow.id)!;
 
   // 4. Helper to fetch data snapshot for a student
   async function fetchStudentSnapshot(
     tx: Db,
-    targetStudentRow: typeof currentStudentRow,
+    targetStudentRow: ParentWard,
     studentDisplayName: string
   ): Promise<{ snapshot: ParentDataSnapshot; attendanceRate30d: number }> {
     // A. Attendance (last 30 days)
@@ -841,12 +785,12 @@ export default async function ParentDashboardPage({
 
   // 5. Derive initial feed cards (multi-ward merged feed or single ward)
   let initialCards: DerivedFeedCard[] = [];
-  const isAllWards = selectedStudentId === "all" && studentRows.length > 1;
+  const isAllWards = selectedStudentId === "all" && wards.length > 1;
 
   await withTenant(school.id, async (tx) => {
     if (isAllWards) {
       const wardFeeds = await Promise.all(
-        studentRows.map(async (row) => {
+        wards.map(async (row) => {
           const wardOpt = availableStudents.find((s) => s.id === row.id)!;
           const wardName = wardOpt.name.split(" ")[0] || "Child";
           const { snapshot, attendanceRate30d } = await fetchStudentSnapshot(

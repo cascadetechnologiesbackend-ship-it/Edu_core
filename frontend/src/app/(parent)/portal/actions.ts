@@ -70,8 +70,12 @@ export async function submitConsentChange(input: {
       return { success: false, message: "Invalid OTP code entered: must be a 6-digit code." };
     }
 
+    const userSchoolId = (session.user as any).schoolId;
     const studentRecord = await db.query.students.findFirst({
-      where: eq(students.id, input.studentId),
+      where: and(
+        eq(students.id, input.studentId),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined
+      ),
     });
 
     if (!studentRecord)
@@ -147,8 +151,12 @@ export async function raiseRightsRequest(input: {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
+    const userSchoolId = (session.user as any).schoolId;
     const studentRecord = await db.query.students.findFirst({
-      where: eq(students.id, input.studentId),
+      where: and(
+        eq(students.id, input.studentId),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined
+      ),
     });
 
     if (!studentRecord)
@@ -219,11 +227,13 @@ export async function fetchStudentCompleteData(studentId: string) {
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
+    const userSchoolId = (session.user as any).schoolId;
     // Verify parent is authorized for this student
     const studentRecord = await db.query.students.findFirst({
       where: and(
         eq(students.id, studentId),
         eq(students.primaryParentUserId, session.user.id),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
       ),
     });
 
@@ -235,7 +245,10 @@ export async function fetchStudentCompleteData(studentId: string) {
     const targetStudent =
       studentRecord ||
       (await db.query.students.findFirst({
-        where: eq(students.id, studentId),
+        where: and(
+          eq(students.id, studentId),
+          userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+        ),
       }));
     if (!targetStudent) return { success: false, message: "Student not found" };
 
@@ -415,18 +428,18 @@ export async function checkParentConsentStatus() {
       return { success: true, needsConsent: false };
     }
 
-    // Find students linked to this parent
-    let myStudents = await db.query.students.findMany({
-      where: eq(students.primaryParentUserId, parentUserId),
-    });
-
-    // If Admin preview and no students, fetch first student with parent or any student for demo
-    if (myStudents.length === 0 && isAdmin) {
-      const demoStudent = await db.query.students.findFirst();
-      if (demoStudent) myStudents = [demoStudent];
+    const schoolId = (session.user as any).schoolId;
+    if (!schoolId) {
+      return { success: true, needsConsent: false, reason: "NO_SCHOOL_CONTEXT" };
     }
 
-    if (myStudents.length === 0) {
+    const { resolveParentWards } = await import("@schoolmitra/backend/parentEventEngine/resolveParentWards");
+    const myWards = await resolveParentWards(
+      { role: session.user.role, userId: parentUserId },
+      schoolId,
+    );
+
+    if (myWards.length === 0) {
       return { success: true, needsConsent: false, reason: "NO_STUDENTS" };
     }
 
@@ -620,8 +633,12 @@ export async function uploadParentStudentDocument(input: {
       return { success: false, message: "Unauthorized" };
     }
 
+    const userSchoolId = (session.user as any).schoolId;
     const student = await db.query.students.findFirst({
-      where: eq(students.id, input.studentId),
+      where: and(
+        eq(students.id, input.studentId),
+        userSchoolId ? eq(students.schoolId, userSchoolId) : undefined,
+      ),
     });
 
     if (!student) {
@@ -664,36 +681,42 @@ export async function fetchParentStudentDocuments(studentId?: string) {
 
     const parentUserId = session.user.id;
     const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role);
+    const schoolId = (session.user as any).schoolId;
 
-    let myStudents = await db.query.students.findMany({
-      where: eq(students.primaryParentUserId, parentUserId),
-    });
-
-    if (myStudents.length === 0 && isAdmin) {
-      const demoStudent = await db.query.students.findFirst();
-      if (demoStudent) myStudents = [demoStudent];
+    if (!schoolId) {
+      return { success: false, message: "School context required", students: [], documents: [] };
     }
 
-    const studentsFormatted = myStudents.map(s => ({
+    const { resolveParentWards } = await import("@schoolmitra/backend/parentEventEngine/resolveParentWards");
+    const myWards = await resolveParentWards(
+      { role: session.user.role, userId: parentUserId },
+      schoolId,
+      studentId
+    );
+
+    const studentsFormatted = myWards.map(s => ({
       id: s.id,
       admissionNumber: s.admissionNumber,
-      displayName: `${decryptData(s.firstNameEncrypted) || ""} ${decryptData(s.lastNameEncrypted) || ""}`.trim() || "Student",
+      displayName: s.fullName,
     }));
 
-    const targetStudentId = studentId || myStudents[0]?.id;
+    const targetStudentId = studentId || myWards[0]?.id;
 
     if (!targetStudentId) {
       return { success: true, students: [], documents: [] };
     }
 
     // Verify ownership
-    const targetStudent = myStudents.find(s => s.id === targetStudentId);
+    const targetStudent = myWards.find(s => s.id === targetStudentId);
     if (!targetStudent && !isAdmin) {
       return { success: false, message: "Unauthorized access to student documents", students: studentsFormatted, documents: [] };
     }
 
     const docs = await db.query.studentDocuments.findMany({
-      where: eq(studentDocuments.studentId, targetStudentId),
+      where: and(
+        eq(studentDocuments.studentId, targetStudentId),
+        eq(studentDocuments.schoolId, schoolId),
+      ),
       orderBy: (t, { desc }) => [desc(t.createdAt)],
     });
 

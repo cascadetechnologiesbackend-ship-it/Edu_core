@@ -54,24 +54,9 @@ export default async function ParentProfilePage({
     }
   }
 
-  // 1. Fetch all linked wards
-  const allStudents = await withTenant(school.id, async (tx) => {
-    if (ctx.role === "PARENT") {
-      return await tx.query.students.findMany({
-        where: and(
-          eq(students.schoolId, school.id),
-          eq(students.primaryParentUserId, ctx.userId),
-          eq(students.isActive, true)
-        ),
-        orderBy: [asc(students.admissionNumber)],
-      });
-    }
-
-    return await tx.query.students.findMany({
-      where: and(eq(students.schoolId, school.id), eq(students.isActive, true)),
-      limit: 5,
-    });
-  });
+  // 1. Fetch all linked wards via authoritative shared resolver
+  const { resolveParentWards } = await import("@schoolmitra/backend/parentEventEngine/resolveParentWards");
+  const allStudents = await resolveParentWards(ctx, school.id, searchParams?.studentId);
 
   if (allStudents.length === 0) {
     redirect("/parent/dashboard");
@@ -83,11 +68,7 @@ export default async function ParentProfilePage({
       ? allStudents.find((s) => s.id === searchParams.studentId)
       : null) || allStudents[0]!;
 
-  const getStudentName = (s: typeof activeStudent) => {
-    const first = decryptData(s.firstNameEncrypted) || "";
-    const last = decryptData(s.lastNameEncrypted) || "";
-    return `${first} ${last}`.trim() || "Student";
-  };
+  const getStudentName = (s: typeof activeStudent) => s.fullName;
 
   // 2. Fetch Class, Attendance, Bus Pass, Fees, and Guardian
   const data = await withTenant(school.id, async (tx) => {

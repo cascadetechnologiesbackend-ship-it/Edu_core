@@ -25,7 +25,7 @@ import {
 export default async function ParentFeesPage({
   searchParams,
 }: {
-  searchParams?: { tab?: string; invoiceId?: string };
+  searchParams?: { tab?: string; invoiceId?: string; studentId?: string };
 }) {
   const session = await auth();
 
@@ -38,22 +38,14 @@ export default async function ParentFeesPage({
   }
 
   const parentUserId = session.user.id;
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(
-    session.user.role
+  const schoolId = (session.user as any).schoolId;
+
+  const { resolveParentWards } = await import("@schoolmitra/backend/parentEventEngine/resolveParentWards");
+  const myStudents = await resolveParentWards(
+    { role: session.user.role, userId: parentUserId },
+    schoolId,
+    searchParams?.studentId
   );
-
-  // Find students linked to this parent (primary_parent_user_id)
-  let myStudents = await db.query.students.findMany({
-    where: eq(students.primaryParentUserId, parentUserId),
-  });
-
-  // If Admin and no students, fetch a demo student for preview
-  if (myStudents.length === 0 && isAdmin) {
-    const demoStudent = await db.query.students.findFirst({
-      where: isNotNull(students.primaryParentUserId),
-    });
-    if (demoStudent) myStudents = [demoStudent];
-  }
 
   if (myStudents.length === 0) {
     return (

@@ -13,20 +13,13 @@ export default async function ConsentPage() {
   }
 
   const parentUserId = session.user.id;
-  const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+  const schoolId = (session.user as any).schoolId;
 
-  // Find students linked to this parent
-  let myStudents = await db.query.students.findMany({
-    where: eq(students.primaryParentUserId, parentUserId),
-  });
-
-  // If Admin and no students, fetch a demo student for preview
-  if (myStudents.length === 0 && isAdmin) {
-    const demoStudent = await db.query.students.findFirst({
-      where: isNotNull(students.primaryParentUserId),
-    });
-    if (demoStudent) myStudents = [demoStudent];
-  }
+  const { resolveParentWards } = await import("@schoolmitra/backend/parentEventEngine/resolveParentWards");
+  const myStudents = await resolveParentWards(
+    { role: session.user.role, userId: parentUserId },
+    schoolId,
+  );
 
   if (myStudents.length === 0) {
     return (
