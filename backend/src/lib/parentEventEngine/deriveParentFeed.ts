@@ -5,6 +5,7 @@ import {
   ParentDataSnapshot,
 } from "./types";
 import { computeBusTracking } from "./busEta";
+import { checkAbsentButBoarded, checkMissedBoarding } from "./busBoardingEngine";
 
 /**
  * Checks if the current time falls inside a standard school commute window.
@@ -856,14 +857,193 @@ export function deriveParentFeed(
     }
   }
 
+  // ─── 14. BusBoardingCard (OP9) ─────────────────────────────────────────────
+  if (snapshot.busBoardingEvents && snapshot.busBoardingEvents.length > 0) {
+    for (const evt of snapshot.busBoardingEvents) {
+      const scanDate = typeof evt.scannedAt === "string" ? new Date(evt.scannedAt) : evt.scannedAt;
+      const ageHours = (nowMs - scanDate.getTime()) / 3600000;
+      // Active for 2 hours post-scan
+      if (ageHours >= 0 && ageHours <= 2) {
+        const timeStr = scanDate.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        const isBoarding = evt.direction === "BOARDING";
+        const studentName = snapshot.studentName || "Your child";
+
+        cards.push({
+          id: `bus-boarding-${evt.id}`,
+          studentId,
+          cardType: "BusBoardingCard",
+          tier: "T2_informational",
+          priority: 80,
+          title: {
+            en: isBoarding ? `${studentName} Boarded the Bus` : `${studentName} Alighted from Bus`,
+            hi: isBoarding ? `${studentName} बस में सवार हुए` : `${studentName} बस से उतर गए`,
+          },
+          summary: {
+            en: isBoarding
+              ? `Safely boarded at ${timeStr}${evt.stopName ? ` (${evt.stopName})` : ""}`
+              : `Safely alighted at ${timeStr}${evt.stopName ? ` (${evt.stopName})` : ""}`,
+            hi: isBoarding
+              ? `${timeStr} पर सुरक्षित सवार हुए${evt.stopName ? ` (${evt.stopName})` : ""}`
+              : `${timeStr} पर सुरक्षित पहुंचे${evt.stopName ? ` (${evt.stopName})` : ""}`,
+          },
+          payload: {
+            id: evt.id,
+            direction: evt.direction,
+            scannedAt: scanDate.toISOString(),
+            stopName: evt.stopName,
+            routeName: evt.routeName,
+            vehicleNumber: evt.vehicleNumber,
+          },
+          activatedAt: scanDate,
+          expiresAt: new Date(scanDate.getTime() + 2 * 3600000),
+        });
+      }
+    }
+  }
+
+  // ─── 15. BusAlertCard: Cross-Check Alerts (OP9, AC-P19) ─────────────────────
+  // 15A. Absent-But-Boarded: Student marked ABSENT in attendance, but has a BOARDING event today
+  if (snapshot.attendanceToday?.status === "ABSENT" && snapshot.busBoardingEvents) {
+    const abbResult = checkAbsentButBoarded(
+      studentId,
+      snapshot.studentName || "Your child",
+      snapshot.attendanceToday.status,
+      snapshot.busBoardingEvents
+    );
+
+    if (abbResult.triggered) {
+      cards.push({
+        id: `bus-alert-absent-boarded-${studentId}`,
+        studentId,
+        cardType: "BusAlertCard",
+        tier: "T1_action_required",
+        priority: 95,
+        title: {
+          en: "Attendance & Commute Mismatch",
+          hi: "उपस्थिति और बस यात्रा में विसंगति",
+        },
+        summary: {
+          en: abbResult.body || "Boarded the school bus today but marked absent in classroom.",
+          hi: "आज बस में सवार हुए किंतु कक्षा में अनुपस्थित दर्ज हैं।",
+        },
+        payload: {
+          alertKind: "ABSENT_BUT_BOARDED",
+          boardingTime: abbResult.boardingTime,
+          attendanceStatus: "ABSENT",
+        },
+        activatedAt: now,
+        expiresAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20, 0, 0),
+      });
+    }
+  }
+
+  // 15B. Missed-Boarding: Active pass, morning commute, past stop ETA + 15m, no boarding scan
+  if (snapshot.busPass?.isActive && snapshot.scheduledStopMinutes !== undefined) {
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const isMorningWindow = currentMins >= 6 * 60 + 30 && currentMins <= 9 * 60; // 06:30 - 09:00
+
+    if (isMorningWindow) {
+      const mbResult = checkMissedBoarding(
+        studentId,
+        snapshot.studentName || "Your child",
+        snapshot.busPass.isActive,
+        snapshot.scheduledStopMinutes,
+        currentMins,
+        snapshot.busBoardingEvents || []
+      );
+
+      if (mbResult.triggered) {
+        cards.push({
+          id: `bus-alert-missed-boarding-${studentId}`,
+          studentId,
+          cardType: "BusAlertCard",
+          tier: "T1_action_required",
+          priority: 85,
+          title: {
+            en: "Bus Boarding Notice",
+            hi: "बस बोर्डिंग सूचना",
+          },
+          summary: {
+            en: mbResult.body || "Morning bus passed stop with no scan recorded.",
+            hi: "बस निर्धारित स्टॉप से आगे निकल चुकी है किंतु बोर्डिंग स्कैन दर्ज नहीं हुआ।",
+          },
+          payload: {
+            alertKind: "MISSED_BOARDING",
+            scheduledStopMinutes: snapshot.scheduledStopMinutes,
+          },
+          activatedAt: now,
+          expiresAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0),
+        });
+      }
+    }
+  }
+
+  // ─── 16. StopChangeCard (OP5) ──────────────────────────────────────────────
+  if (snapshot.stopChangeRequests && snapshot.stopChangeRequests.length > 0) {
+    for (const req of snapshot.stopChangeRequests) {
+      const effectiveDate = req.effectiveDate ? new Date(req.effectiveDate) : null;
+      const isApproved = req.status === "APPROVED";
+      const isRejected = req.status === "REJECTED";
+
+      const priority = isApproved ? 60 : isRejected ? 50 : 40;
+
+      cards.push({
+        id: `stop-change-${req.id}`,
+        studentId,
+        cardType: "StopChangeCard",
+        tier: "T2_informational",
+        priority,
+        title: {
+          en: isApproved
+            ? "Bus Stop Change Approved"
+            : isRejected
+            ? "Stop Change Request Update"
+            : "Bus Stop Change Requested",
+          hi: isApproved
+            ? "बस स्टॉप परिवर्तन स्वीकृत"
+            : isRejected
+            ? "स्टॉप परिवर्तन अनुरोध अपडेट"
+            : "बस स्टॉप परिवर्तन अनुरोधित",
+        },
+        summary: {
+          en: isApproved
+            ? `New stop: ${req.requestedStopName}${effectiveDate ? ` (Effective: ${effectiveDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" })})` : ""}`
+            : isRejected
+            ? `Request not approved${req.decisionNote ? `: ${req.decisionNote}` : ""}`
+            : `Requested shift to ${req.requestedStopName}`,
+          hi: isApproved
+            ? `नया स्टॉप: ${req.requestedStopName}${effectiveDate ? ` (प्रभावी: ${effectiveDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" })})` : ""}`
+            : isRejected
+            ? `अनुरोध स्वीकृत नहीं हुआ${req.decisionNote ? `: ${req.decisionNote}` : ""}`
+            : `${req.requestedStopName} पर स्थानांतरण का अनुरोध`,
+        },
+        payload: {
+          requestId: req.id,
+          requestedStopName: req.requestedStopName,
+          status: req.status,
+          effectiveDate: req.effectiveDate,
+          decisionNote: req.decisionNote,
+        },
+        activatedAt: now,
+        expiresAt: new Date(nowMs + 72 * 3600000),
+      });
+    }
+  }
+
   // ─── Time-of-Day Choreography & Sorting ────────────────────────────────────
   const currentHour = now.getHours() + now.getMinutes() / 60;
   const isMorning = currentHour >= 6.5 && currentHour < 9.5;
   const isEvening = currentHour >= 17.0 && currentHour < 21.5;
 
   return cards.sort((a, b) => {
-    // 1. In the morning, BusLiveCard and AttendanceCard take top precedence
+    // 1. In the morning, BusAlertCard, BusLiveCard, and AttendanceCard take top precedence
     if (isMorning) {
+      if (a.cardType === "BusAlertCard" && b.cardType !== "BusAlertCard") return -1;
+      if (b.cardType === "BusAlertCard" && a.cardType !== "BusAlertCard") return 1;
       if (a.cardType === "BusLiveCard" && b.cardType !== "BusLiveCard") return -1;
       if (b.cardType === "BusLiveCard" && a.cardType !== "BusLiveCard") return 1;
       if (a.cardType === "AttendanceCard" && b.cardType !== "AttendanceCard") return -1;

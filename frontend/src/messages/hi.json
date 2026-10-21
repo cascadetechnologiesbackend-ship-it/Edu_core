@@ -142,6 +142,28 @@
     "payAll": "कुल संयुक्त राशि भरें ({amount})",
     "subtitle": "{count} बच्चों के स्कूल शुल्क चालान लंबित हैं"
   },
+  "busBoardingCard": {
+    "boarded": "बस में सवार",
+    "alighted": "गंतव्य पर पहुंचे",
+    "stop": "स्टॉप",
+    "busNumber": "बस क्रमांक",
+    "viewTracking": "लाइव बस मैप"
+  },
+  "busAlertCard": {
+    "absentButBoardedTitle": "छात्र बस में सवार (अनुपस्थित दर्ज)",
+    "absentButBoardedSummary": "बस बोर्डिंग स्कैन दर्ज हुआ है, किंतु सुबह की उपस्थिति में अनुपस्थित दर्ज है। कृपया विद्यालय से संपर्क करें।",
+    "missedBoardingTitle": "सुबह की बस में सवार नहीं हुए",
+    "missedBoardingSummary": "बस पिकअप स्टॉप से प्रस्थान कर चुकी है, किंतु बोर्डिंग स्कैन दर्ज नहीं हुआ।",
+    "verifyAttendance": "उपस्थिति जांचें",
+    "contactSchool": "परिवहन डेस्क से संपर्क करें"
+  },
+  "stopChangeCard": {
+    "title": "बस स्टॉप परिवर्तन अनुरोध",
+    "approved": "आपका स्टॉप परिवर्तन अनुरोध स्वीकृत हो गया है।",
+    "rejected": "आपका स्टॉप परिवर्तन अनुरोध इस समय स्वीकृत नहीं हो सका।",
+    "effectiveDate": "प्रभावी तिथि: {date}",
+    "viewPass": "बस पास देखें"
+  },
   "navigation": {
     "home": "होम",
     "child": "बच्चा",

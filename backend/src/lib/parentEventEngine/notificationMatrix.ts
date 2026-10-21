@@ -257,4 +257,10 @@ export const EVENT_KIND_TIER_MAP: Record<string, CardTier> = {
   NOTICE_ACK_REMINDER_24H: "T1_action_required",
   NOTICE_ACK_REMINDER_48H: "T1_action_required",
   WEEKLY_DIGEST_READY: "T2_informational",
+  // Phase P14 Workflows (OP9 & OP5)
+  BOARDING: "T2_informational",
+  ALIGHTING: "T2_informational",
+  MISSED_BOARDING: "T1_action_required",
+  ABSENT_BUT_BOARDED: "T1_action_required",
+  STOP_CHANGE_DECIDED: "T2_informational",
 };

@@ -142,6 +142,28 @@
     "payAll": "Pay Combined Total ({amount})",
     "subtitle": "{count} children have pending fee invoices"
   },
+  "busBoardingCard": {
+    "boarded": "Bus Boarded",
+    "alighted": "Bus Alighted",
+    "stop": "Stop",
+    "busNumber": "Bus No.",
+    "viewTracking": "Live Bus Map"
+  },
+  "busAlertCard": {
+    "absentButBoardedTitle": "Student Boarded Bus (Marked Absent)",
+    "absentButBoardedSummary": "A bus boarding scan was recorded, but morning school attendance shows Absent. Please verify with school authorities.",
+    "missedBoardingTitle": "Morning Bus Not Boarded",
+    "missedBoardingSummary": "The bus has departed the pickup stop, but no boarding scan was recorded.",
+    "verifyAttendance": "Verify Attendance",
+    "contactSchool": "Contact Transport Desk"
+  },
+  "stopChangeCard": {
+    "title": "Bus Stop Change Request",
+    "approved": "Your stop change request has been approved.",
+    "rejected": "Your stop change request could not be approved at this time.",
+    "effectiveDate": "Effective Date: {date}",
+    "viewPass": "View Bus Pass"
+  },
   "navigation": {
     "home": "Home",
     "child": "Child",

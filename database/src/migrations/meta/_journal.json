@@ -337,6 +337,13 @@
       "when": 1794300000000,
       "tag": "0047_notice_acknowledgments",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "5",
+      "when": 1794400000000,
+      "tag": "0048_bus_boarding_and_stop_changes",
+      "breakpoints": true
     }
   ]
 }

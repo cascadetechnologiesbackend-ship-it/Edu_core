@@ -18,7 +18,10 @@ export type CardType =
   | "LeaveApprovedCard"
   | "LeaveRejectedCard"
   | "FeeQueryCard"
-  | "WeeklyDigestCard";
+  | "WeeklyDigestCard"
+  | "BusBoardingCard"
+  | "BusAlertCard"
+  | "StopChangeCard";
 
 export type CardTier =
   | "T1_action_required"
@@ -222,6 +225,9 @@ export interface ParentDataSnapshot {
   leaveRequests?: LeaveRequestSnapshot[] | undefined;
   feeQueries?: FeeQuerySnapshot[] | undefined;
   weeklyDigest?: WeeklyDigestSnapshot | undefined;
+  busBoardingEvents?: BusBoardingSnapshot[] | undefined;
+  stopChangeRequests?: StopChangeSnapshot[] | undefined;
+  scheduledStopMinutes?: number | undefined;
 }
 
 export interface WeeklyDigestSnapshot {
@@ -233,4 +239,23 @@ export interface WeeklyDigestSnapshot {
   balanceAmount?: number | undefined;
   upcomingEventsCount: number;
   upcomingEventSummary?: string | undefined;
+}
+
+export interface BusBoardingSnapshot {
+  id: string;
+  direction: "BOARDING" | "ALIGHTING";
+  scannedAt: Date | string;
+  stopName?: string;
+  routeName?: string;
+  vehicleNumber?: string;
+}
+
+export interface StopChangeSnapshot {
+  id: string;
+  requestedStopName: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  effectiveDate?: Date | string | null;
+  decisionNote?: string | null;
+  decidedAt?: Date | string | null;
 }
