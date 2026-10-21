@@ -13,7 +13,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run -c vitest.config.ts"
   },
   "dependencies": {
     "zod": "^3.22.4"

@@ -10,6 +10,8 @@
  *   npx tsx scripts/inspect-entity-engine.ts
  */
 
+import * as schema from "../database/src/schema/index";
+import { isTable } from "drizzle-orm";
 import {
   generateVerhoeff,
   getAllDomainsMetadata,
@@ -22,6 +24,47 @@ import {
 } from "../packages/entity-engine/src";
 
 function main() {
+  const isComplianceMode = process.argv.includes("--compliance");
+
+  if (isComplianceMode) {
+    console.log("================================================================================");
+    console.log("       @schoolmitra/entity-engine - DATABASE CATALOG COMPLIANCE REPORT          ");
+    console.log("================================================================================\n");
+
+    const drizzleTables = Object.entries(schema)
+      .filter(([_, v]) => isTable(v))
+      .map(([k, v]: [string, any]) => v[Symbol.for("drizzle:Name")] || v._?.name || k);
+
+    const entities = getAllEntities();
+    const entityTableNames = new Set(entities.map((e) => e.tableName));
+    const drizzleSet = new Set(drizzleTables);
+
+    const unregisteredInGraph = drizzleTables.filter((t) => !entityTableNames.has(t));
+    const orphansInGraph = entities.filter((e) => !drizzleSet.has(e.tableName)).map((e) => e.tableName);
+
+    const total = drizzleTables.length;
+    const registered = total - unregisteredInGraph.length;
+    const coveragePct = ((registered / total) * 100).toFixed(1);
+
+    console.log(`Drizzle Schema Tables : ${total}`);
+    console.log(`Cataloged in Graph    : ${entities.length}`);
+    console.log(`Catalog Coverage      : ${coveragePct}%\n`);
+
+    if (unregisteredInGraph.length === 0 && orphansInGraph.length === 0) {
+      console.log(" STATUS: COMPLIANT (100% Coverage - Zero Orphans In Both Directions)");
+    } else {
+      if (unregisteredInGraph.length > 0) {
+        console.error(` Missing from Graph (${unregisteredInGraph.length}):`, unregisteredInGraph);
+      }
+      if (orphansInGraph.length > 0) {
+        console.error(` Orphans in Graph (${orphansInGraph.length}):`, orphansInGraph);
+      }
+    }
+
+    console.log("\n================================================================================");
+    return;
+  }
+
   console.log("================================================================================");
   console.log("       @schoolmitra/entity-engine - SCHEMA CATALOG, QUERY NER & DPDP NER        ");
   console.log("================================================================================\n");
