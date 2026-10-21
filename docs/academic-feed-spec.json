@@ -1,0 +1,333 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "academic_feed",
+  "spec_series": "edu_core_spec_series",
+  "predecessor_specs": [
+    { "spec_id": "edu_core_uiux", "version": "1.2", "status": "landed, phases 1-11" },
+    { "spec_id": "parent_pwa", "version": "1.2", "status": "landed, phases P1-P16" },
+    { "spec_id": "teacher_pwa", "version": "1.0", "status": "landed, phases T1-T10" },
+    { "spec_id": "entity_engine", "version": "1.1", "status": "landed, phases E1-E7 (v11.20.0)" }
+  ],
+  "intent": "Two workstreams in one spec. First: fix the truth defects the operator found by hand-testing — the admission wizard shows a ₹500 application fee that is never actually charged (remove it), the parent documents screen claims 'Verified by School Administration' unconditionally even with zero uploads, no admin action can ever mark a document verified, and students created outside the admissions wizard never get linked to a parent account so the parent app shows 'No Student Profile Linked'. Second: make the parent app what it should be — not just bus tracking and fees, but a curriculum-anchored, Instagram-style home feed of what is actually happening in the child's classroom: homework posts, classwork summaries, syllabus coverage, and upcoming assessments, all derived from the existing syllabus_units/chapters/topics, lesson_plans, and assignments tables and personalized to the ward's class, section, subject enrollments, and current term. The teacher app gets the matching authoring surfaces: post homework, mark classwork done, and track syllabus progress — because a parent feed is only as alive as the teacher's ability to feed it. Every card in every feed must open real data in a real modal. No dead cards, no fake badges, no phantom fees.",
+  "meta": {
+    "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
+    "head_commit_at_spec_time": "bfa4a9cf",
+    "base_version": "11.20.0",
+    "stack": "Next.js App Router, TypeScript, Tailwind dark-mode, lucide-react, drizzle-orm + PostgreSQL with RLS, vitest, cmdk, zod",
+    "dependency_policy": "NO new npm dependencies. Everything builds on existing tables (syllabus_units, syllabus_chapters, syllabus_topics, lesson_plans, assignments, assignment_submissions, assessments, academic_terms, student_subject_enrollments, parentFeedCards, teacherFeedCards).",
+    "files_in_scope": [
+      "frontend/src/app/(admin)/admissions/new/AdmissionsWizard.tsx",
+      "frontend/src/app/(admin)/admissions/new/actions.ts",
+      "frontend/src/app/(admin)/admissions/[id]/page.tsx",
+      "frontend/src/app/(admin)/admissions/[id]/StatusUpdater.tsx",
+      "frontend/src/app/(admin)/students/** (linkage tool + document verification)",
+      "backend/src/lib/studentLifecycleEngine.ts",
+      "backend/src/lib/parentEventEngine/** (deriveParentFeed, types, persistence)",
+      "backend/src/lib/teacherEventEngine/**",
+      "frontend/src/lib/parentEventEngine/** (mirror modules)",
+      "frontend/src/components/parent/** (ParentFeedContainer, new cards, new modals)",
+      "frontend/src/components/teacher/** (authoring surfaces)",
+      "frontend/src/app/(parent)/parent/** (all pages: ward scope consistency)",
+      "frontend/src/app/(parent)/portal/actions.ts",
+      "frontend/src/app/(teacher)/teacher/** (homework, classwork, syllabus tracker, wiring audit)",
+      "database/drizzle/** (only if a column is strictly required; prefer zero migrations)",
+      "AGENTS.md (reference this spec)"
+    ]
+  },
+  "context_engineering": {
+    "current_state_audit": [
+      "Entity engine E1-E7 all landed (b84a19b7, 2845db55, 3736db69, da27e95b, 2832a42d, 76b13691, 6354f4fa) plus core fixes b7ce453f; head bfa4a9cf = v11.20.0.",
+      "Admission wizard (frontend/src/app/(admin)/admissions/new/AdmissionsWizard.tsx) step 5 'Fee Structure Preview' displays a hardcoded ₹500 'Application Fee — Non-refundable registration fee'. No payment integration exists anywhere in the flow: submitAdmissionApplication in actions.ts never charges, logs, or records any ₹500. It is a phantom fee and must be removed; wizard renumbers from 6 steps to 5.",
+      "AdmissionsWizard step 4 makes all four document uploads optional ('Documents are optional during initial admission') and the review step correctly shows amber 'Pending (Parent App)' chips — that part is truthful. The submit action only inserts admissionDocuments rows for files actually uploaded, with isVerified defaulting false. This is correct.",
+      "Parent documents screen (frontend/src/app/(parent)/parent/documents/ParentDocumentsClient.tsx) hardcodes the banner 'DPDP Encrypted Storage • Verified by School Administration' unconditionally — rendered even when the ward has zero documents and nothing has ever been verified. DPDP misrepresentation; must derive from actual state.",
+      "The per-document status badges in ParentDocumentsClient are logically correct (Verified only when matchingDoc.isVerified, else 'Pending Review', else 'Not Uploaded'). The defect is the banner plus the fact that isVerified can never become true through the product: no admin UI action exists to verify or reject a document. verifiedById/verifiedAt are write-once columns nothing writes.",
+      "backend/src/lib/studentLifecycleEngine.ts is a comprehensive 18-layer enrollment pipeline: provisions persons, students, class history, parent user account (by email, with claim token + temp password), PARENT role, primaryParentUserId link, family members with search hashes, document duplication, consent attestation, concessions, fee structures, subject enrollments, audit log, domain event. The linkage code path exists and is correct WHEN enrollment goes through this engine.",
+      "DEFECT in the engine: the parent user lookup is tx.query.users.findFirst({ where: eq(users.email, emailNormalized) }) with NO schoolId scoping — a parent account from another school can be silently linked as primaryParentUserId for this school's student (cross-tenant). Must scope by schoolId.",
+      "DEFECT (operator-observed): students created through ANY path other than the admissions wizard — direct admin creation in the Students module, bulk import — never receive primaryParentUserId. Parent logs in, parent app shows 'No Student Profile Linked'. The engine is the only code path that writes the linkage.",
+      "DEFECT: parent app ward queries are inconsistent. The dashboard scopes correctly (schoolId + primaryParentUserId + isActive). fetchParentStudentDocuments and checkParentConsentStatus in (parent)/portal/actions.ts query students by primaryParentUserId with NO schoolId and NO isActive filter, and contain an admin 'demoStudent' fallback (db.query.students.findFirst() — first student in the entire table, any tenant). Cross-tenant leak; remove.",
+      "Parent feed today (deriveParentFeed + ParentDataSnapshot) already includes a HomeworkSnapshot: assignments for the ward's section within ±14 days joined to submissions and real subject names. Good foundation — but there are no classwork posts, no syllabus coverage, no curriculum progress, no assessment schedule cards, and the feed is widget-priority, not a chronological stream.",
+      "Curriculum schema is fully built and unused by both role apps: syllabus_units → syllabus_chapters → syllabus_topics (Rule #8 three-level curriculum), lesson_plans with syllabusTopicId + status PLANNED/IN_PROGRESS/COMPLETED + objectives + homework + plannedDate/completedDate (class-level, not section), assignments (sectionId + classSubjectId + status DRAFT/PUBLISHED/CLOSED/GRADED + dueDate + attachment), assignment_submissions, assessments with syllabusCoverage text, academic_terms (isActive), student_subject_enrollments (electives), classSubjects. Everything the academic feed needs already exists.",
+      "Teacher app route tree: attendance, classes, dashboard, grading, more, payroll, profile, ptm. There is NO homework/assignment authoring surface and NO lesson-plan/classwork surface anywhere in the teacher app. Teachers cannot post homework from their own app; only the admin academics module can create assignments. The teacher feed (deriveTeacherFeed via snapshotAssembler) is well wired for attendance/grading/timetable but has no homework-due cards.",
+      "Teacher dashboard and parent dashboard are both real-data wired (resolveTeacherScope / assembleTeacherSnapshot / withTenant). The grading, ptm, and payroll teacher pages plus parent attendance/fees/bus/messages pages were asserted wired in T/P specs; this spec re-audits them per AC and fixes what is found, rather than assuming."
+    ],
+    "supporting_code_to_reuse": [
+      { "key": "parent_event_engine", "path": "backend/src/lib/parentEventEngine (mirror: frontend/src/lib/parentEventEngine)", "note": "deriveParentFeed, mergeMultiWardFeeds, ParentDataSnapshot types, parentFeedCards persistence. Extend with new card types; do not fork." },
+      { "key": "teacher_event_engine", "path": "backend/src/lib/teacherEventEngine", "note": "resolveTeacherScope, assembleTeacherSnapshot, deriveTeacherFeed, teacherFeedCards persistence. Reuse for homework-due cards and authoring scope enforcement." },
+      { "key": "student_lifecycle_engine", "path": "backend/src/lib/studentLifecycleEngine.ts", "note": "the enrollment pipeline; add schoolId scoping to the parent-user lookup; reuse its parent-user provisioning (claim token + generateRoleTempPassword + PARENT role) for the admin linkage repair tool so both paths share one provisioning helper." },
+      { "key": "curriculum_tables", "path": "database/src/schema/academics.ts", "note": "syllabusUnits, syllabusChapters, syllabusTopics, lessonPlans, assignments, assignmentSubmissions, assessments, academicTerms, studentSubjectEnrollments, classSubjects, sectionSubjectTeachers. Zero new tables expected." },
+      { "key": "shared_ui", "path": "frontend/src/components/ui/*", "note": "AppModal, ConfirmDialog, Combobox, Stepper, EmptyStateCTA, FeedCard. All new modals reuse them; no hand-rolled overlays." },
+      { "key": "role_omnibox", "path": "entity-engine E6 resolvers", "note": "teacherRouteResolver / parentRouteResolver landed; new homework/syllabus routes must be registered there so the omnibox reaches the new surfaces." },
+      { "key": "notification_matrix", "path": "notificationMatrixTeacher + parent notification patterns", "note": "extend for homework publish and due-reminder pushes; classwork is feed-only, no push." },
+      { "key": "encryption", "path": "backend/src/lib/encryption.ts", "note": "encryptData, decryptData, computeSearchHash — used for parent-matching by mobile/email hash in the linkage tool." }
+    ]
+  },
+  "as_built_verification": {
+    "phase_landings": [
+      { "commit": "b84a19b7", "what": "E1 route registry + CommandPalette NER wiring" },
+      { "commit": "2845db55", "what": "E2 pii_audit_trails sink + scanContentForPII" },
+      { "commit": "3736db69", "what": "E3 content write-point PII enforcement" },
+      { "commit": "da27e95b", "what": "E4 DPDP PII Incidents view" },
+      { "commit": "2832a42d", "what": "E5 bilingual NER dictionaries" },
+      { "commit": "76b13691", "what": "E6 teacher + parent role omniboxes" },
+      { "commit": "6354f4fa", "what": "E7 catalog completeness + sub-5ms perf CI" },
+      { "commit": "b7ce453f", "what": "parent_feed_cards migration, teacher onboarding fix" },
+      { "commit": "bfa4a9cf", "what": "head at spec time, v11.20.0" }
+    ],
+    "verified_behaviors": [
+      "Admission wizard submits create application + workflow step + documents only for uploaded files; documents default isVerified=false.",
+      "StudentLifecycleEngine.enrollApplicant links primaryParentUserId when a parent user is provisioned or found by email, assigns PARENT role, writes family members with search hashes, duplicates documents, applies concessions, enrolls subjects, emits domain event.",
+      "Parent dashboard resolves wards with schoolId + primaryParentUserId + isActive; multi-ward merged feed works; homework snapshot joins assignments to submissions and real subject names.",
+      "Parent documents per-card badges (Verified / Pending Review / Not Uploaded) render from real isVerified values.",
+      "Teacher dashboard resolves scope, snapshot, feed cards, and persists them via teacherFeedCards inside withTenant."
+    ],
+    "verified_defects": [
+      { "id": "D1", "defect": "Admission wizard step 5 shows hardcoded ₹500 'Application Fee' that is never charged or recorded anywhere; phantom fee preview", "fix_phase": "F1" },
+      { "id": "D2", "defect": "ParentDocumentsClient banner hardcodes 'Verified by School Administration' regardless of uploads or verification state", "fix_phase": "F1" },
+      { "id": "D3", "defect": "No admin action exists to verify/reject admission or student documents; isVerified can never become true through the product", "fix_phase": "F1" },
+      { "id": "D4", "defect": "StudentLifecycleEngine parent-user lookup by email has no schoolId scoping; cross-tenant parent linkage possible", "fix_phase": "F2" },
+      { "id": "D5", "defect": "Students created outside the admissions wizard (direct admin creation, bulk import) never receive primaryParentUserId; parent app shows 'No Student Profile Linked' (operator-observed)", "fix_phase": "F2" },
+      { "id": "D6", "defect": "fetchParentStudentDocuments / checkParentConsentStatus lack schoolId + isActive scoping and include a cross-tenant demoStudent fallback (first student in table)", "fix_phase": "F3" },
+      { "id": "D7", "defect": "Parent feed has no curriculum anchoring: no classwork, syllabus coverage, curriculum progress, or assessment cards; not a chronological stream", "fix_phase": "F4, F5" },
+      { "id": "D8", "defect": "Teacher app has no homework authoring, classwork, or syllabus tracking surface; teachers cannot feed the parent app from their own app", "fix_phase": "F6" }
+    ]
+  },
+  "integration_architecture": {
+    "admission_truth_fixes": {
+      "remove_500_fee": [
+        "Delete step 5 (Fee Structure Preview) from AdmissionsWizard.tsx entirely: the ₹500 card, the 'Non-refundable registration fee' copy, and the 'First-term tuition fees...' note. The wizard becomes 5 steps: DPDP Notice, Basic Info, Family, Documents, Confirm. Renumber the stepper, the handleNext guards, and the review step references.",
+        "Do NOT replace it with another hardcoded amount. Actual fee obligations are generated post-enrollment by autoAssignFeeStructuresToStudent, which is the only legitimate source of fee truth. The confirm step may show a single neutral line: 'Fee structure and first invoice will be generated on enrollment.'",
+        "Grep the whole repo for any other hardcoded 500-rupee application fee references (validators, seeders, docs) and remove them from the admission path."
+      ],
+      "document_truth": [
+        "ParentDocumentsClient banner becomes state-derived: with zero documents show 'Encrypted storage • No documents on file'; with unverified documents show 'Encrypted storage • Awaiting school verification'; with all-verified show the verified line. Never claim verification that did not happen.",
+        "Admissions detail page (admin): each uploaded document gets Verify and Reject actions (PARENT/PRINCIPAL/SCHOOL_ADMIN only). Verify sets isVerified=true + verifiedById + verifiedAt (server action, requireAuth, tenant-scoped, auditLogs WRITE entry). Reject sets a rejection note; rejected docs show an amber state, not Verified.",
+        "Student profile (admin Students module) documents section gets the same Verify/Reject actions operating on studentDocuments rows.",
+        "The Verify action is the ONLY code path that writes verifiedById/verifiedAt. The engine's document duplication keeps copying isVerified as-is; nothing auto-verifies."
+      ]
+    },
+    "parent_student_linkage": {
+      "engine_scoping_fix": "In StudentLifecycleEngine.enrollApplicant, the parent user lookup becomes and(eq(users.email, emailNormalized), eq(users.schoolId, schoolId)). A parent with the same email in a different school gets a separate account in this school, never a cross-tenant link.",
+      "all_creation_paths": "Every student creation path must attempt the same parent linkage: (a) wizard enrollment via the engine (already does), (b) direct admin student creation in the Students module, (c) bulk import. Extract the parent provisioning + linkage block from the engine into a shared helper (provisionOrLinkParent) in backend/src/lib so all three paths call it: match by mobileSearchHash/emailSearchHash on studentFamilyMembers or by email, else provision account + claim token exactly as the engine does today.",
+      "linkage_repair_tool": "New admin surface in the Students module: 'Parent Linkage' audit tab. Lists students with isActive=true and primaryParentUserId=null, with the ward's guardian mobile/email available for matching. Per row: 'Find Parent' (search users by mobile/email hash within school), 'Link' (sets primaryParentUserId after admin confirm), or 'Invite Parent' (runs provisionOrLinkParent). Batch view for schools with many unlinked students. Every action writes an auditLogs entry.",
+      "integrity_test": "Vitest: after direct admin creation, the student row has primaryParentUserId set or is explicitly flagged unlinked with a repair-queue entry; the engine path always links when email is present; cross-school email never links."
+    },
+    "ward_scope_consistency": {
+      "shared_resolver": "One shared server helper resolveParentWards(ctx): students where schoolId AND primaryParentUserId AND isActive, returning decrypted display names + class/section. The dashboard, documents, fees, bus, attendance, messages, profile pages and portal actions ALL use it. No page re-implements the query.",
+      "fallback_removal": "Delete the demoStudent fallback (db.query.students.findFirst()) from fetchParentStudentDocuments and checkParentConsentStatus. Admins previewing the parent app use the existing ?studentId= pattern from the dashboard, scoped to their own school.",
+      "audit_directive": "Walk every page under (parent)/parent and (parent)/portal: each must resolve wards through the shared resolver and scope every subsequent query by both studentId and schoolId. Fix anything found; the acceptance test enumerates the pages."
+    },
+    "academic_feed_data_layer": {
+      "snapshot_extensions": "ParentDataSnapshot gains: classwork (lessonPlans where status=COMPLETED and completedDate within last 7 days, for the ward's class_subjects, with subject name, chapterName, objectives, homework, teacher name), homework (extend existing HomeworkSnapshot with description, attachmentS3Key, assignment status, teacher name), syllabusCoverage (for each of the ward's subjects: current unit → chapter → topic derived from the most recent lessonPlans, plus status), curriculumProgress (per subject: completed lessonPlans count vs active syllabusTopics count for the current academic term, as a percentage), upcomingAssessments (assessments where status SCHEDULED/ONGOING, date within 14 days, matching ward's classSubject + section or class-wide, with syllabusCoverage and maxMarks).",
+      "ward_personalization": "All academic queries scope by ward.currentSectionId + classSubjects of ward.currentClassId, intersected with studentSubjectEnrollments (so electives are honored), and by academicTerms.isActive for the current term. A ward never sees another section's homework or a subject they are not enrolled in.",
+      "new_card_types": [
+        { "type": "HomeworkPostCard", "source": "assignments PUBLISHED for ward's section", "content": "subject color band, title, due badge (Due today / Due tomorrow / Due Fri), attachment clip icon, submission state chip (Submitted+graded / Submitted / Not submitted), teacher name", "occurredAt": "assignment.updatedAt at publish, else createdAt" },
+        { "type": "ClassworkPostCard", "source": "lessonPlans completed within 7 days for ward's class-subjects", "content": "'Today in Mathematics' style: chapterName, topic, one-line objectives, homework line if set", "occurredAt": "completedDate" },
+        { "type": "SyllabusCoverageCard", "source": "weekly digest: latest lessonPlans per subject joined to syllabusTopics→Chapters→Units", "content": "'This week: Maths — Unit 2, Chapter 3 Rational Numbers; Science — Unit 1, Chapter 5 Acids and Bases'", "occurredAt": "start of current week" },
+        { "type": "CurriculumProgressCard", "source": "weekly digest per subject", "content": "progress bars: topics completed vs total this term, per subject, with %", "occurredAt": "start of current week" },
+        { "type": "AssessmentScheduledCard", "source": "assessments within 14 days for ward's class/section", "content": "title, type chip (Unit Test / Quiz / Midterm), date, syllabusCoverage note, maxMarks", "occurredAt": "assessment.updatedAt" }
+      ],
+      "feed_mechanics": [
+        "Home feed becomes a chronological stream: all cards (academic posts AND existing event cards — attendance, fee dues, bus, notices, PTM) sorted by occurredAt descending, newest first, like a social feed.",
+        "Keep ONE pinned 'Needs Attention' strip above the stream for critical operational items only (OVERDUE fee, missed attendance today, bus anomaly). Everything else flows chronologically.",
+        "Pull-to-refresh and a 'New posts' pill when new cards arrived since last seen (parentFeedCards persistence already tracks seen/dismissed states — extend to new card types).",
+        "Multi-ward 'All Children' view merges all wards' academic posts chronologically with ward avatars on each card (mergeMultiWardFeeds extended to the new types).",
+        "Every new card type persists to parentFeedCards so offline open shows the last rendered feed; academic detail modals degrade to cached card content offline.",
+        "Card frequency guard: at most one SyllabusCoverageCard and one CurriculumProgressCard per ward per week (they are digests); HomeworkPostCard and ClassworkPostCard are per-event; duplicate protection by source id."
+      ],
+      "detail_modals": [
+        "HomeworkDetailModal: full description, attachment link (presigned view), due date, submission state (submittedAt, marksAwarded, teacher remarks), teacher name. Opens from the card in one tap.",
+        "ClassworkDetailModal: objectives, teachingMethods, resources, homework text, completed date, teacher name.",
+        "SyllabusDetailModal: the ward's subject syllabus for the current term as Unit → Chapter → Topic list with taught (check) / pending (dot) states derived from lessonPlans.",
+        "AssessmentDetailModal: date, type, maxMarks, syllabusCoverage, status.",
+        "All modals: AppModal, dark-mode, bilingual labels (isHindi pattern), zero new overlays."
+      ]
+    },
+    "teacher_authoring": {
+      "homework_crud": [
+        "New teacher app surface (own tab or within Classes, matching the 4-item nav pattern): per teaching allocation (section_subject_teachers / classSubjects fallback), a homework list with submission counts.",
+        "Create: title, description (PII-scanned — E3 middleware already enforces on assignment descriptions), dueDate, optional attachment (existing /api/upload presign), syllabusTopicId optional Combobox filtered to that class-subject's topics, status starts DRAFT, 'Publish' flips to PUBLISHED which is what makes it appear in the parent feed.",
+        "Update/Delete: teacher may edit or delete own assignments while DRAFT; after PUBLISHED only Close (CLOSED) and edit of description/attachment; deletion post-publish is admin-only. Scope enforced server-side via resolveTeacherScope (teacher may only act on classSubjects+sections they are allocated to).",
+        "Publish writes a domain event (domain_events outbox, existing pattern) consumed by the parent feed derivation + notificationMatrix push to the section's parents."
+      ],
+      "classwork_completion": [
+        "From My Day timeline (landed T7) each period row gets 'Mark classwork done' opening a modal: chapterName (prefilled from the syllabus topic), objectives, homework text, syllabusTopicId Combobox, completedDate=today. Creates or updates a lessonPlan row (status COMPLETED) for the teacher's classSubject.",
+        "This single action is what generates the parent's ClassworkPostCard the same evening. No separate admin step.",
+        "Lesson plan create/update is teacher-owned: the teacher's own classSubjects only, enforced server-side."
+      ],
+      "syllabus_tracker": [
+        "Per class-subject view in the teacher app: syllabus_units → chapters → topics tree with taught badges (a topic is taught when a lessonPlan with that syllabusTopicId is COMPLETED) and per-unit progress %.",
+        "Teachers never mutate syllabus structure: units/chapters/topics are read-only for teachers; admin academics module owns that CRUD.",
+        "The tracker also powers an InsightCard (T10 pattern): 'Syllabus pace: Maths Unit 2 at 60%, term 45% elapsed'."
+      ],
+      "teacher_feed_cards": [
+        "NeedsAttention card: 'Homework due tomorrow for 10-A Mathematics — 12 of 38 submitted' from assignments due within 24h joined to submission counts.",
+        "Today card: '3 classwork entries pending for today's periods' when the teacher has timetable periods today without completed lessonPlans.",
+        "Both flow through deriveTeacherFeed + teacherFeedCards persistence like every existing card."
+      ],
+      "submission_review": "The homework list shows submission counts per assignment; tapping opens the submission roster (students, submitted/not, isLate, marksAwarded) with the existing grading affordances reused from T6. Teacher updates marks/remarks on assignment_submissions (UPDATE only, own allocations)."
+    },
+    "notification_matrix_extension": [
+      { "event": "homework published", "parent_push": true, "timing": "at publish", "card": "HomeworkPostCard" },
+      { "event": "homework due reminder", "parent_push": true, "timing": "D-1 at 18:00 local", "card": "HomeworkPostCard boost" },
+      { "event": "classwork completed", "parent_push": false, "timing": "feed only", "card": "ClassworkPostCard" },
+      { "event": "assessment scheduled", "parent_push": true, "timing": "at publish + D-3", "card": "AssessmentScheduledCard" },
+      { "event": "weekly syllabus digest", "parent_push": false, "timing": "Monday 08:00 window (existing weekly digest pattern)", "card": "SyllabusCoverageCard + CurriculumProgressCard" }
+    ]
+  },
+  "role_data_contracts": {
+    "crud_matrix": [
+      { "data_type": "assignments (homework)", "teacher": "CREATE own allocations; UPDATE own (DRAFT free, PUBLISHED: description/attachment/close); DELETE own DRAFT only", "parent": "READ (PUBLISHED, ward's section, enrolled subjects)", "admin": "READ all; DELETE any", "system": "publish emits domain event" },
+      { "data_type": "assignment_submissions", "teacher": "READ own rosters; UPDATE marksAwarded/remarks/gradedBy", "parent": "READ own ward's submission state", "student": "CREATE (future spec, not here)", "admin": "READ all" },
+      { "data_type": "lesson_plans (classwork)", "teacher": "CREATE/UPDATE own classSubjects; status transitions PLANNED→IN_PROGRESS→COMPLETED", "parent": "READ COMPLETED within 7 days, ward's class-subjects", "admin": "READ all" },
+      { "data_type": "syllabus_units/chapters/topics", "teacher": "READ only (tracker)", "parent": "READ only (progress modal)", "admin": "CREATE/UPDATE/DELETE (existing academics module)", "system": "referential integrity: lessonPlans.syllabusTopicId and homework linking are references, never mutations" },
+      { "data_type": "assessments", "teacher": "CREATE/UPDATE own classSubjects (existing foundation)", "parent": "READ upcoming (14d, ward scope)", "admin": "READ all" },
+      { "data_type": "student_documents", "teacher": "none", "parent": "CREATE uploads (existing), READ own ward", "admin": "UPDATE verify/reject (NEW, D3 fix)", "system": "isVerified only via admin verify action, audited" },
+      { "data_type": "students.primaryParentUserId", "teacher": "none", "parent": "none", "admin": "UPDATE via linkage tool (NEW)", "system": "SET by enrollment engine + provisionOrLinkParent on all creation paths" },
+      { "data_type": "parentFeedCards / teacherFeedCards", "system": "engine-written; parent dismiss/seen states only", "teacher": "READ own", "parent": "READ own ward's, UPDATE seen/dismissed", "admin": "none" }
+    ]
+  },
+  "business_logic_rules": [
+    "BR1: No hardcoded fee amounts anywhere in the admission flow. The only fee truth is autoAssignFeeStructuresToStudent post-enrollment.",
+    "BR2: A document shows 'Verified' if and only if isVerified=true, which only the admin verify action sets, which always writes verifiedById + verifiedAt + an auditLogs entry. Rejection is a visible state. The parent documents banner derives from real counts.",
+    "BR3: Every student creation path attempts parent linkage. A student that ends up unlinked is visible in the admin Parent Linkage queue the same day — never a silent failure.",
+    "BR4: Parent-user lookups are always scoped by schoolId. Ward queries are always schoolId + primaryParentUserId + isActive. The demoStudent cross-tenant fallback is deleted.",
+    "BR5: Homework reaches the parent feed only when status=PUBLISHED and sectionId matches the ward's current section and the subject is in the ward's enrollments. DRAFT is invisible to parents.",
+    "BR6: Classwork cards come only from lessonPlans with completedDate set, visible for 7 days, class-level (lesson plans are class+subject scoped per schema; a ward in any section of the class sees them).",
+    "BR7: Syllabus structure is admin-owned. Teachers and parents only ever read units/chapters/topics; progress is derived (lessonPlans completed), never stored on syllabus rows.",
+    "BR8: The feed is chronological by occurredAt desc with a single pinned Needs Attention strip. Weekly digest cards appear at most once per ward per week.",
+    "BR9: Every feed card opens a real detail modal with real data within one tap. No card may render without a resolvable detail source.",
+    "BR10: Teacher authoring scope is enforced server-side via resolveTeacherScope on every write: own classSubjects + own sections only.",
+    "BR11: Classwork generates no parent push. Homework publish and assessment schedule do, following the existing notificationMatrix delivery patterns and quiet hours.",
+    "BR12: All new queries run inside withTenant / RLS boundaries; decryption only in server components/actions; no PII in feed card payloads beyond what parents already see for their own ward.",
+    "BR13: Content write points added or touched in this spec (homework description, classwork homework text) route through the existing scanContentForPII middleware from entity-engine E3."
+  ],
+  "click_budgets": [
+    { "flow": "parent sees today's classwork and homework", "budget": "open app → home feed shows both (0 extra taps), chronological" },
+    { "flow": "parent opens homework detail", "budget": "tap card → modal = 1 tap" },
+    { "flow": "parent views syllabus progress for a subject", "budget": "tap CurriculumProgressCard → modal = 1 tap" },
+    { "flow": "teacher posts homework for a class", "budget": "Homework → class-subject → Post = 3 taps, publish included" },
+    { "flow": "teacher marks classwork done", "budget": "My Day → period row → Mark done = 2 taps" },
+    { "flow": "teacher checks homework submissions", "budget": "Homework → assignment → roster = 2 taps" },
+    { "flow": "admin verifies a document", "budget": "admission/student detail → Verify = 1 click" },
+    { "flow": "admin links an unlinked parent", "budget": "Students → Parent Linkage → Link = 2 clicks" },
+    { "flow": "parent reaches fees or bus", "budget": "unchanged from PWA spec budgets; academic feed must not push them deeper" }
+  ],
+  "acceptance_criteria": [
+    "AC-1: The admission wizard runs 5 steps; no ₹500, no 'Application Fee', no hardcoded amount appears anywhere in the admission flow; a repo grep test for the removed strings in the admissions path passes.",
+    "AC-2: With zero documents uploaded, the parent documents screen never renders the word 'Verified' in its banner; with an unverified doc it shows an awaiting-verification state derived from data.",
+    "AC-3: An admin can Verify and Reject an admission document and a student document from the UI; Verify writes isVerified, verifiedById, verifiedAt, and an audit log row; the parent documents card reflects the new state on next load.",
+    "AC-4: The engine's parent lookup is schoolId-scoped: an integration test proves a same-email user from school A is not linked as parent of a student in school B.",
+    "AC-5: A student created via direct admin creation (not the wizard) gets primaryParentUserId set by the shared helper when a parent matches, or appears in the Parent Linkage queue when not; the queue lists every active unlinked student in the school.",
+    "AC-6: Admin 'Link' and 'Invite Parent' actions set primaryParentUserId; a linked parent logging into the parent app immediately sees the ward's feed with real data (operator's original bug closed).",
+    "AC-7: All parent pages resolve wards through one shared resolver (schoolId + primaryParentUserId + isActive); the demoStudent fallback is gone; an enumeration test covers every page under (parent)/parent and (parent)/portal.",
+    "AC-8: Publishing homework in the teacher app produces a HomeworkPostCard in the correct section's parents' feeds within one refresh cycle, with subject, due badge, and submission chip; DRAFT homework never appears.",
+    "AC-9: Marking classwork done produces a ClassworkPostCard visible to the class's parents, showing chapter and homework line; the card auto-expires after 7 days.",
+    "AC-10: SyllabusCoverageCard and CurriculumProgressCard render weekly per ward from lessonPlans + syllabusTopics for the active term, respecting elective enrollments; the SyllabusDetailModal shows the full unit→chapter→topic tree with taught states.",
+    "AC-11: AssessmentScheduledCard shows for assessments within 14 days matching the ward's class/section; the modal shows date, type, coverage, maxMarks.",
+    "AC-12: The parent home feed is a reverse-chronological merged stream of academic posts and event cards with one pinned Needs Attention strip, pull-to-refresh, and a New posts pill; multi-ward merge works with per-card ward avatars.",
+    "AC-13: Every feed card type (new and existing) opens a populated detail modal in one tap; an automated check enumerates card types against their modal routes.",
+    "AC-14: Teacher homework CRUD is scope-enforced: a teacher cannot create/edit for a class-subject or section outside their allocations; submissions roster shows counts and allows marks/remarks updates.",
+    "AC-15: The syllabus tracker shows per-subject taught/pending topics and a pace InsightCard; teachers cannot mutate syllabus structure rows.",
+    "AC-16: The teacher feed shows the homework-due-tomorrow NeedsAttention card and the classwork-pending Today card from real data.",
+    "AC-17: The teacher and parent omniboxes resolve new intents ('homework', 'syllabus', 'post homework') to the new surfaces via the E6 resolvers with zero dead routes.",
+    "AC-18: Wiring audit pass: teacher grading/ptm/payroll and parent attendance/fees/bus/messages pages verified against real seeded data; any found mock, placeholder, or unscoped query is fixed and listed in the commit body.",
+    "AC-19: All new UI is bilingual (isHindi pattern), dark-mode complete, uses AppModal/ConfirmDialog/Combobox/EmptyStateCTA, offline-cached via the existing feed persistence, and adds zero npm dependencies."
+  ],
+  "constraints": [
+    "Zero new npm dependencies; zero new tables expected — the curriculum schema already exists. A migration is permitted only if a column is strictly unavoidable, and must follow the migration journal pattern.",
+    "Never mutate syllabus_units/chapters/topics from teacher or parent surfaces.",
+    "All teacher write actions enforce resolveTeacherScope server-side; all parent reads enforce ward ownership; all queries inside withTenant/RLS.",
+    "Preserve the parent PWA shell, navigation, and offline rules; the feed evolution happens inside ParentFeedContainer, not a new app.",
+    "Publishing homework is an idempotent domain event; re-publishing the same assignment does not duplicate feed cards (source-id dedupe, existing parentFeedCards pattern).",
+    "The admission wizard renumbering must not break the existing admission tests; update them alongside.",
+    "One phase per commit, tests green per phase, feat(academics)/fix(admissions)/feat(parent-app)/feat(teacher-app) prefixes per the established style.",
+    "Verify each defect D1-D8 against the repo before fixing; if already fixed at read time, skip and note in the commit body."
+  ],
+  "out_of_scope": [
+    "Student self-submission of assignments (student app gets a future spec).",
+    "Full exam module expansion beyond the existing assessments foundation.",
+    "New syllabus authoring UI for admins (the academics module owns it; only read paths are added for teacher/parent).",
+    "Fee changes of any kind beyond removing the phantom ₹500 preview; real fee logic stays with the fee engines.",
+    "Report card or grading engine changes beyond reading existing marks for the homework submission roster."
+  ],
+  "implementation_order": [
+    {
+      "phase": "F1",
+      "title": "Admission truth: fee removal + document verification",
+      "tasks": [
+        "Remove wizard step 5 (₹500) and renumber to 5 steps; sweep repo for other admission-path hardcoded fee strings.",
+        "Fix ParentDocumentsClient banner to derive from real document/verification state.",
+        "Add Verify/Reject server actions + UI on admissions detail and student profile documents; audit-logged; only path writing verifiedById/verifiedAt.",
+        "Update admission tests; add document-verification tests."
+      ]
+    },
+    {
+      "phase": "F2",
+      "title": "Parent-student linkage integrity",
+      "tasks": [
+        "schoolId-scope the engine's parent-user lookup.",
+        "Extract provisionOrLinkParent shared helper; wire into direct admin student creation and bulk import.",
+        "Build the admin Parent Linkage queue with Find Parent / Link / Invite Parent actions.",
+        "Linkage integrity tests: wizard path, direct path, cross-school negative test."
+      ]
+    },
+    {
+      "phase": "F3",
+      "title": "Ward scope consistency across the parent app",
+      "tasks": [
+        "Introduce resolveParentWards shared resolver; migrate dashboard, documents, portal actions, and every (parent) page to it.",
+        "Delete demoStudent fallbacks.",
+        "Page-enumeration scoping test."
+      ]
+    },
+    {
+      "phase": "F4",
+      "title": "Academic feed data layer",
+      "tasks": [
+        "Extend ParentDataSnapshot: classwork, homework extension, syllabusCoverage, curriculumProgress, upcomingAssessments.",
+        "Extend deriveParentFeed with the five new card types + weekly digest dedupe; extend parentFeedCards persistence and multi-ward merge.",
+        "Snapshot assembler tests with curriculum fixtures (syllabus tree, lesson plans, assignments, enrollments, electives)."
+      ]
+    },
+    {
+      "phase": "F5",
+      "title": "Parent feed UX: the Instagram-style stream",
+      "tasks": [
+        "Chronological merged stream + pinned Needs Attention strip + pull-to-refresh + New posts pill.",
+        "Four detail modals (Homework, Classwork, Syllabus, Assessment) via AppModal, bilingual, offline-cached.",
+        "Card renderers for the five types with subject bands, due badges, submission chips, ward avatars."
+      ]
+    },
+    {
+      "phase": "F6",
+      "title": "Teacher authoring: homework, classwork, syllabus tracker",
+      "tasks": [
+        "Homework surface: list + create/edit/publish/close with scope enforcement, PII-scanned descriptions, submission roster with marks/remarks updates.",
+        "My Day 'Mark classwork done' modal writing COMPLETED lesson plans.",
+        "Syllabus tracker (read-only tree, taught badges, pace InsightCard).",
+        "Teacher feed NeedsAttention/Today cards; domain events on publish; notificationMatrix extension (homework publish push, D-1 reminder, assessment D-3, weekly digests).",
+        "Register new routes in the E6 role omnibox resolvers."
+      ]
+    },
+    {
+      "phase": "F7",
+      "title": "Wiring audit + full acceptance pass",
+      "tasks": [
+        "Audit teacher grading/ptm/payroll and parent attendance/fees/bus/messages pages against seeded data; fix mocks, placeholders, unscoped queries.",
+        "Run AC-1..AC-19 end to end; integration tests for feed derivation, linkage, verification, and scope enforcement."
+      ]
+    }
+  ],
+  "definition_of_done": "A parent opens the app and sees their child's actual school life in one scrolling feed — homework posted tonight, what was taught today, where the class stands in the syllabus, what test is coming — every card opening real data, in their language, offline-safe. A teacher can produce that feed from their own phone in two or three taps. Every admission tells the truth: no phantom fees, no fake verification badges, no orphaned students, and no parent who logs in to find their child missing.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/academic-feed-spec.json and reference it from AGENTS.md alongside the previous landed specs.",
+      "Execute phases F1-F7 strictly in order; each phase is one task boundary with its own commit and green tests.",
+      "Read the spec fully before editing code. D1-D8 are grounded in a real audit of head bfa4a9cf — re-verify each before fixing; skip and note if already fixed.",
+      "Real route subpaths, existing page structures, and the exact teacher/parent feed engine module names must be read from the codebase at implementation time, not assumed from this document.",
+      "When this spec conflicts with in-repo security constraints (RLS, tenant scoping, encryption, DPDP), the security constraints win; log the conflict in the commit body.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}

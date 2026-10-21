@@ -253,10 +253,30 @@ export default function ParentDocumentsClient({
                 {selectedStudent.admissionNumber}
               </span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span>DPDP Encrypted Storage • Verified by School Administration</span>
-            </p>
+            {(() => {
+              const totalDocs = documents.length;
+              const allVerified = totalDocs > 0 && documents.every((d) => d.isVerified);
+              const bannerText =
+                totalDocs === 0
+                  ? "Encrypted storage • No documents on file"
+                  : allVerified
+                  ? "DPDP Encrypted Storage • Verified by School Administration"
+                  : "Encrypted storage • Awaiting school verification";
+              const bannerIcon =
+                totalDocs === 0 ? (
+                  <Shield className="w-3.5 h-3.5 text-slate-400" />
+                ) : allVerified ? (
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                );
+              return (
+                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                  {bannerIcon}
+                  <span>{bannerText}</span>
+                </p>
+              );
+            })()}
           </div>
         </div>
 

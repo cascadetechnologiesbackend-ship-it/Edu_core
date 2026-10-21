@@ -6,11 +6,15 @@ import {
   sections,
   sectionSubjectTeachers,
   classSubjects,
+  studentDocuments,
+  auditLogs,
 } from "@/db/schema";
 import { desc, eq, and, inArray, or, ilike, lt } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData, computeSearchHash, computeLegacySearchHash } from "@/lib/encryption";
 import { assertRouteAccess } from "@/lib/routeGuards";
+import { getClientRequestContext } from "@/lib/requestContext";
 import type { StudentListItem } from "./StudentDirectoryClient";
 
 export interface SearchStudentsParams {
@@ -186,4 +190,148 @@ export async function searchStudentsAction(
     nextCursor,
     totalReturned: mappedStudents.length,
   };
+}
+
+/**
+ * Verify a student document. Sets isVerified=true, verifiedById, verifiedAt,
+ * and records an immutable WRITE entry in auditLogs.
+ */
+export async function verifyStudentDocument(documentId: string) {
+  try {
+    const ctx = await requireAuth([
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+
+    const doc = await db.query.studentDocuments.findFirst({
+      where: and(
+        eq(studentDocuments.id, documentId),
+        eq(studentDocuments.schoolId, school.id),
+      ),
+    });
+
+    if (!doc) {
+      return { success: false, message: "Student document not found" };
+    }
+
+    const now = new Date();
+    await db
+      .update(studentDocuments)
+      .set({
+        isVerified: true,
+        verifiedById: ctx.userId,
+        verifiedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(studentDocuments.id, documentId),
+          eq(studentDocuments.schoolId, school.id),
+        ),
+      );
+
+    await db.insert(auditLogs).values({
+      schoolId: school.id,
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      action: "WRITE",
+      tableName: "student_documents",
+      recordId: documentId,
+      ipAddress: clientContext.ipAddress || "127.0.0.1",
+      userAgent: clientContext.userAgent || "ServerAction/VerifyStudentDocument",
+      metadata: {
+        event: "DOCUMENT_VERIFIED",
+        studentId: doc.studentId,
+        documentType: doc.documentType,
+        fileName: doc.originalFileName,
+      },
+    });
+
+    try {
+      revalidatePath(`/students/${doc.studentId}`);
+    } catch {}
+
+    return { success: true as const };
+  } catch (error: any) {
+    console.error("Failed to verify student document:", error);
+    return { success: false, message: error?.message || "Verification failed" };
+  }
+}
+
+/**
+ * Reject a student document. Sets isVerified=false, clears verification metadata,
+ * and records an immutable WRITE entry in auditLogs with rejection reason.
+ */
+export async function rejectStudentDocument(
+  documentId: string,
+  rejectionReason?: string,
+) {
+  try {
+    const ctx = await requireAuth([
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+
+    const doc = await db.query.studentDocuments.findFirst({
+      where: and(
+        eq(studentDocuments.id, documentId),
+        eq(studentDocuments.schoolId, school.id),
+      ),
+    });
+
+    if (!doc) {
+      return { success: false, message: "Student document not found" };
+    }
+
+    const now = new Date();
+    await db
+      .update(studentDocuments)
+      .set({
+        isVerified: false,
+        verifiedById: null,
+        verifiedAt: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(studentDocuments.id, documentId),
+          eq(studentDocuments.schoolId, school.id),
+        ),
+      );
+
+    await db.insert(auditLogs).values({
+      schoolId: school.id,
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      action: "WRITE",
+      tableName: "student_documents",
+      recordId: documentId,
+      ipAddress: clientContext.ipAddress || "127.0.0.1",
+      userAgent: clientContext.userAgent || "ServerAction/RejectStudentDocument",
+      metadata: {
+        event: "DOCUMENT_REJECTED",
+        reason: rejectionReason || "Rejected by administrator",
+        studentId: doc.studentId,
+        documentType: doc.documentType,
+        fileName: doc.originalFileName,
+      },
+    });
+
+    try {
+      revalidatePath(`/students/${doc.studentId}`);
+    } catch {}
+
+    return { success: true as const };
+  } catch (error: any) {
+    console.error("Failed to reject student document:", error);
+    return { success: false, message: error?.message || "Rejection failed" };
+  }
 }

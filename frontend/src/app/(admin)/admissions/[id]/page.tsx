@@ -3,6 +3,7 @@ import { admissionApplications, admissionWorkflowSteps, classes, sections } from
 import { eq, desc, and, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { StatusUpdater } from "./StatusUpdater";
+import { AdmissionDocumentsList } from "./AdmissionDocumentsList";
 import { decryptData } from "@/lib/encryption";
 
 export default async function AdmissionDetailPage({
@@ -160,30 +161,7 @@ export default async function AdmissionDetailPage({
         <h2 className="text-lg font-semibold border-b pb-2 mb-4">
           Uploaded Documents
         </h2>
-        {application.documents && application.documents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {application.documents.map((doc: any) => (
-              <div key={doc.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-slate-800 flex items-start space-x-3">
-                <span className="text-3xl">📄</span>
-                <div className="overflow-hidden">
-                  <p className="font-medium text-sm text-gray-900 dark:text-white mb-1">
-                    {doc.documentType.replace(/_/g, " ")}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate" title={doc.originalFileName}>
-                    {doc.originalFileName}
-                  </p>
-                  {doc.isVerified && (
-                    <span className="inline-block mt-2 text-[10px] uppercase font-bold px-2 py-0.5 bg-green-100 text-green-800 rounded">
-                      Verified
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No documents uploaded.</p>
-        )}
+        <AdmissionDocumentsList documents={application.documents || []} />
       </div>
 
       {/* Workflow Steps */}

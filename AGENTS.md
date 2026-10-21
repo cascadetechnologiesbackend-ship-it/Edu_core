@@ -2,8 +2,9 @@
 
 ## Active UI/UX & Module Specification
 The repository follows the authoritative UI/UX, workflow, design feel, and architecture specifications:
-- **Active Track**: [docs/entity-engine-spec.json](file:///v:/Cascade/2026/Edu_core/docs/entity-engine-spec.json) (Entity Engine Specification v1.1 — Omnibox NER, DPDP PII Scan Enforcement, Role Omniboxes & Catalog Completeness)
+- **Active Track**: [docs/academic-feed-spec.json](file:///v:/Cascade/2026/Edu_core/docs/academic-feed-spec.json) (Academic Feed Specification v1.0 — Admission Truth, Parent-Student Linkage, Curriculum-Anchored Parent Feed & Teacher Authoring)
 - **Predecessor Specs**:
+  - [docs/entity-engine-spec.json](file:///v:/Cascade/2026/Edu_core/docs/entity-engine-spec.json) (Entity Engine Specification v1.1 — Phases E1–E7 landed on main at head 6354f4fa, v11.20.0)
   - [docs/teacher-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/teacher-pwa-spec.json) (Teacher PWA Specification v1.0 — Phases T1–T10 landed on main at head d7491df6)
   - [docs/parent-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/parent-pwa-spec.json) (Parent PWA Specification v1.0–v1.2 — Phases P1–P16 landed on main at head c6dff507, v11.18.0)
   - [docs/uiux-spec.json](file:///v:/Cascade/2026/Edu_core/docs/uiux-spec.json) (AMS/ClassHub/Student 360 Specification v1.2 — Phases 1–11 landed on main)

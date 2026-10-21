@@ -219,7 +219,7 @@ export function AdmissionsWizard({
     <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800">
       {/* Stepper Header */}
       <div className="bg-gray-50 dark:bg-slate-800 p-4 border-b border-gray-100 dark:border-slate-700 flex justify-between">
-        {[1, 2, 3, 4, 5, 6].map((s) => (
+        {[1, 2, 3, 4, 5].map((s) => (
           <div
             key={s}
             className={`flex items-center space-x-2 ${s === step ? "text-blue-600 font-bold" : s < step ? "text-green-600" : "text-gray-400"}`}
@@ -234,8 +234,7 @@ export function AdmissionsWizard({
               {s === 2 && "Basic Info"}
               {s === 3 && "Family"}
               {s === 4 && "Documents"}
-              {s === 5 && "Fees"}
-              {s === 6 && "Confirm"}
+              {s === 5 && "Confirm"}
             </span>
           </div>
         ))}
@@ -734,32 +733,8 @@ export function AdmissionsWizard({
           </div>
         )}
 
-        {/* STEP 5: Fees Preview */}
+        {/* STEP 5: Confirmation */}
         {step === 5 && (
-          <div className="space-y-6 max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Fee Structure Preview
-            </h2>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-8 border border-blue-100 dark:border-blue-800">
-              <h3 className="text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200">
-                Application Fee
-              </h3>
-              <p className="text-5xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                ₹500
-              </p>
-              <p className="text-blue-800 dark:text-blue-300">
-                Non-refundable registration fee
-              </p>
-            </div>
-            <p className="text-gray-500">
-              First-term tuition fees will be collected upon successful
-              enrollment.
-            </p>
-          </div>
-        )}
-
-        {/* STEP 6: Confirmation */}
-        {step === 6 && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Full Review & Confirm
@@ -923,9 +898,14 @@ export function AdmissionsWizard({
 
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center gap-3">
               <span className="text-xl">🛡️</span>
-              <p className="text-xs text-blue-800 dark:text-blue-300 font-medium">
-                DPDP digital parental consent prompt will be requested directly from the parent upon their first login to the Parent Companion App.
-              </p>
+              <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                <p className="font-medium">
+                  DPDP digital parental consent prompt will be requested directly from the parent upon their first login to the Parent Companion App.
+                </p>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Fee structure and first invoice will be generated on enrollment.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -941,7 +921,7 @@ export function AdmissionsWizard({
           Back
         </button>
 
-        {step < 6 ? (
+        {step < 5 ? (
           <button
             onClick={handleNext}
             disabled={loading}

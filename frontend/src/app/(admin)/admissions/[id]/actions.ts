@@ -4,6 +4,8 @@ import { db } from "@/db";
 import {
   admissionApplications,
   admissionWorkflowSteps,
+  admissionDocuments,
+  auditLogs,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -155,5 +157,143 @@ export async function updateApplicationStatus(
   } catch (error: any) {
     console.error("Failed to update status:", error);
     return { success: false, message: error?.message || "Operation failed" };
+  }
+}
+
+/**
+ * Verify an admission document. Sets isVerified=true, verifiedById, verifiedAt,
+ * and records an immutable WRITE entry in auditLogs.
+ */
+export async function verifyAdmissionDocument(documentId: string) {
+  try {
+    const ctx = await requireAuth([
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+
+    const doc = await db.query.admissionDocuments.findFirst({
+      where: and(
+        eq(admissionDocuments.id, documentId),
+        eq(admissionDocuments.schoolId, school.id),
+      ),
+    });
+
+    if (!doc) {
+      return { success: false, message: "Document not found" };
+    }
+
+    const now = new Date();
+    await db
+      .update(admissionDocuments)
+      .set({
+        isVerified: true,
+        verifiedById: ctx.userId,
+        verifiedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(admissionDocuments.id, documentId),
+          eq(admissionDocuments.schoolId, school.id),
+        ),
+      );
+
+    await db.insert(auditLogs).values({
+      schoolId: school.id,
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      action: "WRITE",
+      tableName: "admission_documents",
+      recordId: documentId,
+      ipAddress: clientContext.ipAddress || "127.0.0.1",
+      userAgent: clientContext.userAgent || "ServerAction/VerifyAdmissionDocument",
+      metadata: {
+        event: "DOCUMENT_VERIFIED",
+        applicationId: doc.applicationId,
+        documentType: doc.documentType,
+        fileName: doc.originalFileName,
+      },
+    });
+
+    safeRevalidate(`/admissions/${doc.applicationId}`);
+    return { success: true as const };
+  } catch (error: any) {
+    console.error("Failed to verify admission document:", error);
+    return { success: false, message: error?.message || "Verification failed" };
+  }
+}
+
+/**
+ * Reject an admission document. Sets isVerified=false, clears verification metadata,
+ * and records an immutable WRITE entry in auditLogs with rejection reason.
+ */
+export async function rejectAdmissionDocument(
+  documentId: string,
+  rejectionReason?: string,
+) {
+  try {
+    const ctx = await requireAuth([
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+
+    const doc = await db.query.admissionDocuments.findFirst({
+      where: and(
+        eq(admissionDocuments.id, documentId),
+        eq(admissionDocuments.schoolId, school.id),
+      ),
+    });
+
+    if (!doc) {
+      return { success: false, message: "Document not found" };
+    }
+
+    const now = new Date();
+    await db
+      .update(admissionDocuments)
+      .set({
+        isVerified: false,
+        verifiedById: null,
+        verifiedAt: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(admissionDocuments.id, documentId),
+          eq(admissionDocuments.schoolId, school.id),
+        ),
+      );
+
+    await db.insert(auditLogs).values({
+      schoolId: school.id,
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      action: "WRITE",
+      tableName: "admission_documents",
+      recordId: documentId,
+      ipAddress: clientContext.ipAddress || "127.0.0.1",
+      userAgent: clientContext.userAgent || "ServerAction/RejectAdmissionDocument",
+      metadata: {
+        event: "DOCUMENT_REJECTED",
+        reason: rejectionReason || "Rejected by administrator",
+        applicationId: doc.applicationId,
+        documentType: doc.documentType,
+        fileName: doc.originalFileName,
+      },
+    });
+
+    safeRevalidate(`/admissions/${doc.applicationId}`);
+    return { success: true as const };
+  } catch (error: any) {
+    console.error("Failed to reject admission document:", error);
+    return { success: false, message: error?.message || "Rejection failed" };
   }
 }

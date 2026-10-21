@@ -19,6 +19,8 @@ import {
   Sparkles,
   Users,
   Search,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import {
   PromoteStudentModal,
@@ -26,6 +28,7 @@ import {
   YearOption,
 } from "./class-history/PromoteStudentModal";
 import { generateInvoicesForStudent } from "./fees/actions";
+import { verifyStudentDocument, rejectStudentDocument } from "../actions";
 import { IdentityHeader } from "@/components/ui/IdentityHeader";
 import { ActivityFeed, ActivityEvent } from "@/components/ui/ActivityFeed";
 import { NeedsAttentionCard } from "@/components/ui/NeedsAttentionCard";
@@ -253,6 +256,40 @@ export function Student360Client({
   const [homeworkSearch, setHomeworkSearch] = useState("");
   const [generatingInvoices, setGeneratingInvoices] = useState(false);
   const [invoiceMessage, setInvoiceMessage] = useState("");
+  const [verifyingDocId, setVerifyingDocId] = useState<string | null>(null);
+
+  const handleVerifyStudentDoc = async (docId: string) => {
+    setVerifyingDocId(docId);
+    try {
+      const res = await verifyStudentDocument(docId);
+      if (res.success) {
+        router.refresh();
+      } else {
+        alert("Failed to verify document: " + res.message);
+      }
+    } catch (e: any) {
+      alert("Error verifying document: " + (e?.message || "Unknown error"));
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
+
+  const handleRejectStudentDoc = async (docId: string) => {
+    const reason = prompt("Enter rejection reason (optional):") ?? undefined;
+    setVerifyingDocId(docId);
+    try {
+      const res = await rejectStudentDocument(docId, reason);
+      if (res.success) {
+        router.refresh();
+      } else {
+        alert("Failed to reject document: " + res.message);
+      }
+    } catch (e: any) {
+      alert("Error rejecting document: " + (e?.message || "Unknown error"));
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
 
   function switchTab(tab: StudentTabKey) {
     setActiveTab(tab);
@@ -1545,12 +1582,13 @@ export function Student360Client({
                   <th className="px-4 py-3">File Name</th>
                   <th className="px-4 py-3 text-center">Verification State</th>
                   <th className="px-4 py-3">Uploaded Date</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {data.documents.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
                       No documents recorded for this student.
                     </td>
                   </tr>
@@ -1579,6 +1617,38 @@ export function Student360Client({
                       </td>
                       <td className="px-4 py-3 text-gray-500">
                         {formatDisplayDate(doc.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {!doc.isVerified && (
+                            <button
+                              type="button"
+                              disabled={verifyingDocId === doc.id}
+                              onClick={() => handleVerifyStudentDoc(doc.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition"
+                            >
+                              {verifyingDocId === doc.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                              Verify
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={verifyingDocId === doc.id}
+                            onClick={() => handleRejectStudentDoc(doc.id)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 transition"
+                          >
+                            {verifyingDocId === doc.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            Reject
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
