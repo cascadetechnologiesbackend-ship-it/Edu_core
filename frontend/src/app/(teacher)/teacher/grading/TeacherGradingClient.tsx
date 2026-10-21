@@ -1,347 +1,116 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FileText, Award } from "lucide-react";
+import GradingQueue from "@/components/teacher/GradingQueue";
+import MarksEntryGrid from "@/components/teacher/MarksEntryGrid";
 import {
-  Award,
-  Save,
-  CheckCircle2,
-  AlertCircle,
-  FileSpreadsheet,
-  ChevronDown,
-  Users,
-  Lock,
-} from "lucide-react";
-import { saveMarkEntries } from "@/app/(admin)/exams/actions/marksActions";
-
-type Allocation = {
-  classId: string;
-  className: string;
-  sectionId?: string;
-  sectionName?: string;
-  subjectId: string;
-  subjectName: string;
-  maxMarks: number;
-};
-
-type ExamOption = {
-  id: string;
-  name: string;
-};
-
-type StudentGrade = {
-  studentId: string;
-  name: string;
-  admissionNumber: string;
-  rollNumber: string | null;
-  marks: string;
-  isAbsent: boolean;
-};
+  TeacherAssignmentItem,
+  StudentSubmissionItem,
+  ExamOptionItem,
+  ExamAllocationItem,
+  StudentExamMarkItem,
+  getAssignmentSubmissionsForGrading,
+  getExamMarksRoster,
+} from "./gradingActions";
 
 interface TeacherGradingClientProps {
-  exams: ExamOption[];
-  allocations: Allocation[];
-  initialExamId?: string;
-  initialAllocIndex?: number;
-  initialStudents: StudentGrade[];
-  locksMap?: Record<string, boolean>;
+  initialTab?: "assignments" | "exams" | undefined;
+  assignments: TeacherAssignmentItem[];
+  initialAssignmentId?: string | undefined;
+  initialSubmissions?: StudentSubmissionItem[] | undefined;
+  exams: ExamOptionItem[];
+  allocations: ExamAllocationItem[];
+  initialExamId?: string | undefined;
+  initialAllocIndex?: number | undefined;
+  initialStudents?: StudentExamMarkItem[] | undefined;
+  initialIsLocked?: boolean | undefined;
+  initialLockReason?: string | undefined;
 }
 
 export default function TeacherGradingClient({
+  initialTab = "assignments",
+  assignments,
+  initialAssignmentId,
+  initialSubmissions = [],
   exams,
   allocations,
   initialExamId,
   initialAllocIndex = 0,
-  initialStudents,
-  locksMap = {},
+  initialStudents = [],
+  initialIsLocked = false,
+  initialLockReason,
 }: TeacherGradingClientProps) {
   const router = useRouter();
-  const [selectedExamId, setSelectedExamId] = useState(
-    initialExamId || exams[0]?.id || "",
-  );
-  const [selectedAllocIndex, setSelectedAllocIndex] = useState(
-    initialAllocIndex ?? 0,
-  );
-  const [students, setStudents] = useState<StudentGrade[]>(initialStudents);
-  const [isPending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const searchParams = useSearchParams();
+  const currentTab = (searchParams.get("tab") as "assignments" | "exams") || initialTab;
+  const [activeTab, setActiveTab] = useState<"assignments" | "exams">(currentTab);
 
-  useEffect(() => {
-    if (initialExamId) setSelectedExamId(initialExamId);
-    if (initialAllocIndex !== undefined) setSelectedAllocIndex(initialAllocIndex);
-    setStudents(initialStudents);
-  }, [initialExamId, initialAllocIndex, initialStudents]);
-
-  const currentAlloc = allocations[selectedAllocIndex] || allocations[0];
-
-  const handleExamChange = (newExamId: string) => {
-    setSelectedExamId(newExamId);
-    setFeedback(null);
-    if (currentAlloc) {
-      router.push(
-        `/teacher/grading?examId=${newExamId}&classId=${currentAlloc.classId}&subjectId=${currentAlloc.subjectId}`,
-      );
-    }
-  };
-
-  const handleAllocChange = (newIndex: number) => {
-    setSelectedAllocIndex(newIndex);
-    setFeedback(null);
-    const alloc = allocations[newIndex];
-    if (alloc) {
-      router.push(
-        `/teacher/grading?examId=${selectedExamId}&classId=${alloc.classId}&subjectId=${alloc.subjectId}`,
-      );
-    }
-  };
-
-  const lockKey = `${selectedExamId}-${currentAlloc?.classId}-${currentAlloc?.subjectId}`;
-  const isLocked = Boolean(locksMap[lockKey]);
-
-  if (allocations.length === 0) {
-    return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-3">
-        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h2 className="text-lg font-bold text-white">No Subjects Allocated</h2>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-          You do not have any subjects mapped in the academic curriculum to enter scholastic grades.
-        </p>
-        <p className="text-xs text-amber-400/80 font-medium">
-          Please contact your administrator to allocate subjects in Academics &gt; Subject Mapping.
-        </p>
-      </div>
-    );
-  }
-
-  const handleMarksChange = (studentId: string, val: string) => {
-    if (isLocked) return;
-    const num = parseFloat(val);
-    const max = currentAlloc?.maxMarks || 100;
-    if (!isNaN(num) && (num < 0 || num > max)) {
-      return; // prevent exceeding max marks or negative
-    }
-    setStudents((prev) =>
-      prev.map((s) => (s.studentId === studentId ? { ...s, marks: val } : s)),
-    );
-  };
-
-  const toggleAbsent = (studentId: string) => {
-    if (isLocked) return;
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.studentId === studentId
-          ? { ...s, isAbsent: !s.isAbsent, marks: !s.isAbsent ? "" : s.marks }
-          : s,
-      ),
-    );
-  };
-
-  const handleSave = () => {
-    if (isLocked || !currentAlloc) return;
-    setFeedback(null);
-
-    startTransition(async () => {
-      const entries = students.map((s) => ({
-        studentId: s.studentId,
-        marksObtained: s.isAbsent || s.marks === "" ? null : parseFloat(s.marks),
-        isAbsent: s.isAbsent,
-        isMedicalExempt: false,
-      }));
-
-      const res = await saveMarkEntries({
-        examId: selectedExamId,
-        classId: currentAlloc.classId,
-        ...(currentAlloc.sectionId ? { sectionId: currentAlloc.sectionId } : {}),
-        subjectId: currentAlloc.subjectId,
-        entries,
-      });
-
-      if (res.success) {
-        setFeedback({
-          type: "success",
-          text: `Marks for ${students.length} student(s) in ${currentAlloc?.subjectName || "selected subject"} recorded successfully!`,
-        });
-      } else {
-        setFeedback({
-          type: "error",
-          text: res.message || "Failed to record marks.",
-        });
-      }
-    });
+  const handleTabSwitch = (tab: "assignments" | "exams") => {
+    setActiveTab(tab);
+    router.replace(`/teacher/grading?tab=${tab}`);
   };
 
   return (
     <div className="space-y-4">
-      {/* ─── Filter Controls Card ────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 space-y-3 shadow-md">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Exam Selection */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Assessment / Exam Cycle
-            </label>
-            <div className="relative">
-              <select
-                value={selectedExamId}
-                onChange={(e) => handleExamChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-purple-500 appearance-none pr-8"
-              >
-                {exams.length === 0 ? (
-                  <option value="continuous">Continuous Formative Evaluation (FA)</option>
-                ) : (
-                  exams.map((ex) => (
-                    <option key={ex.id} value={ex.id} className="bg-slate-900 text-white">
-                      {ex.name}
-                    </option>
-                  ))
-                )}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Subject & Class Selection */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Class &amp; Subject Allocation
-            </label>
-            <div className="relative">
-              <select
-                value={selectedAllocIndex}
-                onChange={(e) => handleAllocChange(parseInt(e.target.value, 10))}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-purple-500 appearance-none pr-8"
-              >
-                {allocations.map((alloc, idx) => (
-                  <option key={`${alloc.classId}-${alloc.subjectId}-${idx}`} value={idx} className="bg-slate-900 text-white">
-                    {alloc.className} • {alloc.subjectName} (Max: {alloc.maxMarks})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Lock Notice */}
-        {isLocked && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-            <Lock className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="font-semibold">
-              Evaluation Finalized: Marks for this subject have been locked by administration. No further edits are permitted.
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs text-slate-400">
-          <span>
-            Target Subject: <strong className="text-white">{currentAlloc?.subjectName}</strong>
-          </span>
-          <span>
-            Max Marks: <strong className="text-purple-400">{currentAlloc?.maxMarks || 100}</strong>
-          </span>
-        </div>
-      </div>
-
-      {/* Feedback Alert */}
-      {feedback && (
-        <div
-          className={`p-3.5 rounded-xl border text-xs flex items-center gap-2.5 ${
-            feedback.type === "success"
-              ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
-              : "bg-rose-950/60 border-rose-800 text-rose-300"
+      {/* ─── Segmented Tab Picker ────────────────────────────────────────── */}
+      <div className="flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800 w-full sm:w-auto self-start shadow-sm">
+        <button
+          type="button"
+          onClick={() => handleTabSwitch("assignments")}
+          className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === "assignments"
+              ? "bg-emerald-600 text-white shadow-md"
+              : "text-slate-400 hover:text-white"
           }`}
         >
-          {feedback.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-          )}
-          <span>{feedback.text}</span>
-        </div>
-      )}
+          <FileText className="w-3.5 h-3.5" />
+          Assignments &amp; Homework ({assignments.length})
+        </button>
 
-      {/* ─── Student Marks Sheet ─────────────────────────────────────────── */}
-      {students.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center text-slate-400 space-y-2">
-          <Users className="w-8 h-8 text-slate-500 mx-auto" />
-          <div className="text-sm font-semibold text-white">No Enrolled Students</div>
-          <p className="text-xs text-slate-400">
-            No students are currently enrolled in this allocated class.
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => handleTabSwitch("exams")}
+          className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === "exams"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Award className="w-3.5 h-3.5" />
+          Scholastic Examinations ({exams.length})
+        </button>
+      </div>
+
+      {/* ─── Tab Content ─────────────────────────────────────────────────── */}
+      {activeTab === "assignments" ? (
+        <GradingQueue
+          assignments={assignments}
+          initialAssignmentId={initialAssignmentId}
+          initialSubmissions={initialSubmissions}
+          onAssignmentSelect={async (id) => {
+            return await getAssignmentSubmissionsForGrading(id);
+          }}
+        />
       ) : (
-        <div className="space-y-2">
-          {students.map((student, idx) => (
-            <div
-              key={student.studentId}
-              className="rounded-2xl border border-slate-800/90 bg-slate-900/70 backdrop-blur-sm p-3.5 flex items-center justify-between gap-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0">
-                  {student.rollNumber || idx + 1}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white">
-                    {student.name}
-                  </div>
-                  <div className="text-[10px] text-slate-400">
-                    Adm #{student.admissionNumber}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => toggleAbsent(student.studentId)}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition active:scale-95 ${
-                    student.isAbsent
-                      ? "bg-rose-600 text-white"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  } ${isLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                >
-                  {student.isAbsent ? "ABSENT" : "Present"}
-                </button>
-
-                <div className="relative w-20">
-                  <input
-                    type="number"
-                    disabled={student.isAbsent || isLocked}
-                    value={student.marks}
-                    placeholder="0"
-                    onChange={(e) => handleMarksChange(student.studentId, e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 text-white text-center rounded-xl py-1.5 text-xs font-bold focus:outline-none focus:border-purple-500 disabled:opacity-40"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Save Button */}
-      {students.length > 0 && (
-        <div className="sticky bottom-20 z-20 pt-2">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isPending || isLocked}
-            className={`w-full py-3.5 px-4 rounded-2xl text-white font-bold text-sm transition shadow-lg flex items-center justify-center gap-2 ${
-              isLocked
-                ? "bg-slate-800 text-slate-500 cursor-not-allowed shadow-none border border-slate-700/50"
-                : "bg-purple-600 hover:bg-purple-500 active:scale-[0.98] shadow-purple-600/30 cursor-pointer"
-            }`}
-          >
-            <Save className="w-4 h-4" />
-            {isPending ? "Recording Scores..." : isLocked ? "Evaluation Finalized (Locked)" : "Save Grade Entries"}
-          </button>
-        </div>
+        <MarksEntryGrid
+          exams={exams}
+          allocations={allocations}
+          initialExamId={initialExamId}
+          initialAllocIndex={initialAllocIndex}
+          initialStudents={initialStudents}
+          initialIsLocked={initialIsLocked}
+          initialLockReason={initialLockReason}
+          onSelectAllocation={async (examId, alloc) => {
+            return await getExamMarksRoster(
+              examId,
+              alloc.classId,
+              alloc.subjectId,
+              alloc.sectionId
+            );
+          }}
+        />
       )}
     </div>
   );

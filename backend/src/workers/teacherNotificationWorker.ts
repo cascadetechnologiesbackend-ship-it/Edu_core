@@ -15,7 +15,8 @@ import {
   classes,
   studentAttendance,
   exams,
-  examSubjects,
+  subjects,
+  classSubjects,
   markEntries,
   pushNotificationLogs,
   userPushSubscriptions,
@@ -201,27 +202,30 @@ export async function checkMarksEntryWindowClosingReminders(
     if (activeExams.length === 0) return;
 
     for (const exam of activeExams) {
-      // 2. Fetch exam subjects for this exam
-      const subjectsList = await tx.query.examSubjects.findMany({
+      // 2. Fetch class subjects with assigned teachers for this school
+      const subjectsList = await tx.query.classSubjects.findMany({
         where: and(
-          eq(examSubjects.schoolId, schoolId),
-          eq(examSubjects.examId, exam.id)
+          eq(classSubjects.schoolId, schoolId),
+          sql`${classSubjects.assignedTeacherId} IS NOT NULL`
         ),
+        with: {
+          subject: true,
+        },
       });
 
-      for (const subj of subjectsList) {
-        // Find teacher assigned to this subject/section
-        // If not assigned or no mark entries, evaluate eligibility
+      for (const cs of subjectsList) {
+        if (!cs.subject) continue;
+
         const totalMarks = await tx.query.markEntries.findMany({
           where: and(
             eq(markEntries.schoolId, schoolId),
-            eq(markEntries.examSubjectId, subj.id)
+            eq(markEntries.examId, exam.id),
+            eq(markEntries.subjectId, cs.subjectId)
           ),
         });
 
-        // If completed mark entries are incomplete (mock/estimate or check)
         const totalEntered = totalMarks.length;
-        const totalExpected = subj.totalStudents || 40; // Default to expected roster count
+        const totalExpected = 40; // Default expected section roster count
 
         const check = isMarksWindowReminderEligible(
           exam.endDate,
@@ -232,8 +236,7 @@ export async function checkMarksEntryWindowClosingReminders(
 
         if (!check.eligible) continue;
 
-        // If a teacher is assigned
-        const teacherUserId = subj.teacherId || exam.lockedById;
+        const teacherUserId = cs.assignedTeacherId || exam.lockedById;
         if (!teacherUserId) continue;
 
         const state = await getTeacherTodayNotificationState(teacherUserId, schoolId, now);
@@ -250,10 +253,10 @@ export async function checkMarksEntryWindowClosingReminders(
           },
           {
             title: "Marks Entry Closes Soon",
-            body: `Marks entry for ${exam.name} closes in ${check.hoursRemaining} hours. Please complete submissions.`,
+            body: `Marks entry for ${exam.name} (${cs.subject.name}) closes in ${check.hoursRemaining} hours. Please complete submissions.`,
             data: {
               examId: exam.id,
-              examSubjectId: subj.id,
+              subjectId: cs.subjectId,
               url: "/teacher/grading",
             },
           }
@@ -303,44 +306,24 @@ export async function drainTeacherQuietHoursQueue(
     const payload = {
       title: log.title,
       body: log.body,
-      data: (log.data as Record<string, unknown>) || {},
     };
 
-    // Find subscriptions for user
-    const subs = await db.query.userPushSubscriptions.findMany({
-      where: and(
-        eq(userPushSubscriptions.userId, log.userId),
-        eq(userPushSubscriptions.schoolId, log.schoolId),
-        eq(userPushSubscriptions.isActive, true)
-      ),
-    });
+    const results = await dispatchWebPush(
+      log.schoolId,
+      [log.recipientUserId],
+      payload
+    );
+    const success = results[0]?.success || false;
 
-    if (subs.length > 0) {
-      const dispatchResult = await dispatchWebPush(
-        subs.map((s) => ({
-          id: s.id,
-          endpoint: s.endpoint,
-          p256dh: s.p256dh,
-          auth: s.auth,
-        })),
-        payload
-      );
+    await db
+      .update(pushNotificationLogs)
+      .set({
+        status: success ? "DELIVERED" : "FAILED",
+      })
+      .where(eq(pushNotificationLogs.id, log.id));
 
-      await db
-        .update(pushNotificationLogs)
-        .set({
-          status: dispatchResult.success ? "DELIVERED" : "FAILED",
-        })
-        .where(eq(pushNotificationLogs.id, log.id));
-
-      if (dispatchResult.success) {
-        flushedCount++;
-      }
-    } else {
-      await db
-        .update(pushNotificationLogs)
-        .set({ status: "FAILED" })
-        .where(eq(pushNotificationLogs.id, log.id));
+    if (success) {
+      flushedCount++;
     }
   }
 

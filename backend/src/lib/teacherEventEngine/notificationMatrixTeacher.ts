@@ -209,16 +209,10 @@ export async function dispatchTeacherNotification(
     try {
       await db.insert(pushNotificationLogs).values({
         schoolId,
-        userId: input.teacherUserId,
+        recipientUserId: input.teacherUserId,
         title: payload.title,
         body: payload.body,
-        data: {
-          ...payload.data,
-          tier: input.tier,
-          eventKind: input.eventKind,
-          dedupeKey: decision.dedupeKey,
-          queuedForDate: decision.queuedForDate.toISOString(),
-        },
+        fcmMessageId: decision.dedupeKey,
         status: "QUEUED_QUIET_HOURS",
       });
     } catch (err) {
@@ -237,8 +231,7 @@ export async function dispatchTeacherNotification(
   const subs = await db.query.userPushSubscriptions.findMany({
     where: and(
       eq(userPushSubscriptions.userId, input.teacherUserId),
-      eq(userPushSubscriptions.schoolId, schoolId),
-      eq(userPushSubscriptions.isActive, true)
+      eq(userPushSubscriptions.schoolId, schoolId)
     ),
   });
 
@@ -252,36 +245,24 @@ export async function dispatchTeacherNotification(
   }
 
   // Execute web push dispatch
-  const dispatchResult = await dispatchWebPush(
-    subs.map((s) => ({
-      id: s.id,
-      endpoint: s.endpoint,
-      p256dh: s.p256dh,
-      auth: s.auth,
-    })),
-    payload
-  );
+  const dispatchResults = await dispatchWebPush(schoolId, [input.teacherUserId], payload);
+  const firstResult = dispatchResults[0];
 
   // Log dispatch in pushNotificationLogs
   try {
     await db.insert(pushNotificationLogs).values({
       schoolId,
-      userId: input.teacherUserId,
+      recipientUserId: input.teacherUserId,
       title: payload.title,
       body: payload.body,
-      data: {
-        ...payload.data,
-        tier: input.tier,
-        eventKind: input.eventKind,
-        dedupeKey: decision.dedupeKey,
-      },
-      status: dispatchResult.success ? "DELIVERED" : "FAILED",
+      fcmMessageId: decision.dedupeKey,
+      status: firstResult && firstResult.success ? "DELIVERED" : "FAILED",
     });
   } catch (err) {
     console.error("[dispatchTeacherNotification] Failed to log push dispatch:", err);
   }
 
-  return { decision, dispatchResult };
+  return { decision, dispatchResult: firstResult };
 }
 
 /**
@@ -300,7 +281,7 @@ export async function getTeacherTodayNotificationState(
 
   const logs = await db.query.pushNotificationLogs.findMany({
     where: and(
-      eq(pushNotificationLogs.userId, teacherUserId),
+      eq(pushNotificationLogs.recipientUserId, teacherUserId),
       eq(pushNotificationLogs.schoolId, schoolId),
       gte(pushNotificationLogs.createdAt, startOfDay)
     ),
@@ -310,9 +291,8 @@ export async function getTeacherTodayNotificationState(
   let todayPushCount = 0;
 
   for (const log of logs) {
-    const data = (log.data as any) || {};
-    if (data.dedupeKey) {
-      previouslyDispatchedDedupeKeys.add(data.dedupeKey);
+    if (log.fcmMessageId) {
+      previouslyDispatchedDedupeKeys.add(log.fcmMessageId);
     }
     if (log.status === "DELIVERED") {
       todayPushCount++;
