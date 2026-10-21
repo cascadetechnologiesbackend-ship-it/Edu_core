@@ -1,48 +1,26 @@
+export const dynamic = "force-dynamic";
+
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { withDataPhaseTiming } from "@/lib/serverTiming";
-import { assertQueryBudget } from "@schoolmitra/database";
-import { db } from "@/db";
-import {
-  staff,
-  classes,
-  sections,
-  classSubjects,
-  sectionSubjectTeachers,
-  subjects,
-  studentAttendance,
-  timetablePeriods,
-  exams,
-  students,
-  salaryComponents,
-  examMarksLocks,
-} from "@/db/schema";
-import { eq, and, isNull, inArray, sql, desc, or } from "drizzle-orm";
+import { db, withTenant } from "@/db";
+import { staff, sections, subjects, classSubjects, sectionSubjectTeachers } from "@/db/schema";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
-import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
-import Link from "next/link";
-import {
-  BookOpen,
-  CalendarCheck,
-  Award,
-  Users,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  GraduationCap,
-  Calendar,
-  AlertCircle,
-  FileSpreadsheet,
-  Info,
-  Receipt,
-  Percent,
-} from "lucide-react";
+import { assembleTeacherSnapshot } from "@/lib/teacherEventEngine/snapshotAssembler";
+import { deriveTeacherFeed } from "@/lib/teacherEventEngine/deriveTeacherFeed";
+import { syncTeacherFeedCards } from "@/lib/teacherEventEngine/feedPersistence";
+import { resolveTeacherScope } from "@/lib/teacherEventEngine/scopeResolver";
+import { TeacherFeedContainer } from "@/components/teacher/TeacherFeedContainer";
 
 export const metadata = {
-  title: "Teacher Workspace | SchoolMitra ERP",
-  description: "Educator class dashboard for daily attendance, marks entry, and timetable.",
+  title: "Educator Feed | SchoolMitra ERP",
+  description: "High-intent event-driven operating feed for daily roll calls, grading, and timetable.",
 };
 
-export default async function TeacherDashboardPage() {
+export default async function TeacherDashboardPage({
+  searchParams,
+}: {
+  searchParams?: { locale?: string };
+}) {
   const ctx = await requireAuth([
     "SUPER_ADMIN",
     "SCHOOL_ADMIN",
@@ -52,742 +30,116 @@ export default async function TeacherDashboardPage() {
   const school = await requireSchool(ctx);
   const schoolId = school.id;
   const userId = ctx.userId;
+  const locale = searchParams?.locale || "en";
+  const now = new Date();
 
-  const {
-    teacherName,
-    classTeacherSections,
-    assignedMappings,
-    sectionSubjectAllocations,
-    assignedClassNames,
-    totalAssignedClassesCount,
-    totalSubjectAllocations,
-    totalStudents,
-    isAttendanceMarkedToday,
-    presentCount,
-    absentCount,
-    currentDayOfWeek,
-    isSunday,
-    todayPeriods,
-    activeExams,
-    salaryBreakdown,
-    hasAllocations,
-    pendingMarksAllocations,
-    activeExam,
-  } = await withDataPhaseTiming("/teacher/dashboard", () =>
-    assertQueryBudget(
-      async () => {
-        // Pre-construct subqueries for classes and sections assigned to this educator
-        const teacherClassIdsSubquery = db
-          .select({ classId: classSubjects.classId })
-          .from(classSubjects)
-          .where(
-            and(
-              eq(classSubjects.schoolId, schoolId),
-              eq(classSubjects.assignedTeacherId, userId)
-            )
-          );
+  // Execute snapshot assembly, feed derivation, and profile query inside tenant boundary
+  const { initialCards, teacherProfile, daySummary, dayCompleteSummary } = await withTenant(
+    schoolId,
+    async (tx) => {
+      // 1. Resolve Scope & Snapshot
+      const scope = await resolveTeacherScope(userId, { tx });
+      const snapshot = await assembleTeacherSnapshot(schoolId, userId, now, tx);
 
-        const teacherSectionIdsSubquery = db
-          .select({ sectionId: sectionSubjectTeachers.sectionId })
-          .from(sectionSubjectTeachers)
-          .where(
-            and(
-              eq(sectionSubjectTeachers.schoolId, schoolId),
-              eq(sectionSubjectTeachers.teacherId, userId),
-              eq(sectionSubjectTeachers.isActive, true)
-            )
-          );
+      // 2. Derive Cards & Persist
+      const cards = deriveTeacherFeed(userId, now, snapshot);
+      await syncTeacherFeedCards(schoolId, userId, cards, tx);
 
-        // Phase 1: Parallel fetch of staff, all teacher-linked sections, subject mappings, section allocations, and active exams
-        const [
-          staffMember,
-          allTeacherSections,
-          assignedMappings,
-          sectionSubjectAllocations,
-          activeExams,
-        ] = await Promise.all([
-          db.query.staff.findFirst({
-            where: and(eq(staff.userId, userId), eq(staff.schoolId, schoolId)),
-          }),
-          db.query.sections.findMany({
-            where: and(
-              eq(sections.schoolId, schoolId),
-              eq(sections.isActive, true),
-              or(
-                eq(sections.classTeacherId, userId),
-                inArray(sections.classId, teacherClassIdsSubquery),
-                inArray(sections.id, teacherSectionIdsSubquery)
-              )
-            ),
-            with: {
-              class: true,
-            },
-          }),
-          db.query.classSubjects.findMany({
-            where: and(
-              eq(classSubjects.schoolId, schoolId),
-              eq(classSubjects.assignedTeacherId, userId)
-            ),
-            with: {
-              class: true,
-              subject: true,
-            },
-          }),
-          db.query.sectionSubjectTeachers.findMany({
-            where: and(
-              eq(sectionSubjectTeachers.schoolId, schoolId),
-              eq(sectionSubjectTeachers.teacherId, userId),
-              eq(sectionSubjectTeachers.isActive, true)
-            ),
-            with: {
-              section: {
-                with: {
-                  class: true,
-                },
-              },
-              classSubject: {
-                with: {
-                  subject: true,
-                },
-              },
-            },
-          }),
-          db.query.exams.findMany({
-            where: and(eq(exams.schoolId, schoolId), isNull(exams.deletedAt)),
-            orderBy: [exams.startDate],
-            limit: 3,
-          }),
-        ]);
+      // 3. Resolve Teacher Identity & Teaching Allocations
+      const staffMember = await tx.query.staff.findFirst({
+        where: and(eq(staff.userId, userId), eq(staff.schoolId, schoolId)),
+      });
 
-        const classTeacherSections = allTeacherSections.filter(
-          (s) => s.classTeacherId === userId
-        );
-        const assignedSectionIds = allTeacherSections.map((s) => s.id);
+      let teacherName = "Educator";
+      if (staffMember) {
+        try {
+          const first = decryptData(staffMember.firstNameEncrypted);
+          const last = decryptData(staffMember.lastNameEncrypted);
+          teacherName = `${first} ${last}`.trim();
+        } catch {
+          teacherName = "Educator";
+        }
+      }
 
-        // Phase 2: Parallel fetch of students count, attendance logs, timetable & salary
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+      // Section names & class names
+      const sectionRows =
+        scope.allSectionIds.length > 0
+          ? await tx.query.sections.findMany({
+              where: and(eq(sections.schoolId, schoolId), inArray(sections.id, scope.allSectionIds)),
+              with: { class: true },
+            })
+          : [];
 
-        const dayNames = [
-          "SUNDAY",
-          "MONDAY",
-          "TUESDAY",
-          "WEDNESDAY",
-          "THURSDAY",
-          "FRIDAY",
-          "SATURDAY",
-        ] as const;
-        const currentDayOfWeek = dayNames[new Date().getDay()] || "MONDAY";
-        const isSunday = currentDayOfWeek === "SUNDAY";
+      const sectionNames = sectionRows.map((s) => `${s.class?.displayName || ""}-${s.name}`);
 
-        const teacherClassIds = Array.from(
-          new Set([
-            ...assignedMappings.map((m) => m.classId),
-            ...sectionSubjectAllocations
-              .map((s) => s.section?.classId)
-              .filter(Boolean) as string[],
-          ]),
-        );
+      // Subjects taught
+      const subjectIds = Array.from(new Set(scope.teachingSections.map((ts) => ts.subjectId)));
+      const subjectRows =
+        subjectIds.length > 0
+          ? await tx.query.subjects.findMany({
+              where: and(eq(subjects.schoolId, schoolId), inArray(subjects.id, subjectIds)),
+            })
+          : [];
+      const subjectNames = subjectRows.map((s) => s.name);
 
-        const [
-          studentCountRes,
-          todayAttendanceLogs,
-          todayPeriods,
-          salaryComponent,
-          activeExamLocks,
-        ] = await Promise.all([
-          assignedSectionIds.length > 0
-            ? db
-                .select({ count: sql<number>`count(*)` })
-                .from(students)
-                .where(
-                  and(
-                    eq(students.schoolId, schoolId),
-                    inArray(students.currentSectionId, assignedSectionIds),
-                    eq(students.isActive, true)
-                  )
-                )
-            : Promise.resolve([{ count: 0 }]),
-          assignedSectionIds.length > 0
-            ? db.query.studentAttendance.findMany({
-                where: and(
-                  eq(studentAttendance.schoolId, schoolId),
-                  inArray(studentAttendance.sectionId, assignedSectionIds),
-                  sql`${studentAttendance.attendanceDate} >= ${today} AND ${studentAttendance.attendanceDate} < ${tomorrow}`
-                ),
-              })
-            : Promise.resolve([]),
-          isSunday || assignedSectionIds.length === 0
-            ? Promise.resolve([])
-            : db.query.timetablePeriods.findMany({
-                where: and(
-                  eq(timetablePeriods.schoolId, schoolId),
-                  eq(timetablePeriods.dayOfWeek, currentDayOfWeek as any),
-                  inArray(timetablePeriods.sectionId, assignedSectionIds),
-                  eq(timetablePeriods.isActive, true)
-                ),
-                with: {
-                  subject: true,
-                  section: {
-                    with: {
-                      class: true,
-                    },
-                  },
-                },
-                orderBy: [timetablePeriods.periodNumber],
-                limit: 8,
-              }),
-          staffMember
-            ? db.query.salaryComponents.findFirst({
-                where: eq(salaryComponents.staffId, staffMember.id),
-              })
-            : Promise.resolve(null),
-          activeExams[0] && teacherClassIds.length > 0
-            ? db.query.examMarksLocks.findMany({
-                where: and(
-                  eq(examMarksLocks.schoolId, schoolId),
-                  eq(examMarksLocks.examId, activeExams[0].id),
-                  inArray(examMarksLocks.classId, teacherClassIds),
-                ),
-              })
-            : Promise.resolve([]),
-        ]);
+      const isClassTeacher = scope.classTeacherSections.length > 0;
+      const classTeacherSection = sectionRows.find((s) =>
+        scope.classTeacherSections.includes(s.id)
+      );
+      const classTeacherSectionName = classTeacherSection
+        ? `${classTeacherSection.class?.displayName || ""}-${classTeacherSection.name}`
+        : undefined;
 
-        const totalStudents = Number(studentCountRes[0]?.count || 0);
-        const isAttendanceMarkedToday = todayAttendanceLogs.length > 0;
-        const presentCount = todayAttendanceLogs.filter((a) => a.status === "PRESENT").length;
-        const absentCount = todayAttendanceLogs.filter((a) => a.status === "ABSENT").length;
+      // 4. Day Summary & Day Complete calculation
+      const totalSections = snapshot.attendanceSections?.length || 0;
+      const markedSections = snapshot.attendanceSections?.filter((s) => s.isMarked).length || 0;
+      const totalStudents = snapshot.attendanceSections?.reduce(
+        (sum, s) => sum + s.totalStudents,
+        0
+      ) || 0;
 
-        const teacherName = staffMember
-          ? `${decryptData(staffMember.firstNameEncrypted)} ${decryptData(staffMember.lastNameEncrypted)}`.trim()
-          : ctx.role === "TEACHER"
-          ? "Teacher"
-          : "Administrator";
+      let daySummaryText = "";
+      if (totalSections > 0 && markedSections < totalSections) {
+        daySummaryText =
+          locale === "hi"
+            ? `${totalSections} में से ${markedSections} कक्षाओं की उपस्थिति दर्ज`
+            : `Attendance marked for ${markedSections} of ${totalSections} sections`;
+      }
 
-        const assignedClassNames = new Set<string>();
-        classTeacherSections.forEach((s) => {
-          if (s.class?.displayName) assignedClassNames.add(s.class.displayName);
-        });
-        assignedMappings.forEach((m) => {
-          if (m.class?.displayName) assignedClassNames.add(m.class.displayName);
-        });
-        sectionSubjectAllocations.forEach((ssa) => {
-          if (ssa.section?.class?.displayName) {
-            assignedClassNames.add(ssa.section.class.displayName);
-          }
-        });
+      const dayCompleteText =
+        locale === "hi"
+          ? `सभी ${totalSections} कक्षाएं पूर्ण। ${totalStudents} विद्यार्थी दर्ज।`
+          : `All ${totalSections} sections marked. ${totalStudents} students accounted for.`;
 
-        const totalAssignedClassesCount = assignedClassNames.size;
-        const totalSubjectAllocations =
-          assignedMappings.length + sectionSubjectAllocations.length;
-
-        // Compute pending marks allocations for the active exam
-        const allTeacherAllocations: Array<{
-          classId: string;
-          className: string;
-          subjectId: string;
-          subjectName: string;
-          isLocked: boolean;
-        }> = [];
-
-        const seenAllocKeys = new Set<string>();
-
-        assignedMappings.forEach((m) => {
-          if (m.class && m.subject) {
-            const key = `${m.class.id}-${m.subject.id}`;
-            if (!seenAllocKeys.has(key)) {
-              seenAllocKeys.add(key);
-              const isLocked = activeExamLocks.some(
-                (l) =>
-                  l.classId === m.class.id &&
-                  l.subjectId === m.subject.id &&
-                  l.status === "LOCKED",
-              );
-              allTeacherAllocations.push({
-                classId: m.class.id,
-                className: m.class.displayName,
-                subjectId: m.subject.id,
-                subjectName: m.subject.name,
-                isLocked,
-              });
-            }
-          }
-        });
-
-        sectionSubjectAllocations.forEach((ssa) => {
-          if (ssa.section?.class && ssa.classSubject?.subject) {
-            const key = `${ssa.section.class.id}-${ssa.classSubject.subject.id}`;
-            if (!seenAllocKeys.has(key)) {
-              seenAllocKeys.add(key);
-              const isLocked = activeExamLocks.some(
-                (l) =>
-                  l.classId === ssa.section.class.id &&
-                  l.subjectId === ssa.classSubject.subject.id &&
-                  l.status === "LOCKED",
-              );
-              allTeacherAllocations.push({
-                classId: ssa.section.class.id,
-                className: ssa.section.class.displayName,
-                subjectId: ssa.classSubject.subject.id,
-                subjectName: ssa.classSubject.subject.name,
-                isLocked,
-              });
-            }
-          }
-        });
-
-        const pendingMarksAllocations = allTeacherAllocations.filter(
-          (a) => !a.isLocked,
-        );
-
-        const salaryBreakdown = salaryComponent
-          ? computeSalaryBreakdown(salaryComponent)
-          : null;
-
-        const hasAllocations =
-          classTeacherSections.length > 0 ||
-          assignedMappings.length > 0 ||
-          sectionSubjectAllocations.length > 0;
-
-        return {
+      return {
+        initialCards: cards,
+        teacherProfile: {
           teacherName,
-          classTeacherSections,
-          assignedMappings,
-          sectionSubjectAllocations,
-          assignedClassNames,
-          totalAssignedClassesCount,
-          totalSubjectAllocations,
-          totalStudents,
-          isAttendanceMarkedToday,
-          presentCount,
-          absentCount,
-          currentDayOfWeek,
-          isSunday,
-          todayPeriods,
-          activeExams,
-          activeExam: activeExams[0] || null,
-          pendingMarksAllocations,
-          salaryBreakdown,
-          hasAllocations,
-        };
-      },
-      { maxQueries: 10, label: "Teacher Workspace (PF 1.2 <= 10 queries)" },
-    ),
+          schoolName: school.name,
+          sectionsTaught: sectionNames,
+          subjectsTaught: subjectNames,
+          isClassTeacher,
+          classTeacherSectionName,
+        },
+        daySummary: daySummaryText,
+        dayCompleteSummary: dayCompleteText,
+      };
+    }
   );
 
   return (
-    <div className="space-y-6">
-      {/* ─── 1. Header Banner ─────────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border border-emerald-900/40 p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <BookOpen className="w-3.5 h-3.5" /> Educator Workspace
-              </span>
-              <span className="text-xs text-emerald-300/80 font-medium">
-                {currentDayOfWeek} Schedule
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Good day, {teacherName}!
-            </h1>
-            <p className="text-emerald-200/80 text-xs sm:text-sm mt-1 max-w-xl">
-              {hasAllocations
-                ? "Here is your classroom overview for today. Mark student roll calls, check timetable periods, and record scholastic grades."
-                : "Welcome to your educator hub. No classes or subjects are currently allocated to your account."}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href="/teacher/attendance"
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-semibold text-xs transition shadow-md shadow-emerald-600/30 flex items-center gap-2"
-            >
-              <CalendarCheck className="w-4 h-4" />
-              {isAttendanceMarkedToday ? "Review Attendance" : "Take Attendance"}
-            </Link>
-            <Link
-              href="/teacher/grading"
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition flex items-center gap-2"
-            >
-              <Award className="w-4 h-4 text-amber-400" />
-              Enter Marks
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Unallocated Warning State (Zero Fallbacks) ───────────────────────── */}
-      {!hasAllocations && (
-        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-5 text-amber-200">
-          <div className="flex items-start gap-3.5">
-            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-bold text-amber-300">
-                No Classrooms or Subjects Assigned
-              </h3>
-              <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
-                Your educator account is active, but the school administrator has not assigned you as a <strong>Class Teacher</strong> or allocated any <strong>Subject Mappings</strong>.
-              </p>
-              <p className="text-xs text-amber-200/70 mt-2">
-                Ask your school administrator to open <strong>Academics &gt; Classrooms</strong> to designate you as a Class Teacher, or <strong>Academics &gt; Subject Mapping</strong> to allocate subjects to you.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 2. Metric Stat Cards ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        {/* Assigned Classes */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">
-              Classes & Subjects
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <BookOpen className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white truncate">
-            {totalAssignedClassesCount > 0
-              ? Array.from(assignedClassNames).slice(0, 2).join(", ")
-              : "0 Classes"}
-          </div>
-          <p className="text-xs text-emerald-400 mt-1">
-            {totalSubjectAllocations} Subject Allocation(s)
-          </p>
-        </div>
-
-        {/* Total Students */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">
-              Students
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white">
-            {totalStudents}
-          </div>
-          <p className="text-xs text-slate-400 mt-1">In your assigned sections</p>
-        </div>
-
-        {/* Roll Call Status */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">
-              Roll Call Today
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div
-            className={`text-xl sm:text-2xl font-bold ${
-              isAttendanceMarkedToday ? "text-emerald-400" : "text-amber-400"
-            }`}
-          >
-            {isAttendanceMarkedToday ? "Submitted" : "Pending"}
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            {isAttendanceMarkedToday
-              ? `${presentCount} Present • ${absentCount} Absent`
-              : "Daily register not yet submitted"}
-          </p>
-        </div>
-
-        {/* Examinations */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">
-              Evaluations
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-              <Award className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white">
-            {activeExams.length > 0 ? "Active Terms" : "Continuous"}
-          </div>
-          <p className="text-xs text-purple-400 mt-1">
-            {activeExams.length} active exam cycle(s)
-          </p>
-        </div>
-      </div>
-
-      {/* ─── 2.2. Pending Marks Entry Card (UX-R08) ─────────────────────────── */}
-      {activeExam && (
-        <div className="rounded-2xl border border-purple-900/40 bg-gradient-to-r from-slate-900 via-purple-950/30 to-slate-900 p-5 shadow-lg space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0">
-                <FileSpreadsheet className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wide">
-                    Scholastic Evaluation
-                  </span>
-                  <span className="text-xs text-purple-400 font-semibold">
-                    {activeExam.name}
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-white mt-0.5">
-                  Pending Marks Entry &amp; Draft Verification
-                </h3>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {pendingMarksAllocations.length > 0 ? (
-                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                  {pendingMarksAllocations.length} Pending Class-Subject(s)
-                </span>
-              ) : (
-                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> All Marks Finalized &amp; Locked
-                </span>
-              )}
-            </div>
-          </div>
-
-          {pendingMarksAllocations.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-800/80">
-              {pendingMarksAllocations.map((alloc) => (
-                <div
-                  key={`${alloc.classId}-${alloc.subjectId}`}
-                  className="p-3 rounded-xl border border-slate-800/90 bg-slate-950/60 flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-white truncate">
-                      {alloc.subjectName}
-                    </div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      {alloc.className}
-                    </div>
-                  </div>
-                  <Link
-                    href={`/teacher/grading?examId=${activeExam.id}&classId=${alloc.classId}&subjectId=${alloc.subjectId}`}
-                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition shrink-0 flex items-center gap-1"
-                  >
-                    Enter Marks <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 pt-2 border-t border-slate-800/80">
-              You have submitted marks for all assigned subjects in this examination cycle. No further action is required until administrative review.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* ─── 2.5. Educator Compensation & Monthly Take-Home Card ──────────────── */}
-      <div className="rounded-2xl border border-emerald-900/40 bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 p-5 shadow-lg space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
-                  Faculty Payroll
-                </span>
-                <span className="text-xs text-slate-400">
-                  Direct Bank Credit
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-white mt-0.5">
-                Compensation &amp; Salary Structure
-              </h3>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 self-end sm:self-auto">
-            {salaryBreakdown ? (
-              <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-medium">
-                  Net Monthly Take-Home
-                </span>
-                <span className="text-lg sm:text-xl font-black text-emerald-400">
-                  ₹{Math.round(salaryBreakdown.netMonthlyPay).toLocaleString()}
-                </span>
-              </div>
-            ) : (
-              <span className="text-xs text-amber-400 font-semibold">
-                Setup In Progress
-              </span>
-            )}
-
-            <Link
-              href="/teacher/payroll"
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <span>View Payslip</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-
-        {salaryBreakdown ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 border-t border-slate-800/80 text-xs">
-            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block">Basic Pay</span>
-              <strong className="text-white font-bold text-sm">
-                ₹{Math.round(salaryBreakdown.basicSalary).toLocaleString()}
-              </strong>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block">
-                DA ({salaryBreakdown.daPercent}%)
-              </span>
-              <strong className="text-emerald-400 font-bold text-sm">
-                +₹{Math.round(salaryBreakdown.daAmount).toLocaleString()}
-              </strong>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block">
-                HRA ({salaryBreakdown.hraPercent}%)
-              </span>
-              <strong className="text-emerald-400 font-bold text-sm">
-                +₹{Math.round(salaryBreakdown.hraAmount).toLocaleString()}
-              </strong>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block">
-                PF + PT + TDS
-              </span>
-              <strong className="text-rose-400 font-bold text-sm">
-                -₹{Math.round(salaryBreakdown.deductionsTotal).toLocaleString()}
-              </strong>
-            </div>
-          </div>
-        ) : (
-          <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400">
-            No salary structure components allocated to your faculty profile yet. Contact school administration to associate your wage template.
-          </div>
-        )}
-      </div>
-
-      {/* ─── 3. Today's Class Schedule ────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-base font-bold text-white">
-              Today&apos;s Schedule ({currentDayOfWeek})
-            </h2>
-          </div>
-          <Link
-            href="/teacher/classes"
-            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition"
-          >
-            Full Timetable <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {todayPeriods.length === 0 ? (
-          <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-6 text-center text-slate-400">
-            <p className="text-xs">
-              {isSunday
-                ? "No active periods scheduled for Sunday. Enjoy your weekend!"
-                : "No periods scheduled for your classes today."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {todayPeriods.map((period) => (
-              <div
-                key={period.id}
-                className="flex items-center justify-between p-3.5 rounded-xl border border-slate-800 bg-slate-950/60"
-              >
-                <div>
-                  <div className="text-xs font-bold text-white">
-                    Period {period.periodNumber}: {period.subject?.name || "Subject"}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {period.section?.class?.displayName || "Class"} - {period.section?.name || "Sec"} • {period.startTime} - {period.endTime}
-                  </div>
-                </div>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  Room {period.roomNumber || "Main"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ─── 4. Quick Operative Actions ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link
-          href="/teacher/attendance"
-          className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 hover:border-emerald-500/50 transition group flex flex-col justify-between"
-        >
-          <div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <CalendarCheck className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
-              Daily Attendance
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Mark morning roll call for assigned class sections with instant present/absent counters.
-            </p>
-          </div>
-          <div className="mt-4 flex items-center text-xs font-semibold text-emerald-400">
-            Open Sheet <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-
-        <Link
-          href="/teacher/grading"
-          className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 hover:border-purple-500/50 transition group flex flex-col justify-between"
-        >
-          <div>
-            <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <FileSpreadsheet className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
-              Scholastic Gradebook
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Record unit test, midterm, and formative assessment scores for your assigned subjects.
-            </p>
-          </div>
-          <div className="mt-4 flex items-center text-xs font-semibold text-purple-400">
-            Enter Marks <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-
-        <Link
-          href="/teacher/classes"
-          className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 hover:border-indigo-500/50 transition group flex flex-col justify-between"
-        >
-          <div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
-              Class Rosters
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              View student enrollments, guardian contact details, and weekly teaching timetables.
-            </p>
-          </div>
-          <div className="mt-4 flex items-center text-xs font-semibold text-indigo-400">
-            View Rosters <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-      </div>
-    </div>
+    <TeacherFeedContainer
+      initialCards={initialCards}
+      teacherName={teacherProfile.teacherName}
+      schoolName={teacherProfile.schoolName}
+      sectionsTaught={teacherProfile.sectionsTaught}
+      subjectsTaught={teacherProfile.subjectsTaught}
+      isClassTeacher={teacherProfile.isClassTeacher}
+      classTeacherSectionName={teacherProfile.classTeacherSectionName}
+      locale={locale}
+      now={now}
+      daySummary={daySummary}
+      dayCompleteSummary={dayCompleteSummary}
+    />
   );
 }

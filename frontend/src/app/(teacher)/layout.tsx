@@ -13,11 +13,10 @@ import { SessionProvider } from "next-auth/react";
 import { ExamTelemetryProvider } from "@/components/telemetry/ExamTelemetryProvider";
 
 const TEACHER_NAV_ITEMS = [
-  { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard" },
-  { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck" },
+  { label: "Today", href: "/teacher/dashboard", icon: "LayoutDashboard" },
+  { label: "Classes", href: "/teacher/classes", icon: "BookOpen" },
   { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet" },
-  { label: "My Classes", href: "/teacher/classes", icon: "BookOpen" },
-  { label: "Payroll", href: "/teacher/payroll", icon: "Receipt" },
+  { label: "More", href: "/teacher/more", icon: "MoreHorizontal" },
 ];
 
 export default async function TeacherLayout({

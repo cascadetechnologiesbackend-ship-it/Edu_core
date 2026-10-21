@@ -196,5 +196,18 @@
     "child": "बच्चा",
     "messages": "संदेश",
     "more": "अधिक"
+  },
+  "teacherFeed": {
+    "today": "आज",
+    "dayComplete": "दिन पूर्ण",
+    "allMarkedSummary": "सभी कक्षाएं पूर्ण। सभी विद्यार्थी दर्ज हैं।",
+    "markAttendance": "उपस्थिति दर्ज करें",
+    "gradeNow": "अभी जांचें",
+    "enterMarks": "अंक दर्ज करें",
+    "completeLesson": "पाठ पूर्ण करें",
+    "acceptCover": "कवर स्वीकार करें",
+    "decline": "अस्वीकार करें",
+    "reviewLeaves": "अनुरोध देखें",
+    "viewClasses": "कक्षाएं देखें"
   }
 }

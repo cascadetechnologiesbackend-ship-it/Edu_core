@@ -196,5 +196,18 @@
     "child": "Child",
     "messages": "Messages",
     "more": "More"
+  },
+  "teacherFeed": {
+    "today": "Today",
+    "dayComplete": "Day Complete",
+    "allMarkedSummary": "All sections marked. All students accounted for.",
+    "markAttendance": "Mark Attendance",
+    "gradeNow": "Grade Now",
+    "enterMarks": "Enter Marks",
+    "completeLesson": "Complete Lesson",
+    "acceptCover": "Accept Cover",
+    "decline": "Decline",
+    "reviewLeaves": "Review Requests",
+    "viewClasses": "View Classes"
   }
 }
