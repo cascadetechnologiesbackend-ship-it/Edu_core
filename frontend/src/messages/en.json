@@ -100,6 +100,30 @@
     "replyTeacher": "Reply to Teacher",
     "secureChat": "Secure direct conversation"
   },
+  "feeQueryCard": {
+    "queryTitle": "Fee Question & Inquiry",
+    "openStatus": "Waiting for accounts response",
+    "answeredStatus": "Accountant Responded",
+    "escalatedStatus": "Escalated to Principal",
+    "resolvedStatus": "Resolved",
+    "resolveAction": "Accept & Close",
+    "escalateAction": "Escalate to Principal",
+    "slaBadge": "48h response window",
+    "criticalBadge": "Reviewing with Administration",
+    "askQuestion": "Question this fee",
+    "categories": {
+      "BREAKDOWN_INCORRECT": "Fee breakdown incorrect",
+      "ALREADY_PAID": "Already paid previously",
+      "CONCESSION_MISSING": "Concession or scholarship missing",
+      "LATE_FEE_DISPUTE": "Late fee dispute",
+      "OTHER": "General fee inquiry"
+    }
+  },
+  "siblingPayment": {
+    "title": "Combined Sibling Payment",
+    "payAll": "Pay Combined Total ({amount})",
+    "subtitle": "{count} children have pending fee invoices"
+  },
   "navigation": {
     "home": "Home",
     "child": "Child",

@@ -7,8 +7,9 @@ import {
   students,
   feeInvoices,
   feePayments,
+  feeQueries,
 } from "@/db/schema";
-import { eq, and, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, or, desc, asc, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import Link from "next/link";
 import {
@@ -20,8 +21,12 @@ import {
   AlertCircle,
   ArrowLeft,
   CreditCard,
+  HelpCircle,
+  MessageSquare,
 } from "lucide-react";
 import { CheckoutButton } from "@/app/(parent)/portal/CheckoutButton";
+import { FeeQueryDialog } from "@/components/parent/FeeQueryDialog";
+import { SiblingPaymentCard, type SiblingFeeDetail } from "@/components/parent/SiblingPaymentCard";
 
 export const metadata = {
   title: "Fee History & Receipts | SchoolMitra ERP",
@@ -83,8 +88,8 @@ export default async function ParentFeesPage({
     }
   } catch {}
 
-  // 2. Fetch Invoices, Items, and Payments for this student
-  const { invoices, payments } = await withTenant(school.id, async (tx) => {
+  // 2. Fetch Invoices, Items, Payments, and Queries for this student
+  const { invoices, payments, queries, siblingDetails } = await withTenant(school.id, async (tx) => {
     const invList = await tx.query.feeInvoices.findMany({
       where: and(
         eq(feeInvoices.studentId, currentStudent.id),
@@ -101,7 +106,60 @@ export default async function ParentFeesPage({
       orderBy: [desc(feePayments.paymentDate)],
     });
 
-    return { invoices: invList, payments: payList };
+    const queryList = await tx.query.feeQueries.findMany({
+      where: and(
+        eq(feeQueries.studentId, currentStudent.id),
+        eq(feeQueries.schoolId, school.id)
+      ),
+      orderBy: [desc(feeQueries.createdAt)],
+    });
+
+    // Sibling invoices with outstanding balances (OP12)
+    const siblings: SiblingFeeDetail[] = [];
+    if (studentRows.length > 1) {
+      const allStudentIds = studentRows.map((s) => s.id);
+      const siblingInvs = await tx.query.feeInvoices.findMany({
+        where: and(
+          inArray(feeInvoices.studentId, allStudentIds),
+          eq(feeInvoices.schoolId, school.id),
+          or(
+            eq(feeInvoices.status, "PENDING"),
+            eq(feeInvoices.status, "PARTIAL"),
+            eq(feeInvoices.status, "OVERDUE")
+          )
+        ),
+        orderBy: [asc(feeInvoices.dueDate)],
+      });
+
+      for (const s of studentRows) {
+        const studentInvs = siblingInvs.filter((inv) => inv.studentId === s.id);
+        if (studentInvs.length > 0) {
+          let sName = `Student ${s.admissionNumber}`;
+          try {
+            if (s.firstNameEncrypted) {
+              const f = decryptData(s.firstNameEncrypted);
+              const l = s.lastNameEncrypted ? decryptData(s.lastNameEncrypted) : "";
+              sName = `${f} ${l}`.trim();
+            }
+          } catch {}
+
+          for (const inv of studentInvs) {
+            siblings.push({
+              studentId: s.id,
+              studentName: sName,
+              admissionNumber: s.admissionNumber,
+              invoiceId: inv.id,
+              invoiceNumber: inv.invoiceNumber || "Invoice",
+              termName: (inv.term as string) || "Term Fee",
+              balanceAmount: Number(inv.balanceAmount || 0),
+              lateFeeAmount: Number(inv.lateFeeAmount || 0),
+            });
+          }
+        }
+      }
+    }
+
+    return { invoices: invList, payments: payList, queries: queryList, siblingDetails: siblings };
   });
 
   const selectedInvoice = searchParams?.invoiceId
@@ -178,7 +236,13 @@ export default async function ParentFeesPage({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-indigo-900/40 flex justify-end">
+          <div className="pt-2 border-t border-indigo-900/40 flex items-center justify-end gap-2">
+            <FeeQueryDialog
+              invoiceId={selectedInvoice.id}
+              invoiceNumber={selectedInvoice.invoiceNumber || "Fee Invoice"}
+              studentId={currentStudent.id}
+              studentName={studentDisplayName}
+            />
             <CheckoutButton
               invoiceId={selectedInvoice.id}
               amount={Number(selectedInvoice.balanceAmount)}
@@ -187,6 +251,11 @@ export default async function ParentFeesPage({
             />
           </div>
         </div>
+      )}
+
+      {/* Sibling Combined Payment Feature (OP12, AC-P21) */}
+      {siblingDetails && siblingDetails.length >= 2 && (
+        <SiblingPaymentCard siblings={siblingDetails} />
       )}
 
       {/* Section 1: Invoices Summary */}
@@ -205,6 +274,7 @@ export default async function ParentFeesPage({
               const balance = Number(inv.balanceAmount || 0);
               const isPaid = inv.status === "PAID" || balance <= 0;
               const isOverdue = inv.status === "OVERDUE";
+              const invQuery = queries.find((q) => q.invoiceId === inv.id);
 
               return (
                 <div
@@ -212,7 +282,7 @@ export default async function ParentFeesPage({
                   className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-slate-100">
                         {inv.invoiceNumber || "Fee Invoice"}
                       </span>
@@ -227,6 +297,31 @@ export default async function ParentFeesPage({
                       >
                         {inv.status}
                       </span>
+
+                      {invQuery && (
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                            invQuery.status === "ANSWERED"
+                              ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                              : invQuery.status === "ESCALATED"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                              : invQuery.status === "RESOLVED"
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                              : "bg-slate-800 text-slate-400 border-slate-700"
+                          }`}
+                        >
+                          <MessageSquare className="w-2.5 h-2.5" />
+                          <span>
+                            {invQuery.status === "ANSWERED"
+                              ? "Response Ready"
+                              : invQuery.status === "ESCALATED"
+                              ? "Escalated"
+                              : invQuery.status === "RESOLVED"
+                              ? "Query Resolved"
+                              : "Query Pending"}
+                          </span>
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-400 mt-1 flex items-center gap-3">
                       <span>
@@ -247,14 +342,22 @@ export default async function ParentFeesPage({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
                     {balance > 0 ? (
-                      <CheckoutButton
-                        invoiceId={inv.id}
-                        amount={balance}
-                        studentName={studentDisplayName}
-                        label={`Pay ₹${balance.toLocaleString("en-IN")}`}
-                      />
+                      <>
+                        <FeeQueryDialog
+                          invoiceId={inv.id}
+                          invoiceNumber={inv.invoiceNumber || "Fee Invoice"}
+                          studentId={currentStudent.id}
+                          studentName={studentDisplayName}
+                        />
+                        <CheckoutButton
+                          invoiceId={inv.id}
+                          amount={balance}
+                          studentName={studentDisplayName}
+                          label={`Pay ₹${balance.toLocaleString("en-IN")}`}
+                        />
+                      </>
                     ) : (
                       <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
                         <CheckCircle2 className="w-4 h-4" />

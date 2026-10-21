@@ -29,6 +29,7 @@ import {
   ptmEvents,
   ptmSlots,
   ptmBookings,
+  feeQueries,
   users,
 } from "@/db/schema";
 import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
@@ -47,6 +48,7 @@ import type {
   UpcomingEventSnapshot,
   UnreadMessageSnapshot,
   LeaveRequestSnapshot,
+  FeeQuerySnapshot,
 } from "@schoolmitra/backend/parentEventEngine/types";
 import { ParentFeedContainer } from "@/components/parent/ParentFeedContainer";
 import type { StudentWardOption } from "@/components/parent/ParentIdentityHeader";
@@ -186,6 +188,7 @@ export default async function ParentDashboardPage({
     eventSnaps,
     unreadMessageSnaps,
     leaveRequestSnaps,
+    feeQuerySnaps,
   } = await withTenant(school.id, async (tx) => {
     // A. Attendance (last 30 days)
     const cutoff30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -729,6 +732,49 @@ export default async function ParentDashboardPage({
       decisionNote: lr.decisionNote,
     }));
 
+    // J. Fee Queries (Workflow OP2 & Phase P12)
+    const fqRows = await tx.query.feeQueries.findMany({
+      where: and(
+        eq(feeQueries.schoolId, school.id),
+        eq(feeQueries.studentId, currentStudentRow.id),
+      ),
+      orderBy: [desc(feeQueries.createdAt)],
+      limit: 5,
+    });
+
+    const fqResponderIds = Array.from(
+      new Set(fqRows.map((q) => q.answeredByUserId).filter(Boolean) as string[])
+    );
+
+    const fqResponders =
+      fqResponderIds.length > 0
+        ? await tx.query.users.findMany({
+            where: and(
+              eq(users.schoolId, school.id),
+              inArray(users.id, fqResponderIds)
+            ),
+          })
+        : [];
+
+    const fqResponderMap = new Map<string, string>();
+    for (const u of fqResponders) {
+      fqResponderMap.set(u.id, u.email || "School Staff");
+    }
+
+    const feeQuerySnaps: FeeQuerySnapshot[] = fqRows.map((fq) => ({
+      id: fq.id,
+      invoiceId: fq.invoiceId,
+      category: fq.category,
+      message: fq.message,
+      status: fq.status,
+      createdAt: fq.createdAt,
+      answer: fq.answer,
+      answeredAt: fq.answeredAt,
+      escalatedAt: fq.escalatedAt,
+      answeredByName: fq.answeredByUserId ? fqResponderMap.get(fq.answeredByUserId) || null : null,
+      termName: invoiceSnaps.find((inv) => inv.id === fq.invoiceId)?.termName || "School Fee",
+    }));
+
     return {
       attendanceSnap: attendanceToday,
       attendanceRate30d: attRate,
@@ -742,6 +788,7 @@ export default async function ParentDashboardPage({
       eventSnaps,
       unreadMessageSnaps,
       leaveRequestSnaps,
+      feeQuerySnaps,
     };
   });
 
@@ -761,6 +808,7 @@ export default async function ParentDashboardPage({
     upcomingEvents: eventSnaps,
     unreadMessages: unreadMessageSnaps,
     leaveRequests: leaveRequestSnaps,
+    feeQueries: feeQuerySnaps,
   };
 
   const initialCards = deriveParentFeed(currentStudent.id, now, snapshot);

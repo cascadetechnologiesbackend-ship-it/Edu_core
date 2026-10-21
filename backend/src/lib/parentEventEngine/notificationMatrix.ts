@@ -229,3 +229,28 @@ export async function dispatchParentNotification(
 
   return { decision, result: dispatchResults };
 }
+
+export const EVENT_KIND_TIER_MAP: Record<string, CardTier> = {
+  // Existing v1.0
+  ATTENDANCE_ABSENT: "T1_action_required",
+  ATTENDANCE_LATE: "T1_action_required",
+  FEE_OVERDUE: "T1_action_required",
+  BUS_APPROACHING: "T1_action_required",
+  DPDP_CONSENT_DUE: "T1_action_required",
+  REPORT_CARD_PUBLISHED: "T2_informational",
+  HOMEWORK_DUE_48H: "T2_informational",
+  HOMEWORK_GRADED: "T2_informational",
+  NOTICE_PUBLISHED: "T2_informational",
+  PTM_UPCOMING: "T2_informational",
+  MESSAGE_UNREAD: "T2_informational",
+  PAYMENT_SUCCESS: "T3_system_state",
+  // v1.1 Workflows
+  LEAVE_DECIDED: "T2_informational",
+  LEAVE_PENDING_24H: "T2_informational",
+  PTM_SLOT_CONFIRMED: "T2_informational",
+  PTM_TOMORROW: "T2_informational",
+  PTM_IN_2H: "T1_action_required",
+  PTM_CANCELLED: "T3_system_state",
+  FEE_QUERY_ANSWERED: "T2_informational",
+  FEE_QUERY_ESCALATED: "T1_action_required",
+};

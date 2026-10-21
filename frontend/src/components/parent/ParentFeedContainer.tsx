@@ -16,6 +16,7 @@ import { InsightCard } from "./InsightCard";
 import { MessageCard } from "./MessageCard";
 import { LeaveApprovedCard } from "./LeaveApprovedCard";
 import { LeaveRejectedCard } from "./LeaveRejectedCard";
+import { FeeQueryCard } from "./FeeQueryCard";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -225,6 +226,17 @@ export function ParentFeedContainer({
             if (card.cardType === "LeaveRejectedCard") {
               return (
                 <LeaveRejectedCard
+                  key={card.id}
+                  card={card}
+                  studentName={currentStudent.name}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "FeeQueryCard") {
+              return (
+                <FeeQueryCard
                   key={card.id}
                   card={card}
                   studentName={currentStudent.name}

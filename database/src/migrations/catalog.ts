@@ -726,6 +726,32 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
     rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
     breakingChange: false,
   },
+  {
+    index: 46,
+    tag: "0046_fee_queries",
+    filename: "0046_fee_queries.sql",
+    domain: "FEES_FINANCE",
+    title: "Parent Fee Queries Workflow & Escalations",
+    description: "Parent-initiated fee disputes, SLA aging, and accountant/admin inbox (Workflow OP2, AC-P18).",
+    tablesCreated: ["fee_queries"],
+    tablesAltered: [],
+    foreignKeysAdded: [
+      { sourceTable: "fee_queries", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id" },
+      { sourceTable: "fee_queries", sourceColumn: "student_id", targetTable: "students", targetColumn: "id" },
+      { sourceTable: "fee_queries", sourceColumn: "invoice_id", targetTable: "fee_invoices", targetColumn: "id" },
+      { sourceTable: "fee_queries", sourceColumn: "parent_user_id", targetTable: "users", targetColumn: "id" },
+      { sourceTable: "fee_queries", sourceColumn: "answered_by_user_id", targetTable: "users", targetColumn: "id" },
+      { sourceTable: "fee_queries", sourceColumn: "escalated_to_user_id", targetTable: "users", targetColumn: "id" },
+    ],
+    indexesCreated: [
+      "fee_queries_invoice_idx",
+      "fee_queries_school_status_created_idx",
+      "fee_queries_parent_idx",
+      "fee_queries_student_idx",
+    ],
+    rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
+    breakingChange: false,
+  },
 ];
 
 export function getMigrationByIndex(idx: number): MigrationMetadata | undefined {

@@ -100,6 +100,30 @@
     "replyTeacher": "शिक्षक को उत्तर दें",
     "secureChat": "सुरक्षित सीधा संवाद"
   },
+  "feeQueryCard": {
+    "queryTitle": "शुल्क संबंधी पूछताछ",
+    "openStatus": "लेखा अनुभाग के उत्तर की प्रतीक्षा",
+    "answeredStatus": "लेखा अनुभाग ने उत्तर दिया",
+    "escalatedStatus": "प्रधानाचार्य को अग्रेषित",
+    "resolvedStatus": "समाधान हुआ",
+    "resolveAction": "स्वीकार करें और बंद करें",
+    "escalateAction": "प्रधानाचार्य को अग्रेषित करें",
+    "slaBadge": "48 घंटे की प्रतिक्रिया अवधि",
+    "criticalBadge": "प्रशासन स्तर पर समीक्षाधीन",
+    "askQuestion": "शुल्क पर प्रश्न पूछें",
+    "categories": {
+      "BREAKDOWN_INCORRECT": "शुल्क विवरण में त्रुटि",
+      "ALREADY_PAID": "पहले ही भुगतान किया गया",
+      "CONCESSION_MISSING": "छूट या छात्रवृत्ति सम्मिलित नहीं",
+      "LATE_FEE_DISPUTE": "विलंब शुल्क पर आपत्ति",
+      "OTHER": "सामान्य शुल्क पूछताछ"
+    }
+  },
+  "siblingPayment": {
+    "title": "संयुक्त बहु-संतान शुल्क भुगतान",
+    "payAll": "कुल संयुक्त राशि भरें ({amount})",
+    "subtitle": "{count} बच्चों के स्कूल शुल्क चालान लंबित हैं"
+  },
   "navigation": {
     "home": "होम",
     "child": "बच्चा",

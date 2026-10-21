@@ -78,6 +78,21 @@ export const lateFeeTypeEnum = pgEnum("late_fee_type", [
   "PER_DAY",
 ]);
 
+export const feeQueryCategoryEnum = pgEnum("fee_query_category", [
+  "BREAKDOWN",
+  "LATE_FEE",
+  "WAIVER_REQUEST",
+  "DOUBLE_PAYMENT",
+  "OTHER",
+]);
+
+export const feeQueryStatusEnum = pgEnum("fee_query_status", [
+  "OPEN",
+  "ANSWERED",
+  "RESOLVED",
+  "ESCALATED",
+]);
+
 // ─── fee_heads ────────────────────────────────────────────────────────────────
 
 export const feeHeads = pgTable(
@@ -413,6 +428,55 @@ export const paymentGatewayLogs = pgTable(
   }),
 );
 
+// ─── fee_queries ─────────────────────────────────────────────────────────────
+
+export const feeQueries = pgTable(
+  "fee_queries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => feeInvoices.id, { onDelete: "cascade" }),
+    parentUserId: uuid("parent_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    category: feeQueryCategoryEnum("category").notNull(),
+    message: text("message").notNull(),
+    status: feeQueryStatusEnum("status").notNull().default("OPEN"),
+    answeredByUserId: uuid("answered_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    answer: text("answer"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    escalatedAt: timestamp("escalated_at", { withTimezone: true }),
+    escalatedToUserId: uuid("escalated_to_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    invoiceIdx: index("fee_queries_invoice_idx").on(t.invoiceId),
+    schoolStatusCreatedIdx: index("fee_queries_school_status_created_idx").on(
+      t.schoolId,
+      t.status,
+      t.createdAt
+    ),
+    parentIdx: index("fee_queries_parent_idx").on(t.parentUserId),
+    studentIdx: index("fee_queries_student_idx").on(t.studentId),
+  })
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const feeInvoicesRelations = relations(feeInvoices, ({ one, many }) => ({
@@ -433,6 +497,7 @@ export const feeInvoicesRelations = relations(feeInvoices, ({ one, many }) => ({
     references: [feeStructures.id],
   }),
   payments: many(feePayments),
+  queries: many(feeQueries),
 }));
 
 export const feeStructuresRelations = relations(
@@ -859,6 +924,33 @@ export const feeDueSlipsRelations = relations(feeDueSlips, ({ one }) => ({
   }),
   generatedBy: one(users, {
     fields: [feeDueSlips.generatedById],
+    references: [users.id],
+  }),
+}));
+
+export const feeQueriesRelations = relations(feeQueries, ({ one }) => ({
+  school: one(schools, {
+    fields: [feeQueries.schoolId],
+    references: [schools.id],
+  }),
+  student: one(students, {
+    fields: [feeQueries.studentId],
+    references: [students.id],
+  }),
+  invoice: one(feeInvoices, {
+    fields: [feeQueries.invoiceId],
+    references: [feeInvoices.id],
+  }),
+  parentUser: one(users, {
+    fields: [feeQueries.parentUserId],
+    references: [users.id],
+  }),
+  answeredByUser: one(users, {
+    fields: [feeQueries.answeredByUserId],
+    references: [users.id],
+  }),
+  escalatedToUser: one(users, {
+    fields: [feeQueries.escalatedToUserId],
     references: [users.id],
   }),
 }));

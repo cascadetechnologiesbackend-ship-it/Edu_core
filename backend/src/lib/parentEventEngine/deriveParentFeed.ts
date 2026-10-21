@@ -668,6 +668,120 @@ export function deriveParentFeed(
     }
   }
 
+  // ─── 13. FeeQueryCard (Workflow OP2 & Phase P12) ───────────────────────────
+  if (snapshot.feeQueries && snapshot.feeQueries.length > 0) {
+    for (const fq of snapshot.feeQueries) {
+      const createdDate = new Date(fq.createdAt);
+      const createdMs = createdDate.getTime();
+      const termName = fq.termName || "School Fee";
+
+      if (fq.status === "ANSWERED") {
+        const answeredDate = fq.answeredAt ? new Date(fq.answeredAt) : now;
+        const answeredMs = answeredDate.getTime();
+        // Show answered query for up to 72 hours if not resolved
+        if (nowMs - answeredMs <= 72 * 3600000 && nowMs >= answeredMs) {
+          const answerSnippet = fq.answer
+            ? fq.answer.length > 90
+              ? `${fq.answer.slice(0, 90)}...`
+              : fq.answer
+            : "The school has responded to your fee inquiry.";
+
+          cards.push({
+            id: `fee-query-answered-${fq.id}`,
+            studentId,
+            cardType: "FeeQueryCard",
+            tier: "T2_informational",
+            priority: 75,
+            title: {
+              en: `Fee Query Answered: ${termName}`,
+              hi: `शुल्क प्रश्न का उत्तर दिया गया: ${termName}`,
+            },
+            summary: {
+              en: `${answerSnippet} Tap to confirm resolution or escalate.`,
+              hi: `${answerSnippet} समाधान की पुष्टि करने या आगे बढ़ाने के लिए टैप करें।`,
+            },
+            payload: {
+              queryId: fq.id,
+              invoiceId: fq.invoiceId,
+              category: fq.category,
+              status: fq.status,
+              message: fq.message,
+              answer: fq.answer,
+              answeredAt: fq.answeredAt,
+              answeredByName: fq.answeredByName,
+              termName,
+            },
+            activatedAt: answeredDate,
+            expiresAt: new Date(answeredMs + 72 * 3600000),
+          });
+        }
+      } else if (fq.status === "OPEN") {
+        // Query is under active review (48h SLA)
+        // Show card while open (up to 7 days before auto-escalation)
+        if (nowMs - createdMs <= 7 * 86400000 && nowMs >= createdMs) {
+          const hoursElapsed = Math.floor((nowMs - createdMs) / 3600000);
+          cards.push({
+            id: `fee-query-open-${fq.id}`,
+            studentId,
+            cardType: "FeeQueryCard",
+            tier: "T2_informational",
+            priority: 40,
+            title: {
+              en: `Fee Query Under Review: ${termName}`,
+              hi: `शुल्क प्रश्न समीक्षाधीन: ${termName}`,
+            },
+            summary: {
+              en: `Your query regarding ${termName} is being reviewed. Typical response: 2 days.`,
+              hi: `${termName} से संबंधित आपका प्रश्न विचाराधीन है। सामान्य प्रतिक्रिया: 2 दिन।`,
+            },
+            payload: {
+              queryId: fq.id,
+              invoiceId: fq.invoiceId,
+              category: fq.category,
+              status: fq.status,
+              message: fq.message,
+              hoursElapsed,
+              termName,
+            },
+            activatedAt: createdDate,
+            expiresAt: new Date(createdMs + 7 * 86400000),
+          });
+        }
+      } else if (fq.status === "ESCALATED") {
+        const escalatedDate = fq.escalatedAt ? new Date(fq.escalatedAt) : now;
+        const escalatedMs = escalatedDate.getTime();
+        if (nowMs - escalatedMs <= 72 * 3600000 && nowMs >= escalatedMs) {
+          cards.push({
+            id: `fee-query-escalated-${fq.id}`,
+            studentId,
+            cardType: "FeeQueryCard",
+            tier: "T2_informational",
+            priority: 70,
+            title: {
+              en: `Fee Query Escalated: ${termName}`,
+              hi: `शुल्क प्रश्न प्रधानाचार्य को भेजा गया: ${termName}`,
+            },
+            summary: {
+              en: `Your fee query has been escalated to the Principal for resolution.`,
+              hi: `आपका शुल्क प्रश्न समाधान के लिए प्रधानाचार्य को भेज दिया गया है।`,
+            },
+            payload: {
+              queryId: fq.id,
+              invoiceId: fq.invoiceId,
+              category: fq.category,
+              status: fq.status,
+              message: fq.message,
+              escalatedAt: fq.escalatedAt,
+              termName,
+            },
+            activatedAt: escalatedDate,
+            expiresAt: new Date(escalatedMs + 72 * 3600000),
+          });
+        }
+      }
+    }
+  }
+
   // ─── Time-of-Day Choreography & Sorting ────────────────────────────────────
   const currentHour = now.getHours() + now.getMinutes() / 60;
   const isMorning = currentHour >= 6.5 && currentHour < 9.5;

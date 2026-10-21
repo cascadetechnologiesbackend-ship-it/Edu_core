@@ -16,7 +16,8 @@ export type CardType =
   | "InsightCard"
   | "MessageCard"
   | "LeaveApprovedCard"
-  | "LeaveRejectedCard";
+  | "LeaveRejectedCard"
+  | "FeeQueryCard";
 
 export type CardTier =
   | "T1_action_required"
@@ -184,6 +185,22 @@ export interface LeaveRequestSnapshot {
   teacherName?: string | null;
 }
 
+export interface FeeQuerySnapshot {
+  id: string;
+  invoiceId: string;
+  studentId?: string;
+  termName?: string;
+  category: "BREAKDOWN" | "LATE_FEE" | "WAIVER_REQUEST" | "DOUBLE_PAYMENT" | "OTHER";
+  message: string;
+  status: "OPEN" | "ANSWERED" | "RESOLVED" | "ESCALATED";
+  createdAt: Date | string;
+  answer?: string | null;
+  answeredAt?: Date | string | null;
+  resolvedAt?: Date | string | null;
+  escalatedAt?: Date | string | null;
+  answeredByName?: string | null;
+}
+
 export interface ParentDataSnapshot {
   studentName?: string | undefined;
   invoices?: InvoiceSnapshot[] | undefined;
@@ -200,4 +217,5 @@ export interface ParentDataSnapshot {
   unreadMessages?: UnreadMessageSnapshot[] | undefined;
   insights?: InsightSnapshot[] | undefined;
   leaveRequests?: LeaveRequestSnapshot[] | undefined;
+  feeQueries?: FeeQuerySnapshot[] | undefined;
 }
