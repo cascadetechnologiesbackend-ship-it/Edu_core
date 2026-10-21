@@ -14,7 +14,9 @@ export type TeacherCardType =
   | "PTMTodayCard"
   | "MessagesCard"
   | "InsightCard"
-  | "NoticeCard";
+  | "NoticeCard"
+  | "HomeworkDueCard"
+  | "ClassworkPendingCard";
 
 export type TeacherCardTier =
   | "T1_action_required"
@@ -181,6 +183,28 @@ export interface TeacherNoticeItem {
   expiresAt?: Date | string | null;
 }
 
+export interface TeacherHomeworkDueItem {
+  id: string;
+  title: string;
+  subjectName: string;
+  sectionName: string;
+  className: string;
+  dueDate: Date | string;
+  submissionCount: number;
+  totalStudents: number;
+}
+
+export interface TeacherPendingClassworkPeriod {
+  periodNumber: number;
+  subjectName: string;
+  sectionName: string;
+  className: string;
+  startTime: string;
+  endTime: string;
+  classSubjectId?: string;
+  sectionId?: string;
+}
+
 export interface TeacherDataSnapshot {
   teacherUserId: string;
   teacherName?: string;
@@ -198,4 +222,6 @@ export interface TeacherDataSnapshot {
   unreadMessages?: TeacherMessageItem[];
   insights?: TeacherInsightItem[];
   notices?: TeacherNoticeItem[];
+  upcomingHomeworkDue?: TeacherHomeworkDueItem[];
+  pendingClassworkPeriods?: TeacherPendingClassworkPeriod[];
 }

@@ -14,10 +14,19 @@ import { db } from "@/db";
 import { pushNotificationLogs, userPushSubscriptions } from "@/db/schema";
 import { and, eq, gte, sql } from "drizzle-orm";
 
+export type TeacherAcademicEventKind =
+  | "ATTENDANCE_CUTOFF_APPROACHING"
+  | "SUBSTITUTION_REQUEST_PENDING"
+  | "MARKS_ENTRY_WINDOW_CLOSING"
+  | "HOMEWORK_PUBLISHED_PUSH"
+  | "HOMEWORK_D1_REMINDER"
+  | "ASSESSMENT_D3_REMINDER"
+  | "WEEKLY_SYLLABUS_DIGEST";
+
 export interface TeacherNotificationDecisionInput {
   teacherUserId: string;
   tier: TeacherCardTier;
-  eventKind: string; // e.g. "ATTENDANCE_CUTOFF_APPROACHING", "SUBSTITUTION_REQUEST_PENDING", "MARKS_ENTRY_WINDOW_CLOSING"
+  eventKind: TeacherAcademicEventKind | string;
   now?: Date | undefined;
   todayPushCountForTeacher: number;
   previouslyDispatchedDedupeKeys: Set<string>;

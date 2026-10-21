@@ -55,6 +55,22 @@ describe("Phase E6: Role-Scoped Route Resolvers (Teacher & Parent PWAs)", () => 
       expect(REAL_TEACHER_ROUTES.has(res!.route.split("?")[0])).toBe(true);
     });
 
+    it("resolves homework and assignment queries to /teacher/homework", () => {
+      const parsed = parseOmniboxQuery("post 10-A homework");
+      const res = teacherRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/teacher/homework");
+      expect(REAL_TEACHER_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves syllabus and curriculum queries to /teacher/syllabus", () => {
+      const parsed = parseOmniboxQuery("view 10-A syllabus");
+      const res = teacherRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/teacher/syllabus");
+      expect(REAL_TEACHER_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
     it("enforces teacher scope: sections outside allocation resolve to null", () => {
       const scope: TeacherScopeContext = {
         assignedClasses: ["Class 10-A"],
@@ -131,6 +147,15 @@ describe("Phase E6: Role-Scoped Route Resolvers (Teacher & Parent PWAs)", () => 
       const res = parentRouteResolver(parsed);
       expect(res).not.toBeNull();
       expect(res?.route).toBe("/parent/more/leave");
+      expect(REAL_PARENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves academic feed and homework queries to /parent/dashboard", () => {
+      const parsed = parseOmniboxQuery("check homework");
+      const res = parentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/parent/dashboard");
+      expect(res?.actionLabel).toContain("Academic Feed");
       expect(REAL_PARENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
     });
 

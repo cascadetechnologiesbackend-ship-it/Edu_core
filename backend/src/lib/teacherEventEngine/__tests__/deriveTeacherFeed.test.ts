@@ -424,5 +424,59 @@ describe("deriveTeacherFeed (Pure Feed Engine, Spec v1.0, AC-T1)", () => {
       expect(noticeCards[0]!.priority).toBe(52); // Pinned priority
       expect(noticeCards[1]!.priority).toBe(42); // Normal priority
     });
+
+    it("derives HomeworkDueCard when homework is due within 24 hours", () => {
+      const now = new Date("2026-10-21T10:00:00");
+      const snapshot: TeacherDataSnapshot = {
+        ...calmDaySnapshot,
+        upcomingHomeworkDue: [
+          {
+            id: "hw-101",
+            title: "Algebra Worksheet",
+            subjectName: "Mathematics",
+            className: "Class 8",
+            sectionName: "A",
+            dueDate: "2026-10-22T08:00:00", // 22 hours away
+            submissionCount: 25,
+            totalStudents: 40,
+          },
+        ],
+      };
+
+      const cards = deriveTeacherFeed(teacherUserId, now, snapshot);
+      const hwCards = cards.filter((c) => c.cardType === "HomeworkDueCard");
+
+      expect(hwCards.length).toBe(1);
+      expect(hwCards[0]!.tier).toBe("T2_informational");
+      expect(hwCards[0]!.priority).toBe(55);
+      expect(hwCards[0]!.title.en).toContain("Mathematics");
+      expect(hwCards[0]!.summary.en).toContain("25/40 submitted");
+    });
+
+    it("derives ClassworkPendingCard when scheduled periods lack completed lesson plans", () => {
+      const now = new Date("2026-10-21T14:00:00");
+      const snapshot: TeacherDataSnapshot = {
+        ...calmDaySnapshot,
+        pendingClassworkPeriods: [
+          {
+            periodNumber: 3,
+            subjectName: "Physics",
+            className: "Class 9",
+            sectionName: "B",
+            startTime: "10:30",
+            endTime: "11:15",
+          },
+        ],
+      };
+
+      const cards = deriveTeacherFeed(teacherUserId, now, snapshot);
+      const cwCards = cards.filter((c) => c.cardType === "ClassworkPendingCard");
+
+      expect(cwCards.length).toBe(1);
+      expect(cwCards[0]!.tier).toBe("T1_action_required");
+      expect(cwCards[0]!.priority).toBe(68);
+      expect(cwCards[0]!.title.en).toContain("Period 3");
+      expect(cwCards[0]!.summary.en).toContain("Physics");
+    });
   });
 });

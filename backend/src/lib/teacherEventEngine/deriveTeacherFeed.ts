@@ -562,6 +562,80 @@ export function deriveTeacherFeed(
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 11. HomeworkDueCard (Due within 24h for teacher's sections)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (snapshot.upcomingHomeworkDue && snapshot.upcomingHomeworkDue.length > 0) {
+    for (const hw of snapshot.upcomingHomeworkDue) {
+      const dueMs = new Date(hw.dueDate).getTime();
+      const hoursUntilDue = (dueMs - nowMs) / 3600000;
+      if (hoursUntilDue >= -24 && hoursUntilDue <= 24) {
+        cards.push({
+          id: `hw-due-${hw.id}`,
+          teacherUserId,
+          cardType: "HomeworkDueCard",
+          tier: "T2_informational",
+          priority: 55,
+          title: {
+            en: `Homework Due Soon: ${hw.subjectName} (${hw.className}-${hw.sectionName})`,
+            hi: `गृहकार्य देय तिथि निकट: ${hw.subjectName} (${hw.className}-${hw.sectionName})`,
+          },
+          summary: {
+            en: `${hw.title} · ${hw.submissionCount}/${hw.totalStudents} submitted`,
+            hi: `${hw.title} · ${hw.submissionCount}/${hw.totalStudents} जमा किया गया`,
+          },
+          payload: {
+            assignmentId: hw.id,
+            title: hw.title,
+            subjectName: hw.subjectName,
+            className: hw.className,
+            sectionName: hw.sectionName,
+            dueDate: hw.dueDate,
+            submissionCount: hw.submissionCount,
+            totalStudents: hw.totalStudents,
+          },
+          activatedAt: now,
+          expiresAt: new Date(dueMs + 24 * 3600000),
+        });
+      }
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 12. ClassworkPendingCard (Today's periods lacking completed lesson plans)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (snapshot.pendingClassworkPeriods && snapshot.pendingClassworkPeriods.length > 0) {
+    for (const period of snapshot.pendingClassworkPeriods) {
+      cards.push({
+        id: `classwork-pending-${period.periodNumber}`,
+        teacherUserId,
+        cardType: "ClassworkPendingCard",
+        tier: "T1_action_required",
+        priority: 68,
+        title: {
+          en: `Record Classwork: Period ${period.periodNumber} (${period.className}-${period.sectionName})`,
+          hi: `कक्षा कार्य दर्ज करें: पीरियड ${period.periodNumber} (${period.className}-${period.sectionName})`,
+        },
+        summary: {
+          en: `${period.subjectName} · Mark topic taught and homework to update parent feed`,
+          hi: `${period.subjectName} · अभिभावक फ़ीड अपडेट करने के लिए पढ़ाया गया विषय और गृहकार्य दर्ज करें`,
+        },
+        payload: {
+          periodNumber: period.periodNumber,
+          subjectName: period.subjectName,
+          className: period.className,
+          sectionName: period.sectionName,
+          startTime: period.startTime,
+          endTime: period.endTime,
+          classSubjectId: period.classSubjectId,
+          sectionId: period.sectionId,
+        },
+        activatedAt: now,
+        expiresAt: new Date(nowMs + 12 * 3600000),
+      });
+    }
+  }
+
   // Sort deterministically: highest priority first, then most recently activated
   cards.sort((a, b) => {
     if (b.priority !== a.priority) {

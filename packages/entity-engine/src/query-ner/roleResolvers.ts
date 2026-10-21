@@ -48,6 +48,8 @@ export const REAL_TEACHER_ROUTES = new Set([
   "/teacher/classes",
   "/teacher/attendance",
   "/teacher/grading",
+  "/teacher/homework",
+  "/teacher/syllabus",
   "/teacher/ptm",
   "/teacher/payroll",
   "/teacher/profile",
@@ -178,9 +180,18 @@ export function teacherRouteResolver(
   parsed: ParsedQuery,
   scope?: TeacherScopeContext
 ): ResolvedRoleRoute | null {
-  if (!parsed || parsed.confidenceScore < 0.8) return null;
+  if (!parsed) return null;
 
   const rawLower = parsed.rawQuery.toLowerCase();
+  const isHomeworkOrSyllabus =
+    rawLower.includes("homework") ||
+    rawLower.includes("assignment") ||
+    rawLower.includes("गृहकार्य") ||
+    rawLower.includes("syllabus") ||
+    rawLower.includes("curriculum") ||
+    rawLower.includes("पाठ्यक्रम");
+
+  if (parsed.confidenceScore < 0.8 && !isHomeworkOrSyllabus) return null;
   const classEntity = parsed.recognizedEntities.find((e) => e.type === "CLASS_SECTION");
   const subjectEntity = parsed.recognizedEntities.find((e) => e.type === "SUBJECT");
   const examEntity = parsed.recognizedEntities.find((e) => e.type === "EXAM_NAME");
@@ -328,7 +339,41 @@ export function teacherRouteResolver(
     };
   }
 
-  // 9. Calm Educator Feed (/teacher/dashboard)
+  // 9. Homework & Assignments (/teacher/homework)
+  if (
+    rawLower.includes("homework") ||
+    rawLower.includes("assignment") ||
+    rawLower.includes("गृहकार्य") ||
+    rawLower.includes("असाइनमेंट")
+  ) {
+    return {
+      route: "/teacher/homework",
+      actionLabel: "Manage Homework & Assignments",
+      actionLabelHi: "गृहकार्य और असाइनमेंट प्रबंधित करें",
+      category: "TEACHER",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 10. Syllabus & Curriculum Tracker (/teacher/syllabus)
+  if (
+    rawLower.includes("syllabus") ||
+    rawLower.includes("curriculum") ||
+    rawLower.includes("पाठ्यक्रम") ||
+    rawLower.includes("कोर्स")
+  ) {
+    return {
+      route: "/teacher/syllabus",
+      actionLabel: "View Syllabus & Curriculum Tracker",
+      actionLabelHi: "पाठ्यक्रम एवं प्रगति ट्रैकर देखें",
+      category: "TEACHER",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 11. Calm Educator Feed (/teacher/dashboard)
   if (rawLower.includes("dashboard") || rawLower.includes("today") || rawLower.includes("आज") || rawLower === "home") {
     return {
       route: "/teacher/dashboard",
@@ -352,9 +397,18 @@ export function parentRouteResolver(
   parsed: ParsedQuery,
   wards?: ParentWardContext[]
 ): ResolvedRoleRoute | null {
-  if (!parsed || parsed.confidenceScore < 0.8) return null;
+  if (!parsed) return null;
 
   const rawLower = parsed.rawQuery.toLowerCase();
+  const isAcademicFeed =
+    rawLower.includes("homework") ||
+    rawLower.includes("assignment") ||
+    rawLower.includes("classwork") ||
+    rawLower.includes("syllabus") ||
+    rawLower.includes("गृहकार्य") ||
+    rawLower.includes("पाठ्यक्रम");
+
+  if (parsed.confidenceScore < 0.8 && !isAcademicFeed) return null;
   const classEntity = parsed.recognizedEntities.find((e) => e.type === "CLASS_SECTION");
   const studentEntity = parsed.recognizedEntities.find((e) => e.type === "STUDENT_NAME");
   const busEntity = parsed.recognizedEntities.find((e) => e.type === "BUS_ROUTE");
@@ -515,7 +569,26 @@ export function parentRouteResolver(
     };
   }
 
-  // 10. Parent Home Feed (/parent/dashboard)
+  // 10. Academic Feed & Homework (/parent/dashboard)
+  if (
+    rawLower.includes("homework") ||
+    rawLower.includes("assignment") ||
+    rawLower.includes("classwork") ||
+    rawLower.includes("syllabus") ||
+    rawLower.includes("गृहकार्य") ||
+    rawLower.includes("पाठ्यक्रम")
+  ) {
+    return {
+      route: "/parent/dashboard",
+      actionLabel: "View Academic Feed & Homework",
+      actionLabelHi: "शैक्षणिक फ़ीड और गृहकार्य देखें",
+      category: "PARENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 11. Parent Home Feed (/parent/dashboard)
   if (rawLower.includes("dashboard") || rawLower.includes("home") || rawLower.includes("today") || rawLower === "feed") {
     return {
       route: "/parent/dashboard",

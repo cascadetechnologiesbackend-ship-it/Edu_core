@@ -35,12 +35,14 @@ export default async function TeacherClassesPage({
   let timeline: MyDayPeriodItem[] = [];
   let dayOfWeek = "Today";
   let date = new Date().toISOString().slice(0, 10);
+  let syllabusTopics: Array<{ id: string; title: string; classSubjectId: string }> = [];
 
   try {
     const timelineData = await getTeacherMyDayTimeline(resolvedParams.date);
     timeline = timelineData.timeline;
     dayOfWeek = timelineData.dayOfWeek;
     date = timelineData.date;
+    syllabusTopics = (timelineData as any).syllabusTopics || [];
   } catch (err) {
     console.error("[TeacherClassesPage] Error fetching timeline:", err);
   }
@@ -98,6 +100,7 @@ export default async function TeacherClassesPage({
           initialSelectedSectionId={selectedSectionId}
           initialStudents={students}
           initialSubstitutions={substitutions}
+          syllabusTopics={syllabusTopics}
         />
       </Suspense>
     </div>

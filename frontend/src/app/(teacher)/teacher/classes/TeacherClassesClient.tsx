@@ -27,6 +27,7 @@ interface TeacherClassesClientProps {
     incoming: TeacherSubstitutionItem[];
     outgoing: TeacherSubstitutionItem[];
   } | undefined;
+  syllabusTopics?: Array<{ id: string; title: string; classSubjectId?: string }>;
 }
 
 export default function TeacherClassesClient({
@@ -38,6 +39,7 @@ export default function TeacherClassesClient({
   initialSelectedSectionId,
   initialStudents,
   initialSubstitutions,
+  syllabusTopics,
 }: TeacherClassesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -119,7 +121,12 @@ export default function TeacherClassesClient({
 
       {/* ─── Tab Content ─────────────────────────────────────────────────── */}
       {activeTab === "myday" ? (
-        <MyDayTimeline timeline={timeline} date={date} dayOfWeek={dayOfWeek} />
+        <MyDayTimeline
+          timeline={timeline}
+          date={date}
+          dayOfWeek={dayOfWeek}
+          syllabusTopics={syllabusTopics}
+        />
       ) : activeTab === "rosters" ? (
         <SectionRosters
           sections={sections}

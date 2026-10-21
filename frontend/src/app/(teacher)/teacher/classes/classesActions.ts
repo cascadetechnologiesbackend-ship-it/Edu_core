@@ -20,6 +20,9 @@ import {
   exams,
   domainEvents,
   dayOfWeekEnum,
+  syllabusUnits,
+  syllabusChapters,
+  syllabusTopics,
 } from "@/db/schema";
 import { eq, and, sql, inArray, isNull, gte, lte, desc } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -29,6 +32,7 @@ import {
   projectScopedRosterFeeStatus,
 } from "@/lib/teacherEventEngine/scopeResolver";
 import { revalidatePath } from "next/cache";
+import { scanContentForPII } from "@/lib/pii/scanEnforcement";
 
 export interface MyDayPeriodItem {
   periodNumber: number;
@@ -43,6 +47,7 @@ export interface MyDayPeriodItem {
   sectionName?: string | undefined;
   subjectId?: string | undefined;
   subjectName?: string | undefined;
+  classSubjectId?: string | undefined;
   roomNumber?: string | undefined;
   isNow: boolean;
   isPast: boolean;
@@ -56,6 +61,9 @@ export interface MyDayPeriodItem {
     title: string;
     chapterName: string;
     status: "PLANNED" | "IN_PROGRESS" | "COMPLETED";
+    objectives?: string | null;
+    homework?: string | null;
+    syllabusTopicId?: string | null;
   } | undefined;
 }
 
@@ -219,6 +227,45 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
       plans.map((lp: any) => [lp.classSubjectId, lp])
     );
 
+    // Fetch classSubjects to resolve classSubjectId for periods
+    const allClassSubjects = await tx.query.classSubjects.findMany({
+      where: eq(classSubjects.schoolId, school.id),
+    });
+    const csMap = new Map<string, string>();
+    for (const cs of allClassSubjects) {
+      csMap.set(`${cs.classId}_${cs.subjectId}`, cs.id);
+    }
+
+    // Fetch syllabus topics for classSubjectIds
+    const classSubjectIds = Array.from(new Set(Array.from(csMap.values())));
+    const syllabusTopicsList: Array<{ id: string; title: string; classSubjectId: string }> = [];
+    if (classSubjectIds.length > 0) {
+      const units = await tx.query.syllabusUnits.findMany({
+        where: and(
+          eq(syllabusUnits.schoolId, school.id),
+          inArray(syllabusUnits.classSubjectId, classSubjectIds)
+        ),
+        with: {
+          chapters: {
+            with: {
+              topics: true,
+            },
+          },
+        },
+      });
+      for (const u of units) {
+        for (const ch of u.chapters || []) {
+          for (const t of ch.topics || []) {
+            syllabusTopicsList.push({
+              id: t.id,
+              title: `${u.name} > ${ch.title} > ${t.title}`,
+              classSubjectId: u.classSubjectId,
+            });
+          }
+        }
+      }
+    }
+
     // Current Time in HH:MM
     const nowHours = targetDate.getHours() + targetDate.getMinutes() / 60;
 
@@ -296,9 +343,16 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
             title: lp.title,
             chapterName: lp.chapterName,
             status: lp.status as any,
+            objectives: lp.objectives,
+            homework: lp.homework,
+            syllabusTopicId: lp.syllabusTopicId,
           };
         }
       }
+
+      const classId = effectivePeriod?.section?.class?.id;
+      const subjectId = effectivePeriod?.subject?.id;
+      const classSubjectId = classId && subjectId ? csMap.get(`${classId}_${subjectId}`) : undefined;
 
       timeline.push({
         periodNumber: b.periodNumber,
@@ -307,14 +361,15 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
         endTime: b.endTime,
         periodType: b.periodType,
         isFree,
-        classId: effectivePeriod?.section?.class?.id,
+        classId,
         className:
           effectivePeriod?.section?.class?.displayName ||
           effectivePeriod?.section?.class?.name,
         sectionId: effectivePeriod?.section?.id,
         sectionName: effectivePeriod?.section?.name,
-        subjectId: effectivePeriod?.subject?.id,
+        subjectId,
         subjectName: effectivePeriod?.subject?.name,
+        classSubjectId,
         roomNumber:
           effectivePeriod?.roomNumber ||
           effectivePeriod?.section?.roomNumber ||
@@ -330,18 +385,25 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
       date: calendarDay,
       dayOfWeek,
       timeline,
+      syllabusTopics: syllabusTopicsList,
     };
   });
 }
 
 /**
- * 2. 1-Tap Lesson Completion Action (Click Budget: 1 Tap)
+ * 2. 1-Tap Lesson Completion Action with Classwork & Homework recording (AC-15 / BR13)
  */
 export async function completeLessonPlanAction(payload: {
   lessonPlanId?: string | undefined;
   title?: string | undefined;
   chapterName?: string | undefined;
   classSubjectId?: string | undefined;
+  sectionId?: string | undefined;
+  syllabusTopicId?: string | undefined;
+  objectives?: string | undefined;
+  teachingMethods?: string | undefined;
+  resources?: string | undefined;
+  homework?: string | undefined;
 }): Promise<{ success: boolean; message: string }> {
   const ctx = await requireAuth([
     "SUPER_ADMIN",
@@ -351,13 +413,53 @@ export async function completeLessonPlanAction(payload: {
   ] as const);
   const school = await requireSchool(ctx);
 
+  if (payload.homework) {
+    try {
+      const piiCheck = await scanContentForPII({
+        schoolId: school.id,
+        actorUserId: ctx.userId,
+        surface: "teacher.classwork.complete",
+        sourceTable: "lesson_plans",
+        text: payload.homework,
+      });
+      if (piiCheck.decision === "BLOCKED") {
+        return {
+          success: false,
+          message: "Homework contains sensitive personal data (PII) and cannot be submitted.",
+        };
+      }
+    } catch {
+      // Proceed gracefully if scanner has soft non-blocking mode
+    }
+  }
+
   return await withTenant(school.id, async (tx: any) => {
+    let resolvedClassSubjectId = payload.classSubjectId;
+    if (!resolvedClassSubjectId && payload.sectionId) {
+      const sst = await tx.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.schoolId, school.id),
+          eq(sectionSubjectTeachers.sectionId, payload.sectionId)
+        ),
+      });
+      if (sst) {
+        resolvedClassSubjectId = sst.classSubjectId;
+      }
+    }
+
     if (payload.lessonPlanId) {
       await tx
         .update(lessonPlans)
         .set({
           status: "COMPLETED",
           completedDate: new Date(),
+          title: payload.title || "Daily Curriculum Lesson",
+          chapterName: payload.chapterName || "Standard Unit",
+          objectives: payload.objectives || null,
+          teachingMethods: payload.teachingMethods || null,
+          resources: payload.resources || null,
+          homework: payload.homework || null,
+          syllabusTopicId: payload.syllabusTopicId || null,
           updatedAt: new Date(),
         })
         .where(
@@ -367,13 +469,18 @@ export async function completeLessonPlanAction(payload: {
             eq(lessonPlans.teacherId, ctx.userId)
           )
         );
-    } else if (payload.classSubjectId) {
+    } else if (resolvedClassSubjectId) {
       await tx.insert(lessonPlans).values({
         schoolId: school.id,
-        classSubjectId: payload.classSubjectId,
+        classSubjectId: resolvedClassSubjectId,
         teacherId: ctx.userId,
         title: payload.title || "Daily Curriculum Lesson",
         chapterName: payload.chapterName || "Standard Unit",
+        objectives: payload.objectives || null,
+        teachingMethods: payload.teachingMethods || null,
+        resources: payload.resources || null,
+        homework: payload.homework || null,
+        syllabusTopicId: payload.syllabusTopicId || null,
         status: "COMPLETED",
         plannedDate: new Date(),
         completedDate: new Date(),
@@ -388,8 +495,11 @@ export async function completeLessonPlanAction(payload: {
       payload: {
         teacherUserId: ctx.userId,
         lessonPlanId: payload.lessonPlanId || null,
+        classSubjectId: resolvedClassSubjectId || null,
+        syllabusTopicId: payload.syllabusTopicId || null,
         title: payload.title || "Daily Curriculum Lesson",
         completedAt: new Date().toISOString(),
+        homework: payload.homework || null,
       },
       status: "PENDING",
     });
