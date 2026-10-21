@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-schoolmitra",
-  "version": "11.17.0",
+  "version": "11.18.0",
   "description": "Custom ESLint rules for SchoolMitra ERP security and isolation",
   "main": "index.js",
   "scripts": {

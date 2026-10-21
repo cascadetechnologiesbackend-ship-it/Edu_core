@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/entity-engine",
-  "version": "11.17.0",
+  "version": "11.18.0",
   "private": true,
   "description": "Database Schema Entity Catalog, Relationship Graph, Query NER, and DPDP PII Scanner for SchoolMitra ERP",
   "main": "./src/index.ts",
