@@ -209,5 +209,91 @@ describe("Phase T3: Teacher Feed Home Components & Zero-Clutter Invariant", () =
       expect(screen.getByTestId("night-staleness-note")).toBeDefined();
       expect(screen.getByText(/Quiet hours active/i)).toBeDefined();
     });
+
+    it("renders InsightFeedCard with attendance trend sparkline", () => {
+      const mockInsightCard: DerivedTeacherFeedCard = {
+        id: "insight-attn-1",
+        teacherUserId: "teacher-1",
+        cardType: "InsightCard",
+        tier: "T2_informational",
+        priority: 45,
+        title: {
+          en: "Attendance Dip: Class 8-B",
+          hi: "उपस्थिति में गिरावट: Class 8-B",
+        },
+        summary: {
+          en: "30-day average attendance is 78.4% (below 85% benchmark).",
+          hi: "30 दिनों की औसत उपस्थिति 78.4% है।",
+        },
+        payload: {
+          model: "section_attendance_trend",
+          severity: "AMBER",
+          avgRate: 78.4,
+          sparklineData: [78, 80, 82, 79, 76, 75, 80],
+        },
+        activatedAt: new Date(),
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+
+      render(
+        <TeacherFeedContainer
+          initialCards={[mockInsightCard]}
+          teacherName="Vikram Malhotra"
+          schoolName="St. Xavier High School"
+          locale="en"
+          isNightOverride={false}
+        />,
+        { wrapper }
+      );
+
+      expect(screen.getByTestId("teacher-card-InsightCard")).toBeDefined();
+      expect(screen.getByText("Attendance Dip: Class 8-B")).toBeDefined();
+      expect(screen.getByTestId("insight-attendance-sparkline")).toBeDefined();
+      expect(screen.getByText("78.4% avg")).toBeDefined();
+    });
+
+    it("renders InsightFeedCard with homework neglect student chips", () => {
+      const mockHwCard: DerivedTeacherFeedCard = {
+        id: "insight-hw-1",
+        teacherUserId: "teacher-1",
+        cardType: "InsightCard",
+        tier: "T2_informational",
+        priority: 45,
+        title: {
+          en: "Homework Attention: Class 8-B",
+          hi: "गृहकार्य ध्यान: Class 8-B",
+        },
+        summary: {
+          en: "2 students have missed 2 or more assignments in the last 14 days.",
+          hi: "2 विद्यार्थियों ने असाइनमेंट नहीं किए।",
+        },
+        payload: {
+          model: "homework_neglect_list",
+          severity: "AMBER",
+          students: [
+            { studentId: "s1", studentName: "Aarav Sharma", missingCount: 3 },
+            { studentId: "s2", studentName: "Diya Patel", missingCount: 2 },
+          ],
+        },
+        activatedAt: new Date(),
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+
+      render(
+        <TeacherFeedContainer
+          initialCards={[mockHwCard]}
+          teacherName="Vikram Malhotra"
+          schoolName="St. Xavier High School"
+          locale="en"
+          isNightOverride={false}
+        />,
+        { wrapper }
+      );
+
+      expect(screen.getByTestId("insight-homework-neglect-list")).toBeDefined();
+      expect(screen.getByText("Aarav Sharma")).toBeDefined();
+      expect(screen.getByText("3 missed")).toBeDefined();
+      expect(screen.getByText("Diya Patel")).toBeDefined();
+    });
   });
 });
