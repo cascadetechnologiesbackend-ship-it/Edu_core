@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/frontend",
-  "version": "11.16.1",
+  "version": "11.17.0",
   "private": true,
   "description": "SchoolMitra ERP Frontend - Next.js 14 App Router UI and Application Shell",
   "scripts": {
