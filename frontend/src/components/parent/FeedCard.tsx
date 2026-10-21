@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Clock,
   AlertCircle,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 export type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
@@ -63,6 +64,8 @@ const DEFAULT_ICONS: Record<string, React.ReactNode> = {
   MessageCard: <MessageSquare className="w-5 h-5 text-blue-400" />,
   LeaveApprovedCard: <CalendarCheck className="w-5 h-5 text-emerald-400" />,
   LeaveRejectedCard: <AlertCircle className="w-5 h-5 text-amber-400" />,
+  FeeQueryCard: <HelpCircle className="w-5 h-5 text-amber-400" />,
+  WeeklyDigestCard: <Sparkles className="w-5 h-5 text-indigo-400" />,
 };
 
 export function FeedCard({

@@ -82,7 +82,25 @@
   "noticeCard": {
     "officialNotice": "आधिकारिक स्कूल सूचना",
     "pinned": "पिन किया गया",
-    "readNotice": "पूरी सूचना पढ़ें"
+    "readNotice": "पूरी सूचना पढ़ें",
+    "acknowledge": "स्वीकार करें",
+    "acknowledged": "स्वीकृत",
+    "mustAcknowledge": "यह सूचना आपकी स्वीकृति की मांग करती है",
+    "acknowledging": "प्रक्रिया जारी..."
+  },
+  "weeklyDigestCard": {
+    "title": "साप्ताहिक सारांश",
+    "digestBadge": "बुलेटिन",
+    "attendance": "उपस्थिति",
+    "daysPresent": "{days}/{total} दिन उपस्थित",
+    "homework": "गृहकार्य",
+    "homeworkGraded": "{count} कार्य जांचे गए",
+    "fees": "शुल्क स्थिति",
+    "feesClear": "पूर्ण चुकता",
+    "feesDue": "देय: {amount}",
+    "thisWeek": "इस सप्ताह",
+    "viewRecords": "पूरा रिकॉर्ड देखें",
+    "footer": "सोमवार साप्ताहिक बुलेटिन"
   },
   "consentCard": {
     "dpdpReview": "DPDP सहमति समीक्षा आवश्यक है",

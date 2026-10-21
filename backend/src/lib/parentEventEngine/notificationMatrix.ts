@@ -253,4 +253,8 @@ export const EVENT_KIND_TIER_MAP: Record<string, CardTier> = {
   PTM_CANCELLED: "T3_system_state",
   FEE_QUERY_ANSWERED: "T2_informational",
   FEE_QUERY_ESCALATED: "T1_action_required",
+  // Phase P13 Workflows (OP7 & AC-P23)
+  NOTICE_ACK_REMINDER_24H: "T1_action_required",
+  NOTICE_ACK_REMINDER_48H: "T1_action_required",
+  WEEKLY_DIGEST_READY: "T2_informational",
 };

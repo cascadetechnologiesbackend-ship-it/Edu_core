@@ -30,6 +30,7 @@ import {
   ptmSlots,
   ptmBookings,
   feeQueries,
+  noticeAcknowledgments,
   users,
 } from "@/db/schema";
 import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
@@ -49,6 +50,7 @@ import type {
   UnreadMessageSnapshot,
   LeaveRequestSnapshot,
   FeeQuerySnapshot,
+  WeeklyDigestSnapshot,
 } from "@schoolmitra/backend/parentEventEngine/types";
 import { ParentFeedContainer } from "@/components/parent/ParentFeedContainer";
 import type { StudentWardOption } from "@/components/parent/ParentIdentityHeader";
@@ -535,12 +537,25 @@ export default async function ParentDashboardPage({
       limit: 5,
     });
 
+    const ackRows = await tx.query.noticeAcknowledgments.findMany({
+      where: and(
+        eq(noticeAcknowledgments.schoolId, school.id),
+        eq(noticeAcknowledgments.parentUserId, ctx.userId)
+      ),
+    });
+    const ackMap = new Map<string, Date>();
+    for (const a of ackRows) {
+      ackMap.set(a.noticeId, a.acknowledgedAt);
+    }
+
     const noticeSnaps: NoticeSnapshot[] = noticeRows.map((n) => ({
       id: n.id,
       title: n.title,
       contentPreview: n.content?.slice(0, 100) || "",
       publishedAt: n.publishedAt || now,
       isPinned: Boolean(n.isPinned),
+      requiresAcknowledgment: Boolean((n as any).requiresAcknowledgment),
+      acknowledgedAt: ackMap.get(n.id) || null,
       ...(n.expiresAt ? { expiresAt: n.expiresAt } : {}),
     }));
 
@@ -795,6 +810,36 @@ export default async function ParentDashboardPage({
   currentStudent.attendanceRate = attendanceRate30d;
 
   // 5. Build snapshot & derive feed cards
+  let weeklyDigestSnap: WeeklyDigestSnapshot | undefined = undefined;
+  const dayOfWeek = now.getDay();
+  const hour = now.getHours();
+  // Active Monday 08:00 through Tuesday 23:59 (AC-P23)
+  if ((dayOfWeek === 1 && hour >= 8) || dayOfWeek === 2) {
+    const diffDays = dayOfWeek - 1 + 7;
+    const lastMon = new Date(now);
+    lastMon.setDate(now.getDate() - diffDays);
+    const lastSun = new Date(lastMon);
+    lastSun.setDate(lastMon.getDate() + 6);
+    const weekLabel = `${lastMon.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} - ${lastSun.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`;
+
+    const gradedCount = homeworkSnaps.filter((h) => Boolean(h.submission?.grade)).length;
+    const hasOverdue = invoiceSnaps.some((i) => i.status === "OVERDUE");
+    const dueSoonInv = invoiceSnaps.find((i) => i.status === "PENDING" || i.status === "PARTIAL");
+    const feesStatus = hasOverdue ? "OVERDUE" : dueSoonInv ? "DUE_SOON" : "UP_TO_DATE";
+    const balanceAmount = invoiceSnaps.reduce((sum, inv) => sum + (inv.balanceAmount || 0), 0);
+
+    weeklyDigestSnap = {
+      weekLabel,
+      attendanceDays: Math.min(5, Math.round(((attendanceRate30d || 100) / 100) * 5)),
+      totalSchoolDays: 5,
+      homeworkGradedCount: gradedCount,
+      feesStatus,
+      balanceAmount: balanceAmount > 0 ? balanceAmount : undefined,
+      upcomingEventsCount: eventSnaps.length,
+      upcomingEventSummary: eventSnaps[0]?.title || undefined,
+    };
+  }
+
   const snapshot: ParentDataSnapshot = {
     studentName: currentStudent.name,
     attendanceToday: attendanceSnap,
@@ -809,6 +854,7 @@ export default async function ParentDashboardPage({
     unreadMessages: unreadMessageSnaps,
     leaveRequests: leaveRequestSnaps,
     feeQueries: feeQuerySnaps,
+    weeklyDigest: weeklyDigestSnap,
   };
 
   const initialCards = deriveParentFeed(currentStudent.id, now, snapshot);

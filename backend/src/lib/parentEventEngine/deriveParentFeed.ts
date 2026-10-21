@@ -462,12 +462,16 @@ export function deriveParentFeed(
       const isNotExpired = !notif.expiresAt || new Date(notif.expiresAt).getTime() > nowMs;
 
       if ((notif.isPinned || isWithin72h) && isNotExpired) {
+        // Elevated priority for unacknowledged mandatory notices
+        const isPendingAck = notif.requiresAcknowledgment && !notif.acknowledgedAt;
+        const priority = notif.isPinned ? 70 : isPendingAck ? 60 : 50;
+
         cards.push({
           id: `notice-${notif.id}`,
           studentId,
           cardType: "NoticeCard",
           tier: "T2_informational",
-          priority: notif.isPinned ? 65 : 50,
+          priority,
           title: {
             en: notif.title,
             hi: notif.title,
@@ -480,6 +484,8 @@ export function deriveParentFeed(
             noticeId: notif.id,
             isPinned: notif.isPinned,
             publishedAt: notif.publishedAt,
+            requiresAcknowledgment: Boolean(notif.requiresAcknowledgment),
+            acknowledgedAt: notif.acknowledgedAt || null,
           },
           activatedAt: pubDate,
           expiresAt: notif.expiresAt ? new Date(notif.expiresAt) : new Date(pubDate.getTime() + 72 * 3600000),
@@ -779,6 +785,74 @@ export function deriveParentFeed(
           });
         }
       }
+    }
+  }
+
+  // ─── 13. WeeklyDigestCard (Spec v1.2 Phase P13, AC-P23, OP12) ─────────────────
+  if (snapshot.weeklyDigest) {
+    const digest = snapshot.weeklyDigest;
+    const dayOfWeek = now.getDay(); // 0 = Sun, 1 = Mon, 2 = Tue, ...
+    const hour = now.getHours();
+    // Active window: Monday 08:00 local time through Tuesday 23:59 (approx 40-hour TTL)
+    const isMondayFrom8am = dayOfWeek === 1 && hour >= 8;
+    const isTuesday = dayOfWeek === 2;
+
+    if (isMondayFrom8am || isTuesday) {
+      // Calculate Tuesday 23:59:59 expiration date
+      const expiresAt = new Date(now);
+      if (dayOfWeek === 1) {
+        expiresAt.setDate(expiresAt.getDate() + 1);
+      }
+      expiresAt.setHours(23, 59, 59, 999);
+
+      // Activated at Monday 08:00
+      const activatedAt = new Date(now);
+      if (dayOfWeek === 2) {
+        activatedAt.setDate(activatedAt.getDate() - 1);
+      }
+      activatedAt.setHours(8, 0, 0, 0);
+
+      const feeStatusTextEn =
+        digest.feesStatus === "UP_TO_DATE"
+          ? "All dues clear"
+          : digest.feesStatus === "DUE_SOON"
+          ? `Fees due soon${digest.balanceAmount ? ` (₹${digest.balanceAmount.toLocaleString("en-IN")})` : ""}`
+          : `Fees overdue${digest.balanceAmount ? ` (₹${digest.balanceAmount.toLocaleString("en-IN")})` : ""}`;
+
+      const feeStatusTextHi =
+        digest.feesStatus === "UP_TO_DATE"
+          ? "सभी शुल्क चुकता"
+          : digest.feesStatus === "DUE_SOON"
+          ? `शुल्क जल्द देय${digest.balanceAmount ? ` (₹${digest.balanceAmount.toLocaleString("en-IN")})` : ""}`
+          : `शुल्क अतिदेय${digest.balanceAmount ? ` (₹${digest.balanceAmount.toLocaleString("en-IN")})` : ""}`;
+
+      cards.push({
+        id: `weekly-digest-${studentId}`,
+        studentId,
+        cardType: "WeeklyDigestCard",
+        tier: "T2_informational",
+        priority: 55,
+        title: {
+          en: `Weekly Snapshot: ${digest.weekLabel}`,
+          hi: `साप्ताहिक सारांश: ${digest.weekLabel}`,
+        },
+        summary: {
+          en: `${digest.attendanceDays}/${digest.totalSchoolDays} school days present • ${digest.homeworkGradedCount} assignments graded • ${feeStatusTextEn}`,
+          hi: `${digest.attendanceDays}/${digest.totalSchoolDays} दिन उपस्थिति • ${digest.homeworkGradedCount} कार्य जांचे गए • ${feeStatusTextHi}`,
+        },
+        payload: {
+          weekLabel: digest.weekLabel,
+          attendanceDays: digest.attendanceDays,
+          totalSchoolDays: digest.totalSchoolDays,
+          homeworkGradedCount: digest.homeworkGradedCount,
+          feesStatus: digest.feesStatus,
+          balanceAmount: digest.balanceAmount,
+          upcomingEventsCount: digest.upcomingEventsCount,
+          upcomingEventSummary: digest.upcomingEventSummary,
+        },
+        activatedAt,
+        expiresAt,
+      });
     }
   }
 

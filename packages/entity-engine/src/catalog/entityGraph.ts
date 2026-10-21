@@ -1467,4 +1467,48 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
       },
     ],
   },
+
+  // ─── 14. COMMUNICATION WORKFLOWS ───────────────────────────────────────────
+  notice_acknowledgments: {
+    tableName: "notice_acknowledgments",
+    drizzleExport: "noticeAcknowledgments",
+    domain: "COMMUNICATION",
+    displayName: "Notice Acknowledgment",
+    description: "Parent user acknowledgments for high-importance circulars and compliance tracking.",
+    primaryKey: ["id"],
+    tenantKey: "schoolId",
+    isTenantScoped: true,
+    piiColumns: [],
+    searchableFields: ["source"],
+    tags: ["notice", "acknowledgment", "circular", "communication", "parent"],
+    relationships: [
+      {
+        sourceTable: "notice_acknowledgments",
+        targetTable: "schools",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "school_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Owning school.",
+      },
+      {
+        sourceTable: "notice_acknowledgments",
+        targetTable: "notices",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "notice_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Subject notice.",
+      },
+      {
+        sourceTable: "notice_acknowledgments",
+        targetTable: "users",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "parent_user_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Parent user who acknowledged.",
+      },
+    ],
+  },
 };

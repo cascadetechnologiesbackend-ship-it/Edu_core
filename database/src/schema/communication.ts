@@ -8,7 +8,9 @@ import {
   index,
   jsonb,
   integer,
+  unique,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { schools, users } from "./core";
 import { students } from "./students";
 import { classes } from "./academics";
@@ -38,6 +40,7 @@ export const notices = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     isPublished: boolean("is_published").notNull().default(false),
     isPinned: boolean("is_pinned").notNull().default(false),
+    requiresAcknowledgment: boolean("requires_acknowledgment").notNull().default(false),
     attachmentS3Key: text("attachment_s3_key"),
     createdById: uuid("created_by_id")
       .notNull()
@@ -404,4 +407,71 @@ export const ptmBookings = pgTable(
     ),
   })
 );
+
+// ─── Notice Acknowledgments (Workflow OP7, AC-P14, AC-P20) ───────────────────
+
+export const noticeAckSourceEnum = pgEnum("notice_ack_source", [
+  "FEED",
+  "PORTAL",
+]);
+
+export const noticeAcknowledgments = pgTable(
+  "notice_acknowledgments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    noticeId: uuid("notice_id")
+      .notNull()
+      .references(() => notices.id, { onDelete: "cascade" }),
+    parentUserId: uuid("parent_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    source: noticeAckSourceEnum("source").notNull().default("FEED"),
+  },
+  (t) => ({
+    noticeParentUnique: unique("notice_ack_notice_parent_unique").on(
+      t.noticeId,
+      t.parentUserId
+    ),
+    noticeIdx: index("notice_ack_notice_idx").on(t.noticeId),
+    schoolIdx: index("notice_ack_school_idx").on(t.schoolId),
+    parentUserIdx: index("notice_ack_parent_user_idx").on(t.parentUserId),
+  })
+);
+
+export const noticesRelations = relations(notices, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [notices.schoolId],
+    references: [schools.id],
+  }),
+  createdBy: one(users, {
+    fields: [notices.createdById],
+    references: [users.id],
+  }),
+  acknowledgments: many(noticeAcknowledgments),
+}));
+
+export const noticeAcknowledgmentsRelations = relations(
+  noticeAcknowledgments,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [noticeAcknowledgments.schoolId],
+      references: [schools.id],
+    }),
+    notice: one(notices, {
+      fields: [noticeAcknowledgments.noticeId],
+      references: [notices.id],
+    }),
+    parentUser: one(users, {
+      fields: [noticeAcknowledgments.parentUserId],
+      references: [users.id],
+    }),
+  })
+);
+
 

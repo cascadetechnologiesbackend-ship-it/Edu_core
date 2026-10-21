@@ -17,7 +17,8 @@ export type CardType =
   | "MessageCard"
   | "LeaveApprovedCard"
   | "LeaveRejectedCard"
-  | "FeeQueryCard";
+  | "FeeQueryCard"
+  | "WeeklyDigestCard";
 
 export type CardTier =
   | "T1_action_required"
@@ -148,6 +149,8 @@ export interface NoticeSnapshot {
   publishedAt: Date | string;
   isPinned: boolean;
   expiresAt?: Date | string | null;
+  requiresAcknowledgment?: boolean | undefined;
+  acknowledgedAt?: Date | string | null | undefined;
 }
 
 export interface PendingConsentSnapshot {
@@ -218,4 +221,16 @@ export interface ParentDataSnapshot {
   insights?: InsightSnapshot[] | undefined;
   leaveRequests?: LeaveRequestSnapshot[] | undefined;
   feeQueries?: FeeQuerySnapshot[] | undefined;
+  weeklyDigest?: WeeklyDigestSnapshot | undefined;
+}
+
+export interface WeeklyDigestSnapshot {
+  weekLabel: string; // e.g. "Oct 13 - Oct 19"
+  attendanceDays: number;
+  totalSchoolDays: number;
+  homeworkGradedCount: number;
+  feesStatus: "UP_TO_DATE" | "DUE_SOON" | "OVERDUE";
+  balanceAmount?: number | undefined;
+  upcomingEventsCount: number;
+  upcomingEventSummary?: string | undefined;
 }

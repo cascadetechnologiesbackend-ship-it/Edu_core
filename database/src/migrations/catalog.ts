@@ -752,6 +752,29 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
     rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
     breakingChange: false,
   },
+  {
+    index: 47,
+    tag: "0047_notice_acknowledgments",
+    filename: "0047_notice_acknowledgments.sql",
+    domain: "COMMUNICATION",
+    title: "Notice Acknowledgments & Circular Tracking System",
+    description: "Parent-user circular acknowledgment tracking table with unique constraints, percentage reporting, and bulk reminder indexes (OP7, AC-P20).",
+    tablesCreated: ["notice_acknowledgments"],
+    tablesAltered: ["notices"],
+    foreignKeysAdded: [
+      { sourceTable: "notice_acknowledgments", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "notice_acknowledgments", sourceColumn: "notice_id", targetTable: "notices", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "notice_acknowledgments", sourceColumn: "parent_user_id", targetTable: "users", targetColumn: "id", onDelete: "CASCADE" },
+    ],
+    indexesCreated: [
+      "notice_ack_notice_parent_unique",
+      "notice_ack_notice_idx",
+      "notice_ack_school_idx",
+      "notice_ack_parent_user_idx",
+    ],
+    rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
+    breakingChange: false,
+  },
 ];
 
 export function getMigrationByIndex(idx: number): MigrationMetadata | undefined {

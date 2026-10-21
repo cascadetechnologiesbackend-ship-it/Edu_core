@@ -82,7 +82,25 @@
   "noticeCard": {
     "officialNotice": "Official School Notice",
     "pinned": "PINNED",
-    "readNotice": "Read Full Notice"
+    "readNotice": "Read Full Notice",
+    "acknowledge": "Acknowledge",
+    "acknowledged": "Acknowledged",
+    "mustAcknowledge": "School requests your acknowledgment",
+    "acknowledging": "Saving..."
+  },
+  "weeklyDigestCard": {
+    "title": "Weekly Snapshot",
+    "digestBadge": "DIGEST",
+    "attendance": "Attendance",
+    "daysPresent": "{days}/{total} days present",
+    "homework": "Homework",
+    "homeworkGraded": "{count} assignments graded",
+    "fees": "Fees Status",
+    "feesClear": "All Clear",
+    "feesDue": "Due: {amount}",
+    "thisWeek": "This Week",
+    "viewRecords": "View Full Records",
+    "footer": "Monday Weekly Bulletin"
   },
   "consentCard": {
     "dpdpReview": "DPDP Consent Review Required",
