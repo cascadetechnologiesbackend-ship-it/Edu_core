@@ -33,12 +33,22 @@ export async function generateConsentChangeOtp(
     const session = await auth();
     if (!session?.user?.id) return { success: false, message: "Unauthorized" };
 
-    const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const schoolId = session.user.schoolId;
+    let parentMobile = (session.user as any).phone || "";
+    if (!parentMobile && schoolId) {
+      await withTenant(schoolId, async (tx: any) => {
+        const u = await tx.query.users.findFirst({
+          where: eq(users.id, session.user.id),
+          columns: { phone: true },
+        });
+        if (u?.phone) parentMobile = u.phone;
+      });
+    }
+    if (!parentMobile) parentMobile = "+919999999999";
+
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // In a production system, we'd look up the parent's mobile number here from DB
-    const parentMobile = "+919999999999"; 
-    
-    const sent = await sendSMS(parentMobile, `Your OTP for changing DPDP consent for purpose ${purposeId} is: ${mockOtp}`);
+    const sent = await sendSMS(parentMobile, `Your OTP for changing DPDP consent for purpose ${purposeId} is: ${generatedOtp}`);
     
     if (!sent) {
       return { success: false, message: "Failed to dispatch SMS via gateway" };
