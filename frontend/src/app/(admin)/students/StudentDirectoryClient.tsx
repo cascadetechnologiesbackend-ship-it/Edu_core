@@ -175,6 +175,15 @@ export function StudentDirectoryClient({
             </select>
           </div>
 
+          {/* Parent Linkage Repair Queue Action */}
+          <Link
+            href="/students/linkage"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition inline-flex items-center gap-1.5 min-h-[40px]"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>Parent Linkage</span>
+          </Link>
+
           {/* Primary Action Button: Add Student */}
           <Link
             href="/admissions/new"

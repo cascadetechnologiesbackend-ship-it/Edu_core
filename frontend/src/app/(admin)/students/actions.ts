@@ -335,3 +335,163 @@ export async function rejectStudentDocument(
     return { success: false, message: error?.message || "Rejection failed" };
   }
 }
+
+// ─── Parent Linkage Repair Queue Server Actions ──────────────────────────────
+
+export async function getUnlinkedStudentsAction() {
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+    throw new Error("Unauthorized to access parent linkage repair queue.");
+  }
+
+  const school = await requireSchool(ctx);
+  const { getUnlinkedStudents } = await import("@schoolmitra/backend/lib/parentLinkage");
+  const unlinked = await getUnlinkedStudents(school.id);
+  return { success: true as const, students: unlinked };
+}
+
+export async function findParentCandidatesAction(studentId: string) {
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+    throw new Error("Unauthorized to search parent candidates.");
+  }
+
+  const school = await requireSchool(ctx);
+  const { findParentCandidates } = await import("@schoolmitra/backend/lib/parentLinkage");
+  const candidates = await findParentCandidates(school.id, studentId);
+  return { success: true as const, candidates };
+}
+
+export async function linkStudentToParentAction(studentId: string, parentUserId: string) {
+  try {
+    const ctx = await requireAuth();
+    const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+    if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+      return { success: false, message: "Unauthorized to link parent account." };
+    }
+
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+    const { linkStudentToParentUser } = await import("@schoolmitra/backend/lib/parentLinkage");
+
+    await linkStudentToParentUser({
+      schoolId: school.id,
+      studentId,
+      parentUserId,
+      performedByUserId: ctx.userId,
+      clientIp: clientContext.ipAddress || "0.0.0.0",
+    });
+
+    try {
+      revalidatePath("/students");
+      revalidatePath("/students/linkage");
+      revalidatePath(`/students/${studentId}`);
+    } catch {}
+
+    return { success: true as const };
+  } catch (err: any) {
+    console.error("Failed to link student to parent:", err);
+    return { success: false, message: err?.message || "Linkage failed" };
+  }
+}
+
+export async function inviteAndLinkParentAction(studentId: string) {
+  try {
+    const ctx = await requireAuth();
+    const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+    if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+      return { success: false, message: "Unauthorized to invite parent." };
+    }
+
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+
+    // 1. Fetch student and family members
+    const student = await db.query.students.findFirst({
+      where: and(
+        eq(students.id, studentId),
+        eq(students.schoolId, school.id),
+      ),
+      with: {
+        familyMembers: true,
+      },
+    });
+
+    if (!student) {
+      return { success: false, message: "Student record not found." };
+    }
+
+    const primaryGuardian =
+      student.familyMembers.find((f) => f.isPrimaryContact) ||
+      student.familyMembers.find((f) => f.emailEncrypted) ||
+      student.familyMembers[0];
+
+    let guardianName = "Parent Guardian";
+    let primaryMobile: string | null = null;
+    let primaryEmail: string | null = null;
+
+    if (primaryGuardian) {
+      guardianName = decryptData(primaryGuardian.nameEncrypted) || "Parent Guardian";
+      primaryMobile = primaryGuardian.mobileEncrypted
+        ? decryptData(primaryGuardian.mobileEncrypted)
+        : null;
+      primaryEmail = primaryGuardian.emailEncrypted
+        ? decryptData(primaryGuardian.emailEncrypted)
+        : null;
+    }
+
+    if (!primaryEmail || !primaryEmail.trim()) {
+      return {
+        success: false,
+        message: "No guardian email found on student profile. Please add an email before inviting.",
+      };
+    }
+
+    const { provisionOrLinkParent } = await import("@schoolmitra/backend/lib/parentLinkage");
+    const result = await provisionOrLinkParent({
+      schoolId: school.id,
+      studentId,
+      primaryEmail: primaryEmail.trim(),
+      primaryMobile: primaryMobile?.trim(),
+      guardianName: guardianName.trim(),
+      performedByUserId: ctx.userId,
+    });
+
+    // Write audit log
+    await db.insert(auditLogs).values({
+      schoolId: school.id,
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      action: "WRITE",
+      tableName: "students",
+      recordId: studentId,
+      ipAddress: clientContext.ipAddress || "0.0.0.0",
+      userAgent: clientContext.userAgent || "ServerAction/InviteParent",
+      metadata: {
+        event: "PARENT_INVITED_AND_LINKED",
+        studentId,
+        parentUserId: result.parentUserId,
+        isNewlyProvisioned: result.isNewlyProvisioned,
+      },
+    });
+
+    try {
+      revalidatePath("/students");
+      revalidatePath("/students/linkage");
+      revalidatePath(`/students/${studentId}`);
+    } catch {}
+
+    return {
+      success: true as const,
+      isNewlyProvisioned: result.isNewlyProvisioned,
+      credentials: result.parentCredentials,
+    };
+  } catch (err: any) {
+    console.error("Failed to invite and link parent:", err);
+    return { success: false, message: err?.message || "Invitation failed" };
+  }
+}
+

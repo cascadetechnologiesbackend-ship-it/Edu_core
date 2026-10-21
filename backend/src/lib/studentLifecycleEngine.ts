@@ -61,6 +61,7 @@ import {
 } from "./encryption";
 import { withTenant } from "./tenant";
 import { generateRoleTempPassword } from "./tempPassword";
+import { provisionOrLinkParent } from "./parentLinkage";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -423,127 +424,21 @@ export class StudentLifecycleEngine {
       let parentUserId: string | null = null;
       let parentCredentials: StudentEnrollmentResult["parentCredentials"] | undefined;
 
-      if (primaryEmail) {
-        const emailNormalized = primaryEmail.trim().toLowerCase();
-        let parentUser = await tx.query.users.findFirst({
-          where: eq(users.email, emailNormalized),
-        });
+      const guardianNameResolved =
+        fatherName || motherName || guardianName || "Parent Guardian";
 
-        if (!parentUser) {
-          // Cryptographically random claim token and role-based initial credential (Parent@<last4mobile>)
-          const claimToken = crypto.randomBytes(32).toString("hex");
-          const tokenHash = crypto.createHash("sha256").update(claimToken).digest("hex");
-          const tempPassword = generateRoleTempPassword("PARENT", primaryMobile);
-          const passwordHash = await bcrypt.hash(tempPassword, 12);
+      const linkResult = await provisionOrLinkParent({
+        schoolId,
+        studentId: newStudent.id,
+        primaryEmail,
+        primaryMobile,
+        guardianName: guardianNameResolved,
+        performedByUserId,
+        tx,
+      });
 
-          const [createdUser] = await tx
-            .insert(users)
-            .values({
-              schoolId,
-              email: emailNormalized,
-              mobileEncrypted: primaryMobile
-                ? encryptData(primaryMobile.trim())
-                : null,
-              passwordHash,
-              mustChangePassword: true,
-              isActive: true,
-              isEmailVerified: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .returning();
-
-          if (createdUser) {
-            // Decoupled claim credential: store claim token in password_reset_tokens
-            await tx.insert(passwordResetTokens).values({
-              userId: createdUser.id,
-              tokenHash,
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-            });
-
-            const appBaseUrl =
-              process.env["NEXT_PUBLIC_APP_URL"] || "https://app.schoolmitra.in";
-            parentUser = createdUser;
-            parentCredentials = {
-              email: emailNormalized,
-              claimToken,
-              claimUrl: `${appBaseUrl}/claim-account?token=${claimToken}`,
-              temporaryPassword: tempPassword,
-              mustChangePassword: true,
-              mobile: primaryMobile ? primaryMobile.trim() : null,
-            };
-
-            // Canonical Person row for parent
-            const parentNameDecrypted =
-              fatherName || motherName || guardianName || "Parent Guardian";
-            const pNameParts = parentNameDecrypted.trim().split(/\s+/);
-            const pFirstName = pNameParts[0] || "Parent";
-            const pLastName = pNameParts.slice(1).join(" ") || "Guardian";
-
-            await tx.insert(persons).values({
-              schoolId,
-              userId: createdUser.id,
-              primaryType: "PARENT",
-              firstNameEncrypted: encryptData(pFirstName),
-              lastNameEncrypted: encryptData(pLastName),
-              firstNameSearchHash: computeSearchHash(pFirstName),
-              lastNameSearchHash: computeSearchHash(pLastName),
-              gender: "OTHER",
-              primaryEmailEncrypted: encryptData(emailNormalized),
-              primaryMobileEncrypted: primaryMobile
-                ? encryptData(primaryMobile.trim())
-                : null,
-              createdBy: performedByUserId,
-              isActive: true,
-            });
-          }
-        }
-
-        if (parentUser) {
-          parentUserId = parentUser.id;
-
-          // Ensure PARENT role exists and is assigned
-          let parentRole = await tx.query.roles.findFirst({
-            where: and(eq(roles.schoolId, schoolId), eq(roles.name, "PARENT")),
-          });
-          if (!parentRole) {
-            const [createdRole] = await tx
-              .insert(roles)
-              .values({
-                schoolId,
-                name: "PARENT",
-                displayName: "Parent / Guardian",
-                isSystemRole: true,
-              })
-              .returning();
-            parentRole = createdRole;
-          }
-
-          if (parentRole) {
-            const existingRole = await tx.query.userRoles.findFirst({
-              where: and(
-                eq(userRoles.userId, parentUser.id),
-                eq(userRoles.roleId, parentRole.id),
-              ),
-            });
-            if (!existingRole) {
-              await tx.insert(userRoles).values({
-                userId: parentUser.id,
-                roleId: parentRole.id,
-                schoolId,
-              });
-            }
-          }
-
-          // Link student to primaryParentUserId
-          await tx
-            .update(students)
-            .set({ primaryParentUserId: parentUserId })
-            .where(
-              and(eq(students.id, newStudent.id), eq(students.schoolId, schoolId)),
-            );
-        }
-      }
+      parentUserId = linkResult.parentUserId;
+      parentCredentials = linkResult.parentCredentials;
 
       // Family Member Records (with search hashes for fast sibling lookups)
       const primaryMobileHash = primaryMobile
