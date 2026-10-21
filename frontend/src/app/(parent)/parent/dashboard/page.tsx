@@ -34,8 +34,9 @@ import {
   users,
 } from "@/db/schema";
 import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
-import { decryptData } from "@/lib/encryption";
 import { deriveParentFeed, mergeMultiWardFeeds } from "@schoolmitra/backend/parentEventEngine/deriveParentFeed";
+import { assembleAcademicSnapshot } from "@schoolmitra/backend/parentEventEngine/academicSnapshotAssembler";
+import { syncParentFeedCards } from "@schoolmitra/backend/parentEventEngine/feedPersistence";
 import type {
   DerivedFeedCard,
   ParentDataSnapshot,
@@ -261,80 +262,15 @@ export default async function ParentDashboardPage({
       };
     });
 
-    // C. Homework (D2: class assignments LEFT JOIN student submissions with real subject name)
-    const cutoffPast14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const cutoffFuture14d = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-
-    const assignmentList = await tx.query.assignments.findMany({
-      where: and(
-        eq(assignments.schoolId, school.id),
-        targetStudentRow.currentSectionId
-          ? eq(assignments.sectionId, targetStudentRow.currentSectionId)
-          : undefined,
-        gte(assignments.dueDate, cutoffPast14d),
-        lte(assignments.dueDate, cutoffFuture14d)
-      ),
-      with: {
-        classSubject: {
-          with: {
-            subject: true,
-          },
-        },
-      },
-      orderBy: [asc(assignments.dueDate)],
+    // C. Academic Snapshot (homework, classwork, syllabus coverage, curriculum progress, upcoming assessments)
+    const academicSnapshot = await assembleAcademicSnapshot(tx, {
+      schoolId: school.id,
+      studentId: targetStudentRow.id,
+      currentClassId: targetStudentRow.currentClassId,
+      currentSectionId: targetStudentRow.currentSectionId,
+      now,
     });
-
-    const assignmentIds = assignmentList.map((a) => a.id);
-    const studentSubmissions =
-      assignmentIds.length > 0
-        ? await tx.query.assignmentSubmissions.findMany({
-            where: and(
-              eq(assignmentSubmissions.studentId, targetStudentRow.id),
-              eq(assignmentSubmissions.schoolId, school.id),
-              inArray(assignmentSubmissions.assignmentId, assignmentIds)
-            ),
-          })
-        : [];
-
-    const submissionByAssignment = new Map(
-      studentSubmissions.map((s) => [s.assignmentId, s])
-    );
-
-    const homeworkSnaps: HomeworkSnapshot[] = assignmentList.map((a) => {
-      const sub = submissionByAssignment.get(a.id) as any;
-      const subjectName = a.classSubject?.subject?.name || "Academics";
-      const isSubmitted = Boolean(sub);
-
-      let subData:
-        | {
-            submittedAt: string | Date;
-            grade?: string | null;
-            feedback?: string | null;
-          }
-        | undefined = undefined;
-
-      if (sub) {
-        subData = {
-          submittedAt: sub.submittedAt || sub.createdAt || now,
-          grade:
-            sub.marksAwarded !== null
-              ? `${sub.marksAwarded}`
-              : sub.gradedAt
-              ? "Graded"
-              : null,
-          feedback: sub.remarks,
-        };
-      }
-
-      return {
-        id: a.id,
-        title: a.title,
-        subjectName,
-        dueDate: a.dueDate,
-        isSubmitted,
-        ...(subData ? { submission: subData } : {}),
-      };
-    });
+    const homeworkSnaps: HomeworkSnapshot[] = academicSnapshot.homework;
 
     // D. Report Cards (D4: viewedAt tracking + previousAverageScore join)
     const rcRows = await tx.query.reportCards.findMany({
@@ -765,6 +701,10 @@ export default async function ParentDashboardPage({
       attendanceToday: attendanceToday,
       invoices: invoiceSnaps,
       homework: homeworkSnaps,
+      classwork: academicSnapshot.classwork,
+      syllabusCoverage: academicSnapshot.syllabusCoverage,
+      curriculumProgress: academicSnapshot.curriculumProgress,
+      upcomingAssessments: academicSnapshot.upcomingAssessments,
       reportCards: reportCardSnaps,
       busPass: busPassSnap,
       routeStops: routeStopsSnap,
@@ -800,6 +740,7 @@ export default async function ParentDashboardPage({
           );
           wardOpt.attendanceRate = attendanceRate30d;
           const cards = deriveParentFeed(row.id, now, snapshot, { wardName });
+          await syncParentFeedCards(tx, school.id, row.id, cards, now);
           return {
             studentId: row.id,
             wardName,
@@ -824,6 +765,7 @@ export default async function ParentDashboardPage({
         snapshot,
         rawWardName ? { wardName: rawWardName } : undefined
       );
+      await syncParentFeedCards(tx, school.id, currentStudentRow.id, initialCards, now);
     }
   });
 

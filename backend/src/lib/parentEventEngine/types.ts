@@ -23,7 +23,12 @@ export type CardType =
   | "BusAlertCard"
   | "StopChangeCard"
   | "DocumentRequestCard"
-  | "ProfileChangeCard";
+  | "ProfileChangeCard"
+  | "HomeworkPostCard"
+  | "ClassworkPostCard"
+  | "SyllabusCoverageCard"
+  | "CurriculumProgressCard"
+  | "AssessmentScheduledCard";
 
 export type CardTier =
   | "T1_action_required"
@@ -48,6 +53,8 @@ export interface DerivedFeedCard {
   expiresAt: Date;
   dismissedAt?: Date | null;
   wardName?: string | undefined;
+  occurredAt?: Date | undefined;
+  isPinned?: boolean | undefined;
 }
 
 export interface InvoiceSnapshot {
@@ -105,14 +112,74 @@ export interface RouteStopSnapshot {
 export interface HomeworkSnapshot {
   id: string;
   title: string;
+  description?: string | null;
   subjectName: string;
   dueDate: Date | string;
+  status?: string; // "DRAFT" | "PUBLISHED" | "CLOSED" | "GRADED"
+  attachmentS3Key?: string | null;
+  teacherName?: string | null;
   isSubmitted: boolean;
   submission?: {
     submittedAt: Date | string;
+    marksAwarded?: number | null;
     grade?: string | null;
     feedback?: string | null;
   };
+}
+
+export interface ClassworkSnapshot {
+  id: string;
+  subjectName: string;
+  chapterName?: string | null;
+  topicTitle?: string | null;
+  objectives?: string | null;
+  homework?: string | null;
+  teachingMethods?: string | null;
+  resources?: string | null;
+  completedDate: Date | string;
+  teacherName?: string | null;
+}
+
+export interface SyllabusCoverageItem {
+  subjectName: string;
+  unitNumber?: number | null;
+  unitTitle?: string | null;
+  chapterNumber?: number | null;
+  chapterTitle?: string | null;
+  topicTitle?: string | null;
+  status: "COMPLETED" | "IN_PROGRESS" | "PLANNED";
+}
+
+export interface SyllabusCoverageSnapshot {
+  weekLabel: string;
+  items: SyllabusCoverageItem[];
+  generatedAt: Date | string;
+}
+
+export interface CurriculumProgressItem {
+  subjectId: string;
+  subjectName: string;
+  completedTopicsCount: number;
+  totalTopicsCount: number;
+  progressPercentage: number;
+}
+
+export interface CurriculumProgressSnapshot {
+  termName?: string | null;
+  subjects: CurriculumProgressItem[];
+  generatedAt: Date | string;
+}
+
+export interface AssessmentSnapshot {
+  id: string;
+  title: string;
+  subjectName: string;
+  assessmentType: string;
+  scheduledDate: Date | string;
+  maxMarks: number;
+  syllabusCoverage?: string | null;
+  status: "SCHEDULED" | "ONGOING" | "COMPLETED";
+  updatedAt?: Date | string;
 }
 
 export interface ReportCardSnapshot {
@@ -237,6 +304,10 @@ export interface ParentDataSnapshot {
   documentRequests?: DocumentRequestSnapshot[] | undefined;
   profileChanges?: ProfileChangeSnapshot[] | undefined;
   activeLeaveApproved?: boolean | undefined;
+  classwork?: ClassworkSnapshot[] | undefined;
+  syllabusCoverage?: SyllabusCoverageSnapshot | undefined;
+  curriculumProgress?: CurriculumProgressSnapshot | undefined;
+  upcomingAssessments?: AssessmentSnapshot[] | undefined;
 }
 
 export interface WeeklyDigestSnapshot {

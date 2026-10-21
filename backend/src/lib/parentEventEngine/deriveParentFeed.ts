@@ -146,6 +146,8 @@ export function deriveParentFeed(
           },
           activatedAt: now,
           expiresAt: new Date(dueDate.getTime() + 30 * 86400000), // Expires 30d after due
+          occurredAt: isOverdue ? dueDate : now,
+          isPinned: isOverdue,
         });
       }
     }
@@ -211,6 +213,8 @@ export function deriveParentFeed(
         },
         activatedAt: markedAtDate,
         expiresAt: sameDayExpiry > now ? sameDayExpiry : new Date(nowMs + 3600000),
+        occurredAt: markedAtDate,
+        isPinned: att.status === "ABSENT",
       });
     }
   }
@@ -283,73 +287,333 @@ export function deriveParentFeed(
     }
   }
 
-  // ─── 4. HomeworkCard ───────────────────────────────────────────────────────
+  // ─── 4. HomeworkCard & HomeworkPostCard ────────────────────────────────────
   if (snapshot.homework && snapshot.homework.length > 0) {
     for (const hw of snapshot.homework) {
       const dueDate = new Date(hw.dueDate);
       const diffDueDateMs = dueDate.getTime() - nowMs;
       const hoursUntilDue = diffDueDateMs / 3600000;
 
-      // Pending homework due within 48h
-      if (!hw.isSubmitted && hoursUntilDue > 0 && hoursUntilDue <= 48) {
-        const isTomorrow = hoursUntilDue <= 24;
-        cards.push({
-          id: `homework-due-${hw.id}`,
-          studentId,
-          cardType: "HomeworkCard",
-          tier: "T2_informational",
-          priority: isTomorrow ? 75 : 60,
-          title: {
-            en: isTomorrow ? `${hw.subjectName} due tomorrow` : `${hw.subjectName} due in 2 days`,
-            hi: isTomorrow ? `${hw.subjectName} कल देय है` : `${hw.subjectName} 2 दिनों में देय है`,
-          },
-          summary: {
-            en: `"${hw.title}" needs to be submitted by ${dueDate.toLocaleDateString("en-IN")}.`,
-            hi: `"${hw.title}" को ${dueDate.toLocaleDateString("en-IN")} तक जमा करना होगा।`,
-          },
-          payload: {
-            homeworkId: hw.id,
-            title: hw.title,
-            subjectName: hw.subjectName,
-            dueDate: hw.dueDate,
-            isGraded: false,
-          },
-          activatedAt: now,
-          expiresAt: dueDate,
-        });
-      }
-
-      // Recently graded homework (in last 24h)
-      if (hw.submission?.grade) {
-        const gradedAtDate = hw.submission.submittedAt ? new Date(hw.submission.submittedAt) : now;
-        if (nowMs - gradedAtDate.getTime() <= 24 * 3600000) {
+      // If status is not provided (legacy test fixtures), retain legacy HomeworkCard
+      if (!hw.status) {
+        // Pending homework due within 48h
+        if (!hw.isSubmitted && hoursUntilDue > 0 && hoursUntilDue <= 48) {
+          const isTomorrow = hoursUntilDue <= 24;
           cards.push({
-            id: `homework-graded-${hw.id}`,
+            id: `homework-due-${hw.id}`,
             studentId,
             cardType: "HomeworkCard",
             tier: "T2_informational",
-            priority: 65,
+            priority: isTomorrow ? 75 : 60,
             title: {
-              en: `${hw.subjectName} Graded: Grade ${hw.submission.grade}`,
-              hi: `${hw.subjectName} मूल्यांकित: ग्रेड ${hw.submission.grade}`,
+              en: isTomorrow ? `${hw.subjectName} due tomorrow` : `${hw.subjectName} due in 2 days`,
+              hi: isTomorrow ? `${hw.subjectName} कल देय है` : `${hw.subjectName} 2 दिनों में देय है`,
             },
             summary: {
-              en: `"${hw.title}" graded: ${hw.submission.grade}.${hw.submission.feedback ? ` "${hw.submission.feedback}"` : ""}`,
-              hi: `"${hw.title}" का मूल्यांकन: ग्रेड ${hw.submission.grade} मिला।`,
+              en: `"${hw.title}" needs to be submitted by ${dueDate.toLocaleDateString("en-IN")}.`,
+              hi: `"${hw.title}" को ${dueDate.toLocaleDateString("en-IN")} तक जमा करना होगा।`,
             },
             payload: {
               homeworkId: hw.id,
               title: hw.title,
               subjectName: hw.subjectName,
-              grade: hw.submission.grade,
-              feedback: hw.submission.feedback || null,
-              isGraded: true,
+              dueDate: hw.dueDate,
+              isGraded: false,
             },
-            activatedAt: gradedAtDate,
-            expiresAt: new Date(gradedAtDate.getTime() + 24 * 3600000),
+            activatedAt: now,
+            expiresAt: dueDate,
           });
         }
+
+        // Recently graded homework (in last 24h)
+        if (hw.submission?.grade) {
+          const gradedAtDate = hw.submission.submittedAt ? new Date(hw.submission.submittedAt) : now;
+          if (nowMs - gradedAtDate.getTime() <= 24 * 3600000) {
+            cards.push({
+              id: `homework-graded-${hw.id}`,
+              studentId,
+              cardType: "HomeworkCard",
+              tier: "T2_informational",
+              priority: 65,
+              title: {
+                en: `${hw.subjectName} Graded: Grade ${hw.submission.grade}`,
+                hi: `${hw.subjectName} मूल्यांकित: ग्रेड ${hw.submission.grade}`,
+              },
+              summary: {
+                en: `"${hw.title}" graded: ${hw.submission.grade}.${hw.submission.feedback ? ` "${hw.submission.feedback}"` : ""}`,
+                hi: `"${hw.title}" का मूल्यांकन: ग्रेड ${hw.submission.grade} मिला।`,
+              },
+              payload: {
+                homeworkId: hw.id,
+                title: hw.title,
+                subjectName: hw.subjectName,
+                grade: hw.submission.grade,
+                feedback: hw.submission.feedback || null,
+                isGraded: true,
+              },
+              activatedAt: gradedAtDate,
+              expiresAt: new Date(gradedAtDate.getTime() + 24 * 3600000),
+            });
+          }
+        }
+        continue;
       }
+
+      // BR5: When status is provided, homework reaches parent feed only when PUBLISHED, GRADED, or CLOSED
+      if (hw.status !== "PUBLISHED" && hw.status !== "GRADED" && hw.status !== "CLOSED") {
+        continue;
+      }
+
+      const isPastDue = diffDueDateMs < 0;
+
+      let dueBadgeEn = `Due ${dueDate.toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })}`;
+      let dueBadgeHi = `${dueDate.toLocaleDateString("hi-IN", { month: "short", day: "numeric" })} तक देय`;
+
+      const calendarDayDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
+      const calendarDayNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const daysDiff = Math.round((calendarDayDue - calendarDayNow) / 86400000);
+
+      if (!isPastDue) {
+        if (daysDiff === 0) {
+          dueBadgeEn = "Due today";
+          dueBadgeHi = "आज देय है";
+        } else if (daysDiff === 1) {
+          dueBadgeEn = "Due tomorrow";
+          dueBadgeHi = "कल देय है";
+        }
+      } else if (!hw.isSubmitted) {
+        dueBadgeEn = "Past Due";
+        dueBadgeHi = "अतिदेय";
+      }
+
+      let subStatusEn = "Pending Submission";
+      let subStatusHi = "जमा करना बाकी";
+      if (hw.isSubmitted) {
+        if (hw.submission?.grade || (hw.submission?.marksAwarded !== null && hw.submission?.marksAwarded !== undefined)) {
+          subStatusEn = `Submitted & Graded${hw.submission.marksAwarded !== null && hw.submission.marksAwarded !== undefined ? ` (${hw.submission.marksAwarded} Marks)` : ""}`;
+          subStatusHi = "मूल्यांकित";
+        } else {
+          subStatusEn = "Submitted";
+          subStatusHi = "जमा किया गया";
+        }
+      }
+
+      const isUrgent = !hw.isSubmitted && hoursUntilDue > 0 && hoursUntilDue <= 24;
+
+      cards.push({
+        id: `academic-hw-post-${hw.id}`,
+        studentId,
+        cardType: "HomeworkPostCard",
+        tier: isUrgent ? "T1_action_required" : "T2_informational",
+        priority: isUrgent ? 80 : 55,
+        title: {
+          en: `${hw.subjectName}: ${hw.title}`,
+          hi: `${hw.subjectName}: ${hw.title}`,
+        },
+        summary: {
+          en: `${dueBadgeEn} • ${subStatusEn}`,
+          hi: `${dueBadgeHi} • ${subStatusHi}`,
+        },
+        payload: {
+          homeworkId: hw.id,
+          title: hw.title,
+          description: hw.description || null,
+          subjectName: hw.subjectName,
+          dueDate: hw.dueDate,
+          dueBadge: dueBadgeEn,
+          isSubmitted: hw.isSubmitted,
+          submission: hw.submission || null,
+          attachmentS3Key: hw.attachmentS3Key || null,
+          teacherName: hw.teacherName || "Class Teacher",
+          status: hw.status || "PUBLISHED",
+        },
+        activatedAt: now,
+        expiresAt: new Date(dueDate.getTime() + 7 * 86400000), // stays visible for 7 days post-due
+        occurredAt: dueDate,
+        isPinned: false,
+      });
+    }
+  }
+
+  // ─── 4c. ClassworkPostCard (Academic Feed Stream) ───────────────────────────
+  if (snapshot.classwork && snapshot.classwork.length > 0) {
+    for (const cw of snapshot.classwork) {
+      const completedDate = new Date(cw.completedDate);
+      const diffMs = nowMs - completedDate.getTime();
+      // Auto-expires after 7 days
+      if (diffMs > 7 * 86400000) continue;
+
+      const summaryTextEn = [
+        cw.chapterName ? `${cw.chapterName}: ` : "",
+        cw.topicTitle || cw.objectives || "Classwork completed",
+        cw.homework ? ` • Homework: ${cw.homework}` : "",
+      ]
+        .join("")
+        .trim();
+
+      const summaryTextHi = [
+        cw.chapterName ? `${cw.chapterName}: ` : "",
+        cw.topicTitle || cw.objectives || "कक्षा कार्य पूर्ण",
+        cw.homework ? ` • गृहकार्य: ${cw.homework}` : "",
+      ]
+        .join("")
+        .trim();
+
+      cards.push({
+        id: `academic-cw-${cw.id}`,
+        studentId,
+        cardType: "ClassworkPostCard",
+        tier: "T2_informational",
+        priority: 50,
+        title: {
+          en: `Today in ${cw.subjectName}`,
+          hi: `आज ${cw.subjectName} में`,
+        },
+        summary: {
+          en: summaryTextEn,
+          hi: summaryTextHi,
+        },
+        payload: {
+          classworkId: cw.id,
+          subjectName: cw.subjectName,
+          chapterName: cw.chapterName || null,
+          topicTitle: cw.topicTitle || null,
+          objectives: cw.objectives || null,
+          homework: cw.homework || null,
+          teachingMethods: cw.teachingMethods || null,
+          resources: cw.resources || null,
+          completedDate: cw.completedDate,
+          teacherName: cw.teacherName || "Subject Teacher",
+        },
+        activatedAt: completedDate,
+        expiresAt: new Date(completedDate.getTime() + 7 * 86400000),
+        occurredAt: completedDate,
+        isPinned: false,
+      });
+    }
+  }
+
+  // ─── 4d. SyllabusCoverageCard (Weekly Digest Stream) ───────────────────────
+  if (snapshot.syllabusCoverage && snapshot.syllabusCoverage.items.length > 0) {
+    const sc = snapshot.syllabusCoverage;
+    const generatedAt = new Date(sc.generatedAt);
+
+    const subjectSnippets = sc.items.slice(0, 3).map((item) => {
+      const parts = [item.subjectName];
+      if (item.unitTitle) parts.push(`Unit: ${item.unitTitle}`);
+      if (item.chapterTitle) parts.push(item.chapterTitle);
+      return parts.join(" — ");
+    });
+
+    const summaryEn = `This week: ${subjectSnippets.join("; ")}${sc.items.length > 3 ? ` +${sc.items.length - 3} more` : ""}`;
+    const summaryHi = `इस सप्ताह: ${subjectSnippets.join("; ")}`;
+
+    cards.push({
+      id: `syllabus-coverage-${studentId}-${sc.weekLabel}`,
+      studentId,
+      cardType: "SyllabusCoverageCard",
+      tier: "T2_informational",
+      priority: 40,
+      title: {
+        en: `Curriculum Coverage: ${sc.weekLabel}`,
+        hi: `इस सप्ताह का पाठ्यक्रम विवरण: ${sc.weekLabel}`,
+      },
+      summary: {
+        en: summaryEn,
+        hi: summaryHi,
+      },
+      payload: {
+        weekLabel: sc.weekLabel,
+        items: sc.items,
+        generatedAt: sc.generatedAt,
+      },
+      activatedAt: generatedAt,
+      expiresAt: new Date(generatedAt.getTime() + 7 * 86400000),
+      occurredAt: generatedAt,
+      isPinned: false,
+    });
+  }
+
+  // ─── 4e. CurriculumProgressCard (Weekly Digest Stream) ─────────────────────
+  if (snapshot.curriculumProgress && snapshot.curriculumProgress.subjects.length > 0) {
+    const cp = snapshot.curriculumProgress;
+    const generatedAt = new Date(cp.generatedAt);
+    const avgProgress = Math.round(
+      cp.subjects.reduce((sum, s) => sum + s.progressPercentage, 0) / cp.subjects.length
+    );
+
+    cards.push({
+      id: `curriculum-progress-${studentId}-${cp.termName || "current-term"}`,
+      studentId,
+      cardType: "CurriculumProgressCard",
+      tier: "T2_informational",
+      priority: 38,
+      title: {
+        en: `${cp.termName || "Academic Term"} Syllabus Progress`,
+        hi: `${cp.termName || "शैक्षणिक सत्र"} पाठ्यक्रम प्रगति`,
+      },
+      summary: {
+        en: `${avgProgress}% of topics covered across ${cp.subjects.length} subjects this term.`,
+        hi: `इस सत्र में ${cp.subjects.length} विषयों में ${avgProgress}% पाठ्यक्रम पूरा हुआ।`,
+      },
+      payload: {
+        termName: cp.termName || "Current Term",
+        averageProgress: avgProgress,
+        subjects: cp.subjects,
+        generatedAt: cp.generatedAt,
+      },
+      activatedAt: generatedAt,
+      expiresAt: new Date(generatedAt.getTime() + 7 * 86400000),
+      occurredAt: generatedAt,
+      isPinned: false,
+    });
+  }
+
+  // ─── 4f. AssessmentScheduledCard (Academic Feed Stream) ────────────────────
+  if (snapshot.upcomingAssessments && snapshot.upcomingAssessments.length > 0) {
+    for (const asmt of snapshot.upcomingAssessments) {
+      const scheduledDate = new Date(asmt.scheduledDate);
+      const diffMs = scheduledDate.getTime() - nowMs;
+      // Within 14 days and not in the far past
+      if (diffMs < -24 * 3600000 || diffMs > 14 * 86400000) continue;
+
+      const dateStr = scheduledDate.toLocaleDateString("en-IN", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+
+      const typeFormatted = asmt.assessmentType.replace(/_/g, " ");
+
+      cards.push({
+        id: `assessment-sched-${asmt.id}`,
+        studentId,
+        cardType: "AssessmentScheduledCard",
+        tier: diffMs <= 3 * 86400000 ? "T1_action_required" : "T2_informational",
+        priority: diffMs <= 3 * 86400000 ? 78 : 62,
+        title: {
+          en: `Upcoming ${typeFormatted}: ${asmt.subjectName}`,
+          hi: `आगामी परीक्षा (${typeFormatted}): ${asmt.subjectName}`,
+        },
+        summary: {
+          en: `Scheduled on ${dateStr} (Max Marks: ${asmt.maxMarks}).${asmt.syllabusCoverage ? ` Coverage: ${asmt.syllabusCoverage}` : ""}`,
+          hi: `${dateStr} को निर्धारित (पूर्णांक: ${asmt.maxMarks})।`,
+        },
+        payload: {
+          assessmentId: asmt.id,
+          title: asmt.title,
+          subjectName: asmt.subjectName,
+          assessmentType: asmt.assessmentType,
+          scheduledDate: asmt.scheduledDate,
+          maxMarks: asmt.maxMarks,
+          syllabusCoverage: asmt.syllabusCoverage || null,
+          status: asmt.status,
+        },
+        activatedAt: now,
+        expiresAt: new Date(scheduledDate.getTime() + 24 * 3600000),
+        occurredAt: asmt.updatedAt ? new Date(asmt.updatedAt) : scheduledDate,
+        isPinned: false,
+      });
     }
   }
 
@@ -1209,12 +1473,26 @@ export function deriveParentFeed(
     // 2. In the evening, Homework due tomorrow, Payment, and ReportCard take precedence
     if (isEvening) {
       const eveningFavored = (type: CardType) =>
-        type === "HomeworkCard" || type === "PaymentCard" || type === "ReportCardCard";
+        type === "HomeworkCard" || type === "HomeworkPostCard" || type === "PaymentCard" || type === "ReportCardCard";
       if (eveningFavored(a.cardType) && !eveningFavored(b.cardType)) return -1;
       if (!eveningFavored(a.cardType) && eveningFavored(b.cardType)) return 1;
     }
 
-    // 3. Tier precedence: T1 (Action Required) > T2 (Informational) > T3 (System State)
+    // 3. Pinned items always come first for the pinned Needs Attention strip (AC-12)
+    const aPinned = Boolean(a.isPinned);
+    const bPinned = Boolean(b.isPinned);
+    if (aPinned !== bPinned) {
+      return aPinned ? -1 : 1;
+    }
+
+    if (aPinned && bPinned) {
+      if (a.priority !== b.priority) return b.priority - a.priority;
+      const tA = a.occurredAt ? a.occurredAt.getTime() : a.activatedAt.getTime();
+      const tB = b.occurredAt ? b.occurredAt.getTime() : b.activatedAt.getTime();
+      return tB - tA;
+    }
+
+    // 4. Tier precedence: T1 (Action Required) > T2 (Informational) > T3 (System State)
     const tierWeight: Record<CardTier, number> = {
       T1_action_required: 3,
       T2_informational: 2,
@@ -1224,12 +1502,19 @@ export function deriveParentFeed(
       return tierWeight[b.tier] - tierWeight[a.tier];
     }
 
-    // 4. Priority number (higher first)
+    // 5. Reverse chronological social stream by occurredAt (fallback activatedAt)
+    const timeA = a.occurredAt ? a.occurredAt.getTime() : a.activatedAt.getTime();
+    const timeB = b.occurredAt ? b.occurredAt.getTime() : b.activatedAt.getTime();
+    if (timeA !== timeB) {
+      return timeB - timeA;
+    }
+
+    // 6. Priority number (higher first)
     if (a.priority !== b.priority) {
       return b.priority - a.priority;
     }
 
-    // 5. Recency (newest activatedAt first)
+    // 7. Recency (newest activatedAt first)
     return b.activatedAt.getTime() - a.activatedAt.getTime();
   });
 
@@ -1250,7 +1535,7 @@ export function deriveParentFeed(
  * 1. Cards retain their ward identification via `wardName`.
  * 2. If the same card type fires for multiple wards (e.g. fees due or homework), both render with their ward chips.
  * 3. School-wide identical notices are consolidated into one card with multi-ward attribution.
- * 4. Cards are sorted respecting time-of-day choreography and tier priority (T1 > T2 > T3).
+ * 4. Pinned cards appear in the Needs Attention strip; remaining cards stream chronologically.
  */
 export function mergeMultiWardFeeds(
   wardFeeds: Array<
@@ -1300,16 +1585,7 @@ export function mergeMultiWardFeeds(
   const isEvening = hour >= 16 && hour < 21;
 
   return merged.sort((a, b) => {
-    // Top invariant: T1 Action Required comes first
-    const tierWeight: Record<CardTier, number> = {
-      T1_action_required: 3,
-      T2_informational: 2,
-      T3_system_state: 1,
-    };
-    if (tierWeight[a.tier] !== tierWeight[b.tier]) {
-      return tierWeight[b.tier] - tierWeight[a.tier];
-    }
-
+    // 1. Morning commute precedence
     if (isMorning) {
       if (a.cardType === "BusAlertCard" && b.cardType !== "BusAlertCard") return -1;
       if (b.cardType === "BusAlertCard" && a.cardType !== "BusAlertCard") return 1;
@@ -1319,11 +1595,43 @@ export function mergeMultiWardFeeds(
       if (b.cardType === "AttendanceCard" && a.cardType !== "AttendanceCard") return 1;
     }
 
+    // 2. Evening precedence
     if (isEvening) {
       const eveningFavored = (type: CardType) =>
-        type === "HomeworkCard" || type === "PaymentCard" || type === "ReportCardCard";
+        type === "HomeworkCard" || type === "HomeworkPostCard" || type === "PaymentCard" || type === "ReportCardCard";
       if (eveningFavored(a.cardType) && !eveningFavored(b.cardType)) return -1;
       if (!eveningFavored(a.cardType) && eveningFavored(b.cardType)) return 1;
+    }
+
+    // 3. Pinned precedence
+    const aPinned = Boolean(a.isPinned);
+    const bPinned = Boolean(b.isPinned);
+    if (aPinned !== bPinned) {
+      return aPinned ? -1 : 1;
+    }
+
+    if (aPinned && bPinned) {
+      if (a.priority !== b.priority) return b.priority - a.priority;
+      const tA = a.occurredAt ? a.occurredAt.getTime() : a.activatedAt.getTime();
+      const tB = b.occurredAt ? b.occurredAt.getTime() : b.activatedAt.getTime();
+      return tB - tA;
+    }
+
+    // 4. Tier precedence: T1 (Action Required) > T2 (Informational) > T3 (System State)
+    const tierWeight: Record<CardTier, number> = {
+      T1_action_required: 3,
+      T2_informational: 2,
+      T3_system_state: 1,
+    };
+    if (tierWeight[a.tier] !== tierWeight[b.tier]) {
+      return tierWeight[b.tier] - tierWeight[a.tier];
+    }
+
+    // 5. Chronological stream: reverse chronological by occurredAt
+    const timeA = a.occurredAt ? a.occurredAt.getTime() : a.activatedAt.getTime();
+    const timeB = b.occurredAt ? b.occurredAt.getTime() : b.activatedAt.getTime();
+    if (timeA !== timeB) {
+      return timeB - timeA;
     }
 
     if (a.priority !== b.priority) {
