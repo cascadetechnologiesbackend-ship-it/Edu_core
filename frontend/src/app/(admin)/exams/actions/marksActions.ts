@@ -301,6 +301,32 @@ export async function saveMarkEntries(input: {
     acceptedEntries.push({ entry, maxMarks: entryMaxMarks });
   }
 
+  // 8.5 DPDP Act 2023: Scan remarks for statutory PII (Write-Point 3)
+  const { scanContentForPII } = await import("@/lib/pii/scanEnforcement");
+  for (const { entry } of acceptedEntries) {
+    if (entry.remarks && entry.remarks.trim()) {
+      const piiCheck = await scanContentForPII({
+        schoolId: school.id,
+        actorUserId: ctx.userId,
+        surface: "teacher.exam.remark",
+        sourceTable: "mark_entries",
+        text: entry.remarks.trim(),
+      });
+
+      if (piiCheck.decision === "BLOCKED") {
+        return {
+          success: false,
+          error: "PII_BLOCKED",
+          message: `Remark for student contains statutory personal data (${piiCheck.detectedTypes.join(", ")}). You must remove this sensitive data before saving.`,
+          detectedTypes: piiCheck.detectedTypes,
+          count: 0,
+          acceptedCount: 0,
+          rejectedCount: acceptedEntries.length,
+        };
+      }
+    }
+  }
+
   // 9. Perform batch upsert with max_marks populated
   for (const { entry, maxMarks } of acceptedEntries) {
     const componentIdVal = entry.componentId ?? null;

@@ -460,6 +460,25 @@ export async function saveAssignment(data: {
 
   await verifyTeacherAccessToClassSubject(session, data.classSubjectId, data.sectionId);
 
+  // DPDP Act 2023: Scan assignment description for statutory PII (Write-Point 4)
+  const { scanContentForPII } = await import("@/lib/pii/scanEnforcement");
+  const piiCheck = await scanContentForPII({
+    schoolId: session.user.schoolId!,
+    actorUserId: session.user.id,
+    surface: "teacher.assignment.compose",
+    sourceTable: "assignments",
+    sourceId: data.id || null,
+    text: `${data.title}\n${data.description}`,
+  });
+
+  if (piiCheck.decision === "BLOCKED") {
+    throw new Error(
+      `Assignment contains statutory personal data (${piiCheck.detectedTypes.join(
+        ", "
+      )}). You must remove this sensitive data before saving.`
+    );
+  }
+
   const maxMarksVal = data.maxMarks ?? 100;
   const attachmentS3KeyVal = data.attachmentS3Key || null;
 

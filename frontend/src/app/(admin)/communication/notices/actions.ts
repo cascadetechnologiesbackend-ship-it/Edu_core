@@ -291,3 +291,97 @@ export async function bulkRemindUnacknowledgedParents(
     };
   }
 }
+
+/**
+ * Server Action: Notice creation/update with statutory DPDP PII scan enforcement (Write-Point 1).
+ */
+export async function createOrUpdateNotice(input: {
+  id?: string;
+  title: string;
+  content: string;
+  audienceType: "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS" | "STAFF" | "CLASS" | "SECTION";
+  audienceFilter?: any;
+  decisionOverride?: "CONFIRMED_SEND" | "MASKED";
+}) {
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+  const school = await requireSchool(ctx);
+
+  const fullText = `${input.title}\n${input.content}`;
+  const { scanContentForPII } = await import("@/lib/pii/scanEnforcement");
+  const { redactPII } = await import("@schoolmitra/entity-engine/dpdp-ner");
+
+  const piiCheck = await scanContentForPII({
+    schoolId: school.id,
+    actorUserId: ctx.userId,
+    surface: "admin.notice.compose",
+    sourceTable: "notices",
+    sourceId: input.id || null,
+    text: fullText,
+    decisionOverride: input.decisionOverride,
+  });
+
+  if (piiCheck.decision === "BLOCKED") {
+    return {
+      success: false,
+      blocked: true,
+      decision: "BLOCKED",
+      detectedTypes: piiCheck.detectedTypes,
+      error: `Notice contains critical personal data (${piiCheck.detectedTypes.join(", ")}). You must remove this sensitive data before publishing.`,
+    };
+  }
+
+  if (piiCheck.riskLevel === "HIGH" && !input.decisionOverride) {
+    return {
+      success: false,
+      requiresConfirmation: true,
+      riskLevel: "HIGH",
+      detectedTypes: piiCheck.detectedTypes,
+      message: "Notice contains sensitive contact details. Choose whether to mask these values or confirm sending as-is.",
+    };
+  }
+
+  let finalTitle = input.title;
+  let finalContent = input.content;
+
+  if (input.decisionOverride === "MASKED") {
+    const titleRedact = redactPII(input.title, { mode: "MASK_PARTIAL" });
+    const contentRedact = redactPII(input.content, { mode: "MASK_PARTIAL" });
+    finalTitle = titleRedact.redactedText;
+    finalContent = contentRedact.redactedText;
+  }
+
+  return await withTenant(school.id, async (tx) => {
+    if (input.id) {
+      const [updated] = await tx
+        .update(notices)
+        .set({
+          title: finalTitle,
+          content: finalContent,
+          audienceType: input.audienceType,
+          audienceFilter: input.audienceFilter || null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(notices.id, input.id), eq(notices.schoolId, school.id)))
+        .returning({ id: notices.id });
+      revalidatePath("/communication/notices");
+      return { success: true, noticeId: updated?.id };
+    } else {
+      const [inserted] = await tx
+        .insert(notices)
+        .values({
+          schoolId: school.id,
+          title: finalTitle,
+          content: finalContent,
+          audienceType: input.audienceType,
+          audienceFilter: input.audienceFilter || null,
+          createdById: ctx.userId,
+          isPublished: true,
+          publishedAt: new Date(),
+        })
+        .returning({ id: notices.id });
+      revalidatePath("/communication/notices");
+      return { success: true, noticeId: inserted?.id };
+    }
+  });
+}
+

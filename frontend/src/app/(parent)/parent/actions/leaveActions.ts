@@ -76,6 +76,28 @@ export async function applyStudentLeave(studentId: string, input: ApplyLeaveInpu
       };
     }
 
+    // 2.5 DPDP Act 2023: Scan reason with relaxed HIGH-warn policy (Write-Point 5)
+    const { scanContentForPII } = await import("@/lib/pii/scanEnforcement");
+    const piiCheck = await scanContentForPII({
+      schoolId: school.id,
+      actorUserId: userId,
+      surface: "parent.leave.request",
+      sourceTable: "student_leave_requests",
+      text: input.reason.trim(),
+      isRelaxedHighWarn: true,
+    });
+
+    if (piiCheck.decision === "BLOCKED") {
+      return {
+        success: false,
+        error: `Submission blocked due to critical personal data (${piiCheck.detectedTypes.join(
+          ", "
+        )}). Please remove this information before submitting.`,
+        piiBlocked: true,
+        detectedTypes: piiCheck.detectedTypes,
+      };
+    }
+
     // 3. Create leave request
     const [inserted] = await tx
       .insert(studentLeaveRequests)
