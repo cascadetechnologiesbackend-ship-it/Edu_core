@@ -236,4 +236,64 @@ describe("Phase T4: Attendance Workbench & AC-T3..AC-T5 Verification", () => {
       expect(parentDecision.dedupeKey).toBe("student-1:ATTENDANCE_ABSENT:2026-10-21");
     });
   });
+
+  describe("AC-T9: Offline Attendance Queueing & Reconnect UI Verification", () => {
+    it("queues attendance submission locally when network is down with visible badge and banner", async () => {
+      // Simulate offline state
+      const originalOnLine = navigator.onLine;
+      Object.defineProperty(navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
+
+      render(
+        <AttendanceWorkbench
+          initialSectionId={sectionId}
+          initialDate={dateStr}
+          isModal={false}
+          locale="en"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("student-row-student-1")).toBeDefined();
+      });
+
+      // Mark student-1 as ABSENT
+      fireEvent.click(screen.getByTestId("student-row-student-1"));
+      expect(screen.getByTestId("counter-absent").textContent).toContain("1");
+
+      // Click save button while offline
+      fireEvent.click(screen.getByTestId("save-attendance-btn"));
+
+      // Verify that offline queued badge is displayed
+      await waitFor(() => {
+        expect(screen.getByTestId("queued-offline-badge")).toBeDefined();
+        expect(screen.getByTestId("queued-offline-banner")).toBeDefined();
+        expect(screen.getByTestId("sync-now-btn")).toBeDefined();
+      });
+
+      // Server action should NOT have been called directly because navigator was offline
+      expect(attendanceActions.saveTeacherAttendanceRoster).not.toHaveBeenCalled();
+
+      // Restore online status
+      Object.defineProperty(navigator, "onLine", {
+        value: true,
+        configurable: true,
+      });
+
+      // Click "Sync Now" button
+      fireEvent.click(screen.getByTestId("sync-now-btn"));
+
+      await waitFor(() => {
+        expect(attendanceActions.saveTeacherAttendanceRoster).toHaveBeenCalledTimes(1);
+      });
+
+      // Restore original navigator
+      Object.defineProperty(navigator, "onLine", {
+        value: originalOnLine,
+        configurable: true,
+      });
+    });
+  });
 });

@@ -221,7 +221,15 @@
       "plannedLeave": "Planned Leave",
       "exceptions": "Exceptions",
       "saved": "Saved",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "offlineMode": "Offline Mode",
+      "offlineNotice": "Changes will queue locally and auto-sync on reconnect.",
+      "queuedOffline": "Queued Offline",
+      "queuedOfflineSummary": "{count} submission(s) queued offline",
+      "syncNow": "Sync Now",
+      "syncing": "Syncing...",
+      "syncedSuccess": "Offline attendance synced successfully",
+      "cachedRosterNotice": "Displaying cached roster (Offline)"
     },
     "substitutions": {
       "title": "Substitutions & Cover",

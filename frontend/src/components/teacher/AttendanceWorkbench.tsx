@@ -26,6 +26,15 @@ import {
   type WorkbenchStudent,
   type AttendanceStatus,
 } from "@/app/(teacher)/teacher/attendance/attendanceActions";
+import {
+  cacheRoster,
+  getCachedRoster,
+  queueOfflineAttendance,
+  getQueuedAttendanceCount,
+  syncQueuedAttendance,
+  registerOnlineSyncListener,
+} from "@/app/(teacher)/teacher/attendance/offlineAttendanceQueue";
+import { WifiOff, RefreshCw, CloudUpload } from "lucide-react";
 
 export interface AttendanceWorkbenchProps {
   initialSectionId?: string | undefined;
@@ -141,6 +150,44 @@ export function AttendanceWorkbench({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSaving, startTransition] = useTransition();
 
+  // Offline resilience states
+  const [queuedCount, setQueuedCount] = useState<number>(0);
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [isUsingCached, setIsUsingCached] = useState<boolean>(false);
+  const [isQueuedOffline, setIsQueuedOffline] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Initialize network listeners and queued counts
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    setIsOffline(!window.navigator.onLine);
+    const handleOnlineStatus = () => setIsOffline(false);
+    const handleOfflineStatus = () => setIsOffline(true);
+    window.addEventListener("online", handleOnlineStatus);
+    window.addEventListener("offline", handleOfflineStatus);
+
+    getQueuedAttendanceCount().then(setQueuedCount).catch(() => {});
+
+    const unregister = registerOnlineSyncListener(async (res) => {
+      const count = await getQueuedAttendanceCount();
+      setQueuedCount(count);
+      if (res.syncedCount > 0) {
+        toast.success(
+          isHi
+            ? `ऑफ़लाइन उपस्थिति सिंक हो गई (${res.syncedCount})`
+            : `Offline attendance synced (${res.syncedCount} records)`
+        );
+      }
+    });
+
+    return () => {
+      window.removeEventListener("online", handleOnlineStatus);
+      window.removeEventListener("offline", handleOfflineStatus);
+      unregister();
+    };
+  }, [isHi]);
+
   // Load sections on mount
   useEffect(() => {
     async function loadSections() {
@@ -164,7 +211,7 @@ export function AttendanceWorkbench({
     }
   }, [initialSectionId]);
 
-  // Load roster when selectedSectionId or selectedDate changes
+  // Load roster when selectedSectionId or selectedDate changes (with offline cache support)
   useEffect(() => {
     if (!selectedSectionId) return;
 
@@ -172,6 +219,22 @@ export function AttendanceWorkbench({
     async function fetchRoster() {
       setLoading(true);
       try {
+        // If offline, attempt to load from local cache
+        const isCurrentlyOffline =
+          typeof navigator !== "undefined" && !navigator.onLine;
+
+        if (isCurrentlyOffline) {
+          const cached = await getCachedRoster(selectedSectionId, selectedDate);
+          if (cached && isMounted) {
+            setStudents(cached.students);
+            setSectionTitle(`${cached.className} - Section ${cached.sectionName}`);
+            setIsAlreadyMarked(cached.isAlreadyMarked);
+            setIsUsingCached(true);
+            setLoading(false);
+            return;
+          }
+        }
+
         const data = await getTeacherAttendanceRoster(
           selectedSectionId,
           selectedDate
@@ -180,9 +243,24 @@ export function AttendanceWorkbench({
           setStudents(data.students);
           setSectionTitle(`${data.className} - Section ${data.sectionName}`);
           setIsAlreadyMarked(data.isAlreadyMarked);
+          setIsUsingCached(false);
+          // Cache roster locally for offline access
+          cacheRoster(selectedSectionId, selectedDate, data).catch(() => {});
         }
       } catch (err: any) {
-        if (isMounted) {
+        // Network error fallback to cached roster
+        const cached = await getCachedRoster(selectedSectionId, selectedDate);
+        if (cached && isMounted) {
+          setStudents(cached.students);
+          setSectionTitle(`${cached.className} - Section ${cached.sectionName}`);
+          setIsAlreadyMarked(cached.isAlreadyMarked);
+          setIsUsingCached(true);
+          toast.info(
+            isHi
+              ? "ऑफ़लाइन: स्थानीय रूप से कैश्ड रोस्टर लोड किया गया"
+              : "Offline: Loaded locally cached roster"
+          );
+        } else if (isMounted) {
           toast.error(err?.message || "Failed to load attendance roster");
         }
       } finally {
@@ -194,7 +272,7 @@ export function AttendanceWorkbench({
     return () => {
       isMounted = false;
     };
-  }, [selectedSectionId, selectedDate]);
+  }, [selectedSectionId, selectedDate, isHi]);
 
   // Cycle student status on card click: PRESENT -> ABSENT -> LATE -> HALF_DAY -> LEAVE -> PRESENT
   const cycleStudentStatus = (studentId: string) => {
@@ -230,31 +308,106 @@ export function AttendanceWorkbench({
     );
   };
 
-  // Save attendance handler
+  // Manual trigger for syncing queued roll calls
+  const handleManualSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const res = await syncQueuedAttendance(saveTeacherAttendanceRoster);
+      const count = await getQueuedAttendanceCount();
+      setQueuedCount(count);
+      if (res.syncedCount > 0) {
+        toast.success(
+          isHi
+            ? `सफलतापूर्वक सिंक किया गया (${res.syncedCount})`
+            : `Successfully synced ${res.syncedCount} offline roll call(s)`
+        );
+      } else if (res.failedCount > 0) {
+        toast.error(
+          isHi
+            ? "कुछ सबमिशन सिंक नहीं हो सके"
+            : "Could not sync some offline submissions"
+        );
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Sync failed");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Save attendance handler with offline fallback
   const handleSave = () => {
     if (!selectedSectionId || students.length === 0) return;
 
     startTransition(async () => {
-      try {
-        const result = await saveTeacherAttendanceRoster({
-          sectionId: selectedSectionId,
-          dateStr: selectedDate,
-          periodId: periodId || null,
-          records: students.map((s) => ({
-            studentId: s.studentId,
-            status: s.status,
-            remarks: s.remarks,
-          })),
+      const payload = {
+        sectionId: selectedSectionId,
+        dateStr: selectedDate,
+        periodId: periodId || null,
+        records: students.map((s) => ({
+          studentId: s.studentId,
+          status: s.status,
+          remarks: s.remarks,
+        })),
+      };
+
+      const isCurrentlyOffline =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (isCurrentlyOffline) {
+        await queueOfflineAttendance(payload, {
+          sectionName: sectionTitle,
+          className: sectionTitle,
         });
+        setIsAlreadyMarked(true);
+        setIsQueuedOffline(true);
+        setQueuedCount((prev) => prev + 1);
+        toast.info(
+          isHi
+            ? "ऑफ़लाइन: उपस्थिति स्थानीय रूप से कतारबद्ध है। पुनः कनेक्ट होने पर स्वतः सिंक होगी।"
+            : "Offline: Attendance queued locally. Auto-sync on reconnect."
+        );
+        if (onSaved) onSaved("Attendance queued locally (offline)");
+        if (isModal && onClose) onClose();
+        return;
+      }
+
+      try {
+        const result = await saveTeacherAttendanceRoster(payload);
 
         if (result.success) {
           toast.success(result.summaryToast);
           setIsAlreadyMarked(true);
+          setIsQueuedOffline(false);
           if (onSaved) onSaved(result.summaryToast);
           if (isModal && onClose) onClose();
         }
       } catch (err: any) {
-        toast.error(err?.message || "Failed to submit roll call");
+        const isNetworkErr =
+          err?.message?.includes("Failed to fetch") ||
+          err?.message?.includes("NetworkError") ||
+          err?.message?.includes("network") ||
+          (typeof navigator !== "undefined" && !navigator.onLine);
+
+        if (isNetworkErr) {
+          await queueOfflineAttendance(payload, {
+            sectionName: sectionTitle,
+            className: sectionTitle,
+          });
+          setIsAlreadyMarked(true);
+          setIsQueuedOffline(true);
+          setQueuedCount((prev) => prev + 1);
+          toast.info(
+            isHi
+              ? "नेटवर्क त्रुटि: उपस्थिति स्थानीय रूप से कतारबद्ध है। पुनः कनेक्ट होने पर स्वतः सिंक होगी।"
+              : "Network error: Attendance queued locally. Auto-sync on reconnect."
+          );
+          if (onSaved) onSaved("Attendance queued locally (offline)");
+          if (isModal && onClose) onClose();
+        } else {
+          toast.error(err?.message || "Failed to submit roll call");
+        }
       }
     });
   };
@@ -288,6 +441,67 @@ export function AttendanceWorkbench({
   // Inner workbench UI content
   const content = (
     <div className="flex flex-col h-full space-y-4" data-testid="attendance-workbench">
+      {/* ─── 0a. Queued Offline Banner ─────────────────────────────────── */}
+      {queuedCount > 0 && (
+        <div
+          className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs shadow-xs"
+          data-testid="queued-offline-banner"
+        >
+          <div className="flex items-center gap-2">
+            <CloudUpload className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="font-semibold">
+              {isHi
+                ? `${queuedCount} उपस्थिति सबमिशन ऑफ़लाइन कतार में हैं`
+                : `${queuedCount} attendance submission(s) queued offline (auto-sync on reconnect)`}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold text-[11px] hover:bg-amber-400 active:scale-95 disabled:opacity-50 transition-all shrink-0 cursor-pointer"
+            data-testid="sync-now-btn"
+          >
+            <RefreshCw className={cn("w-3 h-3", isSyncing && "animate-spin")} />
+            <span>
+              {isSyncing
+                ? isHi
+                  ? "सिंक हो रहा है..."
+                  : "Syncing..."
+                : isHi
+                ? "अभी सिंक करें"
+                : "Sync Now"}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* ─── 0b. Offline Mode Notice ───────────────────────────────────── */}
+      {isOffline && (
+        <div
+          className="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs shadow-xs"
+          data-testid="offline-mode-indicator"
+        >
+          <WifiOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="font-medium">
+            {isHi
+              ? "ऑफ़लाइन मोड • बदलाव स्थानीय रूप से कतारबद्ध होंगे और ऑनलाइन होने पर स्वतः सिंक होंगे"
+              : "Offline Mode • Changes will queue locally and auto-sync on reconnect"}
+          </span>
+        </div>
+      )}
+
+      {isUsingCached && !isOffline && (
+        <div
+          className="flex items-center gap-2 p-1.5 px-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 text-[11px]"
+          data-testid="cached-roster-notice"
+        >
+          <span>
+            {isHi ? "कैश्ड रोस्टर प्रदर्शित हो रहा है" : "Displaying cached roster"}
+          </span>
+        </div>
+      )}
+
       {/* ─── 1. Controls Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-sm shrink-0">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -569,6 +783,15 @@ export function AttendanceWorkbench({
           {isAlreadyMarked && (
             <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400">
               <Check className="w-3 h-3" /> {isHi ? "दर्ज" : "Saved"}
+            </span>
+          )}
+          {isQueuedOffline && (
+            <span
+              className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md"
+              data-testid="queued-offline-badge"
+            >
+              <CloudUpload className="w-3 h-3" />
+              <span>{isHi ? "ऑफ़लाइन कतारबद्ध" : "Queued Offline"}</span>
             </span>
           )}
         </div>
