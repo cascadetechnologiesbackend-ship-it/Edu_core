@@ -1729,5 +1729,39 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
       },
     ],
   },
+
+  teacher_feed_cards: {
+    tableName: "teacher_feed_cards",
+    drizzleExport: "teacherFeedCards",
+    domain: "COMMUNICATION",
+    displayName: "Teacher Feed Card",
+    description: "Active UI event cards cache table for Teacher PWA with tenant RLS policies and audience targeting.",
+    primaryKey: ["id"],
+    tenantKey: "schoolId",
+    isTenantScoped: true,
+    piiColumns: [],
+    searchableFields: ["cardType", "tier"],
+    tags: ["teacher", "feed", "cards", "communication", "events", "pwa"],
+    relationships: [
+      {
+        sourceTable: "teacher_feed_cards",
+        targetTable: "schools",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "school_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Owning school.",
+      },
+      {
+        sourceTable: "teacher_feed_cards",
+        targetTable: "users",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "teacher_user_id",
+        targetColumn: "id",
+        onDelete: "CASCADE",
+        description: "Target teacher user.",
+      },
+    ],
+  },
 };
 

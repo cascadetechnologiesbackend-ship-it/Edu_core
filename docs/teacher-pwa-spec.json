@@ -1,0 +1,289 @@
+{
+  "prompt_version": "1.0",
+  "spec_series": "role_pwa",
+  "spec_id": "teacher_pwa",
+  "intent": "Rebuild the Edu_core Teacher PWA around the teacher's actual day: a choreographed, event-driven feed where the highest-frequency operations (attendance, marks entry, homework grading, substitution handling) surface themselves at the moment they matter, and every task completes in the fewest taps possible. The teacher app is the school's operational engine: what a teacher marks, grades, approves, or confirms flows outward to parents, students, and admins through the landed parent PWA event engine, so this spec treats teacher actions as the origin of cross-role data events. The design language, emotional UX laws, feed-card architecture, notification tiering, and one-phase-per-task ritual are identical to the parent PWA spec series. This prompt also locks the full role-to-role data sharing and CRUD contracts: exactly which core and sub-core data entities each role reads, writes, and never sees, enforced by tenant RLS plus a teacher-scope resolver, not by UI convention.",
+  "meta": {
+    "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
+    "predecessor_spec": "docs/parent-pwa-spec.json (spec_id parent_pwa, prompt_version 1.2, phases P1-P16 landed and verified at head c6dff507, v11.18.0). The parent event engine, notification matrix, feed-card pattern, bilingual dictionaries, and the .agents skill 'spec-driven-role-pwa' are all live on main — this track continues the series under that skill.",
+    "stack": {
+      "framework": "Next.js 14 App Router, React 18, TypeScript",
+      "styling": "Tailwind CSS, dark: variants mandatory, existing semantic palette (primary #1e40af, secondary #059669 emerald, warning amber, danger rose, slate)",
+      "pwa": "manifest.json already declares teacher shortcuts; sw.js privacy rules are law: authenticated HTML never cached, network-only navigations with /offline fallback. Only the explicit additions in this spec may extend it.",
+      "realtime": "@tanstack/react-query polling per card tier (T1 60s, T2 10min); BullMQ + ioredis + @schoolmitra/domain-events for server events and scheduled jobs.",
+      "i18n": "next-intl; every teacher-facing string needs en and hi keys in the existing frontend/src/messages dictionaries.",
+      "deps_policy": "No NEW npm dependencies. Everything needed is installed."
+    },
+    "files_in_scope": [
+      "frontend/src/app/(teacher)/layout.tsx",
+      "frontend/src/app/(teacher)/teacher/dashboard/** (becomes the feed home)",
+      "frontend/src/app/(teacher)/teacher/attendance/** (quick-mark workbench + landed leave queue)",
+      "frontend/src/app/(teacher)/teacher/grading/** (marks entry + homework grading queues)",
+      "frontend/src/app/(teacher)/teacher/classes/** (my-day timetable + section rosters)",
+      "frontend/src/app/(teacher)/teacher/ptm/** (landed in P11; integrate into feed only)",
+      "frontend/src/app/(teacher)/teacher/payroll/** (read-only payslips + leave balance)",
+      "frontend/src/app/(teacher)/teacher/profile/**",
+      "frontend/src/components/teacher/* (new: TeacherFeedCard primitives, AttendanceWorkbench, MarksEntryGrid, GradingQueue, MyDayTimeline, SubstitutionCard)",
+      "backend/src/lib/teacherEventEngine/* (new: deriveTeacherFeed, scopeResolver, card persistence)",
+      "backend/src/lib/teacherEventEngine/notificationMatrixTeacher.ts (new, same policy engine pattern)",
+      "backend/src/workers/* (teacher-side jobs: attendance cutoff reminders, grading reminders)",
+      "database/src/migrations/0050_teacher_feed_cards.sql (new)",
+      "database/src/schema/communication.ts or dedicated teacherFeedCards table",
+      "frontend/public/manifest.json (teacher shortcut refresh only if needed)"
+    ]
+  },
+  "context_engineering": {
+    "current_state_audit": [
+      "TEACHER APP IS A STATIC MENU APP: (teacher)/teacher ships attendance, classes, dashboard, grading, payroll, profile, ptm as separate routes behind static navigation. Nothing event-driven exists: a teacher must remember to check the leave queue, the grading backlog, and the timetable. The dashboard does not tell the teacher what today needs.",
+      "ATTENDANCE MARKING EXISTS (TeacherAttendanceClient) but is a form-first surface, not an exceptions-first workbench: the schema already supports day-wise (periodId null) and period-wise rows, source ROUTINE/EXAM, markedById attribution, smsNotificationSent flags, and the student_attendance_unique constraint (studentId, attendanceDate, periodId) which makes every write idempotent and replay-safe. The parent PWA already fires T1 parent pushes off these rows — teacher marking is the origin of that event chain.",
+      "APPROVED LEAVE SUPPRESSION IS LIVE: studentLeaveRequests (migration 0044) with the class-teacher approval queue (TeacherLeaveQueue, landed P10) already suppress day-of absence pushes. The teacher app must surface the queue in the feed, not only behind a route.",
+      "PTM TEACHER SURFACE IS LIVE: teacher ptm page + TeacherPTMClient (P11) with booked slots and mark-HELD actions. Needs feed integration only, no rebuild.",
+      "SUBSTITUTIONS ARE MODELED BUT HAVE NO TEACHER UI: timetableSubstitutions carries date, timetablePeriodId, originalTeacherId, substituteTeacherId (nullable), reason, status PENDING/CONFIRMED/CANCELLED. No teacher-facing surface lets a teacher request a substitute for their own absence or confirm one assigned to them. This is the biggest hidden workflow.",
+      "GRADING DATA MODEL IS COMPLETE: assignments (status DRAFT/PUBLISHED/CLOSED/GRADED, plagiarismCheckEnabled) + assignmentSubmissions (isLate, marksAwarded, gradedByTeacherId, gradedAt, plagiarismFlagged, unique per assignment+student). Examinations schema has markEntries with lock states and the 6-stage lifecycle runner. The grading surface exists but there is no queue, no aging, no due-today framing.",
+      "TEACHER SCOPE IS ALREADY THREE-LAYERED IN THE SCHEMA: sections.classTeacherId (class teacher), sectionSubjectTeachers (section-subject allocation with effectiveFrom/effectiveTo, active unique per classSubject+section), classSubjects.assignedTeacherId (class-wide default), and timetablePeriods.teacherId (scheduled). No single resolver exists; every surface currently re-derives 'my classes' ad hoc. This spec mandates one canonical resolver.",
+      "TEACHER SELF-DATA EXISTS: staffAttendance (clock in/out, biometric), payroll surfaces, hr leave structures. Teachers see their own attendance and payslips; the app never shows other teachers' payroll to anyone but HR roles.",
+      "STUDENT PII BOUNDARIES ARE ESTABLISHED: student names are decrypted only in scoped contexts (parent feed decrypts ward names, teacher surfaces decrypt roster names). Fee ledgers live behind ACCOUNTANT/SCHOOL_ADMIN roles; teachers see at most a fee status badge on a roster, never amounts or payment history. This boundary becomes a hard data contract in this spec.",
+      "TEACHERS PRODUCE THE EVENTS PARENTS CONSUME: attendance marked -> parent AttendanceCard; homework graded -> parent HomeworkCard graded variant; report card published -> parent celebration card. Every teacher-side write must emit through @schoolmitra/domain-events exactly as the parent PWA expects, or the parent feed starves."
+    ],
+    "supporting_code_to_reuse": {
+      "feed_pattern": "Mirror parentEventEngine exactly: pure deriveTeacherFeed(teacherUserId, now, snapshot) -> DerivedFeedCard[], snapshot assembled server-side inside withTenant, cards persisted in a teacherFeedCards table with the same columns plus audience, per-tier react-query polling, ParentFeedContainer structure. Do not fork the parent engine; extract shared card-typing helpers into a common module only if it avoids duplication (parent engine imports must not break).",
+      "notification_policy": "notificationMatrix.ts is the parent policy engine; build notificationMatrixTeacher.ts with the same shape: tiers T1 (max 3 pushes/day/teacher, dedupe by (teacherUserId, eventKind, calendarDay), quiet hours 21:30-07:00 with morning queueing), T2 (feed only), T3 (toast only). Reuse userPushSubscriptions and pushNotificationLogs.",
+      "shared_components": "FeedCard layout conventions, ActivityFeed, NeedsAttentionCard, IdentityHeader, AppModal, ConfirmDialog, Stepper, EmptyStateCTA, NextBestAction, BulkActionBar, Combobox — all live from the AMS spec and parent spec runs. Import; never fork.",
+      "timetable": "bellSchedule (per-school periods with times and types), timetablePeriods (teacherId + dayOfWeek index exists: timetable_periods_teacher_day_idx), getCanonicalSortOrder, timetableClashEngine for substitution conflict checking.",
+      "grading_integrity": "examinations mark lock windows and the 6-stage lifecycle rehearsal runner must not be bypassed; marks entry cards render only inside open windows."
+    }
+  },
+  "role_data_contracts": {
+    "core_data_definitions": [
+      { "entity": "students (roster core)", "columns_in_play": "identity, sectionId, currentClassId, ward links", "classification": "PII core" },
+      { "entity": "student_attendance", "classification": "operational core — teacher-authored, parent-consumed" },
+      { "entity": "assignments + assignment_submissions", "classification": "operational core — teacher-authored, parent/student-consumed" },
+      { "entity": "mark_entries + report_cards", "classification": "operational core — teacher-authored inside lock windows, parent/student-consumed after publish" },
+      { "entity": "timetable_periods + bell_schedule + timetable_substitutions", "classification": "operational core — admin/timetable-authored, teacher-consumed, teacher-requested via substitution" },
+      { "entity": "student_leave_requests", "classification": "workflow core — parent-authored, teacher-decided" },
+      { "entity": "ptm_slots + ptm_bookings", "classification": "workflow core — admin/teacher-authored, parent-booked" },
+      { "entity": "notices, parent_teacher_messages", "classification": "communication core" },
+      { "entity": "fee_invoices + payments", "classification": "sub-core for teacher: READ status badge only on roster (paid/due/overdue), never amounts, never other families" },
+      { "entity": "staff self (payroll, staff_attendance, leave balances)", "classification": "sub-core self-service: teacher reads own records only" },
+      { "entity": "bus boarding, transport, documents verification, profile changes", "classification": "NOT teacher scope: teacher sees no transport scans, no document verification queues, no profile change workflows" }
+    ],
+    "crud_matrix": [
+      { "entity": "student_attendance", "teacher": "CREATE (own sections only, idempotent), READ (own sections), UPDATE-own-writes with audit (corrections emit parent correction notifications)", "parent": "READ own ward", "admin": "READ all school, UPDATE via attendance corrections module", "student": "none", "isolation": "withTenant + scopeResolver must include sectionId; markedById attribution mandatory" },
+      { "entity": "assignments", "teacher": "CREATE (own class-subject-sections), UPDATE until CLOSED, DELETE own drafts", "parent": "READ via feed", "student": "READ + CREATE submission", "admin": "READ all", "isolation": "createdByTeacherId = author; publish emits domain events" },
+      { "entity": "assignment_submissions", "teacher": "READ (own assignments), UPDATE marks/grade for own assignments", "parent": "READ own ward's", "student": "CREATE own, READ own grade", "isolation": "gradedByTeacherId attribution; grading emits parent T2" },
+      { "entity": "mark_entries", "teacher": "CREATE/UPDATE inside open lock windows for own class-subjects only", "admin": "lock/unlock control", "parent": "READ after report card publish", "isolation": "window check server-side; the 6-stage lifecycle runner is authoritative" },
+      { "entity": "timetable_substitutions", "teacher": "CREATE (request own absence cover), UPDATE-accept (confirm when named substitute), READ own rows", "admin": "UPDATE assign substitute, READ all school", "isolation": "originalTeacherId or substituteTeacherId must match session user for teacher actions" },
+      { "entity": "student_leave_requests", "teacher": "UPDATE decide (own section students), READ queue", "parent": "CREATE/READ own ward's", "isolation": "class teacher or section teacher scope only; decision emits parent T2" },
+      { "entity": "ptm_slots/bookings", "teacher": "READ own slots, UPDATE mark HELD with note", "admin": "CREATE slots, READ report", "parent": "CREATE booking per rules landed in P11", "isolation": "teacherUserId scope on slots" },
+      { "entity": "notices", "teacher": "READ (audience TEACHERS or own classes), CREATE class-teacher notices for own sections (moderation rules apply)", "admin": "CRUD all", "isolation": "audienceFilter scoping server-side" },
+      { "entity": "parent_teacher_messages", "teacher": "CREATE/READ threads where they are the teacher side (OP8 thread RBAC), never initiate to arbitrary parents outside own sections", "parent": "CREATE/READ own ward threads", "isolation": "thread rule from parent spec OP8, server-enforced" },
+      { "entity": "lesson_plans + syllabus progress", "teacher": "CRUD own plans, UPDATE status PLANNED->IN_PROGRESS->COMPLETED with one tap from the Now card", "admin": "READ syllabus coverage dashboards", "isolation": "teacherId = session user for writes" },
+      { "entity": "fee_invoices", "teacher": "READ status enum only, on roster rows, for own sections", "accountant/admin": "full CRUD", "parent": "full own-ward ledger", "isolation": "projection endpoint that returns only (studentId, status) for scoped rosters; amounts never reach the teacher client" }
+    ],
+    "teacher_scope_resolver": {
+      "file": "backend/src/lib/teacherEventEngine/scopeResolver.ts",
+      "contract": "resolveTeacherScope(teacherUserId) -> { classTeacherSections: sectionId[], teachingSections: { sectionId, classSubjectId, subjectId }[], scheduledPeriods: timetablePeriodId[] } derived from sections.classTeacherId, sectionSubjectTeachers (effectiveTo IS NULL), classSubjects.assignedTeacherId, timetablePeriods.teacherId for the current academic year — all inside withTenant. One function, cached per request, used by every teacher server action and feed derivation. Any write outside this scope is a 403, not a hidden filter.",
+      "isolation_laws": [
+        "Every teacher server action opens with withTenant and resolves the scope before touching rows; scope violations throw, never silently return empty.",
+        "RLS unit tests: a teacher cannot mark attendance for another section, grade another teacher's assignment, or read a fee amount (AC-T guard suite).",
+        "PII: teacher surfaces decrypt student names only for students inside the resolved scope; no bulk decrypt; no cross-school reads possible by construction of withTenant."
+      ]
+    }
+  },
+  "event_driven_ui": {
+    "home_contract": "The dashboard route becomes a single teacher feed: Today strip (date, weekday, day summary 'Attendance marked for 2 of 4 sections'), teacher IdentityHeader (avatar, name, subjects taught chips), then cards ordered by tier and time-of-day. Zero cards after a fully-completed day is a valid, calm state with a day-complete satisfaction strip.",
+    "card_catalog": [
+      { "id": "AttendanceNowCard", "render_when": "a scope section has no day-wise studentAttendance rows for today AND now is between the school day start (bellSchedule period 1) and the cutoff (school config, default 10:00)", "content": "per-section card: section chip, '34 of 40 present' once partial, primary 'Mark attendance' opening the AttendanceWorkbench in an AppModal; turns emerald the moment the section is complete; multiple sections stack as one card with a segmented section picker", "hide_when": "all scope sections marked, weekend, holiday (academicCalendarEvents isWorkingDay=false), or past cutoff with admin-notified missing state" },
+      { "id": "NowNextCard", "render_when": "a school day, always during working hours", "content": "from bellSchedule + timetablePeriods for the teacher's day: current period (section, subject, room, time remaining) with a one-tap 'Complete lesson' action writing lessonPlans status, next period preview; free periods render 'Free until 11:30' quietly", "micro_progress": "period progress bar; a substitution covering this period renders inside the card with its state" },
+      { "id": "GradingQueueCard", "render_when": "own assignments in status PUBLISHED/PAST-DUE with ungraded submissions count > 0, prioritized by dueDate then age", "content": "'Maths worksheet - 18 of 32 graded, 3 late', primary 'Grade now' opening GradingQueue with keyboard-first flow; emerald when fully graded" },
+      { "id": "MarksEntryCard", "render_when": "an examination window is open (exams lifecycle runner) for a class-subject inside the teacher's scope and markEntries incomplete", "content": "exam name, section, 'entry window closes Friday', primary 'Enter marks' opening MarksEntryGrid; renders amber in the final 24h of the window; disappears when complete or locked" },
+      { "id": "LeaveQueueCard", "render_when": "studentLeaveRequests PENDING for the teacher's sections exist", "content": "count + oldest age ('2 requests waiting, oldest from 2 days ago' amber past 24h), primary opens TeacherLeaveQueue; 1-tap approve/reject per row stays as landed" },
+      { "id": "SubstitutionCard", "render_when": "timetableSubstitutions where substituteTeacherId = teacher and status PENDING, OR the teacher's own requested absence awaiting assignment", "content": "incoming: 'Cover Class 8-B Maths, Period 3 today' with Accept/Decline (decline requires no reason; admin notified); outgoing: 'Awaiting substitute for your Period 5' with admin owner; conflicts pre-checked against timetableClashEngine and shown inline", "hide_when": "CONFIRMED coverages collapse into NowNextCard; CANCELLED disappear" },
+      { "id": "PTMTodayCard", "render_when": "ptm_bookings BOOKED for today for this teacher", "content": "slots list with parent+student names, 'Mark held' per row (reuses TeacherPTMClient actions)" },
+      { "id": "MessagesCard", "render_when": "unread parent_teacher_messages in the teacher's threads", "content": "parent avatar, ward name, message preview, primary opens the thread (OP8 rules)" },
+      { "id": "InsightCard", "render_when": "section-level signals fire", "content": "section attendance trend sparkline (below 85% amber), homework neglect list ('5 students missed 2+ assignments'), pre-publish marks distribution histogram for sanity check before report card sign-off" },
+      { "id": "NoticeCard", "render_when": "notices audience TEACHERS or own classes published within 72h or pinned", "content": "same convention as parent NoticeCard" }
+    ],
+    "time_of_day_choreography": {
+      "0730_1000": "AttendanceNowCard pinned top, NowNextCard second; cutoff approach turns the attendance card amber at 09:30 if unmarked.",
+      "1000_1430": "NowNextCard first; grading and marks windows midday; leave queue; substitution cards as events arrive.",
+      "1430_1730": "grading queue dominant, marks entry windows, PTM slots if any, day-complete strip when queues clear.",
+      "night": "feed frozen with staleness note, quiet hours for push."
+    }
+  },
+  "notification_matrix": {
+    "tiers": [
+      { "tier": "T1_action_required", "events": ["attendance unmarked at 09:30 for a scope section", "incoming substitution request unconfirmed after 30 minutes during working hours", "marks entry window final 24h with incomplete entries"], "limits": "max 3 T1 pushes/day/teacher, dedupe (teacherUserId, eventKind, calendarDay), quiet hours 21:30-07:00 queue to 07:00" },
+      { "tier": "T2_informational", "events": ["new leave request in queue", "new submission on own assignment", "parent message received", "PTM booked", "notice published", "substitution confirmed by admin"], "limits": "feed card only, no push sounds" },
+      { "tier": "T3_system_state", "events": ["attendance saved (with per-section summary toast)", "grades saved batch", "lesson marked complete", "substitution accepted", "payslip published"], "limits": "sonner toast 4s, no push" }
+    ],
+    "cross_role_event_emission": "Every teacher write that parents consume emits the existing domain events: attendance marked (ABSENT/LATE/HALF_DAY trigger parent T1 through the parent matrix), homework graded (parent T2), report card published (parent push), leave decided (parent T2). The teacher app must never write rows without emitting; the parent feed depends on it."
+  },
+  "emotional_ux": {
+    "tone_laws": [
+      "The teacher app is calm competence: no red urgency except genuinely unmet cutoffs; today's state is always visible in one strip.",
+      "Day completion is the emotional payoff: when all sections are marked and queues clear, render the day-complete strip ('All 4 sections marked. 132 students accounted for.') with an emerald glow, same restraint as the parent report card celebration.",
+      "Grading feels like progress, not backlog: the GradingQueueCard shows a fill bar (18/32) that animates toward emerald; never the word 'pending backlog'.",
+      "Students are people, not rows: roster grids show avatars; absence taps show the student's name in the confirmation toast, never a bare roll number.",
+      "Copy is factual and specific: 'Attendance window closes in 25 minutes for Class 8-B', not 'Please complete attendance'."
+    ],
+    "language": "en + hi keys for every string including toasts and workbench microcopy."
+  },
+  "surfaces": [
+    {
+      "id": "surface_t0_home_feed",
+      "file": "frontend/src/app/(teacher)/teacher/dashboard/page.tsx (rewritten as feed home)",
+      "changes": [
+        "Today strip + teacher IdentityHeader + card feed per event_driven_ui, server-derived via deriveTeacherFeed inside withTenant, per-tier react-query polling.",
+        "Bottom navigation: Today (feed), Classes (my-day + rosters), Gradebook (marks + homework), More. Leave queue, PTM, messages, payroll live behind feed cards and More; nav never exceeds 4 items."
+      ]
+    },
+    {
+      "id": "surface_t1_attendance_workbench",
+      "file": "frontend/src/app/(teacher)/teacher/attendance/**",
+      "changes": [
+        "AppModal (size lg) roster grid: every student PRESENT by default with avatar + name; the teacher taps only exceptions (absent/late/half-day/leave chips appear on tap, tap again cycles back to present). 'Save section' writes day-wise rows; 2 absentees in a 40-student section = 1 open + 2 taps + 1 save.",
+        "Approved-leave students render with a LEAVE chip pre-set and are excluded from the absent-missed check.",
+        "Save emits domain events; per-student ABSENT/LATE writes route to the parent matrix as today. Save summary toast: 'Class 8-B: 37 present, 2 absent, 1 leave'.",
+        "Period-wise marking (periodId set) remains available from the NowNextCard for subject teachers; source=EXAM rows are read-only here."
+      ]
+    },
+    {
+      "id": "surface_t2_grades_and_marks",
+      "file": "frontend/src/app/(teacher)/teacher/grading/**",
+      "changes": [
+        "GradingQueue: submissions for own assignments, late badges, inline marks entry with keyboard navigation (Enter = next student), bulk 'award full marks' for completion-type assignments, plagiarismFlagged rows highlighted rose.",
+        "MarksEntryGrid: per exam + section inside open lock windows only, maxMarks validation, class distribution histogram before save, locked windows render read-only with lock reasons.",
+        "Grades saved emit parent T2 events; marks entry respects the examinations lifecycle runner states."
+      ]
+    },
+    {
+      "id": "surface_t3_my_day_and_rosters",
+      "file": "frontend/src/app/(teacher)/teacher/classes/**",
+      "changes": [
+        "My Day: vertical timeline of today's bellSchedule periods with the teacher's classes filled in, substitutions overlaid, one-tap lesson completion per period.",
+        "Section rosters: students with avatar, attendance 30-day sparkline chip, fee status badge only (projection endpoint per the data contract), last submission state for own assignments; row tap opens a student workbench drawer (grades history for own subjects, homework list, attendance calendar) — teacher-scoped Student 360."
+      ]
+    },
+    {
+      "id": "surface_t4_substitutions",
+      "file": "frontend/src/app/(teacher)/teacher/classes/substitutions/**",
+      "changes": [
+        "Teacher-initiated absence: pick date + periods (from own timetable), reason, submit creates timetableSubstitutions rows (originalTeacherId = self, status PENDING).",
+        "Incoming cover requests: Accept/Decline with conflict preview (timetableClashEngine); Accept sets CONFIRMED and the covered period appears in My Day.",
+        "Admin assignment of a substitute stays in the admin transport/timetable surfaces; teachers only see rows touching them."
+      ]
+    },
+    {
+      "id": "surface_t5_leave_and_ptm_integration",
+      "file": "(teacher)/teacher/attendance/leaveActions.ts + ptm/**",
+      "changes": [
+        "No rebuild: feed cards deep-link into the landed TeacherLeaveQueue and TeacherPTMClient; only the feed integration and any dead-end removal are in scope."
+      ]
+    },
+    {
+      "id": "surface_t6_offline_attendance",
+      "file": "frontend/src/app/(teacher)/teacher/attendance/** + sw.js (marked addition)",
+      "changes": [
+        "Offline attendance marking: roster data needed for today's sections is cached client-side in memory/IndexedDB when the teacher opens the workbench; if the save fails offline, submissions queue in IndexedDB with a visible 'queued offline' state and auto-sync on reconnect.",
+        "Idempotency is free: student_attendance_unique makes replay safe; the sync worker posts the same payload and upserts.",
+        "sw.js gains ONLY an explicit, commented addition if required for the sync wake; authenticated HTML caching stays forbidden. If a pure client-side reconnect listener suffices, do not touch sw.js at all."
+      ]
+    }
+  ],
+  "click_budgets": [
+    { "flow": "Mark attendance for a 40-student section with 2 absent, 1 late", "target_taps": 4, "measured_by": "open workbench, tap 3 exception students, Save" },
+    { "flow": "Approve a leave request", "target_taps": 2, "measured_by": "LeaveQueueCard -> approve" },
+    { "flow": "Grade 30 submissions", "target_taps": 31, "measured_by": "open queue, per-row mark + Enter (keyboard flow), batch save" },
+    { "flow": "Accept an incoming substitution", "target_taps": 2, "measured_by": "SubstitutionCard -> Accept" },
+    { "flow": "Complete a lesson for the running period", "target_taps": 1, "measured_by": "NowNextCard 'Complete lesson'" },
+    { "flow": "See what needs attention today", "target_taps": 0, "measured_by": "the feed is the answer; Today strip states the counts" }
+  ],
+  "business_logic_rules": {
+    "attendance": {
+      "default_present": "The workbench writes rows for ALL roster students on save (present ones included), so analytics and the parent Today strip read consistently; partial saves are not allowed — one save per section per session.",
+      "cutoff": "Cutoff default 10:00 local, school-configurable; past-cutoff unmarked sections notify the admin surface (not just the teacher) and the card turns rose.",
+      "corrections": "Editing a marked status keeps markedById chain (original + correctedBy) and emits the parent correction notification already specced for the parent feed; corrections are append-attributed, never silent rewrites.",
+      "leave_preapproved": "Students with APPROVED leave covering today are pre-chipped LEAVE and excluded from missing-mark checks (continuity with the landed P10 suppression)."
+    },
+    "grading_and_marks": {
+      "windows": "Marks entry opens/closes per the examinations lifecycle runner; the feed card renders only inside open windows; saves inside the final hour warn but allow.",
+      "validation": "marksAwarded <= assignment.maxMarks; markEntries <= exam maxMarks; invalid entries block row advance, not the whole grid.",
+      "publication": "Grades/marks reach parents only through existing publish flows; teacher saves alone never expose marks to parents before publish events."
+    },
+    "substitutions": {
+      "lifecycle": "PENDING (unassigned) -> PENDING-named (substituteTeacherId set, awaiting accept) -> CONFIRMED | CANCELLED; decline returns the row to unassigned and notifies the admin owner.",
+      "conflict_rule": "A teacher cannot accept a cover overlapping their own scheduled period; clash computed server-side, the card pre-flags it."
+    },
+    "notifications_v11_teacher": "All teacher event kinds route through notificationMatrixTeacher with the same caps/quiet-hours/dedupe discipline as the parent matrix; the two matrices share the dispatcher, never the policy object."
+  },
+  "operations_and_workflows": {
+    "catalog": [
+      { "id": "OPT1_quick_attendance", "owner": "teacher", "consumers": "parents (feed), admin (monitoring), analytics", "states": "unmarked -> in-progress (workbench open) -> saved -> corrected (optional)" },
+      { "id": "OPT2_homework_lifecycle", "owner": "teacher", "consumers": "students, parents", "states": "DRAFT -> PUBLISHED (parent cards live) -> due passed -> GRADED (grades flow)" },
+      { "id": "OPT3_marks_entry", "owner": "teacher inside lock windows", "consumers": "report card pipeline, parents after publish", "states": "window closed -> open -> complete -> locked" },
+      { "id": "OPT4_substitution_request", "owner": "teacher requests, admin assigns, teacher confirms", "consumers": "timetable, both teachers", "states": "per business_logic_rules.substitutions" },
+      { "id": "OPT5_leave_decision", "owner": "teacher", "consumers": "parent, attendance", "states": "landed in P10; this spec only adds the feed card" },
+      { "id": "OPT6_ptm_session", "owner": "teacher", "consumers": "parent", "states": "landed in P11; feed card + slot list only" },
+      { "id": "OPT7_lesson_progress", "owner": "teacher", "consumers": "syllabus coverage dashboards (admin)", "states": "PLANNED -> IN_PROGRESS -> COMPLETED via one-tap from NowNextCard" },
+      { "id": "OPT8_threaded_messaging", "owner": "teacher/parent symmetric within OP8 rules", "consumers": "both", "states": "unread -> read, moderation per existing admin queue" }
+    ]
+  },
+  "analytics_layer": {
+    "philosophy": "Same as the parent spec: explainable, server-side, pure functions with unit tests, no ML, no third-party.",
+    "signals": [
+      { "model": "section_attendance_trend", "rule": "section 30-day attendance below 85% -> amber InsightCard with sparkline", "cadence": "nightly BullMQ" },
+      { "model": "homework_neglect_list", "rule": "2+ missing submissions per student in 14 days for own assignments -> InsightCard listing students for the teacher's sections", "cadence": "nightly" },
+      { "model": "pre_publish_distribution", "rule": "marks distribution histogram + flagged outliers (z-score beyond 2 from class mean) shown to the teacher before report sign-off", "cadence": "on demand in MarksEntryGrid" }
+    ]
+  },
+  "acceptance_criteria": [
+    "AC-T1: ZERO-CLUTTER: on a fully completed school day the teacher feed shows the day-complete strip, IdentityHeader, and nothing else; no card renders unconditionally (grep-verified).",
+    "AC-T2: scopeResolver is the single source of teacher scope; unit tests prove a teacher cannot mark, grade, or read outside class-teacher/section-subject/scheduled scope, and fee amounts never appear in any teacher response payload (RLS guard suite).",
+    "AC-T3: Attendance workbench writes full-section rows idempotently; save summary toast matches roster counts; approved-leave students pre-chipped (integration test with P10 data).",
+    "AC-T4: Attendance tap budget verified: 40-student section, 2 absent + 1 late = 4 taps total.",
+    "AC-T5: Attendance save emits domain events; parent matrix receives ABSENT/LATE rows (integration test against notificationMatrix).",
+    "AC-T6: MarksEntryGrid renders only inside open lifecycle windows; locked windows read-only; maxMarks validation blocks per row.",
+    "AC-T7: GradingQueue keyboard flow: Enter advances, marks persist per batch, grading emits parent T2 events.",
+    "AC-T8: Substitution accept declines on clash; accept updates My Day; decline notifies admin owner; all transitions tested.",
+    "AC-T9: Offline attendance: marking with network down queues locally with visible state and syncs exactly once on reconnect (idempotent replay verified against student_attendance_unique).",
+    "AC-T10: notificationMatrixTeacher honors 3/day cap, dedupe keys, quiet hours with morning queueing; T3 never pushes (unit tests).",
+    "AC-T11: All strings en + hi; dark mode complete; semantic palette only; single gradient allowed (day-complete strip).",
+    "AC-T12: No new npm dependencies; pnpm-lock.yaml unchanged.",
+    "AC-T13: teacher_feed_cards migration (0050) registered in journal, catalog, entityGraph, and covered by dynamic factory reset.",
+    "AC-T14: Click budgets for all six flows verified manually and listed in the PR description.",
+    "AC-T15: Leave queue and PTM surfaces are unchanged except feed integration; no regression in their landed tests."
+  ],
+  "constraints": [
+    "Do not alter tenant isolation, RBAC, DPDP flows, exam lock logic, or the parent PWA engine's behavior; teacher changes must not change parent card semantics.",
+    "Do not rebuild landed surfaces (leave queue, PTM client, payroll); integrate only.",
+    "Reuse userPushSubscriptions and pushNotificationLogs; no new notification transport.",
+    "sw.js: authenticated HTML caching remains forbidden; touch it only if the offline queue cannot work with a client-side reconnect listener, and then only with explicit commented additions.",
+    "No third-party analytics, no ML library, no new realtime transport, no new map library.",
+    "Teacher-facing copy never shows other teachers' payroll, other sections' marks, or any parent's fee amounts."
+  ],
+  "implementation_order": [
+    "Phase T1: scopeResolver (pure, cached, tested) + teacher_feed_cards migration + schema catalog/entityGraph registration + RLS guard test suite (AC-T2). No UI.",
+    "Phase T2: deriveTeacherFeed pure functions + persistence + snapshot assembly inside withTenant + unit tests for every card render/hide/TTL condition.",
+    "Phase T3: surface_t0 home feed + Today strip + IdentityHeader + choreography + day-complete strip.",
+    "Phase T4: surface_t1 attendance workbench (exceptions-first grid, full-row saves, event emission, leave chips, summary toasts).",
+    "Phase T5: notificationMatrixTeacher + worker jobs (cutoff reminder, window final-24h reminder) + quiet hours/cap tests.",
+    "Phase T6: surface_t2 grading + marks entry (keyboard flows, lock windows, distribution histogram).",
+    "Phase T7: surface_t3 my-day + rosters + student workbench drawer (fee status projection only).",
+    "Phase T8: surface_t4 substitutions (request own cover, accept/decline incoming, My Day overlay).",
+    "Phase T9: surface_t6 offline attendance queue + reconnect sync + AC-T9 proof.",
+    "Phase T10: analytics signals + InsightCards + leave/PTM feed integration + acceptance pass AC-T1..AC-T15 + bilingual/dark sweep + PR description with budgets."
+  ],
+  "definition_of_done": "The teacher app opens to the day itself: attendance that needs marking, the period running now, grading that is due, leaves waiting on one tap, and covers needing an answer — each present only when the data says so, each completable in a handful of taps, every action flowing outward to the parents, students, and admins who depend on it through the event chains already live on main. Teachers see exactly their own sections, subjects, and students; isolation is enforced by a single scope resolver plus tenant RLS, not by UI convention; and a teacher who finishes everything sees one calm strip saying the day is accounted for.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save as docs/teacher-pwa-spec.json (new file, alongside parent-pwa-spec.json) and reference it from AGENTS.md as the active track; the persisted .agents skill 'spec-driven-role-pwa' and rule 'role-spec-driven-architecture' apply to this track.",
+      "One phase per agent task, in order; each phase is a standalone task boundary with tests and commits, same convention as the parent PWA run.",
+      "Head is c6dff507 (v11.18.0); before editing any file in files_in_scope, read it fully — the leave queue and PTM client landed during the parent track and must not regress.",
+      "Phase T1 (scopeResolver + RLS guard suite) is the mandatory first task: every later server action depends on it, and the guard tests are the security contract for the whole track.",
+      "Cross-role event emission is not optional: any phase that writes attendance, grades, or decisions without emitting the parent-facing domain events fails its acceptance criteria.",
+      "Security constraints (RBAC, withTenant tenant isolation, DPDP, PII encryption, exam locks, sw.js privacy rules) always win over spec conflicts; log conflicts in task notes."
+    ]
+  }
+}

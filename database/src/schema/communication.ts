@@ -254,6 +254,61 @@ export const parentFeedCards = pgTable(
   })
 );
 
+// Teacher Feed Cards (Active UI events cache per Spec v1.0, AC-T13)
+export const teacherFeedCards = pgTable(
+  "teacher_feed_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    teacherUserId: uuid("teacher_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    cardType: text("card_type").notNull(),
+    tier: text("tier").notNull(),
+    priority: integer("priority").notNull().default(0),
+    title: jsonb("title").notNull(),
+    summary: jsonb("summary").notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    audience: jsonb("audience"),
+    activatedAt: timestamp("activated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    teacherIdx: index("teacher_feed_cards_teacher_idx").on(t.teacherUserId),
+    schoolIdx: index("teacher_feed_cards_school_idx").on(t.schoolId),
+    teacherTypeIdx: index("teacher_feed_cards_teacher_type_idx").on(
+      t.teacherUserId,
+      t.cardType
+    ),
+    expiresIdx: index("teacher_feed_cards_expires_idx").on(t.expiresAt),
+  })
+);
+
+export const teacherFeedCardsRelations = relations(
+  teacherFeedCards,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [teacherFeedCards.schoolId],
+      references: [schools.id],
+    }),
+    teacher: one(users, {
+      fields: [teacherFeedCards.teacherUserId],
+      references: [users.id],
+    }),
+  })
+);
+
 // Parent Notification Preferences (Tier opt-outs & quiet hours override)
 export const parentNotificationPreferences = pgTable(
   "parent_notification_preferences",

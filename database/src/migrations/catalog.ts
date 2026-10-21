@@ -838,6 +838,28 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
     rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
     breakingChange: false,
   },
+  {
+    index: 50,
+    tag: "0050_teacher_feed_cards",
+    filename: "0050_teacher_feed_cards.sql",
+    domain: "COMMUNICATION",
+    title: "Teacher Feed Cards & Tenant Isolation",
+    description: "Active UI event cards cache table for Teacher PWA with tenant RLS policies and audience targeting.",
+    tablesCreated: ["teacher_feed_cards"],
+    tablesAltered: [],
+    foreignKeysAdded: [
+      { sourceTable: "teacher_feed_cards", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "teacher_feed_cards", sourceColumn: "teacher_user_id", targetTable: "users", targetColumn: "id", onDelete: "CASCADE" },
+    ],
+    indexesCreated: [
+      "teacher_feed_cards_teacher_idx",
+      "teacher_feed_cards_school_idx",
+      "teacher_feed_cards_teacher_type_idx",
+      "teacher_feed_cards_expires_idx",
+    ],
+    rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
+    breakingChange: false,
+  },
 ];
 
 export function getMigrationByIndex(idx: number): MigrationMetadata | undefined {
