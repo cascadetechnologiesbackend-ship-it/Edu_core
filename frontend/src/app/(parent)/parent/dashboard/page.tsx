@@ -26,6 +26,10 @@ import {
   auditLogs,
   staff,
   studentLeaveRequests,
+  ptmEvents,
+  ptmSlots,
+  ptmBookings,
+  users,
 } from "@/db/schema";
 import { eq, and, or, desc, asc, gte, lte, isNull, isNotNull, gt, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -537,7 +541,7 @@ export default async function ParentDashboardPage({
       ...(n.expiresAt ? { expiresAt: n.expiresAt } : {}),
     }));
 
-    // G. Upcoming Events (e.g. PTM within 7 days)
+    // G. Upcoming Events (e.g. PTM within 7 days, with real venue RC-C2 & slot booking OP4)
     const eventCutoff7d = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const eventRows = await tx.query.events.findMany({
       where: and(
@@ -549,14 +553,106 @@ export default async function ParentDashboardPage({
       limit: 3,
     });
 
-    const eventSnaps: UpcomingEventSnapshot[] = eventRows.map((e) => ({
-      id: e.id,
-      title: e.title,
-      eventType: e.eventType,
-      startDate: e.startDate,
-      endDate: e.endDate,
-      venue: e.description,
-    }));
+    const eventSnaps: UpcomingEventSnapshot[] = [];
+    for (const e of eventRows) {
+      if (e.eventType === "PTM") {
+        // Query ptm_events for real venue and booking details (resolving RC-C2 & Workflow OP4)
+        const ptmEventRow = await tx.query.ptmEvents.findFirst({
+          where: and(
+            eq(ptmEvents.eventId, e.id),
+            eq(ptmEvents.schoolId, school.id),
+            or(
+              isNull(ptmEvents.classId),
+              currentStudentRow.currentClassId
+                ? eq(ptmEvents.classId, currentStudentRow.currentClassId)
+                : undefined
+            )
+          ),
+        });
+
+        let ptmBookingSnap: UpcomingEventSnapshot["booking"] = null;
+        let bookingWindowSnap: UpcomingEventSnapshot["bookingWindow"] = null;
+        const resolvedVenue = ptmEventRow?.venue || e.description;
+
+        if (ptmEventRow) {
+          bookingWindowSnap = {
+            opensAt: ptmEventRow.bookingOpensAt,
+            closesAt: ptmEventRow.bookingClosesAt,
+            isOpen: now >= ptmEventRow.bookingOpensAt && now <= ptmEventRow.bookingClosesAt,
+          };
+
+          const [activeBooking] = await tx
+            .select({
+              id: ptmBookings.id,
+              slotId: ptmBookings.slotId,
+              status: ptmBookings.status,
+              teacherNote: ptmBookings.teacherNote,
+              startAt: ptmSlots.startAt,
+              endAt: ptmSlots.endAt,
+              teacherUserId: ptmSlots.teacherUserId,
+              teacherFirstNameEncrypted: staff.firstNameEncrypted,
+              teacherLastNameEncrypted: staff.lastNameEncrypted,
+            })
+            .from(ptmBookings)
+            .innerJoin(ptmSlots, eq(ptmBookings.slotId, ptmSlots.id))
+            .leftJoin(staff, eq(ptmSlots.teacherUserId, staff.userId))
+            .where(
+              and(
+                eq(ptmBookings.ptmEventId, ptmEventRow.id),
+                eq(ptmBookings.studentId, currentStudentRow.id),
+                eq(ptmBookings.schoolId, school.id),
+                eq(ptmBookings.status, "BOOKED")
+              )
+            )
+            .limit(1);
+
+          if (activeBooking) {
+            let resolvedTeacher = "Class Teacher";
+            if (activeBooking.teacherFirstNameEncrypted) {
+              try {
+                const fn = decryptData(activeBooking.teacherFirstNameEncrypted) || "";
+                const ln = activeBooking.teacherLastNameEncrypted
+                  ? decryptData(activeBooking.teacherLastNameEncrypted) || ""
+                  : "";
+                const full = `${fn} ${ln}`.trim();
+                if (full) resolvedTeacher = full;
+              } catch {}
+            }
+
+            ptmBookingSnap = {
+              id: activeBooking.id,
+              slotId: activeBooking.slotId,
+              startAt: activeBooking.startAt,
+              endAt: activeBooking.endAt,
+              status: activeBooking.status as "BOOKED",
+              teacherName: resolvedTeacher,
+              teacherNote: activeBooking.teacherNote,
+            };
+          }
+        }
+
+        eventSnaps.push({
+          id: e.id,
+          title: e.title,
+          eventType: e.eventType,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          venue: resolvedVenue,
+          ptmEventId: ptmEventRow?.id || null,
+          bookingWindow: bookingWindowSnap,
+          booking: ptmBookingSnap,
+        });
+      } else {
+        eventSnaps.push({
+          id: e.id,
+          title: e.title,
+          eventType: e.eventType,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          venue: e.description,
+        });
+      }
+    }
 
     // H. Unread Messages (D6: real teacher names resolved from staff/users)
     let unreadMessageSnaps: UnreadMessageSnapshot[] = [];

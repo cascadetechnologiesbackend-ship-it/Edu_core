@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { schools, users } from "./core";
 import { students } from "./students";
+import { classes } from "./academics";
 
 export const noticeAudienceEnum = pgEnum("notice_audience_type", [
   "ALL",
@@ -274,6 +275,133 @@ export const parentNotificationPreferences = pgTable(
   (t) => ({
     parentUserIdx: index("parent_notif_prefs_user_idx").on(t.parentUserId),
     schoolIdx: index("parent_notif_prefs_school_idx").on(t.schoolId),
+  })
+);
+
+// ─── PTM Workflow Tables (Workflow OP4 & AC-P17) ──────────────────────────────
+export const ptmSlotStatusEnum = pgEnum("ptm_slot_status", [
+  "FREE",
+  "BOOKED",
+  "BLOCKED",
+]);
+
+export const ptmBookingStatusEnum = pgEnum("ptm_booking_status", [
+  "BOOKED",
+  "HELD",
+  "CANCELLED",
+]);
+
+export const ptmEvents = pgTable(
+  "ptm_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    classId: uuid("class_id").references(() => classes.id, {
+      onDelete: "set null",
+    }),
+    teacherUserId: uuid("teacher_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    venue: text("venue"), // Real venue field resolving RC-C2
+    bookingOpensAt: timestamp("booking_opens_at", { withTimezone: true }).notNull(),
+    bookingClosesAt: timestamp("booking_closes_at", { withTimezone: true }).notNull(),
+    slotMinutes: integer("slot_minutes").notNull().default(10),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    eventTeacherIdx: index("ptm_events_event_teacher_idx").on(
+      t.eventId,
+      t.teacherUserId
+    ),
+    schoolOpensIdx: index("ptm_events_school_opens_idx").on(
+      t.schoolId,
+      t.bookingOpensAt
+    ),
+  })
+);
+
+export const ptmSlots = pgTable(
+  "ptm_slots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    ptmEventId: uuid("ptm_event_id")
+      .notNull()
+      .references(() => ptmEvents.id, { onDelete: "cascade" }),
+    teacherUserId: uuid("teacher_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    status: ptmSlotStatusEnum("status").notNull().default("FREE"),
+    version: integer("version").notNull().default(1), // Optimistic lock counter (AC-P17)
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    eventStartIdx: index("ptm_slots_event_start_idx").on(
+      t.ptmEventId,
+      t.startAt
+    ),
+    teacherStartIdx: index("ptm_slots_teacher_start_idx").on(
+      t.teacherUserId,
+      t.startAt
+    ),
+  })
+);
+
+export const ptmBookings = pgTable(
+  "ptm_bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    ptmEventId: uuid("ptm_event_id")
+      .notNull()
+      .references(() => ptmEvents.id, { onDelete: "cascade" }),
+    slotId: uuid("slot_id")
+      .notNull()
+      .references(() => ptmSlots.id, { onDelete: "cascade" }),
+    parentUserId: uuid("parent_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+    status: ptmBookingStatusEnum("status").notNull().default("BOOKED"),
+    bookedAt: timestamp("booked_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    teacherNote: text("teacher_note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    parentEventIdx: index("ptm_bookings_parent_event_idx").on(
+      t.parentUserId,
+      t.ptmEventId
+    ),
+    slotIdx: index("ptm_bookings_slot_idx").on(t.slotId),
+    studentEventIdx: index("ptm_bookings_student_event_idx").on(
+      t.studentId,
+      t.ptmEventId
+    ),
   })
 );
 

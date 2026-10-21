@@ -376,25 +376,75 @@ export function deriveParentFeed(
         const daysUntil = Math.ceil(diffMs / 86400000);
 
         if (diffMs > 0 && daysUntil <= 7) {
+          const hasActiveBooking = ev.booking && ev.booking.status === "BOOKED";
+          const slotStart = hasActiveBooking ? new Date(ev.booking!.startAt) : null;
+          const diffSlotMs = slotStart ? slotStart.getTime() - nowMs : null;
+          const isWithin2h = diffSlotMs !== null && diffSlotMs > 0 && diffSlotMs <= 2 * 3600000;
+
+          let tier: CardTier = "T2_informational";
+          let priority = 70;
+          let titleEn = daysUntil === 1 ? "Parent-Teacher Meeting Tomorrow" : `PTM in ${daysUntil} Days`;
+          let titleHi = daysUntil === 1 ? "कल अभिभावक-शिक्षक बैठक है" : `${daysUntil} दिनों में पीटीएम है`;
+          let summaryEn = `${ev.title} on ${startDate.toLocaleDateString("en-IN")}${ev.venue ? ` at ${ev.venue}` : ""}.`;
+          let summaryHi = `${startDate.toLocaleDateString("en-IN")} को ${ev.title} आयोजित है।`;
+
+          if (hasActiveBooking && slotStart) {
+            const timeStr = slotStart.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+            const teacherName = ev.booking!.teacherName || "Class Teacher";
+
+            if (isWithin2h) {
+              tier = "T1_action_required"; // PTM_IN_2H notification matrix tier!
+              priority = 90;
+              const mins = Math.max(1, Math.round(diffSlotMs! / 60000));
+              titleEn = `PTM Meeting in ${mins} Minutes`;
+              titleHi = `पीटीएम बैठक ${mins} मिनट में शुरू होगी`;
+              summaryEn = `Your slot is confirmed with ${teacherName} at ${timeStr}${ev.venue ? ` at ${ev.venue}` : ""}.`;
+              summaryHi = `${teacherName} के साथ आपका समय ${timeStr} बजे तय है${ev.venue ? ` (${ev.venue})` : ""}।`;
+            } else if (daysUntil === 1) {
+              priority = 75; // PTM_TOMORROW
+              titleEn = `PTM Tomorrow at ${timeStr}`;
+              titleHi = `कल ${timeStr} बजे पीटीएम बैठक है`;
+              summaryEn = `Slot booked with ${teacherName}${ev.venue ? ` at ${ev.venue}` : ""}.`;
+              summaryHi = `${teacherName} के साथ स्लॉट बुक है${ev.venue ? ` (${ev.venue})` : ""}।`;
+            } else {
+              priority = 70;
+              titleEn = `PTM Slot Booked: ${timeStr}`;
+              titleHi = `पीटीएम स्लॉट बुक: ${timeStr}`;
+              summaryEn = `Slot confirmed with ${teacherName} on ${startDate.toLocaleDateString("en-IN")}${ev.venue ? ` at ${ev.venue}` : ""}.`;
+              summaryHi = `${teacherName} के साथ ${startDate.toLocaleDateString("en-IN")} को समय तय है${ev.venue ? ` (${ev.venue})` : ""}।`;
+            }
+          } else if (ev.bookingWindow?.isOpen && ev.ptmEventId) {
+            titleEn = daysUntil === 1 ? "PTM Tomorrow — Book Your Slot" : `PTM in ${daysUntil} Days — Book Your Slot`;
+            titleHi = daysUntil === 1 ? "कल पीटीएम है — अपना स्लॉट बुक करें" : `${daysUntil} दिनों में पीटीएम — अपना स्लॉट बुक करें`;
+            summaryEn = `Slot booking is now open for ${ev.title}${ev.venue ? ` at ${ev.venue}` : ""}. Select a 10-minute slot.`;
+            summaryHi = `${ev.title} के लिए स्लॉट बुकिंग खुली है। अपना 10 मिनट का स्लॉट चुनें।`;
+          }
+
           cards.push({
             id: `ptm-${ev.id}`,
             studentId,
             cardType: "PTMCard",
-            tier: "T2_informational",
-            priority: 70,
+            tier,
+            priority,
             title: {
-              en: daysUntil === 1 ? "Parent-Teacher Meeting Tomorrow" : `PTM in ${daysUntil} Days`,
-              hi: daysUntil === 1 ? "कल अभिभावक-शिक्षक बैठक है" : `${daysUntil} दिनों में पीटीएम है`,
+              en: titleEn,
+              hi: titleHi,
             },
             summary: {
-              en: `${ev.title} on ${startDate.toLocaleDateString("en-IN")}${ev.venue ? ` at ${ev.venue}` : ""}.`,
-              hi: `${startDate.toLocaleDateString("en-IN")} को ${ev.title} आयोजित है।`,
+              en: summaryEn,
+              hi: summaryHi,
             },
             payload: {
               eventId: ev.id,
+              ptmEventId: ev.ptmEventId || null,
               title: ev.title,
               startDate: ev.startDate,
+              endDate: ev.endDate || null,
               venue: ev.venue || null,
+              daysUntil,
+              booking: ev.booking || null,
+              canBook: Boolean(ev.ptmEventId && ev.bookingWindow?.isOpen && !hasActiveBooking),
+              bookingWindow: ev.bookingWindow || null,
             },
             activatedAt: now,
             expiresAt: new Date(startDate.getTime() + 6 * 3600000),

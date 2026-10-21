@@ -123,6 +123,21 @@ export interface UpcomingEventSnapshot {
   startDate: Date | string;
   endDate?: Date | string | null;
   venue?: string | null;
+  ptmEventId?: string | null;
+  bookingWindow?: {
+    opensAt: Date | string;
+    closesAt: Date | string;
+    isOpen: boolean;
+  } | null;
+  booking?: {
+    id: string;
+    slotId: string;
+    startAt: Date | string;
+    endAt: Date | string;
+    status: "BOOKED" | "HELD" | "CANCELLED";
+    teacherName?: string | null;
+    teacherNote?: string | null;
+  } | null;
 }
 
 export interface NoticeSnapshot {
