@@ -1763,5 +1763,44 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
       },
     ],
   },
+
+  // ─── DPDP_PRIVACY domain: pii_audit_trails ──────────────────────────────────
+  pii_audit_trails: {
+    tableName: "pii_audit_trails",
+    drizzleExport: "piiAuditTrails",
+    domain: "DPDP_PRIVACY",
+    displayName: "PII Audit Trail",
+    description:
+      "Append-only audit log of content-scanning decisions (BLOCKED/MASKED/CONFIRMED_SEND/LOGGED_ONLY) " +
+      "for DPDP Act 2023 compliance. Stores SHA-256 content hashes and decision metadata only — " +
+      "raw PII and masked PII text are never stored here.",
+    primaryKey: ["id"],
+    tenantKey: "schoolId",
+    isTenantScoped: true,
+    // piiColumns intentionally empty — this table stores hashes, never PII text
+    piiColumns: [],
+    searchableFields: ["surface", "decision", "riskLevel", "sourceTable"],
+    tags: ["dpdp", "pii", "audit", "compliance", "scan", "privacy", "append-only"],
+    relationships: [
+      {
+        sourceTable: "pii_audit_trails",
+        targetTable: "schools",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "school_id",
+        targetColumn: "id",
+        onDelete: "RESTRICT",
+        description: "Owning school tenant.",
+      },
+      {
+        sourceTable: "pii_audit_trails",
+        targetTable: "users",
+        relationType: "MANY_TO_ONE",
+        sourceColumn: "actor_user_id",
+        targetColumn: "id",
+        onDelete: "RESTRICT",
+        description: "User whose content triggered the scan.",
+      },
+    ],
+  },
 };
 

@@ -17,7 +17,8 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { schools } from "./core";
+import { schools, users } from "./core";
+
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -394,3 +395,67 @@ export const vendorRegisterRelations = relations(vendorRegister, ({ one }) => ({
     references: [schools.id],
   }),
 }));
+
+// ─── pii_audit_trails ────────────────────────────────────────────────────────
+// DPDP Act 2023 content-scanning enforcement audit sink.
+// Append-only: no updatedAt, no deleted_at, no UPDATE/DELETE policies.
+// Stores sha-256 hashes of scanned content — NEVER raw or masked PII text.
+
+export const piiAuditTrails = pgTable(
+  "pii_audit_trails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    /** Which table triggered the scan (e.g. 'notices', 'parent_teacher_messages') */
+    sourceTable: text("source_table").notNull(),
+    /** UUID of the record being scanned (nullable: event may precede INSERT) */
+    sourceId: uuid("source_id"),
+    /** Human-readable surface (e.g. 'admin.notice.compose', 'teacher.message.send') */
+    surface: text("surface").notNull(),
+    /** JSON array of detected PII type strings e.g. ["AADHAAR","MOBILE"] */
+    detectedTypes: jsonb("detected_types").notNull().default([]),
+    /** CRITICAL | HIGH | MEDIUM | LOW */
+    riskLevel: text("risk_level").notNull(),
+    matchCount: integer("match_count").notNull(),
+    /** BLOCKED | MASKED | CONFIRMED_SEND | LOGGED_ONLY */
+    decision: text("decision").notNull(),
+    /** MASK_PARTIAL | REDACT_FULL — only set when decision = MASKED */
+    redactionMode: text("redaction_mode"),
+    /** Actor who authored the content; sourced from server session, never client input */
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    /**
+     * SHA-256 hex digest of the original raw input for incident forensics.
+     * NEVER store raw text, masked text, or any PII-containing value here.
+     */
+    contentHash: text("content_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    // NO updatedAt — append-only (BR7)
+    // NO deletedAt — rows must never be purged (DPDP forensic audit requirement)
+  },
+  (t) => ({
+    schoolIdx: index("pii_audit_trails_school_idx").on(t.schoolId),
+    actorIdx: index("pii_audit_trails_actor_idx").on(t.actorUserId),
+    surfaceIdx: index("pii_audit_trails_surface_idx").on(t.surface),
+    riskIdx: index("pii_audit_trails_risk_idx").on(t.riskLevel),
+    decisionIdx: index("pii_audit_trails_decision_idx").on(t.decision),
+    createdIdx: index("pii_audit_trails_created_idx").on(t.createdAt),
+    schoolCreatedIdx: index("pii_audit_trails_school_created_idx").on(
+      t.schoolId,
+      t.createdAt,
+    ),
+  }),
+);
+
+export const piiAuditTrailsRelations = relations(piiAuditTrails, ({ one }) => ({
+  school: one(schools, {
+    fields: [piiAuditTrails.schoolId],
+    references: [schools.id],
+  }),
+}));
+

@@ -75,4 +75,18 @@ describe("Database Schema Entity Catalog", () => {
     expect(schoolIdx).toBeLessThan(examIdx);
     expect(examIdx).toBeLessThan(markEntryIdx);
   });
+
+  it("registers pii_audit_trails in DPDP_PRIVACY with empty piiColumns and valid FKs (AC-E4)", () => {
+    const auditEntity = getEntity("pii_audit_trails");
+    expect(auditEntity).toBeDefined();
+    expect(auditEntity?.domain).toBe("DPDP_PRIVACY");
+    expect(auditEntity?.piiColumns).toEqual([]);
+    expect(auditEntity?.tenantKey).toBe("schoolId");
+    expect(auditEntity?.isTenantScoped).toBe(true);
+
+    const fks = getForeignKeys("pii_audit_trails");
+    expect(fks.some((f) => f.targetTable === "schools" && f.sourceColumn === "school_id")).toBe(true);
+    expect(fks.some((f) => f.targetTable === "users" && f.sourceColumn === "actor_user_id")).toBe(true);
+  });
 });
+

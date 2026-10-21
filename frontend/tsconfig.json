@@ -23,7 +23,9 @@
       "@schoolmitra/database": ["../database/src/index.ts"],
       "@schoolmitra/database/*": ["../database/src/*"],
       "@schoolmitra/backend": ["../backend/src/server/root.ts"],
-      "@schoolmitra/backend/*": ["../backend/src/*"]
+      "@schoolmitra/backend/*": ["../backend/src/*"],
+      "@schoolmitra/entity-engine": ["../packages/entity-engine/src/index.ts"],
+      "@schoolmitra/entity-engine/*": ["../packages/entity-engine/src/*"]
     },
     "allowJs": true,
     "noEmit": true
