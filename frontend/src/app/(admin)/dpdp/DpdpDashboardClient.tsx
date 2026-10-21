@@ -21,7 +21,9 @@ import {
   Clock,
   Briefcase,
   AlertOctagon,
+  ShieldAlert,
 } from "lucide-react";
+import { PiiIncidentsView, type PiiIncidentRow } from "./PiiIncidentsView";
 
 interface ConsentMetric {
   purposeId: string;
@@ -101,6 +103,7 @@ interface Props {
   vendors: Vendor[];
   breaches: BreachLog[];
   auditLogs: AuditLog[];
+  initialPiiIncidents?: PiiIncidentRow[];
 }
 
 export default function DpdpDashboardClient({
@@ -113,6 +116,7 @@ export default function DpdpDashboardClient({
   vendors,
   breaches,
   auditLogs,
+  initialPiiIncidents = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -383,6 +387,7 @@ export default function DpdpDashboardClient({
           { id: "grievances", label: "Grievances", icon: AlertTriangle },
           { id: "vendors", label: "Vendor Processors", icon: Briefcase },
           { id: "breaches", label: "Breach Center", icon: AlertOctagon },
+          { id: "pii-incidents", label: "PII Incidents", icon: ShieldAlert },
           { id: "explorer", label: "Audit Log Explorer", icon: Search },
         ].map((t) => {
           const Icon = t.icon;
@@ -1097,6 +1102,11 @@ export default function DpdpDashboardClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* PII Incidents View */}
+      {activeTab === "pii-incidents" && (
+        <PiiIncidentsView incidents={initialPiiIncidents} />
       )}
 
       {/* Resolution Modal */}

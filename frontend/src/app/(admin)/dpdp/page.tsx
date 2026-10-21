@@ -9,6 +9,7 @@ import {
   dpdpGrievances,
   dataBreachLog,
   auditLogs,
+  piiAuditTrails,
 } from "@/db/schema";
 import { eq, and, isNull, isNotNull, sql } from "drizzle-orm";
 import { getCachedSession } from "@/lib/serverAuth";
@@ -56,6 +57,7 @@ export default async function DpdpPage() {
           vendors,
           breaches,
           logs,
+          incidents,
         ] = await Promise.all([
           db.query.consentPurposes.findMany({
             where: eq(consentPurposes.isActive, true),
@@ -117,6 +119,11 @@ export default async function DpdpPage() {
             orderBy: (t, { desc }) => [desc(t.createdAt)],
             limit: 100,
           }),
+          db.query.piiAuditTrails.findMany({
+            where: eq(piiAuditTrails.schoolId, schoolId),
+            orderBy: (t, { desc }) => [desc(t.createdAt)],
+            limit: 100,
+          }),
         ]);
 
         const totalStudentsCount = Number(studentCountRes?.count ?? 0);
@@ -153,6 +160,21 @@ export default async function DpdpPage() {
           }`.trim() || "Staff",
         }));
 
+        const mappedIncidents = incidents.map((inc) => ({
+          id: inc.id,
+          sourceTable: inc.sourceTable,
+          sourceId: inc.sourceId,
+          surface: inc.surface,
+          detectedTypes: (inc.detectedTypes as string[]) || [],
+          riskLevel: inc.riskLevel,
+          matchCount: inc.matchCount,
+          decision: inc.decision,
+          redactionMode: inc.redactionMode,
+          actorUserId: inc.actorUserId,
+          contentHash: inc.contentHash,
+          createdAt: inc.createdAt,
+        }));
+
         return {
           totalStudentsCount,
           consentMetrics,
@@ -163,9 +185,10 @@ export default async function DpdpPage() {
           vendors,
           breaches,
           logs,
+          piiIncidents: mappedIncidents,
         };
       },
-      { maxQueries: 10, label: "DPDP Compliance Centre" }
+      { maxQueries: 12, label: "DPDP Compliance Centre" }
     );
   });
 
@@ -191,6 +214,7 @@ export default async function DpdpPage() {
         vendors={data.vendors}
         breaches={data.breaches}
         auditLogs={data.logs}
+        initialPiiIncidents={data.piiIncidents}
       />
     </div>
   );
