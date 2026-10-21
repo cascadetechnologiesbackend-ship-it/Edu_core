@@ -2,9 +2,11 @@
 
 ## Active UI/UX & Module Specification
 The repository follows the authoritative UI/UX, workflow, design feel, and architecture specifications:
-- **Active Track**: [docs/teacher-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/teacher-pwa-spec.json) (Teacher PWA Specification v1.0 — Choreographed, Event-Driven Operational Feed)
-- **Predecessor & Foundation**: [docs/parent-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/parent-pwa-spec.json) (Parent PWA Specification v1.0–v1.2 — Phases P1–P16 landed on main at head c6dff507, v11.18.0)
-- **Underlying Design System**: [docs/uiux-spec.json](file:///v:/Cascade/2026/Edu_core/docs/uiux-spec.json) (AMS/ClassHub/Student 360 Specification v1.2 — Phases 1–11 landed on main)
+- **Active Track**: [docs/entity-engine-spec.json](file:///v:/Cascade/2026/Edu_core/docs/entity-engine-spec.json) (Entity Engine Specification v1.1 — Omnibox NER, DPDP PII Scan Enforcement, Role Omniboxes & Catalog Completeness)
+- **Predecessor Specs**:
+  - [docs/teacher-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/teacher-pwa-spec.json) (Teacher PWA Specification v1.0 — Phases T1–T10 landed on main at head d7491df6)
+  - [docs/parent-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/parent-pwa-spec.json) (Parent PWA Specification v1.0–v1.2 — Phases P1–P16 landed on main at head c6dff507, v11.18.0)
+  - [docs/uiux-spec.json](file:///v:/Cascade/2026/Edu_core/docs/uiux-spec.json) (AMS/ClassHub/Student 360 Specification v1.2 — Phases 1–11 landed on main)
 
 ### Execution Rules for Active Track (Teacher PWA):
 1. **Spec Compliance**: All modifications to the Teacher App/PWA, Attendance Workbench, Grading Queue, Marks Entry Grid, My Day Timeline, Substitution Card, and Teacher Event Engine must strictly follow `docs/teacher-pwa-spec.json`.

@@ -1,0 +1,337 @@
+{
+  "prompt_version": "1.1",
+  "spec_id": "entity_engine",
+  "spec_series": "edu_core_spec_series",
+  "predecessor_specs": [
+    { "spec_id": "edu_core_uiux", "version": "1.2", "status": "landed, phases 1-11" },
+    { "spec_id": "parent_pwa", "version": "1.2", "status": "landed, phases P1-P16" },
+    { "spec_id": "teacher_pwa", "version": "1.0", "status": "landed, phases T1-T10" }
+  ],
+  "intent": "The entity engine (packages/entity-engine, landed in v11.15.0) built three excellent but UNWIRED modules: a schema catalog, an omnibox NER parser, and a DPDP PII scanner. This spec wires them into the live product: NER intent resolution inside the admin CommandPalette, PII scan-and-redact enforcement at every content write point with an auditable pii_audit_trails sink, a DPDP risk dashboard, bilingual (Hindi/Devanagari) query understanding, role-scoped omniboxes for the Teacher and Parent PWAs, a corrected route map, and catalog completeness plus sub-5ms performance enforcement in CI. Zero new product surface is invented; the engine becomes infrastructure every existing surface consumes.",
+  "meta": {
+    "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
+    "head_commit_at_spec_time": "d7491df6",
+    "base_version": "11.19.0",
+    "stack": "Next.js App Router, TypeScript, Tailwind dark-mode, lucide-react, drizzle-orm + PostgreSQL with RLS, vitest, cmdk, zod",
+    "dependency_policy": "NO new npm dependencies. zod (already added in 52892d54) is the only permitted engine dep. cmdk, lucide-react, drizzle-orm, vitest already exist in the workspace.",
+    "files_in_scope": [
+      "packages/entity-engine/src/catalog/**",
+      "packages/entity-engine/src/query-ner/**",
+      "packages/entity-engine/src/dpdp-ner/**",
+      "packages/entity-engine/src/__tests__/**",
+      "packages/entity-engine/package.json",
+      "scripts/inspect-entity-engine.ts",
+      "frontend/src/components/ui/CommandPalette.tsx",
+      "frontend/src/app/(admin)/actions/searchEverything.ts",
+      "frontend/src/app/(admin)/dpdp/**",
+      "frontend/src/app/(admin)/communication/** (notice + message write actions)",
+      "frontend/src/app/(admin)/exams/** (remarks + assignment description writes)",
+      "frontend/src/app/(admin)/attendance/** (leave reason writes)",
+      "frontend/src/app/(admin)/actions/**",
+      "database/src/schema/dpdp.ts",
+      "database/src/schema/index.ts",
+      "database/drizzle/** (migrations >= 0051)",
+      "teacher PWA route group + components (landed in T3-T10)",
+      "parent PWA route group + components (landed in P3-P16)",
+      "AGENTS.md (reference this spec)"
+    ]
+  },
+  "context_engineering": {
+    "current_state_audit": [
+      "packages/entity-engine landed fully in 52892d54 (v11.15.0): src/{catalog,query-ner,dpdp-ner}, __tests__/{catalog,dpdpNER,queryNER}.test.ts, package.json exports ./catalog ./query-ner ./dpdp-ner, scripts/inspect-entity-engine.ts CLI. All tests pass at head.",
+      "ENTITY_GRAPH registers 49 tables across 13 domains (CORE_IDENTITY, ACADEMICS, STUDENTS_LIFECYCLE, ADMISSIONS, ATTENDANCE, EXAMINATIONS, FEES_FINANCE, HR_STAFF, TRANSPORT, COMMUNICATION, DPDP_PRIVACY, INVENTORY_FACILITIES, SUPERADMIN_OPS) including all parent/teacher PWA workflow tables (student_leave_requests, ptm_events, ptm_slots, ptm_bookings, fee_queries, notice_acknowledgments, bus_boarding_events, stop_change_requests, student_document_requests, profile_change_requests, teacher_feed_cards) with per-table piiColumns annotations.",
+      "catalog/index.ts exposes getEntity, getAllEntities, getEntitiesByDomain, getForeignKeys, getReferencingTables, getPIIColumns, getDomainMetadata, getAllDomainsMetadata, and topologicalSort (Kahn's algorithm with stable cycle append).",
+      "query-ner/parser.ts exposes parseOmniboxQuery(rawQuery): ParsedQuery with recognizedEntities (CLASS_SECTION 0.95, EXAM_NAME 0.90, SUBJECT 0.90, FEE_HEAD 0.90, BUS_ROUTE 0.90, DATE_TEMPORAL 0.85, ACTION_INTENT 0.95), overlap-prevented span matching, resolveIntentAndRoute with URLSearchParams composition, confidenceScore, and parseDurationMs. It is deterministic, dependency-free, and client-safe.",
+      "dpdp-ner exports verhoeff (Aadhaar checksum), scanner (scanPII with risk classification), redactor (redactPII MASK_PARTIAL / REDACT_FULL).",
+      "DEFECT: frontend/src/components/ui/CommandPalette.tsx (at head) imports ONLY searchEverything and cmdk. parseOmniboxQuery is completely unwired from every UI. The engine is dead code from a user perspective.",
+      "DEFECT: resolveIntentAndRoute hardcodes routes that DO NOT EXIST in the app: /admin/students, /admin/exams/marks, /admin/exams/results, /admin/fees/dues, /admin/transport/live, /admin/search. The real (admin) route group is /students, /exams, /fees, /transport, /hr, /admissions, /attendance, /communication, /library, /dashboard, /dpdp, /academics, /school, /settings, /profile. Every emitted intent route is a dead link today.",
+      "DEFECT: scanPII/redactPII are unwired from every content entry point. A user can paste a student's Aadhaar number, PAN, bank account, or mobile number into a notice body, a parent-teacher message, an exam remark, an assignment description, or a leave reason and it is stored and broadcast verbatim.",
+      "DEFECT: there is NO pii_audit_trails table anywhere: not in database/src/schema/dpdp.ts (which has privacyNotices, consentPurposes, consentRecords, rightsRequests, dpdpGrievances, dataBreachLog, vendorRegister, dataRetentionPolicies) and not in ENTITY_GRAPH. The DPDP PII audit sink the engine's risk logging needs does not exist.",
+      "DEFECT: query-ner patterns contain zero Hindi/Devanagari aliases (no Devanagari script, no hindi keyword). The product's forms are bilingual (isHindi toggle, titleHi/contentHi columns) but the omnibox understands only English.",
+      "DEFECT: parseDurationMs is computed but nothing asserts the <5ms budget; no perf test exists.",
+      "DEFECT: catalog coverage is partial: 49 registered tables vs 21 schema files. Missing from ENTITY_GRAPH include vehicles, drivers, gps_pings, student_bus_passes, events, parent_teacher_messages, push_notification_logs, sms_logs, timetable_periods, timetable_slots, curriculum_lessons, student_guardians, staff_designations, staff_salaries, payroll_cycles, payroll_line_items, staff_leaves, hostel tables, book_loans, inventory tables, chart_of_accounts, accounting journal/ledger tables, fee_discounts, fee_waivers, payment_gateway_logs, admission_documents, admission_form_settings, staff_attendance, attendance_notifications, student_fee_advances, superadmin tables.",
+      "Teacher and Parent PWAs (fully landed) have no omnibox/search surface at all; only the admin shell has Cmd+K."
+    ],
+    "supporting_code_to_reuse": [
+      { "key": "entity_engine_query_ner", "path": "@schoolmitra/entity-engine/query-ner", "note": "parseOmniboxQuery, ParsedQuery, RecognizedEntity, EntityType, IntentType, dictionaries. Pure and client-safe: import it directly in client components." },
+      { "key": "entity_engine_catalog", "path": "@schoolmitra/entity-engine/catalog", "note": "ENTITY_GRAPH, getEntity, getPIIColumns, getEntitiesByDomain, topologicalSort. Server/tests primarily; do NOT import catalog into client bundles." },
+      { "key": "entity_engine_dpdp_ner", "path": "@schoolmitra/entity-engine/dpdp-ner", "note": "scanPII, redactPII, generateVerhoeff, risk classification types. Server actions only: never ship the scanner regexes to the client bundle." },
+      { "key": "search_everything_action", "path": "frontend/src/app/(admin)/actions/searchEverything.ts", "note": "existing server action returning SearchResultItem[] with category Jump to / Actions; keep it as the fallback results provider below the NER intent row." },
+      { "key": "admin_shell", "path": "frontend/src/app/(admin)/layout.tsx", "note": "mounts CommandPalette globally; extend, do not replace." },
+      { "key": "shared_ui", "path": "frontend/src/components/ui/*", "note": "AppModal, ConfirmDialog, Combobox, Stepper, EmptyStateCTA from the AMS/HR specs; all new modals must reuse them. No hand-rolled fixed inset-0 overlays." },
+      { "key": "dpdp_schema", "path": "database/src/schema/dpdp.ts", "note": "existing DPDP tables and enum patterns (consentMethodEnum style); add piiAuditTrails following the same file conventions." },
+      { "key": "rls_guard_suite", "path": "teacher PWA T1 pattern", "note": "migration 0050 + RLS guard suite pattern established in 4afb5245; replicate for pii_audit_trails (migration 0051)." },
+      { "key": "scope_resolvers", "path": "teacher/parent PWA scopeResolver modules", "note": "role-scoped session/tenant resolution; omnibox route resolvers must call them, never trust client-passed ids." },
+      { "key": "pwa_feed_engines", "path": "deriveTeacherFeed / parent feed card engine", "note": "existing role feed infra; the omnibox is additive navigation on top, not a replacement." }
+    ]
+  },
+  "as_built_verification": {
+    "phase_landings": [
+      { "commit": "52892d54", "version": "11.15.0", "what": "entity-engine package: catalog + query-ner + dpdp-ner + tests + CLI inspector" },
+      { "commit": "c952e3d6", "what": "44 migrations + schema graph baseline" },
+      { "commit": "4afb5245..8ca881af", "version": "11.19.0", "what": "teacher PWA T1-T10 complete" },
+      { "commit": "d7491df6", "version": "11.19.0", "what": "head at spec time; no commits after teacher T10" }
+    ],
+    "verified_behaviors": [
+      "parseOmniboxQuery('Class 10-A maths marks entry') resolves CLASS_SECTION + SUBJECT + ACTION_INTENT with confidence >= 0.9 and composes grade/section/subject query params.",
+      "Verhoeff validator eliminates false positives on random 12-digit numbers (only checksum-valid Aadhaar detected).",
+      "topologicalSort covers all 49 registered tables with stable cycle handling.",
+      "CLI inspector (scripts/inspect-entity-engine.ts) demonstrates catalog, parser duration, scan, and both redaction modes end to end."
+    ],
+    "verified_defects": [
+      { "id": "G1", "defect": "parseOmniboxQuery unwired from CommandPalette; palette uses only searchEverything", "fix_phase": "E1" },
+      { "id": "G2", "defect": "intent routes point to non-existent /admin/* paths; real routes are /students, /exams, /fees, /transport etc.", "fix_phase": "E1" },
+      { "id": "G3", "defect": "scanPII/redactPII unwired from all content write points; no pii_audit_trails table exists", "fix_phase": "E2, E3" },
+      { "id": "G4", "defect": "no Hindi/Devanagari query aliases in patterns", "fix_phase": "E5" },
+      { "id": "G5", "defect": "no CI enforcement of the <5ms parse budget", "fix_phase": "E7" },
+      { "id": "G6", "defect": "catalog covers 49 of ~100+ drizzle tables; no completeness guard", "fix_phase": "E7" },
+      { "id": "G7", "defect": "Teacher and Parent PWAs have no omnibox surface", "fix_phase": "E6" }
+    ]
+  },
+  "integration_architecture": {
+    "omnibox_admin": {
+      "component": "frontend/src/components/ui/CommandPalette.tsx (evolve in place)",
+      "behavior": [
+        "On every keystroke run parseOmniboxQuery locally (synchronous, client-safe, zero network). Do not debounce the NER pass; keep the existing 150ms debounce ONLY for searchEverything.",
+        "When confidenceScore >= 0.80 render a pinned INTENT row at the top of the list, visually distinct (primary accent border, intent icon, actionLabel, and entity chips for each recognized entity: e.g. [Class 10-A] [Mathematics] [Marks Entry]).",
+        "Enter on the intent row navigates to the resolved route. Cmd+Enter or ArrowDown moves into normal search results.",
+        "Below the intent row keep the existing Jump to / Actions groups from searchEverything unchanged.",
+        "If confidenceScore < 0.80 show no intent row; pure search behavior as today.",
+        "Footer shows parse time in dev builds only (NEXT_PUBLIC debug flag), e.g. 'parsed in 1.4ms'."
+      ],
+      "route_canonicalization": {
+        "requirement": "Replace resolveIntentAndRoute's hardcoded base routes with an explicit ROUTE_REGISTRY constant in packages/entity-engine/src/query-ner/routes.ts, mapping IntentType to real app routes:",
+        "registry": {
+          "VIEW_STUDENT_PROFILE": "/students?grade={grade}&section={section}",
+          "VIEW_MARKS": "/exams (resolve to the existing exams marks-entry surface; verify exact subpath in codebase and keep grade/section/exam as query params)",
+          "VIEW_FEE_DUES": "/fees (existing fees module surface)",
+          "TRACK_BUS": "/transport (existing transport module surface)",
+          "SEARCH_GENERAL": "no route; the palette's own searchEverything results are the fallback",
+          "notes": "ACTION_INTENT dictionary entries each carry their own route in metadata; audit every one of them against the real route tree and fix any dead link. Add a unit test that asserts every emitted route for a golden query corpus starts with a route that exists in the app route manifest."
+        }
+      },
+      "accessibility": "Intent row is a cmdk Command.Item with value built from actionLabel + entity chips text; keyboard-first, no mouse needed. Dark-mode parity required."
+    },
+    "dpdp_scan_enforcement": {
+      "sink": {
+        "table": "pii_audit_trails",
+        "migration": "0051 (follow migration journal pattern from 095359f2)",
+        "columns": [
+          "id uuid pk default random",
+          "school_id uuid not null references schools on delete restrict",
+          "source_table text not null (e.g. 'notices', 'parent_teacher_messages')",
+          "source_id uuid (nullable: event may precede insert)",
+          "surface text not null (e.g. 'admin.notice.compose', 'teacher.message.send')",
+          "detected_types jsonb not null default [] (e.g. ['AADHAAR','MOBILE'])",
+          "risk_level text not null ('CRITICAL'|'HIGH'|'MEDIUM'|'LOW')",
+          "match_count integer not null",
+          "decision text not null ('BLOCKED'|'MASKED'|'CONFIRMED_SEND'|'LOGGED_ONLY')",
+          "redaction_mode text ('MASK_PARTIAL'|'REDACT_FULL'|null)",
+          "actor_user_id uuid not null references users on delete restrict",
+          "content_hash text not null (sha-256 of raw input; NEVER store raw PII or masked PII in this table)",
+          "created_at timestamptz not null default now()"
+        ],
+        "rules": ["append-only, no updated_at, no deletes", "RLS tenant-scoped by school_id like every other table", "registered in ENTITY_GRAPH DPDP_PRIVACY domain with piiColumns: [] (hash only)"]
+      },
+      "write_point_scan_matrix": [
+        { "write_point": "notice create/update (admin communication)", "fields": ["title", "content"], "critical": "BLOCK save; inline AppModal listing detected types and suggesting removal", "high": "ConfirmDialog: 'Send as-is' or 'Mask sensitive values' (applies redactPII MASK_PARTIAL before persist)", "medium_low": "persist + LOGGED_ONLY audit row" },
+        { "write_point": "parent-teacher message send (both directions)", "fields": ["message body"], "same_policy_as_notice": true },
+        { "write_point": "teacher exam remark / cocurricular remark", "fields": ["remarks"], "same_policy_as_notice": true },
+        { "write_point": "assignment description (academics)", "fields": ["description"], "same_policy_as_notice": true },
+        { "write_point": "leave request reason (parent PWA + admin)", "fields": ["reason"], "relaxed": "HIGH detected -> warn only (parents legitimately include contact numbers); still audit-log every decision" }
+      ],
+      "implementation_rules": [
+        "Scanning happens in server actions (scanPII server-side only; never ship scanner regexes to the client bundle). Client shows the outcome via the existing ConfirmDialog/AppModal components.",
+        "One shared helper scanContentForPII({ schoolId, actorUserId, surface, sourceTable, text }) in a server-only module (e.g. frontend/src/lib/pii/scanEnforcement.ts) that all five write points call. No copy-pasted logic per surface.",
+        "CRITICAL = any Verhoeff-valid Aadhaar, PAN, passport, voter id, bank account, IFSC, UPI, or Luhn-valid card. HIGH = Indian mobile or email outside structured contact fields. SPDI mentions (medical, caste, religion) classify MEDIUM.",
+        "The masked-send path stores the MASK_PARTIAL output; the audit row stores the decision MASKED plus content_hash of the ORIGINAL input for incident forensics (hash only, never plaintext)."
+      ]
+    },
+    "dpdp_risk_dashboard": {
+      "route": "frontend/src/app/(admin)/dpdp (extend the existing DPDP surface; add a PII Incidents tab or section consistent with its current IA)",
+      "content": [
+        "Server component querying pii_audit_trails for the tenant, newest first.",
+        "Filter chips: risk level, source table, decision, date range (Combobox reuse, zero native selects).",
+        "Row shows: time, surface, detected type badges, risk color (CRITICAL red / HIGH amber / MEDIUM gray), decision, actor.",
+        "Empty state: EmptyStateCTA pattern ('No PII incidents. Content scanning is active across notices, messages, and remarks.').",
+        "Counts strip: incidents this week, blocked, masked. No charts library; simple styled cards (data-visualization only if a lightweight inline component already exists)."
+      ]
+    },
+    "role_omniboxes": {
+      "teacher_pwa": {
+        "surface": "search trigger in the teacher PWA header (magnifier icon) opening the same cmdk palette shell, role-scoped",
+        "resolver": "teacherRouteResolver(intent, entities, scope) in the teacher PWA lib, calling the landed scopeResolver for tenant/teacher identity",
+        "examples": [
+          "'10-A attendance' -> attendance workbench for that section (landed T4 surface)",
+          "'term 1 marks' or 'marks entry 10-A' -> grading queue (T6 surface)",
+          "'my day' -> My Day timeline (T7)",
+          "'substitutions' -> substitutions surface (T8)"
+        ],
+        "constraint": "routes must point ONLY at surfaces that landed in T1-T10; the resolver returns null intent (plain search) for anything outside teacher scope. Teacher never sees admin routes."
+      },
+      "parent_pwa": {
+        "surface": "search trigger in the parent PWA header",
+        "resolver": "parentRouteResolver(intent, entities, wards) mapping to landed P3-P16 surfaces",
+        "examples": [
+          "'fees' -> fee module / dues card (P5-era surfaces)",
+          "'bus' or 'route 4' -> transport tracking card (P7-era surfaces)",
+          "'PTM' -> PTM booking (P4-era surfaces)",
+          "'notices' -> notices hub"
+        ],
+        "constraint": "resolver is ward-scoped: entity params are intersected with the parent's own wards via scope data; a parent can never construct a route for another student. No admin routes. Offline: palette opens from the PWA shell and intent rows for cached routes must work offline; fallback search hides when offline."
+      },
+      "shared_rules": [
+        "Reuse parseOmniboxQuery unchanged for extraction; role resolvers only map (intent, entities) -> route. Do not fork the parser.",
+        "Both resolvers get unit tests with a golden corpus asserting routes match the landed PWA route tree."
+      ]
+    },
+    "bilingual_ner": {
+      "scope": "packages/entity-engine/src/query-ner/patterns.ts",
+      "additions": [
+        "Devanagari + romanized Hindi aliases in every dictionary: CLASS_SECTION ('कक्षा 10', 'दसवीं ए', 'dashvi A'), SUBJECT ('गणित', 'विज्ञान', 'हिंदी', 'अंग्रेजी', 'ganit', 'vigyan'), EXAM_NAME ('प्रथम सत्र', 'अर्धवार्षिक', 'वार्षिक परीक्षा', 'unit test'), FEE_HEAD ('फीस', 'ट्यूशन फीस', 'transport vasuli'), BUS_ROUTE ('बस 12', 'रूट 4'), DATE_TEMPORAL ('आज', 'कल', 'इस सप्ताह', 'कल रात'), ACTION_INTENT ('उपस्थिति', 'अंक दर्ज करें', 'फीस जमा', 'रिपोर्ट कार्ड').",
+        "Entity chip labels render bilingual: if the active form language is Hindi (existing isHindi pattern), chips show Hindi labels; intent actionLabel gets a labelHi variant in the intent dictionary.",
+        "Normalization must fold Devanagari numerals (१० -> 10) before regex matching.",
+        "Do not transliterate the whole query; extend dictionaries only. Budget: patterns file stays < 40KB, parse stays < 5ms."
+      ]
+    },
+    "catalog_completeness": {
+      "requirement": "Register every pgTable exported from database/src/schema/*.ts in ENTITY_GRAPH (see missing list in current_state_audit), each with domain, piiColumns, searchableFields, relationships, tags. For encrypted-prefixed columns keep the existing annotation style (e.g. aadhaarEncrypted).",
+      "guard": "New unit test catalogCompleteness.test.ts: imports every schema module from database/src/schema/index.ts, collects all pgTable names, asserts (a) every schema table is registered in ENTITY_GRAPH, (b) every ENTITY_GRAPH tableName exists in the drizzle schema. Zero orphans in both directions.",
+      "cli": "extend scripts/inspect-entity-engine.ts with a --compliance flag printing coverage percentage."
+    }
+  },
+  "business_logic_rules": [
+    "BR1: The omnibox intent row appears only at confidenceScore >= 0.80. Lower-confidence parses silently degrade to normal search. No guessing UI.",
+    "BR2: Every emitted intent route must exist in the app's real route tree. The ROUTE_REGISTRY is the single source of truth; a test enforces it against a golden corpus.",
+    "BR3: PII scanning is server-side only. Scanner code must never appear in a client bundle; add a bundle-hygiene consideration note (client imports only from @schoolmitra/entity-engine/query-ner).",
+    "BR4: CRITICAL detection blocks the write. There is no 'send anyway' path for CRITICAL; the only way forward is editing the content.",
+    "BR5: HIGH detection offers mask-or-confirm, never silent pass. Masked-send persists redactPII(text, MASK_PARTIAL) output.",
+    "BR6: Every scan decision (BLOCKED, MASKED, CONFIRMED_SEND, LOGGED_ONLY) writes exactly one pii_audit_trails row containing types, counts, decision, and a sha-256 content hash. Raw or masked PII is never stored in the audit table.",
+    "BR7: pii_audit_trails is append-only. No update or delete code path may exist for it.",
+    "BR8: Role omnibox resolvers are scope-enforcing: teacher routes only to teacher's own allocations; parent routes only to own wards. Entity params outside scope resolve to null intent.",
+    "BR9: Hindi and English queries must produce identical intents for equivalent inputs (BR verified by golden corpus pairs).",
+    "BR10: parseOmniboxQuery p95 duration < 5ms over a 200-query corpus (mixed English/Hindi, 4-40 chars) asserted in vitest; failure fails CI.",
+    "BR11: No new npm dependencies; no changes to sw.js caching rules; all tenant reads go through RLS/withTenant patterns; all new modals reuse AppModal/ConfirmDialog."
+  ],
+  "click_budgets": [
+    { "flow": "marks entry for Class 10-A from anywhere", "budget": "Cmd+K, type '10-A marks', Enter = 3 interactions" },
+    { "flow": "same via Hindi", "budget": "Cmd+K, type '10-A अंक', Enter = 3 interactions" },
+    { "flow": "track Route 4 bus", "budget": "Cmd+K, type 'route 4', Enter = 3 interactions" },
+    { "flow": "teacher opens attendance for 10-A", "budget": "tap search, type '10-A attendance', tap intent = 3 interactions" },
+    { "flow": "parent reaches fee dues", "budget": "tap search, type 'fees', tap intent = 3 interactions" },
+    { "flow": "DPO reviews this week's PII incidents", "budget": "open DPDP surface, PII Incidents = 2 clicks from anywhere" }
+  ],
+  "acceptance_criteria": [
+    "AC-E1: CommandPalette renders a pinned intent row (actionLabel + entity chips) whenever parseOmniboxQuery confidenceScore >= 0.80; Enter executes it; regular search results remain available below; behavior at <0.80 is identical to today.",
+    "AC-E2: Zero dead intent routes: every route emitted by ROUTE_REGISTRY for the golden corpus resolves to an existing app route; unit test enforces it; the /admin/* routes are gone.",
+    "AC-E3: query-ner is imported client-side in the palette and runs synchronously; catalog and dpdp-ner are absent from the client bundle.",
+    "AC-E4: migration 0051 creates pii_audit_trails with RLS; the table is registered in ENTITY_GRAPH; catalog tests cover it.",
+    "AC-E5: a Verhoeff-valid Aadhaar (or PAN/bank/card) in a notice body, message, remark, or assignment description blocks save with an inline modal naming detected types; a random 12-digit number does NOT trigger the block.",
+    "AC-E6: a mobile number in a message body opens the mask-or-confirm dialog; masked-send persists MASK_PARTIAL output; both paths write audit rows.",
+    "AC-E7: every one of the five write points calls the shared scanContentForPII helper; no duplicated scan logic; leave reasons follow the relaxed HIGH-warn policy and still audit.",
+    "AC-E8: the DPDP PII Incidents view lists audit rows with risk/source/decision filters, tenant-scoped, with an EmptyStateCTA when empty.",
+    "AC-E9: Hindi queries resolve the same intents as their English equivalents across the golden corpus (Devanagari numerals folded).",
+    "AC-E10: teacher PWA omnibox resolves '10-A attendance' and marks/term/substitution intents to the landed T4/T6/T7/T8 surfaces; out-of-scope intents degrade to plain search.",
+    "AC-E11: parent PWA omnibox resolves fee/bus/PTM/notice intents to landed P-surfaces, ward-scoped; cross-ward routes are impossible.",
+    "AC-E12: catalogCompleteness.test.ts passes with zero orphans in both directions between drizzle schema and ENTITY_GRAPH; inspect CLI --compliance prints 100%.",
+    "AC-E13: perf test asserts p95 parseDurationMs < 5ms over the 200-query bilingual corpus; CI fails otherwise.",
+    "AC-E14: all new UI is dark-mode complete, reuses AppModal/ConfirmDialog/Combobox/EmptyStateCTA, and adds no npm dependency."
+  ],
+  "constraints": [
+    "No new npm dependencies (zod already permitted).",
+    "Scanner and redactor run server-side only; client may import only @schoolmitra/entity-engine/query-ner.",
+    "pii_audit_trails stores hashes and metadata, never raw or masked PII text.",
+    "Do not fork or rewrite parseOmniboxQuery core matching; extend dictionaries and add resolvers.",
+    "Preserve sw.js caching rules and offline-first PWA behavior; offline palette degrades gracefully.",
+    "All tenant-scoped reads through RLS / withTenant; actor_user_id always from session, never from client input.",
+    "Route corrections must not break existing queryNER tests; update them alongside the registry, keeping all previously supported query shapes passing.",
+    "Follow the established commit style: feat(entity-engine): ... one phase per commit, tests green per phase."
+  ],
+  "out_of_scope": [
+    "No new schema domains, no product features beyond wiring.",
+    "No LLM-based NER; the parser stays deterministic rule/dictionary based.",
+    "No changes to consent records, rights requests, or breach log tables beyond adding pii_audit_trails.",
+    "No admin role changes; no new roles.",
+    "Student PWA and other role apps (driver, accountant) get omniboxes in a future spec; this one covers admin shell + teacher + parent only."
+  ],
+  "implementation_order": [
+    {
+      "phase": "E1",
+      "title": "Route registry + CommandPalette NER wiring",
+      "tasks": [
+        "Create packages/entity-engine/src/query-ner/routes.ts with ROUTE_REGISTRY mapped to real app routes; delete hardcoded /admin/* routes from parser.ts; update queryNER tests.",
+        "Add golden corpus route test: every emitted route matches the real route tree.",
+        "Wire parseOmniboxQuery into CommandPalette: synchronous NER pass, intent row at confidence >= 0.80, entity chips, Enter-to-execute, searchEverything results preserved below.",
+        "Dev-only parse duration footer."
+      ]
+    },
+    {
+      "phase": "E2",
+      "title": "pii_audit_trails sink",
+      "tasks": [
+        "Migration 0051 + drizzle schema in dpdp.ts (append-only, RLS, hash-only).",
+        "Register in ENTITY_GRAPH DPDP_PRIVACY; extend catalog tests.",
+        "Server-only helper scanContentForPII with decision enum + audit write."
+      ]
+    },
+    {
+      "phase": "E3",
+      "title": "Content write-point enforcement",
+      "tasks": [
+        "Wire the five write points (notice, parent-teacher message, exam/cocurricular remark, assignment description, leave reason) through scanContentForPII.",
+        "CRITICAL block modal, HIGH mask-or-confirm dialog (AppModal/ConfirmDialog), MEDIUM/LOW log-only.",
+        "Leave reason relaxed HIGH-warn policy.",
+        "Unit tests per write point for each risk path."
+      ]
+    },
+    {
+      "phase": "E4",
+      "title": "DPDP PII Incidents view",
+      "tasks": [
+        "Extend (admin)/dpdp surface with tenant-scoped audit list, filters, counts strip, empty state.",
+        "Dark mode + accessibility pass."
+      ]
+    },
+    {
+      "phase": "E5",
+      "title": "Bilingual NER dictionaries",
+      "tasks": [
+        "Devanagari + romanized aliases across all dictionaries; numeral folding.",
+        "Bilingual entity chip labels + actionLabel variants.",
+        "Corpus pairs tests: Hindi query == English intent."
+      ]
+    },
+    {
+      "phase": "E6",
+      "title": "Teacher + Parent PWA omniboxes",
+      "tasks": [
+        "Shared role palette shell (cmdk) with search trigger in each PWA header.",
+        "teacherRouteResolver + tests against landed T-surfaces.",
+        "parentRouteResolver (ward-scoped) + tests against landed P-surfaces.",
+        "Offline degradation."
+      ]
+    },
+    {
+      "phase": "E7",
+      "title": "Catalog completeness + performance enforcement",
+      "tasks": [
+        "Register all missing drizzle tables in ENTITY_GRAPH (see audit list).",
+        "catalogCompleteness.test.ts zero-orphan guard both directions; CLI --compliance flag.",
+        "Perf test: 200-query bilingual corpus, p95 < 5ms, CI-gating.",
+        "Final acceptance pass AC-E1..AC-E14."
+      ]
+    }
+  ],
+  "definition_of_done": "parseOmniboxQuery answers inside every Cmd+K and both role PWA headers in under 5ms in the user's language; every emitted intent lands on a real screen; no Aadhaar, PAN, bank detail, or contact number can leave the school through a notice, message, or remark without being blocked, masked, or audited; the DPDP desk sees every incident; the catalog describes 100% of the database with zero orphans; and all of it is enforced by tests that fail the build, not by documentation.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/entity-engine-spec.json and reference it from AGENTS.md alongside the previous landed specs.",
+      "Execute phases E1-E7 strictly in order; each phase is one task boundary with its own commit and green tests. Do not start a phase before the previous one is committed.",
+      "Read this spec file fully before editing code. When this spec conflicts with in-repo security constraints (RLS, encryption, DPDP consent, sw.js), the security constraints win; log the conflict in the commit body.",
+      "The current_state_audit defects G1-G7 are the grounding: verify each against the repo before fixing; if any is already fixed at read time, skip it and note it in the commit.",
+      "Real route subpaths under /exams, /fees, /transport and the teacher/parent PWA route trees must be read from the codebase at implementation time, not assumed from this document.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}

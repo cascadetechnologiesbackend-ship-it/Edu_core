@@ -136,11 +136,11 @@ export async function requireAuth(
     }
 
     // 2. If real session user is SUPER_ADMIN and the action explicitly permits SUPER_ADMIN,
-    // grant platform-level SUPER_ADMIN authority (unscoped from the tenant)
+    // grant platform-level SUPER_ADMIN authority (preserving tenant school context if present)
     if (role === "SUPER_ADMIN" && allowedRoles.includes("SUPER_ADMIN")) {
       return {
         userId: session.user.id,
-        schoolId: null,
+        schoolId: schoolId ?? null,
         role: "SUPER_ADMIN",
         email: session.user.email ?? "",
       };
@@ -169,13 +169,41 @@ export async function requireAuth(
 export const requireSchool = safeCache(async function requireSchoolImpl(
   ctx: AuthContext,
 ) {
-  if (!ctx.schoolId) {
+  let schoolId = ctx.schoolId;
+
+  if (!schoolId && ctx.role === "SUPER_ADMIN") {
+    // If SUPER_ADMIN without tenant context, check sm_impersonation or fallback to active school
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = cookies();
+      const impCookie = cookieStore.get("sm_impersonation");
+      if (impCookie?.value) {
+        const { verifyImpersonationToken } = await import("./impersonation");
+        const impData = verifyImpersonationToken(impCookie.value);
+        if (impData?.schoolId) {
+          schoolId = impData.schoolId;
+        }
+      }
+    } catch {}
+
+    if (!schoolId) {
+      const [firstSchool] = await db
+        .select()
+        .from(schools)
+        .where(eq(schools.isActive, true))
+        .limit(1);
+      if (firstSchool) {
+        schoolId = firstSchool.id;
+      }
+    }
+  }
+
+  if (!schoolId) {
     throw new Error(
       "UNAUTHORIZED: no school context. SUPER_ADMIN must use platform-level actions.",
     );
   }
 
-  const schoolId = ctx.schoolId;
   const now = Date.now();
   const school = await getCachedSchool(schoolId);
 

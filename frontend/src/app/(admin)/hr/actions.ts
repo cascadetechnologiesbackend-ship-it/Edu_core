@@ -658,7 +658,7 @@ const CreateStaffSchema = z.object({
     "GUEST_FACULTY",
   ]),
   joiningDate: z.string(),
-  aadhaarLast4: z.string().length(4, "Aadhaar must be last 4 digits only"),
+  aadhaarLast4: z.string().optional().or(z.literal("")),
   pan: z.string().optional(),
   bankName: z.string().optional(),
   bankAccount: z.string().optional(),
@@ -707,7 +707,28 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     }
 
     // 5. Generate role-based temp password: Role@<last4mobile> (fallback to 1234)
-    const authoritativeRole = (desig.isTeaching ? "TEACHER" : (desig.mappedRole || "STAFF")) as UserRole;
+    const VALID_SYSTEM_ROLES = [
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+      "HR_MANAGER",
+      "TEACHER",
+      "ACCOUNTANT",
+      "LIBRARIAN",
+      "TRANSPORT_MANAGER",
+      "PARENT",
+      "STUDENT",
+      "DRIVER",
+    ] as const;
+
+    let authoritativeRole: UserRole = "TEACHER";
+    if (desig.isTeaching) {
+      authoritativeRole = "TEACHER";
+    } else if (desig.mappedRole && (VALID_SYSTEM_ROLES as readonly string[]).includes(desig.mappedRole)) {
+      authoritativeRole = desig.mappedRole as UserRole;
+    } else {
+      authoritativeRole = "SCHOOL_ADMIN";
+    }
     const defaultPassword = generateRoleTempPassword(authoritativeRole, parsed.mobile);
     const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
@@ -805,7 +826,7 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
           emergencyContactEncrypted: parsed.emergencyContact
             ? encryptData(parsed.emergencyContact.trim())
             : null,
-          aadhaarLast4: parsed.aadhaarLast4,
+          aadhaarLast4: parsed.aadhaarLast4?.trim() ? parsed.aadhaarLast4.trim() : null,
           panEncrypted: parsed.pan ? encryptData(parsed.pan.trim().toUpperCase()) : null,
           bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName.trim()) : null,
           bankAccountEncrypted: parsed.bankAccount ? encryptData(parsed.bankAccount.trim()) : null,
