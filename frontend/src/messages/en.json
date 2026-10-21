@@ -222,6 +222,16 @@
       "exceptions": "Exceptions",
       "saved": "Saved",
       "saving": "Saving..."
+    },
+    "substitutions": {
+      "title": "Substitutions & Cover",
+      "requestCover": "Request Cover",
+      "incomingRequests": "Incoming Requests",
+      "myRequests": "My Outgoing Requests",
+      "acceptCover": "Accept Cover",
+      "decline": "Decline",
+      "conflictDetected": "Schedule Conflict Detected",
+      "cancelRequest": "Cancel Request"
     }
   }
 }

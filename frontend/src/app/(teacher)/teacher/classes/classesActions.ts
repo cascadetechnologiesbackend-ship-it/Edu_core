@@ -193,6 +193,12 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
         sql`(${timetableSubstitutions.originalTeacherId} = ${ctx.userId} OR ${timetableSubstitutions.substituteTeacherId} = ${ctx.userId})`
       ),
       with: {
+        timetablePeriod: {
+          with: {
+            section: { with: { class: true } },
+            subject: true,
+          },
+        },
         section: {
           with: { class: true },
         },
@@ -232,7 +238,19 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
 
     for (const b of bellList) {
       const scheduledPeriod = scheduledMap.get(b.periodNumber);
-      const sub = subs.find((s: any) => s.timetablePeriodId === scheduledPeriod?.id);
+      const incomingCover = subs.find(
+        (s: any) =>
+          s.substituteTeacherId === ctx.userId &&
+          s.timetablePeriod?.periodNumber === b.periodNumber &&
+          s.status === "CONFIRMED"
+      );
+      const outgoingSub = scheduledPeriod
+        ? subs.find(
+            (s: any) =>
+              s.timetablePeriodId === scheduledPeriod.id &&
+              s.originalTeacherId === ctx.userId
+          )
+        : null;
 
       const [startH, startM] = b.startTime.split(":").map(Number);
       const [endH, endM] = b.endTime.split(":").map(Number);
@@ -243,30 +261,34 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
       const isPast = nowHours >= endDec;
 
       let substitutionInfo: MyDayPeriodItem["substitution"] = undefined;
-      if (sub) {
-        if (sub.substituteTeacherId === ctx.userId) {
-          substitutionInfo = {
-            type: "INCOMING_COVER",
-            partnerTeacherName: "Staff Colleague",
-            status: sub.status,
-          };
-        } else if (sub.originalTeacherId === ctx.userId) {
-          substitutionInfo = {
-            type: "OUTGOING_COVER",
-            partnerTeacherName: "Cover Assigned",
-            status: sub.status,
-          };
-        }
+      let effectivePeriod = scheduledPeriod;
+
+      if (incomingCover) {
+        effectivePeriod = incomingCover.timetablePeriod;
+        substitutionInfo = {
+          type: "INCOMING_COVER",
+          partnerTeacherName: "Staff Colleague",
+          status: "CONFIRMED",
+        };
+      } else if (outgoingSub) {
+        substitutionInfo = {
+          type: "OUTGOING_COVER",
+          partnerTeacherName:
+            outgoingSub.status === "CONFIRMED"
+              ? "Cover Assigned"
+              : "Awaiting Cover",
+          status: outgoingSub.status,
+        };
       }
 
       const isFree =
-        !scheduledPeriod ||
+        !effectivePeriod ||
         b.periodType === "BREAK" ||
         b.periodType === "LUNCH" ||
         b.periodType === "FREE";
 
       let lessonPlanInfo: MyDayPeriodItem["lessonPlan"] = undefined;
-      if (scheduledPeriod?.subjectId) {
+      if (effectivePeriod?.subjectId) {
         const lp = plans.find((p: any) => p.status !== "COMPLETED") || plans[0];
         if (lp) {
           lessonPlanInfo = {
@@ -285,13 +307,18 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
         endTime: b.endTime,
         periodType: b.periodType,
         isFree,
-        classId: scheduledPeriod?.section?.class?.id,
-        className: scheduledPeriod?.section?.class?.displayName || scheduledPeriod?.section?.class?.name,
-        sectionId: scheduledPeriod?.section?.id,
-        sectionName: scheduledPeriod?.section?.name,
-        subjectId: scheduledPeriod?.subject?.id,
-        subjectName: scheduledPeriod?.subject?.name,
-        roomNumber: scheduledPeriod?.roomNumber || scheduledPeriod?.section?.roomNumber || "Room 101",
+        classId: effectivePeriod?.section?.class?.id,
+        className:
+          effectivePeriod?.section?.class?.displayName ||
+          effectivePeriod?.section?.class?.name,
+        sectionId: effectivePeriod?.section?.id,
+        sectionName: effectivePeriod?.section?.name,
+        subjectId: effectivePeriod?.subject?.id,
+        subjectName: effectivePeriod?.subject?.name,
+        roomNumber:
+          effectivePeriod?.roomNumber ||
+          effectivePeriod?.section?.roomNumber ||
+          "Room 101",
         isNow,
         isPast,
         substitution: substitutionInfo,

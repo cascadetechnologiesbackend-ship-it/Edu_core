@@ -8,6 +8,10 @@ import {
   TeacherSectionSummary,
   StudentRosterRow,
 } from "./classesActions";
+import {
+  getTeacherSubstitutions,
+  TeacherSubstitutionItem,
+} from "./substitutionsActions";
 
 export const metadata: Metadata = {
   title: "My Classes & Rosters | Educator PWA",
@@ -24,7 +28,8 @@ export default async function TeacherClassesPage({
   const resolvedParams =
     searchParams instanceof Promise ? await searchParams : searchParams || {};
 
-  const activeTab = (resolvedParams.tab as "myday" | "rosters") || "myday";
+  const activeTab =
+    (resolvedParams.tab as "myday" | "rosters" | "substitutions") || "myday";
 
   // 1. Fetch My Day Timeline
   let timeline: MyDayPeriodItem[] = [];
@@ -54,6 +59,18 @@ export default async function TeacherClassesPage({
     console.error("[TeacherClassesPage] Error fetching rosters:", err);
   }
 
+  // 3. Fetch Substitutions
+  let substitutions: {
+    incoming: TeacherSubstitutionItem[];
+    outgoing: TeacherSubstitutionItem[];
+  } = { incoming: [], outgoing: [] };
+
+  try {
+    substitutions = await getTeacherSubstitutions();
+  } catch (err) {
+    console.error("[TeacherClassesPage] Error fetching substitutions:", err);
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -80,6 +97,7 @@ export default async function TeacherClassesPage({
           sections={sections}
           initialSelectedSectionId={selectedSectionId}
           initialStudents={students}
+          initialSubstitutions={substitutions}
         />
       </Suspense>
     </div>

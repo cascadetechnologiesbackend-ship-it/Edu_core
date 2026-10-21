@@ -222,6 +222,16 @@
       "exceptions": "अपवाद",
       "saved": "दर्ज",
       "saving": "सहेजा जा रहा है..."
+    },
+    "substitutions": {
+      "title": "स्थानापन्न प्रबंधन",
+      "requestCover": "कवर का अनुरोध करें",
+      "incomingRequests": "आने वाले अनुरोध",
+      "myRequests": "मेरे अनुरोध",
+      "acceptCover": "कवर स्वीकार करें",
+      "decline": "अस्वीकार करें",
+      "conflictDetected": "समय टकराव पाया गया",
+      "cancelRequest": "अनुरोध रद्द करें"
     }
   }
 }
