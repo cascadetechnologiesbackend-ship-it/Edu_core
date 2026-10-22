@@ -96,7 +96,7 @@ export async function assembleAcademicSnapshot(
     where: and(
       eq(studentSubjectEnrollments.schoolId, schoolId),
       eq(studentSubjectEnrollments.studentId, studentId),
-      eq(studentSubjectEnrollments.status, "ACTIVE")
+      eq(studentSubjectEnrollments.enrollmentStatus, "ACTIVE")
     ),
   });
 
@@ -297,10 +297,10 @@ export async function assembleAcademicSnapshot(
       ),
       with: {
         chapters: {
-          where: eq(syllabusChapters.isActive, true),
+          where: (ch: any, { eq }: any) => eq(ch.isActive, true),
           with: {
             topics: {
-              where: eq(syllabusTopics.isActive, true),
+              where: (tp: any, { eq }: any) => eq(tp.isActive, true),
             },
           },
         },
