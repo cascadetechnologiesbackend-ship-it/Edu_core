@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/validators",
-  "version": "11.22.2",
+  "version": "11.22.3",
   "private": true,
   "description": "Shared Zod validation schemas for SchoolMitra ERP",
   "main": "./src/index.ts",
