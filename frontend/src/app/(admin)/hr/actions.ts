@@ -837,20 +837,20 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
           genderEncrypted: encryptData(genderVal),
           mobileEncrypted: encryptData(cleanMobile),
           emailEncrypted: encryptData(emailNormalized),
-          addressEncrypted: parsed.address ? encryptData(parsed.address.trim()) : null,
-          state: parsed.state || null,
-          district: parsed.district || null,
-          pincode: parsed.pincode || null,
-          emergencyContactEncrypted: parsed.emergencyContact
+          addressEncrypted: parsed.address?.trim() ? encryptData(parsed.address.trim()) : null,
+          state: parsed.state?.trim() || null,
+          district: parsed.district?.trim() || null,
+          pincode: parsed.pincode?.trim() || null,
+          emergencyContactEncrypted: parsed.emergencyContact?.trim()
             ? encryptData(parsed.emergencyContact.trim())
             : null,
           aadhaarLast4: parsed.aadhaarLast4?.trim() ? parsed.aadhaarLast4.trim() : null,
-          panEncrypted: parsed.pan ? encryptData(parsed.pan.trim().toUpperCase()) : null,
-          bankNameEncrypted: parsed.bankName ? encryptData(parsed.bankName.trim()) : null,
-          bankAccountEncrypted: parsed.bankAccount ? encryptData(parsed.bankAccount.trim()) : null,
-          bankIfscEncrypted: parsed.bankIfsc ? encryptData(parsed.bankIfsc.trim().toUpperCase()) : null,
-          qualification: parsed.qualification || null,
-          experience: parsed.experience || null,
+          panEncrypted: parsed.pan?.trim() ? encryptData(parsed.pan.trim().toUpperCase()) : null,
+          bankNameEncrypted: parsed.bankName?.trim() ? encryptData(parsed.bankName.trim()) : null,
+          bankAccountEncrypted: parsed.bankAccount?.trim() ? encryptData(parsed.bankAccount.trim()) : null,
+          bankIfscEncrypted: parsed.bankIfsc?.trim() ? encryptData(parsed.bankIfsc.trim().toUpperCase()) : null,
+          qualification: parsed.qualification?.trim() || null,
+          experience: parsed.experience?.trim() || null,
           isActive: true,
           legalHold: false,
           createdAt: new Date(),
@@ -929,6 +929,19 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       return { success: false, message: msg || "Validation failed." };
     }
     console.error("createStaff error:", error);
+
+    // Human-friendly handling for Postgres unique constraint violations (code 23505)
+    if (error?.code === "23505") {
+      const detail = String(error?.detail || error?.message || "").toLowerCase();
+      if (detail.includes("email") || error?.constraint?.includes("email")) {
+        return { success: false, message: "A user account with this email already exists." };
+      }
+      if (detail.includes("employee_code") || error?.constraint?.includes("employee_code")) {
+        return { success: false, message: "A staff member with this employee code already exists." };
+      }
+      return { success: false, message: "A record with these unique details already exists." };
+    }
+
     return { success: false, message: error?.message || "Failed to create staff member." };
   }
 }
