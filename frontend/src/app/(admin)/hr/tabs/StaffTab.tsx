@@ -138,16 +138,50 @@ export function StaffTab({
     forceReassign: false,
   });
 
+  const handleTrackChange = (track: "TEACHING" | "NON_TEACHING") => {
+    if (track === selectedTrack) return;
+    setSelectedTrack(track);
+    setStaffForm((prev) => ({
+      ...prev,
+      departmentId: "",
+      designationId: "",
+    }));
+  };
+
   // Track-filtered departments & designations for onboarding form
   const trackDepartments = useMemo(() => {
-    return departments.map((d) => ({
+    const isTeaching = selectedTrack === "TEACHING";
+
+    const filtered = departments.filter((dept) => {
+      // 1. Designation-based matching: if any designation linked to this department matches track
+      const deptDesignations = designations.filter((des) => des.departmentId === dept.id);
+      if (deptDesignations.length > 0) {
+        if (isTeaching) {
+          return deptDesignations.some((des) => Boolean(des.isTeaching));
+        } else {
+          return deptDesignations.some((des) => !des.isTeaching);
+        }
+      }
+
+      // 2. Keyword fallback for newly created departments without designations yet
+      const name = (dept.name || "").toLowerCase();
+      const isOperationalOrAdmin = /finance|account|human resource|\bhr\b|transport|fleet|facilit|campus|maintenance|security|\bit\b|technology|bursar/i.test(name);
+      const isPureClassroomAcademic = /^(pre-primary|primary|middle school|high school|senior secondary)\s+academic\s+department$/i.test(name.trim());
+
+      if (isTeaching) {
+        if (isOperationalOrAdmin) return false;
+        return /academic|teach|faculty|curriculum|primary|middle|high|secondary|kg|kindergarten|science|math|language|english|hindi|social|arts/i.test(name);
+      } else {
+        if (isPureClassroomAcademic) return false;
+        return true;
+      }
+    });
+
+    return filtered.map((d) => ({
       value: d.id,
       label: d.name,
-      group: d.name.toLowerCase().includes("academic") || d.name.toLowerCase().includes("teach") || d.name.toLowerCase().includes("school")
-        ? "Teaching"
-        : "Non-Teaching",
     }));
-  }, [departments]);
+  }, [departments, designations, selectedTrack]);
 
   const trackDesignations = useMemo(() => {
     const isTeachingTarget = selectedTrack === "TEACHING";
@@ -714,36 +748,42 @@ export function StaffTab({
         </div>
       </div>
 
-      {/* ─── ONBOARD STAFF MODAL (AppModal size="xl") ───────────────────────── */}
+      {/* ─── ONBOARD STAFF MODAL (AppModal size="4xl") ───────────────────────── */}
       <AppModal
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        size="xl"
+        size="4xl"
         title={
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            <span>Onboard Staff Member</span>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-base sm:text-lg">Onboard Staff Member</span>
+              <p className="text-xs font-normal text-gray-500 dark:text-gray-400 mt-0.5">
+                Categorized faculty track onboarding with online postal PIN code address verification.
+              </p>
+            </div>
           </div>
         }
-        description="Categorized teaching/non-teaching onboarding with instant pincode address resolution."
       >
-        <form onSubmit={handleCreateStaffSubmit} className="space-y-6 text-xs">
+        <form onSubmit={handleCreateStaffSubmit} className="space-y-5 text-xs pt-1">
           {/* Track Selection Cards (Law L11 & Surface 8) */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
               Select Staff Faculty Track
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <button
                 type="button"
-                onClick={() => setSelectedTrack("TEACHING")}
-                className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all ${
+                onClick={() => handleTrackChange("TEACHING")}
+                className={`p-3.5 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                   selectedTrack === "TEACHING"
                     ? "border-primary bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/20 shadow-xs"
-                    : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700"
+                    : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
                 }`}
               >
-                <div className={`p-2.5 rounded-xl ${selectedTrack === "TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
+                <div className={`p-2.5 rounded-xl shrink-0 ${selectedTrack === "TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
@@ -756,14 +796,14 @@ export function StaffTab({
 
               <button
                 type="button"
-                onClick={() => setSelectedTrack("NON_TEACHING")}
-                className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all ${
+                onClick={() => handleTrackChange("NON_TEACHING")}
+                className={`p-3.5 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                   selectedTrack === "NON_TEACHING"
                     ? "border-primary bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/20 shadow-xs"
-                    : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700"
+                    : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
                 }`}
               >
-                <div className={`p-2.5 rounded-xl ${selectedTrack === "NON_TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
+                <div className={`p-2.5 rounded-xl shrink-0 ${selectedTrack === "NON_TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
                   <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
@@ -777,7 +817,7 @@ export function StaffTab({
           </div>
 
           {/* Department & Designation Comboboxes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                 Department <span className="text-rose-500">*</span>
@@ -785,8 +825,8 @@ export function StaffTab({
               <Combobox
                 options={trackDepartments}
                 value={staffForm.departmentId}
-                onChange={(deptId) => setStaffForm({ ...staffForm, departmentId: deptId })}
-                placeholder="Choose Department..."
+                onChange={(deptId) => setStaffForm({ ...staffForm, departmentId: deptId, designationId: "" })}
+                placeholder={selectedTrack === "TEACHING" ? "Choose Academic Department..." : "Choose Administrative Department..."}
                 searchPlaceholder="Search departments..."
                 allowCreate={true}
                 createLabel="Create new Department"
@@ -803,7 +843,7 @@ export function StaffTab({
                 options={trackDesignations}
                 value={staffForm.designationId}
                 onChange={(desigId) => setStaffForm({ ...staffForm, designationId: desigId })}
-                placeholder="Choose Designation..."
+                placeholder={selectedTrack === "TEACHING" ? "Choose Academic Designation..." : "Choose Administrative Designation..."}
                 searchPlaceholder="Search designations..."
                 allowCreate={true}
                 createLabel="Create new Designation"
@@ -813,8 +853,8 @@ export function StaffTab({
             </div>
           </div>
 
-          {/* Personal Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Personal Information (3 Columns) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
                 First Name <span className="text-rose-500">*</span>
@@ -825,7 +865,7 @@ export function StaffTab({
                 value={staffForm.firstName}
                 onChange={(e) => setStaffForm({ ...staffForm, firstName: e.target.value })}
                 placeholder="e.g. Priya"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -839,7 +879,7 @@ export function StaffTab({
                 value={staffForm.lastName}
                 onChange={(e) => setStaffForm({ ...staffForm, lastName: e.target.value })}
                 placeholder="e.g. Sharma"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -853,13 +893,10 @@ export function StaffTab({
                 value={staffForm.employeeCode}
                 onChange={(e) => setStaffForm({ ...staffForm, employeeCode: e.target.value })}
                 placeholder="e.g. EMP-101"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
-          </div>
 
-          {/* Contact & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
                 Email Address <span className="text-rose-500">*</span>
@@ -870,7 +907,7 @@ export function StaffTab({
                 value={staffForm.email}
                 onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
                 placeholder="priya.sharma@school.edu"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -884,7 +921,7 @@ export function StaffTab({
                 value={staffForm.mobile}
                 onChange={(e) => setStaffForm({ ...staffForm, mobile: e.target.value })}
                 placeholder="9876543210"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -896,16 +933,21 @@ export function StaffTab({
                 type="date"
                 value={staffForm.joiningDate}
                 onChange={(e) => setStaffForm({ ...staffForm, joiningDate: e.target.value })}
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
           </div>
 
           {/* Address Block via AddressAutofill (Surface 9) */}
           <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 space-y-3">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300">
-              Address & Geographical Location
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                Residential Address & Geographical Location
+              </h4>
+              <span className="text-[11px] text-gray-400 hidden sm:inline">
+                Instant online postal address resolution from India Post
+              </span>
+            </div>
             <AddressAutofill
               value={addressForm}
               onChange={setAddressForm}
@@ -914,7 +956,7 @@ export function StaffTab({
           </div>
 
           {/* Statutory PII (Aadhaar last 4, PAN, Bank) */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
                 Aadhaar Last 4 <span className="text-rose-500">*</span>
@@ -926,7 +968,7 @@ export function StaffTab({
                 value={staffForm.aadhaarLast4}
                 onChange={(e) => setStaffForm({ ...staffForm, aadhaarLast4: e.target.value.replace(/\D/g, "") })}
                 placeholder="1234"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -940,7 +982,7 @@ export function StaffTab({
                 value={staffForm.pan}
                 onChange={(e) => setStaffForm({ ...staffForm, pan: e.target.value.toUpperCase() })}
                 placeholder="ABCDE1234F"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -953,7 +995,7 @@ export function StaffTab({
                 value={staffForm.bankName}
                 onChange={(e) => setStaffForm({ ...staffForm, bankName: e.target.value })}
                 placeholder="State Bank of India"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -966,7 +1008,7 @@ export function StaffTab({
                 value={staffForm.bankAccount}
                 onChange={(e) => setStaffForm({ ...staffForm, bankAccount: e.target.value })}
                 placeholder="Account number"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
           </div>

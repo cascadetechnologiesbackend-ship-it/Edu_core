@@ -60,6 +60,34 @@ export function Combobox({
   const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Fix mouse-wheel scrolling when rendered inside Radix Dialog / AppModal modals
+  useEffect(() => {
+    if (!open) return;
+    const contentEl = contentRef.current;
+    const listEl = listRef.current;
+    if (!contentEl || !listEl) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent parent dialog / react-remove-scroll from intercepting the wheel event
+      e.stopPropagation();
+
+      const { scrollTop, scrollHeight, clientHeight } = listEl;
+      const canScrollDown = e.deltaY > 0 && scrollTop + clientHeight < scrollHeight;
+      const canScrollUp = e.deltaY < 0 && scrollTop > 0;
+
+      if (canScrollDown || canScrollUp) {
+        e.preventDefault();
+        listEl.scrollTop += e.deltaY;
+      }
+    };
+
+    contentEl.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      contentEl.removeEventListener("wheel", handleWheel);
+    };
+  }, [open]);
 
   // Group filtering
   const visibleOptions = useMemo(() => {
@@ -222,8 +250,11 @@ export function Combobox({
 
         <Popover.Portal>
           <Popover.Content
+            ref={contentRef}
             align="start"
             sideOffset={4}
+            data-radix-scroll-lock-ignore="true"
+            data-scroll-lock-ignore="true"
             className="z-50 w-(--radix-popover-trigger-width) min-w-[240px] max-w-[420px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl p-1 text-xs md:text-sm animate-in fade-in-0 zoom-in-95"
             onKeyDown={handleKeyDown}
           >
@@ -270,6 +301,9 @@ export function Combobox({
               ref={listRef}
               id={`${inputId}-listbox`}
               role="listbox"
+              data-radix-scroll-lock-ignore="true"
+              data-scroll-lock-ignore="true"
+              onWheel={(e) => e.stopPropagation()}
               className="max-h-60 overflow-y-auto overflow-x-hidden space-y-0.5 p-0.5"
             >
               {groupedOptions.map((g, gIdx) => (

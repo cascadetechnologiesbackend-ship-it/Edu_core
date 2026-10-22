@@ -75,11 +75,12 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
-      // Webhook, health, and telemetry endpoints have internal validation or public ingress
+      // Webhook, health, telemetry, and pincode reference endpoints
       if (
         pathname.startsWith("/api/webhooks") ||
         pathname.startsWith("/api/health") ||
-        pathname.startsWith("/api/telemetry")
+        pathname.startsWith("/api/telemetry") ||
+        pathname.startsWith("/api/pincode")
       ) {
         return true;
       }
