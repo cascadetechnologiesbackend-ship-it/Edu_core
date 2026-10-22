@@ -3,7 +3,7 @@
 import { useState, useMemo, useDeferredValue, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, UserPlus, Users, ChevronRight, Filter } from "lucide-react";
+import { Search, UserPlus, Users, ChevronRight, Filter, ShieldAlert } from "lucide-react";
 import { searchStudentsAction } from "./actions";
 import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
 import { getAvatarColor, getInitials } from "@/lib/utils";
