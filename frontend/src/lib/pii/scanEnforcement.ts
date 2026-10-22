@@ -160,8 +160,8 @@ export async function scanContentForPII(
     matchCount,
     detectedPII,
     decision,
-    redactedText,
+    ...(redactedText !== undefined ? { redactedText } : {}),
     contentHash,
-    auditTrailId,
+    ...(auditTrailId !== undefined ? { auditTrailId } : {}),
   };
 }

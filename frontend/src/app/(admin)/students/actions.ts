@@ -454,7 +454,7 @@ export async function inviteAndLinkParentAction(studentId: string) {
       schoolId: school.id,
       studentId,
       primaryEmail: primaryEmail.trim(),
-      primaryMobile: primaryMobile?.trim(),
+      primaryMobile: primaryMobile?.trim() ?? null,
       guardianName: guardianName.trim(),
       performedByUserId: ctx.userId,
     });

@@ -178,21 +178,21 @@ describe("Academic Feed Data Layer & Derivation (Phase F4)", () => {
 
       // 1. Homework verified
       expect(result.homework).toHaveLength(1);
-      expect(result.homework[0].title).toBe("Quadratic Equations Exercise 4.2");
-      expect(result.homework[0].subjectName).toBe("Mathematics");
-      expect(result.homework[0].teacherName).toBe("Ananya Sharma");
-      expect(result.homework[0].isSubmitted).toBe(false);
+      expect(result.homework[0]!.title).toBe("Quadratic Equations Exercise 4.2");
+      expect(result.homework[0]!.subjectName).toBe("Mathematics");
+      expect(result.homework[0]!.teacherName).toBe("Ananya Sharma");
+      expect(result.homework[0]!.isSubmitted).toBe(false);
 
       // 2. Classwork verified
       expect(result.classwork).toHaveLength(1);
-      expect(result.classwork[0].subjectName).toBe("Mathematics");
-      expect(result.classwork[0].chapterName).toBe("Chapter 4: Quadratic Equations");
-      expect(result.classwork[0].homework).toBe("Exercise 4.2 Q1-Q5");
+      expect(result.classwork[0]!.subjectName).toBe("Mathematics");
+      expect(result.classwork[0]!.chapterName).toBe("Chapter 4: Quadratic Equations");
+      expect(result.classwork[0]!.homework).toBe("Exercise 4.2 Q1-Q5");
 
       // 3. Syllabus Coverage verified
       expect(result.syllabusCoverage).toBeDefined();
-      expect(result.syllabusCoverage?.items[0].unitTitle).toBe("Unit 2: Algebra");
-      expect(result.syllabusCoverage?.items[0].topicTitle).toContain("Factorisation");
+      expect(result.syllabusCoverage?.items[0]!.unitTitle).toBe("Unit 2: Algebra");
+      expect(result.syllabusCoverage?.items[0]!.topicTitle).toContain("Factorisation");
 
       // 4. Curriculum Progress verified
       expect(result.curriculumProgress).toBeDefined();
@@ -206,8 +206,8 @@ describe("Academic Feed Data Layer & Derivation (Phase F4)", () => {
 
       // 5. Assessments verified
       expect(result.upcomingAssessments).toHaveLength(1);
-      expect(result.upcomingAssessments[0].title).toBe("Mid-Term Assessment — Algebra");
-      expect(result.upcomingAssessments[0].maxMarks).toBe(50);
+      expect(result.upcomingAssessments[0]!.title).toBe("Mid-Term Assessment — Algebra");
+      expect(result.upcomingAssessments[0]!.maxMarks).toBe(50);
     });
   });
 
@@ -359,14 +359,14 @@ describe("Academic Feed Data Layer & Derivation (Phase F4)", () => {
       const feed = deriveParentFeed(studentId, now, snapshot);
 
       // Pinned items come first
-      expect(feed[0].isPinned).toBe(true);
-      expect(feed[1].isPinned).toBe(true);
-      expect(feed[0].cardType).toMatch(/PaymentCard|AttendanceCard/);
-      expect(feed[1].cardType).toMatch(/PaymentCard|AttendanceCard/);
+      expect(feed[0]!.isPinned).toBe(true);
+      expect(feed[1]!.isPinned).toBe(true);
+      expect(feed[0]!.cardType).toMatch(/PaymentCard|AttendanceCard/);
+      expect(feed[1]!.cardType).toMatch(/PaymentCard|AttendanceCard/);
 
       // Unpinned academic card follows
-      expect(feed[2].cardType).toBe("ClassworkPostCard");
-      expect(feed[2].isPinned).toBe(false);
+      expect(feed[2]!.cardType).toBe("ClassworkPostCard");
+      expect(feed[2]!.isPinned).toBe(false);
     });
 
     it("merges multi-ward academic cards chronologically with ward attribution", () => {
@@ -399,10 +399,10 @@ describe("Academic Feed Data Layer & Derivation (Phase F4)", () => {
 
       expect(merged).toHaveLength(2);
       // Newest occurredAt first (10:30 before 09:00)
-      expect(merged[0].payload.subjectName).toBe("History");
-      expect(merged[0].wardName).toBe("Priya");
-      expect(merged[1].payload.subjectName).toBe("Science");
-      expect(merged[1].wardName).toBe("Aarav");
+      expect(merged[0]!.payload.subjectName).toBe("History");
+      expect(merged[0]!.wardName).toBe("Priya");
+      expect(merged[1]!.payload.subjectName).toBe("Science");
+      expect(merged[1]!.wardName).toBe("Aarav");
     });
   });
 });

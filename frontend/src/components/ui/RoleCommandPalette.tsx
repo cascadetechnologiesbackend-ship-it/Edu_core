@@ -35,7 +35,7 @@ import {
 export interface RoleCommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  role: "TEACHER" | "PARENT" | "DRIVER";
+  role: "TEACHER" | "PARENT" | "DRIVER" | "STUDENT";
   scope?: TeacherScopeContext;
   wards?: ParentWardContext[];
 }
@@ -71,17 +71,16 @@ export function RoleCommandPalette({
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsOffline(!navigator.onLine);
-      const handleOnline = () => setIsOffline(false);
-      const handleOffline = () => setIsOffline(true);
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-      return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-      };
-    }
+    if (typeof window === "undefined") return;
+    setIsOffline(!navigator.onLine);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   // Keyboard shortcut: Cmd+K / Ctrl+K
@@ -207,7 +206,45 @@ export function RoleCommandPalette({
     },
   ];
 
-  const shortcuts = role === "TEACHER" ? teacherShortcuts : parentShortcuts;
+  const studentShortcuts = [
+    {
+      label: "Homework & Assignments",
+      href: "/student/homework",
+      icon: <FileText className="w-4 h-4 text-emerald-400" />,
+      badge: "Pending",
+    },
+    {
+      label: "Class Timetable",
+      href: "/student/timetable",
+      icon: <Clock className="w-4 h-4 text-blue-400" />,
+      badge: "Schedule",
+    },
+    {
+      label: "Marks & Progress",
+      href: "/student/marks",
+      icon: <FileSpreadsheet className="w-4 h-4 text-amber-400" />,
+      badge: "Exams",
+    },
+    {
+      label: "Attendance Register",
+      href: "/student/attendance",
+      icon: <Calendar className="w-4 h-4 text-indigo-400" />,
+      badge: "Daily",
+    },
+    {
+      label: "Fee Details",
+      href: "/student/fees",
+      icon: <CreditCard className="w-4 h-4 text-purple-400" />,
+      badge: "Dues",
+    },
+  ];
+
+  const shortcuts =
+    role === "TEACHER"
+      ? teacherShortcuts
+      : role === "STUDENT"
+      ? studentShortcuts
+      : parentShortcuts;
   const filteredShortcuts = query.trim()
     ? shortcuts.filter((s) =>
         s.label.toLowerCase().includes(query.toLowerCase()) ||
@@ -216,7 +253,7 @@ export function RoleCommandPalette({
     : shortcuts;
 
   const accentBorder =
-    role === "TEACHER"
+    role === "TEACHER" || role === "STUDENT"
       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
       : "border-indigo-500/40 bg-indigo-500/10 text-indigo-300";
 

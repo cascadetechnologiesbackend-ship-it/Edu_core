@@ -57,6 +57,7 @@ import type {
 import { resolveParentWards, type ParentWard } from "@/lib/parentEventEngine/resolveParentWards";
 import { ParentFeedContainer } from "@/components/parent/ParentFeedContainer";
 import type { StudentWardOption } from "@/components/parent/ParentIdentityHeader";
+import { decryptData } from "@/lib/encryption";
 
 export const metadata = {
   title: "Parent Companion Feed | SchoolMitra ERP",

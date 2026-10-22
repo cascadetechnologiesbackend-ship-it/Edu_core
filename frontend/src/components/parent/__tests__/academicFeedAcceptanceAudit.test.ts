@@ -27,6 +27,7 @@ import { ClassworkDetailModal } from "../modals/ClassworkDetailModal";
 import { SyllabusDetailModal } from "../modals/SyllabusDetailModal";
 import { AssessmentDetailModal } from "../modals/AssessmentDetailModal";
 import { ParentFeedContainer } from "../ParentFeedContainer";
+import type { StudentWardOption } from "../ParentIdentityHeader";
 
 describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to AC-19)", () => {
   const studentId = "student-ward-ac-audit";
@@ -340,23 +341,29 @@ describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to
       },
     ];
 
+    const studentOpt: StudentWardOption = {
+      id: "ward-1",
+      name: "Aarav Sharma",
+      className: "Class 8",
+      sectionName: "A",
+      admissionNumber: "ADM-001",
+    };
     const element = React.createElement(ParentFeedContainer, {
-      cards: mockCards,
-      studentName: "Aarav Sharma",
-      className: "Class 8-A",
+      initialCards: mockCards,
+      currentStudent: studentOpt,
+      availableStudents: [studentOpt],
       locale: "en",
-      onRefresh: async () => {},
     });
 
     expect(React.isValidElement(element)).toBe(true);
-    expect(element.props.cards).toHaveLength(3);
+    expect((element.props as any).initialCards).toHaveLength(3);
   });
 
   // ─── AC-13: Every Card Opens Populated Detail Modal in One Tap ───────────────
   it("AC-13: Every academic card connects to its dedicated detail modal with zero dead routes", () => {
     // 1. HomeworkDetailModal
     const hwModal = React.createElement(HomeworkDetailModal, {
-      isOpen: true,
+      open: true,
       onClose: () => {},
       homework: {
         id: "hw-1",
@@ -364,11 +371,12 @@ describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to
         subjectName: "Mathematics",
         description: "Solve problems 1 to 10",
         dueDate: now.toISOString(),
-        submissionStatus: { en: "Submitted", hi: "जमा किया" },
-        marksAwarded: 20,
-        teacherRemarks: "Well done!",
+        isSubmitted: true,
+        submission: {
+          submittedAt: now.toISOString(),
+          marksAwarded: 20,
+        },
         teacherName: "Mr. Sharma",
-        hasAttachment: true,
       },
       locale: "en",
     });
@@ -376,13 +384,13 @@ describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to
 
     // 2. ClassworkDetailModal
     const cwModal = React.createElement(ClassworkDetailModal, {
-      isOpen: true,
+      open: true,
       onClose: () => {},
       classwork: {
-        lessonPlanId: "lp-1",
+        id: "lp-1",
         subjectName: "Science",
         chapterName: "Acids and Bases",
-        topicTitle: "Indicators",
+        topicName: "Indicators",
         objectives: "Chemical test for acids",
         homework: "Read Chapter 4",
         teacherName: "Dr. Verma",
@@ -394,12 +402,19 @@ describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to
 
     // 3. SyllabusDetailModal
     const sylModal = React.createElement(SyllabusDetailModal, {
-      isOpen: true,
+      open: true,
       onClose: () => {},
       data: {
-        subjectName: "Social Science",
-        coverageList: [],
-        progressList: [],
+        termName: "Term 1",
+        subjects: [
+          {
+            subjectId: "subj-1",
+            subjectName: "Social Science",
+            completedTopicsCount: 5,
+            totalTopicsCount: 10,
+            progressPercent: 50,
+          },
+        ],
       },
       locale: "en",
     });
@@ -407,16 +422,17 @@ describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to
 
     // 4. AssessmentDetailModal
     const asmModal = React.createElement(AssessmentDetailModal, {
-      isOpen: true,
+      open: true,
       onClose: () => {},
       assessment: {
-        assessmentId: "asm-1",
+        id: "asm-1",
         title: "Mid-Term Examination",
         subjectName: "English",
-        type: "MID_TERM",
+        assessmentType: "MID_TERM",
         scheduledDate: now.toISOString(),
         syllabusCoverage: "All Units 1 through 4",
         maxMarks: 80,
+        status: "SCHEDULED",
       },
       locale: "en",
     });
@@ -459,6 +475,8 @@ describe("Academic Feed Specification v1.0: End-to-End Acceptance Audit (AC-1 to
   // ─── AC-16: Teacher Feed HomeworkDue & ClassworkPending Cards ────────────────
   it("AC-16: Teacher Feed derives HomeworkDueCard and ClassworkPendingCard while preserving zero-clutter", () => {
     const teacherSnapshot: TeacherDataSnapshot = {
+      teacherUserId: "teacher-1",
+      isWorkingDay: true,
       teacherName: "Anjali Gupta",
       upcomingHomeworkDue: [
         {

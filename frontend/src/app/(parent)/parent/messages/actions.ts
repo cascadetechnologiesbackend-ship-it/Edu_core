@@ -36,7 +36,7 @@ export async function sendParentTeacherMessage(input: {
     surface,
     sourceTable: "parent_teacher_messages",
     text: input.content,
-    decisionOverride: input.decisionOverride,
+    ...(input.decisionOverride ? { decisionOverride: input.decisionOverride } : {}),
   });
 
   if (piiCheck.decision === "BLOCKED") {

@@ -56,7 +56,7 @@ describe("Phase F5: Academic Feed UX (Instagram-Style Stream & Detail Modals)", 
     expect(element.props.card.payload.subjectName).toBe("Mathematics");
 
     // Simulate card tap
-    element.props.onOpenDetail({
+    element.props.onOpenDetail?.({
       id: card.payload.homeworkId,
       title: card.payload.title,
       subjectName: card.payload.subjectName,
@@ -107,7 +107,7 @@ describe("Phase F5: Academic Feed UX (Instagram-Style Stream & Detail Modals)", 
     expect(element.props.card.payload.chapterName).toBe("Acids, Bases and Salts");
     expect(element.props.card.payload.homework).toContain("NCERT section 4.3");
 
-    element.props.onOpenDetail({});
+    element.props.onOpenDetail?.({});
     expect(detailOpened).toBe(true);
   });
 
@@ -210,7 +210,7 @@ describe("Phase F5: Academic Feed UX (Instagram-Style Stream & Detail Modals)", 
     expect(element).toBeDefined();
     expect(element.props.card.payload.maxMarks).toBe(40);
 
-    element.props.onOpenDetail(element.props.card.payload);
+    element.props.onOpenDetail?.(element.props.card.payload);
     expect(detailData.assessmentType).toBe("UNIT_TEST");
     expect(detailData.maxMarks).toBe(40);
   });

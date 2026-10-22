@@ -110,12 +110,12 @@ describe("Shared Ward Resolver (resolveParentWards)", () => {
     );
 
     expect(wards).toHaveLength(1);
-    expect(wards[0].id).toBe("student-1");
-    expect(wards[0].fullName).toBe("Aarav Sharma");
-    expect(wards[0].className).toBe("Class 10");
-    expect(wards[0].sectionName).toBe("A");
-    expect(wards[0].schoolId).toBe(schoolA);
-    expect(wards[0].isActive).toBe(true);
+    expect(wards[0]!.id).toBe("student-1");
+    expect(wards[0]!.fullName).toBe("Aarav Sharma");
+    expect(wards[0]!.className).toBe("Class 10");
+    expect(wards[0]!.sectionName).toBe("A");
+    expect(wards[0]!.schoolId).toBe(schoolA);
+    expect(wards[0]!.isActive).toBe(true);
   });
 
   it("returns empty array for ADMIN preview when searchParamStudentId is omitted (D6 demoStudent elimination)", async () => {
@@ -155,8 +155,8 @@ describe("Shared Ward Resolver (resolveParentWards)", () => {
     );
 
     expect(wards).toHaveLength(1);
-    expect(wards[0].id).toBe("student-1");
-    expect(wards[0].admissionNumber).toBe("ADM-001");
+    expect(wards[0]!.id).toBe("student-1");
+    expect(wards[0]!.admissionNumber).toBe("ADM-001");
   });
 
   it("returns empty array when requested preview studentId belongs to another school (cross-tenant protection)", async () => {

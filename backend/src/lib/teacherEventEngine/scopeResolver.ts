@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withAuthContext } from "@/db";
 import {
   sections,
   sectionSubjectTeachers,
@@ -134,6 +134,24 @@ export async function resolveTeacherScope(
       }
     } catch {
       // Ignore
+    }
+  }
+
+  // If still not resolved (e.g. strict fail-closed RLS blocked direct lookup without active GUC),
+  // use withAuthContext (sets SYSTEM_AUTH locally to allow reading users table)
+  if (!schoolId && typeof withAuthContext === "function") {
+    try {
+      await withAuthContext(async (authTx) => {
+        const userRow = await authTx.query.users.findFirst({
+          where: eq(users.id, teacherUserId),
+          columns: { schoolId: true },
+        });
+        if (userRow?.schoolId) {
+          schoolId = userRow.schoolId;
+        }
+      });
+    } catch {
+      // Ignore if auth lookup fails or in mock test environment
     }
   }
 

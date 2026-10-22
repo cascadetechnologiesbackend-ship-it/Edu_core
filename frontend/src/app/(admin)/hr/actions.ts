@@ -886,10 +886,10 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
 
     // 8. Dispatch credentials via SMS (carrying role-specific dashboard link)
     const formattedMobile = `+91${cleanMobile}`;
-    const defaultDashboard = ROLE_CONFIGS[authoritativeRole]?.defaultDashboard || "/dashboard";
+    const defaultDashboard = (authoritativeRole && ROLE_CONFIGS[authoritativeRole]?.defaultDashboard) || "/dashboard";
     const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3000";
     const fullDashboardUrl = `${pwaUrl}${defaultDashboard}`;
-    const roleDisplayName = ROLE_CONFIGS[authoritativeRole]?.displayName || authoritativeRole;
+    const roleDisplayName = (authoritativeRole && ROLE_CONFIGS[authoritativeRole]?.displayName) || authoritativeRole || "Staff";
 
     const smsBody =
       `Welcome to ${school.name}!\n` +

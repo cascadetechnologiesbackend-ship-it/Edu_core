@@ -110,14 +110,7 @@ export default async function ParentFeesPage({
       for (const s of studentRows) {
         const studentInvs = siblingInvs.filter((inv) => inv.studentId === s.id);
         if (studentInvs.length > 0) {
-          let sName = `Student ${s.admissionNumber}`;
-          try {
-            if (s.firstNameEncrypted) {
-              const f = decryptData(s.firstNameEncrypted);
-              const l = s.lastNameEncrypted ? decryptData(s.lastNameEncrypted) : "";
-              sName = `${f} ${l}`.trim();
-            }
-          } catch {}
+          const sName = s.fullName || `Student ${s.admissionNumber}`;
 
           for (const inv of studentInvs) {
             siblings.push({

@@ -55,7 +55,7 @@ export function StudentAccessClient({ initialItems }: StudentAccessClientProps) 
       const res = await enableStudentAccessAction(studentId);
       if (res.success) {
         toast.success(res.message);
-        if (res.claimUrl) {
+        if ("claimUrl" in res && res.claimUrl) {
           setActiveClaimUrl(res.claimUrl);
         }
         refreshList();
@@ -80,7 +80,7 @@ export function StudentAccessClient({ initialItems }: StudentAccessClientProps) 
   const handleResendClaim = async (studentId: string) => {
     startTransition(async () => {
       const res = await resendStudentClaimAction(studentId);
-      if (res.success && res.claimUrl) {
+      if (res.success && "claimUrl" in res && res.claimUrl) {
         setActiveClaimUrl(res.claimUrl);
         toast.success("New claim link generated!");
       } else {

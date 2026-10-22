@@ -56,9 +56,7 @@ export default async function ConsentPage() {
 
   const studentsWithNames = myStudents.map((s) => ({
     ...s,
-    displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
-      decryptData(s.lastNameEncrypted) || ""
-    }`.trim() || "Student",
+    displayName: s.fullName || "Student",
   }));
 
   return (

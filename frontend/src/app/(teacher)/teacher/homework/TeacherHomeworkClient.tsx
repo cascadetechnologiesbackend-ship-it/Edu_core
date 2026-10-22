@@ -123,14 +123,20 @@ export function TeacherHomeworkClient({
     startTransition(async () => {
       try {
         if (editingHomework) {
+          const targetStatus: "DRAFT" | "PUBLISHED" | "CLOSED" =
+            publishNow
+              ? "PUBLISHED"
+              : editingHomework.status === "GRADED"
+              ? "PUBLISHED"
+              : editingHomework.status;
           const res = await updateHomeworkAction({
             id: editingHomework.id,
             title: formData.title,
             description: formData.description,
             dueDate: new Date(formData.dueDate),
             maxMarks: Number(formData.maxMarks),
-            attachmentS3Key: formData.attachmentS3Key || undefined,
-            status: publishNow ? "PUBLISHED" : editingHomework.status,
+            ...(formData.attachmentS3Key ? { attachmentS3Key: formData.attachmentS3Key } : {}),
+            status: targetStatus,
           });
 
           if (res.success) {
@@ -164,8 +170,8 @@ export function TeacherHomeworkClient({
             description: formData.description,
             dueDate: new Date(formData.dueDate),
             maxMarks: Number(formData.maxMarks),
-            attachmentS3Key: formData.attachmentS3Key || undefined,
-            syllabusTopicId: formData.syllabusTopicId || undefined,
+            ...(formData.attachmentS3Key ? { attachmentS3Key: formData.attachmentS3Key } : {}),
+            ...(formData.syllabusTopicId ? { syllabusTopicId: formData.syllabusTopicId } : {}),
             status: publishNow ? "PUBLISHED" : "DRAFT",
           });
 

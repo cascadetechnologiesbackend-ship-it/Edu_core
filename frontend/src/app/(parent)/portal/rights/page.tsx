@@ -46,9 +46,7 @@ export default async function RightsPage() {
 
   const studentsWithNames = myStudents.map((s) => ({
     ...s,
-    displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
-      decryptData(s.lastNameEncrypted) || ""
-    }`.trim() || "Student",
+    displayName: s.fullName || "Student",
   }));
 
   return (

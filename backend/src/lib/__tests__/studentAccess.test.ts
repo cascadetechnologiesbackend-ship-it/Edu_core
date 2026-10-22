@@ -45,7 +45,7 @@ describe("Phase S1: Student Access Provisioning & Claim Engine", { timeout: 3000
     const admissionNumber = `ADM-${Date.now()}`;
     const dob = new Date("2012-05-15");
 
-    let studentId: string;
+    let studentId!: string;
     await withTenant(schoolAId, async (tx) => {
       const [s] = await tx
         .insert(students)
@@ -119,7 +119,7 @@ describe("Phase S1: Student Access Provisioning & Claim Engine", { timeout: 3000
     const admissionNumber = `CLAIM-${Date.now()}`;
     const dob = new Date("2013-08-20");
 
-    let studentId: string;
+    let studentId!: string;
     await withTenant(schoolAId, async (tx) => {
       const [s] = await tx
         .insert(students)
@@ -189,7 +189,7 @@ describe("Phase S1: Student Access Provisioning & Claim Engine", { timeout: 3000
         where: and(eq(users.id, provisionRes.studentUserId!), eq(users.schoolId, schoolAId)),
       });
       expect(u?.mustChangePassword).toBe(false);
-      const isMatch = await bcrypt.compare("StudentNewSecurePass123!", u!.passwordHash);
+      const isMatch = await bcrypt.compare("StudentNewSecurePass123!", u?.passwordHash || "");
       expect(isMatch).toBe(true);
     });
 
@@ -209,7 +209,7 @@ describe("Phase S1: Student Access Provisioning & Claim Engine", { timeout: 3000
     const admissionNumber = `BRUTE-${Date.now()}`;
     const dob = new Date("2014-01-01");
 
-    let studentId: string;
+    let studentId!: string;
     await withTenant(schoolAId, async (tx) => {
       const [s] = await tx
         .insert(students)
@@ -269,7 +269,7 @@ describe("Phase S1: Student Access Provisioning & Claim Engine", { timeout: 3000
     const admissionNumber = `ADMIN-${Date.now()}`;
     const dob = new Date("2011-11-11");
 
-    let studentId: string;
+    let studentId!: string;
     await withTenant(schoolAId, async (tx) => {
       const [s] = await tx
         .insert(students)

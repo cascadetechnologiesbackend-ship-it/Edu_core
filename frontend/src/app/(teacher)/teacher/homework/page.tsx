@@ -24,8 +24,8 @@ export default async function TeacherHomeworkPage({
 
   try {
     const data = await getTeacherHomeworkData({
-      sectionId: resolvedParams.sectionId,
-      classSubjectId: resolvedParams.classSubjectId,
+      ...(resolvedParams.sectionId ? { sectionId: resolvedParams.sectionId } : {}),
+      ...(resolvedParams.classSubjectId ? { classSubjectId: resolvedParams.classSubjectId } : {}),
     });
     homeworkList = data.homeworkList;
     allocations = data.allocations;

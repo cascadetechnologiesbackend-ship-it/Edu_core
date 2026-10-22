@@ -230,7 +230,7 @@ export async function provisionOrLinkParent(
     return {
       parentUserId,
       isNewlyProvisioned,
-      parentCredentials,
+      ...(parentCredentials ? { parentCredentials } : {}),
     };
   };
 
@@ -282,8 +282,8 @@ export async function getUnlinkedStudents(
       }),
     ]);
 
-    const classMap = new Map(schoolClasses.map((c) => [c.id, c.displayName || c.name]));
-    const sectionMap = new Map(schoolSections.map((s) => [s.id, s.displayName || s.name]));
+    const classMap = new Map(schoolClasses.map((c) => [c.id, c.displayName]));
+    const sectionMap = new Map(schoolSections.map((s) => [s.id, s.name]));
 
     return unlinkedRows.map((s) => {
       const sFirstName = decryptData(s.firstNameEncrypted) || "";

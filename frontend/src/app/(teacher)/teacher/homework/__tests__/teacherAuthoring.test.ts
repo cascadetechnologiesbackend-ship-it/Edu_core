@@ -287,7 +287,7 @@ describe("Phase F6: Teacher Authoring Surfaces (Homework, Classwork, Syllabus Tr
       const parentRoute = parentRouteResolver(parentHwParsed);
       expect(parentRoute).not.toBeNull();
       expect(parentRoute?.route).toBe("/parent/dashboard");
-      expect(REAL_PARENT_ROUTES.has(parentRoute!.route.split("?")[0])).toBe(true);
+      expect(REAL_PARENT_ROUTES.has(parentRoute!.route.split("?")[0]!)).toBe(true);
     });
   });
 });

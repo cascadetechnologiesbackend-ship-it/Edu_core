@@ -274,7 +274,7 @@ export async function provisionOrLinkStudent(
     return {
       studentUserId: studentUser.id,
       isNewlyProvisioned,
-      studentCredentials,
+      ...(studentCredentials ? { studentCredentials } : {}),
     };
   };
 
@@ -491,8 +491,8 @@ export async function getStudentAccessQueue(
     ]);
 
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
-    const classMap = new Map(schoolClasses.map((c) => [c.id, c.displayName || c.name]));
-    const sectionMap = new Map(schoolSections.map((s) => [s.id, s.displayName || s.name]));
+    const classMap = new Map(schoolClasses.map((c) => [c.id, c.displayName]));
+    const sectionMap = new Map(schoolSections.map((s) => [s.id, s.name]));
 
     const items: StudentAccessQueueItem[] = [];
 
@@ -568,8 +568,8 @@ export async function enableStudentAccess(
 
       return {
         success: true,
-        studentUserId: res.studentUserId ?? undefined,
-        claimUrl: res.studentCredentials?.claimUrl,
+        ...(res.studentUserId ? { studentUserId: res.studentUserId } : {}),
+        ...(res.studentCredentials?.claimUrl ? { claimUrl: res.studentCredentials.claimUrl } : {}),
         message: "Student access provisioned and enabled successfully.",
       };
     }

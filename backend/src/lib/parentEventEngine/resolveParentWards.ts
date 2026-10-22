@@ -29,6 +29,8 @@ export interface ParentWard {
   sectionName: string;
   photoS3Key: string | null;
   isActive: boolean;
+  rollNumber?: string | null;
+  dateOfBirth?: Date | null;
 }
 
 export interface ResolveParentWardsContext {
@@ -118,6 +120,8 @@ export async function resolveParentWards(
         sectionName: (s.currentSectionId && sectionMap.get(s.currentSectionId)) || "-",
         photoS3Key: s.photoS3Key || null,
         isActive: s.isActive,
+        rollNumber: s.rollNumber || null,
+        dateOfBirth: s.dateOfBirth || null,
       };
     });
   };

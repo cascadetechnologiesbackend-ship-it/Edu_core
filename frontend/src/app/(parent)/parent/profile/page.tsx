@@ -205,7 +205,7 @@ export default async function ParentProfilePage({
           id: activeStudent.id,
           fullName: getStudentName(activeStudent),
           admissionNumber: activeStudent.admissionNumber,
-          rollNumber: activeStudent.rollNumber,
+          rollNumber: activeStudent.rollNumber ?? null,
           className: data.className,
           sectionName: data.sectionName,
           attendanceRate: data.attendanceRate,

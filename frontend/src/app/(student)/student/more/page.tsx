@@ -103,7 +103,7 @@ export default async function StudentMorePage({
   try {
     scope = await resolveStudentScope(userId, {
       schoolId,
-      studentId: studentIdParam,
+      studentId: studentIdParam ?? null,
       role,
     });
   } catch (err: any) {

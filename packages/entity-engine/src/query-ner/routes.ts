@@ -24,6 +24,7 @@ export const ROUTE_REGISTRY: Readonly<Record<Exclude<IntentType, "SEARCH_GENERAL
   VIEW_MARKS: "/exams/results",
   ENTER_MARKS: "/exams/marks",
   VIEW_REPORT_CARD: "/exams/report-cards",
+  GENERATE_REPORT_CARD: "/exams/report-cards",
   MANAGE_EXAM_SCHEDULE: "/exams/schedule",
 
   // Attendance
@@ -97,7 +98,7 @@ export const REAL_ADMIN_ROUTES = new Set([
  */
 export function isKnownRoute(route: string): boolean {
   // Strip query params
-  const basePath = route.split("?")[0];
+  const basePath = route.split("?")[0] || "";
   if (REAL_ADMIN_ROUTES.has(basePath)) return true;
   // Allow dynamic-segment paths like /students/[id]
   for (const known of REAL_ADMIN_ROUTES) {

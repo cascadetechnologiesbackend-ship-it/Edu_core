@@ -91,7 +91,6 @@ describe("Phase S2: Student Scope Resolver (resolveStudentScope & Security Guard
           schoolId: schoolAId,
           email: `student.s2.${Date.now()}@schoolmitra.internal`,
           passwordHash: "$2a$12$DummyHashForTestPurposesOnlyxxxxxxxxxxxxxxxxxxxxxxxxx",
-          role: "STUDENT",
           isActive: true,
         })
         .returning();

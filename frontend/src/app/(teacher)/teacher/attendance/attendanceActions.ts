@@ -159,7 +159,10 @@ export async function getTeacherAttendanceRoster(
 
   return await withTenant(school.id, async (tx) => {
     // 1. Verify Scope
-    await assertTeacherCanMarkAttendance(ctx.userId, sectionId, { tx });
+    await assertTeacherCanMarkAttendance(ctx.userId, sectionId, {
+      tx,
+      schoolId: school.id,
+    });
 
     // 2. Resolve Active Academic Year
     const activeYear = await tx.query.academicYears.findFirst({
@@ -329,7 +332,10 @@ export async function saveTeacherAttendanceRoster(
 
   return await withTenant(school.id, async (tx) => {
     // 1. Verify Scope
-    await assertTeacherCanMarkAttendance(ctx.userId, sectionId, { tx });
+    await assertTeacherCanMarkAttendance(ctx.userId, sectionId, {
+      tx,
+      schoolId: school.id,
+    });
 
     // 2. Resolve Active Academic Year
     const activeYear = await tx.query.academicYears.findFirst({

@@ -317,7 +317,7 @@ export async function createOrUpdateNotice(input: {
     sourceTable: "notices",
     sourceId: input.id || null,
     text: fullText,
-    decisionOverride: input.decisionOverride,
+    ...(input.decisionOverride ? { decisionOverride: input.decisionOverride } : {}),
   });
 
   if (piiCheck.decision === "BLOCKED") {

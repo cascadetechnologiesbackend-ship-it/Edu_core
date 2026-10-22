@@ -433,8 +433,8 @@ export async function assembleAcademicSnapshot(
   return {
     homework: homeworkSnaps,
     classwork: classworkSnaps,
-    syllabusCoverage,
-    curriculumProgress,
+    ...(syllabusCoverage ? { syllabusCoverage } : {}),
+    ...(curriculumProgress ? { curriculumProgress } : {}),
     upcomingAssessments,
   };
 }

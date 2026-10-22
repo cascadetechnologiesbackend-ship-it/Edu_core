@@ -12,6 +12,7 @@ import {
   MessageSquare,
   FileText,
   UserCheck,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TeacherCardTier, TeacherCardType } from "@/lib/teacherEventEngine/types";
@@ -54,6 +55,8 @@ const CARD_ICONS: Record<TeacherCardType, React.ElementType> = {
   MessagesCard: MessageSquare,
   InsightCard: Sparkles,
   NoticeCard: FileText,
+  HomeworkDueCard: FileText,
+  ClassworkPendingCard: BookOpen,
 };
 
 export function TeacherFeedCard({

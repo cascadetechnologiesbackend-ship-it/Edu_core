@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   consentRecords,
   rightsRequests,
@@ -14,6 +14,7 @@ import {
   auditLogs,
   studentDocuments,
   consentPurposes,
+  users,
 } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -518,7 +519,7 @@ export async function checkParentConsentStatus() {
     let needsConsent = false;
     const studentsRequiringConsent = [];
 
-    for (const student of myStudents) {
+    for (const student of myWards) {
       const records = await db.query.consentRecords.findMany({
         where: and(
           eq(consentRecords.studentId, student.id),
@@ -537,7 +538,7 @@ export async function checkParentConsentStatus() {
         studentsRequiringConsent.push({
           id: student.id,
           admissionNumber: student.admissionNumber,
-          displayName: `${decryptData(student.firstNameEncrypted) || ""} ${decryptData(student.lastNameEncrypted) || ""}`.trim() || "Student",
+          displayName: student.fullName || "Student",
         });
       }
     }

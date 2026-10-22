@@ -125,7 +125,7 @@ export default function TeacherClassesClient({
           timeline={timeline}
           date={date}
           dayOfWeek={dayOfWeek}
-          syllabusTopics={syllabusTopics}
+          {...(syllabusTopics ? { syllabusTopics } : {})}
         />
       ) : activeTab === "rosters" ? (
         <SectionRosters

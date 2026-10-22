@@ -244,7 +244,7 @@ export default async function ParentFeesPage({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {myStudents.map((student) => {
-            const studentName = `${decryptData(student.firstNameEncrypted) || "Child"} ${decryptData(student.lastNameEncrypted) || ""}`.trim();
+            const studentName = student.fullName || "Child";
             const cls = studentClasses.find((c) => c.id === student.currentClassId);
             const sec = studentSections.find((s) => s.id === student.currentSectionId);
             const studentPending = pendingInvoices.filter((i) => i.student.id === student.id);

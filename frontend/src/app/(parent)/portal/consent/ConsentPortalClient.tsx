@@ -6,8 +6,8 @@ import { Check, Shield, ShieldAlert } from "lucide-react";
 
 interface Student {
   id: string;
-  firstNameEncrypted: string;
-  lastNameEncrypted: string;
+  firstNameEncrypted?: string;
+  lastNameEncrypted?: string;
   admissionNumber: string;
   displayName?: string;
 }
