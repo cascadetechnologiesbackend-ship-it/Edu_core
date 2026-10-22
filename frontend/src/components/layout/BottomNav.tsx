@@ -84,7 +84,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
             (!item.href.includes("?") && pathname === item.href && !currentTab);
 
           let resolvedHref = item.href;
-          if (currentStudentId && resolvedHref.startsWith("/parent/dashboard")) {
+          if (currentStudentId && (resolvedHref.startsWith("/parent/dashboard") || resolvedHref.startsWith("/student/"))) {
             const sep = resolvedHref.includes("?") ? "&" : "?";
             resolvedHref = `${resolvedHref}${sep}studentId=${currentStudentId}`;
           }

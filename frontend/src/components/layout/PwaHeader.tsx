@@ -9,7 +9,7 @@ import { ExamCommandSearch } from "@/components/exams/ExamCommandSearch";
 import { RoleCommandPalette } from "@/components/ui/RoleCommandPalette";
 
 interface PwaHeaderProps {
-  role: "TEACHER" | "PARENT" | "DRIVER";
+  role: "TEACHER" | "PARENT" | "DRIVER" | "STUDENT";
   roleLabel: string;
   accentColor?: "emerald" | "indigo" | "amber";
   schoolName?: string;

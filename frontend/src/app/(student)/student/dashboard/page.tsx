@@ -32,22 +32,74 @@ import {
 } from "lucide-react";
 import { CheckoutButton } from "@/app/(parent)/portal/CheckoutButton";
 
+import { resolveStudentScope } from "@/lib/studentEventEngine/scopeResolver";
+
 export const metadata = {
   title: "Student Learning Workspace | SchoolMitra ERP",
   description: "My timetable, homework assignments, report cards, fees & subject resources.",
 };
 
-export default async function StudentDashboardPage() {
+export default async function StudentDashboardPage({
+  searchParams,
+}: {
+  searchParams?: { studentId?: string };
+}) {
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "STUDENT"] as const);
   const school = await requireSchool(ctx);
   const schoolId = school.id;
   const userId = ctx.userId;
+  const studentIdParam = searchParams?.studentId;
+
+  // Authoritative scope resolution (SD4 fixed: arbitrary findFirst fallback removed)
+  let scope: any = null;
+  try {
+    scope = await resolveStudentScope(userId, {
+      schoolId,
+      studentId: studentIdParam,
+      role: ctx.role,
+    });
+  } catch (err) {
+    // If admin preview with no studentId or student not found
+  }
+
+  if (!scope) {
+    return (
+      <div className="space-y-6 p-6 max-w-3xl mx-auto">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+            <GraduationCap className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-white">
+              {["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)
+                ? "Admin Student Preview"
+                : "Student Record Not Found"}
+            </h1>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              {["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)
+                ? "Please provide an active student's ID via ?studentId=<id> to preview their learning portal."
+                : "No active student enrollment is associated with your account in this school."}
+            </p>
+          </div>
+          {["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role) && (
+            <Link
+              href="/students"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition"
+            >
+              Open Student Directory
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const {
     student,
     className,
     sectionName,
     studentName,
+    academicYearLabel,
     invoices,
     payments,
     totalDue,
@@ -58,51 +110,14 @@ export default async function StudentDashboardPage() {
   } = await withDataPhaseTiming("/student/dashboard", () =>
     assertQueryBudget(
       async () => {
-        // 1. Fetch current student record
-        let studentRecord = await db.query.students.findFirst({
-          where: and(
-            eq(students.userId, userId),
-            eq(students.schoolId, schoolId),
-          ),
-        });
+        const studentId = scope.studentId;
+        const currentClassId = scope.classId;
+        const currentSectionId = scope.sectionId;
 
-        // Fallback for school administrators previewing student dashboard
-        if (!studentRecord && ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(ctx.role)) {
-          studentRecord = await db.query.students.findFirst({
-            where: eq(students.schoolId, schoolId),
-          });
-        }
-
-        if (!studentRecord) {
-          return {
-            student: null,
-            className: "Assigned Class",
-            sectionName: "A",
-            studentName: ctx.email,
-            invoices: [],
-            payments: [],
-            totalDue: 0,
-            totalPaid: 0,
-            attendanceRate: "100.0%",
-            upcomingExamSchedules: [],
-            myReportCards: [],
-          };
-        }
-
-        // 2. Fetch class, section, invoices, payments, attendance, exams, report cards concurrently
-        const [c, s, invs, pmts, attendanceLogs, upcomingExamSchedules, myReportCards] = await Promise.all([
-          studentRecord.currentClassId
-            ? db.query.classes.findFirst({
-                where: eq(classes.id, studentRecord.currentClassId),
-              })
-            : Promise.resolve(null),
-          studentRecord.currentSectionId
-            ? db.query.sections.findFirst({
-                where: eq(sections.id, studentRecord.currentSectionId),
-              })
-            : Promise.resolve(null),
+        // 2. Fetch invoices, payments, attendance, exams, report cards concurrently
+        const [invs, pmts, attendanceLogs, upcomingExamSchedules, myReportCards] = await Promise.all([
           db.query.feeInvoices.findMany({
-            where: eq(feeInvoices.studentId, studentRecord.id),
+            where: eq(feeInvoices.studentId, studentId),
             with: {
               feeStructure: {
                 with: {
@@ -113,19 +128,19 @@ export default async function StudentDashboardPage() {
             orderBy: [desc(feeInvoices.dueDate)],
           }),
           db.query.feePayments.findMany({
-            where: eq(feePayments.studentId, studentRecord.id),
+            where: eq(feePayments.studentId, studentId),
             orderBy: [desc(feePayments.paymentDate)],
             limit: 5,
           }),
           db.query.studentAttendance.findMany({
-            where: eq(studentAttendance.studentId, studentRecord.id),
+            where: eq(studentAttendance.studentId, studentId),
             limit: 60,
           }),
-          studentRecord.currentClassId
+          currentClassId
             ? db.query.examSchedules.findMany({
                 where: and(
                   eq(examSchedules.schoolId, schoolId),
-                  eq(examSchedules.classId, studentRecord.currentClassId),
+                  eq(examSchedules.classId, currentClassId),
                   isNotNull(examSchedules.datesheetPublishedAt),
                   sql`${examSchedules.examDate} >= CURRENT_DATE`,
                 ),
@@ -138,7 +153,7 @@ export default async function StudentDashboardPage() {
               })
             : Promise.resolve([]),
           db.query.reportCards.findMany({
-            where: eq(reportCards.studentId, studentRecord.id),
+            where: eq(reportCards.studentId, studentId),
             with: {
               exam: true,
             },
@@ -147,10 +162,6 @@ export default async function StudentDashboardPage() {
           }),
         ]);
 
-        const clsName = c?.displayName || "Assigned Class";
-        const secName = s?.name || "A";
-        const stdName = `${decryptData(studentRecord.firstNameEncrypted) || ""} ${decryptData(studentRecord.lastNameEncrypted) || ""}`.trim() || ctx.email;
-
         let totDue = 0;
         let totPaid = 0;
         invs.forEach((inv) => {
@@ -158,17 +169,24 @@ export default async function StudentDashboardPage() {
           totPaid += parseFloat(inv.paidAmount || "0");
         });
 
-        let attRate = "96.5%";
+        let attRate = "No logs yet";
         if (attendanceLogs.length > 0) {
           const presentCount = attendanceLogs.filter((a) => a.status === "PRESENT").length;
           attRate = `${((presentCount / attendanceLogs.length) * 100).toFixed(1)}%`;
         }
 
         return {
-          student: studentRecord,
-          className: clsName,
-          sectionName: secName,
-          studentName: stdName,
+          student: {
+            id: scope.studentId,
+            admissionNumber: scope.admissionNumber,
+            rollNumber: scope.rollNumber,
+            currentClassId: scope.classId,
+            currentSectionId: scope.sectionId,
+          },
+          className: scope.className,
+          sectionName: scope.sectionName,
+          studentName: scope.studentName,
+          academicYearLabel: scope.academicYearLabel,
           invoices: invs,
           payments: pmts,
           totalDue: totDue,
@@ -178,7 +196,7 @@ export default async function StudentDashboardPage() {
           myReportCards,
         };
       },
-      { maxQueries: 8, label: "Student Dashboard" },
+      { maxQueries: 6, label: "Student Dashboard" },
     ),
   );
 
@@ -221,7 +239,7 @@ export default async function StudentDashboardPage() {
           <div className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
             {className} - {sectionName}
           </div>
-          <p className="text-xs text-gray-500 mt-1">Academic Year 2026-27</p>
+          <p className="text-xs text-gray-500 mt-1">{academicYearLabel}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
