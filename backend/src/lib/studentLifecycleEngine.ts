@@ -62,6 +62,7 @@ import {
 import { withTenant } from "./tenant";
 import { generateRoleTempPassword } from "./tempPassword";
 import { provisionOrLinkParent } from "./parentLinkage";
+import { provisionOrLinkStudent } from "./studentAccess";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -126,6 +127,17 @@ export interface StudentEnrollmentResult {
         temporaryPassword?: string | undefined;
         mustChangePassword: true;
         mobile?: string | null | undefined;
+      }
+    | undefined;
+  studentUserId?: string | null | undefined;
+  studentCredentials?:
+    | {
+        admissionNumber: string;
+        studentIdentifier: string;
+        claimToken: string;
+        claimUrl: string;
+        temporaryPassword?: string | undefined;
+        mustChangePassword: true;
       }
     | undefined;
   notificationDelivery?: {
@@ -609,6 +621,26 @@ export class StudentLifecycleEngine {
       const { insertedCount: mandatoryCount } =
         await enrollStudentInMandatorySubjects(schoolId, newStudent.id, tx);
 
+      // 16b. Student Access Provisioning (v1.0 Minor-Safe Student Identity)
+      let studentAccessResult: any = null;
+      try {
+        studentAccessResult = await provisionOrLinkStudent({
+          schoolId,
+          studentId: newStudent.id,
+          admissionNumber: admissionNum,
+          dateOfBirth: application.dateOfBirth!,
+          studentName: `${firstName} ${lastName}`.trim(),
+          primaryMobile,
+          performedByUserId,
+          tx,
+        });
+      } catch (studentAccessErr) {
+        console.error(
+          "[StudentLifecycleEngine] Failed to provision student login account:",
+          studentAccessErr,
+        );
+      }
+
       // 17. Update Admission Application Status & Workflow
       const nextStepNumber = (application.workflowSteps?.length || 0) + 1;
       await tx
@@ -691,6 +723,8 @@ export class StudentLifecycleEngine {
         mandatorySubjectsEnrolledCount: mandatoryCount,
         capacityWarning,
         parentCredentials,
+        studentUserId: studentAccessResult?.studentUserId || null,
+        studentCredentials: studentAccessResult?.studentCredentials,
         classDisplayName: targetClass.displayName,
         sectionName: targetSection.name,
       };
@@ -703,6 +737,8 @@ export class StudentLifecycleEngine {
         admissionNumber: enrollmentTxResult.admissionNumber,
         personId: enrollmentTxResult.personId,
         parentUserId: enrollmentTxResult.parentUserId,
+        studentUserId: (enrollmentTxResult as any).studentUserId || null,
+        studentCredentials: (enrollmentTxResult as any).studentCredentials,
         alreadyEnrolled: true,
         concessionsApplied: enrollmentTxResult.concessionsApplied,
         mandatorySubjectsEnrolledCount: enrollmentTxResult.mandatorySubjectsEnrolledCount,
@@ -731,6 +767,8 @@ export class StudentLifecycleEngine {
       admissionNumber: enrollmentTxResult.admissionNumber,
       personId: enrollmentTxResult.personId,
       parentUserId: enrollmentTxResult.parentUserId,
+      studentUserId: (enrollmentTxResult as any).studentUserId || null,
+      studentCredentials: (enrollmentTxResult as any).studentCredentials,
       alreadyEnrolled: false,
       concessionsApplied: enrollmentTxResult.concessionsApplied,
       mandatorySubjectsEnrolledCount: enrollmentTxResult.mandatorySubjectsEnrolledCount,

@@ -3,7 +3,7 @@
 import { useState, useMemo, useDeferredValue, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, UserPlus, Users, ChevronRight, Filter, ShieldAlert } from "lucide-react";
+import { Search, UserPlus, Users, ChevronRight, Filter, ShieldAlert, KeyRound } from "lucide-react";
 import { searchStudentsAction } from "./actions";
 import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
 import { getAvatarColor, getInitials } from "@/lib/utils";
@@ -182,6 +182,15 @@ export function StudentDirectoryClient({
           >
             <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>Parent Linkage</span>
+          </Link>
+
+          {/* Student Access Queue Action */}
+          <Link
+            href="/students/access"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition inline-flex items-center gap-1.5 min-h-[40px]"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Student Access</span>
           </Link>
 
           {/* Primary Action Button: Add Student */}
