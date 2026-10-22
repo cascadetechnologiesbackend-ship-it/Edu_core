@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   staff,
   salaryTemplates,
@@ -675,46 +675,12 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     const school = await requireSchool(ctx);
     const parsed = CreateStaffSchema.parse(input);
 
-    // 1. Validate department
-    const dept = await db.query.departments.findFirst({
-      where: and(eq(departments.id, parsed.departmentId), eq(departments.schoolId, school.id)),
-    });
-    if (!dept || !dept.isActive) {
-      return { success: false, message: "Selected department is invalid or archived." };
-    }
-
-    // 2. Validate designation
-    const desig = await db.query.designations.findFirst({
-      where: and(eq(designations.id, parsed.designationId), eq(designations.schoolId, school.id)),
-    });
-    if (!desig || !desig.isActive) {
-      return { success: false, message: "Selected designation is invalid or archived." };
-    }
-
-    // 3. Validate unique employeeCode within school
-    const existingCode = await db.query.staff.findFirst({
-      where: and(eq(staff.schoolId, school.id), eq(staff.employeeCode, parsed.employeeCode.trim())),
-    });
-    if (existingCode) {
-      return { success: false, message: `Staff member with employee code "${parsed.employeeCode}" already exists.` };
-    }
-
-    // 4. Validate user email uniqueness
     const emailNormalized = parsed.email.trim().toLowerCase();
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, emailNormalized),
-    });
-    if (existingUser) {
-      return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
-    }
-
-    // Normalize mobile (extract 10-digit standard Indian mobile)
     const cleanMobile = parsed.mobile.replace(/\D/g, "").slice(-10);
     if (cleanMobile.length < 10) {
       return { success: false, message: "Mobile number must contain at least 10 digits." };
     }
 
-    // 5. Generate role-based temp password: Role@<last4mobile> (fallback to 1234)
     const VALID_SYSTEM_ROLES = [
       "SUPER_ADMIN",
       "SCHOOL_ADMIN",
@@ -729,17 +695,6 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       "DRIVER",
     ] as const;
 
-    let authoritativeRole: UserRole = "TEACHER";
-    if (desig.isTeaching) {
-      authoritativeRole = "TEACHER";
-    } else if (desig.mappedRole && (VALID_SYSTEM_ROLES as readonly string[]).includes(desig.mappedRole)) {
-      authoritativeRole = desig.mappedRole as UserRole;
-    } else {
-      authoritativeRole = "SCHOOL_ADMIN";
-    }
-    const defaultPassword = generateRoleTempPassword(authoritativeRole, cleanMobile);
-    const passwordHash = await bcrypt.hash(defaultPassword, 12);
-
     const validJoiningDate =
       parsed.joiningDate && !isNaN(new Date(parsed.joiningDate).getTime())
         ? new Date(parsed.joiningDate)
@@ -751,7 +706,51 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     const dobString = parsed.dateOfBirth || "1990-01-01";
     const genderVal = parsed.gender || "MALE";
 
-    const { newUser, newStaff } = await db.transaction(async (tx) => {
+    const tenantResult = await withTenant(school.id, async (tx: any) => {
+      // 1. Validate department
+      const dept = await tx.query.departments.findFirst({
+        where: and(eq(departments.id, parsed.departmentId), eq(departments.schoolId, school.id)),
+      });
+      if (!dept || !dept.isActive) {
+        return { success: false, message: "Selected department is invalid or archived." };
+      }
+
+      // 2. Validate designation
+      const desig = await tx.query.designations.findFirst({
+        where: and(eq(designations.id, parsed.designationId), eq(designations.schoolId, school.id)),
+      });
+      if (!desig || !desig.isActive) {
+        return { success: false, message: "Selected designation is invalid or archived." };
+      }
+
+      // 3. Validate unique employeeCode within school
+      const existingCode = await tx.query.staff.findFirst({
+        where: and(eq(staff.schoolId, school.id), eq(staff.employeeCode, parsed.employeeCode.trim())),
+      });
+      if (existingCode) {
+        return { success: false, message: `Staff member with employee code "${parsed.employeeCode}" already exists.` };
+      }
+
+      // 4. Validate user email uniqueness within school
+      const existingUser = await tx.query.users.findFirst({
+        where: and(eq(users.schoolId, school.id), eq(users.email, emailNormalized)),
+      });
+      if (existingUser) {
+        return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
+      }
+
+      // 5. Generate role-based temp password: Role@<last4mobile> (fallback to 1234)
+      let authoritativeRole: UserRole = "TEACHER";
+      if (desig.isTeaching) {
+        authoritativeRole = "TEACHER";
+      } else if (desig.mappedRole && (VALID_SYSTEM_ROLES as readonly string[]).includes(desig.mappedRole)) {
+        authoritativeRole = desig.mappedRole as UserRole;
+      } else {
+        authoritativeRole = "SCHOOL_ADMIN";
+      }
+      const defaultPassword = generateRoleTempPassword(authoritativeRole, cleanMobile);
+      const passwordHash = await bcrypt.hash(defaultPassword, 12);
+
       // 5a. Create user credential with default password and force change
       const [u] = await tx
         .insert(users)
@@ -863,13 +862,25 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
         throw new Error("Failed to create staff record.");
       }
 
-      return { newUser: u, newStaff: s };
+      return {
+        success: true,
+        newStaff: s,
+        isTeaching: desig.isTeaching,
+        authoritativeRole,
+        defaultPassword,
+      };
     });
+
+    if (!tenantResult.success || !tenantResult.newStaff) {
+      return { success: false, message: tenantResult.message || "Failed to create staff member." };
+    }
+
+    const { newStaff, isTeaching, authoritativeRole, defaultPassword } = tenantResult;
 
     await logHrAudit(ctx, "WRITE", "staff", newStaff.id, {
       action: "CREATE_STAFF",
       employeeCode: parsed.employeeCode,
-      isTeaching: desig.isTeaching,
+      isTeaching,
       assignedRole: authoritativeRole,
     });
 
