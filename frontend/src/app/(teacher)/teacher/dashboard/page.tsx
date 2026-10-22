@@ -38,7 +38,7 @@ export default async function TeacherDashboardPage({
     schoolId,
     async (tx) => {
       // 1. Resolve Scope & Snapshot
-      const scope = await resolveTeacherScope(userId, { tx });
+      const scope = await resolveTeacherScope(userId, { tx, schoolId });
       const snapshot = await assembleTeacherSnapshot(schoolId, userId, now, tx);
 
       // 2. Derive Cards & Persist

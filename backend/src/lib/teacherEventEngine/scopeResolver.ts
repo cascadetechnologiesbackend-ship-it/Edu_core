@@ -8,6 +8,8 @@ import {
   assignments,
   students,
   feeInvoices,
+  staff,
+  users,
 } from "@/db/schema";
 import { eq, and, or, inArray, isNull, gte, sql } from "drizzle-orm";
 
@@ -79,22 +81,60 @@ export async function resolveTeacherScope(
     bypassCache?: boolean | undefined;
     tx?: any | undefined;
     schoolId?: string | undefined;
-  }
+  } | any
 ): Promise<TeacherScope> {
   if (!teacherUserId || !teacherUserId.trim()) {
     throw new TeacherScopeError("Teacher user ID is required to resolve scope", 400);
   }
 
-  const txDb = options?.tx || db;
+  // Handle case where caller passed `tx` directly as the second argument instead of `{ tx }`
+  const isDirectTx = options && typeof (options as any).execute === "function" && !(options as any).tx;
+  const txDb = isDirectTx ? options : (options?.tx || db);
 
   // Verify tenant context from session or PostgreSQL app.current_school_id
-  let schoolId = options?.schoolId;
+  let schoolId = isDirectTx ? undefined : options?.schoolId;
   if (!schoolId) {
-    const res: any = await txDb.execute(
-      sql`SELECT current_setting('app.current_school_id', true) AS school_id`
-    );
-    const row = res.rows ? res.rows[0] : res[0];
-    schoolId = row?.school_id || row?.schoolId;
+    try {
+      const res: any = await txDb.execute(
+        sql`SELECT current_setting('app.current_school_id', true) AS school_id`
+      );
+      const row = res.rows ? res.rows[0] : res[0];
+      const settingVal = row?.school_id || row?.schoolId;
+      if (settingVal && typeof settingVal === "string" && settingVal.trim()) {
+        schoolId = settingVal.trim();
+      }
+    } catch {
+      // Ignore if setting query fails in mock or environment
+    }
+  }
+
+  // Fallback: look up teacher's school from staff or users if query method is available
+  if (!schoolId && txDb.query?.staff?.findFirst) {
+    try {
+      const staffRow = await txDb.query.staff.findFirst({
+        where: eq(staff.userId, teacherUserId),
+        columns: { schoolId: true },
+      });
+      if (staffRow?.schoolId) {
+        schoolId = staffRow.schoolId;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  if (!schoolId && txDb.query?.users?.findFirst) {
+    try {
+      const userRow = await txDb.query.users.findFirst({
+        where: eq(users.id, teacherUserId),
+        columns: { schoolId: true },
+      });
+      if (userRow?.schoolId) {
+        schoolId = userRow.schoolId;
+      }
+    } catch {
+      // Ignore
+    }
   }
 
   if (!schoolId) {

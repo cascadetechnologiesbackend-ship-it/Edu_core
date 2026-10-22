@@ -64,7 +64,7 @@ export async function assembleTeacherSnapshot(
   const dayOfWeekEnumVal = dayOfWeekNumber >= 1 && dayOfWeekNumber <= 6 ? DAY_OF_WEEK_NAMES[dayOfWeekNumber] : null;
 
   // 1. Resolve Teacher Scope (classTeacherSections, teachingSections, scheduledPeriods, allSectionIds)
-  const scope = await resolveTeacherScope(teacherUserId, txDb);
+  const scope = await resolveTeacherScope(teacherUserId, { tx: txDb, schoolId });
 
   // Check if today is a working day (exclude Sunday 0, or calendar holidays)
   let isWorkingDay = dayOfWeekNumber !== 0; // Sunday is not a working day
