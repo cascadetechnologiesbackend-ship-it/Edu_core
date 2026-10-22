@@ -741,7 +741,7 @@ export default async function ParentDashboardPage({
           );
           wardOpt.attendanceRate = attendanceRate30d;
           const cards = deriveParentFeed(row.id, now, snapshot, { wardName });
-          await syncParentFeedCards(tx, school.id, row.id, cards, now);
+          await syncParentFeedCards(school.id, row.id, cards, tx);
           return {
             studentId: row.id,
             wardName,
@@ -766,7 +766,7 @@ export default async function ParentDashboardPage({
         snapshot,
         rawWardName ? { wardName: rawWardName } : undefined
       );
-      await syncParentFeedCards(tx, school.id, currentStudentRow.id, initialCards, now);
+      await syncParentFeedCards(school.id, currentStudentRow.id, initialCards, tx);
     }
   });
 

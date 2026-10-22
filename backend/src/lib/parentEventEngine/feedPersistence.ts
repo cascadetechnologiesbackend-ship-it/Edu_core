@@ -1,5 +1,4 @@
-import { db } from "@/db";
-import { parentFeedCards } from "@/db/schema";
+import { db, parentFeedCards } from "@schoolmitra/database";
 import { and, eq, lte, inArray } from "drizzle-orm";
 import { DerivedFeedCard } from "./types";
 
@@ -12,11 +11,31 @@ import { DerivedFeedCard } from "./types";
  * - Active cards are upserted with current payload and expiry.
  */
 export async function syncParentFeedCards(
-  schoolId: string,
-  studentId: string,
-  cards: DerivedFeedCard[],
-  txDb: any = db
+  first: any,
+  second: any,
+  third: any,
+  fourth?: any,
+  fifth?: any
 ): Promise<void> {
+  let txDb: any;
+  let schoolId: string;
+  let studentId: string;
+  let cards: DerivedFeedCard[];
+
+  // Support both (tx, schoolId, studentId, cards, now?) and (schoolId, studentId, cards, txDb?)
+  if (first && typeof first === "object" && typeof first.delete === "function") {
+    txDb = first;
+    schoolId = second;
+    studentId = third;
+    cards = fourth || [];
+  } else {
+    schoolId = first;
+    studentId = second;
+    cards = third || [];
+    txDb = fourth && typeof fourth.delete === "function" ? fourth : db;
+  }
+
+  const safeCards = Array.isArray(cards) ? cards : [];
   const now = new Date();
 
   // 1. Delete already-expired cards for this student
@@ -29,7 +48,7 @@ export async function syncParentFeedCards(
       )
     );
 
-  if (cards.length === 0) {
+  if (safeCards.length === 0) {
     // If derived set is empty, clear remaining unexpired cards for this student
     await txDb
       .delete(parentFeedCards)
@@ -87,7 +106,7 @@ export async function syncParentFeedCards(
     });
   };
 
-  for (const card of cards) {
+  for (const card of safeCards) {
     const existing = findMatchingDbCard(card);
     const enrichedPayload = { ...card.payload, cardId: card.id };
 
