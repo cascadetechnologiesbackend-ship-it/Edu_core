@@ -638,8 +638,8 @@ export async function deleteDesignation(designationId: string) {
 const CreateStaffSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(1, "Last name is required"),
-  dateOfBirth: z.string(),
-  gender: z.string(),
+  dateOfBirth: z.string().optional().default("1990-01-01"),
+  gender: z.string().optional().default("MALE"),
   mobile: z.string().min(10, "Mobile must be at least 10 digits"),
   email: z.string().email("Invalid email address"),
   address: z.string().optional(),
@@ -648,16 +648,18 @@ const CreateStaffSchema = z.object({
   pincode: z.string().optional(),
   emergencyContact: z.string().optional(),
   employeeCode: z.string().min(2, "Employee code must be at least 2 characters"),
-  departmentId: z.string().uuid(),
-  designationId: z.string().uuid(),
-  contractType: z.enum([
-    "PERMANENT",
-    "PROBATION",
-    "CONTRACTUAL",
-    "PART_TIME",
-    "GUEST_FACULTY",
-  ]),
-  joiningDate: z.string(),
+  departmentId: z.string().uuid("Invalid department selected"),
+  designationId: z.string().uuid("Invalid designation selected"),
+  contractType: z
+    .enum([
+      "PERMANENT",
+      "PROBATION",
+      "CONTRACTUAL",
+      "PART_TIME",
+      "GUEST_FACULTY",
+    ])
+    .default("PROBATION"),
+  joiningDate: z.string().optional().default(() => new Date().toISOString().slice(0, 10)),
   aadhaarLast4: z.string().optional().or(z.literal("")),
   pan: z.string().optional(),
   bankName: z.string().optional(),
@@ -706,6 +708,12 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       return { success: false, message: `A user account with email "${parsed.email}" already exists.` };
     }
 
+    // Normalize mobile (extract 10-digit standard Indian mobile)
+    const cleanMobile = parsed.mobile.replace(/\D/g, "").slice(-10);
+    if (cleanMobile.length < 10) {
+      return { success: false, message: "Mobile number must contain at least 10 digits." };
+    }
+
     // 5. Generate role-based temp password: Role@<last4mobile> (fallback to 1234)
     const VALID_SYSTEM_ROLES = [
       "SUPER_ADMIN",
@@ -729,8 +737,19 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     } else {
       authoritativeRole = "SCHOOL_ADMIN";
     }
-    const defaultPassword = generateRoleTempPassword(authoritativeRole, parsed.mobile);
+    const defaultPassword = generateRoleTempPassword(authoritativeRole, cleanMobile);
     const passwordHash = await bcrypt.hash(defaultPassword, 12);
+
+    const validJoiningDate =
+      parsed.joiningDate && !isNaN(new Date(parsed.joiningDate).getTime())
+        ? new Date(parsed.joiningDate)
+        : new Date();
+    const validDob =
+      parsed.dateOfBirth && !isNaN(new Date(parsed.dateOfBirth).getTime())
+        ? new Date(parsed.dateOfBirth)
+        : new Date("1990-01-01");
+    const dobString = parsed.dateOfBirth || "1990-01-01";
+    const genderVal = parsed.gender || "MALE";
 
     const { newUser, newStaff } = await db.transaction(async (tx) => {
       // 5a. Create user credential with default password and force change
@@ -739,7 +758,7 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
         .values({
           schoolId: school.id,
           email: emailNormalized,
-          mobileEncrypted: encryptData(parsed.mobile.trim()),
+          mobileEncrypted: encryptData(cleanMobile),
           passwordHash,
           mustChangePassword: true,
           isActive: true,
@@ -762,11 +781,11 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
         lastNameEncrypted: encryptData(parsed.lastName.trim()),
         firstNameSearchHash: computeSearchHash(parsed.firstName.trim()),
         lastNameSearchHash: computeSearchHash(parsed.lastName.trim()),
-        gender: parsed.gender,
-        dateOfBirth: parsed.dateOfBirth ? new Date(parsed.dateOfBirth) : null,
+        gender: genderVal,
+        dateOfBirth: validDob,
         primaryEmailEncrypted: encryptData(emailNormalized),
-        primaryMobileEncrypted: encryptData(parsed.mobile.trim()),
-        aadhaarLast4: parsed.aadhaarLast4 || null,
+        primaryMobileEncrypted: encryptData(cleanMobile),
+        aadhaarLast4: parsed.aadhaarLast4?.trim() ? parsed.aadhaarLast4.trim() : null,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -812,12 +831,12 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
           departmentId: parsed.departmentId,
           designationId: parsed.designationId,
           contractType: parsed.contractType,
-          joiningDate: new Date(parsed.joiningDate),
+          joiningDate: validJoiningDate,
           firstNameEncrypted: encryptData(parsed.firstName.trim()),
           lastNameEncrypted: encryptData(parsed.lastName.trim()),
-          dateOfBirthEncrypted: encryptData(parsed.dateOfBirth),
-          genderEncrypted: encryptData(parsed.gender),
-          mobileEncrypted: encryptData(parsed.mobile.trim()),
+          dateOfBirthEncrypted: encryptData(dobString),
+          genderEncrypted: encryptData(genderVal),
+          mobileEncrypted: encryptData(cleanMobile),
           emailEncrypted: encryptData(emailNormalized),
           addressEncrypted: parsed.address ? encryptData(parsed.address.trim()) : null,
           state: parsed.state || null,
@@ -855,9 +874,7 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     });
 
     // 8. Dispatch credentials via SMS (carrying role-specific dashboard link)
-    const formattedMobile = parsed.mobile.trim().startsWith("+91")
-      ? parsed.mobile.trim()
-      : `+91${parsed.mobile.trim()}`;
+    const formattedMobile = `+91${cleanMobile}`;
     const defaultDashboard = ROLE_CONFIGS[authoritativeRole]?.defaultDashboard || "/dashboard";
     const pwaUrl = process.env.NEXT_PUBLIC_PWA_URL || "http://localhost:3000";
     const fullDashboardUrl = `${pwaUrl}${defaultDashboard}`;
@@ -896,7 +913,12 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
       assignedRole: authoritativeRole,
     };
   } catch (error: any) {
-    return { success: false, message: error.message };
+    if (error instanceof z.ZodError) {
+      const msg = error.errors.map((e) => e.message).join("; ");
+      return { success: false, message: msg || "Validation failed." };
+    }
+    console.error("createStaff error:", error);
+    return { success: false, message: error?.message || "Failed to create staff member." };
   }
 }
 

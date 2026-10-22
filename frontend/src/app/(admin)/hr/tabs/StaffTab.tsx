@@ -79,6 +79,7 @@ export function StaffTab({
   // PII reveal state
   const [revealedPii, setRevealedPii] = useState<Record<string, { pan?: string; bank?: string }>>({});
   const [loading, setLoading] = useState(false);
+  const [createAttempted, setCreateAttempted] = useState(false);
   const [offboardWarning, setOffboardWarning] = useState<any>(null);
 
   // Staff creation form state
@@ -277,42 +278,49 @@ export function StaffTab({
 
   const handleCreateStaffSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCreateAttempted(true);
     if (!staffForm.departmentId || !staffForm.designationId) {
       toast.error("Please select a department and designation.");
       return;
     }
 
     setLoading(true);
-    const combinedAddress = formatAddressForStorage(addressForm);
-    const res = await createStaff({
-      ...staffForm,
-      address: combinedAddress,
-      state: addressForm.state || undefined,
-      district: addressForm.district || undefined,
-      pincode: addressForm.pincode || undefined,
-    });
-    setLoading(false);
+    try {
+      const combinedAddress = formatAddressForStorage(addressForm);
+      const res = await createStaff({
+        ...staffForm,
+        address: combinedAddress,
+        state: addressForm.state || undefined,
+        district: addressForm.district || undefined,
+        pincode: addressForm.pincode || undefined,
+      });
+      setLoading(false);
 
-    if (res.success) {
-      const assignedRole = (res as any).assignedRole || "STAFF";
-      const creds = (res as any).credentials;
-      if ((res as any).warning && creds) {
-        setManualCredentials(creds);
-        toast.warning(
-          `Staff onboarded with role ${assignedRole}! SMS not delivered — please share credentials manually.`,
-          { duration: 6000 }
-        );
+      if (res.success) {
+        const assignedRole = (res as any).assignedRole || "STAFF";
+        const creds = (res as any).credentials;
+        if ((res as any).warning && creds) {
+          setManualCredentials(creds);
+          toast.warning(
+            `Staff onboarded with role ${assignedRole}! SMS not delivered — please share credentials manually.`,
+            { duration: 6000 }
+          );
+        } else {
+          toast.success(
+            `Staff onboarded successfully! Assigned role: ${assignedRole}`,
+            { duration: 5000 }
+          );
+        }
+        setIsCreateOpen(false);
+        setCreateAttempted(false);
+        router.refresh();
+        onRefresh?.();
       } else {
-        toast.success(
-          `Staff onboarded successfully! Assigned role: ${assignedRole}`,
-          { duration: 5000 }
-        );
+        toast.error(res.message || "Failed to create staff profile");
       }
-      setIsCreateOpen(false);
-      router.refresh();
-      onRefresh?.();
-    } else {
-      toast.error(res.message || "Failed to create staff profile");
+    } catch (err: any) {
+      setLoading(false);
+      toast.error(err?.message || "Failed to create staff profile");
     }
   };
 
@@ -498,8 +506,8 @@ export function StaffTab({
                 email: "",
                 emergencyContact: "",
                 employeeCode: "",
-                departmentId: departments[0]?.id || "",
-                designationId: designations[0]?.id || "",
+                departmentId: "",
+                designationId: "",
                 contractType: "PROBATION",
                 joiningDate: new Date().toISOString().slice(0, 10),
                 aadhaarLast4: "",
@@ -518,6 +526,7 @@ export function StaffTab({
                 line1: "",
                 line2: "",
               });
+              setCreateAttempted(false);
               setIsCreateOpen(true);
             }}
             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shrink-0 self-start md:self-auto"
@@ -833,6 +842,9 @@ export function StaffTab({
                 onCreateNew={handleInlineCreateDept}
                 clearable={false}
               />
+              {createAttempted && !staffForm.departmentId && (
+                <p className="text-[11px] text-rose-500 font-semibold mt-1">Please select a department</p>
+              )}
             </div>
 
             <div>
@@ -850,6 +862,9 @@ export function StaffTab({
                 onCreateNew={handleInlineCreateDesig}
                 clearable={false}
               />
+              {createAttempted && !staffForm.designationId && (
+                <p className="text-[11px] text-rose-500 font-semibold mt-1">Please select a designation</p>
+              )}
             </div>
           </div>
 
@@ -959,11 +974,10 @@ export function StaffTab({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                Aadhaar Last 4 <span className="text-rose-500">*</span>
+                Aadhaar Last 4 (Optional)
               </label>
               <input
                 type="text"
-                required
                 maxLength={4}
                 value={staffForm.aadhaarLast4}
                 onChange={(e) => setStaffForm({ ...staffForm, aadhaarLast4: e.target.value.replace(/\D/g, "") })}
