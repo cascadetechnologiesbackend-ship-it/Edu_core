@@ -152,6 +152,7 @@ export async function assembleStudentSnapshot(
         classSubjectId: a.classSubjectId,
         subjectName,
         dueDate: a.dueDate,
+        maxMarks: a.maxMarks ?? null,
         status: a.status,
         attachmentS3Key: a.attachmentS3Key || null,
         teacherName: a.createdByTeacherId || "Class Teacher", // resolved later
@@ -162,6 +163,8 @@ export async function assembleStudentSnapshot(
                 id: sub.id,
                 submittedAt: sub.submittedAt || sub.createdAt,
                 isLate: Boolean(sub.isLate),
+                studentContent: sub.studentContent || null,
+                attachmentS3Key: sub.attachmentS3Key || null,
                 marksAwarded: sub.marksAwarded,
                 grade:
                   sub.marksAwarded !== null && sub.marksAwarded !== undefined
@@ -170,6 +173,7 @@ export async function assembleStudentSnapshot(
                     ? "Graded"
                     : null,
                 remarks: sub.remarks,
+                gradedAt: sub.gradedAt || null,
               },
             }
           : {}),

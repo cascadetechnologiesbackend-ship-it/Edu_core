@@ -764,6 +764,7 @@ export const assignmentSubmissions = pgTable(
       .notNull()
       .defaultNow(),
     isLate: boolean("is_late").notNull().default(false),
+    studentContent: text("student_content"),
     attachmentS3Key: text("attachment_s3_key"),
     remarks: text("remarks"),
     marksAwarded: integer("marks_awarded"),

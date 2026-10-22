@@ -46,6 +46,7 @@ export interface StudentHomeworkSnapshot {
   classSubjectId: string;
   subjectName: string;
   dueDate: Date | string;
+  maxMarks?: number | null;
   status: string;
   attachmentS3Key: string | null;
   teacherName: string;
@@ -54,9 +55,12 @@ export interface StudentHomeworkSnapshot {
     id: string;
     submittedAt: Date | string;
     isLate: boolean;
+    studentContent?: string | null;
+    attachmentS3Key?: string | null;
     marksAwarded?: number | null;
     grade?: string | null;
     remarks?: string | null;
+    gradedAt?: Date | string | null;
   };
 }
 
