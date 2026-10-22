@@ -1,0 +1,296 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "student_pwa",
+  "spec_series": "edu_core_spec_series",
+  "predecessor_specs": [
+    { "spec_id": "edu_core_uiux", "version": "1.2", "status": "landed, phases 1-11" },
+    { "spec_id": "parent_pwa", "version": "1.2", "status": "landed, phases P1-P16" },
+    { "spec_id": "teacher_pwa", "version": "1.0", "status": "landed, phases T1-T10" },
+    { "spec_id": "entity_engine", "version": "1.1", "status": "landed, phases E1-E7" },
+    { "spec_id": "academic_feed", "version": "1.0", "status": "landed, phases F1-F7 (v11.21.3)" }
+  ],
+  "intent": "The teacher-parent loop is closed: teachers author homework and classwork, parents see a curriculum-anchored feed. The student — the person all of this is about — still has almost nothing. The (student) route group contains one fee-and-exam dashboard and a profile page, and critically, NO code path ever writes students.userId: the enrollment engine provisions a canonical person and a parent account but never a student login, so the app is unreachable for its own audience. This spec builds the Student PWA to the same standard as the Parent and Teacher apps: student identity provisioning with an admin access queue, a PWA shell with 4-item navigation, a home feed of the student's actual school life (today's timetable, homework due, classwork recap, assessments, notices), a homework center with the full submit-and-resubmit flow feeding the teacher grading roster landed in F6, timetable/marks/attendance self-views, the read-only syllabus tracker, a role omnibox, and offline-first submission queuing. Students get the same respect as every other role: real data, honest badges, their language, on a phone.",
+  "meta": {
+    "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
+    "head_commit_at_spec_time": "325e68bf",
+    "base_version": "11.21.3",
+    "stack": "Next.js App Router, TypeScript, Tailwind dark-mode, lucide-react, drizzle-orm + PostgreSQL with RLS, vitest, cmdk, zod, existing PWA service worker patterns",
+    "dependency_policy": "NO new npm dependencies. At most ONE migration is permitted (submission student_content column) and only after verifying the existing assignment_submissions columns at implementation time.",
+    "files_in_scope": [
+      "backend/src/lib/studentLifecycleEngine.ts",
+      "backend/src/lib/parentLinkage.ts (extend pattern -> studentAccess)",
+      "backend/src/lib/studentEventEngine/** (new)",
+      "frontend/src/lib/studentEventEngine/** (new mirror)",
+      "frontend/src/components/student/** (new)",
+      "frontend/src/app/(student)/** (full build-out)",
+      "frontend/src/app/(admin)/students/** (Student Access queue + login actions)",
+      "database/src/schema/students.ts (students.userId already exists)",
+      "database/src/schema/academics.ts (assignments, assignmentSubmissions, timetablePeriods, assessments)",
+      "database/src/schema/examinations.ts (examSchedules, result locks)",
+      "database/drizzle/** (only the single permitted migration, if required)",
+      "packages/entity-engine/src/query-ner/** (studentRouteResolver registration)",
+      "AGENTS.md (reference this spec)"
+    ]
+  },
+  "context_engineering": {
+    "current_state_audit": [
+      "Academic feed F1-F7 landed (e16f9119..2fdf08bc, v11.21.0) plus three post-release hotfixes (35828c7c syntax error, 9b549b54 missing wards guard, 3d3213b3 argument order). Head 325e68bf = v11.21.3. Lesson encoded into this spec: every phase must pass typecheck, build, and a page-render smoke test before commit — the F-series shipped three build-breaking bugs to main that release patches had to chase.",
+      "frontend/src/app/(student) contains exactly two routes: student/dashboard and student/profile. There is no PWA shell, no bottom navigation, no offline registration, no notices, no homework, no timetable view, no syllabus view.",
+      "The existing student dashboard is fee-and-exam-centric: metric cards, report card banner, exam datesheet with admit card fee-lock, fee invoices with Razorpay CheckoutButton, payment receipts. It queries students by eq(students.userId, userId) — the identity link column exists in schema ('Linked user account (for student login)') but NOTHING writes it.",
+      "backend/src/lib/studentLifecycleEngine.ts is an 18-layer pipeline that provisions: canonical persons row (primaryType STUDENT), students row, class history, PARENT user account + role + claim token, family members with search hashes, documents, consent, concessions, fee structures, subject enrollments, audit, domain event. It never creates a STUDENT role user and never sets students.userId. Direct admin creation and bulk import do neither. Therefore no student in any school can log in.",
+      "assignment_submissions: unique per (assignment, student) — one row per student per assignment — with submittedAt, isLate, attachmentS3Key, remarks, marksAwarded, gradedByTeacherId, gradedAt, plagiarismFlagged. A student text-content column may not exist; verify at implementation. The F6 teacher submission roster already reads and grades these rows.",
+      "timetable_periods: sectionId + dayOfWeek + periodNo (+ classSubject / teacher / room), the same source the teacher My Day timeline uses. A student's weekly timetable is a read-only projection of their own section's periods.",
+      "Attendance: student_attendance (studentId, status, attendanceDate, periodId nullable) and student_leave_requests (parent-owned workflow OP3). Students can view their own record; leave requests remain parent-initiated.",
+      "Notices support audience targeting (the engine writes audienceType PARENTS with audienceFilter). Verify the STUDENTS/ALL audience values at implementation and add the student notice feed accordingly.",
+      "The F4/F5 parent academic feed machinery (academicSnapshotAssembler, deriveParentFeed, syllabus coverage and progress derivation, AppModal detail modals, bilingual labels) is all live and importable; the student feed is a single-ward projection of the same academic reality, never showing other students' data.",
+      "The E6 role omnibox pattern (shared cmdk palette shell + role route resolver + scope enforcement) is live for teacher and parent; the student resolver slot is absent.",
+      "Exam result visibility is governed by the examinations module (resultSettings, marksLockStatus, reportCards, admit card holds). Student marks views must respect the same locks: no marks before the exam's result publication state allows it."
+    ],
+    "defects_found": [
+      { "id": "SD1", "defect": "students.userId is never written by any provisioning path; no STUDENT user account is ever created. The student app cannot be reached by students.", "fix_phase": "S1" },
+      { "id": "SD2", "defect": "Student app has no PWA shell, navigation, or offline behavior — unlike the parent and teacher apps.", "fix_phase": "S2" },
+      { "id": "SD3", "defect": "Student dashboard is fee/exam-centric; no homework, timetable, notices, classwork, or syllabus surfaces despite complete schema support (F4/F6 made the data flow live).", "fix_phase": "S3, S4, S5, S6" },
+      { "id": "SD4", "defect": "Truth defects in the existing dashboard: admin preview falls back to the first student in the school (inconsistent with the ?studentId= pattern used elsewhere); attendanceRate falls back to hardcoded '96.5%' when there are no logs; 'Academic Year 2026-27' is a hardcoded label.", "fix_phase": "S3" },
+      { "id": "SD5", "defect": "No regression gate: the F-series reached main three times with compile/runtime errors; phases were committed without build or render verification.", "fix_phase": "S7" }
+    ],
+    "supporting_code_to_reuse": [
+      { "key": "parent_linkage_pattern", "path": "backend/src/lib/parentLinkage.ts", "note": "provisionOrLinkParent (F2): match-by-hash, provision user + role + claim token + temp password. Mirror it as provisionOrLinkStudent; share the claim-token helpers, do not fork them." },
+      { "key": "student_lifecycle_engine", "path": "backend/src/lib/studentLifecycleEngine.ts", "note": "add a student-access layer to enrollment and reuse its audit + domain-events patterns." },
+      { "key": "academic_snapshot", "path": "backend/src/lib/parentEventEngine + academicSnapshotAssembler (F4)", "note": "syllabus coverage/progress derivation, lesson plans, assignments, assessments queries. The student feed derives from the same tables scoped to one student's section and enrollments." },
+      { "key": "teacher_pwa_shell", "path": "frontend/src/app/(teacher) + teacherEventEngine", "note": "the 4-item bottom nav, Today strip, offline SW registration, scopeResolver shape, feed persistence (teacherFeedCards). Copy the pattern, not the code." },
+      { "key": "role_omnibox", "path": "packages/entity-engine query-ner + E6 resolvers", "note": "shared palette shell + teacherRouteResolver/parentRouteResolver; add studentRouteResolver with its own route map." },
+      { "key": "pii_enforcement", "path": "scanContentForPII (E3)", "note": "student submission text goes through the same server-side scan-and-redact middleware." },
+      { "key": "shared_ui", "path": "frontend/src/components/ui/*", "note": "AppModal, ConfirmDialog, Combobox, EmptyStateCTA, Stepper; no hand-rolled overlays." },
+      { "key": "teacher_grading_roster", "path": "F6 homework submission roster", "note": "the grading side already consumes assignment_submissions; the student submit flow must produce rows it can read — no schema changes to grading fields." }
+    ]
+  },
+  "as_built_verification": {
+    "phase_landings": [
+      { "commit": "e16f9119", "what": "F1 phantom fee removal + document verification" },
+      { "commit": "6ff14f07", "what": "F2 parent-student linkage + repair queue" },
+      { "commit": "e055e807", "what": "F3 unified ward scoping" },
+      { "commit": "842f98bf", "what": "F4 academic feed data layer" },
+      { "commit": "1ee7d983", "what": "F5 curriculum-anchored feed + modals" },
+      { "commit": "226ecef7", "what": "F6 teacher homework/classwork/syllabus authoring" },
+      { "commit": "2fdf08bc", "what": "F7 wiring audit + acceptance pass" },
+      { "commit": "35828c7c/9b549b54/3d3213b3", "what": "post-release hotfixes: syntax error, missing wards guard, argument order (drives S7 regression gate)" }
+    ],
+    "verified_behaviors": [
+      "Parent feed renders homework, classwork, syllabus coverage, progress, and assessment cards from live curriculum data; teacher publish flow feeds it.",
+      "Teacher submission roster reads assignment_submissions and updates marksAwarded/remarks; one row per student per assignment.",
+      "students table already has userId, rollNumber, currentSectionId, academicYearId — every column the student scope resolver needs.",
+      "requireAuth(['STUDENT']) is already used by the existing dashboard, so the STUDENT role exists in the auth chain."
+    ]
+  },
+  "student_identity": {
+    "provisioning_rules": [
+      "provisionOrLinkStudent mirrors provisionOrLinkParent: schoolId-scoped user lookup, account + STUDENT role + claim token + temp password (mustChangePassword), students.userId written in the same transaction, audit log + domain event (StudentAccessGrantedEvent).",
+      "Enrollment engine: after subject enrollment (layer 15), attempt student access provisioning using the student's own identity. The wizard has no student email — students claim accounts via admission number + DOB verification through the existing claim flow, so the engine writes the user with a generated claim token and no unverified email assertion; the claim URL goes to the parent's app feed and SMS as 'Your child can now log in'.",
+      "DOB verification is the claim secret for minors (admissionNumber + dateOfBirth from the application). Failed attempts are rate-limited per the existing accountLockout patterns.",
+      "Admin 'Student Access' section in the Students module: per-student enable/disable, resend claim, and a queue of students with isActive=true and userId=null — same shape as the parent linkage repair queue from F2.",
+      "A school may keep student access disabled per student; disabling sets isActive=false on the user, never deletes data. The app must render an honest 'Your account is disabled by school' state."
+    ],
+    "scope_resolver": "resolveStudentScope(userId, { tx }): students where userId AND schoolId AND isActive, joining class/section/rollNumber, subject enrollments, and current academic year. Every student page and action resolves scope through it. Admins preview the student app with ?studentId= only — the findFirst fallback (SD4) is deleted."
+  },
+  "surfaces": [
+    {
+      "id": "surface_s0",
+      "title": "PWA shell + navigation",
+      "details": "4-item bottom nav: Home, Homework, Timetable, More. Bilingual (isHindi), dark-mode, existing PWA service worker registration patterns. More holds: Notices, Marks, Attendance, Fees, Syllabus, Profile. Idle state on Home: greeting + date + today strip."
+    },
+    {
+      "id": "surface_s1",
+      "title": "Home feed (student's school life)",
+      "details": "deriveStudentFeed: chronological stream — HomeworkDue cards (PUBLISHED assignments for their section + enrollments, due badges, submission state chip), ClassworkRecap cards (lesson plans completed for their class-subjects, from the same F4 derivation), AssessmentCountdown cards, NoticeCards (STUDENTS/ALL audience), MarksPublished cards (only when result locks allow). One pinned strip: 'Due today' homework + any admit-card fee hold. Pull-to-refresh + New posts pill, cached offline via a studentFeedCards persistence (mirror of parentFeedCards; never contains another student's data)."
+    },
+    {
+      "id": "surface_s2",
+      "title": "Homework center",
+      "details": "Tabs: Pending / Submitted / Graded. Detail: description, teacher, due, maxMarks, attachment view. Submit flow: text answer + optional attachment (existing presign), server writes the single assignment_submissions row (unique per assignment+student). Resubmission updates the same row until the teacher grades it; isLate is computed server-side from server receipt time. Graded view shows marksAwarded + teacher remarks. Empty states: EmptyStateCTA ('No homework pending. Enjoy the evening.')."
+    },
+    {
+      "id": "surface_s3",
+      "title": "Timetable",
+      "details": "Today list (periods in order with subject, teacher, room) + weekly grid from timetable_periods for their section. Substitution-aware if the existing substitution tables mark today's changes (read the T8 substitution data; if absent at implementation time, render the base timetable). Offline-cached."
+    },
+    {
+      "id": "surface_s4",
+      "title": "Marks + exams",
+      "details": "Upcoming datesheet (existing examSchedules view, retained from the current dashboard), admit card status with fee-lock banner (retained), and per-exam marks view for the student's own marks that respects marksLockStatus/resultSettings — nothing renders before the exam's result state permits. Report card downloads retained."
+    },
+    {
+      "id": "surface_s5",
+      "title": "Attendance + leave",
+      "details": "Own attendance percentage for the current term, month calendar of statuses, recent remarks. Leave requests: read-only list with status (parent-owned; the student app shows state, never files requests). Honest zero-data state ('No attendance marked yet this term'), replacing the hardcoded 96.5% fallback (SD4)."
+    },
+    {
+      "id": "surface_s6",
+      "title": "Notices + syllabus + fees",
+      "details": "Notices feed for STUDENTS/ALL audiences with acknowledge action where the notice model supports it (noticeAcknowledgments pattern). Read-only syllabus tracker: unit→chapter→topic tree with taught/next states from the F4 derivation — 'what's next' is the student-visible difference from the parent view. Fees: dues summary + existing invoice/payment history retained as-is; the Razorpay CheckoutButton stays (existing behavior, unchanged scope)."
+    }
+  ],
+  "role_data_contracts": {
+    "crud_matrix": [
+      { "data_type": "assignments", "student": "READ PUBLISHED, own section, enrolled subjects only", "teacher": "owns (F6)", "parent": "READ via feed", "admin": "READ all" },
+      { "data_type": "assignment_submissions", "student": "CREATE own row; UPDATE own row until graded (resubmit); READ own marks/remarks after grading", "teacher": "READ rosters; UPDATE marks (F6, unchanged)", "parent": "READ own ward's submission state", "admin": "READ all" },
+      { "data_type": "timetable_periods / substitutions", "student": "READ own section only", "teacher": "owns (T7/T8)", "parent": "n/a", "admin": "owns" },
+      { "data_type": "student_attendance / leave_requests", "student": "READ own records and leave statuses", "parent": "CREATE leave requests (existing OP3)", "teacher": "marks attendance (T4)", "admin": "decides leaves" },
+      { "data_type": "exam marks / report cards", "student": "READ own, only when result lock state permits", "teacher": "enters marks (T6)", "parent": "READ own ward's", "admin": "owns locks" },
+      { "data_type": "notices", "student": "READ STUDENTS/ALL audiences; acknowledge own", "teacher": "n/a", "parent": "acknowledges (existing)", "admin": "owns" },
+      { "data_type": "syllabus tree", "student": "READ only, taught/next states", "teacher": "READ + lesson-plan writes (F6)", "parent": "READ (F5)", "admin": "owns CRUD" },
+      { "data_type": "students.userId / user account", "student": "READ own profile; no self-modification of identity fields", "parent": "n/a", "admin": "UPDATE via Student Access queue", "system": "provisionOrLinkStudent at enrollment + claim flow" },
+      { "data_type": "student_documents", "student": "READ own list", "parent": "CREATE uploads (existing)", "admin": "verify/reject (F1)", "system": "verified only via admin action" }
+    ]
+  },
+  "business_logic_rules": [
+    "BR1: students.userId is written only by provisionOrLinkStudent (enrollment layer or admin queue action) inside a transaction with audit log + domain event. No other write path exists.",
+    "BR2: Every student page and action resolves scope via resolveStudentScope (userId + schoolId + isActive). No fallback to arbitrary students for admins — ?studentId= preview only, schoolId-scoped.",
+    "BR3: A student never sees another student's data: no rosters, no ranks against named peers (rank may render as the student's own number from report cards, but no class-wide lists), no other submissions.",
+    "BR4: isLate is computed by the server from server receipt time against assignment.dueDate. A submission replayed from the offline queue after the deadline is marked late, not rejected, and the UI says so honestly ('Queued offline — submitted after deadline, marked late').",
+    "BR5: Marks render only when the exam's lock state permits. The student app never bypasses resultSettings/marksLockStatus.",
+    "BR6: Submission text passes scanContentForPII (E3): CRITICAL blocks with an explanation, HIGH offers mask-or-fix, exactly like the other content write points. Students pasting an Aadhaar into homework get blocked, not leaked.",
+    "BR7: Leave requests remain parent-owned. The student app is read-only on the leave workflow.",
+    "BR8: The syllabus tracker is read-only for students; 'taught' derives from completed lesson plans, 'next' from PLANNED ones — the same derivation the parent feed uses, no new truth sources.",
+    "BR9: Disabled student accounts (isActive=false on user) see a truthful disabled state and no data. Suspension never deletes data.",
+    "BR10: Student feed cards contain no PII of other students; decryption is limited to the student's own name and teachers' names.",
+    "BR11: Offline: the shell, today's feed, timetable, and homework list are cached; submissions queue locally and replay idempotently (unique constraint makes replay safe); the queue shows pending items with a manual retry.",
+    "BR12: All queries inside withTenant/RLS; all writes audit-logged; all new UI bilingual, dark-mode, AppModal-based.",
+    "BR13: No hardcoded data: no default attendance percentages, no hardcoded years (derive academic year name from the record), no fake values when a query returns empty — empty states tell the truth (fixes SD4)."
+  ],
+  "notification_matrix": [
+    { "event": "homework published", "student_push": true, "timing": "at publish (their section)", "card": "HomeworkDue" },
+    { "event": "homework due reminder", "student_push": true, "timing": "D-1 evening", "card": "HomeworkDue boost" },
+    { "event": "marks published for student's exam", "student_push": true, "timing": "when result lock opens", "card": "MarksPublished" },
+    { "event": "notice for STUDENTS audience", "student_push": true, "timing": "at publish", "card": "NoticeCard" },
+    { "event": "classwork completed", "student_push": false, "timing": "feed only", "card": "ClassworkRecap" },
+    { "event": "assessment scheduled", "student_push": true, "timing": "at publish + D-3", "card": "AssessmentCountdown" }
+  ],
+  "click_budgets": [
+    { "flow": "student checks what's due today", "budget": "open app → home feed + Due today strip (0 extra taps)" },
+    { "flow": "student submits homework", "budget": "Homework → assignment → Submit → confirm = 3 taps (attachment optional in the same sheet)" },
+    { "flow": "student resubmits before grading", "budget": "Homework → Submitted tab → row → Resubmit = 3 taps" },
+    { "flow": "student checks today's timetable", "budget": "Timetable tab = 1 tap" },
+    { "flow": "student sees graded marks with remarks", "budget": "Homework → Graded tab → row = 2 taps" },
+    { "flow": "student finds 'what's next' in a subject", "budget": "More → Syllabus → subject = 2 taps" },
+    { "flow": "admin enables student access for one student", "budget": "Students → student → Student Access → Enable = 3 clicks" },
+    { "flow": "parent learns the child can log in", "budget": "automatic feed card + claim link, 0 extra actions" }
+  ],
+  "acceptance_criteria": [
+    "AC-1: After enrollment, the student's parents receive a feed card + SMS-queued claim notice; the student can claim an account with admission number + DOB (rate-limited), and students.userId is set — verified by integration test on the engine path and the admin queue path.",
+    "AC-2: The admin Student Access queue lists every active student with userId=null, with Enable/Resend claim/Disable actions, audit-logged; disabling renders the honest disabled state in the app.",
+    "AC-3: resolveStudentScope is the only scope path; the findFirst admin fallback is gone; a scope test proves student A cannot reach student B's data on any surface.",
+    "AC-4: The PWA shell renders 4-item bottom navigation, bilingual labels, dark mode, and registers offline caching; Lighthouse-style smoke: all four tabs render with seeded data.",
+    "AC-5: The home feed shows HomeworkDue, ClassworkRecap, AssessmentCountdown, NoticeCards, and MarksPublished from real F4/F6 data, chronologically, with the Due today pinned strip and pull-to-refresh; nothing renders for a subject the student is not enrolled in.",
+    "AC-6: Submitting homework creates exactly one assignment_submissions row that the F6 teacher roster can read and grade; resubmission updates the row until graded; graded marks + remarks appear in the student Graded tab.",
+    "AC-7: A late submission (submitted after dueDate by server time) is marked isLate=true and surfaced honestly; an offline-queued submission replaying after the deadline follows the same rule without data loss.",
+    "AC-8: A student's submission text containing CRITICAL PII is blocked with an explanation; HIGH offers mask-or-fix (E3 middleware integration test).",
+    "AC-9: The timetable renders today + weekly from timetable_periods for their section, offline-cached, with the honest empty state when no timetable is published.",
+    "AC-10: Marks views respect result lock states: a locked exam shows 'Results awaited', an unlocked one shows the student's own marks; report card download retained.",
+    "AC-11: Attendance shows the true percentage for the term (or the honest empty state), a month calendar, and leave request statuses; no hardcoded fallback values remain anywhere in the student app (repo grep test for '96.5%' and the hardcoded year string).",
+    "AC-12: Notices for STUDENTS/ALL audiences render with acknowledge where supported; school-wide notices reach every student; audience scoping is enforced server-side.",
+    "AC-13: The syllabus tracker shows taught/next per subject with no mutation surface for students.",
+    "AC-14: The student omnibox resolves 'homework', 'timetable', 'marks', 'notices', 'fees' intents via studentRouteResolver with zero dead routes; out-of-scope intents degrade to plain search.",
+    "AC-15: Fee dues, invoices, payment history, and the Razorpay flow continue working unchanged on the new surface.",
+    "AC-16: Offline: feed, timetable, and homework lists open from cache; a queued submission shows a pending indicator and replays on reconnect; airplane-mode test passes.",
+    "AC-17: Truth pass: every empty state states reality ('No attendance marked yet this term'), every badge derives from data, no hardcoded statistics anywhere.",
+    "AC-18: Regression gate: every phase lands with typecheck + build + a render smoke test of its pages; the S-phase pages render in CI; the three F-series failure classes (syntax error, missing guard block, argument order) are covered by the smoke suite.",
+    "AC-19: All new UI is bilingual (isHindi), dark-mode complete, reuses AppModal/ConfirmDialog/Combobox/EmptyStateCTA, and adds zero npm dependencies (single permitted migration only if student_content is genuinely absent)."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. One migration maximum (submission student_content), only after verifying assignment_submissions columns; if a usable text column already exists, use it and add none.",
+    "Do not modify the teacher grading columns (marksAwarded, gradedByTeacherId, gradedAt) or the F6 roster behavior; the student submit flow only creates/updates its own row fields.",
+    "Do not alter the fee payment flow; it is retained as-is.",
+    "Students never mutate: syllabus structure, timetable, attendance, leave workflow, other students' data, their own identity fields.",
+    "Minor-safety: no student email required for provisioning; claim flow uses admission number + DOB with rate limiting; claim URLs to parents only.",
+    "All writes audit-logged; all queries withTenant/RLS; decryption limited to own name and teacher names.",
+    "Every phase: typecheck + build + smoke render test green before commit (the S7 gate applies from S1 onward, not just at the end).",
+    "One phase per commit, feat(student-app)/feat(students)/feat(entity-engine) prefixes per established style.",
+    "Re-verify defects SD1-SD5 against head 325e68bf before fixing; skip and note in the commit body if already fixed."
+  ],
+  "out_of_scope": [
+    "Parent or teacher app changes (they are complete; only omnibox resolver registration touches the entity engine).",
+    "Student-initiated leave requests, fee payments changes, or profile edits (future spec).",
+    "Class-wide rankings, leaderboards, or any comparative student data.",
+    "Chat/messaging between students or with teachers.",
+    "Exam module changes beyond reading existing schedules and lock states.",
+    "Plagiarism detection UI (the column exists; surfacing it to students or teachers is a future decision)."
+  ],
+  "implementation_order": [
+    {
+      "phase": "S1",
+      "title": "Student identity provisioning + admin access queue",
+      "tasks": [
+        "provisionOrLinkStudent mirroring parentLinkage; enrollment engine layer; DOB claim flow; audit + domain events.",
+        "Admin Student Access queue (enable/resend/disable) in the Students module.",
+        "Integration tests: engine path, queue path, cross-school negative test, rate-limit test."
+      ]
+    },
+    {
+      "phase": "S2",
+      "title": "PWA shell + scope resolver",
+      "tasks": [
+        "4-item bottom nav shell, bilingual, dark mode, offline registration.",
+        "resolveStudentScope + mirror of event-engine scope tests.",
+        "Delete the findFirst admin fallback; adopt ?studentId= preview."
+      ]
+    },
+    {
+      "phase": "S3",
+      "title": "Home feed",
+      "tasks": [
+        "deriveStudentFeed + studentFeedCards persistence + snapshot assembler tests with curriculum fixtures.",
+        "Card renderers + detail modals + Due today strip + pull-to-refresh.",
+        "Truth fixes: remove 96.5% fallback and hardcoded year; honest empty states."
+      ]
+    },
+    {
+      "phase": "S4",
+      "title": "Homework center + submission flow",
+      "tasks": [
+        "Pending/Submitted/Graded tabs, detail views, submit/resubmit sheet.",
+        "Server submission action: unique-row upsert, server-time isLate, E3 PII scan.",
+        "Graded state surfacing marks + remarks; teacher roster compatibility test."
+      ]
+    },
+    {
+      "phase": "S5",
+      "title": "Timetable, marks, attendance, fees surfaces",
+      "tasks": [
+        "Today + weekly timetable from timetable_periods.",
+        "Datesheet + admit card banner (retained) + lock-respecting marks views.",
+        "Attendance percentage/calendar/leave statuses + retained fee section."
+      ]
+    },
+    {
+      "phase": "S6",
+      "title": "Notices + syllabus tracker + student omnibox",
+      "tasks": [
+        "Student notices feed with acknowledge; audience scoping server-side.",
+        "Read-only syllabus tree with taught/next states.",
+        "studentRouteResolver + route map tests; register in the E6 palette shell."
+      ]
+    },
+    {
+      "phase": "S7",
+      "title": "Offline + regression gate + full acceptance pass",
+      "tasks": [
+        "Offline caching for shell/feed/timetable/homework; submission queue with replay + pending indicator.",
+        "Regression gate wired from S1: typecheck + build + page smoke tests in CI for every student page.",
+        "Run AC-1..AC-19 end to end; airplane-mode test; truth pass grep tests."
+      ]
+    }
+  ],
+  "definition_of_done": "A student opens their phone, logs in with the account their school's enrollment itself provisioned, and sees their own school day: what's due, what was taught, what's next in the syllabus, when the test is, how their attendance stands — all real, all offline-safe, in their language, with their homework submitted in three taps and honestly marked late if it was. No other student's data is ever visible. No teacher or parent flow changes. No phase reaches main without building and rendering.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/student-pwa-spec.json and reference it from AGENTS.md alongside the previous landed specs.",
+      "Execute phases S1-S7 strictly in order; each phase is one task boundary with its own commit, green tests, typecheck, build, and smoke render pass.",
+      "Read the spec fully before editing code. SD1-SD5 are grounded in a real audit of head 325e68bf — re-verify each before fixing; skip and note if already fixed.",
+      "Verify at implementation time: assignment_submissions text-column existence (the one permitted migration), notices audience enum values, and the exact PWA service worker registration pattern used by the teacher app.",
+      "Real route subpaths and existing component names must be read from the codebase, not assumed from this document.",
+      "When this spec conflicts with in-repo security constraints (RLS, tenant scoping, encryption, DPDP, minor-safety), the security constraints win; log the conflict in the commit body.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
