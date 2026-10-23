@@ -116,15 +116,6 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/forgot-password");
 
       if (isAuthRoute) {
-        if (nextUrl.searchParams.has("error") || nextUrl.searchParams.has("deactivated")) {
-          return true;
-        }
-        if (isLoggedIn) {
-          if (mustChangePassword) {
-            return getSafeRedirect("/force-password-change", nextUrl, headers);
-          }
-          return getSafeRedirect(defaultDashboard, nextUrl, headers);
-        }
         return true;
       }
 

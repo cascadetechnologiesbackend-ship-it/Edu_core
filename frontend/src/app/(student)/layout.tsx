@@ -35,7 +35,7 @@ export default async function StudentLayout({
   const session = await getCachedSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login?error=SessionExpired");
   }
 
   // Ensure role is student or administrator previewing student portal

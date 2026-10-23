@@ -27,7 +27,7 @@ export default async function TeacherLayout({
   const session = await getCachedSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login?error=SessionExpired");
   }
 
   // Ensure role is teacher or administrator previewing teacher portal

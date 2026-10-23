@@ -35,7 +35,7 @@ export default async function ParentLayout({
   const session = await getCachedSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login?error=SessionExpired");
   }
 
   // Ensure role is parent or school administrator previewing parent portal

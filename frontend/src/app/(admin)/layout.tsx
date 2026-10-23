@@ -27,7 +27,7 @@ export default async function AdminLayout({
   const session = await getCachedSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login?error=SessionExpired");
   }
 
   if (session.user.isActive === false) {

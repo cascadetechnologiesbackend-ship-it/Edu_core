@@ -25,7 +25,7 @@ export default async function DriverLayout({
   const session = await getCachedSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login?error=SessionExpired");
   }
 
   // Ensure role is driver or administrator previewing driver portal
