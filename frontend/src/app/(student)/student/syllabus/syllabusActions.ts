@@ -17,7 +17,7 @@ import {
   calculateSyllabusProgress,
   type SyllabusTopicStatus,
   type SyllabusProgressSummary,
-} from "@/lib/studentEventEngine/syllabusDerivation";
+} from "../../../../lib/studentEventEngine/syllabusDerivation";
 
 export interface EnrolledSubjectOption {
   id: string; // classSubjectId

@@ -98,6 +98,8 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user && !(auth?.user as any)?.isDeactivated;
       const mustChangePassword = (auth?.user as any)?.mustChangePassword;
       const isForcePasswordRoute = pathname.startsWith("/force-password-change");
+      const userRole = (auth?.user as any)?.role as UserRole | undefined;
+      const defaultDashboard = (userRole && ROLE_CONFIGS[userRole]?.defaultDashboard) || "/dashboard";
 
       if (isLoggedIn && mustChangePassword) {
         if (!isForcePasswordRoute && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
@@ -106,7 +108,7 @@ export const authConfig: NextAuthConfig = {
       }
 
       if (isLoggedIn && !mustChangePassword && isForcePasswordRoute) {
-        return getSafeRedirect("/dashboard", nextUrl, headers);
+        return getSafeRedirect(defaultDashboard, nextUrl, headers);
       }
 
       const isAuthRoute =
@@ -121,7 +123,7 @@ export const authConfig: NextAuthConfig = {
           if (mustChangePassword) {
             return getSafeRedirect("/force-password-change", nextUrl, headers);
           }
-          return getSafeRedirect("/dashboard", nextUrl, headers);
+          return getSafeRedirect(defaultDashboard, nextUrl, headers);
         }
         return true;
       }

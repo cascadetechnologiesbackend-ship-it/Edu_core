@@ -529,4 +529,138 @@ export const noticeAcknowledgmentsRelations = relations(
   })
 );
 
+export const parentTeacherMessagesRelations = relations(
+  parentTeacherMessages,
+  ({ one, many }) => ({
+    school: one(schools, {
+      fields: [parentTeacherMessages.schoolId],
+      references: [schools.id],
+    }),
+    senderUser: one(users, {
+      fields: [parentTeacherMessages.senderUserId],
+      references: [users.id],
+    }),
+    recipientUser: one(users, {
+      fields: [parentTeacherMessages.recipientUserId],
+      references: [users.id],
+    }),
+    student: one(students, {
+      fields: [parentTeacherMessages.studentId],
+      references: [students.id],
+    }),
+    moderatedBy: one(users, {
+      fields: [parentTeacherMessages.moderatedById],
+      references: [users.id],
+    }),
+    parentMessage: one(parentTeacherMessages, {
+      fields: [parentTeacherMessages.parentMessageId],
+      references: [parentTeacherMessages.id],
+      relationName: "threadReplies",
+    }),
+    replies: many(parentTeacherMessages, {
+      relationName: "threadReplies",
+    }),
+  })
+);
+
+export const userPushSubscriptionsRelations = relations(
+  userPushSubscriptions,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [userPushSubscriptions.schoolId],
+      references: [schools.id],
+    }),
+    user: one(users, {
+      fields: [userPushSubscriptions.userId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const parentFeedCardsRelations = relations(
+  parentFeedCards,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [parentFeedCards.schoolId],
+      references: [schools.id],
+    }),
+    student: one(students, {
+      fields: [parentFeedCards.studentId],
+      references: [students.id],
+    }),
+  })
+);
+
+export const parentNotificationPreferencesRelations = relations(
+  parentNotificationPreferences,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [parentNotificationPreferences.schoolId],
+      references: [schools.id],
+    }),
+    parentUser: one(users, {
+      fields: [parentNotificationPreferences.parentUserId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const ptmEventsRelations = relations(
+  ptmEvents,
+  ({ one, many }) => ({
+    school: one(schools, {
+      fields: [ptmEvents.schoolId],
+      references: [schools.id],
+    }),
+    slots: many(ptmSlots),
+    bookings: many(ptmBookings),
+  })
+);
+
+export const ptmSlotsRelations = relations(
+  ptmSlots,
+  ({ one, many }) => ({
+    school: one(schools, {
+      fields: [ptmSlots.schoolId],
+      references: [schools.id],
+    }),
+    ptmEvent: one(ptmEvents, {
+      fields: [ptmSlots.ptmEventId],
+      references: [ptmEvents.id],
+    }),
+    teacherUser: one(users, {
+      fields: [ptmSlots.teacherUserId],
+      references: [users.id],
+    }),
+    bookings: many(ptmBookings),
+  })
+);
+
+export const ptmBookingsRelations = relations(
+  ptmBookings,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [ptmBookings.schoolId],
+      references: [schools.id],
+    }),
+    ptmEvent: one(ptmEvents, {
+      fields: [ptmBookings.ptmEventId],
+      references: [ptmEvents.id],
+    }),
+    slot: one(ptmSlots, {
+      fields: [ptmBookings.slotId],
+      references: [ptmSlots.id],
+    }),
+    parentUser: one(users, {
+      fields: [ptmBookings.parentUserId],
+      references: [users.id],
+    }),
+    student: one(students, {
+      fields: [ptmBookings.studentId],
+      references: [students.id],
+    }),
+  })
+);
+
+
 

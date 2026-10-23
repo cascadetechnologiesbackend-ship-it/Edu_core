@@ -16,6 +16,8 @@ import {
   Languages,
   Calendar,
   Sparkles,
+  CloudOff,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
@@ -26,6 +28,12 @@ import type {
   StudentHomeworkData,
   SubmitHomeworkResult,
 } from "@/app/(student)/student/homework/homeworkActions";
+import {
+  getQueuedStudentSubmissions,
+  syncQueuedStudentSubmissions,
+  registerStudentOnlineSyncListener,
+  type QueuedStudentSubmission,
+} from "../../../lib/offline/studentSubmissionQueue";
 
 export interface HomeworkCenterClientProps {
   initialData: StudentHomeworkData;
@@ -62,6 +70,55 @@ export function HomeworkCenterClient({
     message: string;
     isLate?: boolean;
   } | null>(null);
+
+  // Offline submissions state
+  const [queuedSubmissions, setQueuedSubmissions] = useState<QueuedStudentSubmission[]>([]);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+
+  useEffect(() => {
+    getQueuedStudentSubmissions().then(setQueuedSubmissions);
+
+    const cleanup = registerStudentOnlineSyncListener(async (res) => {
+      const updated = await getQueuedStudentSubmissions();
+      setQueuedSubmissions(updated);
+      if (res.syncedCount > 0) {
+        setSuccessToast({
+          message: isHi
+            ? `${res.syncedCount} ऑफ़लाइन गृहकार्य सफलतापूर्वक सिंक हो गए!`
+            : `${res.syncedCount} offline submission(s) synced successfully!`,
+        });
+        router.refresh();
+      }
+    });
+
+    return () => cleanup();
+  }, [isHi, router]);
+
+  const handleManualSync = async () => {
+    setIsSyncingOffline(true);
+    try {
+      const result = await syncQueuedStudentSubmissions();
+      const updatedQueue = await getQueuedStudentSubmissions();
+      setQueuedSubmissions(updatedQueue);
+
+      if (result.syncedCount > 0) {
+        setSuccessToast({
+          message: isHi
+            ? `${result.syncedCount} गृहकार्य सफलतापूर्वक सिंक हो गए!`
+            : `${result.syncedCount} submission(s) synced successfully!`,
+        });
+        router.refresh();
+      } else if (result.failedCount > 0) {
+        setSuccessToast({
+          message: isHi
+            ? "कुछ गृहकार्य सिंक नहीं हो सके। कृपया इंटरनेट पुनः जांचें।"
+            : "Some offline submissions could not sync. Please check connection.",
+        });
+      }
+    } finally {
+      setIsSyncingOffline(false);
+    }
+  };
 
   // Deep-link from Feed: ?id=...&action=submit
   useEffect(() => {
@@ -120,13 +177,21 @@ export function HomeworkCenterClient({
 
   const handleSubmissionSuccess = (res: SubmitHomeworkResult) => {
     // Show success message
-    const msg = res.resubmitted
-      ? isHi
+    let msg: string;
+    if (res.offlineQueued) {
+      msg = isHi
+        ? "गृहकार्य ऑफ़लाइन सहेजा गया! इंटरनेट कनेक्ट होने पर स्वतः सिंक हो जाएगा।"
+        : "Homework saved offline! It will auto-sync when you reconnect.";
+      getQueuedStudentSubmissions().then(setQueuedSubmissions);
+    } else if (res.resubmitted) {
+      msg = isHi
         ? "गृहकार्य सफलतापूर्वक अपडेट किया गया!"
-        : "Submission updated successfully!"
-      : isHi
-      ? "गृहकार्य सफलतापूर्वक जमा किया गया!"
-      : "Homework submitted successfully!";
+        : "Submission updated successfully!";
+    } else {
+      msg = isHi
+        ? "गृहकार्य सफलतापूर्वक जमा किया गया!"
+        : "Homework submitted successfully!";
+    }
 
     setSuccessToast({
       message: msg,
@@ -189,6 +254,46 @@ export function HomeworkCenterClient({
             <span>{isHi ? "English" : "हिंदी"}</span>
           </button>
         </div>
+
+        {/* Offline Queued Submissions Alert Banner */}
+        {queuedSubmissions.length > 0 && (
+          <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <CloudOff className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-200">
+                  {isHi
+                    ? `${queuedSubmissions.length} गृहकार्य ऑफ़लाइन कतार में सहेजा गया है`
+                    : `${queuedSubmissions.length} submission(s) queued offline`}
+                </p>
+                <p className="text-[11px] text-amber-300/80">
+                  {isHi
+                    ? "इंटरनेट आने पर यह स्वतः सिंक हो जाएगा, या आप अभी प्रयास कर सकते हैं।"
+                    : "Will auto-sync when reconnected, or you can sync manually now."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isSyncingOffline}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-200 transition disabled:opacity-50 self-end sm:self-auto"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", isSyncingOffline && "animate-spin")} />
+              <span>
+                {isSyncingOffline
+                  ? isHi
+                    ? "सिंक हो रहा है..."
+                    : "Syncing..."
+                  : isHi
+                  ? "अभी सिंक करें"
+                  : "Sync Now"}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* 3-Tab Pill Switcher */}
         <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-950/70 border border-slate-800/80 mt-4">
@@ -420,6 +525,12 @@ export function HomeworkCenterClient({
                       {item.maxMarks && (
                         <span className="text-[10px] font-semibold text-slate-400">
                           {isHi ? `${item.maxMarks} अंक` : `${item.maxMarks} marks`}
+                        </span>
+                      )}
+                      {queuedSubmissions.some((q) => q.assignmentId === item.id) && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <CloudOff className="w-3 h-3" />
+                          <span>{isHi ? "ऑफ़लाइन कतारबद्ध" : "Queued Offline"}</span>
                         </span>
                       )}
                       {isLate && (

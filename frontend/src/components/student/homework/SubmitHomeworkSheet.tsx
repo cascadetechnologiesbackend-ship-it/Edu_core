@@ -21,6 +21,7 @@ import {
   StudentHomeworkItem,
   SubmitHomeworkResult,
 } from "@/app/(student)/student/homework/homeworkActions";
+import { enqueueStudentSubmission } from "../../../lib/offline/studentSubmissionQueue";
 
 export interface SubmitHomeworkSheetProps {
   open: boolean;
@@ -158,6 +159,36 @@ export function SubmitHomeworkSheet({
     setIsPiiBlocked(false);
     setDetectedTypes([]);
 
+    // Check if client is currently offline
+    if (typeof window !== "undefined" && !window.navigator.onLine) {
+      try {
+        await enqueueStudentSubmission({
+          assignmentId: homework.id,
+          assignmentTitle: homework.title,
+          subjectName: homework.subjectName,
+          dueDate: homework.dueDate,
+          studentContent: trimmed,
+          attachmentS3Key: attachmentKey || undefined,
+        });
+
+        onSuccess({
+          success: true,
+          offlineQueued: true,
+          isLate: Boolean(homework.isPastDue),
+          submittedAt: new Date().toISOString(),
+        });
+        onClose();
+        return;
+      } catch (enqueueErr: any) {
+        setErrorMsg(
+          enqueueErr?.message ||
+            (isHi ? "ऑफ़लाइन सहेजने में विफल" : "Failed to queue submission offline")
+        );
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const result = await submitHomeworkAction({
         assignmentId: homework.id,
@@ -178,6 +209,36 @@ export function SubmitHomeworkSheet({
       onClose();
     } catch (err: any) {
       console.error("[SubmitHomeworkSheet] Submit error:", err);
+
+      // If network failure occurs during server action, queue locally
+      if (
+        typeof window !== "undefined" &&
+        (!window.navigator.onLine ||
+          err?.message?.toLowerCase().includes("fetch") ||
+          err?.message?.toLowerCase().includes("network") ||
+          err?.message?.toLowerCase().includes("failed to fetch"))
+      ) {
+        try {
+          await enqueueStudentSubmission({
+            assignmentId: homework.id,
+            assignmentTitle: homework.title,
+            subjectName: homework.subjectName,
+            dueDate: homework.dueDate,
+            studentContent: trimmed,
+            attachmentS3Key: attachmentKey || undefined,
+          });
+
+          onSuccess({
+            success: true,
+            offlineQueued: true,
+            isLate: Boolean(homework.isPastDue),
+            submittedAt: new Date().toISOString(),
+          });
+          onClose();
+          return;
+        } catch (_) {}
+      }
+
       setErrorMsg(err?.message || (isHi ? "त्रुटि उत्पन्न हुई" : "An error occurred"));
     } finally {
       setIsSubmitting(false);

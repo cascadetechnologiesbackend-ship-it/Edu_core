@@ -65,6 +65,12 @@ export default function LoginForm() {
           setServerError("Invalid 2FA code. Please verify your authenticator app and try again.");
         } else if (result.error.toLowerCase().includes("locked")) {
           setServerError("Account is temporarily locked due to too many failed attempts. Please try again in 15 minutes.");
+        } else if (
+          result.error.includes("RATE_LIMIT_EXCEEDED") ||
+          result.error.toLowerCase().includes("rate") ||
+          result.error.toLowerCase().includes("too many")
+        ) {
+          setServerError("Too many login attempts. Please wait a moment and try again.");
         } else {
           try {
             const lockoutRes = await fetch(`/api/auth/lockout?email=${encodeURIComponent(data.email)}`);
@@ -86,9 +92,9 @@ export default function LoginForm() {
         const defaultDashboard = (role && ROLE_CONFIGS[role]?.defaultDashboard) || "/dashboard";
 
         if (mustChangePassword) {
-          window.location.href = `/force-password-change?next=${encodeURIComponent(defaultDashboard)}`;
+          window.location.replace(`/force-password-change?next=${encodeURIComponent(defaultDashboard)}`);
         } else {
-          window.location.href = defaultDashboard;
+          window.location.replace(defaultDashboard);
         }
       }
     } catch (err) {
@@ -99,7 +105,7 @@ export default function LoginForm() {
         if (session?.user) {
           const role = (session.user as any)?.role as UserRole;
           const defaultDashboard = (role && ROLE_CONFIGS[role]?.defaultDashboard) || "/dashboard";
-          window.location.href = defaultDashboard;
+          window.location.replace(defaultDashboard);
           return;
         }
       } catch {}

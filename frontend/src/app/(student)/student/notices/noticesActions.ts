@@ -37,7 +37,7 @@ export interface AcknowledgeStudentNoticeResult {
   error?: string;
 }
 
-import { isNoticeInStudentScope } from "@/lib/studentEventEngine/noticeScoping";
+import { isNoticeInStudentScope } from "../../../../lib/studentEventEngine/noticeScoping";
 export { isNoticeInStudentScope };
 
 /**

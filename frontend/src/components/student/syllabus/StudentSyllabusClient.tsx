@@ -17,7 +17,7 @@ import type {
   EnrolledSubjectOption,
   StudentSyllabusUnit,
 } from "@/app/(student)/student/syllabus/syllabusActions";
-import type { SyllabusProgressSummary } from "@/lib/studentEventEngine/syllabusDerivation";
+import type { SyllabusProgressSummary } from "../../../lib/studentEventEngine/syllabusDerivation";
 
 export interface StudentSyllabusClientProps {
   subjects: EnrolledSubjectOption[];
