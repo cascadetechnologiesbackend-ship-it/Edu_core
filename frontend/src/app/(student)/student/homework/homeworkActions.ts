@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { and, eq, inArray, isNull, or, desc, asc } from "drizzle-orm";
 import { resolveStudentScope } from "@/lib/studentEventEngine/scopeResolver";
-import { scanContentForPII } from "../../../../lib/pii/scanEnforcement";
+import { scanContentForPII } from "@/lib/pii/scanEnforcement";
 import { decryptData } from "@/../../backend/src/lib/encryption";
 
 export interface StudentHomeworkItem {

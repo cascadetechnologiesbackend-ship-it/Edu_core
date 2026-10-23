@@ -16,6 +16,8 @@ export default defineConfig({
       { find: "@schoolmitra/database", replacement: path.resolve(__dirname, "../database/src/index.ts") },
       { find: /^@schoolmitra\/entity-engine\/(.*)$/, replacement: path.resolve(__dirname, "../packages/entity-engine/src/$1") },
       { find: "@schoolmitra/entity-engine", replacement: path.resolve(__dirname, "../packages/entity-engine/src/index.ts") },
+      { find: /^@\/lib\/pii\/(.*)$/, replacement: path.resolve(__dirname, "./src/lib/pii/$1") },
+      { find: /^@\/lib\/offline\/(.*)$/, replacement: path.resolve(__dirname, "./src/lib/offline/$1") },
       { find: /^@\/lib\/(.*)$/, replacement: path.resolve(__dirname, "../backend/src/lib/$1") },
       { find: /^@\/server\/(.*)$/, replacement: path.resolve(__dirname, "../backend/src/server/$1") },
       { find: /^@\/workers\/(.*)$/, replacement: path.resolve(__dirname, "../backend/src/workers/$1") },

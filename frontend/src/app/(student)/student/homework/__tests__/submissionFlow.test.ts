@@ -250,6 +250,9 @@ describe("Phase S4: Student Homework Center & Submission Flow (AC-6, AC-7, AC-8)
                 status: "PUBLISHED",
               }),
             },
+            assignmentSubmissions: {
+              findFirst: vi.fn().mockResolvedValue(null),
+            },
           },
         };
         return cb(mockTx);
