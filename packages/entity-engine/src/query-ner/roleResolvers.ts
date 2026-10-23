@@ -34,11 +34,20 @@ export interface ParentWardContext {
   busRoute?: string;
 }
 
+export interface StudentScopeContext {
+  studentId?: string;
+  classId?: string;
+  sectionId?: string;
+  className?: string;
+  sectionName?: string;
+  enrolledSubjectNames?: string[];
+}
+
 export interface ResolvedRoleRoute {
   route: string;
   actionLabel: string;
   actionLabelHi?: string;
-  category: "TEACHER" | "PARENT";
+  category: "TEACHER" | "PARENT" | "STUDENT";
   confidenceScore: number;
   entityChips: RecognizedEntity[];
 }
@@ -66,6 +75,19 @@ export const REAL_PARENT_ROUTES = new Set([
   "/parent/profile",
   "/parent/more",
   "/parent/more/leave",
+]);
+
+export const REAL_STUDENT_ROUTES = new Set([
+  "/student/dashboard",
+  "/student/homework",
+  "/student/timetable",
+  "/student/marks",
+  "/student/attendance",
+  "/student/fees",
+  "/student/syllabus",
+  "/student/notices",
+  "/student/profile",
+  "/student/more",
 ]);
 
 /**
@@ -603,3 +625,274 @@ export function parentRouteResolver(
   // Any teacher or admin intent resolves to null
   return null;
 }
+
+/**
+ * Resolves an omnibox query into a Student PWA surface route (Phase S6, AC-14).
+ * Returns null if confidence is low or if intent is teacher/admin out-of-scope.
+ */
+export function studentRouteResolver(
+  parsed: ParsedQuery,
+  scope?: StudentScopeContext
+): ResolvedRoleRoute | null {
+  if (!parsed) return null;
+
+  const rawLower = parsed.rawQuery.toLowerCase();
+  const intentType = parsed.primaryIntent?.type;
+
+  // 1. Filter out Teacher/Admin specific operations (AC-14: out-of-scope degrades to plain search)
+  const isTeacherOrAdminOperation =
+    intentType === "TAKE_ATTENDANCE" ||
+    intentType === "ENTER_MARKS" ||
+    intentType === "GENERATE_REPORT_CARD" ||
+    intentType === "MANAGE_EXAM_SCHEDULE" ||
+    intentType === "VIEW_STAFF_PROFILE" ||
+    intentType === "TRACK_BUS" ||
+    intentType === "COLLECT_FEE" ||
+    rawLower.includes("take attendance") ||
+    rawLower.includes("post homework") ||
+    rawLower.includes("mark attendance") ||
+    rawLower.includes("enter marks") ||
+    rawLower.includes("grade marks") ||
+    rawLower.includes("grading") ||
+    rawLower.includes("create notice") ||
+    rawLower.includes("send circular") ||
+    rawLower.includes("post circular") ||
+    rawLower.includes("payroll") ||
+    rawLower.includes("salary") ||
+    rawLower.includes("pay slip") ||
+    rawLower.includes("ptm slot") ||
+    rawLower.includes("bus route") ||
+    rawLower.includes("where is bus") ||
+    rawLower.includes("track bus") ||
+    rawLower.includes("gps tracking");
+
+  if (isTeacherOrAdminOperation) {
+    return null;
+  }
+
+  // 2. Homework & Assignments (/student/homework)
+  if (
+    rawLower.includes("homework") ||
+    rawLower.includes("assignment") ||
+    rawLower.includes("task") ||
+    rawLower.includes("गृहकार्य") ||
+    rawLower.includes("असाइनमेंट")
+  ) {
+    if (rawLower.includes("submitted")) {
+      return {
+        route: "/student/homework?tab=submitted",
+        actionLabel: "View Submitted Homework",
+        actionLabelHi: "जमा किया गया गृहकार्य देखें",
+        category: "STUDENT",
+        confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+        entityChips: parsed.recognizedEntities,
+      };
+    }
+    if (rawLower.includes("graded") || rawLower.includes("evaluated")) {
+      return {
+        route: "/student/homework?tab=graded",
+        actionLabel: "View Graded Homework",
+        actionLabelHi: "जांचा गया गृहकार्य देखें",
+        category: "STUDENT",
+        confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+        entityChips: parsed.recognizedEntities,
+      };
+    }
+    return {
+      route: "/student/homework",
+      actionLabel: "View Homework Assignments",
+      actionLabelHi: "गृहकार्य असाइनमेंट देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 3. Timetable & Schedule (/student/timetable)
+  if (
+    intentType === "VIEW_TIMETABLE" ||
+    rawLower.includes("timetable") ||
+    rawLower.includes("time table") ||
+    rawLower.includes("routine") ||
+    rawLower.includes("schedule") ||
+    rawLower.includes("period") ||
+    rawLower.includes("periods") ||
+    rawLower.includes("classes today") ||
+    rawLower.includes("समय सारिणी") ||
+    rawLower.includes("शेड्यूल") ||
+    rawLower.includes("दिनचर्या")
+  ) {
+    return {
+      route: "/student/timetable",
+      actionLabel: "View Class Timetable",
+      actionLabelHi: "कक्षा समय सारिणी देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 4. Marks, Exams, Datesheets & Report Cards (/student/marks)
+  if (
+    intentType === "VIEW_MARKS" ||
+    intentType === "VIEW_REPORT_CARD" ||
+    rawLower.includes("marks") ||
+    rawLower.includes("result") ||
+    rawLower.includes("results") ||
+    rawLower.includes("report card") ||
+    rawLower.includes("exam") ||
+    rawLower.includes("exams") ||
+    rawLower.includes("datesheet") ||
+    rawLower.includes("admit card") ||
+    rawLower.includes("scorecard") ||
+    rawLower.includes("अंक") ||
+    rawLower.includes("परिणाम") ||
+    rawLower.includes("परीक्षा") ||
+    rawLower.includes("प्रगति पत्र") ||
+    rawLower.includes("मार्क्स")
+  ) {
+    return {
+      route: "/student/marks",
+      actionLabel: "View Marks & Exam Results",
+      actionLabelHi: "अंक और परीक्षा परिणाम देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 5. Attendance & Leave Records (/student/attendance)
+  if (
+    intentType === "VIEW_ATTENDANCE" ||
+    rawLower.includes("attendance") ||
+    rawLower.includes("present") ||
+    rawLower.includes("absent") ||
+    rawLower.includes("leave") ||
+    rawLower.includes("leaves") ||
+    rawLower.includes("उपस्थिति") ||
+    rawLower.includes("हाजिरी") ||
+    rawLower.includes("छुट्टी")
+  ) {
+    return {
+      route: "/student/attendance",
+      actionLabel: "View Attendance Record",
+      actionLabelHi: "उपस्थिति रिकॉर्ड देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 6. Fees, Invoices & Receipts (/student/fees)
+  const hasFeeWord =
+    /\bfees?\b/i.test(rawLower) ||
+    rawLower.includes("शुल्क") ||
+    rawLower.includes("फीस");
+
+  if (
+    intentType === "VIEW_FEE_DUES" ||
+    hasFeeWord ||
+    rawLower.includes("due") ||
+    rawLower.includes("dues") ||
+    rawLower.includes("invoice") ||
+    rawLower.includes("receipt")
+  ) {
+    return {
+      route: "/student/fees",
+      actionLabel: "View Fee Dues & Receipts",
+      actionLabelHi: "शुल्क विवरण और रसीदें देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 7. Syllabus Tracker & Curriculum (/student/syllabus)
+  if (
+    rawLower.includes("syllabus") ||
+    rawLower.includes("curriculum") ||
+    rawLower.includes("chapter") ||
+    rawLower.includes("chapters") ||
+    rawLower.includes("topic") ||
+    rawLower.includes("topics") ||
+    rawLower.includes("what's next") ||
+    rawLower.includes("whats next") ||
+    rawLower.includes("पाठ्यक्रम")
+  ) {
+    return {
+      route: "/student/syllabus",
+      actionLabel: "Track Syllabus Progress",
+      actionLabelHi: "पाठ्यक्रम प्रगति देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 8. Notices & Circulars (/student/notices)
+  if (
+    intentType === "CREATE_NOTICE" ||
+    rawLower.includes("notice") ||
+    rawLower.includes("notices") ||
+    rawLower.includes("circular") ||
+    rawLower.includes("circulars") ||
+    rawLower.includes("announcement") ||
+    rawLower.includes("announcements") ||
+    rawLower.includes("noticeboard") ||
+    rawLower.includes("सूचना") ||
+    rawLower.includes("परिपत्र")
+  ) {
+    return {
+      route: "/student/notices",
+      actionLabel: "View School Notices",
+      actionLabelHi: "विद्यालय सूचनाएं देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 9. Student Profile (/student/profile)
+  if (
+    intentType === "VIEW_STUDENT_PROFILE" ||
+    rawLower.includes("profile") ||
+    rawLower.includes("id card") ||
+    rawLower.includes("identity") ||
+    rawLower.includes("my id") ||
+    rawLower.includes("student id") ||
+    rawLower.includes("admission details") ||
+    rawLower.includes("प्रोफ़ाइल") ||
+    rawLower.includes("पहचान")
+  ) {
+    return {
+      route: "/student/profile",
+      actionLabel: "View Student Profile",
+      actionLabelHi: "विद्यार्थी प्रोफ़ाइल देखें",
+      category: "STUDENT",
+      confidenceScore: Math.max(parsed.confidenceScore, 0.9),
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // 10. Student Home / Dashboard (/student/dashboard)
+  if (
+    rawLower.includes("dashboard") ||
+    rawLower.includes("home") ||
+    rawLower === "today" ||
+    rawLower === "feed" ||
+    rawLower.includes("डैशबोर्ड")
+  ) {
+    return {
+      route: "/student/dashboard",
+      actionLabel: "Open Student Companion",
+      actionLabelHi: "विद्यार्थी डैशबोर्ड खोलें",
+      category: "STUDENT",
+      confidenceScore: parsed.confidenceScore,
+      entityChips: parsed.recognizedEntities,
+    };
+  }
+
+  // Low confidence or unmapped query degrades to null
+  return null;
+}
+

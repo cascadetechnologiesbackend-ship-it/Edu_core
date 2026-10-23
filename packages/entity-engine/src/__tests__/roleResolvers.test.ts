@@ -3,10 +3,13 @@ import { parseOmniboxQuery } from "../query-ner/parser";
 import {
   teacherRouteResolver,
   parentRouteResolver,
+  studentRouteResolver,
   REAL_TEACHER_ROUTES,
   REAL_PARENT_ROUTES,
+  REAL_STUDENT_ROUTES,
   type TeacherScopeContext,
   type ParentWardContext,
+  type StudentScopeContext,
 } from "../query-ner/roleResolvers";
 
 describe("Phase E6: Role-Scoped Route Resolvers (Teacher & Parent PWAs)", () => {
@@ -181,6 +184,158 @@ describe("Phase E6: Role-Scoped Route Resolvers (Teacher & Parent PWAs)", () => 
       // Staff payroll
       const staffPayroll = parseOmniboxQuery("monthly salary payroll");
       expect(parentRouteResolver(staffPayroll)).toBeNull();
+    });
+  });
+
+  describe("studentRouteResolver (Phase S6 / AC-14)", () => {
+    it("resolves homework queries to /student/homework", () => {
+      const parsed = parseOmniboxQuery("my homework assignments");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/homework");
+      expect(res?.actionLabel).toContain("Homework");
+      expect(res?.category).toBe("STUDENT");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves submitted and graded homework tab queries", () => {
+      const submitted = parseOmniboxQuery("view submitted homework");
+      const resSub = studentRouteResolver(submitted);
+      expect(resSub?.route).toBe("/student/homework?tab=submitted");
+
+      const graded = parseOmniboxQuery("view graded assignments");
+      const resGraded = studentRouteResolver(graded);
+      expect(resGraded?.route).toBe("/student/homework?tab=graded");
+    });
+
+    it("resolves Hindi homework query (गृहकार्य देखें)", () => {
+      const parsed = parseOmniboxQuery("गृहकार्य देखें");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toContain("/student/homework");
+      expect(res?.actionLabelHi).toContain("गृहकार्य");
+    });
+
+    it("resolves timetable & routine queries to /student/timetable", () => {
+      const parsed = parseOmniboxQuery("today class timetable routine");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/timetable");
+      expect(res?.actionLabel).toContain("Timetable");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves Hindi timetable query (समय सारिणी)", () => {
+      const parsed = parseOmniboxQuery("कक्षा समय सारिणी");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/timetable");
+      expect(res?.actionLabelHi).toContain("समय सारिणी");
+    });
+
+    it("resolves marks & exam results queries to /student/marks", () => {
+      const parsed = parseOmniboxQuery("exam results and marksheet");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/marks");
+      expect(res?.actionLabel).toContain("Marks & Exam Results");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves Hindi marks query (परीक्षा परिणाम और अंक)", () => {
+      const parsed = parseOmniboxQuery("परीक्षा परिणाम अंक");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/marks");
+      expect(res?.actionLabelHi).toContain("परिणाम");
+    });
+
+    it("resolves attendance queries to /student/attendance", () => {
+      const parsed = parseOmniboxQuery("attendance record this term");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/attendance");
+      expect(res?.actionLabel).toContain("Attendance");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves Hindi attendance query (छात्र उपस्थिति)", () => {
+      const parsed = parseOmniboxQuery("मेरी उपस्थिति रिकॉर्ड");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/attendance");
+      expect(res?.actionLabelHi).toContain("उपस्थिति");
+    });
+
+    it("resolves fee dues queries to /student/fees", () => {
+      const parsed = parseOmniboxQuery("fee dues and receipts");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/fees");
+      expect(res?.actionLabel).toContain("Fee Dues & Receipts");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves syllabus tracker queries to /student/syllabus", () => {
+      const parsed = parseOmniboxQuery("syllabus progress what's next");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/syllabus");
+      expect(res?.actionLabel).toContain("Syllabus");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves Hindi syllabus query (पाठ्यक्रम प्रगति)", () => {
+      const parsed = parseOmniboxQuery("पाठ्यक्रम प्रगति क्या पढ़ना है");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/syllabus");
+      expect(res?.actionLabelHi).toContain("पाठ्यक्रम");
+    });
+
+    it("resolves official notice queries to /student/notices", () => {
+      const parsed = parseOmniboxQuery("school circulars and notices");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/notices");
+      expect(res?.actionLabel).toContain("Notices");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves profile queries to /student/profile", () => {
+      const parsed = parseOmniboxQuery("my student profile and id");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/profile");
+      expect(res?.actionLabel).toContain("Profile");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("resolves dashboard/home queries to /student/dashboard", () => {
+      const parsed = parseOmniboxQuery("student dashboard home feed");
+      const res = studentRouteResolver(parsed);
+      expect(res).not.toBeNull();
+      expect(res?.route).toBe("/student/dashboard");
+      expect(REAL_STUDENT_ROUTES.has(res!.route.split("?")[0])).toBe(true);
+    });
+
+    it("degrades to null for teacher operations (AC-14)", () => {
+      const takeAttendance = parseOmniboxQuery("take attendance class 10-A");
+      expect(studentRouteResolver(takeAttendance)).toBeNull();
+
+      const enterMarks = parseOmniboxQuery("enter marks class 10-A");
+      expect(studentRouteResolver(enterMarks)).toBeNull();
+
+      const postHomework = parseOmniboxQuery("post homework for class 10-A");
+      expect(studentRouteResolver(postHomework)).toBeNull();
+    });
+
+    it("degrades to null for admin operations (AC-14)", () => {
+      const payroll = parseOmniboxQuery("staff monthly salary payroll");
+      expect(studentRouteResolver(payroll)).toBeNull();
+
+      const busGps = parseOmniboxQuery("where is bus route 4 gps tracking");
+      expect(studentRouteResolver(busGps)).toBeNull();
     });
   });
 });

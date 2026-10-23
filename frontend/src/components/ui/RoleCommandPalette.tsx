@@ -25,10 +25,12 @@ import {
   parseOmniboxQuery,
   teacherRouteResolver,
   parentRouteResolver,
+  studentRouteResolver,
   type ParsedQuery,
   type RecognizedEntity,
   type TeacherScopeContext,
   type ParentWardContext,
+  type StudentScopeContext,
   type ResolvedRoleRoute,
 } from "@schoolmitra/entity-engine/query-ner";
 
@@ -38,6 +40,7 @@ export interface RoleCommandPaletteProps {
   role: "TEACHER" | "PARENT" | "DRIVER" | "STUDENT";
   scope?: TeacherScopeContext;
   wards?: ParentWardContext[];
+  studentScope?: StudentScopeContext;
 }
 
 function entityChipClass(type: RecognizedEntity["type"]): string {
@@ -65,6 +68,7 @@ export function RoleCommandPalette({
   role,
   scope,
   wards,
+  studentScope,
 }: RoleCommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -118,8 +122,11 @@ export function RoleCommandPalette({
     if (role === "PARENT") {
       return parentRouteResolver(parsed, wards);
     }
+    if (role === "STUDENT") {
+      return studentRouteResolver(parsed, studentScope);
+    }
     return null;
-  }, [parsed, role, scope, wards]);
+  }, [parsed, role, scope, wards, studentScope]);
 
   if (!open) return null;
 
@@ -220,19 +227,31 @@ export function RoleCommandPalette({
       badge: "Schedule",
     },
     {
-      label: "Marks & Progress",
+      label: "Marks & Exam Results",
       href: "/student/marks",
       icon: <FileSpreadsheet className="w-4 h-4 text-amber-400" />,
       badge: "Exams",
     },
     {
-      label: "Attendance Register",
+      label: "Attendance & Leave Record",
       href: "/student/attendance",
       icon: <Calendar className="w-4 h-4 text-indigo-400" />,
       badge: "Daily",
     },
     {
-      label: "Fee Details",
+      label: "Syllabus Progress",
+      href: "/student/syllabus",
+      icon: <BookOpen className="w-4 h-4 text-teal-400" />,
+      badge: "Curriculum",
+    },
+    {
+      label: "Official Notices",
+      href: "/student/notices",
+      icon: <MessageSquare className="w-4 h-4 text-cyan-400" />,
+      badge: "Noticeboard",
+    },
+    {
+      label: "Fee Details & Invoices",
       href: "/student/fees",
       icon: <CreditCard className="w-4 h-4 text-purple-400" />,
       badge: "Dues",
