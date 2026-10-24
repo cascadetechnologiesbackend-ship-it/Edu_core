@@ -2058,3 +2058,88 @@ export async function approveAndLockPayroll(runId: string) {
     return { success: false, message: error.message };
   }
 }
+
+// ─── TEACHING STAFF DIAGNOSTICS (S14-F01) ───────────────────────────────────
+export interface TeachingStaffDiagnostics {
+  activeStaffCount: number;
+  isTeachingCount: number;
+  teacherRoleCount: number;
+  conflictCount: number;
+  conflicts: Array<{
+    staffId: string;
+    userId: string;
+    employeeCode: string;
+    designationId: string;
+    designationName: string;
+  }>;
+}
+
+export async function getTeachingStaffDiagnostics(schoolId?: string): Promise<{
+  success: boolean;
+  diagnostics?: TeachingStaffDiagnostics;
+  message?: string;
+}> {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"] as const);
+    const targetSchoolId = ctx.schoolId || schoolId;
+    if (!targetSchoolId) {
+      return { success: false, message: "Missing tenant school context" };
+    }
+
+    const [activeStaffList, teacherRole] = await Promise.all([
+      db.query.staff.findMany({
+        where: and(eq(staff.schoolId, targetSchoolId), eq(staff.isActive, true)),
+        with: { designation: true, user: true },
+      }),
+      db.query.roles.findFirst({
+        where: and(eq(roles.schoolId, targetSchoolId), eq(roles.name, "TEACHER")),
+      }),
+    ]);
+
+    const activeStaffCount = activeStaffList.length;
+    const isTeachingCount = activeStaffList.filter((s) => s.designation?.isTeaching).length;
+
+    let teacherRoleUserIds = new Set<string>();
+    if (teacherRole) {
+      const assignedUserRoles = await db.query.userRoles.findMany({
+        where: and(eq(userRoles.schoolId, targetSchoolId), eq(userRoles.roleId, teacherRole.id)),
+        columns: { userId: true },
+      });
+      teacherRoleUserIds = new Set(assignedUserRoles.map((ur) => ur.userId));
+    }
+
+    const conflicts: Array<{
+      staffId: string;
+      userId: string;
+      employeeCode: string;
+      designationId: string;
+      designationName: string;
+    }> = [];
+
+    for (const s of activeStaffList) {
+      if (s.userId && teacherRoleUserIds.has(s.userId) && !s.designation?.isTeaching) {
+        conflicts.push({
+          staffId: s.id,
+          userId: s.userId,
+          employeeCode: s.employeeCode,
+          designationId: s.designationId || "",
+          designationName: s.designation?.name || "Unknown",
+        });
+      }
+    }
+
+    return {
+      success: true,
+      diagnostics: {
+        activeStaffCount,
+        isTeachingCount,
+        teacherRoleCount: teacherRoleUserIds.size,
+        conflictCount: conflicts.length,
+        conflicts,
+      },
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+

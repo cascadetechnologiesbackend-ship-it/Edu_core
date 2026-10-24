@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, PlusCircle, Trash2, Award } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,8 @@ import {
   updateDesignation,
   archiveDesignation,
   deleteDesignation,
+  getTeachingStaffDiagnostics,
+  type TeachingStaffDiagnostics,
 } from "../actions";
 
 interface DesignationsTabProps {
@@ -31,6 +33,20 @@ export function DesignationsTab({
   const [deptFilter, setDeptFilter] = useState("ALL");
   const [loading, setLoading] = useState(false);
   const [modalType, setModalType] = useState<"create" | "edit" | null>(null);
+  const [diagnostics, setDiagnostics] = useState<TeachingStaffDiagnostics | null>(null);
+  const [fixingDesigId, setFixingDesigId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    getTeachingStaffDiagnostics().then((res) => {
+      if (isMounted && res.success && res.diagnostics) {
+        setDiagnostics(res.diagnostics);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [designations]);
 
   const [desigForm, setDesigForm] = useState<{
     id?: string;
@@ -199,6 +215,56 @@ export function DesignationsTab({
           </button>
         )}
       </div>
+
+      {/* Classification Conflict Alert Banner (S14-F01) */}
+      {diagnostics && diagnostics.conflictCount > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200 animate-fade-in shadow-xs">
+          <div className="flex items-start gap-2.5">
+            <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
+              <Award className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">
+                Teaching Classification Conflict ({diagnostics.conflictCount})
+              </p>
+              <p className="text-amber-700/90 dark:text-amber-300/80 mt-0.5 leading-relaxed">
+                {diagnostics.conflictCount} active staff member(s) hold the TEACHER system role but are assigned designations marked as non-teaching:{" "}
+                <span className="font-semibold">
+                  {diagnostics.conflicts.map((c) => `${c.employeeCode} (${c.designationName})`).join(", ")}
+                </span>
+                . These staff members are visible in dropdowns via fallback, but their designations should be marked as teaching.
+              </p>
+            </div>
+          </div>
+
+          {isAuthorizedHR && (
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {diagnostics.conflicts.map((c) => (
+                <button
+                  key={c.designationId}
+                  type="button"
+                  disabled={fixingDesigId === c.designationId}
+                  onClick={async () => {
+                    setFixingDesigId(c.designationId);
+                    const res = await updateDesignation(c.designationId, { isTeaching: true });
+                    setFixingDesigId(null);
+                    if (res.success) {
+                      toast.success(`Marked "${c.designationName}" as teaching designation.`);
+                      router.refresh();
+                      onRefresh?.();
+                    } else {
+                      toast.error(res.message || "Failed to update designation.");
+                    }
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow-xs disabled:opacity-50 cursor-pointer text-xs"
+                >
+                  {fixingDesigId === c.designationId ? "Updating..." : `Fix: Mark "${c.designationName}" Teaching`}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 overflow-hidden shadow-xs">
