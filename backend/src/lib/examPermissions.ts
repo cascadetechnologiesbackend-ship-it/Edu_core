@@ -154,40 +154,35 @@ export async function assertTeacherTeaches(params: {
     const { classSubjects, sectionSubjectTeachers } = await import("@/db/schema");
     const { eq, and } = await import("drizzle-orm");
 
-    // 1. Check direct classSubjects assignment
-    const direct = await db.query.classSubjects.findFirst({
+    // 1. Find target classSubject mapping
+    const targetClassSubject = await db.query.classSubjects.findFirst({
       where: and(
         eq(classSubjects.schoolId, schoolId),
         eq(classSubjects.classId, classId),
         eq(classSubjects.subjectId, subjectId),
-        eq(classSubjects.assignedTeacherId, teacherId),
       ),
     });
-    if (direct) return true;
+    if (!targetClassSubject) return false;
 
-    // 2. Check sectionSubjectTeachers override
+    // 2. Check section override if sectionId is specified
     if (sectionId) {
-      const targetClassSubject = await db.query.classSubjects.findFirst({
+      const activeSectionOverride = await db.query.sectionSubjectTeachers.findFirst({
         where: and(
-          eq(classSubjects.schoolId, schoolId),
-          eq(classSubjects.classId, classId),
-          eq(classSubjects.subjectId, subjectId),
+          eq(sectionSubjectTeachers.schoolId, schoolId),
+          eq(sectionSubjectTeachers.classSubjectId, targetClassSubject.id),
+          eq(sectionSubjectTeachers.sectionId, sectionId),
+          eq(sectionSubjectTeachers.isActive, true),
         ),
       });
 
-      if (targetClassSubject) {
-        const sectionTeacher = await db.query.sectionSubjectTeachers.findFirst({
-          where: and(
-            eq(sectionSubjectTeachers.schoolId, schoolId),
-            eq(sectionSubjectTeachers.classSubjectId, targetClassSubject.id),
-            eq(sectionSubjectTeachers.sectionId, sectionId),
-            eq(sectionSubjectTeachers.teacherId, teacherId),
-            eq(sectionSubjectTeachers.isActive, true),
-          ),
-        });
-        if (sectionTeacher) return true;
+      if (activeSectionOverride) {
+        // Section override strictly governs this section
+        return activeSectionOverride.teacherId === teacherId;
       }
     }
+
+    // 3. Fall back to class-wide lead teacher assignment
+    return targetClassSubject.assignedTeacherId === teacherId;
 
     // Fail closed: Unrelated assignments in the school do NOT grant access
     return false;

@@ -1444,9 +1444,27 @@ export async function getStaff360(staffId: string) {
     const dateOfBirth = decryptData(s.dateOfBirthEncrypted) || "";
     const gender = decryptData(s.genderEncrypted) || "";
 
-    // Academic allocations if teaching faculty
+    // Academic allocations if teaching faculty or holding TEACHER role (S14-F09)
     let academicAllocations: any = null;
-    if (s.userId && s.designation?.isTeaching) {
+    let isTeachingFaculty = Boolean(s.designation?.isTeaching);
+    if (!isTeachingFaculty && s.userId) {
+      const teacherRole = await db.query.roles.findFirst({
+        where: and(eq(roles.schoolId, school.id), eq(roles.name, "TEACHER")),
+        columns: { id: true },
+      });
+      if (teacherRole) {
+        const ur = await db.query.userRoles.findFirst({
+          where: and(
+            eq(userRoles.schoolId, school.id),
+            eq(userRoles.userId, s.userId),
+            eq(userRoles.roleId, teacherRole.id),
+          ),
+        });
+        if (ur) isTeachingFaculty = true;
+      }
+    }
+
+    if (s.userId && isTeachingFaculty) {
       const [classSubjs, secTeachers, classTeacherSecs, periods] = await Promise.all([
         db.query.classSubjects.findMany({
           where: eq(classSubjects.assignedTeacherId, s.userId),

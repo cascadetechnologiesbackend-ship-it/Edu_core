@@ -5,6 +5,7 @@ import {
   classes,
   sections,
   classSubjects,
+  sectionSubjectTeachers,
   timetablePeriods,
   assignments,
   assignmentSubmissions,
@@ -327,6 +328,38 @@ export async function getTeacherWorkloadReport() {
           totalPeriodsPerWeek: m.periodsPerWeek,
           subjectCount: 1,
           classSubjectIds: [m.id],
+        });
+      }
+    }
+
+    // Include section-level subject overrides in workload report (S14-F09)
+    const activeSectionAllocations = await tx.query.sectionSubjectTeachers.findMany({
+      where: and(
+        eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+        eq(sectionSubjectTeachers.isActive, true),
+        isNull(sectionSubjectTeachers.effectiveTo),
+      ),
+      with: {
+        teacher: { columns: { id: true, email: true } },
+        classSubject: true,
+      },
+    });
+
+    for (const st of activeSectionAllocations) {
+      if (!st.teacherId || !st.teacher) continue;
+      const existing = teacherMap.get(st.teacherId);
+      if (existing) {
+        if (!existing.classSubjectIds.includes(st.classSubjectId)) {
+          existing.subjectCount += 1;
+          existing.classSubjectIds.push(st.classSubjectId);
+        }
+      } else {
+        teacherMap.set(st.teacherId, {
+          teacherId: st.teacherId,
+          email: st.teacher.email,
+          totalPeriodsPerWeek: st.classSubject?.periodsPerWeek || 5,
+          subjectCount: 1,
+          classSubjectIds: [st.classSubjectId],
         });
       }
     }
