@@ -23,6 +23,14 @@ import {
   getActiveAcademicYear,
   checkAuth,
 } from "./actions/auth-helper";
+import {
+  upsertClassTeacherAssignment,
+  checkClassTeacherAssignmentConflict,
+} from "./actions/teacher-assignment.actions";
+export {
+  upsertClassTeacherAssignment,
+  checkClassTeacherAssignmentConflict,
+};
 import { getCanonicalTeachingStaff } from "../hr/teachingStaff";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 
@@ -132,10 +140,20 @@ export async function saveSection(data: {
   capacity?: number | undefined;
   classTeacherId?: string | null | undefined;
   roomNumber?: string | null | undefined;
+  forceTransfer?: boolean | undefined;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
-  return await withTenant(session.user.schoolId!, async (tx) => {
+  // 1. Conflict check if assigning a class teacher without forceTransfer
+  if (data.id && data.classTeacherId && !data.forceTransfer) {
+    const conflict = await checkClassTeacherAssignmentConflict(data.classTeacherId, data.id);
+    if (conflict) {
+      return { success: false, conflict, error: conflict.message };
+    }
+  }
+
+  // 2. Save section core details inside withTenant
+  const saveRes = await withTenant(session.user.schoolId!, async (tx) => {
     const cls = await tx.query.classes.findFirst({
       where: and(
         eq(classes.id, data.classId),
@@ -145,7 +163,6 @@ export async function saveSection(data: {
     if (!cls) throw new Error("Invalid class specified");
 
     const capacityVal = data.capacity ?? 40;
-    const teacherIdVal = data.classTeacherId || null;
     const roomNumberVal = data.roomNumber || null;
 
     if (data.id) {
@@ -154,9 +171,6 @@ export async function saveSection(data: {
         .set({
           name: data.name,
           capacity: capacityVal,
-          ...(teacherIdVal !== undefined
-            ? { classTeacherId: teacherIdVal }
-            : {}),
           ...(roomNumberVal !== undefined ? { roomNumber: roomNumberVal } : {}),
           updatedAt: new Date(),
         })
@@ -166,25 +180,44 @@ export async function saveSection(data: {
             eq(sections.schoolId, session.user.schoolId!),
           ),
         );
+      return { sectionId: data.id };
     } else {
-      await tx.insert(sections).values({
-        schoolId: session.user.schoolId!,
-        classId: data.classId,
-        name: data.name,
-        capacity: capacityVal,
-        ...(teacherIdVal ? { classTeacherId: teacherIdVal } : {}),
-        ...(roomNumberVal ? { roomNumber: roomNumberVal } : {}),
-      });
+      const [newSec] = await tx
+        .insert(sections)
+        .values({
+          schoolId: session.user.schoolId!,
+          classId: data.classId,
+          name: data.name,
+          capacity: capacityVal,
+          ...(roomNumberVal ? { roomNumber: roomNumberVal } : {}),
+        })
+        .returning({ id: sections.id });
+      return { sectionId: newSec?.id };
     }
-    try {
-      clearTeacherScopeCache();
-      revalidatePath("/academics");
-      if (data.classId) {
-        revalidatePath(`/academics/classes/${data.classId}`);
-      }
-    } catch {}
-    return { success: true };
   });
+
+  const targetSectionId = saveRes.sectionId;
+
+  // 3. Unify Class Teacher assignment write path (S16)
+  if (targetSectionId && data.classTeacherId !== undefined) {
+    const assignRes = await upsertClassTeacherAssignment({
+      sectionId: targetSectionId,
+      teacherId: data.classTeacherId || null,
+      forceTransfer: data.forceTransfer,
+    });
+    if (!assignRes.success) {
+      return assignRes;
+    }
+  }
+
+  try {
+    clearTeacherScopeCache();
+    revalidatePath("/academics");
+    if (data.classId) {
+      revalidatePath(`/academics/classes/${data.classId}`);
+    }
+  } catch {}
+  return { success: true };
 }
 
 // ─── 2. Subject Master Actions ────────────────────────────────────────────────

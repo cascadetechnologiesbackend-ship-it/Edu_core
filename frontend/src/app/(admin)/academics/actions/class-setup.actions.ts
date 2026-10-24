@@ -4,6 +4,7 @@ import { db, withTenant } from "@/db";
 import {
   classes,
   sections,
+  classTeacherAssignments,
   classSubjects,
   sectionSubjectTeachers,
   lessonPlans,
@@ -135,16 +136,33 @@ export async function createClassSetup(data: {
 
       // 2. Create sections
       if (data.sections && data.sections.length > 0) {
-        await tx.insert(sections).values(
-          data.sections.map((s) => ({
-            schoolId: session.user.schoolId,
-            classId: newClass.id,
-            name: s.name.trim(),
-            capacity: s.capacity ?? 40,
-            classTeacherId: s.classTeacherId ? s.classTeacherId : null,
-            roomNumber: s.roomNumber ? s.roomNumber.trim() : null,
-          })),
-        );
+        const createdSections = await tx
+          .insert(sections)
+          .values(
+            data.sections.map((s) => ({
+              schoolId: session.user.schoolId,
+              classId: newClass.id,
+              name: s.name.trim(),
+              capacity: s.capacity ?? 40,
+              classTeacherId: s.classTeacherId ? s.classTeacherId : null,
+              roomNumber: s.roomNumber ? s.roomNumber.trim() : null,
+            })),
+          )
+          .returning({ id: sections.id, classTeacherId: sections.classTeacherId });
+
+        const todayStr = new Date().toISOString().split("T")[0]!;
+        for (const s of createdSections) {
+          if (s.classTeacherId) {
+            await tx.insert(classTeacherAssignments).values({
+              schoolId: session.user.schoolId,
+              academicYearId: activeYear.id,
+              sectionId: s.id,
+              teacherId: s.classTeacherId,
+              isActive: true,
+              effectiveFrom: todayStr,
+            });
+          }
+        }
       }
 
       // 3. Attach subjects to class
@@ -422,6 +440,8 @@ export async function assignSectionTeacher(data: {
   sectionId: string;
   teacherId?: string | null | undefined;
   effectiveFrom?: string | undefined; // "YYYY-MM-DD"
+  isPrimary?: boolean | undefined;
+  periodsPerWeek?: number | undefined;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
@@ -431,6 +451,9 @@ export async function assignSectionTeacher(data: {
       eq(classSubjects.id, data.classSubjectId),
       eq(classSubjects.schoolId, session.user.schoolId),
     ),
+    with: {
+      class: true,
+    },
   });
   if (!cs) throw new Error("Invalid class subject specified");
 
@@ -443,8 +466,12 @@ export async function assignSectionTeacher(data: {
   });
   if (!sec) throw new Error("Invalid section specified");
 
+  const academicYearId = cs.class?.academicYearId || (await getActiveAcademicYear(session.user.schoolId)).id;
   const effectiveFromDate =
     data.effectiveFrom || new Date().toISOString().split("T")[0]!;
+
+  const isPrimaryVal = data.isPrimary ?? true;
+  const periodsVal = data.periodsPerWeek ?? 5;
 
   // Transactionally close active allocation and insert new allocation
   await withTenant(session.user.schoolId, async (tx) => {
@@ -482,6 +509,9 @@ export async function assignSectionTeacher(data: {
           .update(sectionSubjectTeachers)
           .set({
             teacherId: data.teacherId,
+            academicYearId,
+            isPrimary: isPrimaryVal,
+            periodsPerWeek: periodsVal,
             isActive: true,
             updatedAt: new Date(),
           })
@@ -520,9 +550,12 @@ export async function assignSectionTeacher(data: {
     if (data.teacherId) {
       await tx.insert(sectionSubjectTeachers).values({
         schoolId: session.user.schoolId,
+        academicYearId,
         classSubjectId: data.classSubjectId,
         sectionId: data.sectionId,
         teacherId: data.teacherId,
+        isPrimary: isPrimaryVal,
+        periodsPerWeek: periodsVal,
         effectiveFrom: effectiveFromDate,
         effectiveTo: null,
         isActive: true,

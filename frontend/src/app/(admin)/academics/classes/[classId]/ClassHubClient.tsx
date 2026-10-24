@@ -259,6 +259,7 @@ export default function ClassHubClient({
     classTeacherId: string;
     roomNumber: string;
   } | null>(null);
+  const [assignmentConflict, setAssignmentConflict] = useState<any | null>(null);
 
   const handleOpenEditSection = (sec: any) => {
     setEditingSection({
@@ -268,25 +269,33 @@ export default function ClassHubClient({
       classTeacherId: sec.classTeacherId || sec.classTeacher?.id || "",
       roomNumber: sec.roomNumber || "",
     });
+    setAssignmentConflict(null);
     setShowEditSectionModal(true);
   };
 
-  const handleSaveEditSection = () => {
+  const handleSaveEditSection = (forceTransfer: boolean = false) => {
     if (!editingSection || !editingSection.name.trim()) return;
     setErrorMsg(null);
+    setAssignmentConflict(null);
     startTransition(async () => {
       try {
-        await saveSection({
+        const res: any = await saveSection({
           id: editingSection.id,
           classId: cls.id,
           name: editingSection.name.trim(),
           capacity: Number(editingSection.capacity) || 40,
           classTeacherId: editingSection.classTeacherId || null,
           roomNumber: editingSection.roomNumber?.trim() || null,
+          forceTransfer,
         });
+        if (res && !res.success && res.conflict) {
+          setAssignmentConflict(res.conflict);
+          return;
+        }
         toast.success(`Updated Section ${editingSection.name}`);
         setShowEditSectionModal(false);
         setEditingSection(null);
+        setAssignmentConflict(null);
         router.refresh();
       } catch (err: any) {
         setErrorMsg(err?.message || "Failed to update section");
@@ -1818,7 +1827,7 @@ export default function ClassHubClient({
             <button
               type="button"
               disabled={isPending || !editingSection?.name.trim()}
-              onClick={handleSaveEditSection}
+              onClick={() => handleSaveEditSection(false)}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/95 transition shadow-xs flex items-center gap-1.5 disabled:opacity-50 min-h-[40px]"
             >
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -1831,10 +1840,34 @@ export default function ClassHubClient({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleSaveEditSection();
+              handleSaveEditSection(false);
             }}
             className="space-y-4"
           >
+            {assignmentConflict && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-300 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-amber-200">Class Teacher Allocation Conflict</p>
+                    <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                      {assignmentConflict.message}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => handleSaveEditSection(true)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition"
+                  >
+                    Transfer to Section {editingSection.name}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
                 Section Name *
