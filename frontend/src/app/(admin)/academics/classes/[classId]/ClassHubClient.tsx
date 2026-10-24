@@ -364,11 +364,16 @@ export default function ClassHubClient({
     reason: "",
   });
 
-  // Calculate setup checklist metrics
+  // Calculate setup checklist metrics (S15-F05)
   const hasSections = cls.sections.length > 0;
   const hasSubjects = cls.classSubjects.length > 0;
   const assignedTeachersCount = cls.classSubjects.filter(
-    (cs) => cs.assignedTeacherId,
+    (cs) =>
+      cs.assignedTeacherId ||
+      (initialTimetable &&
+        initialTimetable.some(
+          (t: any) => t.subjectId === cs.subjectId && t.teacherId,
+        )),
   ).length;
   const hasTeachers =
     hasSubjects && assignedTeachersCount === cls.classSubjects.length
@@ -380,6 +385,12 @@ export default function ClassHubClient({
 
   const isClassFullySetup =
     hasSections && hasSubjects && hasTeachers === "done" && hasTimetable;
+
+  // Unassigned class teachers across active sections (S15-F01, S15-F05)
+  const sectionsWithoutClassTeacher = useMemo(
+    () => cls.sections.filter((sec) => !sec.classTeacherId && !sec.classTeacher?.id),
+    [cls.sections],
+  );
 
   // Aggregate student metrics
   const defaultersCount = useMemo(
@@ -426,9 +437,19 @@ export default function ClassHubClient({
       items.push({
         severity: "amber",
         title: "Unassigned Subject Teachers",
-        description: `${missingCount} subject(s) in this class lack an assigned lead teacher.`,
+        description: `${missingCount} subject(s) in this class lack an assigned lead teacher or timetable allocation.`,
         actionLabel: "Assign Teachers",
         onAction: () => setActiveTab("subjects"),
+      });
+    }
+
+    if (sectionsWithoutClassTeacher.length > 0) {
+      items.push({
+        severity: "amber",
+        title: "Unassigned Class Teachers",
+        description: `${sectionsWithoutClassTeacher.length} section(s) (${sectionsWithoutClassTeacher.map((s) => s.name).join(", ")}) do not have a Class Teacher assigned.`,
+        actionLabel: "Assign Class Teachers",
+        onAction: () => setActiveTab("sections"),
       });
     }
 
@@ -443,7 +464,7 @@ export default function ClassHubClient({
     }
 
     return items;
-  }, [defaultersCount, hasTimetable, hasSubjects, assignedTeachersCount, cls.classSubjects.length, hasSections]);
+  }, [defaultersCount, hasTimetable, hasSubjects, assignedTeachersCount, cls.classSubjects.length, hasSections, sectionsWithoutClassTeacher]);
 
   // Activity Feed events for Overview Story (Law L11, F2)
   const activityEvents: ActivityEvent[] = useMemo(() => {
@@ -1563,6 +1584,22 @@ export default function ClassHubClient({
             )}
           </div>
 
+          {sectionsWithoutClassTeacher.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sectionsWithoutClassTeacher.map((sec) => (
+                <NeedsAttentionCard
+                  key={`needs-attention-${sec.id}`}
+                  severity="amber"
+                  title={`Section ${sec.name}: No Class Teacher`}
+                  description={`Section ${sec.name} does not have a designated class teacher assigned for attendance, pastoral care, and report card sign-offs.`}
+                  actionLabel="Assign Class Teacher"
+                  onAction={() => handleOpenEditSection(sec)}
+                  badge="Attention"
+                />
+              ))}
+            </div>
+          )}
+
           {cls.sections.length === 0 ? (
             <EmptyStateCTA
               icon={Calendar}
@@ -1605,11 +1642,15 @@ export default function ClassHubClient({
                         <span>
                           <strong>Class Teacher:</strong>{" "}
                           {sec.classTeacher ? (
-                            <span className="text-gray-900 dark:text-white font-medium">
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 inline shrink-0" />
                               {sec.classTeacher.displayName || sec.classTeacher.name || sec.classTeacher.email}
                             </span>
                           ) : (
-                            <span className="text-amber-500 font-medium">None assigned</span>
+                            <span className="text-amber-600 dark:text-amber-400 font-semibold inline-flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-500 inline shrink-0" />
+                              No Class Teacher
+                            </span>
                           )}
                         </span>
                         {isAdmin && (
