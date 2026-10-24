@@ -179,6 +179,9 @@ export async function saveSection(data: {
     try {
       clearTeacherScopeCache();
       revalidatePath("/academics");
+      if (data.classId) {
+        revalidatePath(`/academics/classes/${data.classId}`);
+      }
     } catch {}
     return { success: true };
   });
