@@ -483,6 +483,7 @@ export async function createDesignation(
       isTeaching: payload.isTeaching,
       mappedRole: finalMappedRole,
     });
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     return { success: true, designation: desig };
   } catch (error: any) {
@@ -566,6 +567,7 @@ export async function updateDesignation(
       .returning();
 
     await logHrAudit(ctx, "WRITE", "designations", designationId, { action: "UPDATE_DESIGNATION", updates });
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     return { success: true, designation: updated };
   } catch (error: any) {
@@ -594,6 +596,7 @@ export async function archiveDesignation(designationId: string, isActive?: boole
       .where(and(eq(designations.id, designationId), eq(designations.schoolId, school.id)));
 
     await logHrAudit(ctx, "WRITE", "designations", designationId, { action: "ARCHIVE_DESIGNATION", isActive: nextActive });
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     return { success: true };
   } catch (error: any) {
@@ -627,6 +630,7 @@ export async function deleteDesignation(designationId: string) {
       .where(and(eq(designations.id, designationId), eq(designations.schoolId, school.id)));
 
     await logHrAudit(ctx, "DELETE", "designations", designationId, { action: "DELETE_DESIGNATION" });
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     return { success: true };
   } catch (error: any) {
@@ -901,6 +905,7 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
 
     const smsRes = await sendSMSWithStatus(formattedMobile, smsBody);
 
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
 
     if (!smsRes.delivered) {
@@ -1133,6 +1138,7 @@ export async function updateStaff(
     await db.update(staff).set(updates).where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
     await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "UPDATE_STAFF" });
 
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     safeRevalidate(`/hr/staff/${staffId}`);
     return { success: true };
@@ -1310,6 +1316,7 @@ export async function offboardStaff(
       relievingDate: input.relievingDate,
     });
 
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     safeRevalidate(`/hr/staff/${staffId}`);
     return { success: true };
@@ -1349,6 +1356,7 @@ export async function reactivateStaff(staffId: string) {
 
     await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "REACTIVATE_STAFF" });
 
+    await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
     safeRevalidate(`/hr/staff/${staffId}`);
     return { success: true };
