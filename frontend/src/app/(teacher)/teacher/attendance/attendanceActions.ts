@@ -10,6 +10,7 @@ import {
   academicYears,
   domainEvents,
   classes,
+  timetablePeriods,
 } from "@/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -20,6 +21,11 @@ import {
   assertTeacherCanMarkAttendance,
   resolveTeacherScope,
 } from "@/lib/teacherEventEngine/scopeResolver";
+import {
+  assertClassTeacherOverride,
+  assertSubjectTeacherPermission,
+  assertStudentRosterMembership,
+} from "@/lib/teacherAuthGuards";
 import type { AttendanceMarkedPayload } from "@schoolmitra/domain-events";
 
 export type AttendanceStatus =
@@ -331,11 +337,38 @@ export async function saveTeacherAttendanceRoster(
   }
 
   return await withTenant(school.id, async (tx) => {
-    // 1. Verify Scope
-    await assertTeacherCanMarkAttendance(ctx.userId, sectionId, {
-      tx,
-      schoolId: school.id,
-    });
+    // 1. Verify Scope (S16-F05)
+    // - Daily homeroom roll-call (periodId == null): Condition B requires Class Teacher override (or Admin)
+    // - Subject period attendance (periodId != null): Condition A requires Subject Teacher allocation
+    if (!periodId) {
+      await assertClassTeacherOverride(ctx.userId, sectionId, {
+        tx,
+        schoolId: school.id,
+        role: ctx.role,
+      });
+    } else {
+      const period = await tx.query.timetablePeriods.findFirst({
+        where: and(
+          eq(timetablePeriods.id, periodId),
+          eq(timetablePeriods.schoolId, school.id)
+        ),
+      });
+      if (period?.subjectId) {
+        await assertSubjectTeacherPermission(ctx.userId, sectionId, period.subjectId, {
+          tx,
+          schoolId: school.id,
+          role: ctx.role,
+        });
+      } else {
+        await assertTeacherCanMarkAttendance(ctx.userId, sectionId, {
+          tx,
+          schoolId: school.id,
+        });
+      }
+    }
+
+    // Anti-Tamper & IDOR Membership Check
+    await assertStudentRosterMembership(records.map((r) => r.studentId), sectionId, school.id, tx);
 
     // 2. Resolve Active Academic Year
     const activeYear = await tx.query.academicYears.findFirst({

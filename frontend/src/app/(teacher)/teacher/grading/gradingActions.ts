@@ -24,6 +24,11 @@ import {
   assertTeacherCanGradeAssignment,
   resolveTeacherScope,
 } from "@/lib/teacherEventEngine/scopeResolver";
+import {
+  assertSubjectTeacherPermission,
+  assertStudentRosterMembership,
+  TeacherScopeError,
+} from "@/lib/teacherAuthGuards";
 import { revalidatePath } from "next/cache";
 
 export interface TeacherAssignmentItem {
@@ -555,6 +560,24 @@ export async function getExamMarksRoster(
   const school = await requireSchool(ctx);
 
   return await withTenant(school.id, async (tx: any) => {
+    // 0. Permission Guard (S16-F01)
+    if (sectionId) {
+      const scope = await resolveTeacherScope(ctx.userId, { schoolId: school.id, tx });
+      const isClassTeacher = scope.classTeacherSections.includes(sectionId);
+      const isAllocatedSubjectTeacher = scope.teachingSections.some(
+        (ts) => ts.sectionId === sectionId && ts.subjectId === subjectId
+      );
+      const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role as string);
+
+      if (!isAdmin && !isClassTeacher && !isAllocatedSubjectTeacher) {
+        throw new TeacherScopeError(
+          `Teacher is not authorized to view marks roster for section ${sectionId} subject ${subjectId}`,
+          403,
+          "SUBJECT_TEACHER_FORBIDDEN"
+        );
+      }
+    }
+
     // 1. Check lock state (AC-T6)
     const lock = await tx.query.examMarksLocks.findFirst({
       where: and(
@@ -633,7 +656,7 @@ export async function getExamMarksRoster(
 }
 
 /**
- * 6. Save Scholastic Examination Marks (Respects lock windows & maxMarks validation AC-T6)
+ * 6. Save Scholastic Examination Marks (Respects lock windows, allocation guards, and maxMarks AC-T6 / S16)
  */
 export async function saveExamMarks(payload: {
   examId: string;
@@ -655,8 +678,27 @@ export async function saveExamMarks(payload: {
   ] as const);
   const school = await requireSchool(ctx);
 
+  if (!payload.sectionId) {
+    throw new Error("Section ID is required to record exam marks.");
+  }
+
+  // 1. Allocation Guard (Condition A & S16-F01)
+  await assertSubjectTeacherPermission(ctx.userId, payload.sectionId, payload.subjectId, {
+    schoolId: school.id,
+    role: ctx.role,
+  });
+
   return await withTenant(school.id, async (tx: any) => {
-    // 1. Strict Window Lock Check (AC-T6)
+    // 2. Anti-Tamper & IDOR Membership Check (S16-F02)
+    // Aborts entire transaction if any studentId is outside payload.sectionId
+    await assertStudentRosterMembership(
+      payload.entries.map((e) => e.studentId),
+      payload.sectionId!,
+      school.id,
+      tx
+    );
+
+    // 3. Strict Window Lock Check (AC-T6 & 423 code)
     const lock = await tx.query.examMarksLocks.findFirst({
       where: and(
         eq(examMarksLocks.schoolId, school.id),
@@ -668,8 +710,10 @@ export async function saveExamMarks(payload: {
     });
 
     if (lock) {
-      throw new Error(
-        `Cannot save marks: This examination window was locked on ${lock.lockedAt?.toLocaleDateString()}.`
+      throw new TeacherScopeError(
+        `Cannot save marks: This examination window was locked on ${lock.lockedAt?.toLocaleDateString()}.`,
+        423,
+        "MARKS_WINDOW_LOCKED"
       );
     }
 
@@ -678,7 +722,11 @@ export async function saveExamMarks(payload: {
     });
 
     if (exam?.isLocked) {
-      throw new Error("Cannot save marks: Examination cycle has been finalized by Administration.");
+      throw new TeacherScopeError(
+        "Cannot save marks: Examination cycle has been finalized by Administration.",
+        423,
+        "MARKS_WINDOW_LOCKED"
+      );
     }
 
     // 2. Validate maxMarks per row

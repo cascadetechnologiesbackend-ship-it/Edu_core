@@ -13,6 +13,7 @@ import { eq, and, desc, inArray, sql, gte, lte } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 import { decryptData } from "@/lib/encryption";
+import { assertClassTeacherOverride } from "@/lib/teacherAuthGuards";
 
 export interface TeacherPendingLeaveItem {
   id: string;
@@ -177,6 +178,23 @@ export async function decideLeaveRequest(
     if (req.status !== "PENDING") {
       return { success: false, error: `Leave request has already been ${req.status.toLowerCase()}.` };
     }
+
+    // Condition B: Leave approvals require Class Teacher of student's section (or Admin)
+    const [studentRow] = await tx
+      .select({ currentSectionId: students.currentSectionId })
+      .from(students)
+      .where(and(eq(students.id, req.studentId), eq(students.schoolId, school.id)))
+      .limit(1);
+
+    if (!studentRow?.currentSectionId) {
+      return { success: false, error: "Student has no assigned section." };
+    }
+
+    await assertClassTeacherOverride(userId, studentRow.currentSectionId, {
+      tx,
+      schoolId: school.id,
+      role: ctx.role,
+    });
 
     // 2. Update status
     await tx
