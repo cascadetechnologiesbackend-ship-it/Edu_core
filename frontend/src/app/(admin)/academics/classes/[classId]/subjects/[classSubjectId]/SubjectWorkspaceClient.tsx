@@ -140,6 +140,8 @@ export default function SubjectWorkspaceClient({
   initialAssessments,
   initialProgress,
   allTeachers,
+  teachersError,
+  diagnostics,
   isAdmin,
   isTeacher,
   userId,
@@ -161,7 +163,21 @@ export default function SubjectWorkspaceClient({
     completedTopics: number;
     percentage: number;
   };
-  allTeachers: Array<{ id: string; email: string }>;
+  allTeachers: Array<{
+    id: string;
+    email: string;
+    name?: string;
+    displayName?: string;
+    employeeCode?: string;
+    designationName?: string;
+  }>;
+  teachersError?: string | null;
+  diagnostics?: {
+    activeStaffCount: number;
+    isTeachingCount: number;
+    teacherRoleCount: number;
+    conflictCount: number;
+  } | null;
   isAdmin: boolean;
   isTeacher: boolean;
   userId: string;
@@ -467,6 +483,20 @@ export default function SubjectWorkspaceClient({
 
   return (
     <div className="space-y-6">
+      {teachersError && isAdmin && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs text-amber-300 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Faculty Loading Notice:</span>
+            <span>Unable to load teaching faculty ({teachersError}).</span>
+          </div>
+          <Link
+            href="/hr?tab=designations"
+            className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-bold text-amber-200 transition shrink-0"
+          >
+            Check HR Faculty &rarr;
+          </Link>
+        </div>
+      )}
       {/* ─── Breadcrumb & Top Context Header ──────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-5">
         <div>
@@ -1725,19 +1755,40 @@ export default function SubjectWorkspaceClient({
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                 Teacher
               </label>
-              <select
-                required
-                value={allocTeacherId}
-                onChange={(e) => setAllocTeacherId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-              >
-                <option value="">Select teacher</option>
-                {allTeachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.email}
-                  </option>
-                ))}
-              </select>
+              {allTeachers.length === 0 ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 space-y-1.5">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>No teaching faculty available</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80">
+                    {diagnostics
+                      ? `${diagnostics.activeStaffCount} active staff found, ${diagnostics.isTeachingCount} classified as teaching.`
+                      : "No active staff members are classified as teaching faculty."}
+                  </p>
+                  {isAdmin && (
+                    <Link
+                      href="/hr?tab=designations"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 underline hover:text-amber-300 pt-0.5"
+                    >
+                      Configure Teaching Designations in HR &rarr;
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <select
+                  required
+                  value={allocTeacherId}
+                  onChange={(e) => setAllocTeacherId(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                >
+                  <option value="">Select teacher</option>
+                  {allTeachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
@@ -1756,6 +1807,10 @@ export default function SubjectWorkspaceClient({
               </p>
             </div>
 
+            <p className="text-[11px] text-gray-500 italic">
+              Note: The class-level Subject Lead covers all sections by default.
+            </p>
+
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="button"
@@ -1766,7 +1821,7 @@ export default function SubjectWorkspaceClient({
               </button>
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || allTeachers.length === 0 || !allocTeacherId}
                 className="px-4 py-1.5 rounded-xl text-xs font-bold bg-primary text-white disabled:opacity-50"
               >
                 Save Allocation

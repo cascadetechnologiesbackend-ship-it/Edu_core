@@ -22,6 +22,7 @@ import {
 } from "../../actions/class-setup.actions";
 import { getBellSchedule } from "../../actions/timetable.actions";
 import { getSubjects, getTeachersList } from "../../actions";
+import { getTeachingStaffDiagnostics } from "@/app/(admin)/hr/actions";
 import ClassHubClient from "./ClassHubClient";
 import { cache } from "react";
 
@@ -56,14 +57,34 @@ export default async function ClassHubPage({
   const isAdmin = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(role);
   const isTeacher = role === "TEACHER";
 
-  const [cls, overview, activeYear, bellPeriods, allSubjects, allTeachers] =
+  let allTeachers: any[] = [];
+  let teachersError: string | null = null;
+  try {
+    allTeachers = await getTeachersList();
+  } catch (err: any) {
+    console.error("[ClassHubPage] getTeachersList failed:", err);
+    teachersError = err?.message || "Failed to load teaching staff";
+  }
+
+  let diagnostics: any = null;
+  if (isAdmin) {
+    try {
+      const diagRes = await getTeachingStaffDiagnostics(schoolId);
+      if (diagRes?.success) {
+        diagnostics = diagRes.diagnostics;
+      }
+    } catch (err: any) {
+      console.warn("[ClassHubPage] getTeachingStaffDiagnostics warning:", err);
+    }
+  }
+
+  const [cls, overview, activeYear, bellPeriods, allSubjects] =
     await Promise.all([
       getClassWithDetailsCached(params.classId),
       getClassHubOverview(params.classId).catch(() => null),
       getActiveAcademicYear(schoolId).catch(() => null),
       getBellSchedule().catch(() => []),
       getSubjects().catch(() => []),
-      getTeachersList().catch(() => []),
     ]);
 
   if (!cls || !overview) notFound();
@@ -299,6 +320,8 @@ export default async function ClassHubPage({
         bellPeriods={bellPeriods as any}
         allSubjects={allSubjects as any}
         allTeachers={allTeachers as any}
+        teachersError={teachersError}
+        diagnostics={diagnostics}
         initialTimetable={timetable}
         initialAssignments={classAssignments}
         initialLessonPlans={classLessons}

@@ -14,6 +14,7 @@ import { getSyllabusUnits } from "../../../../actions/syllabus.actions";
 import { getSectionSubjectTeachers } from "../../../../actions/class-setup.actions";
 import { getSubjectSyllabusProgress } from "../../../../actions/reports.actions";
 import { getLessonPlans, getTeachersList } from "../../../../actions";
+import { getTeachingStaffDiagnostics } from "@/app/(admin)/hr/actions";
 import SubjectWorkspaceClient from "./SubjectWorkspaceClient";
 import { cache } from "react";
 
@@ -92,13 +93,33 @@ export default async function SubjectWorkspacePage({
     notFound();
   }
 
+  let allTeachers: any[] = [];
+  let teachersError: string | null = null;
+  try {
+    allTeachers = await getTeachersList();
+  } catch (err: any) {
+    console.error("[SubjectWorkspacePage] getTeachersList failed:", err);
+    teachersError = err?.message || "Failed to load teaching staff";
+  }
+
+  let diagnostics: any = null;
+  if (isAdmin) {
+    try {
+      const diagRes = await getTeachingStaffDiagnostics(schoolId);
+      if (diagRes?.success) {
+        diagnostics = diagRes.diagnostics;
+      }
+    } catch (err: any) {
+      console.warn("[SubjectWorkspacePage] getTeachingStaffDiagnostics warning:", err);
+    }
+  }
+
   // Fetch all domain data in parallel
   const [
     units,
     lessons,
     sectionTeachers,
     progressData,
-    allTeachers,
     subjectAssignments,
     subjectAssessments,
   ] = await Promise.all([
@@ -106,7 +127,6 @@ export default async function SubjectWorkspacePage({
     getLessonPlans(params.classSubjectId).catch(() => []),
     getSectionSubjectTeachers(params.classSubjectId).catch(() => []),
     getSubjectSyllabusProgress(params.classSubjectId).catch(() => null),
-    getTeachersList().catch(() => []),
     withTenant(schoolId, async (tx) =>
       tx.query.assignments.findMany({
         where: and(
@@ -156,6 +176,8 @@ export default async function SubjectWorkspacePage({
         initialAssessments={subjectAssessments as any}
         initialProgress={initialProgress}
         allTeachers={allTeachers}
+        teachersError={teachersError}
+        diagnostics={diagnostics}
         isAdmin={isAdmin}
         isTeacher={isTeacher}
         userId={session.user.id}

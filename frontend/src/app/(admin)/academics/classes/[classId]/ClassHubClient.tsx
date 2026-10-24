@@ -138,6 +138,8 @@ export default function ClassHubClient({
   bellPeriods,
   allSubjects,
   allTeachers,
+  teachersError,
+  diagnostics,
   initialTimetable,
   initialAssignments,
   initialLessonPlans,
@@ -165,7 +167,21 @@ export default function ClassHubClient({
   activeYearName: string;
   bellPeriods: BellPeriod[];
   allSubjects: { id: string; name: string; code: string; subjectType: string }[];
-  allTeachers: { id: string; email: string; name?: string }[];
+  allTeachers: Array<{
+    id: string;
+    email: string;
+    name?: string;
+    displayName?: string;
+    employeeCode?: string;
+    designationName?: string;
+  }>;
+  teachersError?: string | null;
+  diagnostics?: {
+    activeStaffCount: number;
+    isTeachingCount: number;
+    teacherRoleCount: number;
+    conflictCount: number;
+  } | null;
   initialTimetable: any[];
   initialAssignments: any[];
   initialLessonPlans: any[];
@@ -493,6 +509,20 @@ export default function ClassHubClient({
 
   return (
     <div className="space-y-6">
+      {teachersError && isAdmin && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs text-amber-300 flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Faculty Loading Notice:</span>
+            <span>Unable to load teaching faculty ({teachersError}).</span>
+          </div>
+          <Link
+            href="/hr?tab=designations"
+            className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-bold text-amber-200 transition shrink-0"
+          >
+            Check HR Faculty &rarr;
+          </Link>
+        </div>
+      )}
       {/* ─── STICKY IDENTITY HEADER (Law L11, F10) ───────────────────────── */}
       <IdentityHeader
         name={cls.displayName}
@@ -1551,18 +1581,34 @@ export default function ClassHubClient({
             <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
               Class Teacher (Optional)
             </label>
-            <select
-              value={sectionTeacherId}
-              onChange={(e) => setSectionTeacherId(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
-            >
-              <option value="">None / Assign Later</option>
-              {allTeachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name ? `${t.name} (${t.email})` : t.email}
-                </option>
-              ))}
-            </select>
+            {allTeachers.length === 0 ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 space-y-1">
+                <p className="text-[11px] font-bold">No teaching faculty available</p>
+                <p className="text-[10px] text-amber-200/80">
+                  {diagnostics
+                    ? `${diagnostics.activeStaffCount} active staff found, ${diagnostics.isTeachingCount} classified as teaching.`
+                    : "No active staff members are classified as teaching."}
+                </p>
+                {isAdmin && (
+                  <Link href="/hr?tab=designations" className="text-[11px] font-bold underline hover:text-amber-200 inline-block pt-0.5">
+                    Configure Teaching Designations in HR &rarr;
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <select
+                value={sectionTeacherId}
+                onChange={(e) => setSectionTeacherId(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              >
+                <option value="">None / Assign Later</option>
+                {allTeachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>
@@ -1718,18 +1764,34 @@ export default function ClassHubClient({
             <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
               Lead Teacher (Optional)
             </label>
-            <select
-              value={assignedTeacherId}
-              onChange={(e) => setAssignedTeacherId(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
-            >
-              <option value="">None / Unassigned</option>
-              {allTeachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name ? `${t.name} (${t.email})` : t.email}
-                </option>
-              ))}
-            </select>
+            {allTeachers.length === 0 ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 space-y-1">
+                <p className="text-[11px] font-bold">No teaching faculty available</p>
+                <p className="text-[10px] text-amber-200/80">
+                  {diagnostics
+                    ? `${diagnostics.activeStaffCount} active staff found, ${diagnostics.isTeachingCount} classified as teaching.`
+                    : "No active staff members are classified as teaching."}
+                </p>
+                {isAdmin && (
+                  <Link href="/hr?tab=designations" className="text-[11px] font-bold underline hover:text-amber-200 inline-block pt-0.5">
+                    Configure Teaching Designations in HR &rarr;
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <select
+                value={assignedTeacherId}
+                onChange={(e) => setAssignedTeacherId(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              >
+                <option value="">None / Unassigned</option>
+                {allTeachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -1855,7 +1917,7 @@ export default function ClassHubClient({
               <option value="">Select absent teacher</option>
               {allTeachers.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name ? `${t.name} (${t.email})` : t.email}
+                  {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
                 </option>
               ))}
             </select>
@@ -1879,7 +1941,7 @@ export default function ClassHubClient({
               <option value="">Select substitute teacher</option>
               {allTeachers.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name ? `${t.name} (${t.email})` : t.email}
+                  {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
                 </option>
               ))}
             </select>
