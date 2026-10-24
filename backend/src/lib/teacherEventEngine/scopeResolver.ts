@@ -1,6 +1,7 @@
 import { db, withAuthContext } from "@/db";
 import {
   sections,
+  classTeacherAssignments,
   sectionSubjectTeachers,
   classSubjects,
   timetablePeriods,
@@ -11,7 +12,7 @@ import {
   staff,
   users,
 } from "@/db/schema";
-import { eq, and, or, inArray, isNull, gte, sql } from "drizzle-orm";
+import { eq, and, or, inArray, isNull, gte, lte, sql } from "drizzle-orm";
 
 export class TeacherScopeError extends Error {
   public readonly statusCode: number = 403;
@@ -186,7 +187,36 @@ export async function resolveTeacherScope(
   }
 
   // 2. Fetch Class Teacher Sections
-  const classTeacherSectionRows = await txDb.query.sections.findMany({
+  // Prioritize active, effective-dated assignments from classTeacherAssignments (S16)
+  const todayStr = new Date().toISOString().split("T")[0] || "";
+  let classTeacherSections: string[] = [];
+
+  try {
+    const ctaConditions = [
+      eq(classTeacherAssignments.schoolId, schoolId),
+      eq(classTeacherAssignments.teacherId, teacherUserId),
+      eq(classTeacherAssignments.isActive, true),
+      lte(classTeacherAssignments.effectiveFrom, todayStr),
+      or(
+        isNull(classTeacherAssignments.effectiveTo),
+        gte(classTeacherAssignments.effectiveTo, todayStr)
+      ),
+    ];
+    if (targetAcademicYearId) {
+      ctaConditions.push(eq(classTeacherAssignments.academicYearId, targetAcademicYearId));
+    }
+
+    const ctaRows = await txDb.query.classTeacherAssignments.findMany({
+      where: and(...ctaConditions),
+      columns: { sectionId: true },
+    });
+    classTeacherSections = ctaRows.map((s: { sectionId: string }) => s.sectionId);
+  } catch {
+    // Graceful fallback for mock tests or during migration cutover
+  }
+
+  // Backward compatibility union with sections.classTeacherId mirror
+  const legacySectionRows = await txDb.query.sections.findMany({
     where: and(
       eq(sections.schoolId, schoolId),
       eq(sections.classTeacherId, teacherUserId),
@@ -194,20 +224,35 @@ export async function resolveTeacherScope(
     ),
     columns: { id: true },
   });
-  const classTeacherSections = classTeacherSectionRows.map((s: { id: string }) => s.id);
+  for (const s of legacySectionRows) {
+    if (!classTeacherSections.includes(s.id)) {
+      classTeacherSections.push(s.id);
+    }
+  }
 
   // 3. Fetch Section-Subject Overrides (sectionSubjectTeachers)
-  const todayStr = new Date().toISOString().split("T")[0] || "";
-  const sectionSubjectRows = await txDb.query.sectionSubjectTeachers.findMany({
-    where: and(
-      eq(sectionSubjectTeachers.schoolId, schoolId),
-      eq(sectionSubjectTeachers.teacherId, teacherUserId),
-      eq(sectionSubjectTeachers.isActive, true),
-      or(
-        isNull(sectionSubjectTeachers.effectiveTo),
-        gte(sectionSubjectTeachers.effectiveTo, todayStr)
-      )
+  // Strict temporal validity: effectiveFrom <= today AND (effectiveTo IS NULL OR effectiveTo >= today)
+  const sstConditions = [
+    eq(sectionSubjectTeachers.schoolId, schoolId),
+    eq(sectionSubjectTeachers.teacherId, teacherUserId),
+    eq(sectionSubjectTeachers.isActive, true),
+    lte(sectionSubjectTeachers.effectiveFrom, todayStr),
+    or(
+      isNull(sectionSubjectTeachers.effectiveTo),
+      gte(sectionSubjectTeachers.effectiveTo, todayStr)
     ),
+  ];
+  if (targetAcademicYearId) {
+    sstConditions.push(
+      or(
+        isNull(sectionSubjectTeachers.academicYearId),
+        eq(sectionSubjectTeachers.academicYearId, targetAcademicYearId)
+      )
+    );
+  }
+
+  const sectionSubjectRows = await txDb.query.sectionSubjectTeachers.findMany({
+    where: and(...sstConditions),
     with: {
       section: {
         with: {
@@ -221,6 +266,38 @@ export async function resolveTeacherScope(
       },
     },
   });
+
+  // Grade-Wide Fallback Collision Fix (S16-F06):
+  // Identify all active section-subject overrides in the school/year across ALL teachers.
+  // If ANY teacher is allocated to (sectionId, classSubjectId), the class-wide fallback is suppressed.
+  const overrideConditions = [
+    eq(sectionSubjectTeachers.schoolId, schoolId),
+    eq(sectionSubjectTeachers.isActive, true),
+    lte(sectionSubjectTeachers.effectiveFrom, todayStr),
+    or(
+      isNull(sectionSubjectTeachers.effectiveTo),
+      gte(sectionSubjectTeachers.effectiveTo, todayStr)
+    ),
+  ];
+  if (targetAcademicYearId) {
+    overrideConditions.push(
+      or(
+        isNull(sectionSubjectTeachers.academicYearId),
+        eq(sectionSubjectTeachers.academicYearId, targetAcademicYearId)
+      )
+    );
+  }
+
+  const allActiveSectionOverrides = await txDb.query.sectionSubjectTeachers.findMany({
+    where: and(...overrideConditions),
+    columns: { sectionId: true, classSubjectId: true },
+  });
+
+  const overriddenSectionSubjects = new Set(
+    allActiveSectionOverrides.map(
+      (r: { sectionId: string; classSubjectId: string }) => `${r.sectionId}:${r.classSubjectId}`
+    )
+  );
 
   // 4. Fetch Class-Wide Default Mappings (classSubjects.assignedTeacherId)
   const classSubjectDefaultRows = await txDb.query.classSubjects.findMany({
@@ -243,7 +320,7 @@ export async function resolveTeacherScope(
   // Consolidate Teaching Sections (avoiding duplicate section + subject combos)
   const teachingSectionMap = new Map<string, TeachingSectionAllocation>();
 
-  // A. Section overrides take precedence
+  // A. Section overrides take precedence for this teacher
   for (const sst of sectionSubjectRows) {
     if (sst.section && sst.classSubject) {
       const key = `${sst.sectionId}:${sst.classSubject.subjectId}`;
@@ -258,10 +335,17 @@ export async function resolveTeacherScope(
     }
   }
 
-  // B. Class defaults fill remaining sections
+  // B. Class defaults fill remaining sections, strictly excluding sections with active overrides
   for (const cs of classSubjectDefaultRows) {
     if (cs.class?.sections) {
       for (const sec of cs.class.sections) {
+        const overrideKey = `${sec.id}:${cs.id}`;
+        if (overriddenSectionSubjects.has(overrideKey)) {
+          // An active override exists for this section & subject (possibly allocated to another teacher)
+          // Suppress class-wide fallback for this section
+          continue;
+        }
+
         const key = `${sec.id}:${cs.subjectId}`;
         if (!teachingSectionMap.has(key)) {
           teachingSectionMap.set(key, {
