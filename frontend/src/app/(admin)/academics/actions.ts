@@ -24,6 +24,7 @@ import {
   checkAuth,
 } from "./actions/auth-helper";
 import { getCanonicalTeachingStaff } from "../hr/actions";
+import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 
 async function getAuditContext(session: any) {
   let ip = "unknown";
@@ -125,12 +126,12 @@ export async function saveClassroom(data: {
 }
 
 export async function saveSection(data: {
-  id?: string;
+  id?: string | undefined;
   classId: string;
   name: string;
-  capacity?: number;
-  classTeacherId?: string | null;
-  roomNumber?: string | null;
+  capacity?: number | undefined;
+  classTeacherId?: string | null | undefined;
+  roomNumber?: string | null | undefined;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
@@ -176,6 +177,7 @@ export async function saveSection(data: {
       });
     }
     try {
+      clearTeacherScopeCache();
       revalidatePath("/academics");
     } catch {}
     return { success: true };
@@ -413,6 +415,7 @@ export async function batchUpdateClassSubjectMappings(data: {
     }
 
     try {
+      clearTeacherScopeCache();
       revalidatePath("/academics");
       revalidatePath("/academics/mapping");
     } catch {}

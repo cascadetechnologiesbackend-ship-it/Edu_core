@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { saveClassroom, saveSection } from "./actions";
 import { Plus, Edit2, Check, RefreshCw } from "lucide-react";
 import AppModal from "@/components/ui/AppModal";
+import { ALL_GRADE_LEVELS } from "@/lib/gradeConstants";
 
 type Section = {
   id: string;
@@ -25,6 +26,9 @@ type Classroom = {
 type Teacher = {
   id: string;
   email: string;
+  name?: string;
+  displayName?: string;
+  employeeCode?: string;
 };
 
 export default function ClassroomsTab({
@@ -41,6 +45,7 @@ export default function ClassroomsTab({
   const [showClassForm, setShowClassForm] = useState(false);
   const [showSectionForm, setShowSectionForm] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
 
   const [classData, setClassData] = useState({
     gradeLevel: "CLASS_1",
@@ -67,6 +72,7 @@ export default function ClassroomsTab({
     e.preventDefault();
     startTransition(async () => {
       await saveSection({
+        ...(editingSectionId ? { id: editingSectionId } : {}),
         classId: selectedClassId,
         name: sectionData.name,
         capacity: sectionData.capacity,
@@ -74,6 +80,7 @@ export default function ClassroomsTab({
         roomNumber: sectionData.roomNumber || null,
       });
       setShowSectionForm(false);
+      setEditingSectionId(null);
       router.refresh();
     });
   };
@@ -131,28 +138,19 @@ export default function ClassroomsTab({
             </label>
             <select
               value={classData.gradeLevel}
-              onChange={(e) =>
-                setClassData({ ...classData, gradeLevel: e.target.value })
-              }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              onChange={(e) => {
+                const opt = ALL_GRADE_LEVELS.find((g) => g.value === e.target.value);
+                setClassData({
+                  ...classData,
+                  gradeLevel: e.target.value,
+                  displayName: opt ? opt.label : classData.displayName,
+                });
+              }}
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
             >
-              {[
-                "NURSERY",
-                "LKG",
-                "UKG",
-                "CLASS_1",
-                "CLASS_2",
-                "CLASS_3",
-                "CLASS_4",
-                "CLASS_5",
-                "CLASS_6",
-                "CLASS_7",
-                "CLASS_8",
-                "CLASS_9",
-                "CLASS_10",
-              ].map((g) => (
-                <option key={g} value={g}>
-                  {g}
+              {ALL_GRADE_LEVELS.map((g) => (
+                <option key={g.value} value={g.value} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                  {g.label} ({g.value})
                 </option>
               ))}
             </select>
@@ -194,13 +192,19 @@ export default function ClassroomsTab({
       {/* Section Form Modal */}
       <AppModal
         open={showSectionForm}
-        onClose={() => setShowSectionForm(false)}
-        title="Create New Section"
+        onClose={() => {
+          setShowSectionForm(false);
+          setEditingSectionId(null);
+        }}
+        title={editingSectionId ? "Edit Section & Class Teacher" : "Create New Section"}
         footer={
           <>
             <button
               type="button"
-              onClick={() => setShowSectionForm(false)}
+              onClick={() => {
+                setShowSectionForm(false);
+                setEditingSectionId(null);
+              }}
               className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
@@ -212,7 +216,7 @@ export default function ClassroomsTab({
               className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
             >
               {isPending && <RefreshCw className="w-4 h-4 animate-spin" />}{" "}
-              Save Section
+              {editingSectionId ? "Update Section" : "Save Section"}
             </button>
           </>
         }
@@ -265,12 +269,12 @@ export default function ClassroomsTab({
                   classTeacherId: e.target.value,
                 })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
             >
-              <option value="">Select Class Teacher</option>
+              <option value="" className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">Select Class Teacher (Unassigned)</option>
               {teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.email}
+                <option key={t.id} value={t.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                  {t.displayName || (t.name ? `${t.name} (${t.employeeCode || t.email})` : t.email)}
                 </option>
               ))}
             </select>
@@ -311,9 +315,16 @@ export default function ClassroomsTab({
                 <button
                   onClick={() => {
                     setSelectedClassId(cls.id);
+                    setEditingSectionId(null);
+                    setSectionData({
+                      name: String.fromCharCode(65 + cls.sections.length),
+                      capacity: 30,
+                      classTeacherId: "",
+                      roomNumber: "",
+                    });
                     setShowSectionForm(true);
                   }}
-                  className="flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
+                  className="flex items-center gap-1 text-xs text-primary hover:underline font-semibold cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Section
                 </button>
@@ -332,30 +343,68 @@ export default function ClassroomsTab({
                 </p>
                 <div className="grid grid-cols-1 gap-2">
                   {cls.sections.map((sec) => {
-                    const teacherEmail =
-                      teachers.find((t) => t.id === sec.classTeacherId)
-                        ?.email || "Unassigned";
+                    const assignedTeacher = teachers.find(
+                      (t) => t.id === sec.classTeacherId
+                    );
+                    const teacherDisplay = assignedTeacher
+                      ? (assignedTeacher.displayName || assignedTeacher.name || assignedTeacher.email)
+                      : "Unassigned";
+
                     return (
                       <div
                         key={sec.id}
-                        className="flex justify-between items-center text-sm p-3 bg-gray-50 dark:bg-slate-800/40 rounded-lg border border-gray-100 dark:border-slate-800"
+                        className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-sm p-3.5 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 transition"
                       >
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            Section {sec.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Teacher: {teacherEmail}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-gray-900 dark:text-white">
+                              Section {sec.name}
+                            </p>
+                            {sec.roomNumber && (
+                              <span className="text-[11px] font-medium bg-gray-200/60 dark:bg-slate-700/60 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md">
+                                Room {sec.roomNumber}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-gray-600 dark:text-gray-300">
+                              Class Teacher:
+                            </span>
+                            {assignedTeacher ? (
+                              <span className="font-semibold text-primary">
+                                {teacherDisplay}
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400 font-medium italic">
+                                Unassigned
+                              </span>
+                            )}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                          <p className="text-xs text-gray-500 font-medium">
                             Cap: {sec.capacity}
                           </p>
-                          {sec.roomNumber && (
-                            <p className="text-xs text-gray-500">
-                              Room: {sec.roomNumber}
-                            </p>
+
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedClassId(cls.id);
+                                setEditingSectionId(sec.id);
+                                setSectionData({
+                                  name: sec.name,
+                                  capacity: sec.capacity,
+                                  classTeacherId: sec.classTeacherId || "",
+                                  roomNumber: sec.roomNumber || "",
+                                });
+                                setShowSectionForm(true);
+                              }}
+                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 font-bold transition shadow-2xs cursor-pointer min-h-[32px]"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-primary" /> Edit Section
+                            </button>
                           )}
                         </div>
                       </div>
