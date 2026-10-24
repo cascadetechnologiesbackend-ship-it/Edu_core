@@ -43,9 +43,12 @@ import {
   saveLessonPlan,
   saveAssignment,
   gradeSubmission,
+  saveClassSubject,
 } from "../../../../actions";
 import { saveAssessment } from "../../../../actions/assessment.actions";
 import { assignSectionTeacher } from "../../../../actions/class-setup.actions";
+import { toast } from "sonner";
+import { AppModal } from "@/components/ui/AppModal";
 
 type Topic = {
   id: string;
@@ -128,10 +131,12 @@ type Assessment = {
 export default function SubjectWorkspaceClient({
   classSubjectId,
   classId,
+  subjectId,
   className,
   subjectName,
   subjectCode,
   leadTeacherEmail,
+  initialLeadTeacherId,
   sections,
   sectionTeachers,
   initialUnits,
@@ -148,10 +153,12 @@ export default function SubjectWorkspaceClient({
 }: {
   classSubjectId: string;
   classId: string;
+  subjectId?: string;
   className: string;
   subjectName: string;
   subjectCode: string;
   leadTeacherEmail: string | null;
+  initialLeadTeacherId?: string | null;
   sections: Section[];
   sectionTeachers: SectionTeacher[];
   initialUnits: Unit[];
@@ -207,6 +214,37 @@ export default function SubjectWorkspaceClient({
 
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Change Lead Teacher Modal State (S15-F02)
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [selectedLeadTeacherId, setSelectedLeadTeacherId] = useState(
+    initialLeadTeacherId || ""
+  );
+  const [leadTeacherDisplay, setLeadTeacherDisplay] = useState(
+    leadTeacherEmail || "Unassigned"
+  );
+
+  const handleSaveLeadTeacher = () => {
+    startTransition(async () => {
+      try {
+        await saveClassSubject({
+          id: classSubjectId,
+          classId,
+          subjectId: subjectId || "",
+          assignedTeacherId: selectedLeadTeacherId || null,
+        });
+        const matched = allTeachers.find((t) => t.id === selectedLeadTeacherId);
+        setLeadTeacherDisplay(
+          matched?.displayName || (matched?.name ? `${matched.name} (${matched.email})` : matched?.email) || "Unassigned"
+        );
+        toast.success(`Updated lead teacher for ${subjectName}`);
+        setShowLeadModal(false);
+        router.refresh();
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to update lead teacher");
+      }
+    });
+  };
 
   // Unit Modal
   const [showUnitModal, setShowUnitModal] = useState(false);
@@ -535,8 +573,17 @@ export default function SubjectWorkspaceClient({
             <span>
               Subject Lead:{" "}
               <strong className="text-gray-700 dark:text-gray-300">
-                {leadTeacherEmail || "Unassigned"}
+                {leadTeacherDisplay}
               </strong>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowLeadModal(true)}
+                  className="ml-2 text-[11px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
+                >
+                  <Edit2 className="w-2.5 h-2.5" /> Change
+                </button>
+              )}
             </span>
             {selectedSectionId !== "ALL" && currentSectionTeacher && (
               <>
@@ -1808,7 +1855,7 @@ export default function SubjectWorkspaceClient({
             </div>
 
             <p className="text-[11px] text-gray-500 italic">
-              Note: The class-level Subject Lead covers all sections by default.
+              Note: Subject Lead applies across all sections by default. To change the subject lead teacher, edit from the header above.
             </p>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
@@ -1830,6 +1877,79 @@ export default function SubjectWorkspaceClient({
           </form>
         </div>
       )}
+
+      {/* ─── MODAL: Change Subject Lead Teacher (S15-F02) ────────────────── */}
+      <AppModal
+        open={showLeadModal}
+        onClose={() => setShowLeadModal(false)}
+        size="sm"
+        title={`Change Lead Teacher — ${subjectName}`}
+        description="The subject lead teacher oversees curriculum planning, syllabus progress, and default grading across all sections."
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setShowLeadModal(false)}
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[38px]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handleSaveLeadTeacher}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-white disabled:opacity-50 min-h-[38px] shadow-sm flex items-center gap-1.5"
+            >
+              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Save Lead Teacher</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+              Subject Lead Teacher
+            </label>
+            {allTeachers.length === 0 ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 space-y-1.5">
+                <div className="font-bold flex items-center gap-1.5">
+                  <span>No teaching faculty available</span>
+                </div>
+                <p className="text-[11px] text-amber-200/80">
+                  {diagnostics
+                    ? `${diagnostics.activeStaffCount} active staff found, ${diagnostics.isTeachingCount} classified as teaching.`
+                    : "No active staff members are classified as teaching faculty."}
+                </p>
+                {isAdmin && (
+                  <Link
+                    href="/hr?tab=designations"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 underline hover:text-amber-300 pt-0.5"
+                  >
+                    Configure Teaching Designations in HR &rarr;
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <select
+                value={selectedLeadTeacherId}
+                onChange={(e) => setSelectedLeadTeacherId(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              >
+                <option value="">None / Unassigned</option>
+                {allTeachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <p className="text-[11px] text-gray-500">
+            Note: Updating the lead teacher updates the primary teacher for all sections that do not have an explicit section-level teacher override.
+          </p>
+        </div>
+      </AppModal>
     </div>
   );
 }

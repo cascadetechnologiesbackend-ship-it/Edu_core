@@ -164,10 +164,12 @@ export default async function SubjectWorkspacePage({
       <SubjectWorkspaceClient
         classSubjectId={cs.id}
         classId={cs.classId}
+        subjectId={cs.subjectId}
         className={cs.class.displayName}
         subjectName={cs.subject.name}
         subjectCode={cs.subject.code}
         leadTeacherEmail={cs.teacher?.email ?? null}
+        initialLeadTeacherId={cs.assignedTeacherId ?? null}
         sections={cs.class.sections.map((s) => ({ id: s.id, name: s.name }))}
         sectionTeachers={sectionTeachers as any}
         initialUnits={units as any}

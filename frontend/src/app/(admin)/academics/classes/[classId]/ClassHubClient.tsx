@@ -294,6 +294,39 @@ export default function ClassHubClient({
     });
   };
 
+  // Change Lead Teacher Modal State (S15-F02)
+  const [showChangeLeadModal, setShowChangeLeadModal] = useState(false);
+  const [selectedClassSubject, setSelectedClassSubject] = useState<ClassSubject | null>(null);
+  const [leadTeacherId, setLeadTeacherId] = useState("");
+
+  const handleOpenChangeLead = (cs: ClassSubject) => {
+    setSelectedClassSubject(cs);
+    setLeadTeacherId(cs.assignedTeacherId || cs.teacher?.id || "");
+    setShowChangeLeadModal(true);
+  };
+
+  const handleSaveChangeLead = () => {
+    if (!selectedClassSubject) return;
+    setErrorMsg(null);
+    const subName = selectedClassSubject.subject?.name || "Subject";
+    startTransition(async () => {
+      try {
+        await saveClassSubject({
+          id: selectedClassSubject.id,
+          classId: cls.id,
+          subjectId: selectedClassSubject.subjectId || selectedClassSubject.subject?.id,
+          assignedTeacherId: leadTeacherId || null,
+        });
+        toast.success(`Updated lead teacher for ${subName}`);
+        setShowChangeLeadModal(false);
+        router.refresh();
+      } catch (err: any) {
+        setErrorMsg(err?.message || "Failed to update lead teacher");
+        toast.error(err?.message || "Failed to update lead teacher");
+      }
+    });
+  };
+
   // Attach Subject Modal State
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
@@ -1135,7 +1168,7 @@ export default function ClassHubClient({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="w-32 hidden sm:block text-right">
                         <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block mb-1">
                           {pct}%
@@ -1147,6 +1180,17 @@ export default function ClassHubClient({
                           />
                         </div>
                       </div>
+
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenChangeLead(cs)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition shrink-0 min-h-[36px] flex items-center gap-1"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>Change Lead</span>
+                        </button>
+                      )}
 
                       <Link
                         href={`/academics/classes/${cls.id}/subjects/${cs.id}`}
@@ -1843,6 +1887,79 @@ export default function ClassHubClient({
             </div>
           </form>
         )}
+      </AppModal>
+
+      {/* ─── MODAL: Change Subject Lead Teacher (S15-F02) ────────────────── */}
+      <AppModal
+        open={showChangeLeadModal}
+        onClose={() => setShowChangeLeadModal(false)}
+        size="sm"
+        title={`Change Lead Teacher — ${selectedClassSubject?.subject?.name || "Subject"}`}
+        description="The subject lead teacher oversees curriculum planning, syllabus progress, and default grading across all sections."
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setShowChangeLeadModal(false)}
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[38px]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handleSaveChangeLead}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-white disabled:opacity-50 min-h-[38px] shadow-sm flex items-center gap-1.5"
+            >
+              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Save Lead Teacher</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+              Subject Lead Teacher
+            </label>
+            {allTeachers.length === 0 ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 space-y-1.5">
+                <div className="font-bold flex items-center gap-1.5">
+                  <span>No teaching faculty available</span>
+                </div>
+                <p className="text-[11px] text-amber-200/80">
+                  {diagnostics
+                    ? `${diagnostics.activeStaffCount} active staff found, ${diagnostics.isTeachingCount} classified as teaching.`
+                    : "No active staff members are classified as teaching faculty."}
+                </p>
+                {isAdmin && (
+                  <Link
+                    href="/hr?tab=designations"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 underline hover:text-amber-300 pt-0.5"
+                  >
+                    Configure Teaching Designations in HR &rarr;
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <select
+                value={leadTeacherId}
+                onChange={(e) => setLeadTeacherId(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              >
+                <option value="">None / Unassigned</option>
+                {allTeachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <p className="text-[11px] text-gray-500">
+            Note: Updating the lead teacher updates the primary teacher for all sections that do not have an explicit section-level teacher override.
+          </p>
+        </div>
       </AppModal>
 
       {/* ─── MODAL: Attach Subject (AppModal size="md", Chainable) ─────────── */}

@@ -330,7 +330,9 @@ export async function saveClassSubject(data: {
     });
   }
   try {
+    clearTeacherScopeCache();
     revalidatePath("/academics");
+    revalidatePath(`/academics/classes/${data.classId}`);
   } catch {}
   return { success: true };
 }
