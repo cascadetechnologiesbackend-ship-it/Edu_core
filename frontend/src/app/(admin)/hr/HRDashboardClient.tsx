@@ -3,23 +3,51 @@
 import React, { useState, useEffect, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
+  LayoutDashboard,
   Users,
   Building2,
-  Award,
-  FileText,
   CalendarDays,
   DollarSign,
   GraduationCap,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
+import { OverviewTab } from "./tabs/OverviewTab";
 import { StaffTab } from "./tabs/StaffTab";
-import { DepartmentsTab } from "./tabs/DepartmentsTab";
-import { DesignationsTab } from "./tabs/DesignationsTab";
-import { TemplatesTab } from "./tabs/TemplatesTab";
+import { AllocationsTab } from "./tabs/AllocationsTab";
+import { StructureTab } from "./tabs/StructureTab";
 import { LeavesTab } from "./tabs/LeavesTab";
 import { PayrollTab } from "./tabs/PayrollTab";
+import { SettingsTab } from "./tabs/SettingsTab";
 
-type HRTabKey = "staff" | "departments" | "designations" | "templates" | "leaves" | "payroll";
+export type HRTabKey =
+  | "overview"
+  | "directory"
+  | "allocations"
+  | "structure"
+  | "leaves"
+  | "payroll"
+  | "settings";
+
+const VALID_TABS: HRTabKey[] = [
+  "overview",
+  "directory",
+  "allocations",
+  "structure",
+  "leaves",
+  "payroll",
+  "settings",
+];
+
+// Map legacy tab keys to new hub spokes
+function normalizeTab(raw: string | null): HRTabKey {
+  if (!raw) return "overview";
+  if (raw === "staff") return "directory";
+  if (raw === "departments" || raw === "designations") return "structure";
+  if (raw === "templates") return "settings";
+  if (VALID_TABS.includes(raw as HRTabKey)) return raw as HRTabKey;
+  return "overview";
+}
 
 interface HRDashboardClientProps {
   session: any;
@@ -32,6 +60,13 @@ interface HRDashboardClientProps {
   leaveRequests: any[];
   salaryTemplates: any[];
   payrollRuns: any[];
+  allocStats?: {
+    totalSections: number;
+    sectionsWithClassTeacher: number;
+    sectionsWithoutClassTeacher: number;
+    uniqueSubjectAllocatedTeachers: number;
+  };
+  teacherAllocSummary?: Record<string, { classTeacherOf: string[]; subjectCount: number }>;
 }
 
 export default function HRDashboardClient({
@@ -45,42 +80,50 @@ export default function HRDashboardClient({
   leaveRequests,
   salaryTemplates,
   payrollRuns,
+  allocStats = {
+    totalSections: 0,
+    sectionsWithClassTeacher: 0,
+    sectionsWithoutClassTeacher: 0,
+    uniqueSubjectAllocatedTeachers: 0,
+  },
+  teacherAllocSummary = {},
 }: HRDashboardClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  // Read initial tab from search param or default to 'staff'
-  const initialTab = (searchParams.get("tab") as HRTabKey) || "staff";
-  const [activeTab, setActiveTab] = useState<HRTabKey>(
-    ["staff", "departments", "designations", "templates", "leaves", "payroll"].includes(initialTab)
-      ? initialTab
-      : "staff"
-  );
+  const userRole = session?.user?.role;
+
+  // Defensive client guard: TEACHER role should never see HR hub
+  if (userRole === "TEACHER") {
+    return null;
+  }
+
+  // Authorization checks
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const isSchoolAdmin = userRole === "SCHOOL_ADMIN";
+  const isHRManager = userRole === "HR_MANAGER";
+  const isPrincipal = userRole === "PRINCIPAL";
+
+  const isAuthorizedHR = isSuperAdmin || isSchoolAdmin || isHRManager;
+  const isAuthorizedLock = isPrincipal || isSuperAdmin || isSchoolAdmin;
+
+  // Role permissions per OD2
+  const canViewPayroll = isSuperAdmin || isSchoolAdmin || isHRManager;
+  const canViewSettings = isSuperAdmin || isSchoolAdmin;
+
+  // Read initial tab from search param or default to 'overview' (OD4)
+  const initialTab = normalizeTab(searchParams.get("tab"));
+  const [activeTab, setActiveTab] = useState<HRTabKey>(initialTab);
 
   // Sync state if URL changes externally
   useEffect(() => {
-    const tabParam = searchParams.get("tab") as HRTabKey;
-    if (
-      tabParam &&
-      tabParam !== activeTab &&
-      ["staff", "departments", "designations", "templates", "leaves", "payroll"].includes(tabParam)
-    ) {
-      setActiveTab(tabParam);
+    const normalized = normalizeTab(searchParams.get("tab"));
+    if (normalized !== activeTab) {
+      setActiveTab(normalized);
     }
   }, [searchParams]);
-
-  // Authorization checks
-  const isAuthorizedHR =
-    session?.user?.role === "HR_MANAGER" ||
-    session?.user?.role === "SUPER_ADMIN" ||
-    session?.user?.role === "SCHOOL_ADMIN";
-
-  const isAuthorizedLock =
-    session?.user?.role === "PRINCIPAL" ||
-    session?.user?.role === "SUPER_ADMIN" ||
-    session?.user?.role === "SCHOOL_ADMIN";
 
   const handleTabChange = (tab: HRTabKey) => {
     setActiveTab(tab);
@@ -93,51 +136,68 @@ export default function HRDashboardClient({
 
   const pendingLeavesCount = leaveRequests.filter((r) => r.status === "PENDING").length;
 
-  const tabs: Array<{
+  // Build tabs dynamically based on OD2 role visibility matrix
+  const allTabs: Array<{
     id: HRTabKey;
     label: string;
     icon: LucideIcon;
     count?: number | undefined;
     badgeColor?: string | undefined;
+    visible: boolean;
   }> = [
     {
-      id: "staff",
+      id: "overview",
+      label: "Overview",
+      icon: LayoutDashboard,
+      visible: true,
+    },
+    {
+      id: "directory",
       label: "Staff Directory",
       icon: Users,
       count: staffList.length,
+      visible: true,
     },
     {
-      id: "departments",
-      label: "Departments",
+      id: "allocations",
+      label: "Allocations",
+      icon: GraduationCap,
+      count: allocStats.sectionsWithoutClassTeacher > 0 ? allocStats.sectionsWithoutClassTeacher : undefined,
+      badgeColor: allocStats.sectionsWithoutClassTeacher > 0 ? "bg-amber-500 text-white" : undefined,
+      visible: true,
+    },
+    {
+      id: "structure",
+      label: "Structure",
       icon: Building2,
       count: departments.length,
-    },
-    {
-      id: "designations",
-      label: "Designations",
-      icon: Award,
-      count: designations.length,
-    },
-    {
-      id: "templates",
-      label: "Salary Templates",
-      icon: FileText,
-      count: salaryTemplates.length,
+      visible: true,
     },
     {
       id: "leaves",
       label: "Leave Approvals",
       icon: CalendarDays,
-      count: pendingLeavesCount,
+      count: pendingLeavesCount > 0 ? pendingLeavesCount : undefined,
       badgeColor: pendingLeavesCount > 0 ? "bg-amber-500 text-white" : undefined,
+      visible: true,
     },
     {
       id: "payroll",
       label: "Payroll & Disbursals",
       icon: DollarSign,
       count: payrollRuns.length,
+      visible: canViewPayroll,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: Settings,
+      count: salaryTemplates.length,
+      visible: canViewSettings,
     },
   ];
+
+  const visibleTabs = allTabs.filter((t) => t.visible);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -145,12 +205,12 @@ export default function HRDashboardClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
               <Users className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Human Resources & Staff Operations
+                Human Resources & Staff Operations Hub
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {school?.name || "SchoolMitra ERP"}
@@ -161,10 +221,10 @@ export default function HRDashboardClient({
         </div>
       </div>
 
-      {/* Modular Tab Bar */}
+      {/* Hub Spokes Navigation Bar */}
       <div className="border-b border-slate-200 dark:border-slate-800">
-        <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px" aria-label="HR Tabs">
-          {tabs.map((tab) => {
+        <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px" aria-label="HR Hub Spokes">
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
 
@@ -173,7 +233,7 @@ export default function HRDashboardClient({
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center gap-2 py-3 px-3.5 sm:px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition-all outline-none min-h-[44px] ${
+                className={`flex items-center gap-2 py-3 px-3.5 sm:px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition-all outline-hidden min-h-[44px] ${
                   isActive
                     ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-t-xl"
                     : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
@@ -201,40 +261,44 @@ export default function HRDashboardClient({
         </nav>
       </div>
 
-      {/* Active Tab View */}
+      {/* Active Spoke Content */}
       <div className="pt-2">
-        {activeTab === "staff" && (
+        {activeTab === "overview" && (
+          <OverviewTab
+            staffList={staffList}
+            departments={departments}
+            leaveRequests={leaveRequests}
+            allocStats={allocStats}
+            school={school}
+            activeYear={activeYear}
+            onTabChange={(tab) => handleTabChange(tab as HRTabKey)}
+          />
+        )}
+
+        {activeTab === "directory" && (
           <StaffTab
             staffList={staffList}
             departments={departments}
             designations={designations}
             isAuthorizedHR={isAuthorizedHR}
             school={school}
+            teacherAllocSummary={teacherAllocSummary}
             onRefresh={() => router.refresh()}
           />
         )}
 
-        {activeTab === "departments" && (
-          <DepartmentsTab
-            departments={departments}
+        {activeTab === "allocations" && (
+          <AllocationsTab
+            teacherAllocSummary={teacherAllocSummary}
             isAuthorizedHR={isAuthorizedHR}
-            onRefresh={() => router.refresh()}
+            schoolId={school?.id || ""}
           />
         )}
 
-        {activeTab === "designations" && (
-          <DesignationsTab
+        {activeTab === "structure" && (
+          <StructureTab
+            departments={departments}
             designations={designations}
-            departments={departments}
-            isAuthorizedHR={isAuthorizedHR}
-            onRefresh={() => router.refresh()}
-          />
-        )}
-
-        {activeTab === "templates" && (
-          <TemplatesTab
-            salaryTemplates={salaryTemplates}
-            staffList={staffList}
             isAuthorizedHR={isAuthorizedHR}
             onRefresh={() => router.refresh()}
           />
@@ -250,12 +314,21 @@ export default function HRDashboardClient({
           />
         )}
 
-        {activeTab === "payroll" && (
+        {activeTab === "payroll" && canViewPayroll && (
           <PayrollTab
             payrollRuns={payrollRuns}
             staffList={staffList}
             isAuthorizedHR={isAuthorizedHR}
             isAuthorizedLock={isAuthorizedLock}
+            onRefresh={() => router.refresh()}
+          />
+        )}
+
+        {activeTab === "settings" && canViewSettings && (
+          <SettingsTab
+            salaryTemplates={salaryTemplates}
+            staffList={staffList}
+            isAuthorizedHR={isAuthorizedHR}
             onRefresh={() => router.refresh()}
           />
         )}

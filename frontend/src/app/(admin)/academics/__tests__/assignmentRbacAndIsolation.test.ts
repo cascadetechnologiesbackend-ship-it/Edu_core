@@ -134,6 +134,10 @@ const {
         findFirst: vi.fn(async () => ({ id: "ay-1", schoolId: activeSessionRef.current?.schoolId, isActive: true })),
         findMany: vi.fn(async () => [{ id: "ay-1", schoolId: activeSessionRef.current?.schoolId, isActive: true }]),
       },
+      classTeacherAssignments: {
+        findFirst: vi.fn(async () => null),
+        findMany: vi.fn(async () => []),
+      },
     },
     insert: vi.fn(() => createChainable()),
     update: vi.fn(() => createChainable()),

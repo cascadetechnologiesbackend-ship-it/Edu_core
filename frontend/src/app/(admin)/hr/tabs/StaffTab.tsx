@@ -35,6 +35,7 @@ import {
   confirmStaffProbation,
   offboardStaff,
   revealStaffPii,
+  revealStaffEmail,
   createDepartment,
   createDesignation,
 } from "../actions";
@@ -45,7 +46,8 @@ interface StaffTabProps {
   designations: any[];
   isAuthorizedHR: boolean;
   school: any;
-  onRefresh?: () => void;
+  teacherAllocSummary?: Record<string, { classTeacherOf: string[]; subjectCount: number }>;
+  onRefresh?: (() => void) | undefined;
 }
 
 export function StaffTab({
@@ -54,6 +56,7 @@ export function StaffTab({
   designations,
   isAuthorizedHR,
   school,
+  teacherAllocSummary = {},
   onRefresh,
 }: StaffTabProps) {
   const router = useRouter();
@@ -78,6 +81,7 @@ export function StaffTab({
 
   // PII reveal state
   const [revealedPii, setRevealedPii] = useState<Record<string, { pan?: string; bank?: string }>>({});
+  const [revealedEmails, setRevealedEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [createAttempted, setCreateAttempted] = useState(false);
   const [offboardWarning, setOffboardWarning] = useState<any>(null);
@@ -273,6 +277,18 @@ export function StaffTab({
       }));
     } else {
       toast.error(res.message || "Failed to reveal PII information");
+    }
+  };
+
+  const handleRevealEmail = async (staffId: string) => {
+    const res = await revealStaffEmail(staffId);
+    if (res.success && res.email) {
+      setRevealedEmails((prev) => ({
+        ...prev,
+        [staffId]: res.email!,
+      }));
+    } else {
+      toast.error(res.message || "Failed to reveal email");
     }
   };
 
@@ -575,8 +591,24 @@ export function StaffTab({
                           <div className="font-bold text-gray-900 dark:text-white truncate">
                             {fullName}
                           </div>
-                          <div className="text-[11px] text-gray-400 dark:text-gray-500 font-mono">
-                            {s.employeeCode} {s.email ? `• ${s.email}` : ""}
+                          <div className="text-[11px] text-gray-400 dark:text-gray-500 font-mono flex items-center gap-1.5 flex-wrap">
+                            <span>{s.employeeCode}</span>
+                            {s.email && (
+                              <span className="inline-flex items-center gap-1">
+                                <span>•</span>
+                                <span>{revealedEmails[s.id] || s.email}</span>
+                                {isAuthorizedHR && !revealedEmails[s.id] && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRevealEmail(s.id)}
+                                    className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-0.5 rounded transition-colors"
+                                    title="Reveal full unmasked email"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -584,19 +616,37 @@ export function StaffTab({
 
                     {/* Department & Track */}
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-gray-800 dark:text-gray-200">
-                          {s.department?.name || "General"}
-                        </span>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            isTeaching
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50"
-                              : "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300 border border-gray-200 dark:border-slate-700"
-                          }`}
-                        >
-                          {isTeaching ? "Teaching" : "Non-Teaching"}
-                        </span>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">
+                            {s.department?.name || "General"}
+                          </span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                              isTeaching
+                                ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50"
+                                : "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300 border border-gray-200 dark:border-slate-700"
+                            }`}
+                          >
+                            {isTeaching ? "Teaching" : "Non-Teaching"}
+                          </span>
+                        </div>
+
+                        {/* Allocation Badges */}
+                        {s.userId && teacherAllocSummary[s.userId] && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {teacherAllocSummary[s.userId]!.classTeacherOf?.length > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                                CT: {teacherAllocSummary[s.userId]!.classTeacherOf.join(", ")}
+                              </span>
+                            )}
+                            {teacherAllocSummary[s.userId]!.subjectCount > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800/50">
+                                {teacherAllocSummary[s.userId]!.subjectCount} {teacherAllocSummary[s.userId]!.subjectCount === 1 ? "Subject" : "Subjects"}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
 

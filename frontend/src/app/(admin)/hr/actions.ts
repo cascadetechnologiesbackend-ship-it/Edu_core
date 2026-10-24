@@ -22,6 +22,7 @@ import {
   departments,
   classSubjects,
   sectionSubjectTeachers,
+  classTeacherAssignments,
   timetablePeriods,
   sections,
   persons,
@@ -39,6 +40,7 @@ import { sendSMS, sendSMSWithStatus } from "@/lib/sms";
 import { computeSalaryBreakdown } from "@/lib/salaryCalculator";
 import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
 import { generateRoleTempPassword, generateRandomTempPassword } from "@/lib/tempPassword";
+import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 
 function safeRevalidate(path: string) {
   try {
@@ -2169,3 +2171,342 @@ export async function getTeachingStaffDiagnostics(schoolId?: string): Promise<{
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// S17 — HR Hub: Allocation Actions
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── C2: Server-gated email reveal (masked email is default; raw only via this) ─
+export async function revealStaffEmail(staffId: string) {
+  try {
+    const ctx = await requireAuth([
+      "HR_MANAGER",
+      "SCHOOL_ADMIN",
+      "SUPER_ADMIN",
+    ] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await withTenant(school.id, async (tx) =>
+      tx.query.staff.findFirst({
+        where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+        with: { user: true },
+      }),
+    );
+    if (!staffRecord) return { success: false, message: "Staff not found." };
+
+    const raw = decryptData(staffRecord.emailEncrypted) || staffRecord.user?.email || "";
+    await logHrAudit(ctx, "READ", "staff", staffId, { revealedField: "email" });
+    return { success: true, email: raw };
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+}
+
+// ─── Allocation overview: per-teacher summary for Allocations tab ──────────────
+export async function getStaffAllocationOverview() {
+  try {
+    const ctx = await requireAuth([
+      "HR_MANAGER",
+      "SCHOOL_ADMIN",
+      "SUPER_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const schoolId = school.id;
+
+    return withTenant(schoolId, async (tx) => {
+      const [ctaRows, sstRows, sectionList] = await Promise.all([
+        tx.query.classTeacherAssignments.findMany({
+          where: and(
+            eq(classTeacherAssignments.schoolId, schoolId),
+            eq(classTeacherAssignments.isActive, true),
+          ),
+          with: { section: { with: { class: true } } },
+        }),
+        tx.query.sectionSubjectTeachers.findMany({
+          where: and(
+            eq(sectionSubjectTeachers.schoolId, schoolId),
+            eq(sectionSubjectTeachers.isActive, true),
+          ),
+          with: { classSubject: { with: { subject: true } } },
+        }),
+        tx.query.sections.findMany({
+          where: and(
+            eq(sections.schoolId, schoolId),
+            eq(sections.isActive, true),
+          ),
+          with: { class: true },
+        }),
+      ]);
+
+      return { success: true, ctaRows, sstRows, sectionList };
+    });
+  } catch (err: any) {
+    return { success: false, message: err.message, ctaRows: [], sstRows: [], sectionList: [] };
+  }
+}
+
+// ─── HR-level class teacher assignment (OD1: HR_MANAGER allowed + audit) ───────
+export async function hrAssignClassTeacher(params: {
+  sectionId: string;
+  teacherId: string | null;
+  forceTransfer?: boolean;
+  notes?: string;
+}) {
+  try {
+    const ctx = await requireAuth([
+      "HR_MANAGER",
+      "SCHOOL_ADMIN",
+      "SUPER_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const schoolId = school.id;
+
+    // Verify section belongs to this school
+    const sec = await withTenant(schoolId, async (tx) =>
+      tx.query.sections.findFirst({
+        where: and(eq(sections.id, params.sectionId), eq(sections.schoolId, schoolId)),
+        with: { class: true },
+      }),
+    );
+    if (!sec) return { success: false, error: "Section not found or access denied." };
+
+    // Get active academic year
+    const activeYearRow = await withTenant(schoolId, async (tx) =>
+      tx.query.academicYears.findFirst({
+        where: and(eq(academicYears.isActive, true), eq(academicYears.schoolId, schoolId)),
+      }),
+    );
+    const academicYearId = sec.class?.academicYearId || activeYearRow?.id;
+    if (!academicYearId) return { success: false, error: "No active academic year." };
+
+    // TW-3: bidirectional conflict check
+    if (params.teacherId && !params.forceTransfer) {
+      const teacherConflict = await withTenant(schoolId, async (tx) =>
+        tx.query.classTeacherAssignments.findFirst({
+          where: and(
+            eq(classTeacherAssignments.schoolId, schoolId),
+            eq(classTeacherAssignments.academicYearId, academicYearId),
+            eq(classTeacherAssignments.teacherId, params.teacherId!),
+            eq(classTeacherAssignments.isActive, true),
+          ),
+          with: { section: { with: { class: true } } },
+        }),
+      );
+      if (teacherConflict && teacherConflict.sectionId !== params.sectionId) {
+        return {
+          success: false,
+          conflict: {
+            type: "teacher_already_assigned" as const,
+            existingSectionId: teacherConflict.sectionId,
+            existingSectionName: teacherConflict.section?.name || "",
+            existingClassName: teacherConflict.section?.class?.displayName || "",
+            message: `Teacher is already class teacher of ${
+              teacherConflict.section?.class?.displayName
+            } ${teacherConflict.section?.name}. Confirm transfer?`,
+          },
+        };
+      }
+
+      const sectionConflict = await withTenant(schoolId, async (tx) =>
+        tx.query.classTeacherAssignments.findFirst({
+          where: and(
+            eq(classTeacherAssignments.schoolId, schoolId),
+            eq(classTeacherAssignments.academicYearId, academicYearId),
+            eq(classTeacherAssignments.sectionId, params.sectionId),
+            eq(classTeacherAssignments.isActive, true),
+          ),
+          with: { section: true },
+        }),
+      );
+      if (sectionConflict && sectionConflict.teacherId !== params.teacherId) {
+        // Surface the displaced teacher name — will be resolved via forceTransfer
+        return {
+          success: false,
+          conflict: {
+            type: "section_has_teacher" as const,
+            existingTeacherId: sectionConflict.teacherId,
+            message: `This section already has an active class teacher. Replacing will close the previous assignment. Confirm?`,
+          },
+        };
+      }
+    }
+
+    const effectiveFromDate = new Date().toISOString().split("T")[0]!;
+
+    await withTenant(schoolId, async (tx) => {
+      if (params.forceTransfer && params.teacherId) {
+        // Close prior teacher's assignment across sections
+        await tx
+          .update(classTeacherAssignments)
+          .set({ isActive: false, effectiveTo: effectiveFromDate, updatedAt: new Date() })
+          .where(
+            and(
+              eq(classTeacherAssignments.schoolId, schoolId),
+              eq(classTeacherAssignments.academicYearId, academicYearId),
+              eq(classTeacherAssignments.teacherId, params.teacherId!),
+              eq(classTeacherAssignments.isActive, true),
+            ),
+          );
+      }
+
+      // Close any existing active assignment for this section
+      await tx
+        .update(classTeacherAssignments)
+        .set({ isActive: false, effectiveTo: effectiveFromDate, updatedAt: new Date() })
+        .where(
+          and(
+            eq(classTeacherAssignments.schoolId, schoolId),
+            eq(classTeacherAssignments.academicYearId, academicYearId),
+            eq(classTeacherAssignments.sectionId, params.sectionId),
+            eq(classTeacherAssignments.isActive, true),
+          ),
+        );
+
+      // Mirror: clear sections.classTeacherId
+      await tx
+        .update(sections)
+        .set({ classTeacherId: null, updatedAt: new Date() })
+        .where(and(eq(sections.id, params.sectionId), eq(sections.schoolId, schoolId)));
+
+      if (params.teacherId) {
+        await tx.insert(classTeacherAssignments).values({
+          schoolId,
+          academicYearId,
+          sectionId: params.sectionId,
+          teacherId: params.teacherId,
+          isActive: true,
+          effectiveFrom: effectiveFromDate,
+          effectiveTo: null,
+          notes: params.notes || null,
+        });
+
+        // Mirror: update sections.classTeacherId
+        await tx
+          .update(sections)
+          .set({ classTeacherId: params.teacherId, updatedAt: new Date() })
+          .where(and(eq(sections.id, params.sectionId), eq(sections.schoolId, schoolId)));
+      }
+    });
+
+    // TW-2: Dual cache invalidation
+    await invalidateTeachingStaffCache(schoolId);
+    if (params.teacherId) clearTeacherScopeCache(params.teacherId);
+    clearTeacherScopeCache(); // broad flush for displaced teacher
+
+    // Audit log (OD1 requirement)
+    await logHrAudit(ctx, "WRITE", "class_teacher_assignments", params.sectionId, {
+      teacherId: params.teacherId,
+      forceTransfer: params.forceTransfer,
+      source: "hr_hub",
+    });
+
+    // Revalidate both HR and ClassHub surfaces
+    safeRevalidate("/hr");
+    safeRevalidate("/academics");
+    if (sec.classId) safeRevalidate(`/academics/classes/${sec.classId}`);
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ─── HR-level subject lead assignment (OD1: HR_MANAGER allowed + audit) ─────────
+// C3: Delegates to saveClassSubject logic directly to avoid double-writes.
+// saveClassSubject auto-seeds sectionSubjectTeachers; we replicate that here
+// with an internal helper so HR_MANAGER role is accepted.
+export async function hrAssignSubjectTeacher(data: {
+  classSubjectId: string;
+  teacherId: string | null;
+}) {
+  try {
+    const ctx = await requireAuth([
+      "HR_MANAGER",
+      "SCHOOL_ADMIN",
+      "SUPER_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const schoolId = school.id;
+
+    // Read the classSubject to verify ownership and get classId
+    const cs = await withTenant(schoolId, async (tx) =>
+      tx.query.classSubjects.findFirst({
+        where: and(eq(classSubjects.id, data.classSubjectId), eq(classSubjects.schoolId, schoolId)),
+        with: { subject: true },
+      }),
+    );
+    if (!cs) return { success: false, error: "Class-subject not found or access denied." };
+
+    const activeYearRow = await withTenant(schoolId, async (tx) =>
+      tx.query.academicYears.findFirst({
+        where: and(eq(academicYears.isActive, true), eq(academicYears.schoolId, schoolId)),
+      }),
+    );
+    if (!activeYearRow) return { success: false, error: "No active academic year." };
+
+    const effectiveFromDate = new Date().toISOString().split("T")[0]!;
+
+    await withTenant(schoolId, async (tx) => {
+      // Update class-level lead (mirror column only)
+      await tx
+        .update(classSubjects)
+        .set({ assignedTeacherId: data.teacherId, updatedAt: new Date() })
+        .where(and(eq(classSubjects.id, data.classSubjectId), eq(classSubjects.schoolId, schoolId)));
+
+      // C3: If assigning a teacher, seed sectionSubjectTeachers for sections without an override
+      if (data.teacherId) {
+        const classSections = await tx.query.sections.findMany({
+          where: and(
+            eq(sections.classId, cs.classId),
+            eq(sections.schoolId, schoolId),
+            eq(sections.isActive, true),
+          ),
+        });
+
+        for (const sec of classSections) {
+          const existing = await tx.query.sectionSubjectTeachers.findFirst({
+            where: and(
+              eq(sectionSubjectTeachers.classSubjectId, data.classSubjectId),
+              eq(sectionSubjectTeachers.sectionId, sec.id),
+              eq(sectionSubjectTeachers.isActive, true),
+            ),
+          });
+          if (!existing) {
+            await tx.insert(sectionSubjectTeachers).values({
+              schoolId,
+              academicYearId: activeYearRow.id,
+              classSubjectId: data.classSubjectId,
+              sectionId: sec.id,
+              teacherId: data.teacherId!,
+              isPrimary: true,
+              periodsPerWeek: cs.periodsPerWeek ?? 5,
+              effectiveFrom: effectiveFromDate,
+              effectiveTo: null,
+              isActive: true,
+            });
+          }
+        }
+      }
+    });
+
+    // TW-2: Dual cache invalidation
+    await invalidateTeachingStaffCache(schoolId);
+    if (data.teacherId) clearTeacherScopeCache(data.teacherId);
+
+    // Audit log
+    await logHrAudit(ctx, "WRITE", "class_subjects", data.classSubjectId, {
+      teacherId: data.teacherId,
+      source: "hr_hub",
+    });
+
+    safeRevalidate("/hr");
+    safeRevalidate("/academics");
+    if (cs.classId) safeRevalidate(`/academics/classes/${cs.classId}`);
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

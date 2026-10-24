@@ -7,8 +7,8 @@ const { mockStaffFindMany, mockRolesFindFirst, mockUserRolesFindMany } = vi.hois
   mockUserRolesFindMany: vi.fn(),
 }));
 
-vi.mock("@/db", () => ({
-  db: {
+vi.mock("@/db", () => {
+  const mockTx = {
     query: {
       staff: {
         findMany: mockStaffFindMany,
@@ -20,8 +20,12 @@ vi.mock("@/db", () => ({
         findMany: mockUserRolesFindMany,
       },
     },
-  },
-}));
+  };
+  return {
+    db: mockTx,
+    withTenant: vi.fn(async (_schoolId: string, cb: (tx: any) => Promise<any>) => cb(mockTx)),
+  };
+});
 
 vi.mock("@/lib/encryption", () => ({
   decryptData: vi.fn((val: string) => val ? `decrypted_${val}` : ""),

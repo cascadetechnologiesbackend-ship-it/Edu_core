@@ -19,7 +19,7 @@ interface DesignationsTabProps {
   designations: any[];
   departments: any[];
   isAuthorizedHR: boolean;
-  onRefresh?: () => void;
+  onRefresh?: (() => void) | undefined;
 }
 
 export function DesignationsTab({

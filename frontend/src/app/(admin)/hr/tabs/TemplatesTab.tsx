@@ -23,7 +23,7 @@ interface TemplatesTabProps {
   salaryTemplates: any[];
   staffList: any[];
   isAuthorizedHR: boolean;
-  onRefresh?: () => void;
+  onRefresh?: (() => void) | undefined;
 }
 
 export function TemplatesTab({

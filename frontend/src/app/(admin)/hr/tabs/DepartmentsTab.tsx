@@ -15,7 +15,7 @@ import {
 interface DepartmentsTabProps {
   departments: any[];
   isAuthorizedHR: boolean;
-  onRefresh?: () => void;
+  onRefresh?: (() => void) | undefined;
 }
 
 export function DepartmentsTab({
@@ -160,7 +160,15 @@ export function DepartmentsTab({
                         {d.name}
                       </td>
                       <td className="p-4 text-gray-600 dark:text-gray-400">
-                        {staffCount} staff member(s)
+                        <div>
+                          <span className="font-bold text-gray-800 dark:text-gray-200">
+                            {d.staffCount ?? d.staff?.filter((s: any) => s.isActive).length ?? 0}
+                          </span>{" "}
+                          active staff
+                        </div>
+                        <div className="text-[11px] text-gray-400">
+                          {d.designationsCount ?? d.designations?.filter((des: any) => des.isActive).length ?? 0} designation(s)
+                        </div>
                       </td>
                       <td className="p-4">
                         {d.isActive ? (
