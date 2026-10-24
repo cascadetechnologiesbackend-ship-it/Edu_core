@@ -534,6 +534,10 @@ export async function assignSectionTeacher(data: {
     clearTeacherScopeCache();
     revalidatePath("/academics");
     revalidatePath("/academics/mapping");
+    if (cs?.classId) {
+      revalidatePath(`/academics/classes/${cs.classId}`);
+      revalidatePath(`/academics/classes/${cs.classId}/subjects/${data.classSubjectId}`);
+    }
   } catch {}
   return { success: true };
 }
