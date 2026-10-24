@@ -4,9 +4,11 @@ import TeacherClassesClient from "./TeacherClassesClient";
 import {
   getTeacherMyDayTimeline,
   getTeacherSectionRosters,
+  getTeacherWorkspaceScope,
   MyDayPeriodItem,
   TeacherSectionSummary,
   StudentRosterRow,
+  TeacherWorkspaceScopeResult,
 } from "./classesActions";
 import {
   getTeacherSubstitutions,
@@ -22,8 +24,8 @@ export default async function TeacherClassesPage({
   searchParams,
 }: {
   searchParams?:
-    | Promise<{ tab?: string; sectionId?: string; date?: string }>
-    | { tab?: string; sectionId?: string; date?: string };
+    | Promise<{ tab?: string; sectionId?: string; date?: string; workspace?: string }>
+    | { tab?: string; sectionId?: string; date?: string; workspace?: string };
 }) {
   const resolvedParams =
     searchParams instanceof Promise ? await searchParams : searchParams || {};
@@ -73,6 +75,14 @@ export default async function TeacherClassesPage({
     console.error("[TeacherClassesPage] Error fetching substitutions:", err);
   }
 
+  // 4. Fetch Dual-Role Workspace Scope (Condition A & B)
+  let workspaceScope: TeacherWorkspaceScopeResult | null = null;
+  try {
+    workspaceScope = await getTeacherWorkspaceScope();
+  } catch (err) {
+    console.error("[TeacherClassesPage] Error fetching workspace scope:", err);
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -101,6 +111,7 @@ export default async function TeacherClassesPage({
           initialStudents={students}
           initialSubstitutions={substitutions}
           syllabusTopics={syllabusTopics}
+          workspaceScope={workspaceScope}
         />
       </Suspense>
     </div>
