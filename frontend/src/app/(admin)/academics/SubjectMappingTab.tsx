@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -177,9 +177,22 @@ export default function SubjectMappingTab({
     return map;
   }, [initialMappings]);
 
-  // Working state of cells
   const [cellMap, setCellMap] = useState<Map<string, CellState>>(() => new Map(initialCellMap));
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
+
+  // OD3: Active beforeunload navigation guard for staged matrix edits
+  useEffect(() => {
+    if (dirtyKeys.size === 0) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "You have unsaved curriculum matrix changes that will be lost. Click 'Save All' to persist.";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [dirtyKeys.size]);
 
   // Slide-over Teacher & Details Drawer state
   const [activeDrawerCell, setActiveDrawerCell] = useState<{
@@ -823,26 +836,44 @@ export default function SubjectMappingTab({
                   <label className="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1.5">
                     Lead / Assigned Teacher
                   </label>
-                  <select
-                    value={activeDrawerCell.cell.assignedTeacherId || ""}
-                    onChange={(e) =>
-                      setActiveDrawerCell({
-                        ...activeDrawerCell,
-                        cell: {
-                          ...activeDrawerCell.cell,
-                          assignedTeacherId: e.target.value || null,
-                        },
-                      })
-                    }
-                    className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-primary/40 font-medium"
-                  >
-                    <option value="">None / Unassigned</option>
-                    {teachers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.displayName || t.email}
-                      </option>
-                    ))}
-                  </select>
+                  {teachers.length === 0 ? (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        No active teaching staff found
+                      </div>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                        Teachers must be classified with teaching designations in HR to appear here.
+                      </p>
+                      <Link
+                        href="/hr?tab=designations"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline mt-1"
+                      >
+                        Go to HR Designations <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <select
+                      value={activeDrawerCell.cell.assignedTeacherId || ""}
+                      onChange={(e) =>
+                        setActiveDrawerCell({
+                          ...activeDrawerCell,
+                          cell: {
+                            ...activeDrawerCell.cell,
+                            assignedTeacherId: e.target.value || null,
+                          },
+                        })
+                      }
+                      className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-primary/40 font-medium"
+                    >
+                      <option value="">None / Unassigned</option>
+                      {teachers.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.displayName || t.email}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Periods Per Week Stepper */}
@@ -1030,7 +1061,7 @@ export default function SubjectMappingTab({
                 onClick={() => handleSaveDrawerCell(activeDrawerCell.cell)}
                 className="bg-primary hover:bg-primary/95 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-sm min-h-[38px] cursor-pointer"
               >
-                Apply Changes
+                Stage in Matrix (Save All to persist)
               </button>
             </div>
           </div>

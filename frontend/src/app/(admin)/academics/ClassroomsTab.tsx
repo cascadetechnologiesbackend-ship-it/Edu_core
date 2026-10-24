@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { saveClassroom, saveSection } from "./actions";
-import { Plus, Edit2, Check, RefreshCw } from "lucide-react";
+import { Plus, Edit2, Check, RefreshCw, AlertTriangle } from "lucide-react";
 import AppModal from "@/components/ui/AppModal";
 import { ALL_GRADE_LEVELS } from "@/lib/gradeConstants";
 
@@ -261,23 +262,41 @@ export default function ClassroomsTab({
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
               Class Teacher
             </label>
-            <select
-              value={sectionData.classTeacherId}
-              onChange={(e) =>
-                setSectionData({
-                  ...sectionData,
-                  classTeacherId: e.target.value,
-                })
-              }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
-            >
-              <option value="" className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">Select Class Teacher (Unassigned)</option>
-              {teachers.map((t) => (
-                <option key={t.id} value={t.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
-                  {t.displayName || (t.name ? `${t.name} (${t.employeeCode || t.email})` : t.email)}
-                </option>
-              ))}
-            </select>
+            {teachers.length === 0 ? (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  No teaching staff found
+                </div>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  Teachers must be classified with teaching designations in HR.
+                </p>
+                <Link
+                  href="/hr?tab=designations"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline mt-1"
+                >
+                  Configure in HR Designations &rarr;
+                </Link>
+              </div>
+            ) : (
+              <select
+                value={sectionData.classTeacherId}
+                onChange={(e) =>
+                  setSectionData({
+                    ...sectionData,
+                    classTeacherId: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
+              >
+                <option value="" className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">Select Class Teacher (Unassigned)</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                    {t.displayName || (t.name ? `${t.name} (${t.employeeCode || t.email})` : t.email)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
