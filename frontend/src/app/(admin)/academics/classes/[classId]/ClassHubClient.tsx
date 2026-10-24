@@ -1155,7 +1155,7 @@ export default function ClassHubClient({
                         Lead Teacher:{" "}
                         {cs.teacher ? (
                           <span className="text-gray-700 dark:text-gray-300 font-medium">
-                            {cs.teacher.email}
+                            {cs.teacher.displayName || (cs.teacher.name ? `${cs.teacher.name} (${cs.teacher.email})` : cs.teacher.email)}
                           </span>
                         ) : (
                           <span className="text-amber-500 font-medium">

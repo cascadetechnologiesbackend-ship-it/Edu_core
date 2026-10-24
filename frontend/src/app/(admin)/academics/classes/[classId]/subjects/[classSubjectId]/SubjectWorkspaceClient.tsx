@@ -89,7 +89,12 @@ type SectionTeacher = {
   effectiveFrom: string;
   effectiveTo: string | null;
   isActive: boolean;
-  teacher?: { id: string; email: string } | null;
+  teacher?: {
+    id: string;
+    email: string;
+    name?: string;
+    displayName?: string;
+  } | null;
   section?: { id: string; name: string } | null;
 };
 
@@ -590,7 +595,7 @@ export default function SubjectWorkspaceClient({
                 <span>·</span>
                 <span className="text-primary font-semibold">
                   Section {activeSectionObj?.name} Teacher:{" "}
-                  {currentSectionTeacher.teacher?.email}
+                  {currentSectionTeacher.teacher?.displayName || (currentSectionTeacher.teacher?.name ? `${currentSectionTeacher.teacher.name} (${currentSectionTeacher.teacher.email})` : currentSectionTeacher.teacher?.email)}
                 </span>
               </>
             )}

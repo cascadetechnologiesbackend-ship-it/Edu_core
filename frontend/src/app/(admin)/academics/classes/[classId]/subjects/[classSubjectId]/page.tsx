@@ -159,6 +159,12 @@ export default async function SubjectWorkspacePage({
     percentage: progressData?.percentage ?? 0,
   };
 
+  const leadFaculty = cs.assignedTeacherId
+    ? allTeachers.find((t) => t.id === cs.assignedTeacherId)
+    : null;
+  const leadTeacherDisplay =
+    leadFaculty?.displayName || cs.teacher?.email || null;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SubjectWorkspaceClient
@@ -168,7 +174,7 @@ export default async function SubjectWorkspacePage({
         className={cs.class.displayName}
         subjectName={cs.subject.name}
         subjectCode={cs.subject.code}
-        leadTeacherEmail={cs.teacher?.email ?? null}
+        leadTeacherEmail={leadTeacherDisplay}
         initialLeadTeacherId={cs.assignedTeacherId ?? null}
         sections={cs.class.sections.map((s) => ({ id: s.id, name: s.name }))}
         sectionTeachers={sectionTeachers as any}

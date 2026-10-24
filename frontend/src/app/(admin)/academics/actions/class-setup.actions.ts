@@ -30,6 +30,59 @@ import {
   calculateSyllabusProgress,
 } from "./auth-helper";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
+import { getCanonicalTeachingStaff } from "../../hr/teachingStaff";
+
+async function enrichWithTeachingStaff(schoolId: string, cls: any) {
+  if (!cls) return cls;
+  try {
+    const teachingStaff = await getCanonicalTeachingStaff(schoolId);
+    const staffMap = new Map(
+      teachingStaff.map((t) => [
+        t.id,
+        {
+          displayName: `${t.name} (${t.employeeCode})`,
+          name: t.name,
+          employeeCode: t.employeeCode,
+          designationName: t.designationName,
+        },
+      ]),
+    );
+
+    const enrichedSections = cls.sections?.map((sec: any) => {
+      if (!sec.classTeacher) return sec;
+      const meta = staffMap.get(sec.classTeacher.id);
+      return {
+        ...sec,
+        classTeacher: {
+          ...sec.classTeacher,
+          displayName: meta?.displayName || sec.classTeacher.email,
+          name: meta?.name,
+        },
+      };
+    });
+
+    const enrichedClassSubjects = cls.classSubjects?.map((cs: any) => {
+      if (!cs.teacher) return cs;
+      const meta = staffMap.get(cs.teacher.id);
+      return {
+        ...cs,
+        teacher: {
+          ...cs.teacher,
+          displayName: meta?.displayName || cs.teacher.email,
+          name: meta?.name,
+        },
+      };
+    });
+
+    return {
+      ...cls,
+      sections: enrichedSections ?? cls.sections,
+      classSubjects: enrichedClassSubjects ?? cls.classSubjects,
+    };
+  } catch {
+    return cls;
+  }
+}
 
 // ─── 1. Class Setup Transaction (Rule #7) ─────────────────────────────────────
 // Separate from saveClassroom(). Atomically creates class + sections + attaches subjects.
@@ -127,7 +180,7 @@ export async function getClassWithDetails(classId: string) {
   const session = await checkAuth();
 
   return await withTenant(session.user.schoolId, async (tx) => {
-    return await tx.query.classes.findFirst({
+    const cls = await tx.query.classes.findFirst({
       where: and(
         eq(classes.id, classId),
         eq(classes.schoolId, session.user.schoolId),
@@ -152,6 +205,8 @@ export async function getClassWithDetails(classId: string) {
         },
       },
     });
+
+    return await enrichWithTeachingStaff(session.user.schoolId, cls);
   });
 }
 
@@ -303,10 +358,12 @@ export async function getClassHubOverview(classId: string) {
     const totalCompletedAll = subjectProgress.reduce((sum, s) => sum + s.completed, 0);
     const overallProgress = calculateSyllabusProgress(totalTopicsAll, totalCompletedAll);
 
+    const enrichedClass = await enrichWithTeachingStaff(session.user.schoolId, cls);
+
     return {
-      class: cls,
-      sectionCount: cls.sections.length,
-      subjectCount: cls.classSubjects.length,
+      class: enrichedClass,
+      sectionCount: enrichedClass.sections?.length ?? cls.sections.length,
+      subjectCount: enrichedClass.classSubjects?.length ?? cls.classSubjects.length,
       pendingLessonPlansCount,
       pendingAssignmentsCount,
       overallProgress,
@@ -322,7 +379,7 @@ export async function getClassHubOverview(classId: string) {
 export async function getSectionSubjectTeachers(classSubjectId: string) {
   const session = await checkAuth();
 
-  return await db.query.sectionSubjectTeachers.findMany({
+  const records = await db.query.sectionSubjectTeachers.findMany({
     where: and(
       eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
       eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
@@ -333,6 +390,31 @@ export async function getSectionSubjectTeachers(classSubjectId: string) {
     },
     orderBy: [desc(sectionSubjectTeachers.effectiveFrom)],
   });
+
+  try {
+    const teachingStaff = await getCanonicalTeachingStaff(session.user.schoolId);
+    const staffMap = new Map(
+      teachingStaff.map((t) => [
+        t.id,
+        {
+          displayName: `${t.name} (${t.employeeCode})`,
+          name: t.name,
+        },
+      ]),
+    );
+    return records.map((r) => ({
+      ...r,
+      teacher: r.teacher
+        ? {
+            ...r.teacher,
+            displayName: staffMap.get(r.teacher.id)?.displayName || r.teacher.email,
+            name: staffMap.get(r.teacher.id)?.name,
+          }
+        : null,
+    }));
+  } catch {
+    return records;
+  }
 }
 
 export async function assignSectionTeacher(data: {

@@ -301,8 +301,19 @@ export default async function ClassHubPage({
       };
     });
 
+    const teacherMap = new Map(allTeachers.map((t) => [t.id, t.displayName || t.email]));
+    const enrichedTimetable = timetable.map((p: any) => ({
+      ...p,
+      teacher: p.teacher
+        ? {
+            ...p.teacher,
+            displayName: teacherMap.get(p.teacher.id) || p.teacher.email,
+          }
+        : null,
+    }));
+
     return {
-      timetable,
+      timetable: enrichedTimetable,
       classAssignments,
       classLessons,
       classAssessments,
