@@ -56,7 +56,12 @@ type Section = {
   capacity: number;
   classTeacherId: string | null;
   roomNumber: string | null;
-  classTeacher?: { id: string; email: string } | null;
+  classTeacher?: {
+    id: string;
+    email: string;
+    name?: string;
+    displayName?: string;
+  } | null;
 };
 
 type ClassSubject = {
@@ -72,7 +77,12 @@ type ClassSubject = {
     code: string;
     subjectType: string;
   };
-  teacher?: { id: string; email: string } | null;
+  teacher?: {
+    id: string;
+    email: string;
+    name?: string;
+    displayName?: string;
+  } | null;
 };
 
 type BellPeriod = {
@@ -239,6 +249,50 @@ export default function ClassHubClient({
   const [sectionCapacity, setSectionCapacity] = useState(40);
   const [sectionTeacherId, setSectionTeacherId] = useState("");
   const [sectionRoom, setSectionRoom] = useState("");
+
+  // Edit Section Modal State (S15-F01)
+  const [showEditSectionModal, setShowEditSectionModal] = useState(false);
+  const [editingSection, setEditingSection] = useState<{
+    id: string;
+    name: string;
+    capacity: number;
+    classTeacherId: string;
+    roomNumber: string;
+  } | null>(null);
+
+  const handleOpenEditSection = (sec: any) => {
+    setEditingSection({
+      id: sec.id,
+      name: sec.name,
+      capacity: sec.capacity || 40,
+      classTeacherId: sec.classTeacherId || sec.classTeacher?.id || "",
+      roomNumber: sec.roomNumber || "",
+    });
+    setShowEditSectionModal(true);
+  };
+
+  const handleSaveEditSection = () => {
+    if (!editingSection || !editingSection.name.trim()) return;
+    setErrorMsg(null);
+    startTransition(async () => {
+      try {
+        await saveSection({
+          id: editingSection.id,
+          classId: cls.id,
+          name: editingSection.name.trim(),
+          capacity: Number(editingSection.capacity) || 40,
+          classTeacherId: editingSection.classTeacherId || null,
+          roomNumber: editingSection.roomNumber?.trim() || null,
+        });
+        toast.success(`Updated Section ${editingSection.name}`);
+        setShowEditSectionModal(false);
+        setEditingSection(null);
+        router.refresh();
+      } catch (err: any) {
+        setErrorMsg(err?.message || "Failed to update section");
+      }
+    });
+  };
 
   // Attach Subject Modal State
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -1485,15 +1539,44 @@ export default function ClassHubClient({
                       <h4 className="font-extrabold text-base text-gray-900 dark:text-white">
                         Section {sec.name}
                       </h4>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-50 dark:bg-blue-950/40 text-primary">
-                        Cap: {sec.capacity}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-50 dark:bg-blue-950/40 text-primary">
+                          Cap: {sec.capacity}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditSection(sec)}
+                            className="p-1 text-gray-400 hover:text-primary transition rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
+                            title="Edit Section & Class Teacher"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-1.5 text-xs text-gray-500 mt-3">
-                      <div>
-                        <strong>Class Teacher:</strong>{" "}
-                        {sec.classTeacher?.email || "None assigned"}
+                      <div className="flex items-center justify-between">
+                        <span>
+                          <strong>Class Teacher:</strong>{" "}
+                          {sec.classTeacher ? (
+                            <span className="text-gray-900 dark:text-white font-medium">
+                              {sec.classTeacher.displayName || sec.classTeacher.name || sec.classTeacher.email}
+                            </span>
+                          ) : (
+                            <span className="text-amber-500 font-medium">None assigned</span>
+                          )}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditSection(sec)}
+                            className="text-[11px] font-bold text-primary hover:underline ml-2 shrink-0"
+                          >
+                            {sec.classTeacher ? "Change" : "Assign"}
+                          </button>
+                        )}
                       </div>
                       <div>
                         <strong>Room Number:</strong> {sec.roomNumber || "Not set"}
@@ -1624,6 +1707,142 @@ export default function ClassHubClient({
             />
           </div>
         </form>
+      </AppModal>
+
+      {/* ─── MODAL: Edit Section (AppModal size="sm") (S15-F01) ───────────── */}
+      <AppModal
+        open={showEditSectionModal}
+        onClose={() => {
+          setShowEditSectionModal(false);
+          setEditingSection(null);
+        }}
+        size="sm"
+        title={editingSection ? `Edit Section ${editingSection.name} — ${cls.displayName}` : "Edit Section"}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditSectionModal(false);
+                setEditingSection(null);
+              }}
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[40px]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isPending || !editingSection?.name.trim()}
+              onClick={handleSaveEditSection}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/95 transition shadow-xs flex items-center gap-1.5 disabled:opacity-50 min-h-[40px]"
+            >
+              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Save Changes
+            </button>
+          </>
+        }
+      >
+        {editingSection && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveEditSection();
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                Section Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={editingSection.name}
+                onChange={(e) =>
+                  setEditingSection({ ...editingSection, name: e.target.value })
+                }
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                Max Capacity
+              </label>
+              <input
+                type="number"
+                value={editingSection.capacity}
+                onChange={(e) =>
+                  setEditingSection({
+                    ...editingSection,
+                    capacity: parseInt(e.target.value) || 40,
+                  })
+                }
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                Class Teacher
+              </label>
+              {allTeachers.length === 0 ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 space-y-1">
+                  <p className="text-[11px] font-bold">No teaching faculty available</p>
+                  <p className="text-[10px] text-amber-200/80">
+                    {diagnostics
+                      ? `${diagnostics.activeStaffCount} active staff found, ${diagnostics.isTeachingCount} classified as teaching.`
+                      : "No active staff members are classified as teaching."}
+                  </p>
+                  {isAdmin && (
+                    <Link
+                      href="/hr?tab=designations"
+                      className="text-[11px] font-bold underline hover:text-amber-200 inline-block pt-0.5"
+                    >
+                      Configure Teaching Designations in HR &rarr;
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <select
+                  value={editingSection.classTeacherId}
+                  onChange={(e) =>
+                    setEditingSection({
+                      ...editingSection,
+                      classTeacherId: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                >
+                  <option value="">None / Unassigned</option>
+                  {allTeachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.displayName || (t.name ? `${t.name} (${t.email})` : t.email)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                Room Number
+              </label>
+              <input
+                type="text"
+                value={editingSection.roomNumber}
+                onChange={(e) =>
+                  setEditingSection({
+                    ...editingSection,
+                    roomNumber: e.target.value,
+                  })
+                }
+                placeholder="e.g. 101"
+                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              />
+            </div>
+          </form>
+        )}
       </AppModal>
 
       {/* ─── MODAL: Attach Subject (AppModal size="md", Chainable) ─────────── */}
