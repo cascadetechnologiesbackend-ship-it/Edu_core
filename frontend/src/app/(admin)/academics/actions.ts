@@ -23,7 +23,7 @@ import {
   getActiveAcademicYear,
   checkAuth,
 } from "./actions/auth-helper";
-import { getCanonicalTeachingStaff } from "../hr/actions";
+import { getCanonicalTeachingStaff } from "../hr/teachingStaff";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 
 async function getAuditContext(session: any) {
