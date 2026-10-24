@@ -4,7 +4,8 @@
 **Title**: HR & Staff Management Hub: Intent-Based Universal Hub, Cross-Role Teacher CRUD, Live Data Status Truth, and UI/UX Principle Enforcement  
 **Version**: `17.0.0`  
 **Target Release**: `v11.27.0`  
-**Baseline HEAD**: `0d746dc7` (inside v11.26.0)  
+**Baseline HEAD**: `307b5718` (v11.26.0)  
+**Landed Commit**: `6871a71`  
 **Parent Spec**: `S16-DUAL-ROLE-TEACHER-AUTH@16.0.0`  
 **Status**: **SIGNED OFF / PRODUCTION READY**  
 **Date**: 2026-10-24  
