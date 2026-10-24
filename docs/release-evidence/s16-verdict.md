@@ -70,7 +70,7 @@ All 9 sequential layers (L0 through L8) have been fully executed, verified, and 
 | **L6** | `40fd729` | Teacher PWA dual workspace (`HomeroomWorkspaceView`, `TeacherScopeContext`, `TeacherWorkspaceSwitcher`) | [s16-l6.md](file:///v:/Cascade/2026/Edu_core/docs/release-evidence/s16-l6.md) |
 | **L7** | `fabedf7` | DPDP fee boundary, statutory consent, and response-shape tests | [s16-l7.md](file:///v:/Cascade/2026/Edu_core/docs/release-evidence/s16-l7.md) |
 | **L8** | `eecde05` | Six formal boundary tests, guard matrix, and cross-school isolation | [s16-l8.md](file:///v:/Cascade/2026/Edu_core/docs/release-evidence/s16-l8.md) |
-| **L9** | *(Current)* | Release verdict & final sign-off documentation | [s16-verdict.md](file:///v:/Cascade/2026/Edu_core/docs/release-evidence/s16-verdict.md) |
+| **L9** | `9a19142` | Release verdict & final sign-off documentation | [s16-verdict.md](file:///v:/Cascade/2026/Edu_core/docs/release-evidence/s16-verdict.md) |
 
 ---
 
