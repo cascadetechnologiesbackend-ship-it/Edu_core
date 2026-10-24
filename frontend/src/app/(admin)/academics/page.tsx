@@ -6,11 +6,12 @@ import {
   sections,
   subjects,
   classSubjects,
+  sectionSubjectTeachers,
   users,
   timetableSubstitutions,
   schools,
 } from "@/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, isNull } from "drizzle-orm";
 import { getActiveAcademicYear } from "./actions/auth-helper";
 import { getCanonicalTeachingStaff } from "../hr/teachingStaff";
 import AmsHubClient from "./components/AmsHubClient";
@@ -87,6 +88,17 @@ export default async function AcademicsPage() {
                 with: {
                   class: true,
                   subject: true,
+                  sectionSubjectTeachers: {
+                    where: and(
+                      eq(sectionSubjectTeachers.schoolId, schoolId),
+                      eq(sectionSubjectTeachers.isActive, true),
+                      isNull(sectionSubjectTeachers.effectiveTo),
+                    ),
+                    with: {
+                      teacher: { columns: { id: true, email: true } },
+                      section: { columns: { id: true, name: true } },
+                    },
+                  },
                 },
               });
 

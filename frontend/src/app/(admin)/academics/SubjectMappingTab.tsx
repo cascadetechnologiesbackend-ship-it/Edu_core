@@ -17,13 +17,21 @@ import {
   Info,
   Calendar,
 } from "lucide-react";
-import { batchUpdateClassSubjectMappings } from "./actions";
+import { batchUpdateClassSubjectMappings, assignSectionTeacher } from "./actions";
 import { BulkActionBar } from "@/components/ui/BulkActionBar";
 import { NextBestAction } from "@/components/ui/NextBestAction";
 import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
 import { mapGradeLevelToClassGroup, ClassGroup } from "@/lib/examBoardBlueprints";
 import { getCanonicalSortOrder } from "@/lib/academicOrdering";
 import { toast } from "sonner";
+
+export type SectionOverride = {
+  id?: string | undefined;
+  sectionId: string;
+  teacherId: string;
+  sectionName?: string | undefined;
+  teacherEmail?: string | undefined;
+};
 
 export type ClassSubject = {
   id: string;
@@ -39,6 +47,15 @@ export type ClassSubject = {
     name: string;
     code: string;
   };
+  sectionSubjectTeachers?: Array<{
+    id: string;
+    sectionId: string;
+    teacherId: string;
+    isActive: boolean;
+    effectiveTo: string | null;
+    teacher?: { id: string; email: string };
+    section?: { id: string; name: string };
+  }>;
 };
 
 export type Classroom = {
@@ -46,6 +63,13 @@ export type Classroom = {
   gradeLevel: string;
   displayName: string;
   sortOrder?: number;
+  sections?: Array<{
+    id: string;
+    name: string;
+    capacity?: number;
+    classTeacherId?: string | null;
+    roomNumber?: string | null;
+  }>;
 };
 
 export type Subject = {
@@ -123,12 +147,23 @@ export default function SubjectMappingTab({
     assignedTeacherId: string | null;
     isDirty?: boolean;
     originalState?: boolean;
+    sectionOverrides?: SectionOverride[];
   };
 
   const initialCellMap = useMemo(() => {
     const map = new Map<string, CellState>();
     initialMappings.forEach((m) => {
       const key = `${m.classId}:${m.subjectId}`;
+      const sectionOverrides: SectionOverride[] = (m.sectionSubjectTeachers || [])
+        .filter((st) => st.isActive && !st.effectiveTo)
+        .map((st) => ({
+          id: st.id,
+          sectionId: st.sectionId,
+          teacherId: st.teacherId,
+          sectionName: st.section?.name,
+          teacherEmail: st.teacher?.email,
+        }));
+
       map.set(key, {
         classSubjectId: m.id,
         isOffered: true,
@@ -136,6 +171,7 @@ export default function SubjectMappingTab({
         periodsPerWeek: m.periodsPerWeek || 5,
         assignedTeacherId: m.assignedTeacherId || null,
         originalState: true,
+        sectionOverrides,
       });
     });
     return map;
@@ -648,9 +684,24 @@ export default function SubjectMappingTab({
                               <span>{cell.isElective ? "Elective" : "Core"}</span>
                             </span>
 
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[100px] mt-0.5">
-                              {teacherName ? teacherName.split(" ")[0] : `${cell.periodsPerWeek}p/w`}
-                            </span>
+                            <div className="flex items-center justify-center gap-1 max-w-[110px] mt-0.5">
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                                {teacherName ? teacherName.split(" ")[0] : `${cell.periodsPerWeek}p/w`}
+                              </span>
+                              {cell.sectionOverrides && cell.sectionOverrides.length > 0 && (
+                                <span
+                                  title={`Section Overrides: ${cell.sectionOverrides
+                                    .map((o) => {
+                                      const t = teachers.find((tc) => tc.id === o.teacherId);
+                                      return `${o.sectionName || "Sec"}: ${t?.displayName || t?.email || "Assigned"}`;
+                                    })
+                                    .join(", ")}`}
+                                  className="px-1 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60 shrink-0"
+                                >
+                                  Override ({cell.sectionOverrides.length})
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <div className="py-2 flex items-center justify-center">
@@ -679,7 +730,7 @@ export default function SubjectMappingTab({
           />
 
           {/* Slide-over Panel */}
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-800 p-6 flex flex-col justify-between shadow-2xl z-10 animate-slide-in-left">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-800 p-6 flex flex-col justify-between shadow-2xl z-10 animate-slide-in-left overflow-y-auto max-h-screen">
             <div className="space-y-6">
               {/* Drawer Header */}
               <div className="flex items-start justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
@@ -836,6 +887,132 @@ export default function SubjectMappingTab({
                     <span className="text-xs text-gray-400">Weekly timetable budget</span>
                   </div>
                 </div>
+
+                {/* Section-Level Teacher Overrides (OD2 / S14-F03) */}
+                {activeDrawerCell.cell.isOffered && (
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                          Section-Level Teacher Overrides
+                        </label>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 block">
+                          Assign specific faculty per section (overrides class lead)
+                        </span>
+                      </div>
+                    </div>
+
+                    {!activeDrawerCell.cell.classSubjectId ? (
+                      <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-300">
+                        <span className="font-bold">Newly Staged Subject:</span> Please click &quot;Save All&quot; in the matrix bar to persist this subject before setting per-section teacher overrides.
+                      </div>
+                    ) : !activeDrawerCell.classroom.sections || activeDrawerCell.classroom.sections.length === 0 ? (
+                      <div className="p-3 bg-gray-50 dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 rounded-xl text-xs text-gray-500">
+                        No active sections found for this class. Add sections in the Classes tab.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {activeDrawerCell.classroom.sections.map((sec) => {
+                          const currentOverride = (
+                            activeDrawerCell.cell.sectionOverrides || []
+                          ).find((o) => o.sectionId === sec.id);
+                          const currentTeacherId = currentOverride ? currentOverride.teacherId : "";
+
+                          return (
+                            <div
+                              key={sec.id}
+                              className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40"
+                            >
+                              <div className="min-w-0">
+                                <span className="font-bold text-xs text-gray-900 dark:text-white block">
+                                  Section {sec.name}
+                                </span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 block">
+                                  {currentOverride ? (
+                                    <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                      Section Override
+                                    </span>
+                                  ) : (
+                                    "Inherits Class Lead"
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="w-[180px] shrink-0">
+                                <select
+                                  value={currentTeacherId}
+                                  disabled={isPending}
+                                  onChange={async (e) => {
+                                    const newTeacherId = e.target.value;
+                                    const classSubjectId = activeDrawerCell.cell.classSubjectId!;
+
+                                    // Optimistic update of local state
+                                    const nextOverrides = (
+                                      activeDrawerCell.cell.sectionOverrides || []
+                                    ).filter((o) => o.sectionId !== sec.id);
+
+                                    if (newTeacherId) {
+                                      const tObj = teachers.find((t) => t.id === newTeacherId);
+                                      nextOverrides.push({
+                                        sectionId: sec.id,
+                                        teacherId: newTeacherId,
+                                        sectionName: sec.name,
+                                        teacherEmail: tObj?.email,
+                                      });
+                                    }
+
+                                    const updatedCell = {
+                                      ...activeDrawerCell.cell,
+                                      sectionOverrides: nextOverrides,
+                                    };
+
+                                    setActiveDrawerCell({
+                                      ...activeDrawerCell,
+                                      cell: updatedCell,
+                                    });
+
+                                    const key = `${activeDrawerCell.classId}:${activeDrawerCell.subjectId}`;
+                                    setCellMap((prev) => new Map(prev).set(key, updatedCell));
+
+                                    startTransition(async () => {
+                                      try {
+                                        await assignSectionTeacher({
+                                          classSubjectId,
+                                          sectionId: sec.id,
+                                          teacherId: newTeacherId || null,
+                                          effectiveFrom: new Date().toISOString().split("T")[0],
+                                        });
+                                        const teacherLabel =
+                                          teachers.find((t) => t.id === newTeacherId)?.displayName ||
+                                          teachers.find((t) => t.id === newTeacherId)?.email;
+                                        toast.success(
+                                          newTeacherId
+                                            ? `Assigned Section ${sec.name} to ${teacherLabel}`
+                                            : `Reverted Section ${sec.name} to class lead teacher`
+                                        );
+                                        router.refresh();
+                                      } catch (err: any) {
+                                        toast.error(err?.message || "Failed to assign section teacher");
+                                      }
+                                    });
+                                  }}
+                                  className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary font-medium"
+                                >
+                                  <option value="">Inherit Lead Teacher</option>
+                                  {teachers.map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                      {t.displayName || t.email}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -3,8 +3,8 @@ import { requireAuth } from "@/lib/serverAuth";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import { redirect } from "next/navigation";
 import { db, withTenant } from "@/db";
-import { classes, subjects, classSubjects, schools } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { classes, sections, subjects, classSubjects, sectionSubjectTeachers, schools } from "@/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getCanonicalTeachingStaff } from "../../hr/teachingStaff";
@@ -46,6 +46,15 @@ export default async function SubjectMappingPage() {
               eq(classes.isActive, true)
             ),
             orderBy: [classes.sortOrder],
+            with: {
+              sections: {
+                where: and(
+                  eq(sections.schoolId, schoolId),
+                  eq(sections.isActive, true),
+                ),
+                orderBy: [sections.name],
+              },
+            },
           });
 
           const subjectsList = await tx.query.subjects.findMany({
@@ -61,6 +70,17 @@ export default async function SubjectMappingPage() {
             with: {
               class: true,
               subject: true,
+              sectionSubjectTeachers: {
+                where: and(
+                  eq(sectionSubjectTeachers.schoolId, schoolId),
+                  eq(sectionSubjectTeachers.isActive, true),
+                  isNull(sectionSubjectTeachers.effectiveTo),
+                ),
+                with: {
+                  teacher: { columns: { id: true, email: true } },
+                  section: { columns: { id: true, name: true } },
+                },
+              },
             },
           });
 

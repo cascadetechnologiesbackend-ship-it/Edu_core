@@ -29,6 +29,7 @@ import {
   getActiveAcademicYear,
   calculateSyllabusProgress,
 } from "./auth-helper";
+import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 
 // ─── 1. Class Setup Transaction (Rule #7) ─────────────────────────────────────
 // Separate from saveClassroom(). Atomically creates class + sections + attaches subjects.
@@ -337,8 +338,8 @@ export async function getSectionSubjectTeachers(classSubjectId: string) {
 export async function assignSectionTeacher(data: {
   classSubjectId: string;
   sectionId: string;
-  teacherId: string;
-  effectiveFrom: string; // "YYYY-MM-DD"
+  teacherId?: string | null | undefined;
+  effectiveFrom?: string | undefined; // "YYYY-MM-DD"
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
@@ -360,6 +361,9 @@ export async function assignSectionTeacher(data: {
   });
   if (!sec) throw new Error("Invalid section specified");
 
+  const effectiveFromDate =
+    data.effectiveFrom || new Date().toISOString().split("T")[0]!;
+
   // Transactionally close active allocation and insert new allocation
   await withTenant(session.user.schoolId, async (tx) => {
     // Check current active allocation for temporal integrity
@@ -371,18 +375,54 @@ export async function assignSectionTeacher(data: {
       ),
     });
 
-    if (currentActive && data.effectiveFrom <= currentActive.effectiveFrom) {
-      throw new Error(
-        `Invalid assignment date: new effective date (${data.effectiveFrom}) must be strictly after the current active assignment start date (${currentActive.effectiveFrom}).`,
-      );
-    }
-
-    // 1. Close current active allocation (setting effectiveTo and isActive = false)
     if (currentActive) {
+      if (!data.teacherId) {
+        // Unassign section override: close existing record without adding a new one
+        await tx
+          .update(sectionSubjectTeachers)
+          .set({
+            effectiveTo: effectiveFromDate,
+            isActive: false,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(sectionSubjectTeachers.id, currentActive.id),
+              eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+            ),
+          );
+        return;
+      }
+
+      if (currentActive.effectiveFrom === effectiveFromDate) {
+        // Same-day correction: update teacher in-place
+        await tx
+          .update(sectionSubjectTeachers)
+          .set({
+            teacherId: data.teacherId,
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(sectionSubjectTeachers.id, currentActive.id),
+              eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+            ),
+          );
+        return;
+      }
+
+      if (effectiveFromDate < currentActive.effectiveFrom) {
+        throw new Error(
+          `Invalid assignment date: new effective date (${effectiveFromDate}) cannot be before current active assignment start date (${currentActive.effectiveFrom}).`,
+        );
+      }
+
+      // Close previous allocation
       await tx
         .update(sectionSubjectTeachers)
         .set({
-          effectiveTo: data.effectiveFrom,
+          effectiveTo: effectiveFromDate,
           isActive: false,
           updatedAt: new Date(),
         })
@@ -394,20 +434,24 @@ export async function assignSectionTeacher(data: {
         );
     }
 
-    // 2. Insert new active allocation (effectiveTo = null, isActive = true)
-    await tx.insert(sectionSubjectTeachers).values({
-      schoolId: session.user.schoolId,
-      classSubjectId: data.classSubjectId,
-      sectionId: data.sectionId,
-      teacherId: data.teacherId,
-      effectiveFrom: data.effectiveFrom,
-      effectiveTo: null,
-      isActive: true,
-    });
+    // Insert new active allocation if teacherId provided
+    if (data.teacherId) {
+      await tx.insert(sectionSubjectTeachers).values({
+        schoolId: session.user.schoolId,
+        classSubjectId: data.classSubjectId,
+        sectionId: data.sectionId,
+        teacherId: data.teacherId,
+        effectiveFrom: effectiveFromDate,
+        effectiveTo: null,
+        isActive: true,
+      });
+    }
   });
 
   try {
+    clearTeacherScopeCache();
     revalidatePath("/academics");
+    revalidatePath("/academics/mapping");
   } catch {}
   return { success: true };
 }
