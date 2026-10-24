@@ -12,6 +12,17 @@ interface NoticeCardProps {
   onAcknowledgeSuccess?: () => void;
 }
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+function formatNoticeDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+}
+
 export function NoticeCard({ card, locale = "en", onAcknowledgeSuccess }: NoticeCardProps) {
   const isHi = locale === "hi";
   const {
@@ -29,10 +40,7 @@ export function NoticeCard({ card, locale = "en", onAcknowledgeSuccess }: Notice
   );
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const publishedDate = new Date(publishedAt).toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-  });
+  const publishedDate = formatNoticeDate(publishedAt);
 
   const handleAcknowledge = async () => {
     if (isSubmitting || isAcknowledged) return;
@@ -110,7 +118,7 @@ export function NoticeCard({ card, locale = "en", onAcknowledgeSuccess }: Notice
             </div>
             <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>{publishedDate}</span>
+              <span suppressHydrationWarning>{publishedDate}</span>
             </p>
           </div>
         </div>

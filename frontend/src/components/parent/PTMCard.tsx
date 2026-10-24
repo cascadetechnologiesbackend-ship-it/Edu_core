@@ -52,9 +52,13 @@ export function PTMCard({ card, locale = "en" }: PTMCardProps) {
   const [cancellingBooking, setCancellingBooking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const MONTH_NAMES = [
+    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+  ];
   const dateObj = new Date(startDate);
   const dayNumber = dateObj.getDate();
-  const monthStr = dateObj.toLocaleDateString([], { month: "short" }).toUpperCase();
+  const monthStr = isNaN(dateObj.getTime()) ? "" : MONTH_NAMES[dateObj.getMonth()];
   const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   let countdownText = isHi ? `${daysUntil} दिनों में` : `In ${daysUntil} days`;

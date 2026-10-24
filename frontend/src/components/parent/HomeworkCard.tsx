@@ -50,10 +50,14 @@ export function HomeworkCard({ card, locale = "en" }: HomeworkCardProps) {
     chipColor = "bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800";
   }
 
-  const dueDateFormatted = new Date(dueDate).toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-  });
+  const MONTH_NAMES = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+  const dueDateObj = new Date(dueDate);
+  const dueDateFormatted = isNaN(dueDateObj.getTime())
+    ? ""
+    : `${dueDateObj.getDate()} ${MONTH_NAMES[dueDateObj.getMonth()]}`;
 
   return (
     <div
@@ -87,7 +91,7 @@ export function HomeworkCard({ card, locale = "en" }: HomeworkCardProps) {
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
               <Calendar className="w-3 h-3 text-slate-400" />
-              <span>
+              <span suppressHydrationWarning>
                 {subjectName} &bull; {isHi ? `देय तिथि: ${dueDateFormatted}` : `Due: ${dueDateFormatted}`}
               </span>
             </p>
