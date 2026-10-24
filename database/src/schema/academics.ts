@@ -179,6 +179,53 @@ export const sections = pgTable(
   }),
 );
 
+// ─── class_teacher_assignments ────────────────────────────────────────────────
+// Authoritative 1-to-1 Homeroom Class Teacher assignments per academic year (S16)
+// Enforces:
+// 1. A teacher is Class Teacher for at most ONE section per academic year.
+// 2. A section has at most ONE active Class Teacher per academic year.
+// Transactionally mirrors into sections.classTeacherId for backward compatibility.
+
+export const classTeacherAssignments = pgTable(
+  "class_teacher_assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    academicYearId: uuid("academic_year_id")
+      .notNull()
+      .references(() => academicYears.id, { onDelete: "restrict" }),
+    sectionId: uuid("section_id")
+      .notNull()
+      .references(() => sections.id, { onDelete: "restrict" }),
+    teacherId: uuid("teacher_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    isActive: boolean("is_active").notNull().default(true),
+    effectiveFrom: text("effective_from").notNull(), // "YYYY-MM-DD"
+    effectiveTo: text("effective_to"), // null = currently active
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    singleTeacherPerYearIdx: uniqueIndex("cta_single_teacher_year_idx")
+      .on(t.schoolId, t.academicYearId, t.teacherId)
+      .where(sql`${t.isActive} = true`),
+    singleSectionPerYearIdx: uniqueIndex("cta_single_section_year_idx")
+      .on(t.schoolId, t.academicYearId, t.sectionId)
+      .where(sql`${t.isActive} = true`),
+    schoolTeacherIdx: index("cta_school_teacher_idx").on(t.schoolId, t.teacherId),
+    schoolSectionIdx: index("cta_school_section_idx").on(t.schoolId, t.sectionId),
+    schoolYearIdx: index("cta_school_year_idx").on(t.schoolId, t.academicYearId),
+  }),
+);
+
 // ─── subjects ─────────────────────────────────────────────────────────────────
 
 export const subjects = pgTable(
@@ -523,6 +570,8 @@ export const sectionSubjectTeachers = pgTable(
     schoolId: uuid("school_id")
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
+    academicYearId: uuid("academic_year_id")
+      .references(() => academicYears.id, { onDelete: "restrict" }),
     classSubjectId: uuid("class_subject_id")
       .notNull()
       .references(() => classSubjects.id, { onDelete: "restrict" }),
@@ -532,6 +581,8 @@ export const sectionSubjectTeachers = pgTable(
     teacherId: uuid("teacher_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    periodsPerWeek: integer("periods_per_week").notNull().default(5),
+    isPrimary: boolean("is_primary").notNull().default(true),
     effectiveFrom: text("effective_from").notNull(), // "YYYY-MM-DD"
     effectiveTo: text("effective_to"), // null = currently active
     isActive: boolean("is_active").notNull().default(true),
@@ -546,10 +597,62 @@ export const sectionSubjectTeachers = pgTable(
     activeSectionSubjectTeacherUnique: uniqueIndex("sst_active_unique_idx")
       .on(t.classSubjectId, t.sectionId)
       .where(sql`"effective_to" IS NULL`),
+    activePrimaryUniqueIdx: uniqueIndex("sst_active_primary_unique_idx")
+      .on(t.schoolId, t.academicYearId, t.sectionId, t.classSubjectId)
+      .where(sql`${t.isActive} = true AND ${t.isPrimary} = true`),
     classSubjectIdx: index("sst_class_subject_idx").on(t.classSubjectId),
     sectionIdx: index("sst_section_idx").on(t.sectionId),
     teacherIdx: index("sst_teacher_idx").on(t.teacherId),
     schoolIdx: index("sst_school_idx").on(t.schoolId),
+  }),
+);
+
+// ─── homeroom_report_remarks ──────────────────────────────────────────────────
+// Class Teacher holistic report card sign-offs and remarks (S16)
+
+export const homeroomReportRemarks = pgTable(
+  "homeroom_report_remarks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+    academicYearId: uuid("academic_year_id")
+      .notNull()
+      .references(() => academicYears.id, { onDelete: "restrict" }),
+    academicTermId: uuid("academic_term_id")
+      .notNull()
+      .references(() => academicTerms.id, { onDelete: "restrict" }),
+    remarks: text("remarks").notNull(),
+    conductGrade: text("conduct_grade"),
+    signedOffById: uuid("signed_off_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    signedOffAt: timestamp("signed_off_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    studentTermUnique: unique("uq_homeroom_report_remarks_student_term").on(
+      t.schoolId,
+      t.studentId,
+      t.academicTermId,
+    ),
+    studentTermIdx: index("hrr_student_term_idx").on(
+      t.schoolId,
+      t.studentId,
+      t.academicTermId,
+    ),
+    signedOffIdx: index("hrr_signed_off_idx").on(t.schoolId, t.signedOffById),
   }),
 );
 
@@ -1008,12 +1111,38 @@ export const timetableSubstitutionsRelations = relations(
   }),
 );
 
+export const classTeacherAssignmentsRelations = relations(
+  classTeacherAssignments,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [classTeacherAssignments.schoolId],
+      references: [schools.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [classTeacherAssignments.academicYearId],
+      references: [academicYears.id],
+    }),
+    section: one(sections, {
+      fields: [classTeacherAssignments.sectionId],
+      references: [sections.id],
+    }),
+    teacher: one(users, {
+      fields: [classTeacherAssignments.teacherId],
+      references: [users.id],
+    }),
+  }),
+);
+
 export const sectionSubjectTeachersRelations = relations(
   sectionSubjectTeachers,
   ({ one }) => ({
     school: one(schools, {
       fields: [sectionSubjectTeachers.schoolId],
       references: [schools.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [sectionSubjectTeachers.academicYearId],
+      references: [academicYears.id],
     }),
     classSubject: one(classSubjects, {
       fields: [sectionSubjectTeachers.classSubjectId],
@@ -1025,6 +1154,32 @@ export const sectionSubjectTeachersRelations = relations(
     }),
     teacher: one(users, {
       fields: [sectionSubjectTeachers.teacherId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const homeroomReportRemarksRelations = relations(
+  homeroomReportRemarks,
+  ({ one }) => ({
+    school: one(schools, {
+      fields: [homeroomReportRemarks.schoolId],
+      references: [schools.id],
+    }),
+    student: one(students, {
+      fields: [homeroomReportRemarks.studentId],
+      references: [students.id],
+    }),
+    academicYear: one(academicYears, {
+      fields: [homeroomReportRemarks.academicYearId],
+      references: [academicYears.id],
+    }),
+    academicTerm: one(academicTerms, {
+      fields: [homeroomReportRemarks.academicTermId],
+      references: [academicTerms.id],
+    }),
+    signedOffBy: one(users, {
+      fields: [homeroomReportRemarks.signedOffById],
       references: [users.id],
     }),
   }),

@@ -4770,5 +4770,135 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
       "advances"
     ],
     "relationships": []
+  },
+  "class_teacher_assignments": {
+    "tableName": "class_teacher_assignments",
+    "drizzleExport": "classTeacherAssignments",
+    "domain": "ACADEMICS",
+    "displayName": "Class Teacher Assignments",
+    "description": "Administrative class teacher allocations with academic year scoping, effective dating, and strict 1-to-1 invariants.",
+    "primaryKey": [
+      "id"
+    ],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": [
+      "notes"
+    ],
+    "tags": [
+      "academics",
+      "class_teacher",
+      "homeroom",
+      "allocations"
+    ],
+    "relationships": [
+      {
+        "sourceTable": "class_teacher_assignments",
+        "targetTable": "schools",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "school_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Assignment belongs to school tenant."
+      },
+      {
+        "sourceTable": "class_teacher_assignments",
+        "targetTable": "academic_years",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "academic_year_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Assignment is scoped to an academic year."
+      },
+      {
+        "sourceTable": "class_teacher_assignments",
+        "targetTable": "sections",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "section_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Assignment designates class teacher for a section."
+      },
+      {
+        "sourceTable": "class_teacher_assignments",
+        "targetTable": "users",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "teacher_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Assignment designates teacher user account."
+      }
+    ]
+  },
+  "homeroom_report_remarks": {
+    "tableName": "homeroom_report_remarks",
+    "drizzleExport": "homeroomReportRemarks",
+    "domain": "ACADEMICS",
+    "displayName": "Homeroom Report Remarks",
+    "description": "Class teacher holistic report card remarks, conduct evaluations, and sign-offs for homeroom students.",
+    "primaryKey": [
+      "id"
+    ],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": [
+      "remarks"
+    ],
+    "tags": [
+      "academics",
+      "homeroom",
+      "report_cards",
+      "remarks",
+      "conduct"
+    ],
+    "relationships": [
+      {
+        "sourceTable": "homeroom_report_remarks",
+        "targetTable": "schools",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "school_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Remarks belong to school tenant."
+      },
+      {
+        "sourceTable": "homeroom_report_remarks",
+        "targetTable": "students",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "student_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Remarks apply to student."
+      },
+      {
+        "sourceTable": "homeroom_report_remarks",
+        "targetTable": "academic_years",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "academic_year_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Remarks are scoped to academic year."
+      },
+      {
+        "sourceTable": "homeroom_report_remarks",
+        "targetTable": "academic_terms",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "academic_term_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Remarks apply to academic term."
+      },
+      {
+        "sourceTable": "homeroom_report_remarks",
+        "targetTable": "users",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "signed_off_by_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Remarks signed off by class teacher."
+      }
+    ]
   }
 };
