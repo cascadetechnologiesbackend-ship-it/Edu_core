@@ -6,6 +6,7 @@ import {
   sections,
   subjects,
   classSubjects,
+  sectionSubjectTeachers,
   assignments,
   assignmentSubmissions,
   lessonPlans,
@@ -13,7 +14,7 @@ import {
   users,
   syllabusTopics,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/auditLogger";
 import { headers } from "next/headers";
@@ -224,12 +225,14 @@ export async function saveSection(data: {
 
 export async function getSubjects() {
   const session = await checkAuth();
-  return await db.query.subjects.findMany({
-    where: and(
-      eq(subjects.schoolId, session.user.schoolId!),
-      eq(subjects.isActive, true),
-    ),
-    orderBy: [subjects.name],
+  return await withTenant(session.user.schoolId!, async (tx) => {
+    return tx.query.subjects.findMany({
+      where: and(
+        eq(subjects.schoolId, session.user.schoolId!),
+        eq(subjects.isActive, true),
+      ),
+      orderBy: [subjects.name],
+    });
   });
 }
 
@@ -244,6 +247,7 @@ export async function saveSubject(data: {
   passingMarks?: number;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const schoolId = session.user.schoolId!;
   const resolvedType = (data.subjectType || data.type || "THEORY") as
     | "THEORY"
     | "PRACTICAL"
@@ -254,36 +258,39 @@ export async function saveSubject(data: {
   const codeSanitized = data.code.trim().toUpperCase();
   const nameSanitized = data.name.trim();
 
-  if (data.id) {
-    await db
-      .update(subjects)
-      .set({
+  await withTenant(schoolId, async (tx) => {
+    if (data.id) {
+      await tx
+        .update(subjects)
+        .set({
+          name: nameSanitized,
+          code: codeSanitized,
+          nameHindi: data.nameHindi?.trim() || null,
+          subjectType: resolvedType,
+          maxMarks: Number(data.maxMarks) || 100,
+          passingMarks: Number(data.passingMarks) || 33,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(subjects.id, data.id),
+            eq(subjects.schoolId, schoolId),
+          ),
+        );
+    } else {
+      await tx.insert(subjects).values({
+        schoolId,
         name: nameSanitized,
         code: codeSanitized,
         nameHindi: data.nameHindi?.trim() || null,
         subjectType: resolvedType,
         maxMarks: Number(data.maxMarks) || 100,
         passingMarks: Number(data.passingMarks) || 33,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(subjects.id, data.id),
-          eq(subjects.schoolId, session.user.schoolId!),
-        ),
-      );
-  } else {
-    await db.insert(subjects).values({
-      schoolId: session.user.schoolId!,
-      name: nameSanitized,
-      code: codeSanitized,
-      nameHindi: data.nameHindi?.trim() || null,
-      subjectType: resolvedType,
-      maxMarks: Number(data.maxMarks) || 100,
-      passingMarks: Number(data.passingMarks) || 33,
-      isActive: true,
-    });
-  }
+        isActive: true,
+      });
+    }
+  });
+
   try {
     revalidatePath("/academics");
   } catch {}
@@ -294,15 +301,17 @@ export async function saveSubject(data: {
 
 export async function getClassSubjects(classId: string) {
   const session = await checkAuth();
-  return await db.query.classSubjects.findMany({
-    where: and(
-      eq(classSubjects.classId, classId),
-      eq(classSubjects.schoolId, session.user.schoolId!),
-    ),
-    with: {
-      subject: true,
-      teacher: true,
-    },
+  return await withTenant(session.user.schoolId!, async (tx) => {
+    return tx.query.classSubjects.findMany({
+      where: and(
+        eq(classSubjects.classId, classId),
+        eq(classSubjects.schoolId, session.user.schoolId!),
+      ),
+      with: {
+        subject: true,
+        teacher: true,
+      },
+    });
   });
 }
 
@@ -315,56 +324,106 @@ export async function saveClassSubject(data: {
   isElective?: boolean;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
-  const [cls, subj] = await Promise.all([
-    db.query.classes.findFirst({
-      where: and(
-        eq(classes.id, data.classId),
-        eq(classes.schoolId, session.user.schoolId!),
-      ),
-    }),
-    db.query.subjects.findFirst({
-      where: and(
-        eq(subjects.id, data.subjectId),
-        eq(subjects.schoolId, session.user.schoolId!),
-      ),
-    }),
-  ]);
-  if (!cls) throw new Error("Invalid class specified");
-  if (!subj) throw new Error("Invalid subject specified");
+  const schoolId = session.user.schoolId!;
 
-  const assignedTeacherIdVal = data.assignedTeacherId || null;
-  const periodsPerWeekVal = data.periodsPerWeek ?? 5;
-  const isElectiveVal = data.isElective ?? false;
-
-  if (data.id) {
-    await db
-      .update(classSubjects)
-      .set({
-        ...(assignedTeacherIdVal !== undefined
-          ? { assignedTeacherId: assignedTeacherIdVal }
-          : {}),
-        periodsPerWeek: periodsPerWeekVal,
-        isElective: isElectiveVal,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(classSubjects.id, data.id),
-          eq(classSubjects.schoolId, session.user.schoolId!),
+  await withTenant(schoolId, async (tx) => {
+    const [cls, subj] = await Promise.all([
+      tx.query.classes.findFirst({
+        where: and(
+          eq(classes.id, data.classId),
+          eq(classes.schoolId, schoolId),
         ),
-      );
-  } else {
-    await db.insert(classSubjects).values({
-      schoolId: session.user.schoolId!,
-      classId: data.classId,
-      subjectId: data.subjectId,
-      ...(assignedTeacherIdVal
-        ? { assignedTeacherId: assignedTeacherIdVal }
-        : {}),
-      periodsPerWeek: periodsPerWeekVal,
-      isElective: isElectiveVal,
-    });
-  }
+      }),
+      tx.query.subjects.findFirst({
+        where: and(
+          eq(subjects.id, data.subjectId),
+          eq(subjects.schoolId, schoolId),
+        ),
+      }),
+    ]);
+    if (!cls) throw new Error("Invalid class specified");
+    if (!subj) throw new Error("Invalid subject specified");
+
+    const assignedTeacherIdVal = data.assignedTeacherId || null;
+    const periodsPerWeekVal = data.periodsPerWeek ?? 5;
+    const isElectiveVal = data.isElective ?? false;
+
+    let targetClassSubjectId = data.id;
+
+    if (data.id) {
+      await tx
+        .update(classSubjects)
+        .set({
+          ...(assignedTeacherIdVal !== undefined
+            ? { assignedTeacherId: assignedTeacherIdVal }
+            : {}),
+          periodsPerWeek: periodsPerWeekVal,
+          isElective: isElectiveVal,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(classSubjects.id, data.id),
+            eq(classSubjects.schoolId, schoolId),
+          ),
+        );
+    } else {
+      const [inserted] = await tx
+        .insert(classSubjects)
+        .values({
+          schoolId,
+          classId: data.classId,
+          subjectId: data.subjectId,
+          ...(assignedTeacherIdVal
+            ? { assignedTeacherId: assignedTeacherIdVal }
+            : {}),
+          periodsPerWeek: periodsPerWeekVal,
+          isElective: isElectiveVal,
+        })
+        .returning({ id: classSubjects.id });
+      targetClassSubjectId = inserted?.id;
+    }
+
+    // When updating lead teacher, populate primary teacher for sections that do not have an explicit override
+    if (targetClassSubjectId && assignedTeacherIdVal) {
+      const classSections = await tx.query.sections.findMany({
+        where: and(
+          eq(sections.classId, data.classId),
+          eq(sections.schoolId, schoolId),
+          eq(sections.isActive, true),
+        ),
+      });
+
+      const activeYear = await getActiveAcademicYear(schoolId);
+      const effectiveFromDate = new Date().toISOString().split("T")[0]!;
+
+      for (const sec of classSections) {
+        const existingAlloc = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.classSubjectId, targetClassSubjectId),
+            eq(sectionSubjectTeachers.sectionId, sec.id),
+            isNull(sectionSubjectTeachers.effectiveTo),
+          ),
+        });
+
+        if (!existingAlloc) {
+          await tx.insert(sectionSubjectTeachers).values({
+            schoolId,
+            academicYearId: activeYear.id,
+            classSubjectId: targetClassSubjectId,
+            sectionId: sec.id,
+            teacherId: assignedTeacherIdVal,
+            isPrimary: true,
+            periodsPerWeek: periodsPerWeekVal,
+            effectiveFrom: effectiveFromDate,
+            effectiveTo: null,
+            isActive: true,
+          });
+        }
+      }
+    }
+  });
+
   try {
     clearTeacherScopeCache();
     revalidatePath("/academics");

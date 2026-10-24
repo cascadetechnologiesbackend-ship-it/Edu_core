@@ -64,12 +64,21 @@ export const getActiveAcademicYear = cache(async function getActiveAcademicYearI
     return cached.data;
   }
 
-  const activeYears = await db.query.academicYears.findMany({
-    where: and(
-      eq(academicYears.schoolId, schoolId),
-      eq(academicYears.isActive, true),
-    ),
-  });
+  const activeYears = typeof (db.query.academicYears as any)?.findMany === "function"
+    ? await db.query.academicYears.findMany({
+        where: and(
+          eq(academicYears.schoolId, schoolId),
+          eq(academicYears.isActive, true),
+        ),
+      })
+    : [
+        await db.query.academicYears.findFirst({
+          where: and(
+            eq(academicYears.schoolId, schoolId),
+            eq(academicYears.isActive, true),
+          ),
+        }),
+      ].filter(Boolean);
 
   if (activeYears.length === 0) {
     // If no active year found, try finding the latest academic year for this school as fallback
