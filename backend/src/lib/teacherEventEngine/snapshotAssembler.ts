@@ -81,11 +81,9 @@ export async function assembleTeacherSnapshot(
     }
   }
 
-  // 2. Attendance Sections Summary (for class teacher sections + teaching sections)
+  // 2. Attendance Sections Summary (strictly for class teacher / homeroom sections - S16 Condition B)
   const attendanceSections: AttendanceSectionSummary[] = [];
-  const primarySectionIds = scope.classTeacherSections.length > 0
-    ? scope.classTeacherSections
-    : scope.allSectionIds;
+  const primarySectionIds = scope.classTeacherSections;
 
   if (primarySectionIds.length > 0) {
     const sectionRows = await txDb.query.sections.findMany({
