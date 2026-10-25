@@ -6,10 +6,14 @@ import {
   sections,
   classes,
   users,
+  classSubjects,
+  sectionSubjectTeachers,
+  academicYears,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { checkAuth, getActiveAcademicYear } from "./auth-helper";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
+import { invalidateTeachingStaffCache } from "@/app/(admin)/hr/teachingStaff";
 import { revalidatePath } from "next/cache";
 
 export interface UpsertClassTeacherParams {
@@ -128,6 +132,7 @@ export async function upsertClassTeacherAssignment(
   }
 
   // 3. Transactional update
+  let priorActiveTeacherId: string | null = null;
   const result = await withTenant(schoolId, async (tx) => {
     // If transferring from another section, deactivate prior assignment and clear previous section's mirror
     if (params.teacherId && params.forceTransfer) {
@@ -179,6 +184,9 @@ export async function upsertClassTeacherAssignment(
         eq(classTeacherAssignments.isActive, true),
       ),
     });
+    if (currentActive?.teacherId) {
+      priorActiveTeacherId = currentActive.teacherId;
+    }
 
     if (currentActive) {
       if (!params.teacherId) {
@@ -301,6 +309,13 @@ export async function upsertClassTeacherAssignment(
   });
 
   try {
+    await invalidateTeachingStaffCache(schoolId);
+    if (priorActiveTeacherId && priorActiveTeacherId !== params.teacherId) {
+      clearTeacherScopeCache(priorActiveTeacherId);
+    }
+    if (params.teacherId) {
+      clearTeacherScopeCache(params.teacherId);
+    }
     clearTeacherScopeCache();
     revalidatePath("/academics");
     revalidatePath("/academics/classrooms");
@@ -311,3 +326,147 @@ export async function upsertClassTeacherAssignment(
 
   return result;
 }
+
+export interface SetClassSubjectLeadParams {
+  schoolId: string;
+  classSubjectId: string;
+  teacherId: string | null;
+  periodsPerWeek?: number;
+  isElective?: boolean;
+}
+
+export interface SetClassSubjectLeadResult {
+  success: boolean;
+  oldTeacherId?: string | null;
+  newTeacherId?: string | null;
+  classId?: string;
+  error?: string;
+}
+
+/**
+ * Consolidated single source of truth for Subject Lead assignments (S18).
+ * Enforces:
+ * 1. Transactional update of `classSubjects.assignedTeacherId`.
+ * 2. Auto-seeds `sectionSubjectTeachers` for un-overridden active sections.
+ * 3. Bidirectional displacement-aware cache clearing (both old and new teachers).
+ * 4. Invalidates dropdown teaching staff cache.
+ */
+export async function setClassSubjectLead(
+  params: SetClassSubjectLeadParams,
+  outerTx?: any,
+): Promise<SetClassSubjectLeadResult> {
+  const { schoolId, classSubjectId, teacherId } = params;
+  const effectiveFromDate = new Date().toISOString().split("T")[0]!;
+
+  const runLogic = async (tx: any) => {
+    // 1. Fetch current classSubject record to verify existence and capture oldTeacherId
+    const cs = await tx.query.classSubjects.findFirst({
+      where: and(
+        eq(classSubjects.id, classSubjectId),
+        eq(classSubjects.schoolId, schoolId),
+      ),
+      with: { subject: true },
+    });
+
+    if (!cs) {
+      return { success: false, error: "Class-subject not found or access denied." };
+    }
+
+    const oldTeacherId = cs.assignedTeacherId || null;
+
+    // 2. Fetch active academic year
+    const activeYearRow = await tx.query.academicYears.findFirst({
+      where: and(
+        eq(academicYears.isActive, true),
+        eq(academicYears.schoolId, schoolId),
+      ),
+    });
+
+    if (!activeYearRow) {
+      return { success: false, error: "No active academic year found." };
+    }
+
+    // 3. Update class-level lead (assignedTeacherId)
+    await tx
+      .update(classSubjects)
+      .set({
+        assignedTeacherId: teacherId,
+        ...(params.periodsPerWeek !== undefined ? { periodsPerWeek: params.periodsPerWeek } : {}),
+        ...(params.isElective !== undefined ? { isElective: params.isElective } : {}),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(classSubjects.id, classSubjectId),
+          eq(classSubjects.schoolId, schoolId),
+        ),
+      );
+
+    // 4. If assigning a teacher, auto-seed sectionSubjectTeachers for active sections without an override
+    if (teacherId) {
+      const classSections = await tx.query.sections.findMany({
+        where: and(
+          eq(sections.classId, cs.classId),
+          eq(sections.schoolId, schoolId),
+          eq(sections.isActive, true),
+        ),
+      });
+
+      for (const sec of classSections) {
+        const existing = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
+            eq(sectionSubjectTeachers.sectionId, sec.id),
+            eq(sectionSubjectTeachers.isActive, true),
+            isNull(sectionSubjectTeachers.effectiveTo),
+          ),
+        });
+
+        if (!existing) {
+          await tx.insert(sectionSubjectTeachers).values({
+            schoolId,
+            academicYearId: activeYearRow.id,
+            classSubjectId,
+            sectionId: sec.id,
+            teacherId,
+            isPrimary: true,
+            periodsPerWeek: params.periodsPerWeek ?? cs.periodsPerWeek ?? 5,
+            effectiveFrom: effectiveFromDate,
+            effectiveTo: null,
+            isActive: true,
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      oldTeacherId,
+      newTeacherId: teacherId,
+      classId: cs.classId,
+    };
+  };
+
+  const res = outerTx
+    ? await runLogic(outerTx)
+    : await withTenant(schoolId, runLogic);
+
+  if (!res.success) {
+    return res;
+  }
+
+  // Displacement-Aware Cache Invalidation (L3)
+  try {
+    await invalidateTeachingStaffCache(schoolId);
+    if (res.oldTeacherId && res.oldTeacherId !== teacherId) {
+      clearTeacherScopeCache(res.oldTeacherId);
+    }
+    if (teacherId) {
+      clearTeacherScopeCache(teacherId);
+    }
+    clearTeacherScopeCache(); // broad flush
+  } catch {}
+
+  return res;
+}
+

@@ -27,10 +27,12 @@ import {
 import {
   upsertClassTeacherAssignment,
   checkClassTeacherAssignmentConflict,
+  setClassSubjectLead,
 } from "./actions/teacher-assignment.actions";
 export {
   upsertClassTeacherAssignment,
   checkClassTeacherAssignmentConflict,
+  setClassSubjectLead,
 };
 import { getCanonicalTeachingStaff } from "../hr/teachingStaff";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
@@ -351,22 +353,16 @@ export async function saveClassSubject(data: {
     let targetClassSubjectId = data.id;
 
     if (data.id) {
-      await tx
-        .update(classSubjects)
-        .set({
-          ...(assignedTeacherIdVal !== undefined
-            ? { assignedTeacherId: assignedTeacherIdVal }
-            : {}),
+      await setClassSubjectLead(
+        {
+          schoolId,
+          classSubjectId: data.id,
+          teacherId: assignedTeacherIdVal,
           periodsPerWeek: periodsPerWeekVal,
           isElective: isElectiveVal,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(classSubjects.id, data.id),
-            eq(classSubjects.schoolId, schoolId),
-          ),
-        );
+        },
+        tx,
+      );
     } else {
       const [inserted] = await tx
         .insert(classSubjects)
@@ -374,52 +370,24 @@ export async function saveClassSubject(data: {
           schoolId,
           classId: data.classId,
           subjectId: data.subjectId,
-          ...(assignedTeacherIdVal
-            ? { assignedTeacherId: assignedTeacherIdVal }
-            : {}),
+          assignedTeacherId: null,
           periodsPerWeek: periodsPerWeekVal,
           isElective: isElectiveVal,
         })
         .returning({ id: classSubjects.id });
       targetClassSubjectId = inserted?.id;
-    }
 
-    // When updating lead teacher, populate primary teacher for sections that do not have an explicit override
-    if (targetClassSubjectId && assignedTeacherIdVal) {
-      const classSections = await tx.query.sections.findMany({
-        where: and(
-          eq(sections.classId, data.classId),
-          eq(sections.schoolId, schoolId),
-          eq(sections.isActive, true),
-        ),
-      });
-
-      const activeYear = await getActiveAcademicYear(schoolId);
-      const effectiveFromDate = new Date().toISOString().split("T")[0]!;
-
-      for (const sec of classSections) {
-        const existingAlloc = await tx.query.sectionSubjectTeachers.findFirst({
-          where: and(
-            eq(sectionSubjectTeachers.classSubjectId, targetClassSubjectId),
-            eq(sectionSubjectTeachers.sectionId, sec.id),
-            isNull(sectionSubjectTeachers.effectiveTo),
-          ),
-        });
-
-        if (!existingAlloc) {
-          await tx.insert(sectionSubjectTeachers).values({
+      if (targetClassSubjectId && assignedTeacherIdVal) {
+        await setClassSubjectLead(
+          {
             schoolId,
-            academicYearId: activeYear.id,
             classSubjectId: targetClassSubjectId,
-            sectionId: sec.id,
             teacherId: assignedTeacherIdVal,
-            isPrimary: true,
             periodsPerWeek: periodsPerWeekVal,
-            effectiveFrom: effectiveFromDate,
-            effectiveTo: null,
-            isActive: true,
-          });
-        }
+            isElective: isElectiveVal,
+          },
+          tx,
+        );
       }
     }
   });
