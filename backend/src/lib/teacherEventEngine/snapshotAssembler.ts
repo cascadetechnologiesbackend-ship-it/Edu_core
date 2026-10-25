@@ -17,6 +17,7 @@ import {
   parentTeacherMessages,
   notices,
   academicCalendarEvents,
+  subjects,
 } from "@/db/schema";
 import { eq, and, or, inArray, isNull, gte, lte, desc, asc } from "drizzle-orm";
 import { resolveTeacherScope } from "./scopeResolver";
@@ -66,19 +67,31 @@ export async function assembleTeacherSnapshot(
   // 1. Resolve Teacher Scope (classTeacherSections, teachingSections, scheduledPeriods, allSectionIds)
   const scope = await resolveTeacherScope(teacherUserId, { tx: txDb, schoolId });
 
-  // Check if today is a working day (exclude Sunday 0, or calendar holidays)
+  // Check if today is a working day (exclude Sunday 0, or calendar holidays spanning today)
   let isWorkingDay = dayOfWeekNumber !== 0; // Sunday is not a working day
-  if (isWorkingDay) {
-    const calendarEvent = await txDb.query.academicCalendarEvents.findFirst({
-      where: and(
-        eq(academicCalendarEvents.schoolId, schoolId),
-        eq(academicCalendarEvents.startDate, todayStr),
-        eq(academicCalendarEvents.isWorkingDay, false)
-      ),
-    });
-    if (calendarEvent) {
-      isWorkingDay = false;
-    }
+  let isRestDay = !isWorkingDay;
+  let calendarEventTitle: string | undefined = dayOfWeekNumber === 0 ? "Sunday" : undefined;
+
+  const calendarEvents = await txDb.query.academicCalendarEvents.findMany({
+    where: and(
+      eq(academicCalendarEvents.schoolId, schoolId),
+      eq(academicCalendarEvents.isActive, true),
+      lte(academicCalendarEvents.startDate, todayStr),
+      gte(academicCalendarEvents.endDate, todayStr)
+    ),
+  });
+
+  const holidayEvent = calendarEvents.find((e: any) => !e.isWorkingDay);
+  const workingCompEvent = calendarEvents.find((e: any) => e.isWorkingDay);
+
+  if (holidayEvent) {
+    isWorkingDay = false;
+    isRestDay = true;
+    calendarEventTitle = holidayEvent.title;
+  } else if (workingCompEvent) {
+    isWorkingDay = true;
+    isRestDay = false;
+    calendarEventTitle = workingCompEvent.title;
   }
 
   // 2. Attendance Sections Summary (strictly for class teacher / homeroom sections - S16 Condition B)
@@ -484,7 +497,7 @@ export async function assembleTeacherSnapshot(
     });
   }
 
-  return {
+  const baseResult = {
     teacherUserId,
     isWorkingDay,
     attendanceCutoffTime: "10:00",
@@ -499,5 +512,52 @@ export async function assembleTeacherSnapshot(
     ptmBookingsToday,
     unreadMessages,
     notices: noticesList,
+  };
+
+  const hasAllocations =
+    scope.teachingSections.length > 0 || scope.classTeacherSections.length > 0;
+  const isSetupMissing =
+    isWorkingDay && hasAllocations && (!timetableToday || timetableToday.length === 0);
+  const missingAllocationsSummary: string[] = [];
+
+  if (isSetupMissing) {
+    const subjectIds = Array.from(new Set(scope.teachingSections.map((ts) => ts.subjectId)));
+    const secRows =
+      scope.allSectionIds.length > 0
+        ? await txDb.query.sections.findMany({
+            where: and(eq(sections.schoolId, schoolId), inArray(sections.id, scope.allSectionIds)),
+            with: { class: true },
+          })
+        : [];
+    const subRows =
+      subjectIds.length > 0
+        ? await txDb.query.subjects.findMany({
+            where: and(eq(subjects.schoolId, schoolId), inArray(subjects.id, subjectIds)),
+          })
+        : [];
+    const secMap = new Map(
+      secRows.map((s: any) => [s.id, `${s.class?.displayName || "Class"}-${s.name}`])
+    );
+    const subMap = new Map(subRows.map((s: any) => [s.id, s.name]));
+
+    for (const ts of scope.teachingSections) {
+      const sName = secMap.get(ts.sectionId) || "Section";
+      const subName = subMap.get(ts.subjectId) || "Subject";
+      missingAllocationsSummary.push(`${sName} ${subName}`);
+    }
+    if (scope.classTeacherSections.length > 0 && missingAllocationsSummary.length === 0) {
+      for (const csId of scope.classTeacherSections) {
+        const sName = secMap.get(csId) || "Homeroom Section";
+        missingAllocationsSummary.push(`${sName} (Homeroom)`);
+      }
+    }
+  }
+
+  return {
+    ...baseResult,
+    isRestDay,
+    calendarEventTitle,
+    isSetupMissing,
+    missingAllocationsSummary,
   };
 }

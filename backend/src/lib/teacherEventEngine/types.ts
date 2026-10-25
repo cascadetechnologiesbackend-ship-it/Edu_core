@@ -224,4 +224,8 @@ export interface TeacherDataSnapshot {
   notices?: TeacherNoticeItem[];
   upcomingHomeworkDue?: TeacherHomeworkDueItem[];
   pendingClassworkPeriods?: TeacherPendingClassworkPeriod[];
+  isRestDay?: boolean | undefined;
+  calendarEventTitle?: string | undefined;
+  isSetupMissing?: boolean | undefined;
+  missingAllocationsSummary?: string[] | undefined;
 }

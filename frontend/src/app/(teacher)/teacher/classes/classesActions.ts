@@ -26,6 +26,7 @@ import {
   academicYears,
   academicTerms,
   homeroomReportRemarks,
+  academicCalendarEvents,
 } from "@/db/schema";
 import { eq, and, sql, inArray, isNull, gte, lte, desc } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -141,7 +142,20 @@ export interface Student360Data {
   } | undefined;
 }
 
-function getDayOfWeekEnum(date: Date): "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" {
+export interface TeacherMyDayTimelineResult {
+  date: string;
+  dayOfWeek: string;
+  dayType: "INSTRUCTIONAL" | "REST_DAY" | "SETUP_MISSING";
+  holidayTitle?: string | undefined;
+  isWorkingDay: boolean;
+  isRestDay: boolean;
+  isSetupMissing: boolean;
+  missingAllocationsSummary: string[];
+  timeline: MyDayPeriodItem[];
+  syllabusTopics?: Array<{ id: string; title: string; classSubjectId: string }> | undefined;
+}
+
+function getDayOfWeekEnum(date: Date): "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | null {
   const day = date.getDay();
   switch (day) {
     case 1:
@@ -157,18 +171,14 @@ function getDayOfWeekEnum(date: Date): "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THU
     case 6:
       return "SATURDAY";
     default:
-      return "MONDAY";
+      return null;
   }
 }
 
 /**
  * 1. Fetch My Day Timeline (bellSchedule + timetablePeriods + substitutions + lesson plans)
  */
-export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
-  date: string;
-  dayOfWeek: string;
-  timeline: MyDayPeriodItem[];
-}> {
+export async function getTeacherMyDayTimeline(dateStr?: string): Promise<TeacherMyDayTimelineResult> {
   const ctx = await requireAuth([
     "SUPER_ADMIN",
     "SCHOOL_ADMIN",
@@ -179,9 +189,44 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
 
   const targetDate = dateStr ? new Date(dateStr) : new Date();
   const calendarDay = targetDate.toISOString().slice(0, 10);
-  const dayOfWeek = getDayOfWeekEnum(targetDate);
+  const dayOfWeekEnumVal = getDayOfWeekEnum(targetDate);
+  const dayOfWeekName = targetDate.toLocaleDateString("en-US", { weekday: "long" });
 
   return await withTenant(school.id, async (tx: any) => {
+    // 0. Calendar Awareness & Rest Day / Holiday Check (S19-F03)
+    const isSunday = targetDate.getDay() === 0;
+    const calendarEvents = await tx.query.academicCalendarEvents.findMany({
+      where: and(
+        eq(academicCalendarEvents.schoolId, school.id),
+        eq(academicCalendarEvents.isActive, true),
+        lte(academicCalendarEvents.startDate, calendarDay),
+        gte(academicCalendarEvents.endDate, calendarDay)
+      ),
+    });
+
+    const nonWorkingEvent = calendarEvents.find((e: any) => !e.isWorkingDay);
+    const workingCompEvent = calendarEvents.find((e: any) => e.isWorkingDay);
+
+    const isRestDay = (isSunday && !workingCompEvent) || Boolean(nonWorkingEvent);
+    const holidayTitle = nonWorkingEvent?.title || (isSunday ? "Sunday" : undefined);
+
+    if (isRestDay) {
+      return {
+        date: calendarDay,
+        dayOfWeek: dayOfWeekName,
+        dayType: "REST_DAY",
+        holidayTitle,
+        isWorkingDay: false,
+        isRestDay: true,
+        isSetupMissing: false,
+        missingAllocationsSummary: [],
+        timeline: [],
+        syllabusTopics: [],
+      };
+    }
+
+    const dayOfWeek = dayOfWeekEnumVal || "MONDAY";
+
     // 1. Fetch School Bell Schedule
     const bells = await tx.query.bellSchedule.findMany({
       where: and(eq(bellSchedule.schoolId, school.id), eq(bellSchedule.isActive, true)),
@@ -203,6 +248,46 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
         subject: true,
       },
     });
+
+    // Check teacher allocations for setup-missing state (S19-F01)
+    const scope = await resolveTeacherScope(ctx.userId, { tx, schoolId: school.id });
+    const hasAllocations =
+      scope.teachingSections.length > 0 || scope.classTeacherSections.length > 0;
+    const isSetupMissing = hasAllocations && scheduled.length === 0;
+
+    let missingAllocationsSummary: string[] = [];
+    if (isSetupMissing) {
+      const subjectIds = Array.from(new Set(scope.teachingSections.map((ts) => ts.subjectId)));
+      const secRows =
+        scope.allSectionIds.length > 0
+          ? await tx.query.sections.findMany({
+              where: and(eq(sections.schoolId, school.id), inArray(sections.id, scope.allSectionIds)),
+              with: { class: true },
+            })
+          : [];
+      const subRows =
+        subjectIds.length > 0
+          ? await tx.query.subjects.findMany({
+              where: and(eq(subjects.schoolId, school.id), inArray(subjects.id, subjectIds)),
+            })
+          : [];
+      const secMap = new Map(
+        secRows.map((s: any) => [s.id, `${s.class?.displayName || "Class"}-${s.name}`])
+      );
+      const subMap = new Map(subRows.map((s: any) => [s.id, s.name]));
+
+      for (const ts of scope.teachingSections) {
+        const sName = secMap.get(ts.sectionId) || "Section";
+        const subName = subMap.get(ts.subjectId) || "Subject";
+        missingAllocationsSummary.push(`${sName} ${subName}`);
+      }
+      if (scope.classTeacherSections.length > 0 && missingAllocationsSummary.length === 0) {
+        for (const csId of scope.classTeacherSections) {
+          const sName = secMap.get(csId) || "Homeroom Section";
+          missingAllocationsSummary.push(`${sName} (Homeroom)`);
+        }
+      }
+    }
 
     const scheduledMap = new Map<number, any>(scheduled.map((p: any) => [p.periodNumber, p]));
 
@@ -396,7 +481,13 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<{
 
     return {
       date: calendarDay,
-      dayOfWeek,
+      dayOfWeek: dayOfWeekName,
+      dayType: isSetupMissing ? "SETUP_MISSING" : "INSTRUCTIONAL",
+      holidayTitle,
+      isWorkingDay: true,
+      isRestDay: false,
+      isSetupMissing,
+      missingAllocationsSummary,
       timeline,
       syllabusTopics: syllabusTopicsList,
     };

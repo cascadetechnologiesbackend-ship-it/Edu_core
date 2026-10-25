@@ -38,6 +38,10 @@ export default async function TeacherClassesPage({
   let dayOfWeek = "Today";
   let date = new Date().toISOString().slice(0, 10);
   let syllabusTopics: Array<{ id: string; title: string; classSubjectId: string }> = [];
+  let dayType: "INSTRUCTIONAL" | "REST_DAY" | "SETUP_MISSING" = "INSTRUCTIONAL";
+  let holidayTitle: string | undefined = undefined;
+  let isSetupMissing = false;
+  let missingAllocationsSummary: string[] = [];
 
   try {
     const timelineData = await getTeacherMyDayTimeline(resolvedParams.date);
@@ -45,6 +49,10 @@ export default async function TeacherClassesPage({
     dayOfWeek = timelineData.dayOfWeek;
     date = timelineData.date;
     syllabusTopics = (timelineData as any).syllabusTopics || [];
+    dayType = timelineData.dayType;
+    holidayTitle = timelineData.holidayTitle;
+    isSetupMissing = timelineData.isSetupMissing;
+    missingAllocationsSummary = timelineData.missingAllocationsSummary || [];
   } catch (err) {
     console.error("[TeacherClassesPage] Error fetching timeline:", err);
   }
@@ -112,6 +120,10 @@ export default async function TeacherClassesPage({
           initialSubstitutions={substitutions}
           syllabusTopics={syllabusTopics}
           workspaceScope={workspaceScope}
+          dayType={dayType}
+          holidayTitle={holidayTitle}
+          isSetupMissing={isSetupMissing}
+          missingAllocationsSummary={missingAllocationsSummary}
         />
       </Suspense>
     </div>

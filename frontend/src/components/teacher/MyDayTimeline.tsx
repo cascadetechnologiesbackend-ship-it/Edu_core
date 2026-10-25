@@ -12,6 +12,9 @@ import {
   X,
   FileText,
   BookmarkCheck,
+  AlertTriangle,
+  AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppModal } from "@/components/ui/AppModal";
@@ -33,6 +36,10 @@ interface MyDayTimelineProps {
   syllabusTopics?: SyllabusTopicRef[];
   onLessonCompleted?: (periodNumber: number) => void;
   locale?: string;
+  dayType?: "INSTRUCTIONAL" | "REST_DAY" | "SETUP_MISSING" | undefined;
+  holidayTitle?: string | undefined;
+  isSetupMissing?: boolean | undefined;
+  missingAllocationsSummary?: string[] | undefined;
 }
 
 export default function MyDayTimeline({
@@ -42,6 +49,10 @@ export default function MyDayTimeline({
   syllabusTopics = [],
   onLessonCompleted,
   locale = "en",
+  dayType = "INSTRUCTIONAL",
+  holidayTitle,
+  isSetupMissing = false,
+  missingAllocationsSummary = [],
 }: MyDayTimelineProps) {
   const isHi = locale === "hi";
   const [periods, setPeriods] = useState<MyDayPeriodItem[]>(timeline);
@@ -129,6 +140,142 @@ export default function MyDayTimeline({
       }
     });
   };
+
+  const handleCompleteLessonDirect = (period: MyDayPeriodItem) => {
+    startTransition(async () => {
+      try {
+        const res = await completeLessonPlanAction({
+          lessonPlanId: period.lessonPlan?.id,
+          classSubjectId: period.classSubjectId,
+          sectionId: period.sectionId,
+          title:
+            period.lessonPlan?.title ||
+            `${period.className || "Class"} ${period.subjectName || "Subject"} Lesson`,
+          chapterName: period.lessonPlan?.chapterName || "Unit 1",
+          syllabusTopicId: period.lessonPlan?.syllabusTopicId || undefined,
+          objectives: period.lessonPlan?.objectives || undefined,
+          homework: period.lessonPlan?.homework || undefined,
+        });
+
+        if (res.success) {
+          toast.success(
+            isHi
+              ? `पीरियड ${period.periodNumber}: पाठ पूरा हुआ!`
+              : `Period ${period.periodNumber} (${period.className}-${period.sectionName}): Lesson marked complete!`
+          );
+
+          setPeriods((prev) =>
+            prev.map((p) =>
+              p.periodNumber === period.periodNumber
+                ? {
+                    ...p,
+                    lessonPlan: {
+                      id: p.lessonPlan?.id || "temp-completed",
+                      title: p.lessonPlan?.title || "Lesson Plan",
+                      chapterName: p.lessonPlan?.chapterName || "Unit 1",
+                      status: "COMPLETED",
+                      objectives: p.lessonPlan?.objectives || null,
+                      homework: p.lessonPlan?.homework || null,
+                      syllabusTopicId: p.lessonPlan?.syllabusTopicId || null,
+                    },
+                  }
+                : p
+            )
+          );
+
+          if (onLessonCompleted) {
+            onLessonCompleted(period.periodNumber);
+          }
+        } else {
+          toast.error(res.message || "Failed to mark lesson complete.");
+        }
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to complete lesson.");
+      }
+    });
+  };
+
+  if (dayType === "REST_DAY") {
+    return (
+      <div
+        data-testid="timeline-rest-day-card"
+        className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-950 p-6 sm:p-8 text-center space-y-3 shadow-lg"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center mx-auto text-indigo-400">
+          <Coffee className="w-6 h-6" />
+        </div>
+        <div className="space-y-1">
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            {holidayTitle || (isHi ? "विश्राम दिवस" : "Rest Day")}
+          </span>
+          <h3 className="text-lg font-bold text-white pt-1">
+            {isHi ? "आज कोई कक्षाएं निर्धारित नहीं हैं" : "No Classes Scheduled Today"}
+          </h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            {isHi
+              ? "विद्यालय आज बंद है। अपने दिन का आनंद लें और कल की कक्षाओं के लिए तरोताजा रहें।"
+              : "School is closed for instructional activities. Rest up and recharge for the week ahead!"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (dayType === "SETUP_MISSING" || isSetupMissing) {
+    return (
+      <div
+        data-testid="timeline-setup-missing-card"
+        className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900 to-slate-950 p-6 space-y-4 shadow-lg"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center shrink-0 text-amber-400 mt-0.5">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+              {isHi ? "समय सारिणी लंबित" : "Timetable Setup Pending"}
+            </span>
+            <h3 className="text-base font-bold text-white">
+              {isHi ? "आपकी समय सारिणी अभी प्रकाशित नहीं हुई है" : "Your Timetable is Not Published"}
+            </h3>
+            <p className="text-xs text-slate-400">
+              {isHi
+                ? "आपके पास विषय आवंटन मौजूद हैं, लेकिन आज के लिए कोई पीरियड समय सारिणी में निर्धारित नहीं है।"
+                : "You hold subject and class allocations, but no timetable periods have been published for today."}
+            </p>
+          </div>
+        </div>
+
+        {missingAllocationsSummary && missingAllocationsSummary.length > 0 && (
+          <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-3 space-y-1.5">
+            <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">
+              {isHi ? "आवंटित कक्षाएं व विषय:" : "Your Allocated Class-Subjects:"}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {missingAllocationsSummary.map((alloc, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-0.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-200 border border-slate-700/60"
+                >
+                  {alloc}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-1 flex items-center gap-2">
+          <a
+            href="/teacher/messages"
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs inline-flex items-center gap-2 transition cursor-pointer shadow-md shadow-amber-950/30"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>{isHi ? "प्रशासक को सूचित करें" : "Notify School Admin"}</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (periods.length === 0) {
     return (
@@ -274,7 +421,7 @@ export default function MyDayTimeline({
                     )}
                   </div>
 
-                  {/* Right Actions: Mark Classwork Done (AC-15 / Click Budget: 2 taps via modal) */}
+                  {/* Right Actions: Complete Lesson (1 tap) & Mark Classwork Done (modal) */}
                   {!period.isFree && (
                     <div className="flex items-center gap-2 self-end sm:self-center">
                       {isLessonDone ? (
@@ -287,19 +434,31 @@ export default function MyDayTimeline({
                           {isHi ? "कक्षा कार्य पूर्ण" : "Lesson Complete"}
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCompleteModal(period)}
-                          disabled={isPending}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
-                            period.isNow
-                              ? "bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-emerald-900/40 shadow-md"
-                              : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-                          } disabled:opacity-50`}
-                        >
-                          <BookmarkCheck className="w-3.5 h-3.5" />
-                          {isHi ? "कक्षा कार्य दर्ज करें" : "Mark classwork done"}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleCompleteLessonDirect(period)}
+                            disabled={isPending}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                              period.isNow
+                                ? "bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-emerald-900/40 shadow-md"
+                                : "bg-emerald-700/80 hover:bg-emerald-600 text-white border border-emerald-600/50"
+                            } disabled:opacity-50 cursor-pointer`}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{isHi ? "पाठ पूरा करें" : "Complete Lesson"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCompleteModal(period)}
+                            disabled={isPending}
+                            title={isHi ? "कक्षा कार्य विवरण दर्ज करें" : "Record classwork details & homework"}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <BookmarkCheck className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{isHi ? "कक्षा कार्य दर्ज करें" : "Mark classwork done"}</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}

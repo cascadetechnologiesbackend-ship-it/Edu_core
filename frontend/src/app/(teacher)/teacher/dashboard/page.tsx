@@ -34,7 +34,18 @@ export default async function TeacherDashboardPage({
   const now = new Date();
 
   // Execute snapshot assembly, feed derivation, and profile query inside tenant boundary
-  const { initialCards, teacherProfile, daySummary, dayCompleteSummary } = await withTenant(
+  const {
+    initialCards,
+    teacherProfile,
+    daySummary,
+    dayCompleteSummary,
+    isWorkingDay,
+    isRestDay,
+    calendarEventTitle,
+    isSetupMissing,
+    missingAllocationsSummary,
+    isDayComplete,
+  } = await withTenant(
     schoolId,
     async (tx) => {
       // 1. Resolve Scope & Snapshot
@@ -90,7 +101,13 @@ export default async function TeacherDashboardPage({
         ? `${classTeacherSection.class?.displayName || ""}-${classTeacherSection.name}`
         : undefined;
 
-      // 4. Day Summary & Day Complete calculation
+      // 4. Day Summary & Honest Day Complete calculation (S19-F03)
+      const isWorkingDay = snapshot.isWorkingDay;
+      const isRestDay = snapshot.isRestDay ?? !isWorkingDay;
+      const calendarEventTitle = snapshot.calendarEventTitle;
+      const isSetupMissing = snapshot.isSetupMissing ?? false;
+      const missingAllocationsSummary = snapshot.missingAllocationsSummary ?? [];
+
       const totalSections = snapshot.attendanceSections?.length || 0;
       const markedSections = snapshot.attendanceSections?.filter((s) => s.isMarked).length || 0;
       const totalStudents = snapshot.attendanceSections?.reduce(
@@ -98,18 +115,25 @@ export default async function TeacherDashboardPage({
         0
       ) || 0;
 
+      // Only an instructional working day with all sections accounted for can be Day Complete
+      const isDayComplete =
+        isWorkingDay && totalSections > 0 && markedSections === totalSections;
+
       let daySummaryText = "";
-      if (totalSections > 0 && markedSections < totalSections) {
+      if (isWorkingDay && totalSections > 0 && markedSections < totalSections) {
         daySummaryText =
           locale === "hi"
             ? `${totalSections} में से ${markedSections} कक्षाओं की उपस्थिति दर्ज`
             : `Attendance marked for ${markedSections} of ${totalSections} sections`;
       }
 
-      const dayCompleteText =
-        locale === "hi"
-          ? `सभी ${totalSections} कक्षाएं पूर्ण। ${totalStudents} विद्यार्थी दर्ज।`
-          : `All ${totalSections} sections marked. ${totalStudents} students accounted for.`;
+      let dayCompleteText = "";
+      if (isDayComplete) {
+        dayCompleteText =
+          locale === "hi"
+            ? `सभी ${totalSections} कक्षाएं पूर्ण। ${totalStudents} विद्यार्थी दर्ज।`
+            : `All ${totalSections} sections marked. ${totalStudents} students accounted for.`;
+      }
 
       return {
         initialCards: cards,
@@ -123,6 +147,12 @@ export default async function TeacherDashboardPage({
         },
         daySummary: daySummaryText,
         dayCompleteSummary: dayCompleteText,
+        isWorkingDay,
+        isRestDay,
+        calendarEventTitle,
+        isSetupMissing,
+        missingAllocationsSummary,
+        isDayComplete,
       };
     }
   );
@@ -140,6 +170,12 @@ export default async function TeacherDashboardPage({
       now={now}
       daySummary={daySummary}
       dayCompleteSummary={dayCompleteSummary}
+      isWorkingDay={isWorkingDay}
+      isRestDay={isRestDay}
+      calendarEventTitle={calendarEventTitle}
+      isSetupMissing={isSetupMissing}
+      missingAllocationsSummary={missingAllocationsSummary}
+      isDayComplete={isDayComplete}
     />
   );
 }

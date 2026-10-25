@@ -30,6 +30,12 @@ export interface TeacherFeedContainerProps {
   isNightOverride?: boolean | undefined;
   daySummary?: string | undefined;
   dayCompleteSummary?: string | undefined;
+  isWorkingDay?: boolean | undefined;
+  isRestDay?: boolean | undefined;
+  calendarEventTitle?: string | undefined;
+  isSetupMissing?: boolean | undefined;
+  missingAllocationsSummary?: string[] | undefined;
+  isDayComplete?: boolean | undefined;
 }
 
 export function isNightQuietHours(date: Date = new Date()): boolean {
@@ -51,6 +57,12 @@ export function TeacherFeedContainer({
   isNightOverride,
   daySummary,
   dayCompleteSummary,
+  isWorkingDay = true,
+  isRestDay = false,
+  calendarEventTitle,
+  isSetupMissing = false,
+  missingAllocationsSummary = [],
+  isDayComplete = false,
 }: TeacherFeedContainerProps) {
   const isNight = isNightOverride ?? isNightQuietHours(now ?? new Date());
 
@@ -89,12 +101,17 @@ export function TeacherFeedContainer({
         locale={locale}
       />
 
-      {/* 2. Today Strip (Day summary or Calm Day-Complete strip) */}
+      {/* 2. Today Strip (Day summary, Rest-Day strip, or Calm Day-Complete strip) */}
       <TeacherTodayStrip
         activeCardsCount={cards.length}
         daySummary={daySummary}
         dayCompleteSummary={dayCompleteSummary}
-        isDayComplete={cards.length === 0}
+        isDayComplete={isDayComplete}
+        isRestDay={isRestDay}
+        isWorkingDay={isWorkingDay}
+        holidayTitle={calendarEventTitle}
+        isSetupMissing={isSetupMissing}
+        missingAllocationsSummary={missingAllocationsSummary}
         locale={locale}
       />
 

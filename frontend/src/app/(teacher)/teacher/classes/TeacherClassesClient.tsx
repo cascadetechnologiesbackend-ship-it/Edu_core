@@ -36,6 +36,10 @@ interface TeacherClassesClientProps {
   } | undefined;
   syllabusTopics?: Array<{ id: string; title: string; classSubjectId?: string }>;
   workspaceScope?: TeacherWorkspaceScopeResult | null | undefined;
+  dayType?: "INSTRUCTIONAL" | "REST_DAY" | "SETUP_MISSING" | undefined;
+  holidayTitle?: string | undefined;
+  isSetupMissing?: boolean | undefined;
+  missingAllocationsSummary?: string[] | undefined;
 }
 
 function TeacherClassesInner({
@@ -49,6 +53,10 @@ function TeacherClassesInner({
   initialSubstitutions,
   syllabusTopics,
   workspaceScope,
+  dayType,
+  holidayTitle,
+  isSetupMissing,
+  missingAllocationsSummary,
 }: TeacherClassesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -145,6 +153,10 @@ function TeacherClassesInner({
               timeline={timeline}
               date={date}
               dayOfWeek={dayOfWeek}
+              dayType={dayType}
+              holidayTitle={holidayTitle}
+              isSetupMissing={isSetupMissing}
+              missingAllocationsSummary={missingAllocationsSummary}
               {...(syllabusTopics ? { syllabusTopics } : {})}
             />
           ) : activeTab === "rosters" ? (
