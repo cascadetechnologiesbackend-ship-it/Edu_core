@@ -413,7 +413,8 @@ export default function RightsPortalClient({
               Rights Requests Log
             </h4>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop Table View (>=640px) */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
@@ -461,6 +462,40 @@ export default function RightsPortalClient({
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View (<640px, zero horizontal overflow at 390px) */}
+          <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {requests.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500">
+                No requests raised yet.
+              </div>
+            ) : (
+              requests.map((r) => (
+                <div key={r.id} className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs text-slate-700 dark:text-slate-350">
+                      {r.ticketNumber}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                        r.status === "COMPLETED"
+                          ? "bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-300"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-medium text-slate-650 dark:text-slate-300">
+                      {r.requestType}
+                    </span>
+                    <span>Due: {new Date(r.dueAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Grievances Table */}
@@ -470,7 +505,8 @@ export default function RightsPortalClient({
               Grievances Tickets Log
             </h4>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop Table View (>=640px) */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
@@ -517,6 +553,40 @@ export default function RightsPortalClient({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View (<640px, zero horizontal overflow at 390px) */}
+          <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {grievances.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500">
+                No grievances raised yet.
+              </div>
+            ) : (
+              grievances.map((g) => (
+                <div key={g.id} className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs text-slate-700 dark:text-slate-350">
+                      {g.ticketNumber}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                        g.status === "COMPLETED"
+                          ? "bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-300"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
+                      }`}
+                    >
+                      {g.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-medium text-slate-650 dark:text-slate-300 truncate max-w-[200px]">
+                      {g.subject}
+                    </span>
+                    <span>Due: {new Date(g.dueAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

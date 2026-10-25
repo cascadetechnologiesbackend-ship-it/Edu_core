@@ -300,13 +300,48 @@ export function WorkflowsHubClient({
 
         {/* Requests List */}
         {filteredItems.length === 0 ? (
-          <div className="py-8 text-center text-slate-400">
-            <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-            <p className="text-xs">
-              {isHi
-                ? "चयनित फिल्टर के लिए कोई अनुरोध नहीं मिला।"
-                : "No workflow requests found matching your filter."}
-            </p>
+          <div className="py-8 text-center text-slate-400 space-y-3" data-testid="workflows-empty-state">
+            <Clock className="w-8 h-8 text-slate-600 mx-auto" />
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-slate-300">
+                {isHi ? "सभी अनुरोध संसाधित" : "All Requests Processed"}
+              </h3>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                {isHi
+                  ? "वर्तमान में कोई लंबित अनुरोध नहीं है। आप सीधे नया अनुरोध शुरू कर सकते हैं।"
+                  : "No active or pending requests at this time. Start a new request below."}
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+              <Link
+                href="/parent/attendance"
+                data-testid="empty-leave-cta"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors"
+              >
+                <span>{isHi ? "अवकाश हेतु आवेदन" : "Request Leave"}</span>
+              </Link>
+              <Link
+                href="/parent/messages"
+                data-testid="empty-message-cta"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
+              >
+                <span>{isHi ? "शिक्षक को संदेश" : "Message Teacher"}</span>
+              </Link>
+              {(statusFilter !== "ALL" || typeFilter !== "ALL" || wardFilter !== "ALL" || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter("ALL");
+                    setTypeFilter("ALL");
+                    setWardFilter("ALL");
+                    setSearchQuery("");
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <span>{isHi ? "फ़िल्टर हटाएं" : "Clear Filters"}</span>
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-slate-800/80 rounded-xl border border-slate-800 overflow-hidden" data-testid="workflows-items-list">

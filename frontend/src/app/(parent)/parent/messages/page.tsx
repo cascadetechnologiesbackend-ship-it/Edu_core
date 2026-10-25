@@ -47,16 +47,28 @@ export default async function ParentMessagesPage() {
       </div>
 
       {messages.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center space-y-4" data-testid="messages-empty-state">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-1">
             <MessageSquare className="w-6 h-6" />
           </div>
-          <h2 className="text-sm font-semibold text-slate-200">
-            No Messages Yet
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            When your child's teacher sends an update or notice, it will appear here and in your home feed.
-          </p>
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-slate-200">
+              No Messages Yet
+            </h2>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              When your child's teacher sends an update or notice, it will appear here and in your home feed.
+            </p>
+          </div>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <a
+              href="mailto:office@school.edu"
+              data-testid="compose-message-cta"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Send Note to Class Teacher</span>
+            </a>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

@@ -601,7 +601,8 @@ export default async function ParentReportCardsPage({
                         <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                           Subject Evaluation Breakdown
                         </h4>
-                        <div className="overflow-x-auto rounded-xl border border-slate-800">
+                        {/* Desktop Table View (>=640px) */}
+                        <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-800">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
                               <tr>
@@ -648,6 +649,45 @@ export default async function ParentReportCardsPage({
                               ))}
                             </tbody>
                           </table>
+                        </div>
+
+                        {/* Mobile Card-Per-Subject View (<640px) */}
+                        <div className="block sm:hidden space-y-2">
+                          {subjects.map((sub: any, idx: number) => (
+                            <div
+                              key={sub.subjectId || idx}
+                              className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-white text-xs">
+                                  {sub.subjectName}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    sub.isPassed
+                                      ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
+                                      : "text-rose-400 bg-rose-500/10 border border-rose-500/20"
+                                  }`}
+                                >
+                                  {sub.isPassed ? "PASS" : "FAIL"} • Grade {sub.grade}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 text-center text-[11px] bg-slate-950/70 p-2 rounded-lg border border-slate-800/80">
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Obtained</span>
+                                  <span className="font-bold text-white">{sub.totalObtained}</span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Max</span>
+                                  <span className="text-slate-300">{sub.totalMax}</span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Percentage</span>
+                                  <span className="font-bold text-indigo-400">{sub.percent}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}

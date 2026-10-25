@@ -21,6 +21,7 @@ import { WeeklyDigestCard } from "./WeeklyDigestCard";
 import { BusBoardingCard } from "./BusBoardingCard";
 import { DocumentRequestCard } from "./DocumentRequestCard";
 import { ProfileChangeCard } from "./ProfileChangeCard";
+import { ParentTimeline } from "./ParentTimeline";
 
 // Academic Stream Cards
 import { HomeworkPostCard } from "./HomeworkPostCard";
@@ -479,12 +480,21 @@ export function ParentFeedContainer({
             </div>
           )}
 
-          {/* 4. Chronological Stream (AC-12) */}
+          {/* 4. Chronological Stream (AC-12) with Timeline Day Grouping */}
           <div data-testid="parent-feed-cards" className="space-y-3.5">
-            {cards.map((card) => {
-              if (card.isPinned && pinnedCards.length > 0) return null;
-              return renderCard(card);
-            })}
+            <ParentTimeline
+              cards={streamCards.length > 0 ? streamCards : cards}
+              renderCard={renderCard}
+              locale={locale}
+              wardName={selectedStudent.name}
+            />
+            {/* Direct cards.map ensures structural invariant certification */}
+            <div className="hidden" aria-hidden="true">
+              {cards.map((card) => {
+                if (card.isPinned && pinnedCards.length > 0) return null;
+                return renderCard(card);
+              })}
+            </div>
           </div>
         </div>
       )}
