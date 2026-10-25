@@ -128,9 +128,13 @@ export function PwaManager() {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
-      // Auto-trigger direct modal when install prompt is ready on mobile
+      // Auto-trigger direct modal only when install prompt is ready on mobile
       const dismissed = sessionStorage.getItem("edu.pwa.modal_dismissed") === "true";
-      if (!dismissed) {
+      const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+      const isMobileDevice =
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+        (typeof window !== "undefined" && window.innerWidth <= 820);
+      if (!dismissed && isMobileDevice) {
         setShowInstallModal(true);
       }
     };

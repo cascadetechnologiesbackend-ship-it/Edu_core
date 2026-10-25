@@ -15,7 +15,7 @@ import {
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { Metadata } from "next";
-import { getCachedSession } from "@/lib/serverAuth";
+import { requireAuth, getCachedSession } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import { assertRouteAccess } from "@/lib/routeGuards";
 import HRDashboardClient from "./HRDashboardClient";
@@ -39,25 +39,34 @@ function maskEmail(raw: string | null | undefined): string {
 }
 
 export default async function HRPage() {
-  const session = await getCachedSession();
-  if (!session?.user?.schoolId) redirect("/login");
+  let ctx;
+  try {
+    ctx = await requireAuth(["SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER", "SUPER_ADMIN"]);
+  } catch {
+    redirect("/login");
+  }
 
-  const role = session.user.role;
+  const session = await getCachedSession();
+
+  const schoolId = ctx.schoolId;
+  if (!schoolId) {
+    redirect("/super-admin/dashboard");
+  }
+
+  const role = ctx.role;
 
   // TEACHER must never see the HR hub
   if (role === "TEACHER") {
     redirect("/dashboard");
   }
 
-  const access = assertRouteAccess(session.user.role, "/hr", {
-    id: session.user.id,
-    email: session.user.email,
+  const access = assertRouteAccess(role, "/hr", {
+    id: ctx.userId,
+    email: ctx.email,
   });
   if (!access.allowed) {
     redirect(access.redirectUrl || "/login");
   }
-
-  const schoolId = session.user.schoolId;
 
   const data = await withDataPhaseTiming("/hr", async () => {
     // All queries inside withTenant so PostgreSQL RLS is satisfied

@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ROLE_CONFIGS, type UserRole } from "@schoolmitra/validators/roleConfig";
 import {
   GraduationCap,
   Building2,
@@ -14,6 +18,18 @@ import {
 } from "lucide-react";
 
 export default function PublicLandingPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const userRole = (session?.user as any)?.role as UserRole | undefined;
+  const dashboardPath = (userRole && ROLE_CONFIGS[userRole]?.defaultDashboard) || "/dashboard";
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      router.replace(dashboardPath);
+    }
+  }, [status, session, dashboardPath, router]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-orange-500 selection:text-white">
       {/* ── Navbar ────────────────────────────────────────────────────────── */}
@@ -34,18 +50,29 @@ export default function PublicLandingPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 font-medium text-sm hover:bg-slate-800 hover:text-white transition"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/onboard"
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-600/30 transition flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" /> Register Your School
-            </Link>
+            {status === "authenticated" ? (
+              <Link
+                href={dashboardPath}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-600/30 transition flex items-center gap-2"
+              >
+                Go to Dashboard <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 font-medium text-sm hover:bg-slate-800 hover:text-white transition"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/onboard"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-600/30 transition flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" /> Register Your School
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -70,18 +97,29 @@ export default function PublicLandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link
-              href="/onboard"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-base shadow-xl shadow-orange-600/40 transition flex items-center justify-center gap-3"
-            >
-              Onboard School Instantly <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-200 font-semibold text-base transition flex items-center justify-center gap-2"
-            >
-              <Lock className="w-4 h-4 text-slate-400" /> Demo Account Login
-            </Link>
+            {status === "authenticated" ? (
+              <Link
+                href={dashboardPath}
+                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-base shadow-xl shadow-orange-600/40 transition flex items-center justify-center gap-3"
+              >
+                Go to Dashboard <ArrowRight className="w-5 h-5" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/onboard"
+                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-base shadow-xl shadow-orange-600/40 transition flex items-center justify-center gap-3"
+                >
+                  Onboard School Instantly <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="w-full sm:w-auto px-8 py-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-200 font-semibold text-base transition flex items-center justify-center gap-2"
+                >
+                  <Lock className="w-4 h-4 text-slate-400" /> Demo Account Login
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Quick Metrics */}
