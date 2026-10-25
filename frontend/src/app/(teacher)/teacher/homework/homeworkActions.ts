@@ -19,6 +19,7 @@ import {
 import { eq, and, desc, inArray, isNull, sql } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import { scanContentForPII } from "@/lib/pii/scanEnforcement";
+import { formatFullName } from "@/lib/utils";
 
 export interface TeacherHomeworkItem {
   id: string;
@@ -524,13 +525,15 @@ export async function getHomeworkSubmissionsRoster(assignmentId: string) {
 
     const roster = studentRows.map((st: any) => {
       const sub = subMap.get(st.id);
-      const firstName = decryptData(st.firstNameEncrypted);
-      const lastName = decryptData(st.lastNameEncrypted);
-      const fullName = `${firstName} ${lastName}`.trim();
+      const studentName = formatFullName(
+        decryptData(st.firstNameEncrypted),
+        decryptData(st.lastNameEncrypted),
+        "Student"
+      );
 
       return {
         studentId: st.id,
-        studentName: fullName || "Student",
+        studentName,
         admissionNumber: st.admissionNumber,
         rollNumber: st.rollNumber,
         submissionId: sub?.id || null,

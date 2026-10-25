@@ -19,6 +19,7 @@ import { eq, and, desc, asc } from "drizzle-orm";
 import { ChildProfileView } from "@/components/parent/ChildProfileView";
 import { getSelfProfileAction } from "@/app/actions/profile";
 import { UserProfileView } from "@/components/profile/UserProfileView";
+import { calculateAttendanceMetrics, formatFullName } from "@/lib/utils";
 
 export const metadata = {
   title: "Child Profile & Records | Parent Companion",
@@ -100,11 +101,12 @@ export default async function ParentProfilePage({
       limit: 30,
     });
 
-    const totalDays = attRows.length || 1;
-    const presentDays = attRows.filter((a) => a.status === "PRESENT" || a.status === "LATE").length;
-    const absentDays = attRows.filter((a) => a.status === "ABSENT").length;
-    const lateDays = attRows.filter((a) => a.status === "LATE").length;
-    const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
+    const attMetrics = calculateAttendanceMetrics(attRows);
+    const totalDays = attMetrics.totalDays;
+    const presentDays = attMetrics.attendedDays;
+    const absentDays = attMetrics.absentDays;
+    const lateDays = attMetrics.lateDays;
+    const attendanceRate = attMetrics.ratePercent;
 
     const recentLogs = attRows.slice(0, 7).map((a) => ({
       date: new Date(a.attendanceDate).toLocaleDateString([], { month: "short", day: "numeric" }),

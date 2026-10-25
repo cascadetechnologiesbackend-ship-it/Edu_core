@@ -58,6 +58,7 @@ import { resolveParentWards, type ParentWard } from "@/lib/parentEventEngine/res
 import { ParentFeedContainer } from "@/components/parent/ParentFeedContainer";
 import type { StudentWardOption } from "@/components/parent/ParentIdentityHeader";
 import { decryptData } from "@/lib/encryption";
+import { calculateAttendanceMetrics, formatFullName } from "@/lib/utils";
 
 export const metadata = {
   title: "Parent Companion Feed | SchoolMitra ERP",
@@ -156,11 +157,8 @@ export default async function ParentDashboardPage({
       };
     }
 
-    const schoolDays = attRows.filter((r) => r.status !== "HOLIDAY");
-    const attendedDays = schoolDays.filter(
-      (r) => r.status === "PRESENT" || r.status === "LATE"
-    ).length;
-    const attRate = schoolDays.length > 0 ? attendedDays / schoolDays.length : 1.0;
+    const attMetrics = calculateAttendanceMetrics(attRows);
+    const attRate = attMetrics.rateRatio;
 
     // B. Invoices (D1: lastPayment join, D8: term name mapping)
     const feeTermNames: Record<string, string> = {

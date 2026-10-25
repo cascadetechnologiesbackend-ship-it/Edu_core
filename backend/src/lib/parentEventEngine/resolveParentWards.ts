@@ -15,6 +15,7 @@ import { students, classes, sections, classTeacherAssignments, staff } from "@sc
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { decryptData } from "../encryption";
 import { withTenant } from "../tenant";
+import { formatFullName } from "../utils";
 
 export interface ParentWard {
   id: string;
@@ -138,9 +139,11 @@ export async function resolveParentWards(
     const teacherMap = new Map<string, { name: string; designation: string }>();
     for (const st of teacherStaffList) {
       if (st.userId) {
-        const fn = decryptData(st.firstNameEncrypted) || "";
-        const ln = decryptData(st.lastNameEncrypted) || "";
-        const fullName = `${fn} ${ln}`.trim() || "Faculty";
+        const fullName = formatFullName(
+          decryptData(st.firstNameEncrypted),
+          decryptData(st.lastNameEncrypted),
+          "Faculty"
+        );
         const designation = st.designation?.name || "Class Teacher";
         teacherMap.set(st.userId, { name: fullName, designation });
       }
@@ -149,7 +152,7 @@ export async function resolveParentWards(
     return studentRows.map((s: any) => {
       const firstName = decryptData(s.firstNameEncrypted) || "";
       const lastName = decryptData(s.lastNameEncrypted) || "";
-      const fullName = `${firstName} ${lastName}`.trim() || "Student";
+      const fullName = formatFullName(firstName, lastName, "Student");
       const sec = s.currentSectionId ? sectionMap.get(s.currentSectionId) : null;
       const cta = s.currentSectionId ? ctaList.find((c: any) => c.sectionId === s.currentSectionId) : null;
       const tId = cta?.teacherId || sec?.classTeacherId;

@@ -35,7 +35,9 @@ export function ParentIdentityHeader({
 
   const attendancePercent =
     currentStudent.attendanceRate !== undefined
-      ? Math.round(currentStudent.attendanceRate * 100)
+      ? currentStudent.attendanceRate <= 1
+        ? Math.round(currentStudent.attendanceRate * 100)
+        : Math.round(currentStudent.attendanceRate)
       : null;
 
   return (

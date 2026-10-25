@@ -41,6 +41,7 @@ import {
 } from "@/lib/teacherAuthGuards";
 import { revalidatePath } from "next/cache";
 import { scanContentForPII } from "@/lib/pii/scanEnforcement";
+import { formatFullName } from "@/lib/utils";
 
 export interface MyDayPeriodItem {
   periodNumber: number;
@@ -788,7 +789,7 @@ export async function getTeacherSectionRosters(sectionIdParam?: string): Promise
 
       return {
         studentId: st.id,
-        name: `${decryptData(st.firstNameEncrypted)} ${decryptData(st.lastNameEncrypted)}`.trim(),
+        name: formatFullName(decryptData(st.firstNameEncrypted), decryptData(st.lastNameEncrypted), "Student"),
         admissionNumber: st.admissionNumber,
         rollNumber: st.rollNumber,
         attendanceRate30d: rate,
@@ -1338,7 +1339,7 @@ export async function getCompiledReportCardMatrix(
 
       return {
         studentId: st.id,
-        name: `${decryptData(st.firstNameEncrypted)} ${decryptData(st.lastNameEncrypted)}`.trim(),
+        name: formatFullName(decryptData(st.firstNameEncrypted), decryptData(st.lastNameEncrypted), "Student"),
         admissionNumber: st.admissionNumber,
         rollNumber: st.rollNumber,
         marks: subjectMarksObj,

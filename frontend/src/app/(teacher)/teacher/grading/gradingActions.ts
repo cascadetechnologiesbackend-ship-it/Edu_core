@@ -30,6 +30,7 @@ import {
   TeacherScopeError,
 } from "@/lib/teacherAuthGuards";
 import { revalidatePath } from "next/cache";
+import { formatFullName } from "@/lib/utils";
 
 export interface TeacherAssignmentItem {
   id: string;
@@ -264,7 +265,7 @@ export async function getAssignmentSubmissionsForGrading(
         submissionItems.push({
           submissionId: `temp-${st.id}`,
           studentId: st.id,
-          studentName: `${firstName} ${lastName}`.trim(),
+          studentName: formatFullName(firstName, lastName, "Student"),
           admissionNumber: st.admissionNumber,
           rollNumber: st.rollNumber,
           marksAwarded: null,
@@ -637,7 +638,7 @@ export async function getExamMarksRoster(
 
       return {
         studentId: st.id,
-        name: `${decryptData(st.firstNameEncrypted)} ${decryptData(st.lastNameEncrypted)}`.trim(),
+        name: formatFullName(decryptData(st.firstNameEncrypted), decryptData(st.lastNameEncrypted), "Student"),
         admissionNumber: st.admissionNumber,
         rollNumber: st.rollNumber,
         marksObtained: marksVal,

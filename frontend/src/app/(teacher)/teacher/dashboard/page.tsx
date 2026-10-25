@@ -10,6 +10,7 @@ import { deriveTeacherFeed } from "@/lib/teacherEventEngine/deriveTeacherFeed";
 import { syncTeacherFeedCards } from "@/lib/teacherEventEngine/feedPersistence";
 import { resolveTeacherScope } from "@/lib/teacherEventEngine/scopeResolver";
 import { TeacherFeedContainer } from "@/components/teacher/TeacherFeedContainer";
+import { formatFullName } from "@/lib/utils";
 
 export const metadata = {
   title: "Educator Feed | SchoolMitra ERP",
@@ -64,9 +65,11 @@ export default async function TeacherDashboardPage({
       let teacherName = "Educator";
       if (staffMember) {
         try {
-          const first = decryptData(staffMember.firstNameEncrypted);
-          const last = decryptData(staffMember.lastNameEncrypted);
-          teacherName = `${first} ${last}`.trim();
+          teacherName = formatFullName(
+            decryptData(staffMember.firstNameEncrypted),
+            decryptData(staffMember.lastNameEncrypted),
+            "Educator"
+          );
         } catch {
           teacherName = "Educator";
         }

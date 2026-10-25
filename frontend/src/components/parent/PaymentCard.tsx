@@ -10,7 +10,7 @@ import {
   Clock,
   RotateCcw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatFeeTermName } from "@/lib/utils";
 import { toast } from "sonner";
 import { CheckoutButton, type RazorpayPaymentSuccessData } from "@/app/(parent)/portal/CheckoutButton";
 import type { DerivedFeedCard } from "@/lib/parentEventEngine/types";
@@ -70,7 +70,7 @@ export function PaymentCard({
 
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight">
-                {termName} Fee Paid
+                {formatFeeTermName(termName)} Paid
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
                 Payment of ₹{balanceAmount.toLocaleString("en-IN")} confirmed for {studentName}.
@@ -159,7 +159,7 @@ export function PaymentCard({
               </span>
             )}
             <h2 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight">
-              {termName} Fee
+              {formatFeeTermName(termName)}
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
               Balance of ₹{balanceAmount.toLocaleString("en-IN")} pending for {studentName}.
