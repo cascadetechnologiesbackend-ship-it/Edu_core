@@ -402,7 +402,7 @@ export async function setClassSubjectLead(
         ),
       );
 
-    // 4. If assigning a teacher, auto-seed sectionSubjectTeachers for active sections without an override
+    // 4. Auto-seed / reassign sectionSubjectTeachers for active sections without an override
     if (teacherId) {
       const classSections = await tx.query.sections.findMany({
         where: and(
@@ -422,7 +422,25 @@ export async function setClassSubjectLead(
           ),
         });
 
-        if (!existing) {
+        // If existing assignment was for the displaced old teacher, deactivate it
+        if (existing && oldTeacherId && existing.teacherId === oldTeacherId) {
+          await tx
+            .update(sectionSubjectTeachers)
+            .set({
+              isActive: false,
+              effectiveTo: effectiveFromDate,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(sectionSubjectTeachers.id, existing.id),
+                eq(sectionSubjectTeachers.schoolId, schoolId),
+              ),
+            );
+        }
+
+        // Seed new teacher if section had no assignment or previously had the displaced lead
+        if (!existing || (oldTeacherId && existing.teacherId === oldTeacherId)) {
           await tx.insert(sectionSubjectTeachers).values({
             schoolId,
             academicYearId: activeYearRow.id,
@@ -435,6 +453,42 @@ export async function setClassSubjectLead(
             effectiveTo: null,
             isActive: true,
           });
+        }
+      }
+    } else if (oldTeacherId) {
+      // Unassigning lead: deactivate section assignments previously seeded for the displaced lead
+      const classSections = await tx.query.sections.findMany({
+        where: and(
+          eq(sections.classId, cs.classId),
+          eq(sections.schoolId, schoolId),
+          eq(sections.isActive, true),
+        ),
+      });
+
+      for (const sec of classSections) {
+        const existing = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.classSubjectId, classSubjectId),
+            eq(sectionSubjectTeachers.sectionId, sec.id),
+            eq(sectionSubjectTeachers.isActive, true),
+            isNull(sectionSubjectTeachers.effectiveTo),
+          ),
+        });
+
+        if (existing && existing.teacherId === oldTeacherId) {
+          await tx
+            .update(sectionSubjectTeachers)
+            .set({
+              isActive: false,
+              effectiveTo: effectiveFromDate,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(sectionSubjectTeachers.id, existing.id),
+                eq(sectionSubjectTeachers.schoolId, schoolId),
+              ),
+            );
         }
       }
     }
