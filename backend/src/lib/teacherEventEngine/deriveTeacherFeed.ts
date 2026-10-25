@@ -221,6 +221,16 @@ export function deriveTeacherFeed(
       const minutesToEnd = Math.max(15, (periodEndHours - nowHours) * 60);
       const expiresAt = new Date(nowMs + minutesToEnd * 60000);
 
+      const teachingPeriods = sortedPeriods.filter((p) => !p.isFree);
+      const totalPeriodsCount = teachingPeriods.length;
+      const completedPeriodsCount = teachingPeriods.filter(
+        (p) => p.lessonPlanStatus === "COMPLETED"
+      ).length;
+      const minutesRemaining =
+        currentPeriod && !currentPeriod.isFree
+          ? Math.max(0, Math.round((parseTimeToHours(currentPeriod.endTime) - nowHours) * 60))
+          : 0;
+
       cards.push({
         id: `now-next-${teacherUserId}`,
         teacherUserId,
@@ -234,6 +244,9 @@ export function deriveTeacherFeed(
           nextPeriod,
           isFreeNow,
           freeUntil,
+          totalPeriodsCount,
+          completedPeriodsCount,
+          minutesRemaining,
         },
         activatedAt: now,
         expiresAt,

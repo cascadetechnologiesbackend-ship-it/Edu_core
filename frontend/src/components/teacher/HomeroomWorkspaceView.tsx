@@ -293,150 +293,297 @@ export default function HomeroomWorkspaceView({
               No students enrolled in this homeroom section.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-xl">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="p-3 sticky left-0 bg-slate-950 z-10">Student</th>
-                    <th className="p-3">Adm No</th>
-                    {matrixData.subjects.map((sub) => (
-                      <th
-                        key={sub.id}
-                        className={`p-3 text-center ${
-                          sub.isMySubject
-                            ? "bg-indigo-950/40 text-indigo-300 border-x border-indigo-500/20"
-                            : ""
-                        }`}
-                      >
-                        <div>{sub.name}</div>
-                        {sub.isMySubject && (
-                          <div className="text-[9px] font-black text-indigo-400 lowercase">
-                            (my subject)
-                          </div>
-                        )}
-                      </th>
-                    ))}
-                    <th className="p-3 text-center">Total</th>
-                    <th className="p-3 text-center">%</th>
-                    <th className="p-3 min-w-[240px]">Class Teacher Remarks &amp; Sign-Off</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/80">
-                  {filteredMatrixStudents?.map((st) => {
-                    const draft = remarksDrafts[st.studentId] || {
-                      remarks: st.remarks || "",
-                      conductGrade: st.conductGrade || "A",
-                    };
-                    const isSaving = savingStudentId === st.studentId;
+            <div className="space-y-4">
+              {/* Mobile Card-per-student layout (< 768px, zero horizontal overflow at 390px) */}
+              <div className="block md:hidden space-y-3">
+                {filteredMatrixStudents?.map((st) => {
+                  const draft = remarksDrafts[st.studentId] || {
+                    remarks: st.remarks || "",
+                    conductGrade: st.conductGrade || "A",
+                  };
+                  const isSaving = savingStudentId === st.studentId;
 
-                    return (
-                      <tr key={st.studentId} className="hover:bg-slate-800/40 transition">
-                        <td className="p-3 font-bold text-white sticky left-0 bg-slate-900 z-10 flex items-center gap-2">
+                  return (
+                    <div
+                      key={st.studentId}
+                      className="rounded-2xl border border-slate-800 bg-slate-900/95 p-4 space-y-3 shadow-md"
+                    >
+                      {/* Top Row: Name, Adm No, Percent Badge */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
                           <button
                             type="button"
                             onClick={() => handleOpen360(st.studentId)}
-                            className="text-left hover:text-emerald-400 transition"
+                            className="text-left font-bold text-sm text-white hover:text-emerald-400 transition"
                           >
                             {st.name}
                           </button>
-                        </td>
-                        <td className="p-3 font-mono text-slate-400">{st.admissionNumber}</td>
-                        {matrixData.subjects.map((sub) => {
-                          const mark = st.marks[sub.id];
-                          return (
-                            <td
-                              key={sub.id}
-                              className={`p-3 text-center font-mono ${
-                                sub.isMySubject
-                                  ? "bg-indigo-950/20 border-x border-indigo-500/10 font-bold text-indigo-200"
-                                  : "text-slate-300"
-                              }`}
+                          <div className="text-[11px] font-mono text-slate-400">
+                            Adm: {st.admissionNumber}
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-black font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {st.percentage}%
+                          </span>
+                          <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                            {st.totalMarksObtained} / {st.maxTotalMarks}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Subject Marks Grid */}
+                      <div className="rounded-xl bg-slate-950/60 border border-slate-800/80 p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                          Subject Scores
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {matrixData.subjects.map((sub) => {
+                            const mark = st.marks[sub.id];
+                            return (
+                              <div
+                                key={sub.id}
+                                className={`px-2 py-1 rounded-lg text-xs flex items-center justify-between border ${
+                                  sub.isMySubject
+                                    ? "bg-indigo-950/40 border-indigo-500/30 text-indigo-200"
+                                    : "bg-slate-900 border-slate-800 text-slate-300"
+                                }`}
+                              >
+                                <span className="truncate pr-1 text-[11px]">
+                                  {sub.name}
+                                </span>
+                                <span className="font-mono font-bold shrink-0">
+                                  {mark?.isAbsent ? (
+                                    <span className="text-rose-400 text-[10px]">ABS</span>
+                                  ) : mark?.marksObtained !== null && mark?.marksObtained !== undefined ? (
+                                    mark.marksObtained
+                                  ) : (
+                                    <span className="text-slate-500">&mdash;</span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Class Teacher Remarks & Sign-off Form */}
+                      <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[11px] font-bold text-slate-300">
+                            Conduct & Sign-off:
+                          </label>
+                          <select
+                            value={draft.conductGrade}
+                            onChange={(e) =>
+                              setRemarksDrafts((prev) => ({
+                                ...prev,
+                                [st.studentId]: {
+                                  ...draft,
+                                  conductGrade: e.target.value,
+                                },
+                              }))
+                            }
+                            className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[11px] font-bold text-white"
+                          >
+                            <option value="A+">A+ (Exceptional)</option>
+                            <option value="A">A (Excellent)</option>
+                            <option value="B">B (Good)</option>
+                            <option value="C">C (Satisfactory)</option>
+                            <option value="Needs Improvement">Needs Improvement</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={draft.remarks}
+                            onChange={(e) =>
+                              setRemarksDrafts((prev) => ({
+                                ...prev,
+                                [st.studentId]: {
+                                  ...draft,
+                                  remarks: e.target.value,
+                                },
+                              }))
+                            }
+                            placeholder="Holistic progress remarks..."
+                            className="flex-1 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => handleSaveRemarks(st.studentId)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-1 shrink-0 shadow-sm"
+                          >
+                            {isSaving ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Save className="w-3.5 h-3.5" />
+                            )}
+                            <span>Sign Off</span>
+                          </button>
+                        </div>
+
+                        {st.signedOffAt && (
+                          <div className="text-[10px] text-emerald-400/90 flex items-center gap-1 pt-0.5">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Signed off by {st.signedOffByName || "Class Teacher"}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Multi-Column Table (>= 768px) */}
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-xl">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="p-3 sticky left-0 bg-slate-950 z-10">Student</th>
+                      <th className="p-3">Adm No</th>
+                      {matrixData.subjects.map((sub) => (
+                        <th
+                          key={sub.id}
+                          className={`p-3 text-center ${
+                            sub.isMySubject
+                              ? "bg-indigo-950/40 text-indigo-300 border-x border-indigo-500/20"
+                              : ""
+                          }`}
+                        >
+                          <div>{sub.name}</div>
+                          {sub.isMySubject && (
+                            <div className="text-[9px] font-black text-indigo-400 lowercase">
+                              (my subject)
+                            </div>
+                          )}
+                        </th>
+                      ))}
+                      <th className="p-3 text-center">Total</th>
+                      <th className="p-3 text-center">%</th>
+                      <th className="p-3 min-w-[240px]">Class Teacher Remarks &amp; Sign-Off</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {filteredMatrixStudents?.map((st) => {
+                      const draft = remarksDrafts[st.studentId] || {
+                        remarks: st.remarks || "",
+                        conductGrade: st.conductGrade || "A",
+                      };
+                      const isSaving = savingStudentId === st.studentId;
+
+                      return (
+                        <tr key={st.studentId} className="hover:bg-slate-800/40 transition">
+                          <td className="p-3 font-bold text-white sticky left-0 bg-slate-900 z-10 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpen360(st.studentId)}
+                              className="text-left hover:text-emerald-400 transition"
                             >
-                              {mark?.isAbsent ? (
-                                <span className="text-rose-400 font-bold text-[10px]">ABS</span>
-                              ) : mark?.marksObtained !== null && mark?.marksObtained !== undefined ? (
-                                `${mark.marksObtained}`
-                              ) : (
-                                <span className="text-slate-400">&mdash;</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td className="p-3 text-center font-mono font-bold text-emerald-400">
-                          {st.totalMarksObtained} / {st.maxTotalMarks}
-                        </td>
-                        <td className="p-3 text-center font-mono font-black text-white">
-                          {st.percentage}%
-                        </td>
-                        <td className="p-3">
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={draft.conductGrade}
+                              {st.name}
+                            </button>
+                          </td>
+                          <td className="p-3 font-mono text-slate-400">{st.admissionNumber}</td>
+                          {matrixData.subjects.map((sub) => {
+                            const mark = st.marks[sub.id];
+                            return (
+                              <td
+                                key={sub.id}
+                                className={`p-3 text-center font-mono ${
+                                  sub.isMySubject
+                                    ? "bg-indigo-950/20 border-x border-indigo-500/10 font-bold text-indigo-200"
+                                    : "text-slate-300"
+                                }`}
+                              >
+                                {mark?.isAbsent ? (
+                                  <span className="text-rose-400 font-bold text-[10px]">ABS</span>
+                                ) : mark?.marksObtained !== null && mark?.marksObtained !== undefined ? (
+                                  `${mark.marksObtained}`
+                                ) : (
+                                  <span className="text-slate-400">&mdash;</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="p-3 text-center font-mono font-bold text-emerald-400">
+                            {st.totalMarksObtained} / {st.maxTotalMarks}
+                          </td>
+                          <td className="p-3 text-center font-mono font-black text-white">
+                            {st.percentage}%
+                          </td>
+                          <td className="p-3">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={draft.conductGrade}
+                                  onChange={(e) =>
+                                    setRemarksDrafts((prev) => ({
+                                      ...prev,
+                                      [st.studentId]: {
+                                        ...draft,
+                                        conductGrade: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[11px] font-bold text-white"
+                                >
+                                  <option value="A+">A+ (Exceptional)</option>
+                                  <option value="A">A (Excellent)</option>
+                                  <option value="B">B (Good)</option>
+                                  <option value="C">C (Satisfactory)</option>
+                                  <option value="Needs Improvement">Needs Improvement</option>
+                                </select>
+
+                                <button
+                                  type="button"
+                                  disabled={isSaving}
+                                  onClick={() => handleSaveRemarks(st.studentId)}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-[11px] transition flex items-center gap-1 shadow-sm"
+                                >
+                                  {isSaving ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Save className="w-3 h-3" />
+                                  )}
+                                  <span>Sign Off</span>
+                                </button>
+                              </div>
+
+                              <input
+                                type="text"
+                                value={draft.remarks}
                                 onChange={(e) =>
                                   setRemarksDrafts((prev) => ({
                                     ...prev,
                                     [st.studentId]: {
                                       ...draft,
-                                      conductGrade: e.target.value,
+                                      remarks: e.target.value,
                                     },
                                   }))
                                 }
-                                className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[11px] font-bold text-white"
-                              >
-                                <option value="A+">A+ (Exceptional)</option>
-                                <option value="A">A (Excellent)</option>
-                                <option value="B">B (Good)</option>
-                                <option value="C">C (Satisfactory)</option>
-                                <option value="Needs Improvement">Needs Improvement</option>
-                              </select>
+                                placeholder="Holistic progress remarks..."
+                                className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                              />
 
-                              <button
-                                type="button"
-                                disabled={isSaving}
-                                onClick={() => handleSaveRemarks(st.studentId)}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-[11px] transition flex items-center gap-1 shadow-sm"
-                              >
-                                {isSaving ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Save className="w-3 h-3" />
-                                )}
-                                <span>Sign Off</span>
-                              </button>
+                              {st.signedOffAt && (
+                                <div className="text-[10px] text-emerald-400/90 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>
+                                    Signed off by {st.signedOffByName || "Class Teacher"}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-
-                            <input
-                              type="text"
-                              value={draft.remarks}
-                              onChange={(e) =>
-                                setRemarksDrafts((prev) => ({
-                                  ...prev,
-                                  [st.studentId]: {
-                                    ...draft,
-                                    remarks: e.target.value,
-                                  },
-                                }))
-                              }
-                              placeholder="Holistic progress remarks..."
-                              className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                            />
-
-                            {st.signedOffAt && (
-                              <div className="text-[10px] text-emerald-400/90 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                <span>
-                                  Signed off by {st.signedOffByName || "Class Teacher"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

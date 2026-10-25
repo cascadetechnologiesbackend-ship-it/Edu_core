@@ -381,6 +381,17 @@ export default function MyDayTimeline({
                             : "Substitute Assigned"}
                         </span>
                       )}
+
+                      {period.isPast && !period.isFree && period.isAttendanceMarked === false && (
+                        <a
+                          href={period.sectionId ? `/teacher/attendance?sectionId=${period.sectionId}` : "/teacher/attendance"}
+                          data-testid="pending-attendance-chip"
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/30 transition cursor-pointer"
+                        >
+                          <AlertTriangle className="w-3 h-3 text-amber-400" />
+                          <span>{isHi ? "उपस्थिति लंबित" : "Attendance Pending"}</span>
+                        </a>
+                      )}
                     </div>
 
                     {period.isFree ? (

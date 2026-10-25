@@ -59,6 +59,7 @@ export interface MyDayPeriodItem {
   roomNumber?: string | undefined;
   isNow: boolean;
   isPast: boolean;
+  isAttendanceMarked?: boolean | undefined;
   substitution?: {
     type: "INCOMING_COVER" | "OUTGOING_COVER";
     partnerTeacherName: string;
@@ -366,6 +367,22 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<Teacher
 
     // Current Time in HH:MM
     const nowHours = targetDate.getHours() + targetDate.getMinutes() / 60;
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todayAttendance = await tx.query.studentAttendance.findMany({
+      where: and(
+        eq(studentAttendance.schoolId, school.id),
+        gte(studentAttendance.attendanceDate, startOfDay),
+        lte(studentAttendance.attendanceDate, endOfDay)
+      ),
+      columns: {
+        sectionId: true,
+      },
+    });
+    const markedSectionsSet = new Set(todayAttendance.map((a: any) => a.sectionId));
 
     const timeline: MyDayPeriodItem[] = [];
 
@@ -474,6 +491,10 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<Teacher
           "Room 101",
         isNow,
         isPast,
+        isAttendanceMarked:
+          effectivePeriod?.section?.id
+            ? markedSectionsSet.has(effectivePeriod.section.id)
+            : true,
         substitution: substitutionInfo,
         lessonPlan: lessonPlanInfo,
       });
