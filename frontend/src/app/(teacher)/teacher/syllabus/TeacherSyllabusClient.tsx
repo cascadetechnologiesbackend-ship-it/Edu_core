@@ -16,6 +16,8 @@ import {
   Calendar,
 } from "lucide-react";
 import type { TeacherSyllabusData, SyllabusUnitItem } from "./syllabusActions";
+import { markTopicTaughtAction } from "./syllabusActions";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export interface TeacherSyllabusClientProps {
@@ -31,11 +33,57 @@ export function TeacherSyllabusClient({
   const isHi = locale === "hi";
 
   const { subjects, selectedSubject, units, overallProgress, paceInsight } = initialData;
+  const [unitsState, setUnitsState] = useState<SyllabusUnitItem[]>(units);
+  const [togglingTopicId, setTogglingTopicId] = useState<string | null>(null);
 
   // Track expanded units
   const [expandedUnitIds, setExpandedUnitIds] = useState<Set<string>>(
     new Set(units.map((u) => u.id))
   );
+
+  const handleToggleTopic = async (topicId: string, nextTaught: boolean) => {
+    setTogglingTopicId(topicId);
+    // Optimistic update
+    setUnitsState((prevUnits) =>
+      prevUnits.map((u) => ({
+        ...u,
+        chapters: u.chapters.map((ch) => ({
+          ...ch,
+          topics: ch.topics.map((top) =>
+            top.id === topicId
+              ? {
+                  ...top,
+                  isTaught: nextTaught,
+                  taughtDate: nextTaught ? new Date().toISOString() : null,
+                }
+              : top
+          ),
+        })),
+      }))
+    );
+
+    try {
+      const res = await markTopicTaughtAction({
+        topicId,
+        isTaught: nextTaught,
+      });
+      if (res.success) {
+        toast.success(
+          isHi
+            ? nextTaught
+              ? "पाठ्यक्रम विषय पूर्ण चिह्नित किया गया!"
+              : "विषय लंबित चिह्नित किया गया"
+            : res.message
+        );
+      } else {
+        toast.error("Failed to update topic status.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update topic status.");
+    } finally {
+      setTogglingTopicId(null);
+    }
+  };
 
   const toggleUnit = (unitId: string) => {
     setExpandedUnitIds((prev) => {
@@ -208,7 +256,7 @@ export function TeacherSyllabusClient({
           {isHi ? "इकाइयाँ एवं पाठ्यक्रम विवरण" : "Curriculum Units & Topics Breakdown"}
         </h2>
 
-        {units.length === 0 ? (
+        {unitsState.length === 0 ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center space-y-2">
             <BookOpen className="w-8 h-8 text-slate-500 mx-auto" />
             <h3 className="text-sm font-bold text-white">
@@ -222,7 +270,7 @@ export function TeacherSyllabusClient({
           </div>
         ) : (
           <div className="space-y-3">
-            {units.map((unit) => {
+            {unitsState.map((unit) => {
               const isExpanded = expandedUnitIds.has(unit.id);
 
               return (
@@ -345,21 +393,35 @@ export function TeacherSyllabusClient({
                                     </span>
                                   )}
 
-                                  {topic.isTaught ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                                      <CheckCircle2 className="w-3 h-3" />
-                                      {isHi ? "पूर्ण" : "Taught"}
-                                      {topic.taughtDate && (
-                                        <span className="text-[9px] text-emerald-400/80 hidden sm:inline">
-                                          ({topic.taughtDate.slice(0, 10)})
-                                        </span>
-                                      )}
-                                    </span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                                      {isHi ? "लंबित" : "Pending"}
-                                    </span>
-                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={togglingTopicId === topic.id}
+                                    onClick={() => handleToggleTopic(topic.id, !topic.isTaught)}
+                                    data-testid={`topic-toggle-${topic.id}`}
+                                    className={cn(
+                                      "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
+                                      topic.isTaught
+                                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                                        : "bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700"
+                                    )}
+                                  >
+                                    {topic.isTaught ? (
+                                      <>
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                        <span>{isHi ? "पूर्ण" : "Taught"}</span>
+                                        {topic.taughtDate && (
+                                          <span className="text-[9px] text-emerald-400/80 hidden sm:inline font-mono">
+                                            ({topic.taughtDate.slice(0, 10)})
+                                          </span>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Clock className="w-3 h-3 text-slate-400" />
+                                        <span>{isHi ? "लंबित (पूर्ण करें)" : "Mark Taught"}</span>
+                                      </>
+                                    )}
+                                  </button>
                                 </div>
                               </div>
                             ))}

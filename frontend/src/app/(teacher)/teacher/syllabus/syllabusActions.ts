@@ -11,8 +11,10 @@ import {
   lessonPlans,
   classes,
   subjects,
+  domainEvents,
 } from "@/db/schema";
 import { eq, and, asc, inArray, isNull } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
 export interface SyllabusTopicItem {
   id: string;
@@ -346,6 +348,155 @@ export async function getTeacherSyllabusData(
         progressPercent: overallProgressPercent,
       },
       paceInsight,
+    };
+  });
+}
+
+/**
+ * 2. Mark syllabus topic taught or untaught (scoped to teacher's S16 allocations)
+ */
+export async function markTopicTaughtAction(input: {
+  topicId: string;
+  isTaught: boolean;
+  taughtDate?: string | Date;
+}) {
+  const ctx = await requireAuth([
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "PRINCIPAL",
+    "TEACHER",
+  ] as const);
+  const school = await requireSchool(ctx);
+
+  return await withTenant(school.id, async (tx: any) => {
+    // 1. Fetch topic, chapter, unit to find classSubjectId
+    const topic = await tx.query.syllabusTopics.findFirst({
+      where: and(
+        eq(syllabusTopics.schoolId, school.id),
+        eq(syllabusTopics.id, input.topicId)
+      ),
+      with: {
+        chapter: {
+          with: {
+            unit: true,
+          },
+        },
+      },
+    });
+
+    if (!topic || !topic.chapter?.unit?.classSubjectId) {
+      throw new Error("Syllabus topic not found.");
+    }
+
+    const classSubjectId = topic.chapter.unit.classSubjectId;
+
+    // 2. Teacher allocation guard (S16)
+    if (ctx.role === "TEACHER") {
+      const isAllocated = await tx.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.schoolId, school.id),
+          eq(sectionSubjectTeachers.teacherId, ctx.userId),
+          eq(sectionSubjectTeachers.classSubjectId, classSubjectId)
+        ),
+      });
+
+      const isClassSubjectAssigned = isAllocated
+        ? true
+        : await tx.query.classSubjects.findFirst({
+            where: and(
+              eq(classSubjects.schoolId, school.id),
+              eq(classSubjects.id, classSubjectId),
+              eq(classSubjects.assignedTeacherId, ctx.userId)
+            ),
+          });
+
+      if (!isAllocated && !isClassSubjectAssigned) {
+        throw new Error("Unauthorized: Teacher is not allocated to teach this subject.");
+      }
+    }
+
+    const effectiveDate = input.isTaught
+      ? (input.taughtDate ? new Date(input.taughtDate) : new Date())
+      : null;
+
+    if (input.isTaught) {
+      // Find or create lesson plan marked COMPLETED
+      const existingPlan = await tx.query.lessonPlans.findFirst({
+        where: and(
+          eq(lessonPlans.schoolId, school.id),
+          eq(lessonPlans.classSubjectId, classSubjectId),
+          eq(lessonPlans.syllabusTopicId, topic.id),
+          isNull(lessonPlans.deletedAt)
+        ),
+      });
+
+      if (existingPlan) {
+        await tx
+          .update(lessonPlans)
+          .set({
+            status: "COMPLETED",
+            completedDate: effectiveDate,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(lessonPlans.schoolId, school.id),
+              eq(lessonPlans.id, existingPlan.id)
+            )
+          );
+      } else {
+        await tx.insert(lessonPlans).values({
+          schoolId: school.id,
+          classSubjectId,
+          teacherId: ctx.userId,
+          syllabusTopicId: topic.id,
+          title: topic.name,
+          chapterName: topic.chapter.name,
+          status: "COMPLETED",
+          completedDate: effectiveDate,
+        });
+      }
+
+      // Emit domain event for multi-surface tracking
+      await tx.insert(domainEvents).values({
+        schoolId: school.id,
+        aggregateId: topic.id,
+        eventType: "SyllabusTopicCoveredEvent",
+        payload: {
+          topicId: topic.id,
+          topicTitle: topic.name,
+          classSubjectId,
+          schoolId: school.id,
+          teacherUserId: ctx.userId,
+          coveredAt: effectiveDate?.toISOString(),
+        },
+        status: "PENDING",
+      });
+    } else {
+      // Mark existing lesson plans PLANNED / not completed
+      await tx
+        .update(lessonPlans)
+        .set({
+          status: "PLANNED",
+          completedDate: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(lessonPlans.schoolId, school.id),
+            eq(lessonPlans.classSubjectId, classSubjectId),
+            eq(lessonPlans.syllabusTopicId, topic.id),
+            isNull(lessonPlans.deletedAt)
+          )
+        );
+    }
+
+    revalidatePath("/teacher/syllabus");
+    return {
+      success: true,
+      isTaught: input.isTaught,
+      taughtDate: effectiveDate ? effectiveDate.toISOString() : null,
+      message: input.isTaught ? "Topic marked as covered." : "Topic marked as pending.",
     };
   });
 }

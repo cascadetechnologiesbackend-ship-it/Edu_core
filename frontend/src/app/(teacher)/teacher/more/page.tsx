@@ -11,6 +11,9 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
+  BookOpen,
+  FileSpreadsheet,
+  GraduationCap,
 } from "lucide-react";
 
 export const metadata = {
@@ -28,6 +31,33 @@ interface MoreItem {
 }
 
 const MORE_SECTIONS: { category: string; items: MoreItem[] }[] = [
+  {
+    category: "Academics & Authoring",
+    items: [
+      {
+        title: "Homework & Assignments",
+        description: "Author, publish, target sections, and grade student submissions.",
+        href: "/teacher/homework",
+        icon: BookOpen,
+        color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        badge: "Authoring",
+      },
+      {
+        title: "Syllabus & Curriculum Tracker",
+        description: "Track NCERT / Board chapter progress and mark topic coverage.",
+        href: "/teacher/syllabus",
+        icon: FileSpreadsheet,
+        color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+      },
+      {
+        title: "Classes & My Day Timetable",
+        description: "Live schedule, rosters, report card matrix, and lesson plan authoring.",
+        href: "/teacher/classes",
+        icon: GraduationCap,
+        color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+      },
+    ],
+  },
   {
     category: "Operations & Attendance",
     items: [

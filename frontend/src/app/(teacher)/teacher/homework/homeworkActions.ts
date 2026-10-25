@@ -259,7 +259,8 @@ export async function getTeacherHomeworkData(filters?: {
  */
 export async function createHomeworkAction(input: {
   classSubjectId: string;
-  sectionId: string;
+  sectionId?: string;
+  targetSectionIds?: string[];
   title: string;
   description: string;
   dueDate: string | Date;
@@ -292,70 +293,95 @@ export async function createHomeworkAction(input: {
   }
 
   return await withTenant(school.id, async (tx: any) => {
-    // Server-side scope enforcement (BR10 / AC-14)
-    if (ctx.role === "TEACHER") {
-      const isAllocated = await tx.query.sectionSubjectTeachers.findFirst({
-        where: and(
-          eq(sectionSubjectTeachers.schoolId, school.id),
-          eq(sectionSubjectTeachers.teacherId, ctx.userId),
-          eq(sectionSubjectTeachers.sectionId, input.sectionId),
-          eq(sectionSubjectTeachers.classSubjectId, input.classSubjectId)
-        ),
-      });
+    const targetSections =
+      input.targetSectionIds && input.targetSectionIds.length > 0
+        ? input.targetSectionIds
+        : input.sectionId
+        ? [input.sectionId]
+        : [];
 
-      const isClassTeacher = isAllocated
-        ? true
-        : await tx.query.classSubjects.findFirst({
-            where: and(
-              eq(classSubjects.schoolId, school.id),
-              eq(classSubjects.id, input.classSubjectId),
-              eq(classSubjects.assignedTeacherId, ctx.userId)
-            ),
+    if (targetSections.length === 0) {
+      throw new Error("At least one section must be targeted for homework creation.");
+    }
+
+    const createdAssignments: any[] = [];
+    const initialStatus = input.status || "DRAFT";
+
+    for (const secId of targetSections) {
+      // Server-side scope enforcement (BR10 / AC-14)
+      if (ctx.role === "TEACHER") {
+        const isAllocated = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.schoolId, school.id),
+            eq(sectionSubjectTeachers.teacherId, ctx.userId),
+            eq(sectionSubjectTeachers.sectionId, secId),
+            eq(sectionSubjectTeachers.classSubjectId, input.classSubjectId)
+          ),
+        });
+
+        const isClassTeacher = isAllocated
+          ? true
+          : await tx.query.classSubjects.findFirst({
+              where: and(
+                eq(classSubjects.schoolId, school.id),
+                eq(classSubjects.id, input.classSubjectId),
+                eq(classSubjects.assignedTeacherId, ctx.userId)
+              ),
+            });
+
+        if (!isAllocated && !isClassTeacher) {
+          throw new Error("Unauthorized: Teacher is not allocated to this class-subject or section.");
+        }
+      }
+
+      const [newAssignment] = await tx
+        .insert(assignments)
+        .values({
+          schoolId: school.id,
+          classSubjectId: input.classSubjectId,
+          sectionId: secId,
+          createdByTeacherId: ctx.userId,
+          title: input.title,
+          description: input.description,
+          dueDate: new Date(input.dueDate),
+          maxMarks: input.maxMarks || 50,
+          attachmentS3Key: input.attachmentS3Key || null,
+          status: initialStatus,
+        })
+        .returning();
+
+      if (newAssignment) {
+        createdAssignments.push(newAssignment);
+
+        // If published, emit domain event for parent feed & notifications (AC-8)
+        if (initialStatus === "PUBLISHED") {
+          await tx.insert(domainEvents).values({
+            schoolId: school.id,
+            aggregateId: newAssignment.id,
+            eventType: "AssignmentPublishedEvent",
+            payload: {
+              assignmentId: newAssignment.id,
+              sectionId: secId,
+              classSubjectId: input.classSubjectId,
+              schoolId: school.id,
+              teacherUserId: ctx.userId,
+              title: input.title,
+              dueDate: new Date(input.dueDate).toISOString(),
+              syllabusTopicId: input.syllabusTopicId || undefined,
+            },
+            status: "PENDING",
           });
-
-      if (!isAllocated && !isClassTeacher) {
-        throw new Error("Unauthorized: Teacher is not allocated to this class-subject or section.");
+        }
       }
     }
 
-    const initialStatus = input.status || "DRAFT";
-
-    const [newAssignment] = await tx
-      .insert(assignments)
-      .values({
-        schoolId: school.id,
-        classSubjectId: input.classSubjectId,
-        sectionId: input.sectionId,
-        createdByTeacherId: ctx.userId,
-        title: input.title,
-        description: input.description,
-        dueDate: new Date(input.dueDate),
-        maxMarks: input.maxMarks || 50,
-        attachmentS3Key: input.attachmentS3Key || null,
-        status: initialStatus,
-      })
-      .returning();
-
-    // If published, emit domain event for parent feed & notifications (AC-8)
-    if (initialStatus === "PUBLISHED" && newAssignment) {
-      await tx.insert(domainEvents).values({
-        schoolId: school.id,
-        aggregateId: newAssignment.id,
-        eventType: "AssignmentPublishedEvent",
-        payload: {
-          assignmentId: newAssignment.id,
-          sectionId: input.sectionId,
-          classSubjectId: input.classSubjectId,
-          schoolId: school.id,
-          teacherUserId: ctx.userId,
-          title: input.title,
-          dueDate: new Date(input.dueDate).toISOString(),
-        },
-        status: "PENDING",
-      });
-    }
-
-    return { success: true, assignmentId: newAssignment.id };
+    const primaryAssignment = createdAssignments[0];
+    return {
+      success: true,
+      assignmentId: primaryAssignment?.id,
+      assignmentIds: createdAssignments.map((a) => a.id),
+      createdCount: createdAssignments.length,
+    };
   });
 }
 

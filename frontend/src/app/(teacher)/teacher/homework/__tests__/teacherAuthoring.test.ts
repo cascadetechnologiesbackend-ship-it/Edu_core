@@ -10,6 +10,15 @@ vi.mock("../homeworkActions", () => ({
   updateSubmissionGradeAction: vi.fn(),
 }));
 
+vi.mock("../../syllabus/syllabusActions", () => ({
+  getTeacherSyllabusData: vi.fn(),
+  markTopicTaughtAction: vi.fn().mockResolvedValue({
+    success: true,
+    isTaught: true,
+    message: "Topic marked as covered.",
+  }),
+}));
+
 import { TeacherHomeworkClient } from "../TeacherHomeworkClient";
 import { TeacherSyllabusClient } from "../../syllabus/TeacherSyllabusClient";
 import { parseOmniboxQuery } from "@schoolmitra/entity-engine/query-ner";
