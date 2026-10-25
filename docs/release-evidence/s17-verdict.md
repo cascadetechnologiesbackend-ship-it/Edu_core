@@ -54,7 +54,7 @@ Specification `S17-HR-STAFF-HUB` completely reorganizes the Human Resources modu
 
 - [x] **AC-1: Zero-Clutter Invariant**: When a school has 0 staff, Overview renders a calm empty state with greeting and "Add First Staff Member" CTA. No empty charts or grids render unconditionally.
 - [x] **AC-2: Live Census & Member Counts Truth**: Department and designation member counts strictly reflect live active staff data inside tenant boundaries.
-- [x] **AC-3: Server-Side Email Masking**: Email is masked to `a***@domain.com` in server payload; `revealStaffEmail` action audits access and returns unmasked value only to authorized roles.
+- [x] **AC-3: Server-Side Email & PII Masking**: Email is masked to `a***@domain.com` in server payload; `revealStaffEmail` and `revealStaffPii` actions audit access and return unmasked values only to authorized roles (`HR_MANAGER`, `SCHOOL_ADMIN`, `SUPER_ADMIN`, and `PRINCIPAL` with mandatory audit logging per S18-OD1). Unauthorized roles (`TEACHER`, `PARENT`, `STUDENT`) are strictly denied (403).
 - [x] **AC-4: Bidirectional Conflict Warnings**: Assigning a teacher who is already a homeroom lead elsewhere surfaces a warning naming the existing section; assigning to a section with an active teacher surfaces confirmation modal with replacement notice.
 - [x] **AC-5: Dual Cache Invalidation**: `invalidateTeachingStaffCache(schoolId)` and `clearTeacherScopeCache(teacherUserId)` are invoked on every allocation write.
 - [x] **AC-6: Click Budget (≤ 4 taps)**: Overview → Allocations → Select Teacher → Save executes in 2 to 3 taps.
