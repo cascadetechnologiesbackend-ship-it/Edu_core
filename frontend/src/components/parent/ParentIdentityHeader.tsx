@@ -13,6 +13,8 @@ export interface StudentWardOption {
   admissionNumber: string;
   avatarUrl?: string | null | undefined;
   attendanceRate?: number | undefined;
+  classTeacherName?: string | null | undefined;
+  classTeacherDesignation?: string | null | undefined;
 }
 
 export interface ParentIdentityHeaderProps {
@@ -103,7 +105,7 @@ export function ParentIdentityHeader({
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400 mt-0.5">
               <span>
                 {currentStudent.id === "all"
                   ? `${availableStudents.length} Students • Merged Feed`
@@ -112,6 +114,12 @@ export function ParentIdentityHeader({
               {currentStudent.id !== "all" && (
                 <span className="text-[11px] text-slate-500">
                   ADM: {currentStudent.admissionNumber}
+                </span>
+              )}
+              {currentStudent.classTeacherName && (
+                <span className="text-[11px] text-emerald-400 font-medium" data-testid="class-teacher-pill">
+                  CT: {currentStudent.classTeacherName}
+                  {currentStudent.classTeacherDesignation ? ` (${currentStudent.classTeacherDesignation})` : ""}
                 </span>
               )}
             </div>

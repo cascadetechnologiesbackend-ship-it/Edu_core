@@ -362,6 +362,19 @@ export function UserProfileView({
                 </span>
               </div>
             )}
+            {readOnlyDetails.classTeacherName && (
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span className="text-slate-500 block">Class Teacher</span>
+                <span className="font-semibold text-emerald-400 mt-0.5 block">
+                  {readOnlyDetails.classTeacherName}
+                  {readOnlyDetails.classTeacherDesignation ? (
+                    <span className="text-xs text-slate-400 font-normal ml-1.5">
+                      • {readOnlyDetails.classTeacherDesignation}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            )}
             {readOnlyDetails.licenceNumber && (
               <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <span className="text-slate-500 block">Driving Licence</span>

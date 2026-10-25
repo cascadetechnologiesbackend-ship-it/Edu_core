@@ -115,6 +115,8 @@ export default async function ParentDashboardPage({
     sectionName: w.sectionName || "",
     admissionNumber: w.admissionNumber,
     avatarUrl: w.photoS3Key,
+    classTeacherName: w.classTeacherName,
+    classTeacherDesignation: w.classTeacherDesignation,
   }));
 
   // 3. Select active student (searchParam or first)

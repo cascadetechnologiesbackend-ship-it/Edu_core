@@ -11,6 +11,9 @@ import {
   students,
   drivers,
   auditLogs,
+  classes,
+  sections,
+  classTeacherAssignments,
 } from "@/db/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { encryptData, decryptData, computeSearchHash } from "@/lib/encryption";
@@ -61,6 +64,8 @@ export interface ReadOnlyProfileDetails {
   rollNumber?: string | undefined;
   licenceNumber?: string | undefined;
   assignedVehicle?: string | undefined;
+  classTeacherName?: string | undefined;
+  classTeacherDesignation?: string | undefined;
 }
 
 export interface SelfProfileResult {
@@ -221,6 +226,52 @@ export async function getSelfProfileAction(): Promise<SelfProfileResult> {
       bloodGroup = studentRecord.bloodGroup || null;
       readOnlyDetails.admissionNumber = studentRecord.admissionNumber || undefined;
       readOnlyDetails.rollNumber = studentRecord.rollNumber || undefined;
+
+      const schoolId = user.schoolId || session.user.schoolId;
+
+      if (studentRecord.currentClassId && schoolId) {
+        const cls = await db.query.classes.findFirst({
+          where: and(eq(classes.id, studentRecord.currentClassId), eq(classes.schoolId, schoolId)),
+        });
+        if (cls) {
+          readOnlyDetails.className = cls.displayName || undefined;
+        }
+      }
+
+      if (studentRecord.currentSectionId && schoolId) {
+        const sec = await db.query.sections.findFirst({
+          where: and(eq(sections.id, studentRecord.currentSectionId), eq(sections.schoolId, schoolId)),
+        });
+        if (sec) {
+          readOnlyDetails.sectionName = sec.name || undefined;
+        }
+
+        // Canonical S16 assignment table, with fallback to sections mirror
+        const cta = await db.query.classTeacherAssignments.findFirst({
+          where: and(
+            eq(classTeacherAssignments.sectionId, studentRecord.currentSectionId),
+            eq(classTeacherAssignments.isActive, true),
+            eq(classTeacherAssignments.schoolId, schoolId)
+          ),
+        });
+
+        const teacherUserId = cta?.teacherId || sec?.classTeacherId;
+        if (teacherUserId) {
+          const teacherStaff = await db.query.staff.findFirst({
+            where: and(eq(staff.userId, teacherUserId), eq(staff.schoolId, schoolId)),
+            with: { designation: true },
+          });
+          if (teacherStaff) {
+            const fn = decryptData(teacherStaff.firstNameEncrypted) || "";
+            const ln = decryptData(teacherStaff.lastNameEncrypted) || "";
+            const fullName = `${fn} ${ln}`.trim();
+            if (fullName) {
+              readOnlyDetails.classTeacherName = fullName;
+              readOnlyDetails.classTeacherDesignation = teacherStaff.designation?.name || "Class Teacher";
+            }
+          }
+        }
+      }
     }
   } else if (session.user.role === "DRIVER") {
     driverRecord = await db.query.drivers.findFirst({
