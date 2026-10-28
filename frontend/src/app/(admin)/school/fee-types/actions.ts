@@ -15,7 +15,9 @@ export async function createFeeHead(formData: FormData) {
     const code = (formData.get("code") as string)?.trim()?.toUpperCase() || null;
     const description = (formData.get("description") as string)?.trim() || null;
     const category = (formData.get("category") as string) || "RECURRING";
-    const headType = (formData.get("headType") as any) || "TUITION";
+    let headType = ((formData.get("headType") as string) || "TUITION").toUpperCase();
+    if (headType === "EXAMINATION") headType = "EXAM";
+    const headTypeValue = headType as any;
     const priority = parseInt((formData.get("priority") as string) || "99", 10);
     const discountEligible = formData.get("discountEligible") === "on" || formData.get("discountEligible") === "true";
     const lateFineEligible = formData.get("lateFineEligible") === "on" || formData.get("lateFineEligible") === "true";
@@ -45,7 +47,7 @@ export async function createFeeHead(formData: FormData) {
       code,
       description,
       category,
-      headType,
+      headType: headTypeValue,
       priority,
       discountEligible,
       lateFineEligible,

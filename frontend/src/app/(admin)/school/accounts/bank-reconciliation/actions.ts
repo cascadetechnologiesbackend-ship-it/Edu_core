@@ -109,7 +109,7 @@ export async function getBankReconciliationDataAction(bankAccountId?: string) {
         transactionType: tx.transactionType,
         sourceType: tx.sourceType,
         description: tx.description,
-        transactionDate: tx.transactionDate.toISOString(),
+        transactionDate: tx.transactionDate ? new Date(tx.transactionDate).toISOString() : new Date().toISOString(),
       })),
       adjustingVouchers: adjustingVouchers.map((tx) => ({
         id: tx.id,
@@ -117,7 +117,7 @@ export async function getBankReconciliationDataAction(bankAccountId?: string) {
         amount: tx.amount,
         transactionType: tx.transactionType,
         description: tx.description,
-        transactionDate: tx.transactionDate.toISOString(),
+        transactionDate: tx.transactionDate ? new Date(tx.transactionDate).toISOString() : new Date().toISOString(),
       })),
       userRole: ctx.role,
     };
@@ -172,7 +172,7 @@ export async function matchBankStatementAction(params: {
       // Find candidates with matching date (same calendar day) and matching amount
       const candidates = ledgerTxList.filter((tx) => {
         if (usedTxIds.has(tx.id)) return false;
-        const txDateStr = tx.transactionDate.toISOString().slice(0, 10);
+        const txDateStr = (tx.transactionDate ? new Date(tx.transactionDate) : new Date()).toISOString().slice(0, 10);
         if (txDateStr !== rowDateStr) return false;
 
         const txAmount = parseFloat(tx.amount);
@@ -200,7 +200,7 @@ export async function matchBankStatementAction(params: {
             amount: matched.amount,
             transactionType: matched.transactionType,
             description: matched.description,
-            transactionDate: matched.transactionDate.toISOString(),
+            transactionDate: matched.transactionDate ? new Date(matched.transactionDate).toISOString() : new Date().toISOString(),
           },
         });
       } else if (candidates.length > 1) {
@@ -214,7 +214,7 @@ export async function matchBankStatementAction(params: {
             amount: c.amount,
             transactionType: c.transactionType,
             description: c.description,
-            transactionDate: c.transactionDate.toISOString(),
+            transactionDate: c.transactionDate ? new Date(c.transactionDate).toISOString() : new Date().toISOString(),
           })),
         });
       } else {

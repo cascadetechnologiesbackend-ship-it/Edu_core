@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { Settings, Award, Percent, Building2, ShieldCheck } from "lucide-react";
+import {
+  Settings,
+  Award,
+  Percent,
+  Building2,
+  ShieldCheck,
+  Layers,
+  GraduationCap,
+  Wallet,
+  Building,
+} from "lucide-react";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/serverAuth";
@@ -11,6 +21,15 @@ export const metadata: Metadata = {
 
 const SETTINGS_CARDS = [
   {
+    title: "Setup Hub & Digital Twin",
+    description:
+      "Inspect configuration completeness, review provisioned blueprint packs, and run universal data imports.",
+    href: "/settings/school-setup",
+    icon: Layers,
+    color: "text-indigo-500",
+    bgColor: "bg-indigo-500/10",
+  },
+  {
     title: "School Profile Setup",
     description:
       "Manage school name, address, logo, principal credentials, and basic details.",
@@ -20,13 +39,40 @@ const SETTINGS_CARDS = [
     bgColor: "bg-blue-500/10",
   },
   {
+    title: "Curriculum & Classrooms",
+    description:
+      "Manage grade hierarchy, section divisions, curriculum subjects, and period allocations.",
+    href: "/academics",
+    icon: GraduationCap,
+    color: "text-emerald-500",
+    bgColor: "bg-emerald-500/10",
+  },
+  {
+    title: "Fee Structures & Heads",
+    description:
+      "Configure institutional fee heads, frequency rules, pricing matrix, and ledger accounts.",
+    href: "/fees/structures",
+    icon: Wallet,
+    color: "text-teal-500",
+    bgColor: "bg-teal-500/10",
+  },
+  {
+    title: "HR Salary Templates",
+    description:
+      "Configure employment designations, salary components, HRA/DA allowances, and PF rates.",
+    href: "/hr",
+    icon: Building,
+    color: "text-rose-500",
+    bgColor: "bg-rose-500/10",
+  },
+  {
     title: "Role & Access Management",
     description:
       "Configure tenant roles, staff role memberships, account status, and credentials.",
     href: "/settings/roles",
     icon: ShieldCheck,
-    color: "text-indigo-500",
-    bgColor: "bg-indigo-500/10",
+    color: "text-cyan-500",
+    bgColor: "bg-cyan-500/10",
   },
   {
     title: "Exam Types & Weightages",

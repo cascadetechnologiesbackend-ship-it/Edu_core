@@ -109,8 +109,8 @@ export async function getAvailablePTMSlots(ptmEventId: string) {
       eventId: eventRow.eventId,
       title: eventRow.eventTitle,
       venue: eventRow.venue,
-      bookingOpensAt: eventRow.bookingOpensAt.toISOString(),
-      bookingClosesAt: eventRow.bookingClosesAt.toISOString(),
+      bookingOpensAt: new Date(eventRow.bookingOpensAt).toISOString(),
+      bookingClosesAt: new Date(eventRow.bookingClosesAt).toISOString(),
       slotMinutes: eventRow.slotMinutes,
       teacherName: resolvedTeacherName,
       isOpen,
@@ -120,8 +120,8 @@ export async function getAvailablePTMSlots(ptmEventId: string) {
 
     const slots: AvailablePTMSlot[] = slotRows.map((s) => ({
       id: s.id,
-      startAt: s.startAt.toISOString(),
-      endAt: s.endAt.toISOString(),
+      startAt: new Date(s.startAt).toISOString(),
+      endAt: new Date(s.endAt).toISOString(),
       status: s.status as "FREE",
       version: s.version,
     }));

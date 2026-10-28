@@ -307,7 +307,7 @@ export async function getStudentInvoicesAction(studentId: string) {
         invoiceNumber: inv.invoiceNumber,
         feeHeadName: inv.feeStructure?.feeHead?.name || "Fee Invoice",
         term: inv.term,
-        dueDate: inv.dueDate.toISOString(),
+        dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : new Date().toISOString(),
         grossAmount: parseFloat(inv.grossAmount),
         discountAmount: parseFloat(inv.discountAmount || "0"),
         lateFeeAmount: parseFloat(inv.lateFeeAmount || "0"),
@@ -450,7 +450,9 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
           receiptData: {
             schoolName: school.name || "SchoolMitra Campus",
             receiptNumber: firstPayment.receiptGroupId || firstPayment.receiptNumber,
-            date: firstPayment.paymentDate.toISOString(),
+            date: firstPayment.paymentDate
+              ? new Date(firstPayment.paymentDate).toISOString()
+              : new Date().toISOString(),
             cashierName: ctx.email,
             student: {
               name: studentName,
@@ -755,7 +757,9 @@ export async function processCounterCollection(input: FormData | MultiInvoiceCol
               receiptData: {
                 schoolName: school?.name || "SchoolMitra Campus",
                 receiptNumber: firstPayment.receiptGroupId || firstPayment.receiptNumber,
-                date: firstPayment.paymentDate.toISOString(),
+                date: firstPayment.paymentDate
+                  ? new Date(firstPayment.paymentDate).toISOString()
+                  : new Date().toISOString(),
                 cashierName: ctx?.email || "Cashier",
                 student: {
                   name: studentName,

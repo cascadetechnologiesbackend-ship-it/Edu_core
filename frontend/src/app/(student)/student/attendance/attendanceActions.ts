@@ -227,8 +227,8 @@ export async function getStudentAttendanceAction(
         reason: lr.reason,
         status: lr.status,
         decisionNote: lr.decisionNote || null,
-        decidedAt: lr.decidedAt ? lr.decidedAt.toISOString() : null,
-        createdAt: lr.createdAt.toISOString(),
+        decidedAt: lr.decidedAt ? new Date(lr.decidedAt).toISOString() : null,
+        createdAt: lr.createdAt ? new Date(lr.createdAt).toISOString() : new Date().toISOString(),
       }));
 
       return {

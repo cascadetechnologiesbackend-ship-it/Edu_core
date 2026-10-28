@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
 import TeacherGradingClient from "./TeacherGradingClient";
+import { requireAuth } from "@/lib/serverAuth";
 import {
   getTeacherGradingAssignments,
   getAssignmentSubmissionsForGrading,
@@ -39,6 +40,8 @@ export default async function TeacherGradingPage({
 }) {
   const resolvedParams =
     searchParams instanceof Promise ? await searchParams : searchParams || {};
+
+  await requireAuth();
 
   const activeTab = (resolvedParams.tab as "assignments" | "exams") || "assignments";
 

@@ -226,6 +226,8 @@ export const GRADE_LEVELS = [
   "CLASS_8",
   "CLASS_9",
   "CLASS_10",
+  "CLASS_11",
+  "CLASS_12",
 ] as const;
 
 export type GradeLevel = (typeof GRADE_LEVELS)[number];
@@ -237,6 +239,16 @@ export type Gender = (typeof GENDERS)[number];
 
 export const CATEGORIES = ["GENERAL", "SC", "ST", "OBC", "EWS"] as const;
 export type Category = (typeof CATEGORIES)[number];
+
+export const STREAMS = [
+  "SCIENCE",
+  "COMMERCE",
+  "ARTS",
+  "HUMANITIES",
+  "VOCATIONAL",
+] as const;
+export type Stream = (typeof STREAMS)[number];
+export const streamSchema = z.enum(STREAMS);
 
 export const BLOOD_GROUPS = [
   "A_POSITIVE",
@@ -393,6 +405,9 @@ export const FEE_HEAD_TYPES = [
   "EXAM",
   "MISCELLANEOUS",
 ] as const;
+
+export type FeeHeadType = (typeof FEE_HEAD_TYPES)[number];
+export const feeHeadTypeSchema = z.enum(FEE_HEAD_TYPES);
 
 export const createFeeStructureSchema = z.object({
   schoolId: uuidSchema,

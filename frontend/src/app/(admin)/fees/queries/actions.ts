@@ -191,7 +191,12 @@ export async function answerAdminFeeQuery(input: { queryId: string; answer: stri
           answeredAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(feeQueries.id, input.queryId));
+        .where(
+          and(
+            eq(feeQueries.id, input.queryId),
+            eq(feeQueries.schoolId, school.id)
+          )
+        );
 
       revalidatePath("/admin/fees/queries");
       revalidatePath("/parent/dashboard");

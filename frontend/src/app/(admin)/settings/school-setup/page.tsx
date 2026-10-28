@@ -14,22 +14,36 @@ import {
   Loader2,
   ExternalLink,
   Sparkles,
+  Layers,
+  GraduationCap,
+  Calendar,
+  Wallet,
+  Clock,
+  ArrowUpRight,
+  FileSpreadsheet,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   getSchoolProfile,
   updateSchoolProfile,
   uploadSchoolLogo,
+  getSchoolConfigurationHealthAction,
+  type ConfigurationHealthStats,
 } from "./actions";
 import type { CompletenessResult } from "@/lib/profileCompleteness";
+import { ImportExportModal } from "@/components/ui/ImportExportModal";
 
 export default function SchoolSetupPage() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [logoUploading, setLogoUploading] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"hub" | "profile">("hub");
   const [schoolData, setSchoolData] = useState<any>(null);
   const [completeness, setCompleteness] = useState<CompletenessResult | null>(null);
+  const [healthStats, setHealthStats] = useState<ConfigurationHealthStats | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -59,9 +73,13 @@ export default function SchoolSetupPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await getSchoolProfile();
+      const [res, health] = await Promise.all([
+        getSchoolProfile(),
+        getSchoolConfigurationHealthAction(),
+      ]);
       setSchoolData(res.school);
       setCompleteness(res.completeness);
+      setHealthStats(health);
 
       const social = (res.school.socialHandles as any) || {};
       const theme = (res.school.themeColors as any) || {};
@@ -219,8 +237,174 @@ export default function SchoolSetupPage() {
         </div>
       </div>
 
-      {/* Completeness Card */}
-      <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+      {/* Primary Navigation Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-slate-800 gap-8">
+        <button
+          type="button"
+          onClick={() => setActiveTab("hub")}
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+            activeTab === "hub"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+          }`}
+        >
+          <Layers className="w-4 h-4" /> Setup Hub & Digital Twin
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("profile")}
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+            activeTab === "profile"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+          }`}
+        >
+          <Building2 className="w-4 h-4" /> Institution Identity & Branding
+        </button>
+      </div>
+
+      {activeTab === "hub" ? (
+        /* Digital Twin Configuration Hub */
+        <div className="space-y-6 animate-in fade-in-50 duration-200">
+          {/* Provenance & Status Banner */}
+          <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/50 via-purple-50/30 to-white dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-slate-900 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                    {healthStats?.isProvisioned
+                      ? "School Digital Twin Active"
+                      : "Standard Configuration Workspace"}
+                  </h2>
+                  {healthStats?.isProvisioned && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      v{healthStats.blueprintVersion || "1.0.0"}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 max-w-xl">
+                  {healthStats?.isProvisioned
+                    ? `Configured from canonical blueprint with ${healthStats.classesCount} classes, ${healthStats.subjectsCount} curriculum subjects, and ${healthStats.feeHeadsCount} fee heads.`
+                    : "Configure common academic, fee, and HR templates. Coordinate with platform super-admin to apply a certified board blueprint."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsImportOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition active:scale-95"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Universal Data Import
+              </button>
+            </div>
+          </div>
+
+          {/* Configuration Health Score */}
+          <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-base ${
+                    (healthStats?.overallScore ?? 0) >= 80
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
+                      : (healthStats?.overallScore ?? 0) >= 50
+                      ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+                  }`}
+                >
+                  {healthStats?.overallScore ?? 0}%
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    Operational Setup Completeness
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Calculated from verified persisted records across Academics, Timetable, Fees, and HR.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 self-start sm:self-auto">
+                {healthStats?.overallScore ?? 0}% Ready
+              </span>
+            </div>
+
+            {/* Health Progress Bar */}
+            <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  (healthStats?.overallScore ?? 0) >= 80
+                    ? "bg-emerald-500"
+                    : (healthStats?.overallScore ?? 0) >= 50
+                    ? "bg-indigo-600"
+                    : "bg-amber-500"
+                }`}
+                style={{ width: `${healthStats?.overallScore ?? 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Grouped Setup Category Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {healthStats?.categories.map((cat) => (
+              <div
+                key={cat.key}
+                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 hover:border-indigo-500/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        cat.status === "COMPLETE"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : cat.status === "PARTIAL"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                          : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20"
+                      }`}
+                    >
+                      {cat.status === "COMPLETE"
+                        ? "CONFIGURED"
+                        : cat.status === "PARTIAL"
+                        ? "IN PROGRESS"
+                        : "NOT STARTED"}
+                    </span>
+                    <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                      {cat.metric}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                      {cat.title}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      {cat.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[11px] text-gray-400">Operational Module</span>
+                  <Link
+                    href={cat.href as any}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
+                  >
+                    Open Workspace <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* Institution Profile & Branding Form */
+        <>
+          {/* Completeness Card */}
+          <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-base ${
@@ -727,6 +911,17 @@ export default function SchoolSetupPage() {
           </button>
         </div>
       </form>
+      </>
+      )}
+
+      {/* Universal Data Import & Onboarding Modal */}
+      <ImportExportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onCommitSuccess={() => {
+          loadData();
+        }}
+      />
     </div>
   );
 }

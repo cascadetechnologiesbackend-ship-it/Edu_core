@@ -199,7 +199,7 @@ export async function getTeacherSyllabusData(
       if (plan.syllabusTopicId) {
         taughtTopicIds.set(
           plan.syllabusTopicId,
-          plan.completedDate ? plan.completedDate.toISOString() : new Date().toISOString()
+          plan.completedDate ? new Date(plan.completedDate).toISOString() : new Date().toISOString()
         );
       }
     }
@@ -468,7 +468,7 @@ export async function markTopicTaughtAction(input: {
           classSubjectId,
           schoolId: school.id,
           teacherUserId: ctx.userId,
-          coveredAt: effectiveDate?.toISOString(),
+          coveredAt: effectiveDate ? new Date(effectiveDate).toISOString() : undefined,
         },
         status: "PENDING",
       });
@@ -495,7 +495,7 @@ export async function markTopicTaughtAction(input: {
     return {
       success: true,
       isTaught: input.isTaught,
-      taughtDate: effectiveDate ? effectiveDate.toISOString() : null,
+      taughtDate: effectiveDate ? new Date(effectiveDate).toISOString() : null,
       message: input.isTaught ? "Topic marked as covered." : "Topic marked as pending.",
     };
   });

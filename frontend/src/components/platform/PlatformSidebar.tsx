@@ -13,6 +13,7 @@ import {
   Terminal,
   Activity,
   CheckCircle2,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { secureSignOut } from "@/lib/authClient";
@@ -33,6 +34,11 @@ const NAV_ITEMS = [
     label: "School Tenants",
     href: "/super-admin/schools",
     icon: Building2,
+  },
+  {
+    label: "Digital Twins & Blueprints",
+    href: "/super-admin/templates",
+    icon: Layers,
   },
   {
     label: "Broadcast Center",

@@ -4900,5 +4900,58 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
         "description": "Remarks signed off by class teacher."
       }
     ]
+  },
+  "school_provisions": {
+    "tableName": "school_provisions",
+    "drizzleExport": "schoolProvisions",
+    "domain": "SUPERADMIN_OPS",
+    "displayName": "School Configuration Provisioning",
+    "description": "Records idempotent template profile provisioning runs for tenant schools with blueprint version and entity count tracking.",
+    "primaryKey": [
+      "id"
+    ],
+    "isTenantScoped": true,
+    "tenantKey": "school_id",
+    "piiColumns": [],
+    "searchableFields": [
+      "blueprint_version",
+      "status"
+    ],
+    "tags": [
+      "superadmin",
+      "provisioning",
+      "digital-twin",
+      "blueprint"
+    ],
+    "relationships": [
+      {
+        "sourceTable": "school_provisions",
+        "targetTable": "schools",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "school_id",
+        "targetColumn": "id",
+        "onDelete": "CASCADE",
+        "description": "Provisioning record belongs to school tenant."
+      },
+      {
+        "sourceTable": "school_provisions",
+        "targetTable": "global_template_profiles",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "profile_id",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Provisioning record references global template profile."
+      },
+      {
+        "sourceTable": "school_provisions",
+        "targetTable": "super_admin_users",
+        "relationType": "MANY_TO_ONE",
+        "sourceColumn": "provisioned_by",
+        "targetColumn": "id",
+        "onDelete": "RESTRICT",
+        "description": "Provisioning run executed by superadmin operator."
+      }
+    ]
   }
 };
+

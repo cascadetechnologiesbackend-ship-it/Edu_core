@@ -153,10 +153,10 @@ export async function getStopChangeRequests(
         requestedStopName: stop?.stopName || "Requested Stop",
         reason: req.reason,
         status: req.status as any,
-        effectiveDate: req.effectiveDate ? req.effectiveDate.toISOString() : null,
+        effectiveDate: req.effectiveDate ? new Date(req.effectiveDate).toISOString() : null,
         decisionNote: req.decisionNote || null,
-        decidedAt: req.decidedAt ? req.decidedAt.toISOString() : null,
-        createdAt: req.createdAt.toISOString(),
+        decidedAt: req.decidedAt ? new Date(req.decidedAt).toISOString() : null,
+        createdAt: req.createdAt ? new Date(req.createdAt).toISOString() : new Date().toISOString(),
       }));
 
       return { success: true, requests };

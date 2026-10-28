@@ -48,7 +48,7 @@ export default async function OnlinePaymentsPage() {
     status: log.status,
     isReconciled: reconciledSet.has(log.id),
     webhookPayload: log.webhookPayload || undefined,
-    createdAt: log.createdAt.toISOString(),
+    createdAt: log.createdAt ? new Date(log.createdAt).toISOString() : new Date().toISOString(),
   }));
 
   return (

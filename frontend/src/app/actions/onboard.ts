@@ -44,7 +44,7 @@ export interface FeeHeadSetupItem {
   name: string;
   code: string;
   category: "RECURRING" | "ONE_TIME" | "OPTIONAL";
-  headType: "TUITION" | "ADMISSION" | "TRANSPORT" | "HOSTEL" | "LAB" | "LIBRARY" | "EXAMINATION" | "MISCELLANEOUS";
+  headType: "TUITION" | "ADMISSION" | "TRANSPORT" | "HOSTEL" | "LAB" | "LIBRARY" | "EXAM" | "EXAMINATION" | "MISCELLANEOUS";
   isRefundable?: boolean;
 }
 
@@ -362,7 +362,7 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
           code: head.code || `FH_${i + 1}`,
           priority: i + 1,
           category: head.category as any,
-          headType: head.headType as any,
+          headType: (head.headType === "EXAMINATION" ? "EXAM" : head.headType) as any,
           discountEligible: head.headType === "TUITION" || head.headType === "LAB",
           isRefundable: head.isRefundable || false,
           isActive: true,

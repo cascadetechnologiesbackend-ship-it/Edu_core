@@ -195,8 +195,8 @@ export async function getProfileChangeRequests(
           decisionReason,
           summaryText: summary.summaryText,
           diffItems: summary.diffItems,
-          decidedAt: r.decidedAt ? r.decidedAt.toISOString() : null,
-          createdAt: r.createdAt.toISOString(),
+          decidedAt: r.decidedAt ? new Date(r.decidedAt).toISOString() : null,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
         };
       });
 

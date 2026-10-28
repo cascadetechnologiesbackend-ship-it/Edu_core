@@ -326,7 +326,9 @@ export default async function FeesDashboardPage({
             admissionNumber: p.student?.admissionNumber || "N/A",
             amount: parseFloat(p.amountPaid || "0"),
             paymentMethod: p.paymentMethod,
-            paymentDate: p.paymentDate.toISOString(),
+            paymentDate: p.paymentDate
+              ? new Date(p.paymentDate).toISOString()
+              : new Date().toISOString(),
           };
         });
 
@@ -407,8 +409,8 @@ export default async function FeesDashboardPage({
     label: ay.label,
     isActive: ay.isActive,
     isLocked: ay.isLocked || false,
-    startDate: ay.startDate.toISOString(),
-    endDate: ay.endDate.toISOString(),
+    startDate: ay.startDate ? new Date(ay.startDate).toISOString() : "",
+    endDate: ay.endDate ? new Date(ay.endDate).toISOString() : "",
     lockReason: ay.lockReason,
   }));
 

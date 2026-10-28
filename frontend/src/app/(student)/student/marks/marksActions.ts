@@ -472,7 +472,7 @@ export async function getStudentMarksAction(
                     teacherRemarks: rc.teacherRemarks,
                     principalRemarks: rc.principalRemarks,
                     pdfS3Key: rc.pdfS3Key,
-                    generatedAt: rc.generatedAt ? rc.generatedAt.toISOString() : null,
+                    generatedAt: rc.generatedAt ? new Date(rc.generatedAt).toISOString() : null,
                   }
                 : null,
             });

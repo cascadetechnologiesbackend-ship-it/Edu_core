@@ -389,7 +389,7 @@ export default async function StudentProfilePage({
       className: classMap.get(h.classId) || "Class",
       sectionName: secMap.get(h.sectionId) || "A",
       promotionStatus: h.promotionStatus,
-      createdAt: h.createdAt.toISOString(),
+      createdAt: h.createdAt ? new Date(h.createdAt).toISOString() : new Date().toISOString(),
     }));
 
     // 10. Compile Chronological Timeline Events
@@ -404,7 +404,7 @@ export default async function StudentProfilePage({
       if (app) {
         timelineEvents.push({
           id: `app-${app.id}`,
-          date: app.createdAt.toISOString(),
+          date: app.createdAt ? new Date(app.createdAt).toISOString() : new Date().toISOString(),
           title: `Application Submitted (${app.applicationNumber})`,
           description: `Admission application submitted for Grade ${app.gradeAppliedFor}.`,
           type: "ADMISSION",
@@ -414,7 +414,7 @@ export default async function StudentProfilePage({
             if (step.stepName !== "APPLICATION_SUBMITTED" && step.completedAt) {
               timelineEvents.push({
                 id: `step-${step.id}`,
-                date: step.completedAt.toISOString(),
+                date: step.completedAt ? new Date(step.completedAt).toISOString() : new Date().toISOString(),
                 title: `Workflow: ${step.stepName}`,
                 description: step.notes || `Application progressed to ${step.stepName}.`,
                 type: "ADMISSION",
@@ -428,7 +428,7 @@ export default async function StudentProfilePage({
     // Enrollment milestone
     timelineEvents.push({
       id: `enroll-${student.id}`,
-      date: student.admissionDate.toISOString(),
+      date: student.admissionDate ? new Date(student.admissionDate).toISOString() : new Date().toISOString(),
       title: `Enrolled into ${currentClass?.displayName || "Class"} • Section ${currentSection?.name || "A"}`,
       description: `Official institutional admission record established under Admission No ${student.admissionNumber}.`,
       type: "ENROLLMENT",
@@ -450,9 +450,10 @@ export default async function StudentProfilePage({
     // Absorb Fee payments into timeline
     for (const inv of studentInvoicesList) {
       if (parseFloat(inv.paidAmount || "0") > 0) {
+        const rawDate = (inv as any).updatedAt || (inv as any).createdAt;
         timelineEvents.push({
           id: `fee-paid-${inv.id}`,
-          date: (inv as any).updatedAt ? (inv as any).updatedAt.toISOString() : (inv as any).createdAt.toISOString(),
+          date: rawDate ? new Date(rawDate).toISOString() : new Date().toISOString(),
           title: `Fee Payment Received (₹${inv.paidAmount})`,
           description: `Payment recorded towards invoice #${inv.invoiceNumber} (${(inv as any).feeStructure?.feeHead?.name || inv.term}).`,
           type: "FEE",
@@ -464,7 +465,7 @@ export default async function StudentProfilePage({
     for (const entry of studentMarkEntriesList) {
       timelineEvents.push({
         id: `exam-${entry.id}`,
-        date: entry.enteredAt.toISOString(),
+        date: entry.enteredAt ? new Date(entry.enteredAt).toISOString() : new Date().toISOString(),
         title: `Exam Score: ${entry.exam?.name || "Exam"} • ${entry.subject?.name || "Subject"}`,
         description: entry.isAbsent
           ? "Marked absent for this examination."
@@ -478,7 +479,7 @@ export default async function StudentProfilePage({
       if (snap.publishedAt) {
         timelineEvents.push({
           id: `report-${snap.id}`,
-          date: snap.publishedAt.toISOString(),
+          date: new Date(snap.publishedAt).toISOString(),
           title: `Report Card Released: ${snap.setup?.name || "Evaluation Report"}`,
           description: "Official consolidated performance report card published for academic record.",
           type: "ACADEMIC",
@@ -490,7 +491,7 @@ export default async function StudentProfilePage({
     for (const sub of studentSubmissionsList) {
       timelineEvents.push({
         id: `homework-${sub.id}`,
-        date: sub.submittedAt.toISOString(),
+        date: sub.submittedAt ? new Date(sub.submittedAt).toISOString() : new Date().toISOString(),
         title: `Homework Submitted: ${sub.assignment?.title || "Assignment"}`,
         description: `${sub.assignment?.classSubject?.subject?.name || "Subject"} assignment submitted${sub.isLate ? " (late submission)" : ""}.`,
         type: "ACADEMIC",
@@ -631,7 +632,7 @@ export default async function StudentProfilePage({
       isAbsent: entry.isAbsent,
       isMedicalExempt: entry.isMedicalExempt,
       remarks: entry.remarks,
-      enteredAt: entry.enteredAt.toISOString(),
+      enteredAt: entry.enteredAt ? new Date(entry.enteredAt).toISOString() : new Date().toISOString(),
     };
   });
 
@@ -642,8 +643,8 @@ export default async function StudentProfilePage({
       id: snap.id,
       setupName: snap.setup?.name || "Evaluation Report",
       version: snap.version,
-      frozenAt: snap.frozenAt.toISOString(),
-      publishedAt: snap.publishedAt ? snap.publishedAt.toISOString() : null,
+      frozenAt: snap.frozenAt ? new Date(snap.frozenAt).toISOString() : new Date().toISOString(),
+      publishedAt: snap.publishedAt ? new Date(snap.publishedAt).toISOString() : null,
       rank: p.rank ?? p.classRank ?? null,
       percentage: p.percentage ?? p.overallPercentage ?? null,
       totalMarks: p.totalMarks ?? p.marksObtained ?? null,
@@ -660,8 +661,8 @@ export default async function StudentProfilePage({
       assignmentTitle: asgn?.title || "Assignment",
       subjectName: asgn?.classSubject?.subject?.name || "Subject",
       subjectCode: asgn?.classSubject?.subject?.code || "",
-      dueDate: asgn?.dueDate ? asgn.dueDate.toISOString() : null,
-      submittedAt: sub.submittedAt.toISOString(),
+      dueDate: asgn?.dueDate ? new Date(asgn.dueDate).toISOString() : null,
+      submittedAt: sub.submittedAt ? new Date(sub.submittedAt).toISOString() : new Date().toISOString(),
       isLate: sub.isLate,
       marksAwarded: sub.marksAwarded,
       maxMarks: asgn?.maxMarks ?? null,
@@ -674,7 +675,7 @@ export default async function StudentProfilePage({
     id: student.id,
     admissionNumber: student.admissionNumber,
     fullName,
-    dateOfBirth: student.dateOfBirth?.toISOString() || null,
+    dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString() : null,
     gender: student.gender,
     category: student.category,
     bloodGroup: student.bloodGroup,
@@ -682,8 +683,8 @@ export default async function StudentProfilePage({
     apaarId: student.apaarId,
     photoUrl,
     isActive: student.isActive,
-    admissionDate: student.admissionDate.toISOString(),
-    leavingDate: student.leavingDate?.toISOString() || null,
+    admissionDate: student.admissionDate ? new Date(student.admissionDate).toISOString() : new Date().toISOString(),
+    leavingDate: student.leavingDate ? new Date(student.leavingDate).toISOString() : null,
     leavingReason: student.leavingReason,
     classId: student.currentClassId || null,
     className: currentClass?.displayName || "",
@@ -713,7 +714,7 @@ export default async function StudentProfilePage({
     },
     attendanceLogs: attendanceEntries.map((log) => ({
       id: log.id,
-      date: log.attendanceDate.toISOString(),
+      date: log.attendanceDate ? new Date(log.attendanceDate).toISOString() : new Date().toISOString(),
       status: log.status,
       remarks: log.remarks,
     })),
@@ -724,7 +725,7 @@ export default async function StudentProfilePage({
       name: fs.feeHead?.name || "Fee",
       term: fs.term,
       amount: fs.amount,
-      dueDate: fs.dueDate.toISOString(),
+      dueDate: fs.dueDate ? new Date(fs.dueDate).toISOString() : new Date().toISOString(),
     })),
     invoices: studentInvoices.map((inv: any) => ({
       id: inv.id,
@@ -734,7 +735,7 @@ export default async function StudentProfilePage({
       paidAmount: inv.paidAmount,
       balanceAmount: inv.balanceAmount,
       status: inv.status,
-      dueDate: inv.dueDate.toISOString(),
+      dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : new Date().toISOString(),
       term: inv.term,
     })),
     concessions: studentConcessions.map((c) => ({
@@ -749,7 +750,7 @@ export default async function StudentProfilePage({
       documentType: doc.documentType,
       originalFileName: doc.originalFileName,
       isVerified: doc.isVerified,
-      createdAt: doc.createdAt.toISOString(),
+      createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
     })),
     classHistory: mappedHistory,
     timelineEvents,

@@ -84,7 +84,7 @@ export default async function StudentsDirectoryPage() {
           const hasNextPage = initialStudentRows.length > INITIAL_PAGE_SIZE;
           const pagedRows = hasNextPage ? initialStudentRows.slice(0, INITIAL_PAGE_SIZE) : initialStudentRows;
           const nextCursor = hasNextPage && pagedRows.length > 0
-            ? pagedRows[pagedRows.length - 1]!.createdAt.toISOString()
+            ? new Date(pagedRows[pagedRows.length - 1]!.createdAt).toISOString()
             : null;
 
           const sectionMap = new Map(allSections.map((s) => [s.id, s]));
@@ -105,7 +105,7 @@ export default async function StudentsDirectoryPage() {
               classId: s.currentClassId || null,
               sectionId: s.currentSectionId || null,
               isActive: s.isActive,
-              createdAt: s.createdAt.toISOString(),
+              createdAt: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
             };
           });
 

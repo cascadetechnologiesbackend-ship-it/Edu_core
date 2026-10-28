@@ -59,7 +59,9 @@ export async function acknowledgeNotice(
       if (existing) {
         return {
           success: true,
-          acknowledgedAt: existing.acknowledgedAt.toISOString(),
+          acknowledgedAt: existing.acknowledgedAt
+            ? new Date(existing.acknowledgedAt).toISOString()
+            : new Date().toISOString(),
           alreadyAcknowledged: true,
         };
       }
@@ -80,7 +82,9 @@ export async function acknowledgeNotice(
 
       return {
         success: true,
-        acknowledgedAt: inserted?.acknowledgedAt.toISOString() || new Date().toISOString(),
+        acknowledgedAt: inserted?.acknowledgedAt
+          ? new Date(inserted.acknowledgedAt).toISOString()
+          : new Date().toISOString(),
         alreadyAcknowledged: false,
       };
     });
@@ -114,7 +118,7 @@ export async function getNoticeAcknowledgmentStatus(noticeId: string) {
 
       return {
         acknowledged: Boolean(ack),
-        acknowledgedAt: ack?.acknowledgedAt?.toISOString() || null,
+        acknowledgedAt: ack?.acknowledgedAt ? new Date(ack.acknowledgedAt).toISOString() : null,
         source: ack?.source || null,
       };
     });

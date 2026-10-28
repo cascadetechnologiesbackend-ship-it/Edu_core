@@ -426,3 +426,50 @@ export const impersonationSessionsRelations = relations(
     }),
   }),
 );
+
+// ─── school_provisions ────────────────────────────────────────────────────────
+// Records idempotent provisioning runs where global template profiles are cloned
+// into a school tenant. Enforces that each school can only be provisioned once.
+// Tracks blueprint version, status, entity counts, and operator ID.
+
+export const schoolProvisions = pgTable(
+  "school_provisions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => globalTemplateProfiles.id, { onDelete: "restrict" }),
+    blueprintVersion: text("blueprint_version").notNull().default("1.0.0"),
+    provisionedBy: uuid("provisioned_by")
+      .notNull()
+      .references(() => superAdminUsers.id, { onDelete: "restrict" }),
+    provisionedAt: timestamp("provisioned_at", { withTimezone: true }).notNull().defaultNow(),
+    status: text("status").notNull().default("COMPLETED"), // COMPLETED | PARTIAL | FAILED
+    entityCounts: jsonb("entity_counts").notNull().default({}), // { classes: 10, subjects: 28, feeHeads: 6, ... }
+    notes: text("notes"),
+  },
+  (t) => ({
+    schoolUnique: unique("sp_school_unique").on(t.schoolId),
+    schoolIdx: index("sp_school_idx").on(t.schoolId),
+    profileIdx: index("sp_profile_idx").on(t.profileId),
+  }),
+);
+
+export const schoolProvisionsRelations = relations(schoolProvisions, ({ one }) => ({
+  school: one(schools, {
+    fields: [schoolProvisions.schoolId],
+    references: [schools.id],
+  }),
+  profile: one(globalTemplateProfiles, {
+    fields: [schoolProvisions.profileId],
+    references: [globalTemplateProfiles.id],
+  }),
+  operator: one(superAdminUsers, {
+    fields: [schoolProvisions.provisionedBy],
+    references: [superAdminUsers.id],
+  }),
+}));
+

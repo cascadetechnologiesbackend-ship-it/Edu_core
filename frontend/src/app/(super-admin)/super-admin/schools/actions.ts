@@ -358,3 +358,74 @@ export async function deleteSchoolAction(schoolId: string, confirmSchoolName: st
     return { success: false, error: err?.message || "Failed to delete school" };
   }
 }
+
+// PROVISIONING ACTIONS (Sprint S20)
+import type { DryRunPreviewResult, ProvisionResult } from "@/lib/provisioningEngine";
+export type { DryRunPreviewResult, ProvisionResult };
+
+export async function dryRunProvisionSchoolAction(
+  schoolId: string,
+  blueprintId: string
+): Promise<DryRunPreviewResult> {
+  const authCtx = await requireAuth(["SUPER_ADMIN"]);
+  if (!schoolId || !blueprintId) {
+    return {
+      canProvision: false,
+      schoolId: schoolId || "",
+      schoolName: "",
+      blueprintId: blueprintId || "",
+      error: "School ID and Blueprint ID are required.",
+    };
+  }
+  const { dryRunProvisionSchool } = await import("@/lib/provisioningEngine");
+  return await dryRunProvisionSchool(schoolId, blueprintId);
+}
+
+export async function provisionSchoolAction(schoolId: string, blueprintId: string, notes?: string) {
+  const authCtx = await requireAuth(["SUPER_ADMIN"]);
+  if (!schoolId || !blueprintId) {
+    return { success: false, message: "School ID and Blueprint ID are required." };
+  }
+
+  const { executeProvisionSchool } = await import("@/lib/provisioningEngine");
+  const result = await executeProvisionSchool({
+    schoolId,
+    blueprintId,
+    operatorUserId: authCtx.userId,
+    notes,
+  });
+
+  if (result.success) {
+    await logPlatformAuditEvent({
+      superAdminId: authCtx.userId,
+      superAdminEmail: authCtx.email ?? "",
+      action: "PROVISION_SCHOOL" as any,
+      targetSchoolId: schoolId,
+      entityType: "school",
+      entityId: schoolId,
+      metadata: {
+        blueprintId,
+        entityCounts: result.entityCounts,
+      },
+    });
+
+    await invalidateSchoolCache(schoolId);
+    revalidatePath("/super-admin/schools");
+  }
+
+  return result;
+}
+
+export async function getSchoolProvisionStatusAction(schoolId: string) {
+  await requireAuth(["SUPER_ADMIN"]);
+  const { schoolProvisions } = await import("@/db/schema");
+  const provision = await db.query.schoolProvisions.findFirst({
+    where: eq(schoolProvisions.schoolId, schoolId),
+  });
+
+  return {
+    isProvisioned: !!provision,
+    provision: provision || null,
+  };
+}
+

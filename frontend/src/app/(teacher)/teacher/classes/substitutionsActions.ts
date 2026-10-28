@@ -160,7 +160,7 @@ export async function getTeacherSubstitutions(): Promise<{
         status: s.status as any,
         hasConflict: clashInfo.hasConflict,
         conflictReason: clashInfo.conflictReason,
-        createdAt: s.createdAt.toISOString(),
+        createdAt: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
       };
 
       if (isIncoming) {

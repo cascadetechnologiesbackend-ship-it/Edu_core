@@ -91,7 +91,7 @@ export default async function AccountsDashboardPage() {
             vendorName: v.vendorName || undefined,
             amount: parseFloat(v.amount || "0"),
             paymentMode: v.paymentMode,
-            entryDate: v.entryDate.toISOString(),
+            entryDate: v.entryDate ? new Date(v.entryDate).toISOString() : new Date().toISOString(),
             remarks: v.remarks || undefined,
           }));
 
@@ -103,7 +103,7 @@ export default async function AccountsDashboardPage() {
             amount: parseFloat(e.amount || "0"),
             balanceAfter: e.balanceAfter || undefined,
             description: e.description || undefined,
-            transactionDate: e.transactionDate.toISOString(),
+            transactionDate: e.transactionDate ? new Date(e.transactionDate).toISOString() : new Date().toISOString(),
             bankName: e.bankAccount?.bankName || undefined,
           }));
 
@@ -225,7 +225,7 @@ export default async function AccountsDashboardPage() {
           vendorName: v.vendorName || undefined,
           amount: parseFloat(v.amount || "0"),
           paymentMode: v.paymentMode,
-          entryDate: v.entryDate.toISOString(),
+          entryDate: v.entryDate ? new Date(v.entryDate).toISOString() : new Date().toISOString(),
           remarks: v.remarks || undefined,
         }));
 
@@ -237,7 +237,7 @@ export default async function AccountsDashboardPage() {
           amount: parseFloat(e.amount || "0"),
           balanceAfter: e.balanceAfter || undefined,
           description: e.description || undefined,
-          transactionDate: e.transactionDate.toISOString(),
+          transactionDate: e.transactionDate ? new Date(e.transactionDate).toISOString() : new Date().toISOString(),
           bankName: e.bankAccount?.bankName || undefined,
         }));
 

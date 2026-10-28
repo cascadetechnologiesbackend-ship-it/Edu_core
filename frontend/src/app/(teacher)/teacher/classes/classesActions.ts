@@ -876,7 +876,7 @@ export async function getTeacherStudent360Drawer(
     });
 
     const attendanceCalendar = attRows.map((r: any) => ({
-      date: r.attendanceDate.toISOString().slice(0, 10),
+      date: new Date(r.attendanceDate).toISOString().slice(0, 10),
       status: r.status as any,
     }));
 
@@ -923,7 +923,7 @@ export async function getTeacherStudent360Drawer(
       return {
         assignmentId: a.id,
         title: a.title,
-        dueDate: a.dueDate.toISOString().slice(0, 10),
+        dueDate: new Date(a.dueDate).toISOString().slice(0, 10),
         marksAwarded: sub?.marksAwarded ?? null,
         maxMarks: a.maxMarks || 100,
         isLate: sub?.isLate || false,
@@ -978,7 +978,7 @@ export async function getTeacherStudent360Drawer(
         homeroomRemarksData = {
           remarks: latestRemarks.remarks,
           conductGrade: latestRemarks.conductGrade,
-          signedOffAt: latestRemarks.signedOffAt.toISOString(),
+          signedOffAt: new Date(latestRemarks.signedOffAt).toISOString(),
         };
       }
     }
@@ -1348,7 +1348,7 @@ export async function getCompiledReportCardMatrix(
         percentage,
         remarks: remarkEntry?.remarks || null,
         conductGrade: remarkEntry?.conductGrade || null,
-        signedOffAt: remarkEntry?.signedOffAt ? remarkEntry.signedOffAt.toISOString() : null,
+        signedOffAt: remarkEntry?.signedOffAt ? new Date(remarkEntry.signedOffAt).toISOString() : null,
         signedOffByName,
       };
     });

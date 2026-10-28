@@ -35,14 +35,21 @@ import { withTenant } from "./tenant";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+function sanitizeIp(rawIp?: string | null): string {
+  if (!rawIp || rawIp === "127.0.0.1" || rawIp === "::1") return "0.0.0.0";
+  return rawIp;
+}
+
 export interface ProvisionOrLinkStudentInput {
   schoolId: string;
   studentId: string;
   admissionNumber: string;
   dateOfBirth: string | Date;
-  studentName?: string | null;
-  primaryMobile?: string | null;
+  studentName?: string | null | undefined;
+  primaryMobile?: string | null | undefined;
   performedByUserId: string;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
   tx?: any;
 }
 
@@ -245,8 +252,8 @@ export async function provisionOrLinkStudent(
         tableName: "students",
         recordId: studentId,
         purposeId: "student_access_provisioning",
-        ipAddress: "127.0.0.1",
-        userAgent: "Student Access Engine",
+        ipAddress: sanitizeIp(input.ipAddress),
+        userAgent: input.userAgent || "Student Access Engine",
         metadata: {
           action: "PROVISION_STUDENT_ACCESS",
           studentId,
@@ -324,6 +331,8 @@ export interface VerifyAndClaimStudentAccountInput {
   dateOfBirth: string | Date;
   claimToken: string;
   newPassword: string;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
 }
 
 /**
@@ -428,8 +437,8 @@ export async function verifyAndClaimStudentAccount(
       tableName: "users",
       recordId: student.userId,
       purposeId: "student_account_claim",
-      ipAddress: "127.0.0.1",
-      userAgent: "Student Claim Page",
+      ipAddress: sanitizeIp(input.ipAddress),
+      userAgent: input.userAgent || "Student Claim Page",
       metadata: {
         action: "STUDENT_ACCOUNT_CLAIMED",
         admissionNumber: student.admissionNumber,
@@ -543,6 +552,7 @@ export async function enableStudentAccess(
   schoolId: string,
   studentId: string,
   performedByUserId: string,
+  ipAddress?: string,
 ): Promise<{ success: boolean; studentUserId?: string; claimUrl?: string; message: string }> {
   return await withTenant(schoolId, async (tenantDb) => {
     const student = await tenantDb.query.students.findFirst({
@@ -563,6 +573,7 @@ export async function enableStudentAccess(
         dateOfBirth: student.dateOfBirth,
         studentName: `${firstName} ${lastName}`.trim(),
         performedByUserId,
+        ipAddress,
         tx: tenantDb,
       });
 
@@ -593,7 +604,7 @@ export async function enableStudentAccess(
         tableName: "users",
         recordId: student.userId,
         purposeId: "student_access_enabled",
-        ipAddress: "127.0.0.1",
+        ipAddress: sanitizeIp(ipAddress),
         userAgent: "Student Access Queue",
         metadata: { action: "ENABLE_STUDENT_ACCESS", studentId },
       });
@@ -614,6 +625,7 @@ export async function disableStudentAccess(
   schoolId: string,
   studentId: string,
   performedByUserId: string,
+  ipAddress?: string,
 ): Promise<{ success: boolean; message: string }> {
   return await withTenant(schoolId, async (tenantDb) => {
     const student = await tenantDb.query.students.findFirst({
@@ -642,7 +654,7 @@ export async function disableStudentAccess(
         tableName: "users",
         recordId: student.userId,
         purposeId: "student_access_disabled",
-        ipAddress: "127.0.0.1",
+        ipAddress: sanitizeIp(ipAddress),
         userAgent: "Student Access Queue",
         metadata: { action: "DISABLE_STUDENT_ACCESS", studentId },
       });
@@ -662,6 +674,7 @@ export async function resendStudentClaim(
   schoolId: string,
   studentId: string,
   performedByUserId: string,
+  ipAddress?: string,
 ): Promise<{ success: boolean; claimUrl: string; message: string }> {
   return await withTenant(schoolId, async (tenantDb) => {
     const student = await tenantDb.query.students.findFirst({
@@ -697,7 +710,7 @@ export async function resendStudentClaim(
         tableName: "password_reset_tokens",
         recordId: student.userId,
         purposeId: "student_claim_resend",
-        ipAddress: "127.0.0.1",
+        ipAddress: sanitizeIp(ipAddress),
         userAgent: "Student Access Queue",
         metadata: { action: "RESEND_STUDENT_CLAIM", studentId },
       });

@@ -5,6 +5,7 @@ import { db, withTenant } from "@/db";
 import { notices, noticeAcknowledgments, auditLogs } from "@/db/schema";
 import { eq, and, or, isNull, gte, desc } from "drizzle-orm";
 import { resolveStudentScope } from "@/lib/studentEventEngine/scopeResolver";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { revalidatePath } from "next/cache";
 
 export interface StudentNoticeItem {
@@ -109,7 +110,10 @@ export async function getStudentNoticesAction(
           );
 
         for (const ack of acks) {
-          ackMap.set(ack.noticeId, ack.acknowledgedAt.toISOString());
+          ackMap.set(
+            ack.noticeId,
+            ack.acknowledgedAt ? new Date(ack.acknowledgedAt).toISOString() : new Date().toISOString()
+          );
         }
       }
 
@@ -118,8 +122,8 @@ export async function getStudentNoticesAction(
         title: n.title,
         content: n.content,
         audienceType: n.audienceType,
-        publishedAt: n.publishedAt ? n.publishedAt.toISOString() : null,
-        expiresAt: n.expiresAt ? n.expiresAt.toISOString() : null,
+        publishedAt: n.publishedAt ? new Date(n.publishedAt).toISOString() : null,
+        expiresAt: n.expiresAt ? new Date(n.expiresAt).toISOString() : null,
         isPinned: n.isPinned,
         requiresAcknowledgment: n.requiresAcknowledgment,
         attachmentS3Key: n.attachmentS3Key || null,
@@ -223,7 +227,9 @@ export async function acknowledgeStudentNoticeAction(
       if (existing) {
         return {
           success: true,
-          acknowledgedAt: existing.acknowledgedAt.toISOString(),
+          acknowledgedAt: existing.acknowledgedAt
+            ? new Date(existing.acknowledgedAt).toISOString()
+            : new Date().toISOString(),
           alreadyAcknowledged: true,
         };
       }
@@ -239,7 +245,8 @@ export async function acknowledgeStudentNoticeAction(
         })
         .returning();
 
-      // Audit log write
+      // Audit log write with real request context
+      const reqCtx = getClientRequestContext();
       await db.insert(auditLogs).values({
         schoolId: scope.schoolId,
         userId: studentUserId,
@@ -248,8 +255,8 @@ export async function acknowledgeStudentNoticeAction(
         action: "WRITE",
         tableName: "notice_acknowledgments",
         recordId: noticeId,
-        ipAddress: "127.0.0.1",
-        userAgent: "StudentPWA",
+        ipAddress: reqCtx.ipAddress || "0.0.0.0",
+        userAgent: reqCtx.userAgent || "StudentPWA",
         metadata: {
           studentId: scope.studentId,
           noticeId,
@@ -262,7 +269,9 @@ export async function acknowledgeStudentNoticeAction(
 
       return {
         success: true,
-        acknowledgedAt: inserted?.acknowledgedAt.toISOString() || new Date().toISOString(),
+        acknowledgedAt: inserted?.acknowledgedAt
+          ? new Date(inserted.acknowledgedAt).toISOString()
+          : new Date().toISOString(),
         alreadyAcknowledged: false,
       };
     });

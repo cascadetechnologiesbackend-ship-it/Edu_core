@@ -187,6 +187,42 @@ async function main() {
         { name: "State Formation Day", month: 11, day: 1, isFixedAnnual: true, holidayType: "REGIONAL" as const },
       ],
     },
+    {
+      board: "CBSE" as const,
+      schoolType: "SENIOR_SECONDARY" as const,
+      displayName: "CBSE Senior Secondary (Classes 11 - 12)",
+      description: "Advanced CBSE senior secondary curriculum template featuring Science, Commerce, and Arts streams with specialized lab and career pathways.",
+      classes: [
+        { name: "Class 11", numericLevel: 11, gradeLevel: "CLASS_11" as const, streams: ["SCIENCE", "COMMERCE", "ARTS"], defaultSections: ["A", "B", "C"], sortOrder: 1 },
+        { name: "Class 12", numericLevel: 12, gradeLevel: "CLASS_12" as const, streams: ["SCIENCE", "COMMERCE", "ARTS"], defaultSections: ["A", "B", "C"], sortOrder: 2 },
+      ],
+      subjects: [
+        { name: "English Core", code: "ENG_CORE", subjectType: "LANGUAGE" as const, weeklyPeriods: 6, isOptional: false },
+        { name: "Physics & Lab Practical", code: "PHYS", subjectType: "PRACTICAL" as const, weeklyPeriods: 7, isOptional: false },
+        { name: "Chemistry & Lab Practical", code: "CHEM", subjectType: "PRACTICAL" as const, weeklyPeriods: 7, isOptional: false },
+        { name: "Mathematics", code: "MATH_SR", subjectType: "THEORY" as const, weeklyPeriods: 7, isOptional: true },
+        { name: "Biology & Practical", code: "BIO", subjectType: "PRACTICAL" as const, weeklyPeriods: 7, isOptional: true },
+        { name: "Accountancy", code: "ACC", subjectType: "THEORY" as const, weeklyPeriods: 7, isOptional: true },
+        { name: "Business Studies", code: "BST", subjectType: "THEORY" as const, weeklyPeriods: 6, isOptional: true },
+        { name: "Economics", code: "ECON", subjectType: "THEORY" as const, weeklyPeriods: 6, isOptional: true },
+        { name: "History & Political Science", code: "HIST_POL", subjectType: "THEORY" as const, weeklyPeriods: 6, isOptional: true },
+        { name: "Computer Science (Python)", code: "CS_SR", subjectType: "PRACTICAL" as const, weeklyPeriods: 5, isOptional: true },
+      ],
+      feeHeads: [
+        { name: "Tuition Fee", headType: "TUITION" as const, isMandatory: true, frequency: "MONTHLY" as const, sortOrder: 1 },
+        { name: "Science & Computer Lab Fee", headType: "LAB" as const, isMandatory: true, frequency: "QUARTERLY" as const, sortOrder: 2 },
+        { name: "Board Examination Fee", headType: "EXAM" as const, isMandatory: true, frequency: "ANNUAL" as const, sortOrder: 3 },
+      ],
+      salaryGrades: [
+        { gradeName: "Senior PGT (Post Graduate Teacher)", basicSalary: 5200000, hraPercent: "20.00", daPercent: "15.00", pfPercent: "12.00", otherAllowances: { research: 3000, medical: 1500 } },
+        { gradeName: "Lab Demonstrator", basicSalary: 2600000, hraPercent: "15.00", daPercent: "12.00", pfPercent: "12.00", otherAllowances: { hazard: 1000 } },
+      ],
+      holidays: [
+        { name: "Republic Day", month: 1, day: 26, isFixedAnnual: true, holidayType: "NATIONAL" as const },
+        { name: "Independence Day", month: 8, day: 15, isFixedAnnual: true, holidayType: "NATIONAL" as const },
+        { name: "Gandhi Jayanti", month: 10, day: 2, isFixedAnnual: true, holidayType: "NATIONAL" as const },
+      ],
+    },
   ];
 
   for (const p of profilesData) {

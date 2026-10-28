@@ -114,7 +114,7 @@ export default async function DueFeesPage({
             className,
             classId,
             feeHeadName: inv.feeStructure?.feeHead?.name || "Tuition / General Fee",
-            dueDate: inv.dueDate.toISOString(),
+            dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : new Date().toISOString(),
             balanceAmount: balance,
             lateFeeAmount: parseFloat(inv.lateFeeAmount || "0"),
             daysOverdue,

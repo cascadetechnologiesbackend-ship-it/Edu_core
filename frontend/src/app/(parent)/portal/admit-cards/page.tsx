@@ -274,13 +274,13 @@ export default async function ParentPortalAdmitCardsPage({
         exam: {
           id: ex.id,
           name: ex.name,
-          startDate: ex.startDate ? ex.startDate.toISOString() : "",
-          endDate: ex.endDate ? ex.endDate.toISOString() : "",
+          startDate: ex.startDate ? new Date(ex.startDate).toISOString() : "",
+          endDate: ex.endDate ? new Date(ex.endDate).toISOString() : "",
         },
         settings: settings
           ? {
-              availableFrom: settings.availableFrom ? settings.availableFrom.toISOString() : null,
-              availableUntil: settings.availableUntil ? settings.availableUntil.toISOString() : null,
+              availableFrom: settings.availableFrom ? new Date(settings.availableFrom).toISOString() : null,
+              availableUntil: settings.availableUntil ? new Date(settings.availableUntil).toISOString() : null,
               feeLockMode: settings.feeLockMode as "OFF" | "SOFT" | "HARD",
               feeLockThresholdAmount: settings.feeLockThresholdAmount || "0",
               instructions: settings.instructions,

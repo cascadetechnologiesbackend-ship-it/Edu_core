@@ -80,7 +80,9 @@ export async function searchPaidPaymentsForRefundAction(query?: string) {
           return {
             paymentId: p.id,
             receiptNumber: p.receiptNumber,
-            paymentDate: p.paymentDate.toISOString(),
+            paymentDate: p.paymentDate
+              ? new Date(p.paymentDate).toISOString()
+              : new Date().toISOString(),
             paymentMethod: p.paymentMethod,
             amountPaid: originalAmount,
             maxRefundable,

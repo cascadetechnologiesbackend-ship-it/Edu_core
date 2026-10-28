@@ -694,7 +694,12 @@ export async function copyMondayToAllDays(sectionId: string) {
               roomNumber: p.roomNumber,
               updatedAt: new Date(),
             })
-            .where(eq(timetablePeriods.id, existing.id));
+            .where(
+              and(
+                eq(timetablePeriods.id, existing.id),
+                eq(timetablePeriods.schoolId, session.user.schoolId)
+              )
+            );
         } else {
           await db.insert(timetablePeriods).values({
             schoolId: session.user.schoolId,
@@ -791,7 +796,12 @@ export async function copyTimetableToSection(sourceSectionId: string, targetSect
             roomNumber: p.roomNumber,
             updatedAt: new Date(),
           })
-          .where(eq(timetablePeriods.id, existing.id));
+          .where(
+            and(
+              eq(timetablePeriods.id, existing.id),
+              eq(timetablePeriods.schoolId, session.user.schoolId)
+            )
+          );
       } else {
         await db.insert(timetablePeriods).values({
           schoolId: session.user.schoolId,

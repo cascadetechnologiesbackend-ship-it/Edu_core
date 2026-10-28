@@ -76,7 +76,7 @@ export async function getJournalVouchersAction(filters?: {
       creditAccountName: tx.creditAccount?.name || "Unassigned Credit",
       creditAccountCode: tx.creditAccount?.code || "N/A",
       description: tx.description,
-      transactionDate: tx.transactionDate.toISOString(),
+      transactionDate: tx.transactionDate ? new Date(tx.transactionDate).toISOString() : new Date().toISOString(),
     }));
 
     return {

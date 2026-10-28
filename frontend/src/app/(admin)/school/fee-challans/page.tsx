@@ -69,7 +69,7 @@ export default async function FeeChallansPage() {
       admissionNumber: ch.student?.admissionNumber || "N/A",
       feeHeadName: ch.invoice?.feeStructure?.feeHead?.name || "Tuition Fee",
       invoiceNumber: ch.invoice?.invoiceNumber || "N/A",
-      dueDate: ch.dueDate.toISOString(),
+      dueDate: ch.dueDate ? new Date(ch.dueDate).toISOString() : new Date().toISOString(),
       amount: parseFloat(ch.amount),
       status: ch.status,
       referenceNumber: ch.referenceNumber || undefined,

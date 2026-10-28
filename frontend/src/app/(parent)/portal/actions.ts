@@ -114,6 +114,7 @@ export async function submitConsentChange(input: {
         })
         .where(
           and(
+            eq(consentRecords.schoolId, session.user.schoolId),
             eq(consentRecords.studentId, input.studentId),
             eq(consentRecords.purposeId, input.purposeId),
             isNull(consentRecords.withdrawnAt),
@@ -595,6 +596,7 @@ export async function submitParentLoginConsent(input: {
           })
           .where(
             and(
+              eq(consentRecords.schoolId, student.schoolId),
               eq(consentRecords.studentId, student.id),
               eq(consentRecords.purposeId, item.purposeId),
               isNull(consentRecords.withdrawnAt),

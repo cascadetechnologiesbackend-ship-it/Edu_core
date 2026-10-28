@@ -206,3 +206,168 @@ export async function setupSchool(data: z.infer<typeof wizardSchema>) {
 
   return { success: true };
 }
+
+export interface ConfigurationHealthStats {
+  isProvisioned: boolean;
+  provisionedAt?: string | undefined;
+  blueprintVersion?: string | undefined;
+  overallScore: number;
+  classesCount: number;
+  sectionsCount: number;
+  subjectsCount: number;
+  feeHeadsCount: number;
+  salaryTemplatesCount: number;
+  holidaysCount: number;
+  hasActiveAcademicYear: boolean;
+  categories: {
+    key: string;
+    title: string;
+    description: string;
+    href: string;
+    status: "COMPLETE" | "PARTIAL" | "NOT_STARTED";
+    metric: string;
+  }[];
+}
+
+export async function getSchoolConfigurationHealthAction(): Promise<ConfigurationHealthStats> {
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const school = await requireSchool(ctx);
+
+  const {
+    classes,
+    sections,
+    subjects,
+    feeHeads,
+    salaryTemplates,
+    events,
+    schoolProvisions,
+  } = await import("@/db/schema");
+  const { sql, and } = await import("drizzle-orm");
+
+  // Query counts within school tenant context
+  const [activeYear] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(academicYears)
+    .where(and(eq(academicYears.schoolId, school.id), eq(academicYears.isActive, true)));
+
+  const [classesRes] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(classes)
+    .where(eq(classes.schoolId, school.id));
+
+  const [sectionsRes] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(sections)
+    .where(eq(sections.schoolId, school.id));
+
+  const [subjectsRes] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(subjects)
+    .where(eq(subjects.schoolId, school.id));
+
+  const [feeHeadsRes] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(feeHeads)
+    .where(eq(feeHeads.schoolId, school.id));
+
+  const [salaryRes] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(salaryTemplates)
+    .where(eq(salaryTemplates.schoolId, school.id));
+
+  const [holidaysRes] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(events)
+    .where(and(eq(events.schoolId, school.id), eq(events.eventType, "HOLIDAY" as any)));
+
+  const provision = await db.query.schoolProvisions.findFirst({
+    where: eq(schoolProvisions.schoolId, school.id),
+  });
+
+  const hasActiveYear = (activeYear?.count ?? 0) > 0;
+  const classesCount = classesRes?.count ?? 0;
+  const sectionsCount = sectionsRes?.count ?? 0;
+  const subjectsCount = subjectsRes?.count ?? 0;
+  const feeHeadsCount = feeHeadsRes?.count ?? 0;
+  const salaryTemplatesCount = salaryRes?.count ?? 0;
+  const holidaysCount = holidaysRes?.count ?? 0;
+
+  // Calculate completeness score based on real persisted data
+  let completedMilestones = 0;
+  const totalMilestones = 6;
+  if (hasActiveYear) completedMilestones++;
+  if (classesCount > 0) completedMilestones++;
+  if (subjectsCount > 0) completedMilestones++;
+  if (feeHeadsCount > 0) completedMilestones++;
+  if (salaryTemplatesCount > 0) completedMilestones++;
+  if (holidaysCount > 0) completedMilestones++;
+
+  const overallScore = Math.round((completedMilestones / totalMilestones) * 100);
+
+  const categories = [
+    {
+      key: "academic-calendar",
+      title: "Academic Calendar & Terms",
+      description: "Active academic session, term boundaries, and calendar schedule.",
+      href: "/settings/calendar",
+      status: hasActiveYear ? ("COMPLETE" as const) : ("NOT_STARTED" as const),
+      metric: hasActiveYear ? "Active Session Set" : "Session Missing",
+    },
+    {
+      key: "classes-sections",
+      title: "Classes & Sections",
+      description: "Grade hierarchy, class names, and active sections.",
+      href: "/settings/classes",
+      status: classesCount > 0 ? (sectionsCount > 0 ? ("COMPLETE" as const) : ("PARTIAL" as const)) : ("NOT_STARTED" as const),
+      metric: `${classesCount} Classes • ${sectionsCount} Sections`,
+    },
+    {
+      key: "curriculum-subjects",
+      title: "Curriculum & Subjects",
+      description: "Class-wise theory, practical, language, and co-scholastic subjects.",
+      href: "/settings/subjects",
+      status: subjectsCount > 0 ? ("COMPLETE" as const) : ("NOT_STARTED" as const),
+      metric: `${subjectsCount} Subjects Configured`,
+    },
+    {
+      key: "fee-structures",
+      title: "Fee Structures & Heads",
+      description: "Tuition, transport, lab fees and chart-of-accounts mapping.",
+      href: "/settings/fee-heads",
+      status: feeHeadsCount > 0 ? ("COMPLETE" as const) : ("NOT_STARTED" as const),
+      metric: `${feeHeadsCount} Fee Heads Active`,
+    },
+    {
+      key: "hr-payroll",
+      title: "HR Salary Grades",
+      description: "Salary templates, standard allowances, and deductions.",
+      href: "/settings/hr/salary-grades",
+      status: salaryTemplatesCount > 0 ? ("COMPLETE" as const) : ("NOT_STARTED" as const),
+      metric: `${salaryTemplatesCount} Templates Defined`,
+    },
+    {
+      key: "calendar-holidays",
+      title: "Holidays & Closures",
+      description: "National, gazetted, and school-specific holiday schedule.",
+      href: "/settings/calendar",
+      status: holidaysCount > 0 ? ("COMPLETE" as const) : ("NOT_STARTED" as const),
+      metric: `${holidaysCount} Holidays Scheduled`,
+    },
+  ];
+
+  return {
+    isProvisioned: !!provision,
+    provisionedAt: provision?.provisionedAt ? new Date(provision.provisionedAt).toISOString() : undefined,
+    blueprintVersion: provision?.blueprintVersion,
+    overallScore,
+    classesCount,
+    sectionsCount,
+    subjectsCount,
+    feeHeadsCount,
+    salaryTemplatesCount,
+    holidaysCount,
+    hasActiveAcademicYear: hasActiveYear,
+    categories,
+  };
+}
+

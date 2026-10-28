@@ -175,8 +175,8 @@ export async function getTeacherPTMSlots(ptmEventId: string): Promise<TeacherPTM
       return {
         id: s.id,
         ptmEventId: s.ptmEventId,
-        startAt: s.startAt.toISOString(),
-        endAt: s.endAt.toISOString(),
+        startAt: new Date(s.startAt).toISOString(),
+        endAt: new Date(s.endAt).toISOString(),
         status: s.status as "FREE" | "BOOKED" | "BLOCKED",
         version: s.version,
         booking: b
@@ -186,7 +186,7 @@ export async function getTeacherPTMSlots(ptmEventId: string): Promise<TeacherPTM
               studentName,
               parentUserId: b.parentUserId,
               status: b.status as "BOOKED" | "HELD",
-              bookedAt: b.bookedAt.toISOString(),
+              bookedAt: new Date(b.bookedAt).toISOString(),
               teacherNote: b.teacherNote,
             }
           : null,

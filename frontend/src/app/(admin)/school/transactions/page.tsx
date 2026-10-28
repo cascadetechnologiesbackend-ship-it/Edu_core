@@ -126,7 +126,9 @@ export default async function TransactionsPage({
             term: p.invoice?.term || "ANNUAL",
             paymentMethod: p.paymentMethod,
             transactionReference: p.transactionReference,
-            paymentDate: p.paymentDate.toISOString(),
+            paymentDate: p.paymentDate
+              ? new Date(p.paymentDate).toISOString()
+              : new Date().toISOString(),
             amountPaid: parseFloat(p.amountPaid),
             remarks: p.remarks,
             collectedByName: p.collectedBy?.email || undefined,

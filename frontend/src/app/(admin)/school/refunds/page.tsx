@@ -66,9 +66,9 @@ export default async function FeeRefundsPage() {
       reason: r.reason,
       status: r.status as any,
       approvedByName: r.approvedById ? approverMap.get(r.approvedById) : undefined,
-      approvedAt: r.approvedAt ? r.approvedAt.toISOString() : undefined,
-      processedAt: r.processedAt ? r.processedAt.toISOString() : undefined,
-      createdAt: r.createdAt.toISOString(),
+      approvedAt: r.approvedAt ? new Date(r.approvedAt).toISOString() : undefined,
+      processedAt: r.processedAt ? new Date(r.processedAt).toISOString() : undefined,
+      createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
     };
   });
 

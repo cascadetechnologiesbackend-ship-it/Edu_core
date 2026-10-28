@@ -47,9 +47,9 @@ export default async function TeacherPTMPage() {
         id: r.id,
         title: r.title,
         venue: r.venue,
-        startDate: r.startDate.toISOString(),
-        bookingOpensAt: r.bookingOpensAt.toISOString(),
-        bookingClosesAt: r.bookingClosesAt.toISOString(),
+        startDate: r.startDate ? new Date(r.startDate).toISOString() : "",
+        bookingOpensAt: r.bookingOpensAt ? new Date(r.bookingOpensAt).toISOString() : "",
+        bookingClosesAt: r.bookingClosesAt ? new Date(r.bookingClosesAt).toISOString() : "",
       }));
 
       if (rows.length > 0 && rows[0]?.id) {

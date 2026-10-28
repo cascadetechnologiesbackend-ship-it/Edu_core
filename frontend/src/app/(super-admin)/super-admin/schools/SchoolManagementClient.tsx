@@ -23,6 +23,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -33,6 +34,7 @@ import {
   startImpersonationAction,
   SchoolFormInput,
 } from "./actions";
+import { SchoolProvisionModal } from "./SchoolProvisionModal";
 
 export interface SchoolItem {
   id: string;
@@ -70,6 +72,7 @@ export function SchoolManagementClient({ initialSchools }: Props) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<SchoolItem | null>(null);
   const [deletingSchool, setDeletingSchool] = useState<SchoolItem | null>(null);
+  const [provisioningSchool, setProvisioningSchool] = useState<SchoolItem | null>(null);
   const [expandedSchoolId, setExpandedSchoolId] = useState<string | null>(null);
 
   // Transitions
@@ -308,6 +311,18 @@ export function SchoolManagementClient({ initialSchools }: Props) {
                                 <span>Impersonate</span>
                               </button>
                             </form>
+                          )}
+
+                          {/* Digital Twin Provision Button */}
+                          {!isArchived && (
+                            <button
+                              onClick={() => setProvisioningSchool(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-medium transition text-xs active:scale-95 shadow-sm"
+                              title="Provision Digital Twin Configuration"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                              <span>Provision</span>
+                            </button>
                           )}
 
                           {/* Edit Button */}
@@ -636,6 +651,18 @@ export function SchoolManagementClient({ initialSchools }: Props) {
             } else {
               toast.error(res.error || "Failed to delete school");
             }
+          }}
+        />
+      )}
+
+      {/* DIGITAL TWIN PROVISIONING MODAL */}
+      {provisioningSchool && (
+        <SchoolProvisionModal
+          school={provisioningSchool}
+          isOpen={!!provisioningSchool}
+          onClose={() => setProvisioningSchool(null)}
+          onSuccess={() => {
+            toast.success(`Digital twin provisioning complete for ${provisioningSchool.name}!`);
           }}
         />
       )}

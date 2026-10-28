@@ -168,13 +168,13 @@ export async function getDocumentRequests(
           status: r.status as StudentDocumentItem["status"],
           fileName: r.originalFileName,
           fileSizeBytes: r.fileSizeBytes,
-          dueAt: r.dueAt ? r.dueAt.toISOString() : null,
-          expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+          dueAt: r.dueAt ? new Date(r.dueAt).toISOString() : null,
+          expiresAt: r.expiresAt ? new Date(r.expiresAt).toISOString() : null,
           rejectionReason: r.status === "REJECTED" ? r.verificationNote : null,
           verificationNote: r.verificationNote,
-          uploadedAt: r.submittedS3Key ? r.updatedAt.toISOString() : null,
-          verifiedAt: r.verifiedAt ? r.verifiedAt.toISOString() : null,
-          createdAt: r.createdAt.toISOString(),
+          uploadedAt: r.submittedS3Key ? new Date(r.updatedAt).toISOString() : null,
+          verifiedAt: r.verifiedAt ? new Date(r.verifiedAt).toISOString() : null,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
         };
       });
 
