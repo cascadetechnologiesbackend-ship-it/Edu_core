@@ -159,9 +159,9 @@ describe("Parent-Teacher Messaging Server Actions", () => {
     });
 
     expect(res.success).toBe(false);
-    expect(res.blocked).toBe(true);
-    expect(res.decision).toBe("BLOCKED");
-    expect(res.detectedTypes).toContain("AADHAAR");
+    expect("blocked" in res && res.blocked).toBe(true);
+    expect("decision" in res && res.decision).toBe("BLOCKED");
+    expect("detectedTypes" in res && res.detectedTypes).toContain("AADHAAR");
   });
 
   it("sendParentTeacherMessage warns on high risk contact info without confirmation", async () => {
@@ -173,7 +173,7 @@ describe("Parent-Teacher Messaging Server Actions", () => {
     });
 
     expect(res.success).toBe(false);
-    expect(res.requiresConfirmation).toBe(true);
-    expect(res.riskLevel).toBe("HIGH");
+    expect("requiresConfirmation" in res && res.requiresConfirmation).toBe(true);
+    expect("riskLevel" in res && res.riskLevel).toBe("HIGH");
   });
 });

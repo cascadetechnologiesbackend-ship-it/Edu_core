@@ -20,6 +20,12 @@ import {
 
 export type { ComposableTeacherRecipient, ConversationThreadSummary, ThreadMessageItem };
 
+export type SendMessageResult =
+  | { success: true; messageId: string }
+  | { success: false; blocked: true; decision: "BLOCKED"; detectedTypes: string[]; error: string }
+  | { success: false; requiresConfirmation: true; riskLevel: "HIGH"; detectedTypes: string[]; message: string }
+  | { success: false; error: string };
+
 /**
  * Server Action: Parent-teacher message send with DPDP PII scan enforcement (Write-Point 2)
  * and allocation-scoped recipient verification.
@@ -27,11 +33,11 @@ export type { ComposableTeacherRecipient, ConversationThreadSummary, ThreadMessa
 export async function sendParentTeacherMessage(input: {
   recipientUserId: string;
   studentId: string;
-  subject?: string;
+  subject?: string | undefined;
   content: string;
-  parentMessageId?: string;
-  decisionOverride?: "CONFIRMED_SEND" | "MASKED";
-}) {
+  parentMessageId?: string | undefined;
+  decisionOverride?: ("CONFIRMED_SEND" | "MASKED") | undefined;
+}): Promise<SendMessageResult> {
   const ctx = await requireAuth([
     "PARENT",
     "TEACHER",
@@ -41,15 +47,19 @@ export async function sendParentTeacherMessage(input: {
   ] as const);
   const school = await requireSchool(ctx);
 
-  // Validate recipient authorization (guard against raw ID injection)
-  await validateMessageRecipient(
-    school.id,
-    ctx.userId,
-    ctx.role,
-    input.recipientUserId,
-    input.studentId,
-    input.parentMessageId,
-  );
+  try {
+    // Validate recipient authorization (guard against raw ID injection)
+    await validateMessageRecipient(
+      school.id,
+      ctx.userId,
+      ctx.role,
+      input.recipientUserId,
+      input.studentId,
+      input.parentMessageId,
+    );
+  } catch (err: any) {
+    return { success: false, error: err.message || "Unauthorized recipient." };
+  }
 
   const surface =
     ctx.role === "PARENT" ? "parent.message.send" : "teacher.message.send";
@@ -109,7 +119,7 @@ export async function sendParentTeacherMessage(input: {
 
     revalidatePath("/parent/messages");
     revalidatePath("/teacher/messages");
-    return { success: true, messageId: inserted?.id };
+    return { success: true, messageId: inserted?.id || "" };
   });
 }
 
