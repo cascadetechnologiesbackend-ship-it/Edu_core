@@ -21,6 +21,7 @@ import {
 } from "@/db/schema";
 import { eq, and, or, inArray, isNull, gte, lte, desc, asc } from "drizzle-orm";
 import { resolveTeacherScope } from "./scopeResolver";
+import { decryptData } from "../encryption";
 import {
   TeacherDataSnapshot,
   AttendanceSectionSummary,
@@ -462,12 +463,51 @@ export async function assembleTeacherSnapshot(
     limit: 10,
   });
 
+  const unreadStudentIds: string[] = Array.from(
+    new Set(
+      unreadMsgRows
+        .map((m: any) => m.studentId)
+        .filter((id: any): id is string => typeof id === "string" && id.length > 0)
+    )
+  );
+
+  const unreadStudentRows =
+    unreadStudentIds.length > 0
+      ? await txDb.query.students.findMany({
+          where: and(
+            eq(students.schoolId, schoolId),
+            inArray(students.id, unreadStudentIds)
+          ),
+          with: {
+            currentSection: true,
+          },
+        })
+      : [];
+
+  const unreadStudentMap = new Map<string, (typeof unreadStudentRows)[number]>();
+  for (const s of unreadStudentRows) {
+    unreadStudentMap.set(s.id, s);
+  }
+
   for (const m of unreadMsgRows) {
+    const student = m.studentId ? unreadStudentMap.get(m.studentId) : undefined;
+    let sName = "Student";
+    if (student) {
+      try {
+        const fn = decryptData(student.firstNameEncrypted) || "";
+        const ln = student.lastNameEncrypted ? decryptData(student.lastNameEncrypted) || "" : "";
+        sName = `${fn} ${ln}`.trim() || "Student";
+      } catch {
+        sName = "Student";
+      }
+    }
+    const secName = student?.currentSection?.name || "Class";
+
     unreadMessages.push({
-      threadId: m.threadId || m.id,
+      threadId: m.parentMessageId || m.id,
       parentName: m.senderUser?.fullName || "Parent",
-      studentName: "Student",
-      sectionName: "Section",
+      studentName: sName,
+      sectionName: secName,
       lastMessagePreview: m.content ? m.content.substring(0, 80) : "",
       sentAt: m.createdAt,
       unreadCount: 1,

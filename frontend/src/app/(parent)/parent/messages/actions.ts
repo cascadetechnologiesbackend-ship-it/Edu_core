@@ -13,6 +13,7 @@ import {
   getThreadMessages,
   markThreadRead,
   getAdminModerationConversations,
+  dispatchMessagePushNotification,
   type ComposableTeacherRecipient,
   type ConversationThreadSummary,
   type ThreadMessageItem,
@@ -117,8 +118,24 @@ export async function sendParentTeacherMessage(input: {
       })
       .returning({ id: parentTeacherMessages.id });
 
+    // Non-blocking Web Push dispatch respecting quiet hours (21:30 - 07:00) and daily caps
+    try {
+      await dispatchMessagePushNotification(
+        school.id,
+        ctx.userId,
+        input.recipientUserId,
+        input.subject || "Message",
+        finalContent,
+        { txDb: tx },
+      );
+    } catch (pushErr) {
+      console.error("Non-blocking message push notification error:", pushErr);
+    }
+
     revalidatePath("/parent/messages");
     revalidatePath("/teacher/messages");
+    revalidatePath("/parent/dashboard");
+    revalidatePath("/teacher/dashboard");
     return { success: true, messageId: inserted?.id || "" };
   });
 }

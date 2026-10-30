@@ -26,10 +26,12 @@ import {
   classSubjects,
   subjects,
   auditLogs,
+  pushNotificationLogs,
 } from "@schoolmitra/database";
-import { eq, and, or, inArray, desc, asc, isNull, sql } from "drizzle-orm";
+import { eq, and, or, inArray, desc, asc, isNull, sql, gte } from "drizzle-orm";
 import { decryptData } from "./encryption";
 import { withTenant } from "./tenant";
+import { dispatchWebPush } from "./webPushDispatcher";
 
 export interface ComposableTeacherRecipient {
   teacherUserId: string;
@@ -803,4 +805,147 @@ export async function getAdminModerationConversations(
     const offset = options?.offset ?? 0;
     return summaries.slice(offset, offset + limit);
   });
+}
+
+export interface DispatchMessagePushResult {
+  dispatched: boolean;
+  status: "DELIVERED" | "SKIPPED_QUIET_HOURS" | "SKIPPED_DAILY_CAP" | "FAILED" | "SKIPPED_NO_SUBSCRIPTION";
+  reason?: string | undefined;
+}
+
+/**
+ * Checks whether the current time falls within defined quiet hours (21:30 - 07:00 IST / local).
+ * S22 / OD3: Academic messaging respects quiet hours to protect family and educator rest.
+ */
+export function isMessageQuietHours(
+  date: Date = new Date(),
+  timeZone: string = "Asia/Kolkata",
+): boolean {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(date);
+    const hour = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+    const minute = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+    if (hour > 21 || (hour === 21 && minute >= 30)) return true;
+    if (hour < 7) return true;
+    return false;
+  } catch {
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    if (hour > 21 || (hour === 21 && minute >= 30)) return true;
+    if (hour < 7) return true;
+    return false;
+  }
+}
+
+/**
+ * Dispatches a Web Push notification to recipient for a new message or reply,
+ * enforcing quiet hours (21:30 - 07:00) and daily push caps (max 5/day per recipient).
+ * Records outcome in push_notification_logs.
+ */
+export async function dispatchMessagePushNotification(
+  schoolId: string,
+  senderUserId: string,
+  recipientUserId: string,
+  subject: string,
+  contentSnippet: string,
+  options?: { now?: Date | undefined; txDb?: any }
+): Promise<DispatchMessagePushResult> {
+  const now = options?.now || new Date();
+  const txDb = options?.txDb || db;
+
+  // 1. Check Quiet Hours (21:30 - 07:00 IST)
+  if (isMessageQuietHours(now)) {
+    await txDb.insert(pushNotificationLogs).values({
+      schoolId,
+      recipientUserId,
+      title: `New Note: ${subject}`,
+      body: contentSnippet.slice(0, 100),
+      status: "SKIPPED_QUIET_HOURS",
+      sentAt: null,
+    });
+    return {
+      dispatched: false,
+      status: "SKIPPED_QUIET_HOURS",
+      reason: "Message arrived during quiet hours (21:30 - 07:00). Suppressed to protect family rest.",
+    };
+  }
+
+  // 2. Check Daily Push Cap (Max 5 push notifications per recipient per day)
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const todayLogs = await txDb.query.pushNotificationLogs.findMany({
+    where: and(
+      eq(pushNotificationLogs.schoolId, schoolId),
+      eq(pushNotificationLogs.recipientUserId, recipientUserId),
+      gte(pushNotificationLogs.createdAt, startOfDay),
+      or(
+        eq(pushNotificationLogs.status, "DELIVERED"),
+        eq(pushNotificationLogs.status, "SENT")
+      )
+    ),
+  });
+
+  if (todayLogs.length >= 5) {
+    await txDb.insert(pushNotificationLogs).values({
+      schoolId,
+      recipientUserId,
+      title: `New Note: ${subject}`,
+      body: contentSnippet.slice(0, 100),
+      status: "SKIPPED_DAILY_CAP",
+      sentAt: null,
+    });
+    return {
+      dispatched: false,
+      status: "SKIPPED_DAILY_CAP",
+      reason: "Daily push notification cap (5/day) reached for recipient.",
+    };
+  }
+
+  // 3. Dispatch Web Push
+  const senderInfo = await resolveUserName(txDb, schoolId, senderUserId);
+  const title = `Message from ${senderInfo.name}: ${subject}`;
+  const body = contentSnippet.length > 90 ? `${contentSnippet.slice(0, 87)}...` : contentSnippet;
+
+  const pushResults = await dispatchWebPush(
+    schoolId,
+    [recipientUserId],
+    {
+      title,
+      body,
+      data: {
+        type: "PARENT_TEACHER_MESSAGE",
+        senderUserId,
+      },
+    },
+    txDb,
+  );
+
+  const res = pushResults[0];
+  const finalStatus =
+    !res || res.status === "FAILED"
+      ? "FAILED"
+      : res.status === "SKIPPED_NO_SUBSCRIPTION"
+      ? "SKIPPED_NO_SUBSCRIPTION"
+      : "DELIVERED";
+
+  await txDb.insert(pushNotificationLogs).values({
+    schoolId,
+    recipientUserId,
+    title,
+    body,
+    status: finalStatus,
+    sentAt: finalStatus === "DELIVERED" ? now : null,
+  });
+
+  return {
+    dispatched: finalStatus === "DELIVERED",
+    status: finalStatus,
+  };
 }
