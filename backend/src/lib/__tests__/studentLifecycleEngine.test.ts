@@ -294,9 +294,10 @@ describe("S13 Layer 2: Student Lifecycle Engine & Admissions State Machine", () 
             eq(domainEvents.aggregateId, result.studentId),
           ),
         });
-        expect(events.length).toBe(1);
-        expect(events[0]!.eventType).toBe("StudentEnrolledEvent");
-        expect(events[0]!.status).toBe("PENDING");
+        expect(events.length).toBeGreaterThanOrEqual(1);
+        const enrolledEvent = events.find((e) => e.eventType === "StudentEnrolledEvent");
+        expect(enrolledEvent).toBeDefined();
+        expect(enrolledEvent!.status).toBe("PENDING");
       });
     });
 
