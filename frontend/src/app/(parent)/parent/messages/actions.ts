@@ -6,9 +6,23 @@ import { parentTeacherMessages } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { scanContentForPII } from "@/lib/pii/scanEnforcement";
 import { redactPII } from "@schoolmitra/entity-engine/dpdp-ner";
+import {
+  resolveChildTeachers,
+  validateMessageRecipient,
+  getParentConversations,
+  getThreadMessages,
+  markThreadRead,
+  getAdminModerationConversations,
+  type ComposableTeacherRecipient,
+  type ConversationThreadSummary,
+  type ThreadMessageItem,
+} from "@/lib/communicationLoop";
+
+export type { ComposableTeacherRecipient, ConversationThreadSummary, ThreadMessageItem };
 
 /**
- * Server Action: Parent-teacher message send with DPDP PII scan enforcement (Write-Point 2).
+ * Server Action: Parent-teacher message send with DPDP PII scan enforcement (Write-Point 2)
+ * and allocation-scoped recipient verification.
  */
 export async function sendParentTeacherMessage(input: {
   recipientUserId: string;
@@ -26,6 +40,16 @@ export async function sendParentTeacherMessage(input: {
     "PRINCIPAL",
   ] as const);
   const school = await requireSchool(ctx);
+
+  // Validate recipient authorization (guard against raw ID injection)
+  await validateMessageRecipient(
+    school.id,
+    ctx.userId,
+    ctx.role,
+    input.recipientUserId,
+    input.studentId,
+    input.parentMessageId,
+  );
 
   const surface =
     ctx.role === "PARENT" ? "parent.message.send" : "teacher.message.send";
@@ -79,10 +103,116 @@ export async function sendParentTeacherMessage(input: {
         subject: input.subject || "Message",
         content: finalContent,
         parentMessageId: input.parentMessageId || null,
+        isRead: false,
       })
       .returning({ id: parentTeacherMessages.id });
 
     revalidatePath("/parent/messages");
+    revalidatePath("/teacher/messages");
     return { success: true, messageId: inserted?.id };
   });
+}
+
+/**
+ * Server Action: Discovers all active teachers (homeroom + subject) for a parent's children.
+ */
+export async function resolveChildTeachersAction(
+  studentIdFilter?: string,
+): Promise<{ success: boolean; teachers: ComposableTeacherRecipient[]; error?: string }> {
+  try {
+    const ctx = await requireAuth(["PARENT", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+    const teachers = await resolveChildTeachers(school.id, ctx.userId, studentIdFilter);
+    return { success: true, teachers };
+  } catch (err: any) {
+    console.error("resolveChildTeachersAction error:", err);
+    return { success: false, teachers: [], error: err.message || "Failed to load teachers" };
+  }
+}
+
+/**
+ * Server Action: Retrieves conversation threads for the authenticated parent.
+ */
+export async function getParentConversationsAction(
+  studentId?: string,
+): Promise<{ success: boolean; threads: ConversationThreadSummary[]; error?: string }> {
+  try {
+    const ctx = await requireAuth(["PARENT", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+    const threads = await getParentConversations(
+      school.id,
+      ctx.userId,
+      studentId ? { studentId } : undefined,
+    );
+    return { success: true, threads };
+  } catch (err: any) {
+    console.error("getParentConversationsAction error:", err);
+    return { success: false, threads: [], error: err.message || "Failed to load conversations" };
+  }
+}
+
+/**
+ * Server Action: Retrieves messages for a conversation thread.
+ */
+export async function getThreadMessagesAction(
+  threadId: string,
+): Promise<{ success: boolean; subject?: string; messages: ThreadMessageItem[]; error?: string }> {
+  try {
+    const ctx = await requireAuth([
+      "PARENT",
+      "TEACHER",
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const res = await getThreadMessages(school.id, ctx.userId, threadId, ctx.role);
+    return { success: true, subject: res.subject, messages: res.messages };
+  } catch (err: any) {
+    console.error("getThreadMessagesAction error:", err);
+    return { success: false, messages: [], error: err.message || "Failed to load thread messages" };
+  }
+}
+
+/**
+ * Server Action: Marks all unread messages in a thread as read by the recipient.
+ */
+export async function markThreadReadAction(
+  threadId: string,
+): Promise<{ success: boolean; updatedCount: number; error?: string }> {
+  try {
+    const ctx = await requireAuth([
+      "PARENT",
+      "TEACHER",
+      "SUPER_ADMIN",
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+    ] as const);
+    const school = await requireSchool(ctx);
+    const res = await markThreadRead(school.id, ctx.userId, threadId);
+    revalidatePath("/parent/messages");
+    revalidatePath("/teacher/messages");
+    return { success: true, updatedCount: res.updatedCount };
+  } catch (err: any) {
+    console.error("markThreadReadAction error:", err);
+    return { success: false, updatedCount: 0, error: err.message || "Failed to mark thread as read" };
+  }
+}
+
+/**
+ * Server Action: Logged read-only moderation audit view for principals and admins (OD4).
+ */
+export async function getAdminModerationConversationsAction(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ success: boolean; threads: ConversationThreadSummary[]; error?: string }> {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
+    const school = await requireSchool(ctx);
+    const threads = await getAdminModerationConversations(school.id, ctx.userId, options);
+    return { success: true, threads };
+  } catch (err: any) {
+    console.error("getAdminModerationConversationsAction error:", err);
+    return { success: false, threads: [], error: err.message || "Failed to load moderation conversations" };
+  }
 }
