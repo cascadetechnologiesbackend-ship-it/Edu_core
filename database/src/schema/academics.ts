@@ -480,6 +480,7 @@ export const timetablePeriods = pgTable(
       onDelete: "restrict",
     }),
     roomNumber: text("room_number"),
+    isManualOverride: boolean("is_manual_override").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

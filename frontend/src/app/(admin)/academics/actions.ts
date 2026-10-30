@@ -855,6 +855,8 @@ import {
   getSubstitutionsForDate as getSubstitutionsForDateDomain,
   getPendingSubstitutions as getPendingSubstitutionsDomain,
   getPendingSubstitutionsCount as getPendingSubstitutionsCountDomain,
+  generateSectionTimetablePreview as generateSectionTimetablePreviewDomain,
+  commitSectionTimetable as commitSectionTimetableDomain,
 } from "./actions/timetable.actions";
 
 import {
@@ -961,6 +963,12 @@ export async function getPendingSubstitutions(...args: Parameters<typeof getPend
 }
 export async function getPendingSubstitutionsCount(...args: Parameters<typeof getPendingSubstitutionsCountDomain>) {
   return getPendingSubstitutionsCountDomain(...args);
+}
+export async function generateSectionTimetablePreview(...args: Parameters<typeof generateSectionTimetablePreviewDomain>) {
+  return generateSectionTimetablePreviewDomain(...args);
+}
+export async function commitSectionTimetable(...args: Parameters<typeof commitSectionTimetableDomain>) {
+  return commitSectionTimetableDomain(...args);
 }
 
 // Syllabus

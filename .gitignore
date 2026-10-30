@@ -65,4 +65,5 @@ docs/retrieved_chat_history*
 
 # Chat artifacts, scripts and diagnosis evidence
 artifacts/
+.agents/teamwork/
 RELEASE_NOTES.md

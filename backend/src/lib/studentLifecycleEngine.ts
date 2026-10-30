@@ -149,6 +149,39 @@ export interface StudentEnrollmentResult {
   } | undefined;
 }
 
+export interface ImportedStudentInput {
+  classId: string;
+  sectionId: string;
+  admissionNumber: string;
+  firstName: string;
+  lastName?: string | null | undefined;
+  dob: string | Date;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  parentName?: string | null | undefined;
+  parentPhone?: string | null | undefined;
+  parentEmail?: string | null | undefined;
+  category?: "GENERAL" | "SC" | "ST" | "OBC" | "EWS" | string | null | undefined;
+  academicYearId?: string | undefined;
+  performedByUserId?: string | undefined;
+  performedByUserEmail?: string | undefined;
+  performedByUserRole?: string | undefined;
+  requestIp?: string | undefined;
+  clientIp?: string | undefined;
+  userAgent?: string | undefined;
+}
+
+export interface ImportedStudentResult {
+  success: boolean;
+  studentId: string;
+  admissionNumber: string;
+  isNew: boolean;
+  personId?: string;
+  parentUserId?: string | null;
+  parentCredentials?: any;
+  studentUserId?: string | null;
+  studentCredentials?: any;
+}
+
 export class StudentLifecycleEngine {
   /**
    * Executes the complete, authoritative, atomic enrollment pipeline.
@@ -632,6 +665,8 @@ export class StudentLifecycleEngine {
           studentName: `${firstName} ${lastName}`.trim(),
           primaryMobile,
           performedByUserId,
+          ipAddress: cleanIp,
+          userAgent,
           tx,
         });
       } catch (studentAccessErr) {
@@ -917,4 +952,360 @@ export class StudentLifecycleEngine {
       failureReason,
     };
   }
+
+  /**
+   * Authoritative pipeline for direct / CSV-imported student creation.
+   * Complies with scripts/audit-lifecycle-hygiene.mjs (canonical single write path).
+   * Executes complete S13 8-junction lifecycle:
+   * 1. Tenant & Academic Year Verification
+   * 2. Idempotency Check on Admission Number (returns isNew: false if already present)
+   * 3. Target Class & Section Verification
+   * 4. Canonical Person Master Record (STUDENT)
+   * 5. Student Profile Record
+   * 6. Student Class History (promotionStatus: 'ENROLLED')
+   * 7. Parent Account & Family Members (provisionOrLinkParent)
+   * 8. DPDP Truthful Consent Attestation (clean IP)
+   * 9. Mandatory Subject Enrollments (enrollStudentInMandatorySubjects)
+   * 10. Auto Fee Structure Assignment (autoAssignFeeStructuresToStudent)
+   * 11. Minor-Safe Student Credentials (provisionOrLinkStudent)
+   * 12. Forensic Audit Log & Durable Domain Event Outbox
+   */
+  public static async createImportedStudent(
+    schoolIdOrInput: string | (ImportedStudentInput & { schoolId: string }),
+    dataOrTx?: ImportedStudentInput | any,
+    maybeTx?: any,
+  ): Promise<ImportedStudentResult> {
+    let schoolId: string;
+    let data: ImportedStudentInput;
+    let externalTx: any;
+
+    if (typeof schoolIdOrInput === "string") {
+      schoolId = schoolIdOrInput;
+      data = dataOrTx as ImportedStudentInput;
+      externalTx = maybeTx;
+    } else {
+      schoolId = schoolIdOrInput.schoolId;
+      data = schoolIdOrInput;
+      externalTx = dataOrTx;
+    }
+
+    const runInTx = async (executor: any): Promise<ImportedStudentResult> => {
+      // 1. Sanitize Client IP (never allow loopback 127.0.0.1 per hygiene check 4)
+      const rawIp = data.requestIp || data.clientIp || "0.0.0.0";
+      const cleanIp =
+        !rawIp || rawIp === "127.0.0.1" || rawIp === "::1"
+          ? "0.0.0.0"
+          : rawIp;
+      const userAgent = data.userAgent || "SchoolMitra Student Importer";
+      const performedByUserId =
+        data.performedByUserId || "00000000-0000-0000-0000-000000000000";
+      const performedByUserEmail =
+        data.performedByUserEmail || "admin@schoolmitra.internal";
+      const performedByUserRole = data.performedByUserRole || "SCHOOL_ADMIN";
+
+      // 2. Validate Admission Number & Idempotency Check
+      const admNumber = (data.admissionNumber || "").trim();
+      if (!admNumber) {
+        throw new Error("Admission number is required for imported student");
+      }
+
+      const existing = await executor.query.students.findFirst({
+        where: and(
+          eq(students.schoolId, schoolId),
+          eq(students.admissionNumber, admNumber),
+        ),
+      });
+
+      if (existing) {
+        return {
+          success: true,
+          studentId: existing.id,
+          admissionNumber: existing.admissionNumber,
+          isNew: false,
+          personId: "",
+          parentUserId: existing.primaryParentUserId,
+        };
+      }
+
+      // 3. Validate Target Class and Section
+      const targetClass = await executor.query.classes.findFirst({
+        where: and(
+          eq(classes.id, data.classId),
+          eq(classes.schoolId, schoolId),
+          eq(classes.isActive, true),
+        ),
+      });
+      if (!targetClass) {
+        throw new Error(
+          `Target class '${data.classId}' not found or inactive in school '${schoolId}'`,
+        );
+      }
+
+      const targetSection = await executor.query.sections.findFirst({
+        where: and(
+          eq(sections.id, data.sectionId),
+          eq(sections.classId, data.classId),
+          eq(sections.schoolId, schoolId),
+          eq(sections.isActive, true),
+        ),
+      });
+      if (!targetSection) {
+        throw new Error(
+          `Target section '${data.sectionId}' not found or does not belong to class '${data.classId}'`,
+        );
+      }
+
+      // 4. Resolve Active Academic Year
+      let activeYearId = data.academicYearId;
+      if (!activeYearId) {
+        const activeYear = await executor.query.academicYears.findFirst({
+          where: and(
+            eq(academicYears.schoolId, schoolId),
+            eq(academicYears.isActive, true),
+          ),
+        });
+        if (!activeYear) {
+          throw new Error(`No active academic year found for school '${schoolId}'`);
+        }
+        activeYearId = activeYear.id;
+      }
+
+      // 5. Parse Names, Hashes, and Date of Birth
+      const firstName = (data.firstName || "").trim();
+      if (!firstName) {
+        throw new Error("First name is required for imported student");
+      }
+      const lastName = (data.lastName || "").trim();
+      const firstNameHash = computeSearchHash(firstName);
+      const lastNameHash = computeSearchHash(lastName);
+
+      const parsedDob =
+        typeof data.dob === "string" ? new Date(data.dob) : data.dob;
+      if (!parsedDob || isNaN(parsedDob.getTime())) {
+        throw new Error(`Invalid date of birth: '${data.dob}'`);
+      }
+
+      const gender = data.gender;
+      const category = (data.category as any) || "GENERAL";
+
+      // 6. Provision Canonical Person Record (Student)
+      const [person] = await executor
+        .insert(persons)
+        .values({
+          schoolId,
+          primaryType: "STUDENT",
+          firstNameEncrypted: encryptData(firstName),
+          lastNameEncrypted: encryptData(lastName),
+          firstNameSearchHash: firstNameHash,
+          lastNameSearchHash: lastNameHash,
+          gender,
+          dateOfBirth: parsedDob,
+          createdBy: performedByUserId,
+        })
+        .returning({ id: persons.id });
+
+      if (!person) {
+        throw new Error("Failed to insert canonical person record for imported student");
+      }
+
+      // 7. Provision Student Profile Record
+      const [newStudent] = await executor
+        .insert(students)
+        .values({
+          schoolId,
+          academicYearId: activeYearId,
+          admissionNumber: admNumber,
+          firstNameEncrypted: encryptData(firstName),
+          lastNameEncrypted: encryptData(lastName),
+          firstNameSearchHash: firstNameHash,
+          lastNameSearchHash: lastNameHash,
+          dateOfBirth: parsedDob,
+          gender,
+          category,
+          currentClassId: data.classId,
+          currentSectionId: data.sectionId,
+          admissionDate: new Date(),
+          isActive: true,
+        })
+        .returning({ id: students.id });
+
+      if (!newStudent) {
+        throw new Error("Failed to insert student profile record for imported student");
+      }
+
+      // 8. Provision Initial Student Class History Record
+      await executor.insert(studentClassHistory).values({
+        studentId: newStudent.id,
+        schoolId,
+        academicYearId: activeYearId,
+        classId: data.classId,
+        sectionId: data.sectionId,
+        promotionStatus: "ENROLLED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // 9. Provision Parent User Account & Family Members
+      const parentName = (data.parentName || "").trim() || "Parent Guardian";
+      const parentPhone = (data.parentPhone || "").trim() || null;
+      const parentEmail = (data.parentEmail || "").trim() || null;
+
+      const linkResult = await provisionOrLinkParent({
+        schoolId,
+        studentId: newStudent.id,
+        primaryEmail: parentEmail,
+        primaryMobile: parentPhone,
+        guardianName: parentName,
+        performedByUserId,
+        tx: executor,
+      });
+
+      const parentUserId = linkResult.parentUserId;
+
+      const mobileHash = parentPhone
+        ? computeSearchHash(parentPhone.replace(/\D/g, "").slice(-10))
+        : null;
+      const emailHash = parentEmail
+        ? computeSearchHash(parentEmail.toLowerCase())
+        : null;
+
+      await executor.insert(studentFamilyMembers).values({
+        studentId: newStudent.id,
+        schoolId,
+        userId: parentUserId,
+        relation: "GUARDIAN",
+        nameEncrypted: encryptData(parentName),
+        mobileEncrypted: parentPhone ? encryptData(parentPhone) : null,
+        emailEncrypted: parentEmail ? encryptData(parentEmail) : null,
+        mobileSearchHash: mobileHash,
+        emailSearchHash: emailHash,
+        isPrimaryContact: true,
+        isEmergencyContact: true,
+        hasConsentAuthority: true,
+      });
+
+      // 10. DPDP Truthful Consent Attestation (Mandatory Statutory Purposes)
+      const requiredPurposes = ["admission_data", "academic_records"];
+      for (const purposeId of requiredPurposes) {
+        await executor.insert(consentRecords).values({
+          schoolId,
+          studentId: newStudent.id,
+          parentUserId: parentUserId || performedByUserId,
+          purposeId,
+          granted: true,
+          method: "admin_attestation",
+          privacyNoticeVersion: "1.0",
+          ipAddress: cleanIp,
+          userAgent,
+        });
+      }
+
+      // 11. Auto-Assign Fee Structures (if configured)
+      try {
+        await autoAssignFeeStructuresToStudent(newStudent.id, executor, schoolId);
+      } catch (feeErr) {
+        console.warn("[StudentLifecycleEngine] Auto fee structure assignment non-fatal skip:", feeErr);
+      }
+
+      // 12. Mandatory Subject Enrollments
+      await enrollStudentInMandatorySubjects(schoolId, newStudent.id, executor);
+
+      // 13. Minor-Safe Student Access Provisioning (Forwarding Clean IP)
+      let studentAccessResult: any = null;
+      try {
+        studentAccessResult = await provisionOrLinkStudent({
+          schoolId,
+          studentId: newStudent.id,
+          admissionNumber: admNumber,
+          dateOfBirth: parsedDob,
+          studentName: `${firstName} ${lastName}`.trim(),
+          primaryMobile: parentPhone,
+          performedByUserId,
+          ipAddress: cleanIp,
+          userAgent,
+          tx: executor,
+        });
+      } catch (studentAccessErr) {
+        console.error(
+          "[StudentLifecycleEngine] Failed to provision student login account:",
+          studentAccessErr,
+        );
+      }
+
+      // 14. Forensic Audit Log Entry
+      await executor.insert(auditLogs).values({
+        schoolId,
+        userId: performedByUserId,
+        userEmail: performedByUserEmail,
+        userRole: performedByUserRole,
+        action: "WRITE",
+        tableName: "students",
+        recordId: newStudent.id,
+        purposeId: "student_import",
+        ipAddress: cleanIp,
+        userAgent,
+        metadata: {
+          admissionNumber: admNumber,
+          classId: data.classId,
+          sectionId: data.sectionId,
+          personId: person.id,
+          parentUserId,
+          source: "bulk_import",
+        },
+      });
+
+      // 15. Durable Domain Events Outbox Record
+      await executor.insert(domainEvents).values({
+        schoolId,
+        aggregateId: newStudent.id,
+        eventType: "StudentImportedEvent",
+        payload: {
+          studentId: newStudent.id,
+          personId: person.id,
+          admissionNumber: admNumber,
+          classId: data.classId,
+          sectionId: data.sectionId,
+          academicYearId: activeYearId,
+          parentUserId,
+        },
+        status: "PENDING",
+      });
+
+      return {
+        success: true,
+        studentId: newStudent.id,
+        admissionNumber: admNumber,
+        isNew: true,
+        personId: person.id,
+        parentUserId,
+        parentCredentials: linkResult.parentCredentials,
+        studentUserId: studentAccessResult?.studentUserId || null,
+        studentCredentials: studentAccessResult?.studentCredentials,
+      };
+    };
+
+    // Execute within caller transaction or self-managed withTenant
+    if (externalTx) {
+      return await runInTx(externalTx);
+    } else {
+      return await withTenant(schoolId, runInTx);
+    }
+  }
 }
+
+/**
+ * Standalone export delegating to StudentLifecycleEngine.createImportedStudent.
+ * Conforms to scripts/audit-lifecycle-hygiene.mjs.
+ */
+export async function createImportedStudent(
+  schoolIdOrInput: string | (ImportedStudentInput & { schoolId: string }),
+  dataOrTx?: ImportedStudentInput | any,
+  maybeTx?: any,
+): Promise<ImportedStudentResult> {
+  return await StudentLifecycleEngine.createImportedStudent(
+    schoolIdOrInput as any,
+    dataOrTx,
+    maybeTx,
+  );
+}
+

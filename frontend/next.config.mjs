@@ -118,6 +118,16 @@ const nextConfig = {
         destination: "/school/fees-dashboard",
         permanent: true,
       },
+      {
+        source: "/finance/fees",
+        destination: "/school/fee-structures",
+        permanent: true,
+      },
+      {
+        source: "/academics/timetable",
+        destination: "/academics?tab=timetable",
+        permanent: false,
+      },
     ];
   },
 

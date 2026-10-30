@@ -360,8 +360,8 @@ export async function deleteSchoolAction(schoolId: string, confirmSchoolName: st
 }
 
 // PROVISIONING ACTIONS (Sprint S20)
-import type { DryRunPreviewResult, ProvisionResult } from "@/lib/provisioningEngine";
-export type { DryRunPreviewResult, ProvisionResult };
+import type { DryRunPreviewResult, ProvisionResult, TopUpResult } from "@/lib/provisioningEngine";
+export type { DryRunPreviewResult, ProvisionResult, TopUpResult };
 
 export async function dryRunProvisionSchoolAction(
   schoolId: string,
@@ -428,4 +428,38 @@ export async function getSchoolProvisionStatusAction(schoolId: string) {
     provision: provision || null,
   };
 }
+
+export async function topUpSchoolProvisionAction(
+  schoolId: string,
+  blueprintId?: string
+): Promise<TopUpResult> {
+  const authCtx = await requireAuth(["SUPER_ADMIN"]);
+  if (!schoolId) {
+    return { success: false, addedCount: 0, message: "School ID is required." };
+  }
+
+  const { topUpSchoolProvision } = await import("@/lib/provisioningEngine");
+  const result = await topUpSchoolProvision(schoolId, blueprintId);
+
+  if (result.success) {
+    await logPlatformAuditEvent({
+      superAdminId: authCtx.userId,
+      superAdminEmail: authCtx.email ?? "",
+      action: "TOP_UP_SCHOOL_PROVISION" as any,
+      targetSchoolId: schoolId,
+      entityType: "school",
+      entityId: schoolId,
+      metadata: {
+        blueprintId: blueprintId || "auto",
+        addedCount: result.addedCount,
+      },
+    });
+
+    await invalidateSchoolCache(schoolId);
+    revalidatePath("/super-admin/schools");
+  }
+
+  return result;
+}
+
 

@@ -69,7 +69,7 @@ export const DATASET_SCHEMAS: Record<ImportDatasetKey, DatasetSchema> = {
       { key: "phone", label: "Contact Phone", required: true, type: "string", sampleValue: "+919876543211" },
       { key: "department", label: "Department", required: true, type: "string", sampleValue: "Mathematics" },
       { key: "designation", label: "Designation", required: true, type: "string", sampleValue: "Senior TGT Teacher" },
-      { key: "role", label: "System Role", required: true, type: "enum", allowedEnums: ["TEACHER", "ACCOUNTANT", "PRINCIPAL", "STAFF"], sampleValue: "TEACHER" },
+      { key: "role", label: "System Role", required: true, type: "enum", allowedEnums: ["TEACHER", "STAFF", "ACCOUNTANT"], sampleValue: "TEACHER" },
     ],
   },
   CLASSES: {
@@ -214,6 +214,24 @@ export function parseCsvText(csvText: string): { headers: string[]; rows: Record
   return { headers: rawHeaders, rows };
 }
 
+export const MAX_IMPORT_ROWS = 5000;
+
+/**
+ * Enforces institutional 5,000-row cap per import file.
+ * Throws typed guidance error if boundary is exceeded.
+ */
+export function enforceImportRowLimit(rows: unknown[] | number): void {
+  const count = typeof rows === "number" ? rows : rows?.length || 0;
+  if (count <= 0) {
+    throw new Error("No data rows supplied for import.");
+  }
+  if (count > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `Import file exceeds maximum allowed limit of ${MAX_IMPORT_ROWS} rows (received ${count} rows). Please split your file into smaller batches.`
+    );
+  }
+}
+
 /**
  * Validates parsed CSV rows against dataset schema with row-level error reporting.
  */
@@ -221,6 +239,12 @@ export function validateImportBatch(
   datasetKey: ImportDatasetKey,
   rows: Record<string, string>[]
 ): BatchValidationSummary {
+  if (rows && rows.length > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `Import file exceeds maximum allowed limit of ${MAX_IMPORT_ROWS} rows (received ${rows.length} rows). Please split your file into smaller batches.`
+    );
+  }
+
   const schema = DATASET_SCHEMAS[datasetKey];
   if (!schema) {
     throw new Error(`Unknown dataset key '${datasetKey}'.`);
@@ -304,7 +328,7 @@ export function validateImportBatch(
 }
 
 /**
- * Generates an error-report CSV containing only the rejected rows with their exact validation failure reasons.
+ * Generates an error-report CSV containing only the rejected rows with their exact validation failure reasons and line numbers.
  */
 export function generateRejectedRowsCsv(validation: BatchValidationSummary): string {
   const schema = DATASET_SCHEMAS[validation.datasetKey];
@@ -317,7 +341,12 @@ export function generateRejectedRowsCsv(validation: BatchValidationSummary): str
       const val = r.data[col.label] ?? r.data[col.key] ?? "";
       return `"${val.replace(/"/g, '""')}"`;
     });
-    const errorStr = `"${r.errors.join("; ").replace(/"/g, '""')}"`;
+    const errorText = r.errors.join("; ");
+    const formattedError =
+      errorText.startsWith("Line ") || errorText.startsWith("Row ")
+        ? errorText
+        : `Line ${r.rowNumber}: ${errorText}`;
+    const errorStr = `"${formattedError.replace(/"/g, '""')}"`;
     return [...rowVals, errorStr].join(",");
   });
 

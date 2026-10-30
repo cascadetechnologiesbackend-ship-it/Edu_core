@@ -151,7 +151,7 @@ vi.mock("@/db", () => {
     const chain: any = {
       values: vi.fn((vals: any) => {
         targetValues = vals;
-        if (action === "insert-sst" && vals) {
+        if (action === "insert-sst" && vals && vals.classSubjectId) {
           const newRec = {
             id: `sst-${Date.now()}`,
             ...vals,
@@ -163,6 +163,14 @@ vi.mock("@/db", () => {
       }),
       set: vi.fn((vals: any) => {
         targetSet = vals;
+        if (vals.assignedTeacherId !== undefined) {
+          const cs = store.classSubjects[0];
+          if (cs) Object.assign(cs, vals);
+        }
+        if (vals.classTeacherId !== undefined || vals.name !== undefined) {
+          const sec = store.sections[0];
+          if (sec) Object.assign(sec, vals);
+        }
         return chain;
       }),
       where: vi.fn(() => {
@@ -180,7 +188,7 @@ vi.mock("@/db", () => {
         return Promise.resolve([{ id: "updated" }]);
       }),
       returning: vi.fn(() => {
-        if (action === "insert-sst" && targetValues) {
+        if (action === "insert-sst" && targetValues && targetValues.classSubjectId) {
           const newRec = {
             id: `sst-${Date.now()}`,
             ...targetValues,
@@ -226,6 +234,7 @@ vi.mock("@/db", () => {
       },
       sections: {
         findFirst: vi.fn(async () => store.sections[0] || null),
+        findMany: vi.fn(async () => []),
       },
       subjects: {
         findFirst: vi.fn(async () => store.subjects[0] || null),
@@ -255,6 +264,10 @@ vi.mock("@/db", () => {
       },
       academicYears: {
         findFirst: vi.fn(async () => ({ id: "ay-1", schoolId: "school-nh", isActive: true })),
+      },
+      classTeacherAssignments: {
+        findFirst: vi.fn(async () => null),
+        findMany: vi.fn(async () => []),
       },
     },
     insert: vi.fn((table: any) => createChainable("insert-sst")),

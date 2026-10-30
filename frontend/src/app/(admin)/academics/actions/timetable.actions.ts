@@ -14,6 +14,15 @@ import {
 import { eq, and, ne, asc, desc, isNull, lte, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { checkAuth, getActiveAcademicYear } from "./auth-helper";
+import {
+  validateWorkloadFit,
+  generateDeterministicSchedule,
+  checkScheduleClashes,
+  type SubjectWorkloadInput,
+  type ScheduleSlot,
+  type WorkloadFitResult,
+  type TimetableClash,
+} from "@/lib/timetableEngine";
 
 // ─── 1. Bell Schedule Actions (Rule #2) ──────────────────────────────────────
 
@@ -116,7 +125,7 @@ export async function getSectionTimetable(sectionId: string) {
 // ─── 2. Enhanced Timetable Conflict Enforcement (Rules #2, #4) ────────────────
 
 export async function saveTimetablePeriod(data: {
-  id?: string;
+  id?: string | undefined;
   sectionId: string;
   dayOfWeek:
     | "MONDAY"
@@ -137,9 +146,10 @@ export async function saveTimetablePeriod(data: {
     | "PT"
     | "LIBRARY"
     | "FREE";
-  subjectId?: string | null;
-  teacherId?: string | null;
-  roomNumber?: string | null;
+  subjectId?: string | null | undefined;
+  teacherId?: string | null | undefined;
+  roomNumber?: string | null | undefined;
+  isManualOverride?: boolean | undefined;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const activeYear = await getActiveAcademicYear(session.user.schoolId);
@@ -158,7 +168,6 @@ export async function saveTimetablePeriod(data: {
         eq(timetablePeriods.sectionId, data.sectionId),
         eq(timetablePeriods.dayOfWeek, data.dayOfWeek),
         eq(timetablePeriods.periodNumber, data.periodNumber),
-        eq(timetablePeriods.isActive, true),
       ),
     });
     if (existingSlot) {
@@ -270,6 +279,9 @@ export async function saveTimetablePeriod(data: {
         subjectId: subjectIdVal,
         teacherId: teacherIdVal,
         roomNumber: roomNumberVal,
+        ...(data.isManualOverride !== undefined
+          ? { isManualOverride: data.isManualOverride }
+          : {}),
         isActive: true,
         updatedAt: new Date(),
       })
@@ -292,6 +304,7 @@ export async function saveTimetablePeriod(data: {
       subjectId: subjectIdVal,
       teacherId: teacherIdVal,
       roomNumber: roomNumberVal,
+      isManualOverride: data.isManualOverride ?? false,
     });
   }
 
@@ -852,4 +865,428 @@ export async function clearSectionTimetable(sectionId: string) {
   } catch {}
 
   return { success: true };
+}
+
+// ─── 5. Timetable Generator Actions (Sprint S21, F11 & F12) ───────────────────
+
+export interface TimetablePreviewResult {
+  fits: boolean;
+  fitReport: WorkloadFitResult;
+  slots: ScheduleSlot[];
+  clashes: TimetableClash[];
+  needsAssignmentReport: Array<{
+    subjectId: string;
+    subjectName: string;
+    unassignedCount: number;
+    reason?: string;
+  }>;
+  unassignedPeriodsCount: number;
+}
+
+export interface CommitTimetableResult {
+  success: boolean;
+  upsertedCount: number;
+  deactivatedCount: number;
+  preservedOverridesCount: number;
+}
+
+const DAY_NUMBER_TO_NAME = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+] as const;
+
+const DAY_NAME_TO_NUMBER: Record<string, number> = {
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
+/**
+ * Generates a deterministic preview of the weekly timetable for a given section.
+ * Validates workload fit, generates anti-fatigue schedule slots, auto-assigns teachers
+ * where unique allocations exist, checks concurrency clashes, and returns a comprehensive report.
+ */
+export async function generateSectionTimetablePreview(
+  sectionId: string,
+): Promise<TimetablePreviewResult> {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+
+  // 1. Verify section belongs to current tenant institution
+  const section = await db.query.sections.findFirst({
+    where: and(
+      eq(sections.id, sectionId),
+      eq(sections.schoolId, session.user.schoolId),
+      eq(sections.isActive, true),
+    ),
+    with: {
+      class: true,
+    },
+  });
+
+  if (!section) {
+    throw new Error(
+      "Invalid section specified: Section does not belong to your institution or is inactive.",
+    );
+  }
+
+  // 2. Query active bell schedule
+  const bellPeriods = await db.query.bellSchedule.findMany({
+    where: and(
+      eq(bellSchedule.schoolId, session.user.schoolId),
+      eq(bellSchedule.isActive, true),
+    ),
+    orderBy: [asc(bellSchedule.periodNumber)],
+  });
+
+  if (bellPeriods.length === 0) {
+    throw new Error(
+      "No active bell schedule configured for this school. Please configure or top up bell schedule periods first.",
+    );
+  }
+
+  // Regular instructional periods represent available teaching slots per day
+  const regularBellPeriods = bellPeriods.filter(
+    (p) => p.periodType === "REGULAR" || p.periodType === "LAB",
+  );
+  const instructionPeriodsPerDay =
+    regularBellPeriods.length > 0 ? regularBellPeriods.length : bellPeriods.length;
+
+  const workingDays = [1, 2, 3, 4, 5, 6]; // Monday through Saturday
+  const workingDaysCount = workingDays.length;
+
+  // 3. Query class subjects and workloads
+  const classSubjs = await db.query.classSubjects.findMany({
+    where: and(
+      eq(classSubjects.schoolId, session.user.schoolId),
+      eq(classSubjects.classId, section.classId),
+    ),
+    with: {
+      subject: true,
+    },
+  });
+
+  const subjectsInput: SubjectWorkloadInput[] = classSubjs.map((cs) => ({
+    id: cs.id, // Using classSubjectId so teacher allocations map directly
+    name: cs.subject?.name || "Subject",
+    code: cs.subject?.code,
+    weeklyPeriods: cs.periodsPerWeek ?? 5,
+    isLabOrPractical:
+      cs.subject?.subjectType === "PRACTICAL" ||
+      /lab|practical|physics|chemistry|biology|computer/i.test(cs.subject?.name || ""),
+  }));
+
+  // 4. Query existing timetable periods for section to identify manual overrides
+  const existingPeriods = await db.query.timetablePeriods.findMany({
+    where: and(
+      eq(timetablePeriods.schoolId, session.user.schoolId),
+      eq(timetablePeriods.academicYearId, activeYear.id),
+      eq(timetablePeriods.sectionId, sectionId),
+      eq(timetablePeriods.isActive, true),
+    ),
+    with: {
+      subject: true,
+    },
+  });
+
+  const existingSlots: ScheduleSlot[] = existingPeriods
+    .filter((p) => (p as any).isManualOverride === true)
+    .map((p) => {
+      const matchingCs = classSubjs.find(
+        (cs) => cs.subjectId === p.subjectId || cs.id === p.subjectId,
+      );
+      return {
+        dayOfWeek: DAY_NAME_TO_NUMBER[p.dayOfWeek] || 1,
+        periodNumber: p.periodNumber,
+        subjectId: matchingCs ? matchingCs.id : (p.subjectId || ""),
+        subjectName: p.subject?.name || matchingCs?.subject?.name || "Subject",
+        teacherId: p.teacherId || undefined,
+        roomId: p.roomNumber || undefined,
+        isManualOverride: true,
+      };
+    });
+
+  // 5. Run mathematical workload feasibility fit
+  const fitReport = validateWorkloadFit({
+    workingDaysCount,
+    instructionPeriodsPerDay,
+    subjects: subjectsInput,
+  });
+
+  // 6. Generate deterministic provisional schedule
+  const scheduleResult = generateDeterministicSchedule({
+    workingDays,
+    instructionPeriodsPerDay,
+    subjects: subjectsInput,
+    existingSlots,
+  });
+
+  // 7. Auto-assign teachers from sectionSubjectTeachers
+  const allocations = await db.query.sectionSubjectTeachers.findMany({
+    where: and(
+      eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+      eq(sectionSubjectTeachers.sectionId, sectionId),
+      eq(sectionSubjectTeachers.isActive, true),
+      isNull(sectionSubjectTeachers.effectiveTo),
+    ),
+  });
+
+  const allocMap = new Map<string, typeof allocations>();
+  for (const alloc of allocations) {
+    const list = allocMap.get(alloc.classSubjectId) || [];
+    list.push(alloc);
+    allocMap.set(alloc.classSubjectId, list);
+  }
+
+  for (const slot of scheduleResult.slots) {
+    if (slot.isManualOverride && slot.teacherId) {
+      continue;
+    }
+
+    const activeAllocations = allocMap.get(slot.subjectId) || [];
+    if (activeAllocations.length === 1) {
+      slot.teacherId = activeAllocations[0]!.teacherId;
+    } else {
+      slot.teacherId = undefined; // Unassigned if 0 or ambiguous multiple allocations
+    }
+  }
+
+  // 8. Generate needsAssignmentReport
+  const needsAssignmentMap = new Map<
+    string,
+    { subjectId: string; subjectName: string; unassignedCount: number; reason?: string }
+  >();
+
+  for (const slot of scheduleResult.slots) {
+    if (!slot.teacherId) {
+      const activeAllocations = allocMap.get(slot.subjectId) || [];
+      const reason =
+        activeAllocations.length === 0
+          ? "NO_ALLOCATION"
+          : "AMBIGUOUS_MULTIPLE_ALLOCATIONS";
+
+      const entry = needsAssignmentMap.get(slot.subjectId) || {
+        subjectId: slot.subjectId,
+        subjectName: slot.subjectName,
+        unassignedCount: 0,
+        reason,
+      };
+      entry.unassignedCount++;
+      needsAssignmentMap.set(slot.subjectId, entry);
+    }
+  }
+
+  const needsAssignmentReport = Array.from(needsAssignmentMap.values());
+
+  // 9. Concurrency clash detection against other sections
+  const otherPeriods = await db.query.timetablePeriods.findMany({
+    where: and(
+      eq(timetablePeriods.schoolId, session.user.schoolId),
+      eq(timetablePeriods.academicYearId, activeYear.id),
+      ne(timetablePeriods.sectionId, sectionId),
+      eq(timetablePeriods.isActive, true),
+    ),
+  });
+
+  const clashCandidates = [
+    ...scheduleResult.slots.map((s) => ({
+      dayOfWeek: s.dayOfWeek,
+      periodNumber: s.periodNumber,
+      classId: sectionId,
+      teacherId: s.teacherId || null,
+      roomId: s.roomId || null,
+    })),
+    ...otherPeriods.map((p) => ({
+      dayOfWeek: DAY_NAME_TO_NUMBER[p.dayOfWeek] || 1,
+      periodNumber: p.periodNumber,
+      classId: p.sectionId,
+      teacherId: p.teacherId || null,
+      roomId: p.roomNumber || null,
+    })),
+  ];
+
+  const allClashes = checkScheduleClashes(clashCandidates);
+  const clashes = allClashes.filter((c) =>
+    scheduleResult.slots.some(
+      (s) => s.dayOfWeek === c.dayOfWeek && s.periodNumber === c.periodNumber,
+    ),
+  );
+
+  return {
+    fits: fitReport.fits,
+    fitReport,
+    slots: scheduleResult.slots,
+    clashes,
+    needsAssignmentReport,
+    unassignedPeriodsCount: scheduleResult.unassignedPeriodsCount,
+  };
+}
+
+/**
+ * Commits a generated timetable to the database.
+ * Routes every slot through saveTimetablePeriod to enforce double-booking and room overlap checks.
+ * Preserves manual override slots, upserts generated slots, and deactivates orphaned non-manual periods.
+ */
+export async function commitSectionTimetable(
+  sectionId: string,
+  slots: ScheduleSlot[],
+): Promise<CommitTimetableResult> {
+  const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
+  const activeYear = await getActiveAcademicYear(session.user.schoolId);
+
+  // 1. Verify section belongs to current tenant
+  const section = await db.query.sections.findFirst({
+    where: and(
+      eq(sections.id, sectionId),
+      eq(sections.schoolId, session.user.schoolId),
+      eq(sections.isActive, true),
+    ),
+  });
+
+  if (!section) {
+    throw new Error(
+      "Invalid section specified: Section does not belong to your institution.",
+    );
+  }
+
+  // 2. Query bell schedule to resolve slot start/end timings
+  const bellPeriods = await db.query.bellSchedule.findMany({
+    where: and(
+      eq(bellSchedule.schoolId, session.user.schoolId),
+      eq(bellSchedule.isActive, true),
+    ),
+    orderBy: [asc(bellSchedule.periodNumber)],
+  });
+
+  const bellMap = new Map<number, (typeof bellPeriods)[0]>();
+  for (const bp of bellPeriods) {
+    bellMap.set(bp.periodNumber, bp);
+  }
+
+  // 3. Query classSubjects to resolve classSubjectId -> subjectId foreign key
+  const classSubjs = await db.query.classSubjects.findMany({
+    where: and(
+      eq(classSubjects.schoolId, session.user.schoolId),
+      eq(classSubjects.classId, section.classId),
+    ),
+  });
+
+  const classSubjMap = new Map<string, string>();
+  for (const cs of classSubjs) {
+    classSubjMap.set(cs.id, cs.subjectId);
+    classSubjMap.set(cs.subjectId, cs.subjectId);
+  }
+
+  // 4. Query existing periods for this section (including inactive to prevent unique constraint crashes)
+  const existingPeriods = await db.query.timetablePeriods.findMany({
+    where: and(
+      eq(timetablePeriods.schoolId, session.user.schoolId),
+      eq(timetablePeriods.academicYearId, activeYear.id),
+      eq(timetablePeriods.sectionId, sectionId),
+    ),
+  });
+
+  const existingMap = new Map<string, (typeof existingPeriods)[0]>();
+  for (const ep of existingPeriods) {
+    const key = `${ep.dayOfWeek}-${ep.periodNumber}`;
+    existingMap.set(key, ep);
+  }
+
+  let upsertedCount = 0;
+  let preservedOverridesCount = 0;
+  const processedKeys = new Set<string>();
+
+  // 5. Persist slots exclusively through saveTimetablePeriod
+  for (const slot of slots) {
+    const dayOfWeek = DAY_NUMBER_TO_NAME[slot.dayOfWeek - 1];
+    if (!dayOfWeek) continue;
+
+    const key = `${dayOfWeek}-${slot.periodNumber}`;
+    processedKeys.add(key);
+
+    const existingSlot = existingMap.get(key);
+
+    // Invariant: If existing slot is manual override and incoming is non-manual, preserve manual override!
+    if (
+      existingSlot &&
+      existingSlot.isActive &&
+      (existingSlot as any).isManualOverride === true &&
+      !slot.isManualOverride
+    ) {
+      preservedOverridesCount++;
+      continue;
+    }
+
+    const bell = bellMap.get(slot.periodNumber);
+    const startTime = bell?.startTime || "08:30";
+    const endTime = bell?.endTime || "09:15";
+    const periodType = (bell?.periodType || "REGULAR") as any;
+
+    const resolvedSubjectId = slot.subjectId
+      ? classSubjMap.get(slot.subjectId) || slot.subjectId
+      : null;
+
+    await saveTimetablePeriod({
+      ...(existingSlot ? { id: existingSlot.id } : {}),
+      sectionId,
+      dayOfWeek,
+      periodNumber: slot.periodNumber,
+      startTime,
+      endTime,
+      periodType,
+      subjectId: resolvedSubjectId,
+      teacherId: slot.teacherId || null,
+      roomNumber: slot.roomId || null,
+      isManualOverride: slot.isManualOverride ?? false,
+    });
+
+    upsertedCount++;
+  }
+
+  // 6. Deactivate orphaned non-manual periods not present in new slots
+  let deactivatedCount = 0;
+  for (const ep of existingPeriods) {
+    if (!ep.isActive) continue; // Already inactive
+
+    const key = `${ep.dayOfWeek}-${ep.periodNumber}`;
+    if (!processedKeys.has(key)) {
+      if ((ep as any).isManualOverride === true) {
+        preservedOverridesCount++;
+        continue; // Never deactivate manual overrides
+      }
+
+      await db
+        .update(timetablePeriods)
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(timetablePeriods.id, ep.id),
+            eq(timetablePeriods.schoolId, session.user.schoolId),
+          ),
+        );
+
+      deactivatedCount++;
+    }
+  }
+
+  try {
+    revalidatePath("/academics");
+  } catch {}
+
+  return {
+    success: true,
+    upsertedCount,
+    deactivatedCount,
+    preservedOverridesCount,
+  };
 }

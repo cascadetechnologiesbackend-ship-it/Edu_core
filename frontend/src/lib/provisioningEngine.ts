@@ -14,9 +14,10 @@ import {
   events,
   schoolProvisions,
   globalTemplateProfiles,
+  bellSchedule,
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getCanonicalBlueprint, CanonicalBlueprint } from "./canonicalBlueprints";
+import { getCanonicalBlueprint, getAllCanonicalBlueprints, CanonicalBlueprint } from "./canonicalBlueprints";
 import { normalizeProfessionalTaxState } from "./reference/indiaReferenceData";
 
 export interface DryRunPreviewResult {
@@ -32,6 +33,7 @@ export interface DryRunPreviewResult {
     subjects: number;
     feeHeads: number;
     departments: number;
+    bellSchedulePeriods?: number | undefined;
   } | undefined;
   prospectiveCounts?: {
     classes: number;
@@ -43,6 +45,7 @@ export interface DryRunPreviewResult {
     salaryGrades: number;
     holidays: number;
     roles: number;
+    bellSchedulePeriods?: number | undefined;
   } | undefined;
   preview?: {
     classes: string[];
@@ -50,7 +53,14 @@ export interface DryRunPreviewResult {
     feeHeads: string[];
     salaryGrades: string[];
     holidays: string[];
+    bellSchedule?: string[] | undefined;
   } | undefined;
+}
+
+export interface TopUpResult {
+  success: boolean;
+  addedCount: number;
+  message: string;
 }
 
 export interface ProvisionResult {
@@ -114,8 +124,13 @@ export async function dryRunProvisionSchool(
   const existingSubjects = await db.select({ count: sql<number>`count(*)` }).from(subjects).where(eq(subjects.schoolId, schoolId));
   const existingFeeHeads = await db.select({ count: sql<number>`count(*)` }).from(feeHeads).where(eq(feeHeads.schoolId, schoolId));
   const existingDepts = await db.select({ count: sql<number>`count(*)` }).from(departments).where(eq(departments.schoolId, schoolId));
+  const existingBellPeriods = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(bellSchedule)
+    .where(and(eq(bellSchedule.schoolId, schoolId), eq(bellSchedule.isActive, true)));
 
   const totalSections = blueprint.classes.reduce((sum, c) => sum + c.defaultSections.length, 0);
+  const prospectiveInstructionalPeriods = blueprint.bellSchedule?.periods?.filter((p) => p.periodNumber > 0) || [];
 
   return {
     canProvision: true,
@@ -128,6 +143,7 @@ export async function dryRunProvisionSchool(
       subjects: Number(existingSubjects[0]?.count || 0),
       feeHeads: Number(existingFeeHeads[0]?.count || 0),
       departments: Number(existingDepts[0]?.count || 0),
+      bellSchedulePeriods: Number(existingBellPeriods[0]?.count || 0),
     },
     prospectiveCounts: {
       classes: blueprint.classes.length,
@@ -139,6 +155,7 @@ export async function dryRunProvisionSchool(
       salaryGrades: blueprint.salaryGrades.length,
       holidays: blueprint.holidays.length,
       roles: blueprint.roleDefaults.length,
+      bellSchedulePeriods: prospectiveInstructionalPeriods.length,
     },
     preview: {
       classes: blueprint.classes.map((c) => `${c.name} (${c.defaultSections.join(", ")})`),
@@ -146,6 +163,7 @@ export async function dryRunProvisionSchool(
       feeHeads: blueprint.feeHeads.map((f) => `${f.name} (${f.frequency})`),
       salaryGrades: blueprint.salaryGrades.map((g) => `${g.gradeName}`),
       holidays: blueprint.holidays.map((h) => `${h.name} (Month ${h.month}, Day ${h.day})`),
+      bellSchedule: prospectiveInstructionalPeriods.map((p) => `Period ${p.periodNumber}: ${p.startTime} - ${p.endTime}`),
     },
   };
 }
@@ -491,7 +509,58 @@ export async function executeProvisionSchool(params: {
         }
       }
 
-      // 10. Record Provenance & Idempotency Lock in school_provisions
+      // 10. Clone Bell Schedule (Instructional Periods 1..N)
+      let bellSchedulePeriodsCreated = 0;
+      if (blueprint.bellSchedule?.periods) {
+        const instructionalPeriods = blueprint.bellSchedule.periods.filter(
+          (p) => p.periodNumber > 0
+        );
+
+        for (const p of instructionalPeriods) {
+          const existingPeriod = await tx.query.bellSchedule.findFirst({
+            where: and(
+              eq(bellSchedule.schoolId, schoolId),
+              eq(bellSchedule.periodNumber, p.periodNumber)
+            ),
+          });
+
+          if (!existingPeriod) {
+            await tx
+              .insert(bellSchedule)
+              .values({
+                schoolId,
+                periodNumber: p.periodNumber,
+                name: `Period ${p.periodNumber}`,
+                startTime: p.startTime,
+                endTime: p.endTime,
+                periodType: (p.periodType === "ASSEMBLY"
+                  ? "ASSEMBLY"
+                  : p.periodType === "SHORT_BREAK"
+                  ? "BREAK"
+                  : p.periodType === "LUNCH_BREAK"
+                  ? "LUNCH"
+                  : "REGULAR") as any,
+                isActive: true,
+              })
+              .onConflictDoNothing();
+            bellSchedulePeriodsCreated++;
+          } else if (!existingPeriod.isActive) {
+            // Reactivate if previously deactivated to respect unique constraint and restore active period
+            await tx
+              .update(bellSchedule)
+              .set({
+                isActive: true,
+                name: existingPeriod.name || `Period ${p.periodNumber}`,
+                startTime: p.startTime,
+                endTime: p.endTime,
+              })
+              .where(eq(bellSchedule.id, existingPeriod.id));
+            bellSchedulePeriodsCreated++;
+          }
+        }
+      }
+
+      // 11. Record Provenance & Idempotency Lock in school_provisions
       const entityCounts = {
         classes: classesCreated,
         sections: sectionsCreated,
@@ -502,6 +571,7 @@ export async function executeProvisionSchool(params: {
         salaryTemplates: salaryTemplatesCreated,
         holidays: holidaysCreated,
         roles: rolesCreated,
+        bellSchedulePeriods: bellSchedulePeriodsCreated,
       };
 
       const [provisionRecord] = await tx
@@ -529,6 +599,138 @@ export async function executeProvisionSchool(params: {
     return {
       success: false,
       message: err?.message || "Failed to provision school configuration.",
+    };
+  }
+}
+
+/**
+ * Top-Up Provisioning Engine: Scoped exclusively to bell schedule periods.
+ * Adds missing periods (1..periodsPerDay) for an existing/already-provisioned school
+ * without re-cloning other entities (classes, subjects, fees) and without breaching
+ * the sp_school_unique constraint on school_provisions.
+ */
+export async function topUpSchoolProvision(
+  schoolId: string,
+  blueprintId?: string
+): Promise<TopUpResult> {
+  const school = await db.query.schools.findFirst({
+    where: eq(schools.id, schoolId),
+  });
+
+  if (!school) {
+    return {
+      success: false,
+      addedCount: 0,
+      message: `School with ID '${schoolId}' was not found.`,
+    };
+  }
+
+  const priorProvision = await db.query.schoolProvisions.findFirst({
+    where: eq(schoolProvisions.schoolId, schoolId),
+  });
+
+  // Determine blueprint: explicitly requested -> prior provision profile -> fallback default
+  let blueprint: CanonicalBlueprint | undefined;
+  if (blueprintId) {
+    blueprint = getCanonicalBlueprint(blueprintId);
+  } else if (priorProvision?.profileId) {
+    const profile = await db.query.globalTemplateProfiles.findFirst({
+      where: eq(globalTemplateProfiles.id, priorProvision.profileId),
+    });
+    if (profile) {
+      blueprint = getAllCanonicalBlueprints().find(
+        (b) => b.board === profile.board && b.schoolType === profile.schoolType
+      );
+    }
+  }
+
+  if (!blueprint) {
+    blueprint = getCanonicalBlueprint("cbse-secondary-v1") || getAllCanonicalBlueprints()[0];
+  }
+
+  if (!blueprint) {
+    return {
+      success: false,
+      addedCount: 0,
+      message: `Could not resolve a canonical blueprint for school '${school.name}'.`,
+    };
+  }
+
+  try {
+    return await db.transaction(async (tx) => {
+      // 1. Establish tenant context
+      await tx.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
+
+      // 2. Fetch existing bell schedule periods for this school
+      const existingPeriods = await tx.query.bellSchedule.findMany({
+        where: eq(bellSchedule.schoolId, schoolId),
+      });
+
+      // 3. Add missing periods 1..periodsPerDay
+      let addedCount = 0;
+      const periodsToClone = blueprint.bellSchedule.periods.filter(
+        (p) => p.periodNumber >= 1 && p.periodNumber <= blueprint.bellSchedule.periodsPerDay
+      );
+
+      for (const p of periodsToClone) {
+        const existing = existingPeriods.find((ep) => ep.periodNumber === p.periodNumber);
+        if (!existing) {
+          await tx.insert(bellSchedule).values({
+            schoolId,
+            periodNumber: p.periodNumber,
+            name: p.periodType === "ACTIVITY" ? `Period ${p.periodNumber} (Activity)` : `Period ${p.periodNumber}`,
+            startTime: p.startTime,
+            endTime: p.endTime,
+            periodType: "REGULAR",
+            isActive: true,
+          });
+          addedCount++;
+        } else if (!existing.isActive) {
+          await tx
+            .update(bellSchedule)
+            .set({
+              isActive: true,
+              name: existing.name || (p.periodType === "ACTIVITY" ? `Period ${p.periodNumber} (Activity)` : `Period ${p.periodNumber}`),
+              startTime: p.startTime,
+              endTime: p.endTime,
+            })
+            .where(eq(bellSchedule.id, existing.id));
+          addedCount++;
+        }
+      }
+
+      // 4. Update schoolProvisions entityCounts without inserting new record (strict sp_school_unique compliance)
+      if (priorProvision) {
+        const prevCounts = (typeof priorProvision.entityCounts === "object" && priorProvision.entityCounts !== null)
+          ? (priorProvision.entityCounts as Record<string, number>)
+          : {};
+
+        const updatedEntityCounts = {
+          ...prevCounts,
+          bellSchedule: existingPeriods.length + addedCount,
+          bellSchedulePeriods: existingPeriods.length + addedCount,
+        };
+
+        await tx
+          .update(schoolProvisions)
+          .set({ entityCounts: updatedEntityCounts })
+          .where(eq(schoolProvisions.id, priorProvision.id));
+      }
+
+      return {
+        success: true,
+        addedCount,
+        message: addedCount > 0
+          ? `Bell schedule for '${school.name}' topped up with ${addedCount} period(s).`
+          : `Bell schedule for '${school.name}' is already up-to-date (${existingPeriods.length} existing periods).`,
+      };
+    });
+  } catch (err: any) {
+    console.error("topUpSchoolProvision error:", err);
+    return {
+      success: false,
+      addedCount: 0,
+      message: err?.message || "Failed to top up bell schedule.",
     };
   }
 }

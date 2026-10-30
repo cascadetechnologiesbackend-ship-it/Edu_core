@@ -151,7 +151,7 @@ export function SchoolProvisionModal({
               </div>
 
               {resultCounts && (
-                <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl grid grid-cols-3 gap-3 text-left max-w-lg mx-auto">
+                <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-3 text-left max-w-lg mx-auto">
                   <div>
                     <span className="text-[10px] text-slate-500">Classes Created</span>
                     <p className="font-bold text-slate-200">{resultCounts.classes}</p>
@@ -176,6 +176,12 @@ export function SchoolProvisionModal({
                     <span className="text-[10px] text-slate-500">Holidays Scheduled</span>
                     <p className="font-bold text-slate-200">{resultCounts.holidays}</p>
                   </div>
+                  {resultCounts.bellSchedulePeriods !== undefined && (
+                    <div>
+                      <span className="text-[10px] text-slate-500">Bell Periods</span>
+                      <p className="font-bold text-slate-200">{resultCounts.bellSchedulePeriods}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -252,7 +258,7 @@ export function SchoolProvisionModal({
 
                 {dryRunResult ? (
                   <div className="space-y-3 bg-slate-950/60 border border-slate-800/80 rounded-xl p-4">
-                    <div className="grid grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <div className="p-2 bg-slate-900 border border-slate-800 rounded-lg">
                         <span className="text-[10px] text-slate-500">Classes to Add</span>
                         <p className="text-xs font-bold text-slate-200">
@@ -271,6 +277,12 @@ export function SchoolProvisionModal({
                           +{dryRunResult.prospectiveCounts?.feeHeads ?? 0}
                         </p>
                       </div>
+                      <div className="p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                        <span className="text-[10px] text-slate-500">Bell Periods</span>
+                        <p className="text-xs font-bold text-slate-200">
+                          +{dryRunResult.prospectiveCounts?.bellSchedulePeriods ?? 0}
+                        </p>
+                      </div>
                     </div>
 
                     {dryRunResult.preview && (
@@ -287,6 +299,12 @@ export function SchoolProvisionModal({
                           <strong className="text-slate-300">Fee Heads:</strong>{" "}
                           {dryRunResult.preview.feeHeads.join(", ")}
                         </div>
+                        {dryRunResult.preview.bellSchedule && (
+                          <div>
+                            <strong className="text-slate-300">Bell Schedule:</strong>{" "}
+                            {dryRunResult.preview.bellSchedule.slice(0, 4).join(", ")}...
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

@@ -149,6 +149,11 @@ const {
       },
       sections: {
         findFirst: mockSectionsFindFirst,
+        findMany: vi.fn(async () =>
+          mockTwoSchoolStore.sections.filter(
+            (s) => s.schoolId === activeSessionRef.current?.schoolId,
+          ),
+        ),
       },
       classSubjects: {
         findFirst: mockClassSubjectsFindFirst,
@@ -168,6 +173,10 @@ const {
         findMany: vi.fn(async () => [
           { id: "ay-1", schoolId: activeSessionRef.current?.schoolId, isActive: true },
         ]),
+      },
+      classTeacherAssignments: {
+        findFirst: vi.fn(async () => null),
+        findMany: vi.fn(async () => []),
       },
     },
     insert: vi.fn(() => createChainable()),
@@ -251,7 +260,14 @@ vi.mock("@/db", () => ({
   db: {
     query: {
       classes: { findFirst: mockClassesFindFirst },
-      sections: { findFirst: mockSectionsFindFirst },
+      sections: {
+        findFirst: mockSectionsFindFirst,
+        findMany: vi.fn(async () =>
+          mockTwoSchoolStore.sections.filter(
+            (s) => s.schoolId === activeSessionRef.current?.schoolId,
+          ),
+        ),
+      },
       classSubjects: { findFirst: mockClassSubjectsFindFirst },
       subjects: { findFirst: mockSubjectsFindFirst },
       sectionSubjectTeachers: {
@@ -278,6 +294,10 @@ vi.mock("@/db", () => ({
           schoolId: activeSessionRef.current?.schoolId,
           isActive: true,
         })),
+      },
+      classTeacherAssignments: {
+        findFirst: vi.fn(async () => null),
+        findMany: vi.fn(async () => []),
       },
     },
     insert: vi.fn(() => mockTx.insert()),
