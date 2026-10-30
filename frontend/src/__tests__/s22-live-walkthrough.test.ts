@@ -327,13 +327,13 @@ describe("Sprint S22 Layer 8: Live Two-Way Communication Loop Walkthrough", () =
 
     const teachers = await resolveChildTeachers(schoolId, "parent-walk-1", "stu-aarav");
     expect(teachers.length).toBe(1);
-    expect(teachers[0].teacherName).toBe("Sunita Verma");
-    expect(teachers[0].roleTitle).toBe("Class Teacher");
-    expect(teachers[0].isClassTeacher).toBe(true);
+    expect(teachers[0]!.teacherName).toBe("Sunita Verma");
+    expect(teachers[0]!.roleTitle).toBe("Class Teacher");
+    expect(teachers[0]!.isClassTeacher).toBe(true);
 
     // ─── Step 2: Parent Rajesh composes message to Teacher Sunita ───────────
     const sendInquiryResult = await sendParentTeacherMessage({
-      recipientUserId: teachers[0].teacherUserId,
+      recipientUserId: teachers[0]!.teacherUserId,
       studentId: "stu-aarav",
       subject: "Math Homework Doubt - Chapter 5",
       content: "Sunita ma'am, Aarav had a question regarding problem #4 from chapter 5. Could you please clarify?",
@@ -341,7 +341,7 @@ describe("Sprint S22 Layer 8: Live Two-Way Communication Loop Walkthrough", () =
 
     expect(sendInquiryResult.success).toBe(true);
     expect(mockWalkthroughDb.parentTeacherMessages.length).toBe(1);
-    const rootMsg = mockWalkthroughDb.parentTeacherMessages[0];
+    const rootMsg = mockWalkthroughDb.parentTeacherMessages[0]!;
     const threadId = rootMsg.id;
     expect(rootMsg.senderUserId).toBe("parent-walk-1");
     expect(rootMsg.recipientUserId).toBe("teacher-walk-1");
@@ -357,23 +357,23 @@ describe("Sprint S22 Layer 8: Live Two-Way Communication Loop Walkthrough", () =
 
     const teacherInbox = await getTeacherConversations(schoolId, "teacher-walk-1");
     expect(teacherInbox.length).toBe(1);
-    expect(teacherInbox[0].threadId).toBe(threadId);
-    expect(teacherInbox[0].unreadCount).toBe(1);
-    expect(teacherInbox[0].counterpartName).toBe("Rajesh Sharma");
-    expect(teacherInbox[0].counterpartRole).toBe("Parent");
-    expect(teacherInbox[0].studentName).toBe("Aarav Sharma");
-    expect(teacherInbox[0].className).toBe("Class 10");
-    expect(teacherInbox[0].sectionName).toBe("A");
+    expect(teacherInbox[0]!.threadId).toBe(threadId);
+    expect(teacherInbox[0]!.unreadCount).toBe(1);
+    expect(teacherInbox[0]!.counterpartName).toBe("Rajesh Sharma");
+    expect(teacherInbox[0]!.counterpartRole).toBe("Parent");
+    expect(teacherInbox[0]!.studentName).toBe("Aarav Sharma");
+    expect(teacherInbox[0]!.className).toBe("Class 10");
+    expect(teacherInbox[0]!.sectionName).toBe("A");
 
     // ─── Step 4: Teacher Sunita opens thread and marks it read ───────────────
     const threadBeforeReply = await getThreadMessages(schoolId, "teacher-walk-1", threadId, "TEACHER");
     expect(threadBeforeReply.messages.length).toBe(1);
-    expect(threadBeforeReply.messages[0].isMe).toBe(false); // Sent by parent
-    expect(threadBeforeReply.messages[0].senderName).toBe("Rajesh Sharma");
+    expect(threadBeforeReply.messages[0]!.isMe).toBe(false); // Sent by parent
+    expect(threadBeforeReply.messages[0]!.senderName).toBe("Rajesh Sharma");
 
     await markThreadRead(schoolId, "teacher-walk-1", threadId);
-    expect(mockWalkthroughDb.parentTeacherMessages[0].isRead).toBe(true);
-    expect(mockWalkthroughDb.parentTeacherMessages[0].readAt).toBeDefined();
+    expect(mockWalkthroughDb.parentTeacherMessages[0]!.isRead).toBe(true);
+    expect(mockWalkthroughDb.parentTeacherMessages[0]!.readAt).toBeDefined();
 
     // ─── Step 5: Teacher Sunita replies to Parent Rajesh ─────────────────────
     const sendReplyResult = await sendParentTeacherMessage({
@@ -386,7 +386,7 @@ describe("Sprint S22 Layer 8: Live Two-Way Communication Loop Walkthrough", () =
 
     expect(sendReplyResult.success).toBe(true);
     expect(mockWalkthroughDb.parentTeacherMessages.length).toBe(2);
-    const replyMsg = mockWalkthroughDb.parentTeacherMessages[1];
+    const replyMsg = mockWalkthroughDb.parentTeacherMessages[1]!;
     expect(replyMsg.parentMessageId).toBe(threadId);
     expect(replyMsg.senderUserId).toBe("teacher-walk-1");
     expect(replyMsg.recipientUserId).toBe("parent-walk-1");
@@ -402,30 +402,30 @@ describe("Sprint S22 Layer 8: Live Two-Way Communication Loop Walkthrough", () =
 
     const parentInbox = await getParentConversations(schoolId, "parent-walk-1");
     expect(parentInbox.length).toBe(1);
-    expect(parentInbox[0].totalMessages).toBe(2);
-    expect(parentInbox[0].unreadCount).toBe(1);
-    expect(parentInbox[0].lastMessageSnippet).toContain("problem #4 asks for prime factorization");
+    expect(parentInbox[0]!.totalMessages).toBe(2);
+    expect(parentInbox[0]!.unreadCount).toBe(1);
+    expect(parentInbox[0]!.lastMessageSnippet).toContain("problem #4 asks for prime factorization");
 
     // Parent inspects full thread
     const fullThread = await getThreadMessages(schoolId, "parent-walk-1", threadId, "PARENT");
     expect(fullThread.messages.length).toBe(2);
 
     // Message 1 (Parent's inquiry)
-    expect(fullThread.messages[0].isMe).toBe(true);
-    expect(fullThread.messages[0].senderName).toBe("You");
-    expect(fullThread.messages[0].isRead).toBe(true); // Seen by teacher!
+    expect(fullThread.messages[0]!.isMe).toBe(true);
+    expect(fullThread.messages[0]!.senderName).toBe("You");
+    expect(fullThread.messages[0]!.isRead).toBe(true); // Seen by teacher!
 
     // Message 2 (Teacher's reply)
-    expect(fullThread.messages[1].isMe).toBe(false);
-    expect(fullThread.messages[1].senderName).toBe("Sunita Verma");
-    expect(fullThread.messages[1].isRead).toBe(false);
+    expect(fullThread.messages[1]!.isMe).toBe(false);
+    expect(fullThread.messages[1]!.senderName).toBe("Sunita Verma");
+    expect(fullThread.messages[1]!.isRead).toBe(false);
 
     // Parent marks reply as read
     await markThreadRead(schoolId, "parent-walk-1", threadId);
-    expect(mockWalkthroughDb.parentTeacherMessages[1].isRead).toBe(true);
+    expect(mockWalkthroughDb.parentTeacherMessages[1]!.isRead).toBe(true);
 
     // Post-read inbox check: zero unread messages
     const postReadInbox = await getParentConversations(schoolId, "parent-walk-1");
-    expect(postReadInbox[0].unreadCount).toBe(0);
+    expect(postReadInbox[0]!.unreadCount).toBe(0);
   });
 });
