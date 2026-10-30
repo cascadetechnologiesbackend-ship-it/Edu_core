@@ -144,7 +144,7 @@ vi.mock("@/lib/serverAuth", () => ({
 // ─── 4. Mock Database with Multi-Tenant Filtering ───────────────────────────
 vi.mock("@/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/db")>();
-  const createScopedDb = (schoolId: string) => {
+  const createScopedDb = (schoolId: string): any => {
     return {
       query: {
         schools: {
