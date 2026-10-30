@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/database",
-  "version": "11.32.0",
+  "version": "11.32.1",
   "private": true,
   "description": "SchoolMitra ERP Database - Drizzle Schemas, Migrations & Connection Pool",
   "main": "./src/index.ts",
