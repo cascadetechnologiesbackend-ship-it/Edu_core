@@ -321,6 +321,7 @@ export function ParentMessagesClient({
             >
               <input
                 type="text"
+                data-testid="parent-reply-input"
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder="Type your reply to teacher... / उत्तर लिखें..."
@@ -329,6 +330,7 @@ export function ParentMessagesClient({
               />
               <button
                 type="submit"
+                data-testid="parent-send-reply-btn"
                 disabled={isSending || !replyContent.trim()}
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold shadow-sm transition-colors min-h-[38px] active:scale-95"
               >
