@@ -71,6 +71,7 @@ export async function sendParentTeacherMessage(input: {
     surface,
     sourceTable: "parent_teacher_messages",
     text: input.content,
+    isRelaxedHighWarn: true,
     ...(input.decisionOverride ? { decisionOverride: input.decisionOverride } : {}),
   });
 
