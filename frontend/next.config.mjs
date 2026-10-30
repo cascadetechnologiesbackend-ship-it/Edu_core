@@ -128,6 +128,26 @@ const nextConfig = {
         destination: "/academics?tab=timetable",
         permanent: false,
       },
+      {
+        source: "/settings/calendar",
+        destination: "/academics/setup/calendar",
+        permanent: true,
+      },
+      {
+        source: "/settings/classes",
+        destination: "/academics",
+        permanent: true,
+      },
+      {
+        source: "/settings/subjects",
+        destination: "/academics/subjects",
+        permanent: true,
+      },
+      {
+        source: "/settings/hr/salary-grades",
+        destination: "/hr",
+        permanent: true,
+      },
     ];
   },
 
