@@ -18,6 +18,8 @@ import {
   notices,
   academicCalendarEvents,
   subjects,
+  classSubjects,
+  lessonPlans,
 } from "@/db/schema";
 import { eq, and, or, inArray, isNull, gte, lte, desc, asc } from "drizzle-orm";
 import { resolveTeacherScope } from "./scopeResolver";
@@ -39,6 +41,8 @@ import {
   PTMSlotItem,
   TeacherMessageItem,
   TeacherNoticeItem,
+  TeacherHomeworkDueItem,
+  TeacherPendingClassworkPeriod,
 } from "./types";
 
 const DAY_OF_WEEK_NAMES: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY")[] = [
@@ -68,6 +72,7 @@ export async function assembleTeacherSnapshot(
   endOfDay.setHours(23, 59, 59, 999);
 
   const todayStr: string = now.toISOString().split("T")[0]!;
+  const nowMs = now.getTime();
   const dayOfWeekNumber = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   const dayOfWeekEnumVal = dayOfWeekNumber >= 1 && dayOfWeekNumber <= 6 ? DAY_OF_WEEK_NAMES[dayOfWeekNumber] : null;
 
@@ -588,21 +593,21 @@ export async function assembleTeacherSnapshot(
 
   for (const m of unreadMsgRows) {
     const student = m.studentId ? unreadStudentMap.get(m.studentId) : undefined;
-    let sName = "Student";
+    let sName = "";
     if (student) {
       try {
         const fn = decryptData(student.firstNameEncrypted) || "";
         const ln = student.lastNameEncrypted ? decryptData(student.lastNameEncrypted) || "" : "";
-        sName = `${fn} ${ln}`.trim() || "Student";
+        sName = `${fn} ${ln}`.trim();
       } catch {
-        sName = "Student";
+        sName = "";
       }
     }
-    const secName = student?.currentSection?.name || "Class";
+    const secName = student?.currentSection?.name || "";
 
     unreadMessages.push({
       threadId: m.parentMessageId || m.id,
-      parentName: m.senderUser?.fullName || "Parent",
+      parentName: m.senderUser?.fullName || "",
       studentName: sName,
       sectionName: secName,
       lastMessagePreview: m.content ? m.content.substring(0, 80) : "",
@@ -634,6 +639,127 @@ export async function assembleTeacherSnapshot(
     });
   }
 
+  // 11. Upcoming Homework Due (assignments in teacher's sections or authored by teacher due within -24h to +24h)
+  const upcomingHomeworkDue: TeacherHomeworkDueItem[] = [];
+  const oneDayAgo = new Date(nowMs - 24 * 3600000);
+  const oneDayHence = new Date(nowMs + 24 * 3600000);
+
+  const relevantSectionIds = scope.allSectionIds.length > 0 ? scope.allSectionIds : [];
+  if (relevantSectionIds.length > 0 || scope.teachingSections.length > 0) {
+    const hwRows = await txDb.query.assignments.findMany({
+      where: and(
+        eq(assignments.schoolId, schoolId),
+        eq(assignments.status, "PUBLISHED"),
+        gte(assignments.dueDate, oneDayAgo),
+        lte(assignments.dueDate, oneDayHence),
+        or(
+          relevantSectionIds.length > 0 ? inArray(assignments.sectionId, relevantSectionIds) : undefined,
+          eq(assignments.createdByTeacherId, teacherUserId)
+        )
+      ),
+      with: {
+        section: { with: { class: true } },
+        classSubject: { with: { subject: true } },
+      },
+      orderBy: [asc(assignments.dueDate)],
+    });
+
+    for (const hw of hwRows) {
+      const submissions = await txDb.query.assignmentSubmissions.findMany({
+        where: and(
+          eq(assignmentSubmissions.schoolId, schoolId),
+          eq(assignmentSubmissions.assignmentId, hw.id)
+        ),
+      });
+
+      const sectionStudents = await txDb.query.students.findMany({
+        where: and(
+          eq(students.schoolId, schoolId),
+          eq(students.currentSectionId, hw.sectionId),
+          eq(students.isActive, true)
+        ),
+        columns: { id: true },
+      });
+
+      upcomingHomeworkDue.push({
+        id: hw.id,
+        title: hw.title,
+        subjectName: hw.classSubject?.subject?.name || "",
+        sectionName: hw.section?.name || "",
+        className: hw.section?.class?.displayName || hw.section?.class?.gradeLevel || "",
+        dueDate: hw.dueDate,
+        submissionCount: submissions.length,
+        totalStudents: sectionStudents.length,
+      });
+    }
+  }
+
+  // 12. Pending Classwork Periods (today's ended timetable periods with >=30m grace lacking COMPLETED lesson_plans)
+  const pendingClassworkPeriods: TeacherPendingClassworkPeriod[] = [];
+  if (isWorkingDay && timetableToday.length > 0) {
+    const csRows = await txDb.query.classSubjects.findMany({
+      where: eq(classSubjects.schoolId, schoolId),
+    });
+    const csMap = new Map<string, string>();
+    for (const cs of csRows) {
+      csMap.set(`${cs.classId}:${cs.subjectId}`, cs.id);
+    }
+
+    const todayPlans = await txDb.query.lessonPlans.findMany({
+      where: and(
+        eq(lessonPlans.schoolId, schoolId),
+        eq(lessonPlans.teacherId, teacherUserId),
+        eq(lessonPlans.status, "COMPLETED")
+      ),
+    });
+    const completedClassSubjectIds = new Set<string>(
+      todayPlans.map((lp: any) => lp.classSubjectId)
+    );
+
+    const sectionList = scope.allSectionIds.length > 0
+      ? await txDb.query.sections.findMany({
+          where: and(eq(sections.schoolId, schoolId), inArray(sections.id, scope.allSectionIds)),
+          columns: { id: true, classId: true },
+        })
+      : [];
+    const secClassMap = new Map<string, string>(sectionList.map((s: any) => [s.id, s.classId]));
+
+    for (const period of timetableToday) {
+      if (period.isFree || !period.sectionId || !period.subjectId) continue;
+
+      // OD1 Grace Check: Period endTime passed >= 30 minutes ago today
+      const nowTotalMinutes = now.getHours() * 60 + now.getMinutes();
+      const [endH, endM] = (period.endTime || "00:00").split(":").map(Number);
+      const periodEndTotalMinutes = (isNaN(endH) ? 0 : endH) * 60 + (isNaN(endM) ? 0 : endM);
+      const minutesSinceEnd = nowTotalMinutes - periodEndTotalMinutes;
+
+      // Only periods ended >= 30 minutes ago today
+      if (minutesSinceEnd < 30) continue;
+
+      const classId = secClassMap.get(period.sectionId);
+      const classSubId = classId ? csMap.get(`${classId}:${period.subjectId}`) : undefined;
+
+      // If classwork / lesson plan already completed for this classSubject, skip
+      if (classSubId && completedClassSubjectIds.has(classSubId)) {
+        continue;
+      }
+
+      pendingClassworkPeriods.push({
+        periodNumber: period.periodNumber,
+        subjectName: period.subjectName || "",
+        sectionName: period.sectionName || "",
+        className: period.className || "",
+        startTime: period.startTime,
+        endTime: period.endTime,
+        classSubjectId: classSubId,
+        sectionId: period.sectionId,
+      });
+
+      // OD1: Cap at maximum 3 oldest pending periods per feed derivation
+      if (pendingClassworkPeriods.length >= 3) break;
+    }
+  }
+
   const baseResult = {
     teacherUserId,
     isWorkingDay,
@@ -649,6 +775,8 @@ export async function assembleTeacherSnapshot(
     ptmBookingsToday,
     unreadMessages,
     notices: noticesList,
+    upcomingHomeworkDue,
+    pendingClassworkPeriods,
   };
 
   const hasAllocations =

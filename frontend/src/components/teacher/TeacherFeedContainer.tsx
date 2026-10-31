@@ -13,6 +13,8 @@ import { PTMTodayFeedCard } from "./cards/PTMTodayFeedCard";
 import { MessagesFeedCard } from "./cards/MessagesFeedCard";
 import { InsightFeedCard } from "./cards/InsightFeedCard";
 import { NoticeFeedCard } from "./cards/NoticeFeedCard";
+import { HomeworkDueFeedCard } from "./cards/HomeworkDueFeedCard";
+import { ClassworkPendingFeedCard } from "./cards/ClassworkPendingFeedCard";
 import { AttendanceWorkbench } from "./AttendanceWorkbench";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
@@ -236,6 +238,26 @@ export function TeacherFeedContainer({
             if (card.cardType === "NoticeCard") {
               return (
                 <NoticeFeedCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "HomeworkDueCard") {
+              return (
+                <HomeworkDueFeedCard
+                  key={card.id}
+                  card={card}
+                  locale={locale}
+                />
+              );
+            }
+
+            if (card.cardType === "ClassworkPendingCard") {
+              return (
+                <ClassworkPendingFeedCard
                   key={card.id}
                   card={card}
                   locale={locale}
