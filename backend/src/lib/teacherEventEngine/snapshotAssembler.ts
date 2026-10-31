@@ -246,7 +246,7 @@ export async function assembleTeacherSnapshot(
         sectionId: a.sectionId,
         sectionName: a.section?.name || "",
         className: a.section?.class?.displayName || a.section?.class?.gradeLevel || "",
-        subjectName: a.classSubject?.subject?.name || "Subject",
+        subjectName: a.classSubject?.subject?.name || "",
         dueDate: a.dueDate,
         totalSubmissions,
         gradedCount,
@@ -260,7 +260,11 @@ export async function assembleTeacherSnapshot(
   // 5. Marks Entry Windows (exams currently open for mark entries for teacher's teaching sections)
   const marksEntryWindows: MarksEntryWindowItem[] = [];
   if (scope.teachingSections.length > 0) {
-    const teachingSubjectIds = Array.from(new Set(scope.teachingSections.map((ts) => ts.subjectId)));
+    const teachingSubjectIds = Array.from(new Set<string>(scope.teachingSections.map((ts) => ts.subjectId)));
+    const teachingSectionIds = Array.from(new Set<string>(scope.teachingSections.map((ts) => ts.sectionId)));
+    const subjectContextMap = await batchResolveSubjectContexts(schoolId, teachingSubjectIds, txDb);
+    const sectionContextMap = await batchResolveSectionContexts(schoolId, teachingSectionIds, txDb);
+
     const openExams = await txDb.query.exams.findMany({
       where: and(
         eq(exams.schoolId, schoolId),
@@ -271,6 +275,23 @@ export async function assembleTeacherSnapshot(
     });
 
     for (const exam of openExams) {
+      // Fetch any configured mark distributions for this exam across teaching subjects
+      const markDistRows = await txDb.query.examMarkDistributions.findMany({
+        where: and(
+          eq(examMarkDistributions.schoolId, schoolId),
+          eq(examMarkDistributions.examId, exam.id),
+          inArray(examMarkDistributions.subjectId, teachingSubjectIds)
+        ),
+      });
+      const distMap = new Map<string, number>();
+      for (const d of markDistRows) {
+        const val = Number(d.maxMarks);
+        if (!isNaN(val)) {
+          distMap.set(`${d.subjectId}:${d.classId}`, val);
+          distMap.set(d.subjectId, val);
+        }
+      }
+
       for (const ts of scope.teachingSections) {
         // Total students in this section
         const sectionStudents = await txDb.query.students.findMany({
@@ -295,20 +316,23 @@ export async function assembleTeacherSnapshot(
         });
 
         if (entries.length < sectionStudents.length) {
-          const sec = await txDb.query.sections.findFirst({
-            where: eq(sections.id, ts.sectionId),
-            with: { class: true },
-          });
+          const sec = sectionContextMap.get(ts.sectionId);
+          const sub = subjectContextMap.get(ts.subjectId);
+
+          const configuredMax = distMap.get(ts.subjectId);
+          const resolvedMaxMarks = typeof configuredMax === "number"
+            ? configuredMax
+            : (sub?.maxMarks ?? 100);
 
           marksEntryWindows.push({
             examId: exam.id,
             examName: exam.name,
             sectionId: ts.sectionId,
-            sectionName: sec?.name || "",
-            className: sec?.class?.displayName || sec?.class?.gradeLevel || "",
+            sectionName: sec?.sectionName || "",
+            className: sec?.className || "",
             subjectId: ts.subjectId,
-            subjectName: "Subject",
-            maxMarks: 100,
+            subjectName: sub?.subjectName || "",
+            maxMarks: resolvedMaxMarks,
             windowOpensAt: exam.startDate,
             windowClosesAt: exam.endDate,
             totalStudents: sectionStudents.length,
@@ -615,14 +639,15 @@ export async function assembleTeacherSnapshot(
     const subMap = new Map(subRows.map((s: any) => [s.id, s.name]));
 
     for (const ts of scope.teachingSections) {
-      const sName = secMap.get(ts.sectionId) || "Section";
-      const subName = subMap.get(ts.subjectId) || "Subject";
-      missingAllocationsSummary.push(`${sName} ${subName}`);
+      const sName = secMap.get(ts.sectionId) || "";
+      const subName = subMap.get(ts.subjectId) || "";
+      const label = [sName, subName].filter(Boolean).join(" ");
+      if (label) missingAllocationsSummary.push(label);
     }
     if (scope.classTeacherSections.length > 0 && missingAllocationsSummary.length === 0) {
       for (const csId of scope.classTeacherSections) {
-        const sName = secMap.get(csId) || "Homeroom Section";
-        missingAllocationsSummary.push(`${sName} (Homeroom)`);
+        const sName = secMap.get(csId) || "";
+        missingAllocationsSummary.push(sName ? `${sName} (Homeroom)` : "(Homeroom)");
       }
     }
   }
