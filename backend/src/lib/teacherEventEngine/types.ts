@@ -115,6 +115,7 @@ export interface LeaveRequestItem {
   id: string;
   studentId: string;
   studentName: string;
+  rollNumber?: string | null;
   sectionId: string;
   sectionName: string;
   className: string;

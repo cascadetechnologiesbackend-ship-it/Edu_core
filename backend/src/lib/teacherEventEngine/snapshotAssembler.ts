@@ -23,6 +23,11 @@ import { eq, and, or, inArray, isNull, gte, lte, desc, asc } from "drizzle-orm";
 import { resolveTeacherScope } from "./scopeResolver";
 import { decryptData } from "../encryption";
 import {
+  batchResolveStudentIdentities,
+  batchResolveSectionContexts,
+  batchResolveSubjectContexts,
+} from "./identityResolver";
+import {
   TeacherDataSnapshot,
   AttendanceSectionSummary,
   TimetablePeriodItem,
@@ -353,22 +358,29 @@ export async function assembleTeacherSnapshot(
         orderBy: [asc(studentLeaveRequests.createdAt)],
       });
 
-      for (const l of leaveRows) {
-        const stud = studentMap.get(l.studentId);
-        const sec = stud?.currentSectionId ? leaveSectionMap.get(stud.currentSectionId) : null;
-        pendingLeaveRequests.push({
-          id: l.id,
-          studentId: l.studentId,
-          studentName: "Student",
-          sectionId: stud?.currentSectionId || "",
-          sectionName: sec?.name || "",
-          className: sec?.class?.displayName || sec?.class?.gradeLevel || "",
-          leaveType: l.leaveType as any,
-          startDate: l.startDate,
-          endDate: l.endDate,
-          reason: l.reason,
-          requestedAt: l.createdAt,
-        });
+      if (leaveRows.length > 0) {
+        const leaveStudentIds = Array.from(new Set<string>(leaveRows.map((l: any) => l.studentId)));
+        const resolvedStudents = await batchResolveStudentIdentities(schoolId, leaveStudentIds, txDb);
+
+        for (const l of leaveRows) {
+          const stud = studentMap.get(l.studentId);
+          const sec = stud?.currentSectionId ? leaveSectionMap.get(stud.currentSectionId) : null;
+          const resolved = resolvedStudents.get(l.studentId);
+          pendingLeaveRequests.push({
+            id: l.id,
+            studentId: l.studentId,
+            studentName: resolved?.fullName || "",
+            rollNumber: resolved?.rollNumber || null,
+            sectionId: stud?.currentSectionId || resolved?.sectionId || "",
+            sectionName: sec?.name || resolved?.sectionName || "",
+            className: sec?.class?.displayName || sec?.class?.gradeLevel || resolved?.className || "",
+            leaveType: l.leaveType as any,
+            startDate: l.startDate,
+            endDate: l.endDate,
+            reason: l.reason,
+            requestedAt: l.createdAt,
+          });
+        }
       }
     }
   }
