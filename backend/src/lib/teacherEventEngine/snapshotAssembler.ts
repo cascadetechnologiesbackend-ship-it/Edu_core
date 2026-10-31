@@ -21,7 +21,7 @@ import {
   classSubjects,
   lessonPlans,
 } from "@/db/schema";
-import { eq, and, or, inArray, isNull, gte, lte, desc, asc } from "drizzle-orm";
+import { eq, and, or, inArray, isNull, isNotNull, gte, lte, desc, asc } from "drizzle-orm";
 import { resolveTeacherScope } from "./scopeResolver";
 import { decryptData } from "../encryption";
 import {
@@ -43,6 +43,7 @@ import {
   TeacherNoticeItem,
   TeacherHomeworkDueItem,
   TeacherPendingClassworkPeriod,
+  TeacherInsightItem,
 } from "./types";
 
 const DAY_OF_WEEK_NAMES: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY")[] = [
@@ -760,6 +761,221 @@ export async function assembleTeacherSnapshot(
     }
   }
 
+  // 13. Honest Teacher Insights (3 models behind strict data-sufficiency gates)
+  const insights: TeacherInsightItem[] = [];
+
+  // Model 1: section_attendance_trend (OD2: >=5 days history, today dip >= 15%)
+  if (scope.classTeacherSections.length > 0) {
+    for (const secId of scope.classTeacherSections) {
+      const fourteenDaysAgo = new Date(nowMs - 14 * 86400000);
+      const attHistory = await txDb.query.studentAttendance.findMany({
+        where: and(
+          eq(studentAttendance.schoolId, schoolId),
+          eq(studentAttendance.sectionId, secId),
+          gte(studentAttendance.attendanceDate, fourteenDaysAgo.toISOString().split("T")[0]!)
+        ),
+      });
+
+      const dateMap = new Map<string, { present: number; total: number }>();
+      for (const rec of attHistory) {
+        const d = typeof rec.attendanceDate === "string" ? rec.attendanceDate : rec.attendanceDate.toISOString().split("T")[0]!;
+        const curr = dateMap.get(d) || { present: 0, total: 0 };
+        curr.total += 1;
+        if (rec.status === "PRESENT" || rec.status === "LATE") {
+          curr.present += 1;
+        }
+        dateMap.set(d, curr);
+      }
+
+      const dates = Array.from(dateMap.keys()).sort();
+      const pastDates = dates.filter((d) => d < todayStr);
+
+      if (pastDates.length >= 5) {
+        const trailing5 = pastDates.slice(-5);
+        const sparklineData: number[] = [];
+        let trailingSum = 0;
+        for (const d of trailing5) {
+          const stats = dateMap.get(d)!;
+          const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 100;
+          sparklineData.push(rate);
+          trailingSum += rate;
+        }
+        const avgRate = Math.round(trailingSum / trailing5.length);
+
+        const todayStats = dateMap.get(todayStr);
+        if (todayStats && todayStats.total > 0) {
+          const todayRate = Math.round((todayStats.present / todayStats.total) * 100);
+          sparklineData.push(todayRate);
+
+          if (avgRate - todayRate >= 15) {
+            insights.push({
+              id: `att-trend-${secId}`,
+              model: "section_attendance_trend",
+              severity: "AMBER",
+              title: {
+                en: "Attendance Alert: Significant Dip Today",
+                hi: "उपस्थिति चेतावनी: आज उपस्थिति में गिरावट",
+              },
+              summary: {
+                en: `Section attendance dropped to ${todayRate}% today (trailing 5-day average: ${avgRate}%).`,
+                hi: `कक्षा उपस्थिति आज गिरकर ${todayRate}% हो गई (पिछले 5 दिनों का औसत: ${avgRate}%)।`,
+              },
+              payload: {
+                sectionId: secId,
+                todayRate,
+                avgRate,
+                sparklineData,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Model 2: homework_neglect_list (students with >=3 unsubmitted homework in last 14 days)
+  if (relevantSectionIds.length > 0) {
+    const fourteenDaysAgo = new Date(nowMs - 14 * 86400000);
+    const recentHw = await txDb.query.assignments.findMany({
+      where: and(
+        eq(assignments.schoolId, schoolId),
+        eq(assignments.status, "PUBLISHED"),
+        gte(assignments.dueDate, fourteenDaysAgo),
+        lte(assignments.dueDate, now),
+        inArray(assignments.sectionId, relevantSectionIds)
+      ),
+      columns: { id: true, sectionId: true },
+    });
+
+    if (recentHw.length >= 3) {
+      const hwIds = recentHw.map((h: any) => h.id);
+      const subs = await txDb.query.assignmentSubmissions.findMany({
+        where: and(
+          eq(assignmentSubmissions.schoolId, schoolId),
+          inArray(assignmentSubmissions.assignmentId, hwIds)
+        ),
+        columns: { assignmentId: true, studentId: true },
+      });
+
+      const submittedPair = new Set<string>(subs.map((s: any) => `${s.assignmentId}:${s.studentId}`));
+
+      const secStudents = await txDb.query.students.findMany({
+        where: and(
+          eq(students.schoolId, schoolId),
+          inArray(students.currentSectionId, relevantSectionIds),
+          eq(students.isActive, true)
+        ),
+        columns: { id: true, currentSectionId: true },
+      });
+
+      const neglectedStudentMap = new Map<string, number>();
+      for (const st of secStudents) {
+        const studentHw = recentHw.filter((h: any) => h.sectionId === st.currentSectionId);
+        if (studentHw.length < 3) continue;
+
+        let missing = 0;
+        for (const h of studentHw) {
+          if (!submittedPair.has(`${h.id}:${st.id}`)) {
+            missing += 1;
+          }
+        }
+        if (missing >= 3) {
+          neglectedStudentMap.set(st.id, missing);
+        }
+      }
+
+      if (neglectedStudentMap.size > 0) {
+        const neglectStudentIds = Array.from(neglectedStudentMap.keys());
+        const resolvedNeglect = await batchResolveStudentIdentities(schoolId, neglectStudentIds, txDb);
+
+        const neglectedList: Array<{ studentId: string; studentName: string; missingCount: number }> = [];
+        for (const [stId, count] of neglectedStudentMap.entries()) {
+          const res = resolvedNeglect.get(stId);
+          if (res?.fullName) {
+            neglectedList.push({
+              studentId: stId,
+              studentName: res.fullName,
+              missingCount: count,
+            });
+          }
+        }
+
+        if (neglectedList.length > 0) {
+          insights.push({
+            id: `hw-neglect-${teacherUserId}`,
+            model: "homework_neglect_list",
+            severity: "AMBER",
+            title: {
+              en: "Homework Support Needed",
+              hi: "गृहकार्य में सहायता आवश्यक",
+            },
+            summary: {
+              en: `${neglectedList.length} student${neglectedList.length > 1 ? "s have" : " has"} missed 3 or more homework assignments in the last 14 days.`,
+              hi: `${neglectedList.length} विद्यार्थियों ने पिछले 14 दिनों में 3 या अधिक गृहकार्य जमा नहीं किए हैं।`,
+            },
+            payload: {
+              students: neglectedList,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // Model 3: pre_publish_distribution (closing marks window with >=60% completion)
+  if (marksEntryWindows.length > 0) {
+    for (const w of marksEntryWindows) {
+      const windowClosesMs = new Date(w.windowClosesAt).getTime();
+      const hoursToClose = (windowClosesMs - nowMs) / 3600000;
+
+      const completionRate = w.totalStudents > 0 ? w.completedEntries / w.totalStudents : 0;
+      if (hoursToClose >= 0 && hoursToClose <= 48 && completionRate >= 0.60 && w.completedEntries >= 3) {
+        const entries = await txDb.query.markEntries.findMany({
+          where: and(
+            eq(markEntries.schoolId, schoolId),
+            eq(markEntries.examId, w.examId),
+            eq(markEntries.subjectId, w.subjectId),
+            isNotNull(markEntries.marksObtained)
+          ),
+          columns: { marksObtained: true },
+        });
+
+        const scores = entries
+          .map((e: any) => Number(e.marksObtained))
+          .filter((n: number) => !isNaN(n));
+
+        if (scores.length >= 3) {
+          const sum = scores.reduce((acc: number, val: number) => acc + val, 0);
+          const mean = Math.round(sum / scores.length);
+          const max = w.maxMarks || 100;
+
+          const outliersCount = scores.filter((s: number) => s <= max * 0.2 || s >= max * 0.95).length;
+
+          insights.push({
+            id: `marks-dist-${w.examId}-${w.subjectId}`,
+            model: "pre_publish_distribution",
+            severity: "INFO",
+            title: {
+              en: `Marks Overview: ${w.subjectName} (${w.className}-${w.sectionName})`,
+              hi: `अंक विश्लेषण: ${w.subjectName} (${w.className}-${w.sectionName})`,
+            },
+            summary: {
+              en: `Class average is ${mean}/${max} with ${outliersCount} potential outliers across ${scores.length} entries.`,
+              hi: `कक्षा औसत ${mean}/${max} है और ${scores.length} प्रविष्टियों में ${outliersCount} असामान्य प्राप्तांक हैं।`,
+            },
+            payload: {
+              examId: w.examId,
+              subjectId: w.subjectId,
+              mean,
+              maxMarks: max,
+              outliersCount,
+            },
+          });
+        }
+      }
+    }
+  }
+
   const baseResult = {
     teacherUserId,
     isWorkingDay,
@@ -775,6 +991,7 @@ export async function assembleTeacherSnapshot(
     ptmBookingsToday,
     unreadMessages,
     notices: noticesList,
+    insights,
     upcomingHomeworkDue,
     pendingClassworkPeriods,
   };
