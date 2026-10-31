@@ -444,19 +444,41 @@ export async function assembleTeacherSnapshot(
       },
     });
 
-    for (const b of bookings) {
-      const slot = ptmSlotsRows.find((s: any) => s.id === b.slotId);
-      ptmBookingsToday.push({
-        bookingId: b.id,
-        slotId: b.slotId,
-        startTime: slot?.startAt || now,
-        endTime: slot?.endAt || now,
-        parentName: b.parentUser?.fullName || "Parent",
-        studentName: "Student",
-        sectionName: "Section",
-        status: b.status as any,
-        teacherNote: b.teacherNote,
-      });
+    if (bookings.length > 0) {
+      const studentIds = Array.from(
+        new Set<string>(
+          bookings
+            .map((b: any) => b.studentId)
+            .filter((id: string | null): id is string => Boolean(id))
+        )
+      );
+      const studentMap = await batchResolveStudentIdentities(schoolId, studentIds, txDb);
+
+      for (const b of bookings) {
+        if (!b.studentId) {
+          // Per OD3: If booking genuinely has no studentId, omit row entirely
+          continue;
+        }
+
+        const student = studentMap.get(b.studentId);
+        if (!student || !student.fullName) {
+          // Unresolvable student record: omit row per OD3
+          continue;
+        }
+
+        const slot = ptmSlotsRows.find((s: any) => s.id === b.slotId);
+        ptmBookingsToday.push({
+          bookingId: b.id,
+          slotId: b.slotId,
+          startTime: slot?.startAt || now,
+          endTime: slot?.endAt || now,
+          parentName: b.parentUser?.fullName || "",
+          studentName: student.fullName,
+          sectionName: student.classSectionDisplayName || student.sectionName,
+          status: b.status as any,
+          teacherNote: b.teacherNote,
+        });
+      }
     }
   }
 
