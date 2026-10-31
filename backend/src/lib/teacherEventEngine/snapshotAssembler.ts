@@ -27,6 +27,7 @@ import {
   batchResolveSectionContexts,
   batchResolveSubjectContexts,
 } from "./identityResolver";
+import { checkSubstitutionClash } from "./substitutionClash";
 import {
   TeacherDataSnapshot,
   AttendanceSectionSummary,
@@ -423,24 +424,62 @@ export async function assembleTeacherSnapshot(
     with: {
       originalTeacher: true,
       substituteTeacher: true,
+      section: { with: { class: true } },
+      subject: true,
+      timetablePeriod: {
+        with: {
+          section: { with: { class: true } },
+          subject: true,
+        },
+      },
     },
     orderBy: [asc(timetableSubstitutions.date)],
   });
 
   for (const s of subRows) {
     const isIncoming = s.substituteTeacherId === teacherUserId;
+    const p = s.timetablePeriod;
+    const periodNumber = p?.periodNumber ?? s.periodNumber ?? 1;
+    const startTime = p?.startTime ?? s.startTime ?? "09:00";
+    const endTime = p?.endTime ?? s.endTime ?? "09:45";
+
+    const sec = s.section || p?.section;
+    const sub = s.subject || p?.subject;
+
+    const sectionName = sec?.name || "";
+    const className = sec?.class?.displayName || sec?.class?.gradeLevel || "";
+    const subjectName = sub?.name || "";
+
+    let hasConflict = false;
+    let conflictReason: string | undefined = undefined;
+
+    if (isIncoming) {
+      try {
+        const clash = await checkSubstitutionClash(s.id, teacherUserId, txDb, schoolId);
+        hasConflict = clash.hasConflict;
+        conflictReason = clash.conflictReason;
+      } catch {
+        hasConflict = false;
+      }
+    }
+
     substitutions.push({
       id: s.id,
       direction: isIncoming ? "INCOMING" : "OUTGOING",
       date: s.date,
-      periodNumber: s.periodNumber || 1,
-      startTime: s.startTime || "09:00",
-      endTime: s.endTime || "09:45",
+      periodNumber,
+      startTime,
+      endTime,
+      sectionName,
+      className,
+      subjectName,
       otherTeacherName: isIncoming
-        ? s.originalTeacher?.fullName || "Teacher"
+        ? s.originalTeacher?.fullName || ""
         : s.substituteTeacher?.fullName || "Unassigned",
       reason: s.reason || undefined,
       status: s.status as any,
+      hasConflict,
+      conflictReason,
     });
   }
 
