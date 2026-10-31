@@ -91,7 +91,7 @@ export function TeacherFeedContainer({
   });
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 overflow-x-hidden">
       {/* 1. Teacher Identity Header */}
       <TeacherIdentityHeader
         teacherName={teacherName}

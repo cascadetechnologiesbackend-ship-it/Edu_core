@@ -40,7 +40,7 @@ export function PTMTodayFeedCard({
             <div
               key={b.bookingId}
               onClick={() => router.push("/teacher/ptm")}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-slate-700 transition text-xs"
+              className="min-h-[38px] p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-slate-700 transition text-xs"
             >
               <div>
                 <span className="font-semibold text-white">{b.parentName}</span>

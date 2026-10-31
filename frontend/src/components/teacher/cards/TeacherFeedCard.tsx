@@ -169,7 +169,7 @@ export function TeacherFeedCard({
           {secondaryAction && (
             <button
               onClick={secondaryAction.onClick}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 transition"
+              className="min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 transition flex items-center justify-center"
             >
               {secondaryAction.label}
             </button>
@@ -179,7 +179,7 @@ export function TeacherFeedCard({
             <button
               onClick={primaryAction.onClick}
               className={cn(
-                "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md active:scale-95",
+                "min-h-[38px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md active:scale-95",
                 isRose
                   ? "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30"
                   : isAmber
