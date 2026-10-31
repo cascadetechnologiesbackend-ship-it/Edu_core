@@ -476,16 +476,16 @@ export async function assembleTeacherSnapshot(
       periodNumber,
       startTime,
       endTime,
-      sectionName,
-      className,
-      subjectName,
       otherTeacherName: isIncoming
         ? s.originalTeacher?.fullName || ""
         : s.substituteTeacher?.fullName || "Unassigned",
-      reason: s.reason || undefined,
       status: s.status as any,
-      hasConflict,
-      conflictReason,
+      ...(sectionName ? { sectionName } : {}),
+      ...(className ? { className } : {}),
+      ...(subjectName ? { subjectName } : {}),
+      ...(s.reason ? { reason: s.reason } : {}),
+      ...(hasConflict !== undefined ? { hasConflict } : {}),
+      ...(conflictReason ? { conflictReason } : {}),
     });
   }
 
@@ -730,7 +730,9 @@ export async function assembleTeacherSnapshot(
 
       // OD1 Grace Check: Period endTime passed >= 30 minutes ago today
       const nowTotalMinutes = now.getHours() * 60 + now.getMinutes();
-      const [endH, endM] = (period.endTime || "00:00").split(":").map(Number);
+      const parts = (period.endTime || "00:00").split(":");
+      const endH = Number(parts[0]);
+      const endM = Number(parts[1]);
       const periodEndTotalMinutes = (isNaN(endH) ? 0 : endH) * 60 + (isNaN(endM) ? 0 : endM);
       const minutesSinceEnd = nowTotalMinutes - periodEndTotalMinutes;
 
@@ -752,8 +754,8 @@ export async function assembleTeacherSnapshot(
         className: period.className || "",
         startTime: period.startTime,
         endTime: period.endTime,
-        classSubjectId: classSubId,
         sectionId: period.sectionId,
+        ...(classSubId ? { classSubjectId: classSubId } : {}),
       });
 
       // OD1: Cap at maximum 3 oldest pending periods per feed derivation
@@ -772,7 +774,7 @@ export async function assembleTeacherSnapshot(
         where: and(
           eq(studentAttendance.schoolId, schoolId),
           eq(studentAttendance.sectionId, secId),
-          gte(studentAttendance.attendanceDate, fourteenDaysAgo.toISOString().split("T")[0]!)
+          gte(studentAttendance.attendanceDate, fourteenDaysAgo)
         ),
       });
 

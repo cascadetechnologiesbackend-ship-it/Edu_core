@@ -166,3 +166,4 @@ describe("S24 L5: Substitution Context Truth and Real Conflict Detection", () =>
     expect(subCard?.summary.en).toContain("Warning: Clash with your timetable.");
   });
 });
+
