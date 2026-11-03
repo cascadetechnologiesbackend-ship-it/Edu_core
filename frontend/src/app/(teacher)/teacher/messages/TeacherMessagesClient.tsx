@@ -22,9 +22,11 @@ import {
   markThreadReadAction,
   getThreadMessagesAction,
   getTeacherConversationsAction,
-  type ConversationThreadSummary,
-  type ThreadMessageItem,
 } from "./messagesActions";
+import type {
+  ConversationThreadSummary,
+  ThreadMessageItem,
+} from "@/lib/communicationLoop";
 
 interface TeacherMessagesClientProps {
   initialThreads: ConversationThreadSummary[];
@@ -73,7 +75,7 @@ export function TeacherMessagesClient({
     setIsLoadingMessages(true);
 
     const res = await getThreadMessagesAction(thread.threadId);
-    if (res.success) {
+    if (res.success && res.messages) {
       setActiveMessages(res.messages);
       if (res.subject) setActiveSubject(res.subject);
     } else {
@@ -236,11 +238,10 @@ export function TeacherMessagesClient({
                     </div>
 
                     <div
-                      className={`rounded-2xl px-4 py-2.5 text-xs max-w-[85%] sm:max-w-[75%] break-words border ${
-                        isMe
+                      className={`rounded-2xl px-4 py-2.5 text-xs max-w-[85%] sm:max-w-[75%] break-words border ${isMe
                           ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-100 rounded-tr-sm"
                           : "bg-slate-800/90 border-slate-700/80 text-slate-200 rounded-tl-sm shadow-sm"
-                      }`}
+                        }`}
                     >
                       <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
 

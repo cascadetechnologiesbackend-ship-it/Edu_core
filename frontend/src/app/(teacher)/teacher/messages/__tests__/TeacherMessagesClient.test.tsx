@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TeacherMessagesClient } from "../TeacherMessagesClient";
-import type { ConversationThreadSummary, ThreadMessageItem } from "../messagesActions";
+import type { ConversationThreadSummary, ThreadMessageItem } from "@/lib/communicationLoop";
 
 // Mock server actions
 vi.mock("../messagesActions", () => ({
