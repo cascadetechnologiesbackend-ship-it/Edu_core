@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { pushNotificationLogs, smsLogs, resultSettings, users, studentFamilyMembers } from "@/db/schema";
-import { and, eq, sql, lt, gte } from "drizzle-orm";
+import { and, eq, sql, lt, gte, inArray } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
 import { getBullMQRedisConnection } from "../lib/redisConnection";
 import { workerLogger } from "@/lib/logger";
@@ -20,31 +20,43 @@ export const notificationQueue = new Queue<NotificationJobPayload>("exam-notific
 });
 
 /**
- * Flushes push notifications held in QUEUED_QUIET_HOURS once quiet hours window closes.
+ * Flushes push notifications held in DEFERRED_QUIET_HOURS (or legacy QUEUED_QUIET_HOURS)
+ * once quiet hours window closes.
+ *
+ * Requirements (S25-F02 / S25-F03 / AC4):
+ * 1. Honors quiet hours gate: defers if called during quiet hours.
+ * 2. Fetches queued logs with status DEFERRED_QUIET_HOURS or QUEUED_QUIET_HOURS.
+ * 3. Groups deferred logs by (schoolId, title, body) — NEVER broadcasts logs[0] to all recipients!
+ * 4. Dispatches each distinct group via dispatchWebPush.
+ * 5. Updates each log's status in pushNotificationLogs strictly AFTER the dispatch attempt,
+ *    mapping from actual per-recipient dispatch outcomes.
  */
 export async function flushQuietHoursNotifications(
   targetSchoolId?: string,
   txDb: any = db,
+  quietHoursCheckOverride?: () => boolean,
 ): Promise<{ flushedCount: number; skippedQuietCount: number }> {
   // If globally in quiet hours (IST), skip flush
-  if (isQuietHours()) {
+  const isQuiet = quietHoursCheckOverride ? quietHoursCheckOverride() : isQuietHours();
+  if (isQuiet) {
     workerLogger.info("[NotificationWorker] Currently in IST quiet hours. Deferring flush.");
     return { flushedCount: 0, skippedQuietCount: 1 };
   }
 
+  const quietStatuses = ["DEFERRED_QUIET_HOURS", "QUEUED_QUIET_HOURS"];
   const filter = targetSchoolId
     ? and(
         eq(pushNotificationLogs.schoolId, targetSchoolId),
-        eq(pushNotificationLogs.status, "QUEUED_QUIET_HOURS"),
+        inArray(pushNotificationLogs.status, quietStatuses),
       )
-    : eq(pushNotificationLogs.status, "QUEUED_QUIET_HOURS");
+    : inArray(pushNotificationLogs.status, quietStatuses);
 
   const queuedLogs = await txDb.query.pushNotificationLogs.findMany({
     where: filter,
     limit: 500,
   });
 
-  if (queuedLogs.length === 0) {
+  if (!queuedLogs || queuedLogs.length === 0) {
     return { flushedCount: 0, skippedQuietCount: 0 };
   }
 
@@ -59,38 +71,59 @@ export async function flushQuietHoursNotifications(
     bySchool.set(log.schoolId, arr);
   }
 
-  for (const [schoolId, logs] of bySchool.entries()) {
+  for (const [schoolId, schoolLogs] of bySchool.entries()) {
     try {
       await withTenant(schoolId, async (scopedDb) => {
-        const userIds = logs.map((l: any) => l.recipientUserId);
-        
-        // Mark as DELIVERED
-        for (const log of logs) {
-          await scopedDb
-            .update(pushNotificationLogs)
-            .set({
-              status: "DELIVERED",
-              sentAt: now,
-            })
-            .where(
-              and(
-                eq(pushNotificationLogs.id, log.id),
-                eq(pushNotificationLogs.schoolId, schoolId),
-              ),
-            );
-          flushedCount++;
+        const dbContext = scopedDb || txDb;
+
+        // Sub-group by exact payload (title + body) to prevent cross-recipient contamination (S25-F03)
+        const byPayload = new Map<string, { title: string; body: string; items: typeof schoolLogs }>();
+        for (const log of schoolLogs) {
+          const key = `${log.title}:::${log.body}`;
+          const existing = byPayload.get(key) || { title: log.title, body: log.body, items: [] };
+          existing.items.push(log);
+          byPayload.set(key, existing);
         }
 
-        // Attempt push dispatch
-        await dispatchWebPush(
-          schoolId,
-          userIds,
-          {
-            title: logs[0]?.title || "Exam Update",
-            body: logs[0]?.body || "New exam notification available.",
-          },
-          scopedDb,
-        );
+        for (const { title, body, items } of byPayload.values()) {
+          const userIds = items.map((l: any) => l.recipientUserId);
+          const logMap = new Map<string, string>(); // userId -> logId
+          for (const item of items) {
+            logMap.set(item.recipientUserId, item.id);
+          }
+
+          // Dispatch web push with exact payload
+          const dispatchResults = await dispatchWebPush(
+            schoolId,
+            userIds,
+            { title, body },
+            dbContext,
+          );
+
+          // Update each log's status strictly from the actual dispatch outcome
+          for (const res of dispatchResults) {
+            const logId = logMap.get(res.userId);
+            if (!logId) continue;
+
+            const isDelivered = res.status === "DELIVERED";
+            if (isDelivered) {
+              flushedCount++;
+            }
+
+            await dbContext
+              .update(pushNotificationLogs)
+              .set({
+                status: res.status,
+                sentAt: isDelivered ? now : null,
+              })
+              .where(
+                and(
+                  eq(pushNotificationLogs.id, logId),
+                  eq(pushNotificationLogs.schoolId, schoolId),
+                ),
+              );
+          }
+        }
       });
     } catch (err: unknown) {
       workerLogger.error(
@@ -286,8 +319,53 @@ export async function drainQueuedSms(
   return { sentCount, cappedCount, disabledCount };
 }
 
-// ─── Start Worker ─────────────────────────────────────────────────────────────
+// ─── Start Worker & Schedulers ──────────────────────────────────────────────────
+/**
+ * Registers BullMQ repeatable jobs for daily quiet-hours flush (07:05 IST)
+ * and periodic SMS drain (every 15 minutes).
+ */
+export async function registerNotificationSchedulers(): Promise<void> {
+  try {
+    // 1. Daily quiet hours flush at 07:05 IST
+    await notificationQueue.add(
+      "scheduled-quiet-hours-flush",
+      { type: "FLUSH_QUIET_HOURS" },
+      {
+        repeat: {
+          pattern: "5 7 * * *",
+          tz: "Asia/Kolkata",
+        },
+        jobId: "cron-flush-quiet-hours",
+        removeOnComplete: true,
+      },
+    );
+
+    // 2. Periodic SMS drain every 15 minutes
+    await notificationQueue.add(
+      "scheduled-sms-drain",
+      { type: "DRAIN_SMS" },
+      {
+        repeat: {
+          every: 15 * 60 * 1000,
+        },
+        jobId: "cron-drain-sms",
+        removeOnComplete: true,
+      },
+    );
+
+    workerLogger.info("[NotificationWorker] Registered BullMQ schedulers for quiet-hours flush and SMS drain.");
+  } catch (err: unknown) {
+    workerLogger.error(
+      `[NotificationWorker] Failed to register BullMQ notification schedulers: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
 if (process.env["START_WORKERS"] === "true") {
+  registerNotificationSchedulers().catch((err) => {
+    workerLogger.error(`[NotificationWorker] Scheduler registration failure: ${err}`);
+  });
+
   const worker = new Worker<NotificationJobPayload>(
     "exam-notifications",
     async (job) => {
