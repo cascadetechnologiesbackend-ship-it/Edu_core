@@ -1,7 +1,6 @@
 import { db } from "@/db";
 import {
   notices,
-  pushNotificationLogs,
   smsLogs,
   userPushSubscriptions,
   students,
@@ -111,22 +110,6 @@ async function resolveExamParentRecipients(
   }
 
   return Array.from(parentUserIds);
-}
-
-/**
- * Batch inserts push notification logs in chunks of 100.
- */
-async function batchInsertPushLogs(
-  logs: (typeof pushNotificationLogs.$inferInsert)[],
-  scopedDb: any = db,
-) {
-  const BATCH_SIZE = 100;
-  for (let i = 0; i < logs.length; i += BATCH_SIZE) {
-    const chunk = logs.slice(i, i + BATCH_SIZE);
-    if (chunk.length > 0) {
-      await scopedDb.insert(pushNotificationLogs).values(chunk);
-    }
-  }
 }
 
 /**

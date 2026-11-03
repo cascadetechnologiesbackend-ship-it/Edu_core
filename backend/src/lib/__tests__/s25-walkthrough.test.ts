@@ -91,7 +91,7 @@ describe("S25 Layer L7: End-to-End Walkthrough Verification (The Honesty Loop)",
 
     // 1. Dispatch was invoked before database insert
     expect(webPushDispatcher.dispatchWebPush).toHaveBeenCalledTimes(1);
-    const dispatchedRecipients = vi.mocked(webPushDispatcher.dispatchWebPush).mock.calls[0][1];
+    const dispatchedRecipients = vi.mocked(webPushDispatcher.dispatchWebPush).mock.calls[0]![1];
     expect(dispatchedRecipients).toEqual(["parent-A", "parent-B"]);
 
     // 2. Database logs reflect individual outcomes
@@ -208,13 +208,13 @@ describe("S25 Layer L7: End-to-End Walkthrough Verification (The Honesty Loop)",
 
     // Dispatched twice: once for Aarav payload, once for Diya payload
     expect(webPushDispatcher.dispatchWebPush).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(webPushDispatcher.dispatchWebPush).mock.calls[0][2].title).toBe("Aarav Admit Card");
-    expect(vi.mocked(webPushDispatcher.dispatchWebPush).mock.calls[1][2].title).toBe("Diya Admit Card");
+    expect(vi.mocked(webPushDispatcher.dispatchWebPush).mock.calls[0]![2].title).toBe("Aarav Admit Card");
+    expect(vi.mocked(webPushDispatcher.dispatchWebPush).mock.calls[1]![2].title).toBe("Diya Admit Card");
 
     expect(res.flushedCount).toBe(2);
     expect(updatedRows.length).toBe(2);
-    expect(updatedRows[0].status).toBe("DELIVERED");
-    expect(updatedRows[1].status).toBe("DELIVERED");
+    expect(updatedRows[0]!.status).toBe("DELIVERED");
+    expect(updatedRows[1]!.status).toBe("DELIVERED");
   });
 
   it("Act 4: SMS Queue drain decrypts phone, delivers via gateway, records gateway messageId, enforces 500 cap", async () => {
@@ -273,8 +273,8 @@ describe("S25 Layer L7: End-to-End Walkthrough Verification (The Honesty Loop)",
     );
     expect(res.sentCount).toBe(1);
     expect(updatedRows.length).toBe(1);
-    expect(updatedRows[0].status).toBe("SENT");
-    expect(updatedRows[0].gatewayMessageId).toBe("gw-sms-998877");
+    expect(updatedRows[0]!.status).toBe("SENT");
+    expect(updatedRows[0]!.gatewayMessageId).toBe("gw-sms-998877");
   });
 
   it("Act 5: Fail-closed truth under unconfigured production environment across all 3 channels", async () => {
@@ -285,8 +285,8 @@ describe("S25 Layer L7: End-to-End Walkthrough Verification (The Honesty Loop)",
     ]);
 
     const pushRes = await webPushDispatcher.dispatchWebPush("sch-1", ["parent-A"], { title: "T", body: "B" });
-    expect(pushRes[0].status).toBe("SKIPPED_UNCONFIGURED");
-    expect(pushRes[0].success).toBe(false);
+    expect(pushRes[0]!.status).toBe("SKIPPED_UNCONFIGURED");
+    expect(pushRes[0]!.success).toBe(false);
 
     // 2. SMS unconfigured
     vi.mocked(smsModule.isSmsConfigured).mockReturnValue(false);
@@ -312,7 +312,12 @@ describe("S25 Layer L7: End-to-End Walkthrough Verification (The Honesty Loop)",
       delete process.env.SMTP_PASS;
 
       expect(emailModule.isEmailConfigured()).toBe(false);
-      const emailRes = await emailModule.sendEmail({ to: "test@parent.org", subject: "S", html: "<p>H</p>" });
+      const emailRes = await emailModule.sendEmail({
+        to: "test@parent.org",
+        subject: "S",
+        text: "H",
+        html: "<p>H</p>",
+      });
       expect(emailRes.delivered).toBe(false);
       expect(emailRes.unconfigured).toBe(true);
     } finally {
