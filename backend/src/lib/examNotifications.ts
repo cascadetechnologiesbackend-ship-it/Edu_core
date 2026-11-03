@@ -15,6 +15,7 @@ import {
 import { eq, and, inArray } from "drizzle-orm";
 import { withTenant } from "./tenant";
 import { dispatchWebPush } from "./webPushDispatcher";
+import { persistPushResults, persistQuietHoursPushLogs } from "./pushPersistence";
 
 export interface NotificationResult {
   success: boolean;
@@ -152,17 +153,22 @@ async function batchInsertSmsLogs(
  * - Optional SMS fallback for parents without push subscriptions (if school toggle enabled).
  * - CRITICAL: Zero student marks or PII in payload.
  */
-export async function notifyResultReleased(input: {
-  schoolId: string;
-  setupId: string;
-  triggeredById: string;
-}): Promise<NotificationResult> {
+export async function notifyResultReleased(
+  input: {
+    schoolId: string;
+    setupId: string;
+    triggeredById: string;
+  },
+  txDbOverride?: any,
+  quietHoursCheckOverride?: () => boolean,
+): Promise<NotificationResult> {
   try {
     const { schoolId, setupId, triggeredById } = input;
 
     return await withTenant(schoolId, async (scopedDb) => {
+      const dbContext = txDbOverride || scopedDb || db;
       // Fetch setup & exam info
-      const setup = await scopedDb.query.reportCardSetups.findFirst({
+      const setup = await dbContext.query.reportCardSetups.findFirst({
         where: and(
           eq(reportCardSetups.schoolId, schoolId),
           eq(reportCardSetups.id, setupId),
@@ -183,7 +189,7 @@ export async function notifyResultReleased(input: {
       const primaryExamId = examWeightages[0]?.examId;
 
       // Check if SMS is enabled for this school/setup in result_settings
-      const settings = await scopedDb.query.resultSettings.findFirst({
+      const settings = await dbContext.query.resultSettings.findFirst({
         where: and(
           eq(resultSettings.schoolId, schoolId),
           eq(resultSettings.setupId, setupId),
@@ -192,7 +198,7 @@ export async function notifyResultReleased(input: {
       const smsEnabled = settings?.smsNotificationsEnabled ?? false;
 
       // 1. In-App Notice
-      const [notice] = await scopedDb
+      const [notice] = await dbContext
         .insert(notices)
         .values({
           schoolId,
@@ -210,7 +216,7 @@ export async function notifyResultReleased(input: {
       const recipientList = await resolveExamParentRecipients(
         schoolId,
         primaryExamId,
-        scopedDb,
+        dbContext,
       );
 
       if (recipientList.length === 0) {
@@ -222,38 +228,39 @@ export async function notifyResultReleased(input: {
         };
       }
 
-      // 3. Web Push Notifications
-      const quiet = isQuietHours();
-      const pushStatus = quiet ? "QUEUED_QUIET_HOURS" : "DELIVERED";
+      // 3. Web Push Notifications (Truthful Write-Path: S25-F02)
+      const quiet = quietHoursCheckOverride ? quietHoursCheckOverride() : isQuietHours();
       const pushTitle = "Results Published";
       const pushBody = `Examination results for ${setupName} have been published. Tap to view.`;
+      let pushSentCount = 0;
 
-      const pushLogs: (typeof pushNotificationLogs.$inferInsert)[] = recipientList.map(
-        (parentId) => ({
-          schoolId,
-          recipientUserId: parentId,
-          title: pushTitle,
-          body: pushBody,
-          status: pushStatus,
-          sentAt: quiet ? null : new Date(),
-        }),
-      );
-
-      await batchInsertPushLogs(pushLogs, scopedDb);
-
-      if (!quiet) {
-        await dispatchWebPush(
+      if (quiet) {
+        await persistQuietHoursPushLogs(
           schoolId,
           recipientList,
           { title: pushTitle, body: pushBody },
-          scopedDb,
+          dbContext,
         );
+      } else {
+        const dispatchResults = await dispatchWebPush(
+          schoolId,
+          recipientList,
+          { title: pushTitle, body: pushBody },
+          dbContext,
+        );
+        const persisted = await persistPushResults(
+          schoolId,
+          dispatchResults,
+          { title: pushTitle, body: pushBody },
+          dbContext,
+        );
+        pushSentCount = persisted.deliveredCount;
       }
 
       // 4. Optional SMS Fallback
       let smsQueuedCount = 0;
       if (smsEnabled) {
-        const subscriptions = await scopedDb.query.userPushSubscriptions.findMany({
+        const subscriptions = await dbContext.query.userPushSubscriptions.findMany({
           where: and(
             eq(userPushSubscriptions.schoolId, schoolId),
             inArray(userPushSubscriptions.userId, recipientList),
@@ -277,7 +284,7 @@ export async function notifyResultReleased(input: {
               sentAt: new Date(),
             }),
           );
-          await batchInsertSmsLogs(smsLogsToInsert, scopedDb);
+          await batchInsertSmsLogs(smsLogsToInsert, dbContext);
           smsQueuedCount = parentsWithoutPush.length;
         }
       }
@@ -285,7 +292,7 @@ export async function notifyResultReleased(input: {
       return {
         success: true,
         inAppNoticeId: notice?.id,
-        pushSentCount: recipientList.length,
+        pushSentCount,
         smsQueuedCount,
       };
     });
@@ -300,22 +307,27 @@ export async function notifyResultReleased(input: {
  * 2. Admit Cards Released Notification:
  * Sent to parents when admit cards become available for an exam.
  */
-export async function notifyAdmitCardsReleased(input: {
-  schoolId: string;
-  examId: string;
-  triggeredById: string;
-}): Promise<NotificationResult> {
+export async function notifyAdmitCardsReleased(
+  input: {
+    schoolId: string;
+    examId: string;
+    triggeredById: string;
+  },
+  txDbOverride?: any,
+  quietHoursCheckOverride?: () => boolean,
+): Promise<NotificationResult> {
   try {
     const { schoolId, examId, triggeredById } = input;
 
     return await withTenant(schoolId, async (scopedDb) => {
-      const exam = await scopedDb.query.exams.findFirst({
+      const dbContext = txDbOverride || scopedDb || db;
+      const exam = await dbContext.query.exams.findFirst({
         where: and(eq(exams.schoolId, schoolId), eq(exams.id, examId)),
       });
       const examName = exam?.name || "Upcoming Examination";
 
       // In-App Notice
-      const [notice] = await scopedDb
+      const [notice] = await dbContext
         .insert(notices)
         .values({
           schoolId,
@@ -333,40 +345,41 @@ export async function notifyAdmitCardsReleased(input: {
       const parentUserIds = await resolveExamParentRecipients(
         schoolId,
         examId,
-        scopedDb,
+        dbContext,
       );
 
-      const quiet = isQuietHours();
-      const pushStatus = quiet ? "QUEUED_QUIET_HOURS" : "DELIVERED";
+      const quiet = quietHoursCheckOverride ? quietHoursCheckOverride() : isQuietHours();
       const pushTitle = "Admit Cards Available";
       const pushBody = `Admit cards for ${examName} are ready for download. Tap to view.`;
+      let pushSentCount = 0;
 
-      const pushLogs: (typeof pushNotificationLogs.$inferInsert)[] = parentUserIds.map(
-        (parentId) => ({
-          schoolId,
-          recipientUserId: parentId,
-          title: pushTitle,
-          body: pushBody,
-          status: pushStatus,
-          sentAt: quiet ? null : new Date(),
-        }),
-      );
-
-      await batchInsertPushLogs(pushLogs, scopedDb);
-
-      if (!quiet && parentUserIds.length > 0) {
-        await dispatchWebPush(
+      if (quiet) {
+        await persistQuietHoursPushLogs(
           schoolId,
           parentUserIds,
           { title: pushTitle, body: pushBody },
-          scopedDb,
+          dbContext,
         );
+      } else if (parentUserIds.length > 0) {
+        const dispatchResults = await dispatchWebPush(
+          schoolId,
+          parentUserIds,
+          { title: pushTitle, body: pushBody },
+          dbContext,
+        );
+        const persisted = await persistPushResults(
+          schoolId,
+          dispatchResults,
+          { title: pushTitle, body: pushBody },
+          dbContext,
+        );
+        pushSentCount = persisted.deliveredCount;
       }
 
       return {
         success: true,
         inAppNoticeId: notice?.id,
-        pushSentCount: parentUserIds.length,
+        pushSentCount,
         smsQueuedCount: 0,
       };
     });
@@ -381,22 +394,27 @@ export async function notifyAdmitCardsReleased(input: {
  * 3. Datesheet Published Notification:
  * Sent to school community (Parents, Students, Teachers) when schedule is published.
  */
-export async function notifyDatesheetPublished(input: {
-  schoolId: string;
-  scheduleIds: string[];
-  triggeredById: string;
-}): Promise<NotificationResult> {
+export async function notifyDatesheetPublished(
+  input: {
+    schoolId: string;
+    scheduleIds: string[];
+    triggeredById: string;
+  },
+  txDbOverride?: any,
+  quietHoursCheckOverride?: () => boolean,
+): Promise<NotificationResult> {
   try {
     const { schoolId, scheduleIds, triggeredById } = input;
 
     return await withTenant(schoolId, async (scopedDb) => {
+      const dbContext = txDbOverride || scopedDb || db;
       // Find exam name and examId from first schedule
       let examName = "Term Examination";
       let examId: string | undefined;
 
       const firstScheduleId = scheduleIds[0];
       if (firstScheduleId) {
-        const firstSchedule = await scopedDb.query.examSchedules.findFirst({
+        const firstSchedule = await dbContext.query.examSchedules.findFirst({
           where: and(
             eq(examSchedules.schoolId, schoolId),
             eq(examSchedules.id, firstScheduleId),
@@ -410,7 +428,7 @@ export async function notifyDatesheetPublished(input: {
       }
 
       // In-App Notice to all
-      const [notice] = await scopedDb
+      const [notice] = await dbContext
         .insert(notices)
         .values({
           schoolId,
@@ -428,40 +446,41 @@ export async function notifyDatesheetPublished(input: {
       const parentUserIds = await resolveExamParentRecipients(
         schoolId,
         examId,
-        scopedDb,
+        dbContext,
       );
 
-      const quiet = isQuietHours();
-      const pushStatus = quiet ? "QUEUED_QUIET_HOURS" : "DELIVERED";
+      const quiet = quietHoursCheckOverride ? quietHoursCheckOverride() : isQuietHours();
       const pushTitle = "Datesheet Published";
       const pushBody = `Datesheet for ${examName} has been published. Tap to view.`;
+      let pushSentCount = 0;
 
-      const pushLogs: (typeof pushNotificationLogs.$inferInsert)[] = parentUserIds.map(
-        (parentId) => ({
-          schoolId,
-          recipientUserId: parentId,
-          title: pushTitle,
-          body: pushBody,
-          status: pushStatus,
-          sentAt: quiet ? null : new Date(),
-        }),
-      );
-
-      await batchInsertPushLogs(pushLogs, scopedDb);
-
-      if (!quiet && parentUserIds.length > 0) {
-        await dispatchWebPush(
+      if (quiet) {
+        await persistQuietHoursPushLogs(
           schoolId,
           parentUserIds,
           { title: pushTitle, body: pushBody },
-          scopedDb,
+          dbContext,
         );
+      } else if (parentUserIds.length > 0) {
+        const dispatchResults = await dispatchWebPush(
+          schoolId,
+          parentUserIds,
+          { title: pushTitle, body: pushBody },
+          dbContext,
+        );
+        const persisted = await persistPushResults(
+          schoolId,
+          dispatchResults,
+          { title: pushTitle, body: pushBody },
+          dbContext,
+        );
+        pushSentCount = persisted.deliveredCount;
       }
 
       return {
         success: true,
         inAppNoticeId: notice?.id,
-        pushSentCount: parentUserIds.length,
+        pushSentCount,
         smsQueuedCount: 0,
       };
     });
@@ -476,30 +495,24 @@ export async function notifyDatesheetPublished(input: {
  * 4. Bulk Job Completed Notification:
  * Sent specifically to the School Admin or Principal who launched the asynchronous bulk generation job.
  */
-export async function notifyBulkJobCompleted(input: {
-  schoolId: string;
-  jobId: string;
-  examId: string;
-  triggeredById: string;
-  processedCount: number;
-  failedCount: number;
-}): Promise<NotificationResult> {
+export async function notifyBulkJobCompleted(
+  input: {
+    schoolId: string;
+    jobId: string;
+    examId: string;
+    triggeredById: string;
+    processedCount: number;
+    failedCount: number;
+  },
+  txDbOverride?: any,
+): Promise<NotificationResult> {
   try {
     const { schoolId, jobId, triggeredById, processedCount, failedCount } = input;
 
     return await withTenant(schoolId, async (scopedDb) => {
-      // Send push notification directly to the triggering user
-      await scopedDb.insert(pushNotificationLogs).values({
-        schoolId,
-        recipientUserId: triggeredById,
-        title: "Bulk Report Card Generation Complete",
-        body: `Batch generation finished (${processedCount} succeeded, ${failedCount} failed). Tap to download.`,
-        status: "DELIVERED",
-        sentAt: new Date(),
-      });
-
-      // Also write an in-app notice for the admin
-      const [notice] = await scopedDb
+      const dbContext = txDbOverride || scopedDb || db;
+      // In-app notice for the admin
+      const [notice] = await dbContext
         .insert(notices)
         .values({
           schoolId,
@@ -513,20 +526,29 @@ export async function notifyBulkJobCompleted(input: {
         })
         .returning();
 
-      await dispatchWebPush(
+      const pushTitle = "Bulk Report Card Generation Complete";
+      const pushBody = `Batch generation finished (${processedCount} succeeded, ${failedCount} failed). Tap to download.`;
+
+      // Web Push dispatch first
+      const dispatchResults = await dispatchWebPush(
         schoolId,
         [triggeredById],
-        {
-          title: "Bulk Report Card Generation Complete",
-          body: `Batch generation finished (${processedCount} succeeded, ${failedCount} failed). Tap to download.`,
-        },
-        scopedDb,
+        { title: pushTitle, body: pushBody },
+        dbContext,
+      );
+
+      // Persist results downstream of dispatch
+      const persisted = await persistPushResults(
+        schoolId,
+        dispatchResults,
+        { title: pushTitle, body: pushBody },
+        dbContext,
       );
 
       return {
         success: true,
         inAppNoticeId: notice?.id,
-        pushSentCount: 1,
+        pushSentCount: persisted.deliveredCount,
         smsQueuedCount: 0,
       };
     });

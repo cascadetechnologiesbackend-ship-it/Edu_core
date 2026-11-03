@@ -42,6 +42,7 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
   const parentAUserId = ISOLATION_IDS.schoolA.parentUserId;
 
   beforeAll(async () => {
+    process.env.ALLOW_MOCK_PUSH = "true";
     pool = new Pool({ connectionString: dbUrl });
     await seedIsolationSchools();
 
@@ -92,6 +93,27 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
         })
         .returning();
       testSetupAId = setup!.id;
+
+      // Seed mock push subscriptions for School A users
+      await tx
+        .insert(userPushSubscriptions)
+        .values([
+          {
+            schoolId: schoolA,
+            userId: parentAUserId,
+            endpoint: `https://fcm.googleapis.com/mock/parentA_${runId}`,
+            p256dh: "mock-p256dh",
+            auth: "mock-auth",
+          },
+          {
+            schoolId: schoolA,
+            userId: ISOLATION_IDS.schoolA.adminUserId,
+            endpoint: `https://fcm.googleapis.com/mock/adminA_${runId}`,
+            p256dh: "mock-p256dh",
+            auth: "mock-auth",
+          },
+        ])
+        .onConflictDoNothing();
     });
   });
 
@@ -194,6 +216,20 @@ describe("S11 Layer 3 & S12 Layer 4: Examination Lifecycle Communication & Push 
   });
 
   it("3.3: notifyAdmitCardsReleased creates in-app notice and web push notification for parents", async () => {
+    // Re-seed subscription for parentA (deleted in 3.2 for SMS fallback test)
+    await withTenant(schoolA, async (tx) => {
+      await tx
+        .insert(userPushSubscriptions)
+        .values({
+          schoolId: schoolA,
+          userId: parentAUserId,
+          endpoint: `https://fcm.googleapis.com/mock/parentA_${Date.now()}`,
+          p256dh: "mock-p256dh",
+          auth: "mock-auth",
+        })
+        .onConflictDoNothing();
+    });
+
     const res = await notifyAdmitCardsReleased({
       schoolId: schoolA,
       examId: testExamAId,
