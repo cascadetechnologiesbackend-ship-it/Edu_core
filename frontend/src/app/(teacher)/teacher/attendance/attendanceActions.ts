@@ -27,6 +27,7 @@ import {
   assertStudentRosterMembership,
 } from "@/lib/teacherAuthGuards";
 import type { AttendanceMarkedPayload } from "@schoolmitra/domain-events";
+import { recordFirstAttendanceOnboarding } from "@/lib/northStarTelemetry";
 
 export type AttendanceStatus =
   | "PRESENT"
@@ -407,6 +408,12 @@ export async function saveTeacherAttendanceRoster(
       records.map((r) => assertConsent(r.studentId, "attendance"))
     );
 
+    // D1-L1: Check if any prior attendance existed for this school before this submission
+    const priorAttendance = await tx.query.studentAttendance.findFirst({
+      where: eq(studentAttendance.schoolId, school.id),
+      columns: { id: true },
+    });
+
     // 5. Fetch existing records and approved leaves for date
     const [existingRecords, approvedLeaves] = await Promise.all([
       tx
@@ -505,6 +512,20 @@ export async function saveTeacherAttendanceRoster(
 
     if (toInsert.length > 0) {
       await tx.insert(studentAttendance).values(toInsert);
+    }
+
+    // D1-L1: If this is the school's first attendance record, stop the onboarding clock
+    if (!priorAttendance && toInsert.length > 0) {
+      try {
+        await recordFirstAttendanceOnboarding({
+          schoolId: school.id,
+          userId: ctx.userId,
+          role: ctx.role || "TEACHER",
+          txDb: tx,
+        });
+      } catch (clockErr) {
+        console.error("[NorthStarTelemetry] Error recording first attendance onboarding clock:", clockErr);
+      }
     }
 
     // 6. Durable Outbox: Insert AttendanceMarkedEvent for cross-role consumption

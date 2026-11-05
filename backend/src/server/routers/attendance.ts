@@ -12,6 +12,7 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import { TRPCError } from "@trpc/server";
 import { logAuditEvent } from "@/lib/auditLogger";
+import { recordFirstAttendanceOnboarding } from "@/lib/northStarTelemetry";
 
 export const attendanceRouter = createTRPCRouter({
   // 1. Fetch available sections for the logged-in user (Teacher sees only their class; admin sees all)
@@ -256,6 +257,12 @@ export const attendanceRouter = createTRPCRouter({
 
       // S5-T4: Batch markSectionAttendance into a single batch upsert + one audit insert
       await (ctx.db as any).transaction(async (tx: any) => {
+        // D1-L1: Check if any prior attendance existed for this school before this submission
+        const priorAttendance = await tx.query.studentAttendance.findFirst({
+          where: eq(studentAttendance.schoolId, finalSchoolId!),
+          columns: { id: true },
+        });
+
         // Query all existing attendance rows for the section on this day
         const existingRecords = await tx
           .select({ id: studentAttendance.id, studentId: studentAttendance.studentId })
@@ -301,6 +308,20 @@ export const attendanceRouter = createTRPCRouter({
         // Batch insert new records
         if (toInsert.length > 0) {
           await tx.insert(studentAttendance).values(toInsert);
+        }
+
+        // D1-L1: If this is the school's first attendance record, stop onboarding clock
+        if (!priorAttendance && toInsert.length > 0) {
+          try {
+            await recordFirstAttendanceOnboarding({
+              schoolId: finalSchoolId!,
+              userId,
+              role: userRole || "TEACHER",
+              txDb: tx,
+            });
+          } catch (clockErr) {
+            console.error("[NorthStarTelemetry] Error recording first attendance onboarding clock:", clockErr);
+          }
         }
 
         // Batch update existing records in a single CASE statement

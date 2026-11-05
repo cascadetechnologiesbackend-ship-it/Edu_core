@@ -25,6 +25,7 @@ import { encryptData, computeSearchHash } from "@/lib/encryption";
 import { seedExamBoardDefaults } from "@/lib/examSeeding";
 import { deriveClassGroupsFromClasses, SchoolBoard, GradingScale } from "@/lib/examBoardBlueprints";
 import { normalizeProfessionalTaxState } from "@/lib/reference/indiaReferenceData";
+import { recordJourneyCompletion } from "@/lib/northStarTelemetry";
 
 export interface ClassSetupItem {
   gradeLevel: string;
@@ -528,6 +529,19 @@ export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload)
             schoolId: newSchool.id,
           });
         }
+
+        // D1-L1: Wire J10 journey start telemetry upon tenant provisioning
+        await recordJourneyCompletion(
+          {
+            schoolId: newSchool.id,
+            userId: adminUser.id,
+            role: "SUPER_ADMIN",
+            journeyId: "J10_school_onboarding",
+            durationMs: 0,
+            completed: false,
+          },
+          tx
+        );
       }
 
       const examMsg = loadExamDefaults !== false

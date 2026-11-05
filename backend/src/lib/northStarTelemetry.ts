@@ -16,7 +16,7 @@
  */
 
 import { db } from "@/db";
-import { usageEvents } from "@/db/schema";
+import { usageEvents, schools } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { withTenant } from "./tenant";
 
@@ -144,6 +144,7 @@ export interface JourneyCompletionParams extends BaseEventParams {
   durationMs: number;
   completed: boolean;
   finishedState?: string;
+  action?: string;
 }
 
 /**
@@ -308,13 +309,21 @@ export async function recordParentFeeDuration(params: ParentFeeDurationParams, t
 }
 
 export async function recordJourneyCompletion(params: JourneyCompletionParams, txDb?: any) {
+  const resolvedAction = params.action || (
+    params.completed
+      ? "journey_finished"
+      : params.durationMs === 0
+      ? "journey_started"
+      : "journey_abandoned"
+  );
+
   return emitNorthStarEvent({
     schoolId: params.schoolId,
     userId: params.userId,
     role: params.role,
     screen: `/journeys/${params.journeyId}`,
     eventName: "north_star_journey_completion",
-    action: params.completed ? "journey_finished" : "journey_abandoned",
+    action: resolvedAction,
     payload: {
       journeyId: params.journeyId,
       durationMs: params.durationMs,
@@ -323,6 +332,117 @@ export async function recordJourneyCompletion(params: JourneyCompletionParams, t
     },
     txDb,
   });
+}
+
+/**
+ * Calculates working days elapsed between two timestamps.
+ * Standard Indian school operational calendar: Sunday (day 0) is non-instructional.
+ * Slices time by calendar day to accurately exclude Sunday hours while correctly
+ * accounting for all non-Sunday hours across day/night boundaries.
+ */
+export function calculateElapsedWorkingDays(
+  startDate: Date,
+  endDate: Date = new Date()
+): number {
+  const start = startDate instanceof Date ? startDate : new Date(startDate);
+  const end = endDate instanceof Date ? endDate : new Date(endDate);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end.getTime() <= start.getTime()) {
+    return 0;
+  }
+
+  let workingMs = 0;
+  let cur = new Date(start.getTime());
+
+  while (cur.getTime() < end.getTime()) {
+    // End of current UTC calendar day (midnight next UTC day)
+    const nextMidnight = new Date(cur.getTime());
+    nextMidnight.setUTCHours(24, 0, 0, 0);
+
+    const segmentEnd = nextMidnight.getTime() < end.getTime() ? nextMidnight : end;
+
+    // Day of week: 0 is Sunday
+    if (cur.getUTCDay() !== 0) {
+      workingMs += (segmentEnd.getTime() - cur.getTime());
+    }
+
+    cur = segmentEnd;
+  }
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const elapsedDays = workingMs / msPerDay;
+
+  return Number(Math.max(0.1, elapsedDays).toFixed(1));
+}
+
+export interface FirstAttendanceOnboardingParams {
+  schoolId: string;
+  userId: string;
+  role?: string;
+  txDb?: any;
+}
+
+/**
+ * Stops the onboarding clock and marks J10 journey completion when the school
+ * records its very first live classroom attendance.
+ * Idempotent: checks for prior onboarding events and exits cleanly if already recorded.
+ */
+export async function recordFirstAttendanceOnboarding(params: FirstAttendanceOnboardingParams) {
+  const { schoolId, userId, role = "TEACHER", txDb } = params;
+  const client = txDb || db;
+
+  // 1. Idempotency check: Exit immediately if already recorded for this tenant
+  const existingOnboardingEvent = await client.query.usageEvents.findFirst({
+    where: and(
+      eq(usageEvents.schoolId, schoolId),
+      eq(usageEvents.elementId, "north_star_onboarding_duration")
+    ),
+    columns: { id: true },
+  });
+
+  if (existingOnboardingEvent) {
+    return null;
+  }
+
+  // 2. Fetch school tenant creation timestamp
+  const school = await client.query.schools.findFirst({
+    where: eq(schools.id, schoolId),
+    columns: { id: true, name: true, createdAt: true },
+  });
+
+  const createdAt = school?.createdAt || new Date();
+  const now = new Date();
+  const workingDaysElapsed = calculateElapsedWorkingDays(createdAt, now);
+
+  // 3. Emit north_star_onboarding_duration
+  const onboardingEvent = await recordOnboardingDays(
+    {
+      schoolId,
+      userId,
+      role: role || "SUPER_ADMIN",
+      tenantId: schoolId,
+      workingDaysElapsed,
+      firstAttendanceMarked: true,
+    },
+    client
+  );
+
+  // 4. Emit J10 journey completion (finished state per spec J10 row)
+  const durationMs = Math.max(0, now.getTime() - createdAt.getTime());
+  const journeyEvent = await recordJourneyCompletion(
+    {
+      schoolId,
+      userId,
+      role: role || "SUPER_ADMIN",
+      journeyId: "J10_school_onboarding",
+      durationMs,
+      completed: true,
+      finishedState: "A new school opens on day one and takes attendance with real data.",
+    },
+    client
+  );
+
+  return { onboardingEvent, journeyEvent, workingDaysElapsed };
 }
 
 // ============================================================================
@@ -366,9 +486,7 @@ export async function getNorthStarMetricsSummary(
   schoolId: string,
   options?: { txDb?: any }
 ): Promise<NorthStarSummary> {
-  return withTenant(schoolId, async (tenantDb) => {
-    const client = options?.txDb || tenantDb;
-
+  const computeSummary = async (client: any): Promise<NorthStarSummary> => {
     const events = await client.query.usageEvents.findMany({
       where: and(
         eq(usageEvents.schoolId, schoolId)
@@ -382,7 +500,9 @@ export async function getNorthStarMetricsSummary(
     const monthCloseDurationsHr: number[] = [];
     const onboardingDaysList: number[] = [];
     const parentFeeDurationsSec: number[] = [];
-    const journeyCompletions: boolean[] = [];
+    let startedJourneysCount = 0;
+    let completedJourneysCount = 0;
+    let abandonedJourneysCount = 0;
 
     for (const evt of events) {
       if (!NORTH_STAR_EVENTS.includes(evt.elementId as NorthStarEventName)) continue;
@@ -416,8 +536,12 @@ export async function getNorthStarMetricsSummary(
             }
             break;
           case "north_star_journey_completion":
-            if (typeof payload.completed === "boolean") {
-              journeyCompletions.push(payload.completed);
+            if (evt.action === "journey_started" || (payload.completed === false && payload.durationMs === 0)) {
+              startedJourneysCount++;
+            } else if (evt.action === "journey_finished" || payload.completed === true) {
+              completedJourneysCount++;
+            } else if (evt.action === "journey_abandoned" || (payload.completed === false && (payload.durationMs ?? 0) > 0)) {
+              abandonedJourneysCount++;
             }
             break;
         }
@@ -460,11 +584,11 @@ export async function getNorthStarMetricsSummary(
       : medianParentFee <= NORTH_STAR_TARGETS.parent_fee_seconds ? "met" : "breached";
 
     // 6. Journey completion rate (target: >= 95%)
-    const completedJourneysCount = journeyCompletions.filter(Boolean).length;
-    const journeyPct = journeyCompletions.length > 0
-      ? Number(((completedJourneysCount / journeyCompletions.length) * 100).toFixed(1))
+    const totalJourneys = Math.max(startedJourneysCount, completedJourneysCount + abandonedJourneysCount);
+    const journeyPct = totalJourneys > 0
+      ? Number(((completedJourneysCount / totalJourneys) * 100).toFixed(1))
       : 0;
-    const journeyStatus = journeyCompletions.length === 0
+    const journeyStatus = totalJourneys === 0
       ? "no_data"
       : journeyPct >= NORTH_STAR_TARGETS.journey_completion_rate_pct ? "met" : "breached";
 
@@ -519,9 +643,17 @@ export async function getNorthStarMetricsSummary(
         target: NORTH_STAR_TARGETS.journey_completion_rate_pct,
         unit: "%",
         status: journeyStatus,
-        sampleCount: journeyCompletions.length,
+        sampleCount: totalJourneys,
       },
       overallHealth,
     };
+  };
+
+  if (options?.txDb) {
+    return await computeSummary(options.txDb);
+  }
+
+  return await withTenant(schoolId, async (tenantDb) => {
+    return await computeSummary(tenantDb);
   });
 }

@@ -45,6 +45,8 @@ import {
   Navigation,
   Sparkles,
 } from "lucide-react";
+import { OnboardingMetricBadge } from "@/components/telemetry/OnboardingMetricBadge";
+import { getNorthStarMetricsSummary } from "@/lib/northStarTelemetry";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -743,6 +745,9 @@ export default async function DashboardPage() {
       })
     : null;
 
+  // D1-L1: Truthful north-star metric readout
+  const northStarSummary = await getNorthStarMetricsSummary(schoolId).catch(() => null);
+
   return (
     <div className="space-y-8">
       {/* Page header */}
@@ -773,6 +778,14 @@ export default async function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* North-Star Onboarding Clock Readout (D1-L1) */}
+      {northStarSummary && (
+        <OnboardingMetricBadge
+          summary={northStarSummary.onboardingDays}
+          variant="banner"
+        />
+      )}
 
       {/* New Admissions Enrolled Today Card (S13 Layer 8) */}
       {summary.newAdmissionsToday > 0 && (

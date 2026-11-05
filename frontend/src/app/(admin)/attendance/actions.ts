@@ -17,6 +17,7 @@ import { logAuditEvent } from "@/lib/auditLogger";
 import { decryptData } from "@/lib/encryption";
 import { assertConsent } from "@/server/middleware/consent";
 import { invalidateDashboardCache } from "@/lib/dashboardCache";
+import { recordFirstAttendanceOnboarding } from "@/lib/northStarTelemetry";
 import { headers } from "next/headers";
 import type { Session } from "next-auth";
 
@@ -326,6 +327,12 @@ export async function markSectionAttendance(
     );
   const approvedLeaveMap = new Map(approvedLeaves.map((l) => [l.studentId, l.reason]));
 
+  // D1-L1: Check if any prior attendance existed for this school before this submission
+  const priorAttendance = await db.query.studentAttendance.findFirst({
+    where: eq(studentAttendance.schoolId, school.id),
+    columns: { id: true },
+  });
+
   // Execute bulk operations in a high-speed transaction
   await db.transaction(async (tx) => {
     const toInsert: Array<typeof studentAttendance.$inferInsert> = [];
@@ -372,6 +379,20 @@ export async function markSectionAttendance(
 
     if (toInsert.length > 0) {
       await tx.insert(studentAttendance).values(toInsert);
+    }
+
+    // D1-L1: If this is the school's first attendance record, stop the onboarding clock
+    if (!priorAttendance && toInsert.length > 0) {
+      try {
+        await recordFirstAttendanceOnboarding({
+          schoolId: school.id,
+          userId: ctx.userId,
+          role: ctx.role || "SCHOOL_ADMIN",
+          txDb: tx,
+        });
+      } catch (clockErr) {
+        console.error("[NorthStarTelemetry] Error recording first attendance onboarding clock:", clockErr);
+      }
     }
 
     // DPDP compliance: write section-level batch audit log
