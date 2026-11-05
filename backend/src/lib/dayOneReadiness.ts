@@ -35,6 +35,15 @@ export interface ReadinessCheckItem {
   unknownReason?: string;
 }
 
+export interface DayOneFinishedState {
+  isReady: boolean;
+  message?: string | undefined;
+  nextAction?: {
+    label: string;
+    href: string;
+  } | undefined;
+}
+
 export interface DayOneReadinessReport {
   schoolId: string;
   schoolName: string;
@@ -48,6 +57,7 @@ export interface DayOneReadinessReport {
     sectionsCount: number;
   };
   finishedStateMessage?: string | undefined;
+  finishedState: DayOneFinishedState;
   nextAction?: {
     label: string;
     href: string;
@@ -804,6 +814,19 @@ export async function getDayOneReadiness(
       ? `School ${schoolName} ready for Day One: ${studentsCount} students, ${staffCount} staff, ${sectionsCount} sections configured.`
       : undefined;
 
+    const nextAction = isReadyForDayOne
+      ? {
+          label: "Mark the first attendance",
+          href: "/attendance",
+        }
+      : undefined;
+
+    const finishedState: DayOneFinishedState = {
+      isReady: isReadyForDayOne,
+      message: finishedStateMessage,
+      nextAction,
+    };
+
     return {
       schoolId,
       schoolName,
@@ -813,12 +836,8 @@ export async function getDayOneReadiness(
       checks,
       summaryCounts,
       finishedStateMessage,
-      nextAction: isReadyForDayOne
-        ? {
-            label: "Mark the first attendance",
-            href: "/attendance",
-          }
-        : undefined,
+      finishedState,
+      nextAction,
     };
   });
 }

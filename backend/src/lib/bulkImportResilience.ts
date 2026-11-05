@@ -1566,3 +1566,12 @@ export async function executeFeeImportBatch(
     },
   };
 }
+
+/**
+ * Canonical action aliases matching the spec / journey test contract:
+ * commitStaffImportAction -> executeStaffImportBatch
+ * commitStudentImportAction -> executeStudentImportBatch
+ */
+export const commitStaffImportAction = executeStaffImportBatch;
+export const commitStudentImportAction = executeStudentImportBatch;
+
