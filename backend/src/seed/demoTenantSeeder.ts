@@ -51,6 +51,8 @@ import {
   feeInvoices,
   feePayments,
   feeConcessions,
+  studentFeeAdvances,
+  studentFeeAdvanceAllocations,
   studentAttendance,
   assignments,
   assignmentSubmissions,
@@ -68,6 +70,7 @@ import {
   auditLogs,
   notices,
   smsLogs,
+  sessions,
 } from "@schoolmitra/database";
 import { eq, inArray, sql } from "drizzle-orm";
 import { encryptData, computeSearchHash } from "../lib/encryption";
@@ -157,6 +160,7 @@ export async function cleanDemoTenant(schoolId?: string): Promise<void> {
     if (demoUsers.length > 0) {
       const userIds = demoUsers.map((u) => u.id);
       for (const chunk of chunkArray(userIds, 500)) {
+        await tenantDb.delete(sessions).where(inArray(sessions.userId, chunk));
         await tenantDb.delete(passwordResetTokens).where(inArray(passwordResetTokens.userId, chunk));
       }
     }
@@ -186,6 +190,8 @@ export async function cleanDemoTenant(schoolId?: string): Promise<void> {
       timetablePeriods,
       classTeacherAssignments,
       classSubjects,
+      studentFeeAdvanceAllocations,
+      studentFeeAdvances,
       feePayments,
       feeInvoices,
       feeConcessions,
@@ -282,7 +288,14 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
       state: DEMO_SCHOOL_CONFIG.state,
       pincode: DEMO_SCHOOL_CONFIG.pincode,
       themeColors: DEMO_SCHOOL_CONFIG.themeColors,
-      featureFlags: DEMO_SCHOOL_CONFIG.featureFlags,
+      featureFlags: {
+        ...DEMO_SCHOOL_CONFIG.featureFlags,
+        school_code: DEMO_SCHOOL_CONFIG.code,
+      },
+      provisioningManifest: {
+        code: DEMO_SCHOOL_CONFIG.code,
+        affiliationNumber: DEMO_SCHOOL_CONFIG.affiliationNumber,
+      },
       isActive: true,
       createdAt: new Date("2026-04-01T08:00:00Z"),
     })
@@ -810,6 +823,19 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
     }
 
     const allStudentsMeta: StudentMeta[] = [];
+    const parentUsersRows: any[] = [];
+    const parentUserRolesRows: any[] = [];
+    const parentPersonsRows: any[] = [];
+    const passwordResetTokenRows: any[] = [];
+
+    const studentUsersRows: any[] = [];
+    const studentUserRolesRows: any[] = [];
+    const studentPersonsRows: any[] = [];
+    const studentsRows: any[] = [];
+    const studentClassHistoryRows: any[] = [];
+    const studentFamilyMembersRows: any[] = [];
+    const consentRecordsRows: any[] = [];
+
     let globalStudentCounter = 1;
 
     for (const sec of allSectionsMeta) {
@@ -836,29 +862,32 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
 
         const isClaimed = idx <= 540;
 
-        // 1. Parent User
-        const [parentUser] = await tenantDb
-          .insert(users)
-          .values({
-            schoolId,
-            email: parentEmail,
-            passwordHash: DEFAULT_PASSWORD_HASH,
-            mobileEncrypted: encryptData(parentPhone),
-            isActive: true,
-            isEmailVerified: hasEmail,
-            mustChangePassword: !isClaimed,
-          })
-          .returning();
+        const parentUserId = crypto.randomUUID();
+        const studentUserId = crypto.randomUUID();
+        const studentId = crypto.randomUUID();
 
-        await tenantDb.insert(userRoles).values({
+        // 1. Parent User
+        parentUsersRows.push({
+          id: parentUserId,
           schoolId,
-          userId: parentUser!.id,
+          email: parentEmail,
+          passwordHash: DEFAULT_PASSWORD_HASH,
+          mobileEncrypted: encryptData(parentPhone),
+          isActive: true,
+          isEmailVerified: hasEmail,
+          mustChangePassword: !isClaimed,
+        });
+
+        parentUserRolesRows.push({
+          schoolId,
+          userId: parentUserId,
           roleId: roleMap.get("PARENT")!,
         });
 
-        await tenantDb.insert(persons).values({
+        parentPersonsRows.push({
+          id: crypto.randomUUID(),
           schoolId,
-          userId: parentUser!.id,
+          userId: parentUserId,
           primaryType: "PARENT",
           firstNameEncrypted: encryptData("Guardian"),
           lastNameEncrypted: encryptData(ln),
@@ -871,8 +900,8 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         // Claim Token
         const tokenStr = crypto.randomBytes(32).toString("hex");
         const tokenHash = crypto.createHash("sha256").update(tokenStr).digest("hex");
-        await tenantDb.insert(passwordResetTokens).values({
-          userId: parentUser!.id,
+        passwordResetTokenRows.push({
+          userId: parentUserId,
           tokenHash,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           usedAt: isClaimed ? new Date("2026-04-12T10:00:00Z") : null,
@@ -880,28 +909,27 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
 
         // 2. Student User (Minor-Safe internal credential)
         const studentUsername = `student.dpa2026${String(idx).padStart(4, "0")}@dpa-demo.schoolmitra.internal`;
-        const [studentUser] = await tenantDb
-          .insert(users)
-          .values({
-            schoolId,
-            email: studentUsername,
-            passwordHash: DEFAULT_PASSWORD_HASH,
-            isActive: true,
-            isEmailVerified: true,
-            mustChangePassword: !isClaimed,
-          })
-          .returning();
-
-        await tenantDb.insert(userRoles).values({
+        studentUsersRows.push({
+          id: studentUserId,
           schoolId,
-          userId: studentUser!.id,
+          email: studentUsername,
+          passwordHash: DEFAULT_PASSWORD_HASH,
+          isActive: true,
+          isEmailVerified: true,
+          mustChangePassword: !isClaimed,
+        });
+
+        studentUserRolesRows.push({
+          schoolId,
+          userId: studentUserId,
           roleId: roleMap.get("STUDENT")!,
         });
 
         // 3. Student Person
-        await tenantDb.insert(persons).values({
+        studentPersonsRows.push({
+          id: crypto.randomUUID(),
           schoolId,
-          userId: studentUser!.id,
+          userId: studentUserId,
           primaryType: "STUDENT",
           firstNameEncrypted: encryptData(fn),
           lastNameEncrypted: encryptData(ln),
@@ -913,33 +941,31 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         });
 
         // 4. Student Profile
-        const [newStd] = await tenantDb
-          .insert(students)
-          .values({
-            schoolId,
-            academicYearId,
-            admissionNumber: admNo,
-            firstNameEncrypted: encryptData(fn),
-            lastNameEncrypted: encryptData(ln),
-            firstNameSearchHash: computeSearchHash(fn),
-            lastNameSearchHash: computeSearchHash(ln),
-            dateOfBirth: dob,
-            gender: isBoy ? "MALE" : "FEMALE",
-            category: catCode as any,
-            currentClassId: sec.classId,
-            currentSectionId: sec.id,
-            rollNumber: String(roll),
-            admissionDate: new Date("2026-04-01T00:00:00Z"),
-            primaryParentUserId: parentUser!.id,
-            userId: studentUser!.id,
-            isActive: true,
-          })
-          .returning();
+        studentsRows.push({
+          id: studentId,
+          schoolId,
+          academicYearId,
+          admissionNumber: admNo,
+          firstNameEncrypted: encryptData(fn),
+          lastNameEncrypted: encryptData(ln),
+          firstNameSearchHash: computeSearchHash(fn),
+          lastNameSearchHash: computeSearchHash(ln),
+          dateOfBirth: dob,
+          gender: isBoy ? "MALE" : "FEMALE",
+          category: catCode as any,
+          currentClassId: sec.classId,
+          currentSectionId: sec.id,
+          rollNumber: String(roll),
+          admissionDate: new Date("2026-04-01T00:00:00Z"),
+          primaryParentUserId: parentUserId,
+          userId: studentUserId,
+          isActive: true,
+        });
 
         // 5. Class History (ENROLLED)
-        await tenantDb.insert(studentClassHistory).values({
+        studentClassHistoryRows.push({
           schoolId,
-          studentId: newStd!.id,
+          studentId,
           academicYearId,
           classId: sec.classId,
           sectionId: sec.id,
@@ -947,10 +973,10 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         });
 
         // 6. Family Member Linkage
-        await tenantDb.insert(studentFamilyMembers).values({
+        studentFamilyMembersRows.push({
           schoolId,
-          studentId: newStd!.id,
-          userId: parentUser!.id,
+          studentId,
+          userId: parentUserId,
           relation: "GUARDIAN",
           nameEncrypted: encryptData(`Parent of ${fn}`),
           mobileEncrypted: encryptData(parentPhone),
@@ -963,11 +989,11 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         });
 
         // 7. DPDP Consent Attestations
-        await tenantDb.insert(consentRecords).values([
+        consentRecordsRows.push(
           {
             schoolId,
-            studentId: newStd!.id,
-            parentUserId: parentUser!.id,
+            studentId,
+            parentUserId: parentUserId,
             purposeId: "admission_data",
             privacyNoticeVersion: "1.0",
             granted: true,
@@ -976,31 +1002,67 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
           },
           {
             schoolId,
-            studentId: newStd!.id,
-            parentUserId: parentUser!.id,
+            studentId,
+            parentUserId: parentUserId,
             purposeId: "academic_records",
             privacyNoticeVersion: "1.0",
             granted: true,
             method: "admin_attestation",
             ipAddress: "0.0.0.0",
-          },
-        ]);
+          }
+        );
 
         allStudentsMeta.push({
-          id: newStd!.id,
+          id: studentId,
           admissionNumber: admNo,
           sectionId: sec.id,
           classId: sec.classId,
           firstName: fn,
           lastName: ln,
           gender: isBoy ? "MALE" : "FEMALE",
-          primaryParentUserId: parentUser!.id,
-          studentUserId: studentUser!.id,
+          primaryParentUserId: parentUserId,
+          studentUserId: studentUserId,
           isClaimed,
         });
 
         globalStudentCounter++;
       }
+    }
+
+    // Insert student & parent records in high-performance chunks
+    for (const chunk of chunkArray(parentUsersRows, 300)) {
+      await tenantDb.insert(users).values(chunk);
+    }
+    for (const chunk of chunkArray(parentUserRolesRows, 300)) {
+      await tenantDb.insert(userRoles).values(chunk);
+    }
+    for (const chunk of chunkArray(parentPersonsRows, 300)) {
+      await tenantDb.insert(persons).values(chunk);
+    }
+    for (const chunk of chunkArray(passwordResetTokenRows, 300)) {
+      await tenantDb.insert(passwordResetTokens).values(chunk);
+    }
+
+    for (const chunk of chunkArray(studentUsersRows, 300)) {
+      await tenantDb.insert(users).values(chunk);
+    }
+    for (const chunk of chunkArray(studentUserRolesRows, 300)) {
+      await tenantDb.insert(userRoles).values(chunk);
+    }
+    for (const chunk of chunkArray(studentPersonsRows, 300)) {
+      await tenantDb.insert(persons).values(chunk);
+    }
+    for (const chunk of chunkArray(studentsRows, 300)) {
+      await tenantDb.insert(students).values(chunk);
+    }
+    for (const chunk of chunkArray(studentClassHistoryRows, 300)) {
+      await tenantDb.insert(studentClassHistory).values(chunk);
+    }
+    for (const chunk of chunkArray(studentFamilyMembersRows, 300)) {
+      await tenantDb.insert(studentFamilyMembers).values(chunk);
+    }
+    for (const chunk of chunkArray(consentRecordsRows, 300)) {
+      await tenantDb.insert(consentRecords).values(chunk);
     }
 
     const studentsCount = allStudentsMeta.length; // 900
@@ -1048,6 +1110,7 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
       .returning();
 
     const primaryFeeStructureIds: string[] = [];
+    const classFeeStructureMap = new Map<string, string>();
     for (const c of classGradeLevels) {
       const cId = classMap.get(c.order)!;
 
@@ -1086,9 +1149,20 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
           dueDate: new Date("2026-05-15T23:59:59Z"),
           isActive: true,
         },
+        {
+          schoolId,
+          academicYearId,
+          classId: cId,
+          feeHeadId: fhTransport!.id,
+          term: "QUARTERLY",
+          amount: "3000.00",
+          dueDate: new Date("2026-04-30T23:59:59Z"),
+          isActive: true,
+        },
       ]);
 
       primaryFeeStructureIds.push(fsTuitionQ1!.id);
+      classFeeStructureMap.set(cId, fsTuitionQ1!.id);
     }
 
     // Generate Invoices for all 900 students
@@ -1146,7 +1220,7 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         schoolId,
         studentId: s.id,
         academicYearId,
-        feeStructureId: primaryFeeStructureIds[0]!,
+        feeStructureId: classFeeStructureMap.get(s.classId) || primaryFeeStructureIds[0]!,
         grossAmount: "12000.00",
         discountAmount: "0.00",
         lateFeeAmount: status === "OVERDUE" ? "500.00" : "0.00",
@@ -1311,9 +1385,13 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
       .returning();
 
     const scheduledSubjectCodes = ["ENG", "MATH", "SCI", "HIN", "SST"];
+    const examClassScopeRows: any[] = [];
+    const examMarksLockRows: any[] = [];
+    const examScheduleRows: any[] = [];
+
     for (const c of classGradeLevels) {
       const cId = classMap.get(c.order)!;
-      await tenantDb.insert(examClassScopes).values({
+      examClassScopeRows.push({
         schoolId,
         examId: examMidTerm!.id,
         classId: cId,
@@ -1323,7 +1401,7 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         const scCode = scheduledSubjectCodes[i]!;
         const subId = subjectMap.get(scCode)!;
 
-        await tenantDb.insert(examMarksLocks).values({
+        examMarksLockRows.push({
           schoolId,
           examId: examMidTerm!.id,
           classId: cId,
@@ -1333,7 +1411,7 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
           lockedAt: new Date("2026-09-28T16:00:00Z"),
         });
 
-        await tenantDb.insert(examSchedules).values({
+        examScheduleRows.push({
           schoolId,
           examId: examMidTerm!.id,
           subjectId: subId,
@@ -1347,6 +1425,10 @@ export async function seedDemoTenant(): Promise<DemoSeederResult> {
         });
       }
     }
+
+    await tenantDb.insert(examClassScopes).values(examClassScopeRows);
+    await tenantDb.insert(examMarksLocks).values(examMarksLockRows);
+    await tenantDb.insert(examSchedules).values(examScheduleRows);
 
     const markEntryRows: any[] = [];
     const engId = subjectMap.get("ENG")!;

@@ -64,14 +64,26 @@ export default function PwaHeader({
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
 
   return (
-    <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between transition-colors">
-      {/* Brand & Role Identification */}
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div
-          className={`w-9 h-9 rounded-xl border flex items-center justify-center font-bold shrink-0 ${accentStyles.iconBg}`}
-        >
-          {icon || <Sparkles className="w-4 h-4" />}
+    <>
+      {schoolName?.includes("DEMO") && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-3 py-1.5 text-xs text-amber-200 flex items-center justify-between font-medium shrink-0">
+          <span className="flex items-center gap-1.5 text-[11px]">
+            <span className="bg-amber-500 text-black font-extrabold px-1.5 py-0.5 rounded text-[9px] tracking-wide">
+              [DEMO DATA]
+            </span>
+            <span className="truncate">This school tenant is running on synthetic demonstration data.</span>
+          </span>
+          <span className="text-[9px] text-amber-300/70 font-mono shrink-0 ml-2">DPA-DEMO</span>
         </div>
+      )}
+      <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between transition-colors">
+        {/* Brand & Role Identification */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center font-bold shrink-0 ${accentStyles.iconBg}`}
+          >
+            {icon || <Sparkles className="w-4 h-4" />}
+          </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-sm font-bold tracking-tight text-white truncate">
@@ -137,5 +149,6 @@ export default function PwaHeader({
         role={role}
       />
     </header>
+    </>
   );
 }

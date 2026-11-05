@@ -7,6 +7,7 @@ import {
   sections,
   staff,
   students,
+  feeStructures,
   feeInvoices,
   feePayments,
   studentAttendance,
@@ -14,6 +15,7 @@ import {
   reportCards,
   usageEvents,
   users,
+  sessions,
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { seedDemoTenant, cleanDemoTenant, DEMO_SCHOOL_CONFIG } from "@/seed/demoTenantSeeder";
@@ -149,6 +151,26 @@ describe("Phase D1-L5: The 900-Student Demo Tenant Seeder (Delhi Public Academy 
         expect(pendingInvoices.length).toBe(135); // exactly 15%
         expect(overdueInvoices.length).toBe(45); // exactly 5%
 
+        const feeStructs = await tenantDb
+          .select()
+          .from(feeStructures)
+          .where(eq(feeStructures.schoolId, result.schoolId));
+        // 10 classes x 4 structures each (tuition quarterly, tuition half-yearly, annual, transport quarterly) = 40
+        expect(feeStructs.length).toBe(40);
+
+        // Verify each invoice feeStructureId belongs to the student's actual class (not hardcoded to Class 1)
+        const structClassMap = new Map(feeStructs.map((fs) => [fs.id, fs.classId]));
+        const studentClassMap = new Map(enrolledStudents.map((st) => [st.id, schoolSections.find((s) => s.id === st.sectionId)?.classId]));
+        for (const inv of invoices) {
+          const invFull = await tenantDb.query.feeInvoices.findFirst({
+            where: eq(feeInvoices.id, inv.id),
+            columns: { studentId: true, feeStructureId: true },
+          });
+          const studentClassId = studentClassMap.get(invFull!.studentId);
+          const structClassId = structClassMap.get(invFull!.feeStructureId!);
+          expect(structClassId).toBe(studentClassId);
+        }
+
         const payments = await tenantDb
           .select()
           .from(feePayments)
@@ -272,6 +294,45 @@ describe("Phase D1-L5: The 900-Student Demo Tenant Seeder (Delhi Public Academy 
           .where(eq(reportCards.schoolId, reRunResult.schoolId));
         expect(Number(totalReportCards?.count)).toBe(900);
       });
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  it(
+    "cleanDemoTenant successfully cleans up even if active user sessions exist",
+    async () => {
+      const existingSchool = await db.query.schools.findFirst({
+        where: eq(schools.slug, DEMO_SCHOOL_CONFIG.slug),
+        columns: { id: true },
+      });
+      expect(existingSchool).toBeDefined();
+
+      // Simulate an active user session for one of the demo users
+      await withTenant(existingSchool!.id, async (tenantDb) => {
+        const [demoUser] = await tenantDb
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.schoolId, existingSchool!.id))
+          .limit(1);
+
+        expect(demoUser).toBeDefined();
+
+        await tenantDb.insert(sessions).values({
+          userId: demoUser!.id,
+          sessionToken: "demo-test-session-token-" + Date.now(),
+          expiresAt: new Date(Date.now() + 3600000),
+        });
+      });
+
+      // Cleanup should succeed without foreign key constraint errors on users -> sessions
+      await expect(cleanDemoTenant(existingSchool!.id)).resolves.not.toThrow();
+
+      const [schoolAfterClean] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schools)
+        .where(eq(schools.id, existingSchool!.id));
+
+      expect(Number(schoolAfterClean?.count)).toBe(0);
     },
     TEST_TIMEOUT_MS
   );
