@@ -31,7 +31,7 @@ import {
   computeSearchHash,
 } from "./encryption";
 import { generateRoleTempPassword } from "./tempPassword";
-import { withTenant } from "./tenant";
+import { withTenant, withAuthContext } from "./tenant";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -326,7 +326,7 @@ function clearClaimFailure(key: string) {
 }
 
 export interface VerifyAndClaimStudentAccountInput {
-  schoolId: string;
+  schoolId?: string | undefined;
   admissionNumber: string;
   dateOfBirth: string | Date;
   claimToken: string;
@@ -342,9 +342,33 @@ export interface VerifyAndClaimStudentAccountInput {
  */
 export async function verifyAndClaimStudentAccount(
   input: VerifyAndClaimStudentAccountInput,
-): Promise<{ success: boolean; userId: string; message: string }> {
-  const { schoolId, admissionNumber, dateOfBirth, claimToken, newPassword } = input;
-  const rateLimitKey = `${schoolId}:${admissionNumber.trim().toLowerCase()}`;
+): Promise<{ success: boolean; userId: string; email?: string; message: string }> {
+  const { admissionNumber, dateOfBirth, claimToken, newPassword } = input;
+  let targetSchoolId = input.schoolId;
+
+  const tokenHash = crypto.createHash("sha256").update(claimToken.trim()).digest("hex");
+
+  if (!targetSchoolId) {
+    const tokenRecord = await db.query.passwordResetTokens.findFirst({
+      where: eq(passwordResetTokens.tokenHash, tokenHash),
+    });
+    if (tokenRecord) {
+      const u: any = await withAuthContext((tx) =>
+        tx.query.users.findFirst({
+          where: eq(users.id, tokenRecord.userId),
+        }),
+      );
+      if (u?.schoolId) {
+        targetSchoolId = u.schoolId;
+      }
+    }
+  }
+
+  if (!targetSchoolId) {
+    throw new Error("Student account not found or school could not be resolved.");
+  }
+
+  const rateLimitKey = `${targetSchoolId}:${admissionNumber.trim().toLowerCase()}`;
 
   checkClaimRateLimit(rateLimitKey);
 
@@ -352,13 +376,11 @@ export async function verifyAndClaimStudentAccount(
     throw new Error("Password must be at least 8 characters long.");
   }
 
-  const tokenHash = crypto.createHash("sha256").update(claimToken.trim()).digest("hex");
-
-  return await withTenant(schoolId, async (tenantDb) => {
+  return await withTenant(targetSchoolId, async (tenantDb) => {
     // 1. Find student by admissionNumber
     const student = await tenantDb.query.students.findFirst({
       where: and(
-        eq(students.schoolId, schoolId),
+        eq(students.schoolId, targetSchoolId),
         eq(students.admissionNumber, admissionNumber.trim()),
       ),
     });
@@ -390,6 +412,14 @@ export async function verifyAndClaimStudentAccount(
       throw new Error("Invalid or expired claim token.");
     }
 
+    // Timing-safe comparison to prevent side-channel timing attacks
+    const bufInput = Buffer.from(tokenHash, "hex");
+    const bufRecord = Buffer.from(tokenRecord.tokenHash, "hex");
+    if (bufInput.length !== bufRecord.length || !crypto.timingSafeEqual(bufInput, bufRecord)) {
+      recordClaimFailure(rateLimitKey);
+      throw new Error("Invalid or expired claim token.");
+    }
+
     if (tokenRecord.usedAt) {
       throw new Error("This claim token has already been used. Please log in with your password.");
     }
@@ -409,15 +439,25 @@ export async function verifyAndClaimStudentAccount(
         isActive: true,
         updatedAt: new Date(),
       })
-      .where(and(eq(users.id, student.userId), eq(users.schoolId, schoolId)));
+      .where(and(eq(users.id, student.userId), eq(users.schoolId, targetSchoolId)));
 
-    // 5. Mark token as used
-    await tenantDb
+    // 5. Mark token as used (atomic single-use consumption)
+    const updatedTokens = await tenantDb
       .update(passwordResetTokens)
       .set({
         usedAt: new Date(),
       })
-      .where(eq(passwordResetTokens.id, tokenRecord.id));
+      .where(
+        and(
+          eq(passwordResetTokens.id, tokenRecord.id),
+          isNull(passwordResetTokens.usedAt),
+        ),
+      )
+      .returning();
+
+    if (updatedTokens.length === 0) {
+      throw new Error("This claim token has already been used. Please log in with your password.");
+    }
 
     // Clear rate limit
     clearClaimFailure(rateLimitKey);
@@ -429,7 +469,7 @@ export async function verifyAndClaimStudentAccount(
 
     // Audit log
     await tenantDb.insert(auditLogs).values({
-      schoolId,
+      schoolId: targetSchoolId,
       userId: student.userId,
       userEmail: studentEmail,
       userRole: "STUDENT",
@@ -463,6 +503,8 @@ export interface StudentAccessQueueItem {
   sectionName: string;
   userId: string | null;
   accessStatus: "ACTIVE" | "DISABLED" | "UNPROVISIONED";
+  claimStatus: "CLAIMED" | "ISSUED" | "UNPROVISIONED";
+  isClaimed: boolean;
   lastClaimUrl?: string | null;
   createdAt: string;
 }
@@ -511,10 +553,14 @@ export async function getStudentAccessQueue(
       const studentName = `${sFirstName} ${sLastName}`.trim() || "Student";
 
       let accessStatus: "ACTIVE" | "DISABLED" | "UNPROVISIONED" = "UNPROVISIONED";
+      let isClaimed = false;
+      let claimStatus: "CLAIMED" | "ISSUED" | "UNPROVISIONED" = "UNPROVISIONED";
       if (s.userId) {
         const u = userMap.get(s.userId);
         if (u) {
           accessStatus = u.isActive ? "ACTIVE" : "DISABLED";
+          isClaimed = u.mustChangePassword === false;
+          claimStatus = isClaimed ? "CLAIMED" : "ISSUED";
         }
       }
 
@@ -537,6 +583,8 @@ export async function getStudentAccessQueue(
         sectionName: (s.currentSectionId && sectionMap.get(s.currentSectionId)) || "-",
         userId: s.userId,
         accessStatus,
+        claimStatus,
+        isClaimed,
         createdAt: s.createdAt.toISOString(),
       });
     }
@@ -683,6 +731,14 @@ export async function resendStudentClaim(
 
     if (!student || !student.userId) {
       throw new Error("Student does not have a provisioned account yet.");
+    }
+
+    const userRecord = await tenantDb.query.users.findFirst({
+      where: and(eq(users.id, student.userId), eq(users.schoolId, schoolId)),
+    });
+
+    if (userRecord && userRecord.mustChangePassword === false) {
+      throw new Error("Student account has already been claimed. Credentials cannot be regenerated.");
     }
 
     const claimToken = crypto.randomBytes(32).toString("hex");

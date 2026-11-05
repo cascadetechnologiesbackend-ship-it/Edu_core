@@ -113,7 +113,9 @@ export const authConfig: NextAuthConfig = {
 
       const isAuthRoute =
         pathname.startsWith("/login") ||
-        pathname.startsWith("/forgot-password");
+        pathname.startsWith("/forgot-password") ||
+        pathname.startsWith("/claim-account") ||
+        pathname.startsWith("/claim-student-account");
 
       if (isAuthRoute) {
         return true;

@@ -442,10 +442,10 @@ export async function inviteAndLinkParentAction(studentId: string) {
         : null;
     }
 
-    if (!primaryEmail || !primaryEmail.trim()) {
+    if ((!primaryEmail || !primaryEmail.trim()) && (!primaryMobile || !primaryMobile.trim())) {
       return {
         success: false,
-        message: "No guardian email found on student profile. Please add an email before inviting.",
+        message: "Neither guardian email nor mobile found on student profile. Please add contact details before inviting.",
       };
     }
 
@@ -453,7 +453,7 @@ export async function inviteAndLinkParentAction(studentId: string) {
     const result = await provisionOrLinkParent({
       schoolId: school.id,
       studentId,
-      primaryEmail: primaryEmail.trim(),
+      primaryEmail: primaryEmail?.trim() ?? null,
       primaryMobile: primaryMobile?.trim() ?? null,
       guardianName: guardianName.trim(),
       performedByUserId: ctx.userId,
@@ -494,4 +494,113 @@ export async function inviteAndLinkParentAction(studentId: string) {
     return { success: false, message: err?.message || "Invitation failed" };
   }
 }
+
+export async function fetchClaimTrackingQueueAction(options?: {
+  classId?: string | undefined;
+  status?: ("CLAIMED" | "ISSUED" | "EXPIRED" | "UNPROVISIONED" | "ALL") | undefined;
+  search?: string | undefined;
+}) {
+  try {
+    const ctx = await requireAuth();
+    const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+    if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+      return { success: false, message: "Unauthorized to view claim tracking queue." };
+    }
+
+    const school = await requireSchool(ctx);
+    const { getClaimTrackingQueue } = await import("@schoolmitra/backend/lib/claimDistribution");
+    const data = await getClaimTrackingQueue(school.id, {
+      ...(options?.classId ? { classId: options.classId } : {}),
+      ...(options?.status ? { status: options.status } : {}),
+      ...(options?.search ? { search: options.search } : {}),
+    });
+
+    return { success: true as const, data };
+  } catch (err: any) {
+    console.error("Failed to fetch claim tracking queue:", err);
+    return { success: false, message: err?.message || "Failed to load claim tracking queue" };
+  }
+}
+
+export async function resendParentClaimAction(studentId: string) {
+  try {
+    const ctx = await requireAuth();
+    const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+    if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+      return { success: false, message: "Unauthorized to resend parent claim." };
+    }
+
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+    const { resendParentClaim } = await import("@schoolmitra/backend/lib/parentLinkage");
+
+    const result = await resendParentClaim({
+      schoolId: school.id,
+      studentId,
+      performedByUserId: ctx.userId,
+      ipAddress: clientContext.ipAddress,
+      userAgent: clientContext.userAgent,
+    });
+
+    try {
+      revalidatePath("/students/linkage");
+    } catch {}
+
+    return result;
+  } catch (err: any) {
+    console.error("Failed to resend parent claim:", err);
+    return { success: false, message: err?.message || "Failed to resend parent claim" };
+  }
+}
+
+export async function queueSmsClaimRemindersAction(classId?: string) {
+  try {
+    const ctx = await requireAuth();
+    const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+    if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+      return { success: false, message: "Unauthorized to dispatch SMS reminders." };
+    }
+
+    const school = await requireSchool(ctx);
+    const clientContext = getClientRequestContext();
+    const { queueSmsRemindersForPendingClaims } = await import("@schoolmitra/backend/lib/claimDistribution");
+
+    const result = await queueSmsRemindersForPendingClaims({
+      schoolId: school.id,
+      performedByUserId: ctx.userId,
+      ...(classId ? { classId } : {}),
+      ipAddress: clientContext.ipAddress,
+      userAgent: clientContext.userAgent,
+    });
+
+    try {
+      revalidatePath("/students/linkage");
+    } catch {}
+
+    return result;
+  } catch (err: any) {
+    console.error("Failed to queue SMS claim reminders:", err);
+    return { success: false, message: err?.message || "Failed to queue SMS reminders" };
+  }
+}
+
+export async function fetchClassClaimSheetAction(classId?: string) {
+  try {
+    const ctx = await requireAuth();
+    const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+    if (!access.allowed || !["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)) {
+      return { success: false, message: "Unauthorized to view claim sheet." };
+    }
+
+    const school = await requireSchool(ctx);
+    const { getClassClaimSheetData } = await import("@schoolmitra/backend/lib/claimDistribution");
+    const rows = await getClassClaimSheetData(school.id, classId);
+
+    return { success: true as const, rows };
+  } catch (err: any) {
+    console.error("Failed to fetch class claim sheet:", err);
+    return { success: false, message: err?.message || "Failed to generate claim sheet" };
+  }
+}
+
 

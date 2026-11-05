@@ -95,8 +95,9 @@ export function StudentAccessClient({ initialItems }: StudentAccessClientProps) 
   };
 
   const activeCount = items.filter((i) => i.accessStatus === "ACTIVE").length;
+  const claimedCount = items.filter((i) => i.isClaimed).length;
+  const pendingClaimCount = items.filter((i) => i.accessStatus === "ACTIVE" && !i.isClaimed).length;
   const unprovisionedCount = items.filter((i) => i.accessStatus === "UNPROVISIONED").length;
-  const disabledCount = items.filter((i) => i.accessStatus === "DISABLED").length;
 
   return (
     <div className="space-y-6">
@@ -120,47 +121,46 @@ export function StudentAccessClient({ initialItems }: StudentAccessClientProps) 
               Authoritative student login provisioning with DPDP-compliant minor-safe DOB verification.
             </p>
           </div>
-          <button
-            onClick={() => refreshList()}
-            disabled={isPending}
-            className="self-start sm:self-auto px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition flex items-center gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <Link
+              href="/students/linkage?tab=tracking"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/40 transition flex items-center gap-1.5"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Parent Claim Queue</span>
+            </Link>
+            <button
+              onClick={() => refreshList()}
+              disabled={isPending}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{activeCount}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Active Logins / सक्रिय</div>
-          </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Students</div>
+          <div className="text-xl font-black text-gray-900 dark:text-white font-mono mt-0.5">{items.length}</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{unprovisionedCount}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Unprovisioned / अपंजीकृत</div>
-          </div>
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/40 shadow-xs">
+          <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Logins Issued</div>
+          <div className="text-xl font-black text-indigo-700 dark:text-indigo-300 font-mono mt-0.5">{activeCount}</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-            <UserX className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{disabledCount}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Disabled / निष्क्रिय</div>
-          </div>
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/40 shadow-xs">
+          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Claimed / सक्रिय</div>
+          <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono mt-0.5">{claimedCount}</div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/40 shadow-xs">
+          <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">Pending Claim</div>
+          <div className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono mt-0.5">{pendingClaimCount}</div>
         </div>
       </div>
 
@@ -304,14 +304,21 @@ export function StudentAccessClient({ initialItems }: StudentAccessClientProps) 
                         )}
                         {student.accessStatus === "ACTIVE" && (
                           <>
-                            <button
-                              onClick={() => handleResendClaim(student.id)}
-                              disabled={isPending}
-                              title="Generate new claim link"
-                              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                            >
-                              Claim Link
-                            </button>
+                            {student.isClaimed ? (
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Claimed</span>
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleResendClaim(student.id)}
+                                disabled={isPending}
+                                title="Generate new claim link"
+                                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                              >
+                                Claim Link
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDisable(student.id)}
                               disabled={isPending}

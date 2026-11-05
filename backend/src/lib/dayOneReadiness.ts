@@ -767,8 +767,8 @@ export async function getDayOneReadiness(
             totalEnrolled,
           },
           deepLink: {
-            label: "Distribute & Track Claims",
-            href: "/students/linkage",
+            label: isReady ? "Send reminders to pending claims" : "Distribute & Track Claims",
+            href: isReady ? "/students/linkage?tab=tracking" : "/students/linkage",
           },
         });
       }
