@@ -16,6 +16,7 @@ import { Step5Fees } from "./steps/Step5Fees";
 import { Step6Admin } from "./steps/Step6Admin";
 import { Step7Review } from "./steps/Step7Review";
 import { Step8Completion } from "./steps/Step8Completion";
+import { signIn } from "next-auth/react";
 import {
   GraduationCap,
   ArrowRight,
@@ -63,6 +64,19 @@ function OnboardingWizardContent() {
           email: (result as any).adminEmail || payload.adminEmail,
         });
         setActiveStep(8);
+
+        // Auto-signIn with created admin credentials for seamless auto-handoff to /admin/day-one
+        if (payload.adminEmail && payload.adminPassword) {
+          try {
+            await signIn("credentials", {
+              email: payload.adminEmail,
+              password: payload.adminPassword,
+              redirect: false,
+            });
+          } catch (signInErr) {
+            console.warn("Auto-signin error after provisioning:", signInErr);
+          }
+        }
       } else {
         setError(result.message || "Onboarding provisioning failed.");
       }

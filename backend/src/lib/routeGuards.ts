@@ -23,6 +23,7 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
   PRINCIPAL: [
     "/profile",
     "/principal/dashboard",
+    "/admin/day-one",
     "/settings/school-setup",
     "/school/fees-dashboard",
     "/school/due-fees",
@@ -67,6 +68,7 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
   SCHOOL_ADMIN: [
     "/profile",
     "/dashboard",
+    "/admin/day-one",
     "/admissions",
     "/students",
     "/academics",
@@ -108,6 +110,7 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/profile",
     "/super-admin",
     "/dashboard",
+    "/admin/day-one",
     "/admissions",
     "/students",
     "/academics",
