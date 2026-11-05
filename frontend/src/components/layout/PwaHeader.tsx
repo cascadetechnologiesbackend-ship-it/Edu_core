@@ -87,6 +87,11 @@ export default function PwaHeader({
             <span className="font-medium text-slate-300 capitalize">{userName}</span>
             <span>•</span>
             <span className="truncate">{schoolName}</span>
+            {schoolName?.includes("DEMO") && (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                [DEMO DATA]
+              </span>
+            )}
           </div>
         </div>
       </div>

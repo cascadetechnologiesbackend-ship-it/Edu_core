@@ -16,6 +16,7 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
+    "seed:demo": "pnpm --filter @schoolmitra/backend seed:demo",
     "audit:exam-rbac": "node scripts/audit-exam-rbac.mjs",
     "audit:unscoped-writes": "node scripts/audit-unscoped-writes.mjs",
     "audit:lifecycle": "node scripts/audit-lifecycle-hygiene.mjs",

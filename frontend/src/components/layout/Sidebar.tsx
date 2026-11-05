@@ -290,9 +290,16 @@ export function Sidebar({
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div className={cn("min-w-0", collapsed && "md:hidden")}>
-              <p className="text-white font-semibold text-sm truncate leading-tight">
-                {schoolName}
-              </p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-white font-semibold text-sm truncate leading-tight">
+                  {schoolName}
+                </p>
+                {schoolName?.includes("DEMO") && (
+                  <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                    [DEMO DATA]
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   {roleConfig.displayName}

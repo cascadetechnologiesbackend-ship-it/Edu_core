@@ -94,6 +94,21 @@ export default async function AdminLayout({
   // Effective role for sidebar and navigation
   const effectiveRole = impersonationData ? "SCHOOL_ADMIN" : session.user.role;
 
+  let schoolName = impersonationData?.schoolName;
+  if (!schoolName && session.user.schoolId) {
+    try {
+      const { db } = await import("@/db");
+      const { schools } = await import("@/db/schema");
+      const { eq } = await import("drizzle-orm");
+      const [sch] = await db
+        .select({ name: schools.name })
+        .from(schools)
+        .where(eq(schools.id, session.user.schoolId))
+        .limit(1);
+      schoolName = sch?.name;
+    } catch {}
+  }
+
   const currentUser = {
     id: session.user.id,
     name: session.user.name ?? null,
@@ -118,6 +133,7 @@ export default async function AdminLayout({
           currentUser={currentUser}
           effectiveRole={effectiveRole}
           impersonationData={impersonationData}
+          schoolName={schoolName}
         >
           {children}
         </AdminShell>
