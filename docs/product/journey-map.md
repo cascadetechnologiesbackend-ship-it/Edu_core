@@ -18,7 +18,7 @@
 | **J7** | **Admission Season** | `office_admin` | **PARTIAL** | `/(admin)/admissions`<br/>`/(admin)/admissions/[id]`<br/>`backend/src/lib/studentLifecycleEngine.ts` | Atomic enrollment engine exists. Missing inquiry capture intake queue, automatic fee structure attachment, roll number allocation, and stuck-applicant queue. |
 | **J8** | **Exam Season** | `office_admin`, `teacher` | **PARTIAL** | `/(admin)/exams/*`<br/>`/(teacher)/teacher/grading`<br/>`frontend/src/lib/telemetryRegistry.ts` | Complete database schema and sub-routes. Missing a seasonal overview surface with progress bar and final *"Term [X] results published to N students"* state. |
 | **J9** | **Academic Year Rollover** | `office_admin` | **MISSING** | `/(admin)/students/[id]/class-history`<br/>`/(admin)/school/fees-carry-forward` | Only single-student manual promotion exists. Zero school-wide batch rollover interface to promote 900 students, assign sections, carry fee structures, and lock the previous year read-only. |
-| **J10** | **School Onboarding** | `super_admin`, `office_admin` | **PARTIAL** | `/onboard`<br/>`/(admin)/school/import-center` | 8-step wizard creates tenant and profile. Drops admin into empty state without piping into staff/student bulk import, timetable upload, and parent claims. |
+| **J10** | **School Onboarding** | `super_admin`, `office_admin` | **PARTIAL** | `/onboard`<br/>`/(admin)/school/import-center`<br/>`backend/src/lib/northStarTelemetry.ts` | 8-step wizard creates tenant and baseline config, then abandons admin at Step 8 with disjointed links (`/hr`, `/academics`) and no session; import center only exposes fee balance CSV; staff/student bulk import actions are unlinked and fail all-or-nothing (violating BR4); parent/student claim URLs point to non-existent `/claim-*` routes; Day One Cockpit and north-star telemetry readouts are completely missing. |
 
 ---
 
@@ -185,8 +185,22 @@
   4. Assign fee structures and upload master timetable.
   5. Generate parent and student claim credentials.
 - **Finished State**: *"School [Name] ready for Day One: N students, M staff, K sections configured."*
-- **Audit Findings**:
-  - `/onboard` provides an 8-step wizard for school profile, classes, and admin credentials.
-  - `/(admin)/school/import-center` exists for CSV imports.
-  - *Gap*: Wizard ends without linking to bulk imports, timetable upload, and claim distribution; admin is deposited into an empty dashboard.
+- **Audit Findings (Phase D1-L0 Baseline Certification)**:
+  - `/onboard` provides an 8-step wizard (`Step1Board` to `Step8Completion`) invoking `registerSchoolTenant`.
+  - **Step-by-Step Persistence Trace**:
+    - Step 1 (Board) -> In-memory state (Board, academic year label, dates).
+    - Step 2 (Profile) -> In-memory state (Name, UDISE, address, phone, email, principal).
+    - Step 3 (Classes) -> In-memory state (Grade levels, display names, sections).
+    - Step 4 (Curriculum) -> In-memory state (Subjects per wing, periods per week).
+    - Step 5 (Fee Heads & Grading) -> In-memory state (Tuition, Lab, Library heads, grading scale).
+    - Step 6 (Admin) -> In-memory state (Admin name, email, password).
+    - Step 7 (Review) -> Triggers atomic server action `registerSchoolTenant(payload)`: persists `schools` (with `createdAt`), `academicYears`, `classes`, `sections`, exam blueprints, `subjects`, `classSubjects`, `feeHeads`, `departments`, `designations`, `salaryTemplates`, `roles`, `users`, `persons`, `userRoles`.
+    - Step 8 (Completion) -> **Dead End**: Renders "is Officially Live!" with raw links to `/hr` ("Assign Teachers"), `/academics` ("Build Timetable"), and `/academics` ("Academics Hub", duplicate link). No automatic login or session is established (public route); clicking any link immediately triggers a redirect to `/login`, and upon login the admin is deposited into a barren dashboard without a Day One checklist.
+  - **Dead Ends & Structural Gaps**:
+    1. **Empty-Dashboard Drop**: If the admin navigates anywhere post-wizard, the tenant has 0 students, 0 teachers (only the initial admin user), 0 fee structures, 0 demands, 0 timetable schedules, and 0 parent claims.
+    2. **Import Center & Bulk Import Disconnect**: `/(admin)/school/import-center/page.tsx` only renders `ImportCenterClient` for historical fee balances. Server actions `commitStudentImportAction` and `commitStaffImportAction` exist and are called by `ImportExportModal.tsx`, but that modal is orphaned in `/(admin)/settings/school-setup/page.tsx` rather than exposed on the dedicated import center page or the onboarding journey.
+    3. **All-or-Nothing Import Fragility**: Both `commitStudentImportAction` and `commitStaffImportAction` abort all writes if any single row is invalid (`if (!validation.canCommit) return { success: false, createdCount: 0 }`), directly violating Charter Rule BR4. However, `exceljs` (^4.4.0) is already bundled in `frontend/package.json`, enabling binary `.xlsx` support alongside CSV and copy-paste with zero new dependencies.
+    4. **Phantom Claim URLs & Asymmetric Verification**: `backend/src/lib/parentLinkage.ts` generates `/claim-account?token=...` and `backend/src/lib/studentAccess.ts` generates `/claim-student-account?token=...`, but neither route exists in `frontend/src/app`! Furthermore, while `studentAccess.ts` implements complete backend verification (`verifyAndClaimStudentAccount`), `parentLinkage.ts` lacks any claim verification function and strictly requires `primaryEmail` to provision accounts, stranding phone-only parents.
+    5. **Unconnected Telemetry & Foreign Key Constraint**: `backend/src/lib/northStarTelemetry.ts` has complete zero-PII emitters and aggregators, but zero production workflows invoke `recordOnboardingDays` or `recordJourneyCompletion`, and no admin readout UI exists. Crucially, `usage_events.user_id` has a strict `NOT NULL REFERENCES users(id)` constraint, requiring emitters during provisioning to bind to the created admin user ID.
+  - **Schema State**: `schools.createdAt` exists in `database/src/schema/core.ts` (line 98, `.notNull().defaultNow()`); **zero database migrations required** for J10 onboarding.
 

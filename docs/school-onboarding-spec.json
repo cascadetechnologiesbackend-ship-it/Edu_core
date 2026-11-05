@@ -1,0 +1,280 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "J10_school_onboarding",
+  "version": "1.0.0",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "journey_spec",
+  "governing_charter": "docs/product-destination-charter.json",
+  "spec_role": "First journey spec executed under the Product Destination Charter. It implements charter phase D1: School Onboarding (J10), the gate between the product and its first customer, plus the 900-student demo tenant that phases D2, D3, and D4 verify every later journey against. It also closes the one D0 task that was left incomplete: north-star telemetry emission, scoped to the onboarding metric only.",
+  "predecessor_specs": [
+    {
+      "spec_id": "product_destination",
+      "version": "1.0",
+      "status": "landed as docs/product-destination-charter.json in commit ca9baae, ratified in docs/product/destination.md amendment log v1.0.0"
+    },
+    {
+      "spec_id": "uiux, parent_pwa, teacher_pwa, entity_engine, academic_feed, student_pwa, notification_truth",
+      "version": "1.2 / 1.2 / 1.0 / 1.1 / 1.0 / 1.0 / S25",
+      "status": "all landed; head at spec time is 52c2bff6, release v11.41.0"
+    }
+  ],
+  "north_star": {
+    "destination_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "charter_phase": "D1",
+    "journeys_advanced": [
+      "J10_school_onboarding"
+    ],
+    "target_metrics_moved": [
+      {
+        "metric": "onboarding_days",
+        "definition_source": "docs/product/metrics.md",
+        "target": "1 working day or less, from empty tenant to first live classroom attendance",
+        "expected_delta": "From UNMEASURED (no telemetry exists) to measured, readout-visible, and test-asserted on a scripted fresh-tenant run"
+      },
+      {
+        "metric": "journey_completion_rate",
+        "definition_source": "docs/product/metrics.md",
+        "target": "95%+ of started journeys reach their finished state",
+        "expected_delta": "J10 gains its first real finished state and its first journey-completion telemetry; the empty-dashboard dead end is eliminated"
+      }
+    ],
+    "metric_rule": "Every metric gets a telemetry event, an admin-visible readout, and an automated test. A metric without a readout is a lie."
+  },
+  "intent": "The D0 audit walked all ten journeys and returned one MISSING (J9 rollover) and nine PARTIAL. J10 school onboarding is PARTIAL for a specific, expensive reason: an 8-step wizard at /onboard creates the tenant, classes, and admin credentials, then drops the office admin into an empty dashboard. Bulk staff import, student import, fee structure assignment, timetable upload, and parent claim distribution are not piped into the flow. The result is a school that signs up and still cannot take attendance on day one, which makes onboarding_days not just unmeasured but structurally unachievable. This spec closes that gate. It also does one piece of inherited housekeeping: D0's charter task to emit the six north-star telemetry events was committed as docs only, and the codebase still has zero north_star events; this spec builds the telemetry foundation and emits north_star_onboarding_duration, because D1 cannot verify onboarding_days without it. The remaining five events are explicitly out of scope and land with their journeys in D2. Finally, this spec seeds the demo tenant: 900 students, three sections per class, real fee structures, a full term of believable data. The charter constraint is binding: D2 and D3 journeys cannot be verified without this tenant's data. One spec, one gate, one metric, one tenant.",
+  "grounding_audit": {
+    "verified_at_head": "52c2bff6, release v11.41.0, verified 2026-11-05",
+    "verified_facts": [
+      "The charter landed in-repo: docs/product-destination-charter.json (commit ca9baae, docs(charter) D0 direction artifacts and journey audit), alongside docs/product/thesis.md, personas.md, destination.md, non-goals.md, journey-map.md, metrics.md, and docs/specs/template.md.",
+      "docs/specs/template.md is binding for this spec: mandatory north_star and persona_jobs blocks, H1 names the job, explicit finished state per workflow, one walkthrough obligation per phase.",
+      "D0 journey audit verdict for J10: PARTIAL. The 8-step wizard at /onboard (last meaningfully extended in commit 318da89, modular onboarding wizard, board-first review drawer, backend subject contract) provisions tenant and profile. /(admin)/school/import-center exists for CSV imports. The audit's exact gap finding: 'Wizard ends without linking to bulk imports, timetable upload, and claim distribution; admin is deposited into an empty dashboard.'",
+      "The D0 telemetry task is INCOMPLETE IN CODE: commit ca9baae is docs-only. frontend/src/lib/telemetryRegistry.ts (last touched 2026-10-15) registers exam UX screens and elements only; no north_star event exists anywhere in the codebase. docs/product/metrics.md defines all six events, including north_star_onboarding_duration, stored first-party in the school's usage_events table, tenant-isolated via withTenant, zero PII, zero third-party trackers.",
+      "Engines this spec must compose, verified present: provisionOrLinkStudent (student PWA S1 provisioning), StudentLifecycleEngine.enrollApplicant (atomic enrollment), section-scoped timetable_periods, parent-student linkage from the Academic Feed track, parent and student claim flows from F2/S1, the certified S25 notification pipeline, fee structure and demand engines, and the honesty scanners.",
+      "Security baseline: v11.41.0 includes 547e984 fix(dpdp) fail-closed RLS multi-role CRUD matrix. RLS, withTenant, AES-256-GCM PII handling, and DPDP machinery are unchanged constraints; security wins over convenience in any conflict.",
+      "Charter constraints that bind this spec: BR4 (bulk import accepts messy school Excel with a row-level error report, never all-or-nothing), BR5 (demo tenant fictional but realistic, clearly labeled, never mixed with real tenant data), AC-4 (a new school can be onboarded on a fresh tenant through the product alone; demo tenant of 900 students seeded and labeled), and the ordering rule that D3 may not start before this demo tenant exists."
+    ],
+    "honest_caveats": [
+      "The wizard's exact internal steps, the import-center's accepted entities and error behavior, and the claim flow's credential shape must be re-read from the code at implementation time. The facts above were verified at head and may have moved.",
+      "Whether a tenant creation timestamp exists in the schema is UNKNOWN at spec time. If absent, a minimal migration is authorized because the onboarding metric requires it.",
+      "Real-world Excel binary parsing (.xlsx) is not assumed available. Zero new npm dependencies is a hard constraint: CSV plus copy-paste-from-Excel is the accepted import surface unless a parser already exists in the dependency tree."
+    ]
+  },
+  "persona_jobs": [
+    {
+      "persona_id": "office_admin",
+      "charter_persona_note": "The school office clerk. Lowest patience, highest workload, decides daily whether the software helps or gets bypassed.",
+      "job_name": "Set up a new school for Day One without calling a developer",
+      "trigger": "A new school contract is signed, or the morning after the tenant wizard was completed",
+      "steps": "Open the Day One cockpit -> see the readiness checklist with what is configured and what is missing -> bulk import staff -> bulk import students from the school's real Excel/CSV -> assign fee structures -> load the timetable -> distribute parent claims -> mark the first attendance",
+      "finished_state_message": "School [Name] ready for Day One: N students, M staff, K sections configured. First action: mark attendance.",
+      "walkthrough_verification": "Scripted fresh-tenant walkthrough asserting each readiness check renders a computed green state and the finished state screen with real numbers appears, followed by one real attendance submission"
+    },
+    {
+      "persona_id": "super_admin",
+      "charter_persona_note": "Secondary actor named by journey J10; owns tenant provisioning and handover. The charter's six-persona list does not include this role, so its job is defined here per the charter's journey definition.",
+      "job_name": "Provision a tenant and hand it over ready",
+      "trigger": "New school signup",
+      "steps": "Provision tenant and admin credentials through the existing wizard -> hand over to the office admin -> observe the onboarding_days readout on the admin surface",
+      "finished_state_message": "Tenant [Name] provisioned. Onboarding clock started. Handover: Day One cockpit opened for the school admin.",
+      "walkthrough_verification": "Walkthrough asserting the wizard completes, the clock start is recorded as telemetry, and the office admin lands on the Day One cockpit, not an empty dashboard"
+    },
+    {
+      "persona_id": "parent",
+      "charter_persona_note": "Ninety seconds at a tea break; will call the office if the app fails once. The claim moment is the parent's first contact with the product.",
+      "job_name": "Claim my child's account with the credential the school gave me",
+      "trigger": "Receives a claim credential during onboarding distribution",
+      "steps": "Open the claim link or enter the code -> verify -> see the child's real data: attendance history, fee demand, tonight's homework",
+      "finished_state_message": "Verified. You are now linked to [Child]. Attendance, fees, and homework for [Child] are visible.",
+      "walkthrough_verification": "End-to-end claim walkthrough on the demo tenant: distribute from the tracking queue, claim as parent, assert real data renders and the queue state moves to claimed"
+    }
+  ],
+  "scope_boundaries": {
+    "non_goals_confirmed": [
+      "No hardware, biometric, or RFID dependencies",
+      "No external curriculum content or edtech packs",
+      "No LLMs in operational workflows",
+      "No new standalone role apps",
+      "No price-tier or billing work",
+      "No WhatsApp integration (existing gap, remains out of scope)"
+    ],
+    "out_of_scope_for_this_spec": [
+      "The five remaining north-star events (attendance duration, fee day reconciliation, month close duration, parent payment duration, journey completion). They land with their journeys in D2. Record this boundary in the D1-L1 commit body.",
+      "J1-J9 journey surfaces. Even when the demo tenant seeder touches their data (attendance, fees, homework, exams), this spec only seeds data; it does not build or modify those journeys' screens.",
+      "J9 rollover. The demo tenant seeder creates a year of data in one academic year; rollover is D3 work.",
+      "Public version reset. The operator decides that at D4."
+    ],
+    "migration_required": "Conditional: only if no tenant creation timestamp exists in the schema. The onboarding metric requires it. No other migrations are expected."
+  },
+  "the_journey": {
+    "id": "J10_school_onboarding",
+    "finished_state": "A new school opens on day one and takes attendance with real data.",
+    "user_visible_finished_state": "School [Name] ready for Day One: N students, M staff, K sections configured. First action: mark attendance.",
+    "day_one_readiness_checks": [
+      "Academic year defined and active",
+      "Classes and sections configured (count shown)",
+      "Subjects assigned to classes",
+      "Fee structures attached to every class-section with at least one demand generated for imported students",
+      "Staff imported and active (count shown)",
+      "Students imported and enrolled into sections (count shown)",
+      "Timetable loaded for every section",
+      "Parent claims issued for every enrolled student (issued / claimed / pending counts shown)"
+    ],
+    "check_truth_rule": "Every check computes from the database. A check with no data source renders UNKNOWN, never green. No check may be a claimed boolean."
+  },
+  "phases": [
+    {
+      "phase_id": "D1-L0",
+      "title": "Pre-flight certification and honest baseline",
+      "tasks": [
+        "Read docs/product-destination-charter.json fully, then docs/product/journey-map.md (J10 row), docs/product/metrics.md, and docs/specs/template.md.",
+        "Audit the running /onboard wizard end to end as the personas: every step, what each step persists, where the final step drops the admin. Record the exact dead end.",
+        "Audit /(admin)/school/import-center: accepted entities, file formats, error behavior (all-or-nothing vs row-level), idempotency behavior on re-upload.",
+        "Audit the existing claim flows: credential shape, one-time use, expiry, verification path, resend behavior, and how provisionOrLinkStudent links accounts.",
+        "Verify the telemetry fact: no north_star events exist in code. Confirm the usage_events table's shape and the withTenant scoping pattern it must follow.",
+        "Determine whether a tenant creation timestamp exists in the schema; record the finding for D1-L1.",
+        "Write the measured baseline into docs/product/journey-map.md (J10 row update with dead ends found) and a pre-flight plan artifact per the repo's L0 convention. No feature code in this layer."
+      ],
+      "walkthrough_verification": "Manual walk as office_admin from wizard start to the moment the current flow abandons them; the exact abandonment point and missing links are recorded in the audit before any code is written"
+    },
+    {
+      "phase_id": "D1-L1",
+      "title": "North-star telemetry foundation and the onboarding clock",
+      "tasks": [
+        "Build the backend north-star telemetry primitives following docs/product/metrics.md exactly: events stored first-party in the school's usage_events table, scoped by withTenant, payload carrying schoolId and journey id, zero PII, durations as integer milliseconds, aggregate counts only, no fee amounts in clear text.",
+        "Emit north_star_onboarding_duration: measured from tenant creation timestamp to the first active attendance record. If the tenant creation timestamp does not exist, add the minimal migration authorized in scope_boundaries.",
+        "Emit the J10 journey-completion pair (journey started / journey finished) so journey_completion_rate has its first real journey feeding it.",
+        "Build the admin-visible readout for onboarding_days on a super_admin and office_admin reachable surface. A metric without a readout is a lie.",
+        "Automated tests: emit-to-readout round trip, tenant isolation (one tenant cannot read another's events), PII rejection (payloads containing names, phone numbers, or fee amounts are rejected), and duration computation correctness.",
+        "Explicitly do NOT emit the five remaining north-star events; they are D2 scope. State this boundary in the commit body."
+      ],
+      "walkthrough_verification": "Simulated tenant run asserts the duration event is emitted once, lands in the readout, and no event escapes tenant scope"
+    },
+    {
+      "phase_id": "D1-L2",
+      "title": "The Day One cockpit: onboarding assembled as one journey",
+      "tasks": [
+        "Build the Day One cockpit surface under the admin role area. The H1 names the job: 'Open the school for Day One'. Not 'Onboarding Status', not 'Configuration'.",
+        "Render the eight day_one_readiness_checks from the_journey section, each computed truthfully from the database with real counts; UNKNOWN renders as UNKNOWN with the reason.",
+        "Make the cockpit the post-wizard landing: the wizard's final step routes here. The empty-dashboard dead end is removed. This is a business rule, not a preference.",
+        "Each incomplete check carries its one-tap next action that deep-links to the surface that completes it: import center for staff and students, fee structure assignment, timetable upload, claim distribution.",
+        "When all eight checks are green, render the user-visible finished state: 'School [Name] ready for Day One: N students, M staff, K sections configured.' with the next action button 'Mark the first attendance' linking to the attendance surface.",
+        "The finished state emission fires the J10 journey-completion telemetry event."
+      ],
+      "walkthrough_verification": "Walkthrough as office_admin from wizard completion to the cockpit: every check renders a computed state, incomplete checks deep-link correctly, and the finished state appears exactly when all checks pass, never before"
+    },
+    {
+      "phase_id": "D1-L3",
+      "title": "Bulk import truth: real-world school files",
+      "tasks": [
+        "Complete the import path for staff and students from real-world school file shapes. Accepted input: CSV, plus a paste-from-Excel text area. Zero new npm dependencies; if an XLSX parser already exists in the dependency tree, binary upload may be added, otherwise not.",
+        "Accept the messy reality per charter BR4: missing columns, duplicate names, mixed name casing, phone formats (91 prefix, +91, spaces, dashes), dates in dd/mm/yyyy and dd-mm-yyyy, blank or duplicated roll numbers, section names in every variant ('X A', '10-A', 'x-a', '10 A') normalized to configured sections.",
+        "Dry-run preview: parse, validate, and show a row-level report before anything persists. The report is written for the office clerk: row number, what is wrong, what to fix, and a suggested interpretation where one exists.",
+        "Commit import with row-level resilience: valid rows persist, invalid rows fail with reasons, nothing is all-or-nothing. Failed rows can be fixed and re-run; the import resumes from what is already in.",
+        "Idempotency: uploading the same file twice creates zero duplicates. Match on admission number, or name plus class plus guardian phone. Conflicting matches surface for human decision instead of auto-merging.",
+        "Compose provisionOrLinkStudent, the entity engine, and StudentLifecycleEngine; fork nothing. Imported students land enrolled in a section with a guardian linkage, exactly as the S1 provisioning contract defines.",
+        "Finished state per import: 'Imported N students, M skipped with reasons, K duplicates merged. Next: assign fee structures.' The same pattern for staff with role assignment."
+      ],
+      "walkthrough_verification": "Import a deliberately messy fixture file (900 rows with every listed defect present) and assert the row-level report is accurate, valid rows persisted, re-run created zero duplicates, and the finished state shows real counts"
+    },
+    {
+      "phase_id": "D1-L4",
+      "title": "Parent and student claim distribution and tracking",
+      "tasks": [
+        "Generate claim credentials for every enrolled student's guardian (and student claims where the school's configuration enables student access), composing the existing claim engine and its one-time, expiring, tenant-scoped, timing-safe verification.",
+        "Distribution outputs the office can actually use: a printable/downloadable claim sheet per class, and an SMS-ready list composed through the existing S25 notification pipeline. No WhatsApp.",
+        "Build the claim tracking queue: per student, state is issued / claimed / expired, with counts per class and a resend action per row. Resend must not invalidate an already-claimed account.",
+        "The queue surfaces on the Day One cockpit's claims check as issued / claimed / pending counts.",
+        "Finished state: 'Claims issued for N students. X claimed, Y pending.' with next action 'Send reminders to pending claims'."
+      ],
+      "walkthrough_verification": "Distribute claims for an imported class, claim one credential as a parent end to end, assert real data renders on the parent surface and the queue moves that student to claimed; an expired credential is refused"
+    },
+    {
+      "phase_id": "D1-L5",
+      "title": "The demo tenant: a believable school for verification and sales",
+      "tasks": [
+        "Build a seeder for a clearly labeled fictional school per charter BR5 and AC-4: 10 classes x 3 sections x 30 students = 900 students, roughly 45 staff with role assignments, believable Indian names, and a full academic year of data.",
+        "Seed fee structures matching the beachhead market: term-wise tuition, transport fee where the student flags it, admission fee for the year, with demand generated, a realistic payment curve, arrears, and a believable defaulter population.",
+        "Seed a full term of data so D2 and D3 journeys have material: daily attendance with plausible absentees, homework posted, submitted, and graded, one exam term with marks entered, locked, and published results, report cards generated, and a full section-scoped timetable.",
+        "Prefer service-layer composition for seeding (the import path, provisionOrLinkStudent, fee engines) so the seeder doubles as a large-scale verification of the import path itself. Raw SQL only where services cannot reach.",
+        "Label the demo unambiguously: the tenant, its name, and every surface where its data renders must identify it as demo data. Tenant isolation is the existing withTenant and RLS machinery, unchanged. It must be impossible for demo data to appear in a real tenant.",
+        "Make the seeder idempotent and re-runnable: drop and recreate the demo tenant without side effects on other tenants.",
+        "Seed north-star telemetry events so the readouts are non-empty on the demo tenant, including a synthetic onboarding duration."
+      ],
+      "walkthrough_verification": "Seeded demo tenant renders for every persona: an office admin sees fee demand and defaulters, a teacher sees a full timetable and marks to grade, a parent claims a child and sees attendance, fees, and homework; every surface shows the demo label"
+    },
+    {
+      "phase_id": "D1-L6",
+      "title": "The onboarding_days verification run",
+      "tasks": [
+        "Scripted verification on a fresh tenant, through product surfaces only: wizard, Day One cockpit, staff import, student import, fee structure assignment, timetable upload, claim distribution, then one real attendance submission.",
+        "Assert north_star_onboarding_duration is emitted from the real path and visible in the admin readout.",
+        "Automated walkthrough test: every readiness check green, the finished state text rendered with real computed numbers, first attendance recorded, journey-completion event emitted.",
+        "Record the measured duration honestly, whatever it is. The 1-working-day target is verified against the demo tenant at D4; this phase measures, it does not claim."
+      ],
+      "walkthrough_verification": "The scripted run itself is the walkthrough; its commit body records the measured duration, the persona, and the finished state seen"
+    },
+    {
+      "phase_id": "D1-L7",
+      "title": "Ratification: honesty scan, journey-map update, release evidence",
+      "tasks": [
+        "Run the full J10 walkthrough as office_admin and super_admin; record the finished states seen in the commit body per the charter's target_agent rule.",
+        "Honesty scan at the repo's grep-level convention: no hardcoded counts or names in onboarding surfaces; every readiness number computed; extend the existing honesty scanners to the new surfaces if the pattern supports it.",
+        "Update docs/product/journey-map.md: the J10 row moves from PARTIAL to its verified status with evidence links. Any gap discovered that is larger than this spec's scope is recorded in journey-map.md as a gap entry, not silently absorbed.",
+        "Confirm the six charter governance rules were followed; this spec opened with north_star and persona_jobs blocks and every phase ends with a walkthrough.",
+        "Release evidence per the repo's convention; typecheck, build, and smoke render green. The S7 gate is permanent series law."
+      ],
+      "walkthrough_verification": "Final commit body carries the persona walkthrough record: journey J10, the finished state text seen, and the evidence locations; journey-map.md's J10 row cites them"
+    }
+  ],
+  "business_logic_rules": [
+    "BR-D1-1: Readiness checks are computed, never claimed. A check with no data source renders UNKNOWN with the reason, never green, never a spinner pretending.",
+    "BR-D1-2: Import is row-level resilient, idempotent, and resumable. All-or-nothing is prohibited (charter BR4 binding).",
+    "BR-D1-3: Claim credentials are one-time, expiring, tenant-scoped, and verified timing-safe per existing patterns. Resend never invalidates a claimed account.",
+    "BR-D1-4: Demo tenant data is labeled at every surface, isolated by existing tenant scoping, re-seedable, and incapable of appearing in a real tenant (charter BR5 binding).",
+    "BR-D1-5: Telemetry carries schoolId and journey id, no PII, no clear-text fee amounts (charter BR6 binding). Onboarding duration is measured tenant creation to first attendance record, in the school's own database, first-party only.",
+    "BR-D1-6: The empty-dashboard drop is illegal. The wizard's final step lands on the Day One cockpit.",
+    "BR-D1-7: Compose provisionOrLinkStudent, StudentLifecycleEngine, the entity engine, fee engines, the timetable engine, the claim engine, and the S25 notification pipeline. Fork nothing that works.",
+    "BR-D1-8: Security wins over convenience in every conflict: RLS, withTenant, AES-256-GCM PII handling, DPDP consent, and the fail-closed multi-role matrix fixed in v11.41.0 are the unchanged baseline. Log any conflict in the commit body.",
+    "BR-D1-9: A page whose H1 does not name a job does not merge (charter BR1 binding). A workflow without a user-visible finished state does not merge (charter BR2 binding)."
+  ],
+  "acceptance_criteria": [
+    "AC-D1-1: The L0 audit is committed (journey-map.md J10 update plus plan artifact) before any feature code; dead ends and the exact wizard abandonment point are recorded.",
+    "AC-D1-2: north_star_onboarding_duration is emitted from the real onboarding path, stored first-party and tenant-isolated, PII-free, visible in an admin readout, and covered by automated tests including tenant isolation and PII rejection.",
+    "AC-D1-3: The post-wizard landing is the Day One cockpit with all eight readiness checks computed from the database; the empty-dashboard drop no longer exists anywhere in the flow.",
+    "AC-D1-4: Importing a deliberately messy 900-row student file produces an accurate row-level error report, persists valid rows, skips invalid rows with actionable reasons, and an idempotent re-run creates zero duplicates.",
+    "AC-D1-5: Staff import produces active staff with roles; verified by logging in as an imported teacher and taking attendance.",
+    "AC-D1-6: Fee structures attach to every imported class-section and at least one real fee demand exists per imported student, computed by the existing fee engines.",
+    "AC-D1-7: The timetable loads per section and renders in the teacher's day surface; the 40-minute period surface of D2 will not need to re-lift this data.",
+    "AC-D1-8: Claims are issued for every enrolled student; a parent claims one end to end and sees real attendance, fees, and homework; the tracking queue shows issued/claimed/pending accurately and refuses expired credentials.",
+    "AC-D1-9: The demo tenant exists: 900 students, 3 sections per class, roughly 45 staff, real fee structures, a full term of data, unambiguously labeled demo, re-seedable without side effects.",
+    "AC-D1-10: The scripted fresh-tenant run reaches first attendance through product surfaces only; the duration is visible in the readout and asserted by an automated walkthrough test.",
+    "AC-D1-11: journey-map.md's J10 row is updated with evidence; any larger gap is a recorded gap entry, not silent scope growth; the five remaining north-star events are noted as D2 scope in the L1 commit body.",
+    "AC-D1-12: Typecheck, build, and smoke render are green; zero new npm dependencies; migrations limited to the tenant creation timestamp if it was missing.",
+    "AC-D1-13: Charter AC-4 is satisfiable end to end: a new school can be onboarded on a fresh tenant through the product alone, and the demo tenant is seeded and labeled."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. Compose existing engines; replace nothing that works.",
+    "Phases land in strict order D1-L0 through D1-L7, one commit series per layer. Commit prefixes: docs(charter) for L0 audit commits, feat(onboarding) for L1 through L7.",
+    "Every phase lands with typecheck, build, and smoke render green. The S7 gate is permanent series law.",
+    "Do not expand into D2 journey surfaces (J1-J6) even when the demo seeder touches their data; seeding data is in scope, building their screens is not.",
+    "Do not emit the five remaining north-star events; they land with their journeys in D2.",
+    "The demo seeder prefers service-layer composition; the D4 destination run will later use product surfaces only, so the seeder must not create data shapes the product cannot create.",
+    "Migrations only where onboarding requires them: the tenant creation timestamp if missing. The rollover migration is D3, not here.",
+    "Where this spec conflicts with in-repo security constraints, security wins; log the conflict in the commit body.",
+    "The operator decides the market-facing version reset at D4; this spec does not touch public versioning."
+  ],
+  "definition_of_done": "J10 is verified when a fresh tenant goes from nothing to first attendance marked entirely through the product's own surfaces; the Day One cockpit renders the finished state 'School [Name] ready for Day One: N students, M staff, K sections configured' with real computed numbers; onboarding_days has its telemetry event, admin readout, and a passing test with an honestly measured duration; messy real-world imports complete with row-level truth and idempotent re-runs; every enrolled student's parent can claim and see real data; and the labeled 900-student demo tenant exists so D2, D3, and D4 have a school to verify against. The gate to the first customer is open, and the next spec (D2 persona journey loops) has data to walk through.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/school-onboarding-spec.json. It derives from docs/product-destination-charter.json and cites it as governing charter.",
+      "Follow docs/specs/template.md as binding: the north_star and persona_jobs blocks above are already filled; every screen's H1 names the job; every workflow renders its finished state; every phase ends with a walkthrough.",
+      "Execute layers D1-L0 through D1-L7 in strict order. L0 measures and does not fix. Later layers build only what L0 confirmed.",
+      "Read the wizard internals, import-center behavior, claim engine shape, and telemetry store from the codebase at implementation time. The grounding facts here were verified at head 52c2bff6 (v11.41.0) and may have moved. Real route names, engine names, and table names come from the code, not from this spec.",
+      "Every layer's commit body records the persona walkthrough: which journey, which finished state was seen, with evidence locations.",
+      "When a layer reveals a gap larger than its scope, do not expand silently: record it in docs/product/journey-map.md and finish the layer as specified.",
+      "The demo tenant must remain clearly labeled and re-seedable; it is the verification vehicle for every phase after this one.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
+
