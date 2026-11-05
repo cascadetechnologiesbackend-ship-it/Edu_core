@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   consentPurposes,
   consentRecords,
@@ -45,148 +45,150 @@ export default async function DpdpPage() {
   const data = await withDataPhaseTiming("/dpdp", async () => {
     return assertQueryBudget(
       async () => {
-        // Run all queries concurrently in a single Promise.all (PF-R125)
-        const [
-          purposes,
-          [studentCountRes],
-          consentCounts,
-          pendingRequests,
-          pendingGrievances,
-          softDeletedStudents,
-          softDeletedStaff,
-          vendors,
-          breaches,
-          logs,
-          incidents,
-        ] = await Promise.all([
-          db.query.consentPurposes.findMany({
-            where: eq(consentPurposes.isActive, true),
-          }),
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(students)
-            .where(
-              and(
-                eq(students.schoolId, schoolId),
-                eq(students.isActive, true),
-                isNull(students.deletedAt)
+        return await withTenant(schoolId, async (tx: any) => {
+          // Run all queries concurrently in a single Promise.all within tenant context (PF-R125)
+          const [
+            purposes,
+            [studentCountRes],
+            consentCounts,
+            pendingRequests,
+            pendingGrievances,
+            softDeletedStudents,
+            softDeletedStaff,
+            vendors,
+            breaches,
+            logs,
+            incidents,
+          ] = await Promise.all([
+            tx.query.consentPurposes.findMany({
+              where: eq(consentPurposes.isActive, true),
+            }),
+            tx
+              .select({ count: sql<number>`count(*)::int` })
+              .from(students)
+              .where(
+                and(
+                  eq(students.schoolId, schoolId),
+                  eq(students.isActive, true),
+                  isNull(students.deletedAt)
+                )
+              ),
+            tx
+              .select({
+                purposeId: consentRecords.purposeId,
+                grantedCount: sql<number>`count(distinct ${consentRecords.studentId})::int`,
+              })
+              .from(consentRecords)
+              .where(
+                and(
+                  eq(consentRecords.schoolId, schoolId),
+                  eq(consentRecords.granted, true),
+                  isNull(consentRecords.withdrawnAt)
+                )
               )
-            ),
-          db
-            .select({
-              purposeId: consentRecords.purposeId,
-              grantedCount: sql<number>`count(distinct ${consentRecords.studentId})::int`,
-            })
-            .from(consentRecords)
-            .where(
-              and(
-                eq(consentRecords.schoolId, schoolId),
-                eq(consentRecords.granted, true),
-                isNull(consentRecords.withdrawnAt)
-              )
-            )
-            .groupBy(consentRecords.purposeId),
-          db.query.rightsRequests.findMany({
-            where: eq(rightsRequests.schoolId, schoolId),
-            orderBy: (t, { asc }) => [asc(t.dueAt)],
-            limit: 50,
-          }),
-          db.query.dpdpGrievances.findMany({
-            where: eq(dpdpGrievances.schoolId, schoolId),
-            orderBy: (t, { asc }) => [asc(t.dueAt)],
-            limit: 50,
-          }),
-          db.query.students.findMany({
-            where: and(eq(students.schoolId, schoolId), isNotNull(students.deletedAt)),
-            limit: 50,
-          }),
-          db.query.staff.findMany({
-            where: and(eq(staff.schoolId, schoolId), isNotNull(staff.deletedAt)),
-            limit: 50,
-          }),
-          db.query.vendorRegister.findMany({
-            where: and(eq(vendorRegister.schoolId, schoolId), isNull(vendorRegister.deletedAt)),
-            orderBy: (t, { desc }) => [desc(t.createdAt)],
-            limit: 50,
-          }),
-          db.query.dataBreachLog.findMany({
-            where: eq(dataBreachLog.schoolId, schoolId),
-            orderBy: (t, { desc }) => [desc(t.detectedAt)],
-            limit: 50,
-          }),
-          db.query.auditLogs.findMany({
-            where: eq(auditLogs.schoolId, schoolId),
-            orderBy: (t, { desc }) => [desc(t.createdAt)],
-            limit: 100,
-          }),
-          db.query.piiAuditTrails.findMany({
-            where: eq(piiAuditTrails.schoolId, schoolId),
-            orderBy: (t, { desc }) => [desc(t.createdAt)],
-            limit: 100,
-          }),
-        ]);
+              .groupBy(consentRecords.purposeId),
+            tx.query.rightsRequests.findMany({
+              where: eq(rightsRequests.schoolId, schoolId),
+              orderBy: (t: any, { asc }: any) => [asc(t.dueAt)],
+              limit: 50,
+            }),
+            tx.query.dpdpGrievances.findMany({
+              where: eq(dpdpGrievances.schoolId, schoolId),
+              orderBy: (t: any, { asc }: any) => [asc(t.dueAt)],
+              limit: 50,
+            }),
+            tx.query.students.findMany({
+              where: and(eq(students.schoolId, schoolId), isNotNull(students.deletedAt)),
+              limit: 50,
+            }),
+            tx.query.staff.findMany({
+              where: and(eq(staff.schoolId, schoolId), isNotNull(staff.deletedAt)),
+              limit: 50,
+            }),
+            tx.query.vendorRegister.findMany({
+              where: and(eq(vendorRegister.schoolId, schoolId), isNull(vendorRegister.deletedAt)),
+              orderBy: (t: any, { desc }: any) => [desc(t.createdAt)],
+              limit: 50,
+            }),
+            tx.query.dataBreachLog.findMany({
+              where: eq(dataBreachLog.schoolId, schoolId),
+              orderBy: (t: any, { desc }: any) => [desc(t.detectedAt)],
+              limit: 50,
+            }),
+            tx.query.auditLogs.findMany({
+              where: eq(auditLogs.schoolId, schoolId),
+              orderBy: (t: any, { desc }: any) => [desc(t.createdAt)],
+              limit: 100,
+            }),
+            tx.query.piiAuditTrails.findMany({
+              where: eq(piiAuditTrails.schoolId, schoolId),
+              orderBy: (t: any, { desc }: any) => [desc(t.createdAt)],
+              limit: 100,
+            }),
+          ]);
 
-        const totalStudentsCount = Number(studentCountRes?.count ?? 0);
-        const consentCountMap = new Map(
-          consentCounts.map((c) => [c.purposeId, Number(c.grantedCount)])
-        );
+          const totalStudentsCount = Number(studentCountRes?.count ?? 0);
+          const consentCountMap = new Map(
+            consentCounts.map((c: any) => [c.purposeId, Number(c.grantedCount)])
+          );
 
-        const consentMetrics = purposes.map((p) => {
-          const grantedCount = consentCountMap.get(p.purposeId) || 0;
-          const percentage =
-            totalStudentsCount > 0
-              ? Math.round((grantedCount / totalStudentsCount) * 100)
-              : 0;
+          const consentMetrics = purposes.map((p: any) => {
+            const grantedCount: number = Number(consentCountMap.get(p.purposeId) ?? 0);
+            const percentage =
+              totalStudentsCount > 0
+                ? Math.round((grantedCount / totalStudentsCount) * 100)
+                : 0;
+            return {
+              purposeId: p.purposeId,
+              labelEn: p.labelEn,
+              mandatory: p.mandatory,
+              grantedCount,
+              percentage,
+            };
+          });
+
+          const mappedStudents = softDeletedStudents.map((s: any) => ({
+            ...s,
+            displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
+              decryptData(s.lastNameEncrypted) || ""
+            }`.trim() || "Student",
+          }));
+
+          const mappedStaff = softDeletedStaff.map((st: any) => ({
+            ...st,
+            displayName: `${decryptData(st.firstNameEncrypted) || ""} ${
+              decryptData(st.lastNameEncrypted) || ""
+            }`.trim() || "Staff",
+          }));
+
+          const mappedIncidents = incidents.map((inc: any) => ({
+            id: inc.id,
+            sourceTable: inc.sourceTable,
+            sourceId: inc.sourceId,
+            surface: inc.surface,
+            detectedTypes: (inc.detectedTypes as string[]) || [],
+            riskLevel: inc.riskLevel,
+            matchCount: inc.matchCount,
+            decision: inc.decision,
+            redactionMode: inc.redactionMode,
+            actorUserId: inc.actorUserId,
+            contentHash: inc.contentHash,
+            createdAt: inc.createdAt,
+          }));
+
           return {
-            purposeId: p.purposeId,
-            labelEn: p.labelEn,
-            mandatory: p.mandatory,
-            grantedCount,
-            percentage,
+            totalStudentsCount,
+            consentMetrics,
+            pendingRequests,
+            pendingGrievances,
+            softDeletedStudents: mappedStudents,
+            softDeletedStaff: mappedStaff,
+            vendors,
+            breaches,
+            logs,
+            piiIncidents: mappedIncidents,
           };
         });
-
-        const mappedStudents = softDeletedStudents.map((s) => ({
-          ...s,
-          displayName: `${decryptData(s.firstNameEncrypted) || ""} ${
-            decryptData(s.lastNameEncrypted) || ""
-          }`.trim() || "Student",
-        }));
-
-        const mappedStaff = softDeletedStaff.map((st) => ({
-          ...st,
-          displayName: `${decryptData(st.firstNameEncrypted) || ""} ${
-            decryptData(st.lastNameEncrypted) || ""
-          }`.trim() || "Staff",
-        }));
-
-        const mappedIncidents = incidents.map((inc) => ({
-          id: inc.id,
-          sourceTable: inc.sourceTable,
-          sourceId: inc.sourceId,
-          surface: inc.surface,
-          detectedTypes: (inc.detectedTypes as string[]) || [],
-          riskLevel: inc.riskLevel,
-          matchCount: inc.matchCount,
-          decision: inc.decision,
-          redactionMode: inc.redactionMode,
-          actorUserId: inc.actorUserId,
-          contentHash: inc.contentHash,
-          createdAt: inc.createdAt,
-        }));
-
-        return {
-          totalStudentsCount,
-          consentMetrics,
-          pendingRequests,
-          pendingGrievances,
-          softDeletedStudents: mappedStudents,
-          softDeletedStaff: mappedStaff,
-          vendors,
-          breaches,
-          logs,
-          piiIncidents: mappedIncidents,
-        };
       },
       { maxQueries: 12, label: "DPDP Compliance Centre" }
     );

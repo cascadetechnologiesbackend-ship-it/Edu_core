@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   rightsRequests,
   dpdpGrievances,
@@ -9,55 +9,64 @@ import {
   students,
   staff,
   auditLogs,
+  privacyNotices,
+  consentRecords,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { getClientRequestContext } from "@/lib/requestContext";
 import { auth } from "@/lib/auth";
 import { executeRetentionPolicy } from "@/workers/retention";
 
+export type DpdpActionResult = {
+  success: boolean;
+  message?: string;
+};
+
 // ─── Legal Hold Actions ───────────────────────────────────────────────────────
 export async function toggleLegalHold(
   recordId: string,
   targetTable: "students" | "staff",
   hold: boolean,
-) {
+): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["HR_MANAGER", "SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
     const school = await requireSchool(ctx);
     const schoolId = school.id;
 
-    if (targetTable === "students") {
-      await db
-        .update(students)
-        .set({ legalHold: hold, updatedAt: new Date() })
-        .where(and(eq(students.id, recordId), eq(students.schoolId, school.id)));
-    } else {
-      await db
-        .update(staff)
-        .set({ legalHold: hold, updatedAt: new Date() })
-        .where(and(eq(staff.id, recordId), eq(staff.schoolId, school.id)));
-    }
+    return await withTenant(schoolId, async (tx: any) => {
+      if (targetTable === "students") {
+        await tx
+          .update(students)
+          .set({ legalHold: hold, updatedAt: new Date() })
+          .where(and(eq(students.id, recordId), eq(students.schoolId, school.id)));
+      } else {
+        await tx
+          .update(staff)
+          .set({ legalHold: hold, updatedAt: new Date() })
+          .where(and(eq(staff.id, recordId), eq(staff.schoolId, school.id)));
+      }
 
-    const reqCtx = getClientRequestContext();
-    // Log to DPDP Audit Log
-    await db.insert(auditLogs).values({
-      userId: ctx.userId,
-      userEmail: "[audit-redacted]",
-      userRole: ctx.role,
-      schoolId,
-      action: "WRITE",
-      tableName: targetTable,
-      recordId,
-      purposeId: "legal_compliance",
-      ipAddress: reqCtx.ipAddress,
-      userAgent: reqCtx.userAgent,
-      metadata: { legalHoldChanged: hold },
+      const reqCtx = getClientRequestContext();
+      // Log to DPDP Audit Log
+      await tx.insert(auditLogs).values({
+        userId: ctx.userId,
+        userEmail: "[audit-redacted]",
+        userRole: ctx.role,
+        schoolId,
+        action: "WRITE",
+        tableName: targetTable,
+        recordId,
+        purposeId: "legal_compliance",
+        ipAddress: reqCtx.ipAddress,
+        userAgent: reqCtx.userAgent,
+        metadata: { legalHoldChanged: hold },
+      });
+
+      revalidatePath("/dpdp");
+      return { success: true };
     });
-
-    revalidatePath("/dpdp");
-    return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -73,29 +82,31 @@ export async function createVendor(input: {
   dpaExpiresAt?: string;
   contactEmail?: string;
   privacyPolicyUrl?: string;
-}) {
+}): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    await db.insert(vendorRegister).values({
-      schoolId: school.id,
-      vendorName: input.vendorName,
-      vendorType: input.vendorType,
-      dataShared: input.dataShared,
-      purposeOfSharing: input.purposeOfSharing,
-      dpaStatus: input.dpaStatus,
-      dpaSignedAt: input.dpaStatus === "SIGNED" ? new Date() : null,
-      dpaExpiresAt: input.dpaExpiresAt ? new Date(input.dpaExpiresAt) : null,
-      contactEmail: input.contactEmail || null,
-      privacyPolicyUrl: input.privacyPolicyUrl || null,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    return await withTenant(school.id, async (tx: any) => {
+      await tx.insert(vendorRegister).values({
+        schoolId: school.id,
+        vendorName: input.vendorName,
+        vendorType: input.vendorType,
+        dataShared: input.dataShared,
+        purposeOfSharing: input.purposeOfSharing,
+        dpaStatus: input.dpaStatus,
+        dpaSignedAt: input.dpaStatus === "SIGNED" ? new Date() : null,
+        dpaExpiresAt: input.dpaExpiresAt ? new Date(input.dpaExpiresAt) : null,
+        contactEmail: input.contactEmail || null,
+        privacyPolicyUrl: input.privacyPolicyUrl || null,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -105,23 +116,25 @@ export async function updateVendorDpaStatus(
   vendorId: string,
   status: string,
   expiry?: string,
-) {
+): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    await db
-      .update(vendorRegister)
-      .set({
-        dpaStatus: status,
-        dpaSignedAt: status === "SIGNED" ? new Date() : null,
-        dpaExpiresAt: expiry ? new Date(expiry) : null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(vendorRegister.id, vendorId), eq(vendorRegister.schoolId, school.id)));
+    return await withTenant(school.id, async (tx: any) => {
+      await tx
+        .update(vendorRegister)
+        .set({
+          dpaStatus: status,
+          dpaSignedAt: status === "SIGNED" ? new Date() : null,
+          dpaExpiresAt: expiry ? new Date(expiry) : null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(vendorRegister.id, vendorId), eq(vendorRegister.schoolId, school.id)));
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -135,56 +148,54 @@ export async function publishPrivacyNoticeAction(input: {
   contentEn: string;
   contentHi: string;
   changedPurposeIds: string[];
-}) {
+}): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
     const school = await requireSchool(ctx);
-
-    const { privacyNotices, consentRecords } = await import("@/db/schema");
-    const { and, inArray } = await import("drizzle-orm");
-
     const now = new Date();
 
-    // 1. Deactivate older notices for this school
-    await db
-      .update(privacyNotices)
-      .set({ isActive: false })
-      .where(eq(privacyNotices.schoolId, school.id));
+    return await withTenant(school.id, async (tx: any) => {
+      // 1. Deactivate older notices for this school
+      await tx
+        .update(privacyNotices)
+        .set({ isActive: false })
+        .where(eq(privacyNotices.schoolId, school.id));
 
-    // 2. Insert new immutable privacy notice version
-    await db.insert(privacyNotices).values({
-      schoolId: school.id,
-      version: input.version,
-      titleEn: input.titleEn,
-      titleHi: input.titleHi,
-      contentEn: input.contentEn,
-      contentHi: input.contentHi,
-      publishedAt: now,
-      isActive: true,
-      changedPurposeIds: input.changedPurposeIds,
-      createdAt: now,
+      // 2. Insert new immutable privacy notice version
+      await tx.insert(privacyNotices).values({
+        schoolId: school.id,
+        version: input.version,
+        titleEn: input.titleEn,
+        titleHi: input.titleHi,
+        contentEn: input.contentEn,
+        contentHi: input.contentHi,
+        publishedAt: now,
+        isActive: true,
+        changedPurposeIds: input.changedPurposeIds,
+        createdAt: now,
+      });
+
+      // 3. Re-consent trigger: When a new privacy notice updates purpose terms,
+      // expire/withdraw existing active consent records for those purposes so re-consent is required
+      if (input.changedPurposeIds && input.changedPurposeIds.length > 0) {
+        await tx
+          .update(consentRecords)
+          .set({
+            withdrawnAt: now,
+            withdrawalReason: `Re-consent required due to updated Privacy Notice v${input.version}`,
+          })
+          .where(
+            and(
+              eq(consentRecords.schoolId, school.id),
+              inArray(consentRecords.purposeId, input.changedPurposeIds),
+            ),
+          );
+      }
+
+      revalidatePath("/dpdp");
+      revalidatePath("/portal/consent");
+      return { success: true };
     });
-
-    // 3. Re-consent trigger: When a new privacy notice updates purpose terms,
-    // expire/withdraw existing active consent records for those purposes so re-consent is required
-    if (input.changedPurposeIds && input.changedPurposeIds.length > 0) {
-      await db
-        .update(consentRecords)
-        .set({
-          withdrawnAt: now,
-          withdrawalReason: `Re-consent required due to updated Privacy Notice v${input.version}`,
-        })
-        .where(
-          and(
-            eq(consentRecords.schoolId, school.id),
-            inArray(consentRecords.purposeId, input.changedPurposeIds),
-          ),
-        );
-    }
-
-    revalidatePath("/dpdp");
-    revalidatePath("/portal/consent");
-    return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -197,7 +208,7 @@ export async function reportDataBreach(input: {
   affectedDataCategories: string[];
   containmentActions: string;
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-}) {
+}): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
@@ -208,78 +219,84 @@ export async function reportDataBreach(input: {
 
     const ref = `BR-${now.getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
 
-    await db.insert(dataBreachLog).values({
-      schoolId: school.id,
-      incidentReference: ref,
-      detectedAt: now,
-      reportedByUserId: ctx.userId,
-      severity: input.severity,
-      status: "DETECTED",
-      description: input.description,
-      affectedRecordsCount: input.affectedRecordsCount,
-      affectedDataCategories: input.affectedDataCategories,
-      containmentActions: input.containmentActions,
-      boardNotificationDeadline: boardDeadline,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Trigger immediate emergency admin alerts for HIGH or CRITICAL breaches (Req 18.5)
-    if (input.severity === "HIGH" || input.severity === "CRITICAL") {
-      const { triggerBreachEmergencyAlert } = await import("@/lib/dpdpEscalation");
-      await triggerBreachEmergencyAlert({
+    return await withTenant(school.id, async (tx: any) => {
+      await tx.insert(dataBreachLog).values({
         schoolId: school.id,
         incidentReference: ref,
+        detectedAt: now,
+        reportedByUserId: ctx.userId,
         severity: input.severity,
+        status: "DETECTED",
         description: input.description,
+        affectedRecordsCount: input.affectedRecordsCount,
+        affectedDataCategories: input.affectedDataCategories,
+        containmentActions: input.containmentActions,
         boardNotificationDeadline: boardDeadline,
+        createdAt: now,
+        updatedAt: now,
       });
-    }
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      // Trigger immediate emergency admin alerts for HIGH or CRITICAL breaches (Req 18.5)
+      if (input.severity === "HIGH" || input.severity === "CRITICAL") {
+        const { triggerBreachEmergencyAlert } = await import("@/lib/dpdpEscalation");
+        await triggerBreachEmergencyAlert({
+          schoolId: school.id,
+          incidentReference: ref,
+          severity: input.severity,
+          description: input.description,
+          boardNotificationDeadline: boardDeadline,
+        });
+      }
+
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
-export async function markBreachBoardNotified(breachId: string) {
+export async function markBreachBoardNotified(breachId: string): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    await db
-      .update(dataBreachLog)
-      .set({
-        status: "BOARD_NOTIFIED",
-        boardNotifiedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(and(eq(dataBreachLog.id, breachId), eq(dataBreachLog.schoolId, school.id)));
+    return await withTenant(school.id, async (tx: any) => {
+      await tx
+        .update(dataBreachLog)
+        .set({
+          status: "BOARD_NOTIFIED",
+          boardNotifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(dataBreachLog.id, breachId), eq(dataBreachLog.schoolId, school.id)));
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
-export async function markBreachParentsNotified(breachId: string) {
+export async function markBreachParentsNotified(breachId: string): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    await db
-      .update(dataBreachLog)
-      .set({
-        status: "PARENTS_NOTIFIED",
-        parentsNotifiedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(and(eq(dataBreachLog.id, breachId), eq(dataBreachLog.schoolId, school.id)));
+    return await withTenant(school.id, async (tx: any) => {
+      await tx
+        .update(dataBreachLog)
+        .set({
+          status: "PARENTS_NOTIFIED",
+          parentsNotifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(dataBreachLog.id, breachId), eq(dataBreachLog.schoolId, school.id)));
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -290,59 +307,71 @@ export async function resolveRightsRequest(
   id: string,
   approve: boolean,
   responseDetails: string,
-) {
+): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    await db
-      .update(rightsRequests)
-      .set({
-        status: approve ? "COMPLETED" : "REJECTED",
-        responseDetails,
-        respondedAt: new Date(),
-        respondedByUserId: ctx.userId,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(rightsRequests.id, id), eq(rightsRequests.schoolId, school.id)));
+    return await withTenant(school.id, async (tx: any) => {
+      await tx
+        .update(rightsRequests)
+        .set({
+          status: approve ? "COMPLETED" : "REJECTED",
+          responseDetails,
+          respondedAt: new Date(),
+          respondedByUserId: ctx.userId,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(rightsRequests.id, id), eq(rightsRequests.schoolId, school.id)));
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
 
-export async function resolveGrievance(id: string, responseDetails: string) {
+export async function resolveGrievance(id: string, responseDetails: string): Promise<DpdpActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    await db
-      .update(dpdpGrievances)
-      .set({
-        status: "COMPLETED",
-        resolutionDetails: responseDetails,
-        resolvedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(and(eq(dpdpGrievances.id, id), eq(dpdpGrievances.schoolId, school.id)));
+    return await withTenant(school.id, async (tx: any) => {
+      await tx
+        .update(dpdpGrievances)
+        .set({
+          status: "COMPLETED",
+          resolutionDetails: responseDetails,
+          resolvedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(dpdpGrievances.id, id), eq(dpdpGrievances.schoolId, school.id)));
 
-    revalidatePath("/dpdp");
-    return { success: true };
+      revalidatePath("/dpdp");
+      return { success: true };
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }
 }
+
+export type RetentionActionResult = DpdpActionResult & {
+  softDeletedCount?: number;
+  hardPurgedCount?: number;
+};
 
 // ─── Manual Retention Execution Trigger ───────────────────────────────────────
-export async function triggerManualRetentionRun() {
+export async function triggerManualRetentionRun(): Promise<RetentionActionResult> {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
     const school = await requireSchool(ctx);
 
     const res = await executeRetentionPolicy(school.id);
-    return res;
+    return {
+      ...res,
+      success: res.success ?? true,
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

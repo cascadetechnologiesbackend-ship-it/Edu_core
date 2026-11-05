@@ -574,37 +574,15 @@ export async function assembleTeacherSnapshot(
     )
   );
 
-  const unreadStudentRows =
+  const resolvedUnreadStudents =
     unreadStudentIds.length > 0
-      ? await txDb.query.students.findMany({
-          where: and(
-            eq(students.schoolId, schoolId),
-            inArray(students.id, unreadStudentIds)
-          ),
-          with: {
-            currentSection: true,
-          },
-        })
-      : [];
-
-  const unreadStudentMap = new Map<string, (typeof unreadStudentRows)[number]>();
-  for (const s of unreadStudentRows) {
-    unreadStudentMap.set(s.id, s);
-  }
+      ? await batchResolveStudentIdentities(schoolId, unreadStudentIds, txDb)
+      : new Map();
 
   for (const m of unreadMsgRows) {
-    const student = m.studentId ? unreadStudentMap.get(m.studentId) : undefined;
-    let sName = "";
-    if (student) {
-      try {
-        const fn = decryptData(student.firstNameEncrypted) || "";
-        const ln = student.lastNameEncrypted ? decryptData(student.lastNameEncrypted) || "" : "";
-        sName = `${fn} ${ln}`.trim();
-      } catch {
-        sName = "";
-      }
-    }
-    const secName = student?.currentSection?.name || "";
+    const student = m.studentId ? resolvedUnreadStudents.get(m.studentId) : undefined;
+    const sName = student?.fullName || "";
+    const secName = student?.sectionName || "";
 
     unreadMessages.push({
       threadId: m.parentMessageId || m.id,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { checkParentConsentStatus, submitParentLoginConsent } from "@/app/(parent)/portal/actions";
 import { Shield, Check, Info, AlertTriangle, Lock } from "lucide-react";
 
@@ -21,6 +22,7 @@ interface StudentItem {
 }
 
 export default function DpdpOptInModal() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -106,6 +108,7 @@ export default function DpdpOptInModal() {
       const res = await submitParentLoginConsent({ consents: consentPayload });
       if (res.success) {
         setIsOpen(false);
+        router.refresh();
       } else {
         setError(res.message || "Failed to submit consent. Please try again.");
       }
@@ -240,48 +243,50 @@ export default function DpdpOptInModal() {
               );
             })}
           </div>
+        </div>
 
-          {/* Legal Affirmation Checkbox */}
-          <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-800/40 mt-4">
-            <label className="flex items-start gap-3 cursor-pointer">
+        {/* Modal Footer (Sticky with Legal Affirmation & Action) */}
+        <div className="p-5 sm:p-6 border-t border-slate-800/80 bg-slate-900/95 space-y-4">
+          {/* Legal Affirmation Checkbox - always visible directly above action */}
+          <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-800/50">
+            <label className="flex items-start gap-3 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                className="mt-0.5 w-4 h-4 rounded bg-slate-800 border-indigo-500 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
               />
-              <span className="text-xs text-slate-300 leading-relaxed">
+              <span className="text-xs text-slate-200 leading-relaxed font-medium">
                 {isHindi
                   ? "मैं पुष्टि करता/करती हूँ कि मैं ऊपर उल्लिखित छात्र(ों) का कानूनी माता-पिता/अभिभावक हूँ और डिजिटल व्यक्तिगत डेटा संरक्षण (DPDP) अधिनियम 2023 के तहत डेटा प्रसंस्करण के लिए स्पष्ट सहमति देता/देती हूँ।"
                   : "I confirm that I am the parent/legal guardian of the enrolled student(s) and hereby provide explicit, informed consent for the processing of personal data in accordance with the DPDP Act 2023."}
               </span>
             </label>
           </div>
-        </div>
 
-        {/* Modal Footer */}
-        <div className="p-6 border-t border-slate-800/80 bg-slate-900/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[11px] text-slate-500 text-center sm:text-left">
-            {isHindi
-              ? "आप बाद में 'Consent Center' टैब से कभी भी वैकल्पिक सहमति बदल सकते हैं।"
-              : "You can modify optional consents anytime from the Consent Center."}
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-[11px] text-slate-500 text-center sm:text-left">
+              {isHindi
+                ? "आप बाद में 'Consent Center' टैब से कभी भी वैकल्पिक सहमति बदल सकते हैं।"
+                : "You can modify optional consents anytime from the Consent Center."}
+            </p>
 
-          <button
-            type="button"
-            disabled={!agreedToTerms || submitting}
-            onClick={handleSubmit}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <span>{isHindi ? "सहेज रहा है..." : "Saving..."}</span>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                <span>{isHindi ? "सहमति स्वीकारें और आगे बढ़ें" : "Agree & Complete Opt-In"}</span>
-              </>
-            )}
-          </button>
+            <button
+              type="button"
+              disabled={!agreedToTerms || submitting}
+              onClick={handleSubmit}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 shrink-0"
+            >
+              {submitting ? (
+                <span>{isHindi ? "सहेज रहा है..." : "Saving..."}</span>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>{isHindi ? "सहमति स्वीकारें और आगे बढ़ें" : "Agree & Complete Opt-In"}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

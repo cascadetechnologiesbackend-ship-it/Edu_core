@@ -1,6 +1,6 @@
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { students, rightsRequests, dpdpGrievances } from "@/db/schema";
-import { eq, isNotNull, desc } from "drizzle-orm";
+import { eq, and, isNotNull, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import RightsPortalClient from "./RightsPortalClient";
@@ -32,16 +32,25 @@ export default async function RightsPage() {
     );
   }
 
-  // Fetch parent's submitted rights requests
-  const requests = await db.query.rightsRequests.findMany({
-    where: eq(rightsRequests.requestedByUserId, parentUserId),
-    orderBy: [desc(rightsRequests.createdAt)],
-  });
-
-  // Fetch parent's grievances
-  const grievances = await db.query.dpdpGrievances.findMany({
-    where: eq(dpdpGrievances.submittedByUserId, parentUserId),
-    orderBy: [desc(dpdpGrievances.createdAt)],
+  // Fetch parent's submitted rights requests & grievances within tenant context
+  const { requests, grievances } = await withTenant(schoolId, async (tx: any) => {
+    const [reqs, grieves] = await Promise.all([
+      tx.query.rightsRequests.findMany({
+        where: and(
+          eq(rightsRequests.schoolId, schoolId),
+          eq(rightsRequests.requestedByUserId, parentUserId),
+        ),
+        orderBy: [desc(rightsRequests.createdAt)],
+      }),
+      tx.query.dpdpGrievances.findMany({
+        where: and(
+          eq(dpdpGrievances.schoolId, schoolId),
+          eq(dpdpGrievances.submittedByUserId, parentUserId),
+        ),
+        orderBy: [desc(dpdpGrievances.createdAt)],
+      }),
+    ]);
+    return { requests: reqs, grievances: grieves };
   });
 
   const studentsWithNames = myStudents.map((s) => ({

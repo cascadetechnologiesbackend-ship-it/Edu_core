@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/db";
+import { db, withPlatformContext } from "@/db";
 import {
   schools,
   students,
@@ -51,61 +51,63 @@ export default async function SuperAdminDpdpPage() {
   let consentCountsPerSchool: any[] = [];
 
   try {
-    const [
-      schoolsRes,
-      [pCount],
-      [cCount],
-      [rCount],
-      [gCount],
-      [bCount],
-      pList,
-      aAudits,
-    ] = await Promise.all([
-      db.query.schools.findMany({
-        orderBy: [desc(schools.createdAt)],
-      }),
-      db.select({ count: count() }).from(consentPurposes),
-      db.select({ count: count() }).from(consentRecords).where(and(eq(consentRecords.granted, true), isNull(consentRecords.withdrawnAt))),
-      db.select({ count: count() }).from(rightsRequests).where(eq(rightsRequests.status, "SUBMITTED")),
-      db.select({ count: count() }).from(dpdpGrievances).where(eq(dpdpGrievances.status, "SUBMITTED")),
-      db.select({ count: count() }).from(dataBreachLog),
-      db.query.consentPurposes.findMany({
-        limit: 20,
-      }),
-      db.query.auditLogs.findMany({
-        where: inArray(auditLogs.action, ["CONSENT_GRANT", "CONSENT_WITHDRAW", "EXPORT", "DELETE"]),
-        orderBy: [desc(auditLogs.createdAt)],
-        limit: 15,
-      }),
-    ]);
+    await withPlatformContext(async (tx: any) => {
+      const [
+        schoolsRes,
+        [pCount],
+        [cCount],
+        [rCount],
+        [gCount],
+        [bCount],
+        pList,
+        aAudits,
+      ] = await Promise.all([
+        tx.query.schools.findMany({
+          orderBy: [desc(schools.createdAt)],
+        }),
+        tx.select({ count: count() }).from(consentPurposes),
+        tx.select({ count: count() }).from(consentRecords).where(and(eq(consentRecords.granted, true), isNull(consentRecords.withdrawnAt))),
+        tx.select({ count: count() }).from(rightsRequests).where(eq(rightsRequests.status, "SUBMITTED")),
+        tx.select({ count: count() }).from(dpdpGrievances).where(eq(dpdpGrievances.status, "SUBMITTED")),
+        tx.select({ count: count() }).from(dataBreachLog),
+        tx.query.consentPurposes.findMany({
+          limit: 20,
+        }),
+        tx.query.auditLogs.findMany({
+          where: inArray(auditLogs.action, ["CONSENT_GRANT", "CONSENT_WITHDRAW", "EXPORT", "DELETE"]),
+          orderBy: [desc(auditLogs.createdAt)],
+          limit: 15,
+        }),
+      ]);
 
-    allSchools = schoolsRes ?? [];
-    if (pCount) purposesCount = pCount;
-    if (cCount) totalConsentsCount = cCount;
-    if (rCount) pendingRightsCount = rCount;
-    if (gCount) grievancesCount = gCount;
-    if (bCount) breachesCount = bCount;
-    purposesList = pList ?? [];
-    recentPrivacyAudits = aAudits ?? [];
+      allSchools = schoolsRes ?? [];
+      if (pCount) purposesCount = pCount;
+      if (cCount) totalConsentsCount = cCount;
+      if (rCount) pendingRightsCount = rCount;
+      if (gCount) grievancesCount = gCount;
+      if (bCount) breachesCount = bCount;
+      purposesList = pList ?? [];
+      recentPrivacyAudits = aAudits ?? [];
 
-    // Aggregate student and consent metrics per school
-    studentCountsPerSchool = await db
-      .select({
-        schoolId: students.schoolId,
-        studentCount: sql<number>`count(*)::int`,
-      })
-      .from(students)
-      .where(and(eq(students.isActive, true), isNull(students.deletedAt)))
-      .groupBy(students.schoolId);
+      // Aggregate student and consent metrics per school
+      studentCountsPerSchool = await tx
+        .select({
+          schoolId: students.schoolId,
+          studentCount: sql<number>`count(*)::int`,
+        })
+        .from(students)
+        .where(and(eq(students.isActive, true), isNull(students.deletedAt)))
+        .groupBy(students.schoolId);
 
-    consentCountsPerSchool = await db
-      .select({
-        schoolId: consentRecords.schoolId,
-        consentCount: sql<number>`count(*)::int`,
-      })
-      .from(consentRecords)
-      .where(and(eq(consentRecords.granted, true), isNull(consentRecords.withdrawnAt)))
-      .groupBy(consentRecords.schoolId);
+      consentCountsPerSchool = await tx
+        .select({
+          schoolId: consentRecords.schoolId,
+          consentCount: sql<number>`count(*)::int`,
+        })
+        .from(consentRecords)
+        .where(and(eq(consentRecords.granted, true), isNull(consentRecords.withdrawnAt)))
+        .groupBy(consentRecords.schoolId);
+    });
   } catch (err) {
     console.error("[SuperAdminDpdpPage] Error loading DPDP metrics:", err);
   }
