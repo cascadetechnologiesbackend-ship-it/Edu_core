@@ -1,5 +1,16 @@
 # Edu_core Agent Instructions & Guidelines
 
+## Governing Product Destination Charter
+The entire repository is governed by the **SchoolMitra Product Destination Charter**:
+- **Governing Charter**: [docs/product-destination-charter.json](file:///v:/Cascade/2026/Edu_core/docs/product-destination-charter.json)
+- **Destination Sentence**: *"One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school."*
+- **The Four Laws**:
+  1. *Every screen is a job, not a dataset* (H1 names the job).
+  2. *Every workflow ends in a finished state* (user sees done and next action).
+  3. *The school's calendar defines the roadmap* (admissions, fee day, exams, rollover).
+  4. *Money and children are sacred — audit everything, fabricate nothing*.
+- **Spec Governance**: Every new specification must derive from [docs/specs/template.md](file:///v:/Cascade/2026/Edu_core/docs/specs/template.md) and include mandatory `north_star` and `persona_jobs` sections.
+
 ## Active UI/UX & Module Specification
 The repository follows the authoritative UI/UX, workflow, design feel, and architecture specifications:
 - **Active Track**: [docs/student-pwa-spec.json](file:///v:/Cascade/2026/Edu_core/docs/student-pwa-spec.json) (Student PWA Specification v1.0 — Student Identity Provisioning, PWA Shell, Home Feed, Homework Center, Timetable & Marks, Omnibox, Offline Support)

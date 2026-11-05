@@ -1,0 +1,448 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "product_destination",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "charter",
+  "spec_role": "This is the governing spec of the series. It is not a feature spec. It defines the product's direction, destination, philosophy, personas, and journeys. Every future spec in this repo MUST derive from it and MUST cite it. Development resumes under this charter and every phase below must state which journey it advances.",
+  "predecessor_specs": [
+    {
+      "spec_id": "edu_core_uiux",
+      "version": "1.2",
+      "status": "landed, phases 1-11"
+    },
+    {
+      "spec_id": "parent_pwa",
+      "version": "1.2",
+      "status": "landed, phases P1-P16"
+    },
+    {
+      "spec_id": "teacher_pwa",
+      "version": "1.0",
+      "status": "landed, phases T1-T10"
+    },
+    {
+      "spec_id": "entity_engine",
+      "version": "1.1",
+      "status": "landed, phases E1-E7"
+    },
+    {
+      "spec_id": "academic_feed",
+      "version": "1.0",
+      "status": "landed, phases F1-F7"
+    },
+    {
+      "spec_id": "student_pwa",
+      "version": "1.0",
+      "status": "landed, phases S1-S7"
+    },
+    {
+      "spec_id": "notification_truth",
+      "version": "S25",
+      "status": "landed, L0-L8, v11.40.0"
+    }
+  ],
+  "intent": "Development is paused because the product has features but no direction: every role dashboard is a collection of data instead of a set of finishable jobs. This charter ends that. It fixes the destination as a testable end state, defines the personas and their real days, enumerates the ten journeys that ARE the product, and orders the work that converts ten role apps and fifty tables from a feature inventory into journeys a school can finish. The charter also changes the process itself: from here on, no spec exists without a north star citation and a persona job claim. The codebase stops growing outward and starts converging on one sentence: a real school finishes a real term on this product and renews.",
+  "meta": {
+    "repository": "cascadetechnologiesbackend-ship-it/Edu_core",
+    "head_commit_at_spec_time": "9be7f2c2",
+    "base_version": "11.40.0",
+    "stack": "Next.js App Router, TypeScript, Tailwind dark-mode, drizzle-orm + PostgreSQL with RLS, vitest, existing PWA patterns",
+    "dependency_policy": "NO new npm dependencies. Prefer composition and workflow assembly over new modules. Migrations only where a journey requires them (rollover may need one).",
+    "files_in_scope": [
+      "docs/product/** (new — the direction artifacts)",
+      "docs/specs/template.md (new — governing template for all future specs)",
+      "AGENTS.md (charter reference, top of file)",
+      "frontend/src/app/(admin)/** (journey assembly)",
+      "frontend/src/app/(accountant)/** (fee day, month-end)",
+      "frontend/src/app/(principal)/** (weekly review)",
+      "frontend/src/app/(super-admin)/** and onboard/** (school onboarding)",
+      "frontend/src/app/(teacher)/** (period loop)",
+      "frontend/src/app/(parent)/** (parent loop)",
+      "frontend/src/app/(student)/** (homework cycle)",
+      "backend/src/lib/** (journey engines where composition alone is insufficient)",
+      "database/drizzle/** (only if rollover requires)"
+    ]
+  },
+  "product_thesis": {
+    "statement": "SchoolMitra is the operating system for an Indian K-12 school: the fee ledger is legally auditable, the data always tells the truth, and parents open an app instead of calling the office. It wins on trust, financial depth, and honest UX — never on price.",
+    "why_it_wins": "The codebase already earns this thesis and most competitors cannot copy it without re-architecture: DPDP-native consent, rights, breach, and retention machinery; AES-256-GCM PII encryption; double-entry accounting with invariants and gateway settlement splits; honesty scanners and certified pipelines; bilingual, offline-first role apps.",
+    "who_pays": "School trusts and administrators of mid-size CBSE/ICSE/state-board schools, 500-2000 students, one beachhead state.",
+    "what_they_buy": "Not software. Finished days: fees collected by 3pm, attendance marked in four minutes, the month closed, results published, parents informed without a single phone call."
+  },
+  "destination_definition": {
+    "the_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "in_product_destination": "Every journey J1-J10 defined below is walkable end to end by its persona, with an explicit finished state the user sees, verified by an automated walkthrough.",
+    "what_destination_is_not": "Not more modules. Not more role apps. Not more certifications. If a task does not move a journey toward its finished state, it does not get built."
+  },
+  "north_star_metrics": [
+    {
+      "metric": "attendance_mark_minutes",
+      "definition": "median wall time for a teacher to mark one section's attendance",
+      "target": "under 4 minutes",
+      "measured": "in-product telemetry, not claimed"
+    },
+    {
+      "metric": "fee_day_reconciled_by_3pm",
+      "definition": "percent of a fee day's collections reconciled by 3pm",
+      "target": "95%+"
+    },
+    {
+      "metric": "month_close_hours",
+      "definition": "accountant hours to close the month",
+      "target": "under 4 hours"
+    },
+    {
+      "metric": "onboarding_days",
+      "definition": "elapsed working days from empty tenant to a school running its first day",
+      "target": "1 day"
+    },
+    {
+      "metric": "parent_fee_seconds",
+      "definition": "seconds for a parent to complete a fee payment from app open",
+      "target": "under 90"
+    },
+    {
+      "metric": "journey_completion_rate",
+      "definition": "percent of started journeys that reach their finished state",
+      "target": "95%+"
+    },
+    {
+      "rule": "Every metric gets a telemetry event, an admin-visible readout, and a test. A metric without a readout is a lie."
+    }
+  ],
+  "product_philosophy": {
+    "the_four_laws": [
+      {
+        "law": "Every screen is a job, not a dataset",
+        "enforcement": "Each page's H1 names the job the user is finishing (e.g. 'Collect today's fees', not 'Fee Invoices'). A page with no job name gets redesigned or deleted."
+      },
+      {
+        "law": "Every workflow ends in a finished state",
+        "enforcement": "The user must see done — 'Attendance saved for 10-A: 38/38', 'Month of October closed', 'Term 1 results published to 412 students' — plus the next action if one exists. 'Saved' is not a finished state."
+      },
+      {
+        "law": "The school's calendar defines the roadmap",
+        "enforcement": "Admission season, fee day, exam season, rollover: the four seasonal workflows come before any new capability. Work is ordered by the academic year, not by module completeness."
+      },
+      {
+        "law": "Money and children are sacred — audit everything, fabricate nothing",
+        "enforcement": "No hardcoded figures, no invented fallbacks, no silent failures. Extends the existing honesty scanners to product surfaces."
+      }
+    ]
+  },
+  "personas": [
+    {
+      "id": "office_admin",
+      "who": "The school office clerk — lowest patience, highest workload, decides daily whether the software helps or gets bypassed",
+      "day": "7:40am: gate duty, then fee queries at the counter, absentees to phone, admission walk-ins in season, transport calls. The day is interruptions.",
+      "jobs": [
+        "Collect and account for today's fees",
+        "Chase today's absentees",
+        "Move admission applicants through the funnel",
+        "Answer any parent question in under a minute"
+      ],
+      "moment_of_delight": "At 3pm the day's money is reconciled and the defaulter list already knows who to call."
+    },
+    {
+      "id": "accountant",
+      "who": "Runs the ledger, fears audit season, does not trust software until it survives one month-end",
+      "day": "Voucher entry, gateway settlement checking, expense approvals, month-end close, fee reconciliation with the bank statement.",
+      "jobs": [
+        "Reconcile every payment against the bank",
+        "Close the month with reports the trustee accepts",
+        "Survive an audit without assembling paper"
+      ],
+      "moment_of_delight": "Month-end close is a button, and the double-entry invariants were already checked."
+    },
+    {
+      "id": "principal",
+      "who": "Accountable for everything, present in nothing, wants one honest answer weekly",
+      "day": "Assembly, walkthroughs, parent meetings, board correspondence, staffing gaps.",
+      "jobs": [
+        "Answer: are we on track — money, attendance, syllabus?",
+        "Spot the one section or teacher that needs help this week",
+        "Report to the trust with real numbers"
+      ],
+      "moment_of_delight": "One screen, Monday morning, three numbers, all true."
+    },
+    {
+      "id": "teacher",
+      "who": "Has a 40-minute period and the software gets four minutes of it",
+      "day": "6 periods, attendance at each, marks entry windows, homework posting, PTM slots, substitutions.",
+      "jobs": [
+        "Mark attendance in under four minutes",
+        "Post homework before leaving the room",
+        "Enter marks in the window given",
+        "See my day and my week"
+      ],
+      "moment_of_delight": "Attendance saved with a confirm in the room, homework posted in three taps from the podium."
+    },
+    {
+      "id": "parent",
+      "who": "Ninety seconds at a tea break; will call the office if the app fails once",
+      "day": "Morning drop-off glance, fee reminders, absence alert if the child is marked absent, homework check at 9pm, PTM booking once a term.",
+      "jobs": [
+        "Pay the fee in under 90 seconds",
+        "Know my child was marked present today",
+        "See tonight's homework and what was taught",
+        "Get the school's answer without calling"
+      ],
+      "moment_of_delight": "The absence alert arrives before the worry does, and paying takes less time than finding the card."
+    },
+    {
+      "id": "student",
+      "who": "A phone at 9pm, homework due tomorrow, wants dignity not surveillance",
+      "day": "School day, then homework, then checking marks and timetable.",
+      "jobs": [
+        "See what's due today",
+        "Submit homework honestly",
+        "See my marks and where I stand",
+        "Know tomorrow's timetable"
+      ],
+      "moment_of_delight": "Homework submitted in three taps and marked late only when it truly was."
+    }
+  ],
+  "journeys": [
+    {
+      "id": "J1_fee_day",
+      "title": "Fee Day",
+      "personas": [
+        "office_admin",
+        "accountant"
+      ],
+      "trigger": "Fee due date or counter collection",
+      "steps": "Demand register for the day -> counter collection and online payments -> reconciliation against gateway and bank -> defaulter list with follow-up actions",
+      "finished_state": "A screen reading: today's collection Rs X, reconciled Rs Y, N defaulters queued for reminder — day closed.",
+      "today": "Parts exist (invoices, payments, settlement splits, reconciliation engines). Assembled as one journey: NOT VERIFIED. Verify at implementation; build what is missing."
+    },
+    {
+      "id": "J2_month_end_close",
+      "title": "Month-End Close",
+      "personas": [
+        "accountant"
+      ],
+      "trigger": "Last working day of the month",
+      "steps": "Reconciliation review -> expense and voucher completeness check -> trial balance invariants -> trustee-facing monthly report pack",
+      "finished_state": "'Month of <name> closed' with the report pack generated and archived.",
+      "today": "Engines exist (chartOfAccounts, financialReportsEngine, fiscal locks). Journey assembly: NOT VERIFIED."
+    },
+    {
+      "id": "J3_the_period",
+      "title": "The 40-Minute Period",
+      "personas": [
+        "teacher"
+      ],
+      "trigger": "Teacher opens the app at the start of a period",
+      "steps": "My Day opens on the current period -> attendance in 4 minutes -> homework post from the same surface -> next-period glance",
+      "finished_state": "Per period: 'Attendance saved 38/38, homework posted' — visible before the bell.",
+      "today": "T4/T7 surfaces exist. The one-screen period loop: NOT VERIFIED."
+    },
+    {
+      "id": "J4_weekly_review",
+      "title": "The Weekly Review",
+      "personas": [
+        "principal"
+      ],
+      "trigger": "Monday morning, or any time the principal has 5 minutes",
+      "steps": "Open one screen -> money (collection vs dues), attendance (vs last week), syllabus pace (vs term elapsed) -> drill one level to the section -> act (nudge message to a class teacher)",
+      "finished_state": "The principal leaves the screen knowing: on track / two sections behind / money tight — with one action taken.",
+      "today": "S23 principal dashboard exists with live metrics. The single honest on-track answer: NOT VERIFIED."
+    },
+    {
+      "id": "J5_parent_loop",
+      "title": "The Parent Loop",
+      "personas": [
+        "parent"
+      ],
+      "trigger": "Notification or tea break",
+      "steps": "App open -> pay fee in 90 seconds OR see attendance/homework -> done, no call needed",
+      "finished_state": "Payment receipt or feed review completed with zero support contact.",
+      "today": "Parent PWA complete. 90-second payment path: NOT MEASURED. Instrument it."
+    },
+    {
+      "id": "J6_homework_cycle",
+      "title": "The Homework Cycle",
+      "personas": [
+        "student"
+      ],
+      "trigger": "Evening",
+      "steps": "See due -> submit in 3 taps -> see graded with remarks",
+      "finished_state": "Submission receipt at 9pm; graded state when teacher publishes.",
+      "today": "Landed in student PWA S4. Verify end to end and instrument."
+    },
+    {
+      "id": "J7_admission_season",
+      "title": "Admission Season",
+      "personas": [
+        "office_admin"
+      ],
+      "trigger": "Inquiry at the counter or online form",
+      "steps": "Inquiry -> application -> documents (verified truthfully) -> enrollment -> fee structure generated -> roll number -> parent claim -> student claim",
+      "finished_state": "One screen per applicant showing the funnel position; on enrollment: 'New student fully onboarded — parent app claim sent, student access enabled'.",
+      "today": "Pieces landed across F1/F2/S1. One continuous funnel view: NOT BUILT."
+    },
+    {
+      "id": "J8_exam_season",
+      "title": "Exam Season",
+      "personas": [
+        "office_admin",
+        "teacher"
+      ],
+      "trigger": "Exam calendar entry",
+      "steps": "Datesheet publish -> admit card checks -> marks entry windows -> locks -> results publish -> report cards",
+      "finished_state": "'Term 1 results published to N students' with report cards issued and every lock respected.",
+      "today": "Examinations module is deep (S24 verified marks truth). Season-as-one-journey surface: NOT VERIFIED."
+    },
+    {
+      "id": "J9_rollover",
+      "title": "New Academic Year Rollover",
+      "personas": [
+        "office_admin"
+      ],
+      "trigger": "March-April",
+      "steps": "Promotion list with section reassignment -> fee structure rollover -> subject enrollments -> timetable reset -> archive the old year read-only",
+      "finished_state": "'Academic year <new> is live' with zero student lost, zero fee structure missing, old year readable but locked.",
+      "today": "UNKNOWN — likely the biggest gap in the product. Audit first; this journey failing in March kills a school's trust permanently. Build it now, in November, not in April."
+    },
+    {
+      "id": "J10_school_onboarding",
+      "title": "School Onboarding",
+      "personas": [
+        "super_admin",
+        "office_admin"
+      ],
+      "trigger": "A new school signs up",
+      "steps": "Tenant provisioning -> academic year -> classes/sections -> subjects -> fee structures -> staff bulk import -> students bulk import (real-world Excel shapes) -> timetable load -> parent claims -> first day live",
+      "finished_state": "A new school opens on day one and takes attendance with real data.",
+      "today": "An onboard route exists; depth UNKNOWN. This is the gate between the product and its first customer. Audit and complete it before anything else."
+    }
+  ],
+  "current_state_audit": [
+    "Verified at head 9be7f2c2 (v11.40.0): ten role apps, 13 entity domains, 50+ migrations, DPDP machinery, double-entry finance, honesty scanners, certified notification pipeline, bilingual offline PWAs for parent/teacher/student.",
+    "The operator's verdict after walking every role dashboard: the product has no direction, no persona intent, no finishable workflows. Screens present data; users finish jobs. This charter is the correction.",
+    "Every journey above carries a today verdict of NOT VERIFIED or UNKNOWN. That is deliberate: the first phase is an audit that converts these verdicts into fact, before any journey is built.",
+    "The process failure to never repeat: specs were context-engineered but destination-blind. The governance section below makes that structurally impossible."
+  ],
+  "spec_governance": {
+    "mandatory_from_now_on": [
+      "Every future spec MUST open with a north_star object quoting the destination sentence and naming which journey(s) it advances and how it moves the metrics.",
+      "Every future spec MUST contain a persona_jobs object: which persona, which job from this charter, what the finished state is, how it is verified.",
+      "Every future spec MUST check its scope against the non-goals list below; anything outside the fence requires an explicit charter-amendment commit.",
+      "Every phase of every future spec MUST end with a walkthrough: the agent walks the journey as the persona and records the finished state seen.",
+      "The operator is the only entity that may open a new spec. The agent may propose specs only as journey-gap entries in docs/product/journey-map.md."
+    ],
+    "charter_amendment": "This charter changes only by explicit commit (docs/product/destination.md) with an amendment note. Journeys may be added only when they carry a persona, a trigger, a finished state, and a metric."
+  },
+  "non_goals": [
+    "No hardware bundles, biometric devices, or RFID integrations.",
+    "No content, curriculum authoring for learning material, or edtech content packs. Syllabus structure is operational data, not a learning product.",
+    "No price-war tier. No free-plan chase at the bottom of the market.",
+    "No new role apps beyond the ten existing ones.",
+    "No new modules outside a school's operating year (no alumni, no fundraising, no hostel expansion beyond existing tables).",
+    "No AI/LLM features inside the school workflows. The product's intelligence is determinism and honesty, and it is already built.",
+    "No feature gets built without a journey citing it."
+  ],
+  "implementation_order": [
+    {
+      "phase": "D0",
+      "title": "Direction artifacts and journey audit",
+      "tasks": [
+        "Create docs/product/: thesis.md, personas.md, destination.md (the sentence + amendment log), non-goals.md, journey-map.md, metrics.md.",
+        "Create docs/specs/template.md with the mandatory north_star and persona_jobs sections.",
+        "Reference the charter at the top of AGENTS.md.",
+        "JOURNEY AUDIT: walk all ten journeys in the running product as each persona. For each: exists / partial / missing, dead ends found, screens that map to no persona moment, missing finished states. Record everything in journey-map.md. Do not fix anything yet — measure.",
+        "Telemetry: define and emit the six north-star events (attendance duration, fee day reconciliation, month close duration, onboarding duration, parent payment duration, journey completion)."
+      ]
+    },
+    {
+      "phase": "D1",
+      "title": "School onboarding (J10) — the gate to the first customer",
+      "tasks": [
+        "Audit existing onboard flow; complete it to the journey definition: tenant, year, classes, sections, subjects, fee structures, staff and student bulk import from real-world Excel shapes, timetable load, parent claims.",
+        "Seed a demo tenant: a believable fictional school (900 students, 3 sections per class, real fee structures, a full term of data) usable for sales demos and journey verification.",
+        "Instrument onboarding_days. Verify: empty tenant to first attendance marked in one working day (scripted)."
+      ]
+    },
+    {
+      "phase": "D2",
+      "title": "Persona journey loops — assembly and finished states",
+      "tasks": [
+        "J1 fee day: assemble demand register -> collection -> reconciliation -> defaulter queue into one surface for the office admin, with the day-close finished state.",
+        "J2 month-end close: close-the-month flow with invariants check and trustee report pack.",
+        "J3 the period: single teacher surface for the current period — attendance confirm plus homework post before the bell.",
+        "J4 weekly review: principal one-screen on-track answer with one-level drill and one action.",
+        "J5/J6: instrument the existing parent and student loops (90-second payment, homework cycle) and fix the dead ends the D0 audit found.",
+        "UI copy law pass: every page H1 names a job; every workflow renders its finished state with the next action.",
+        "Automated journey walkthroughs: one test per journey asserting the finished state is reachable end to end."
+      ]
+    },
+    {
+      "phase": "D3",
+      "title": "The operating year workflows",
+      "tasks": [
+        "J7 admission season: one continuous funnel surface per applicant from inquiry to parent claim; every step's finished state visible; stuck applicants surfaced in a queue.",
+        "J8 exam season: datesheet -> marks windows -> locks -> results publish -> report cards as one seasonal journey surface.",
+        "J9 rollover: promotion with section reassignment, fee structure rollover, subject enrollments, timetable reset, previous year archived read-only. Migration only if required. Test with a full synthetic year: 900 students promoted, zero lost, all fee structures carried."
+      ]
+    },
+    {
+      "phase": "D4",
+      "title": "Destination verification",
+      "tasks": [
+        "Run the demo tenant through a full synthetic academic year onboarding -> term 1 -> exams -> rollover -> term 2, entirely through the product's own surfaces, no direct DB writes.",
+        "Every north-star metric has a readout and a passing test against its target on the demo tenant.",
+        "All ten journeys: finished state verified by automated walkthrough. journey-map.md updated: zero unknowns.",
+        "Release the result as the first market-facing version (recommend resetting public versioning to 1.0 at this point — the operator decides)."
+      ]
+    }
+  ],
+  "business_logic_rules": [
+    "BR1: The four laws are enforced in code review shape: a page whose H1 does not name a job, or a workflow with no finished state, does not merge.",
+    "BR2: Journey finished states are user-visible text with real computed numbers — never toasts alone, never fake figures (extends the honesty scanners).",
+    "BR3: Rollover is transactional and idempotent: a failed rollover leaves the old year intact and retryable; the old year is never writable after rollover.",
+    "BR4: Bulk import accepts the messy reality of school Excel (missing columns, duplicate names, mixed formats) with a row-level error report the office can act on — never all-or-nothing.",
+    "BR5: Demo tenant data is fictional but realistic and clearly labeled; it never mixes with real tenant data.",
+    "BR6: Telemetry events carry schoolId and journey id, contain no PII, and respect the existing DPDP and audit patterns.",
+    "BR7: All existing security constraints (RLS, withTenant, encryption, DPDP, honesty scanners) apply unchanged; journeys compose existing engines rather than replacing them.",
+    "BR8: Any task that cannot name its journey does not get built. This rule outranks every future feature request."
+  ],
+  "acceptance_criteria": [
+    "AC-1: docs/product/ contains thesis, personas, destination, non-goals, journey-map, metrics — committed and referenced from AGENTS.md.",
+    "AC-2: docs/specs/template.md exists with mandatory north_star and persona_jobs sections; the template validates a spec example end to end.",
+    "AC-3: The D0 audit reports, for each of the ten journeys: exists / partial / missing, dead ends, unmapped screens, missing finished states — with walkthrough assertions; zero journeys left unknown.",
+    "AC-4: A new school can be onboarded on a fresh tenant through the product alone (wizard plus bulk import), and the demo tenant (900 students, full term) is seeded and labeled.",
+    "AC-5: J1 fee day: the office admin closes a synthetic fee day with the finished-state screen showing collected, reconciled, and defaulters queued; automated walkthrough passes.",
+    "AC-6: J2 month-end close: the accountant closes a synthetic month with invariants green and the report pack generated; walkthrough passes.",
+    "AC-7: J3 the period: a teacher marks attendance and posts homework for the current period from one surface; telemetry shows the 4-minute target met on the demo tenant.",
+    "AC-8: J4 weekly review: the principal's single screen answers on-track status with money, attendance, and syllabus pace, one drill level, one action; walkthrough passes.",
+    "AC-9: J5 parent loop: 90-second payment instrumented and under target on the demo tenant; J6 homework cycle walkthrough passes with the graded finished state.",
+    "AC-10: J7 admission season: one applicant moves from inquiry to enrolled with parent claim sent and student access enabled, visible as a funnel with finished states per step; stuck applicants surface in a queue.",
+    "AC-11: J8 exam season: datesheet to published results to report cards runs as one journey with locks respected; 'results published to N students' finished state rendered.",
+    "AC-12: J9 rollover: a full synthetic year (900 students) rolls over with zero students lost, fee structures carried, timetable reset, old year read-only; idempotent retry test passes.",
+    "AC-13: All six north-star metrics have telemetry events, admin readouts, and passing tests against targets on the demo tenant.",
+    "AC-14: UI law pass: every role dashboard's primary pages name a job in the H1 and every touched workflow renders a finished state; a grep-level check forbids hardcoded numbers in journey surfaces.",
+    "AC-15: The demo tenant completes the full synthetic year (D4) through product surfaces only — onboarding to rollover — recorded as the destination verification report."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. Compose existing engines; replace nothing that works.",
+    "Journey surfaces compose existing modules; they do not fork them. The fee day screen uses the existing fee engines, the rollover uses the existing lifecycle and enrollment engines.",
+    "Every phase lands with typecheck + build + smoke render green (the S7 gate is permanent series law).",
+    "One phase per commit series, destination prefixes: docs(charter)/feat(onboarding)/feat(journeys)/feat(rollover).",
+    "Do not start D2 before the D0 audit is committed; do not start D3 before D1's demo tenant exists (journeys need data to be verified against).",
+    "The operator decides the market-facing version reset; the agent prepares it but does not unilaterally change public versioning.",
+    "Where this charter conflicts with in-repo security constraints, security wins; log the conflict in the commit body."
+  ],
+  "definition_of_done": "The destination is finished when the demo tenant runs a school year on the product's own surfaces — onboarding in a day, fee days closed by 3pm, months closed, the period loop under four minutes, the principal's one honest answer, admission and exam seasons end to end, rollover with zero students lost — every journey asserting its finished state, every metric reading true, and a real school (the operator's next task, outside the IDE) able to replace its registers with this. Development direction is no longer a feeling: it is the journey map, and the map is finished.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/product-destination-charter.json — this file is the parent of the spec series from now on.",
+      "Execute phases D0-D4 strictly in order. D0 is an audit: measure before building. Every later phase cites the journey it advances.",
+      "Read this charter fully before any code. The journeys' today fields are honest: NOT VERIFIED and UNKNOWN mean verify first, then build.",
+      "Real route subpaths, existing engine names, and the actual state of the onboard flow must be read from the codebase at implementation time, not assumed.",
+      "Every phase ends with a persona walkthrough recorded in the commit body: which journey, which finished state was seen.",
+      "When a phase reveals a journey gap larger than its scope, do not expand scope silently: record it in journey-map.md and finish the phase as specified.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
