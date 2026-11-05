@@ -1027,6 +1027,53 @@ export class StudentLifecycleEngine {
         };
       }
 
+      const firstName = (data.firstName || "").trim();
+      const lastName = (data.lastName || "").trim();
+      const effectiveLastName = lastName || ".";
+      const firstNameHash = firstName ? computeSearchHash(firstName) : null;
+      const lastNameHash = computeSearchHash(effectiveLastName);
+      const cleanParentPhone = (data.parentPhone || "").replace(/\D/g, "").slice(-10);
+      const parentPhoneHash = cleanParentPhone ? computeSearchHash(cleanParentPhone) : null;
+
+      // Secondary idempotency match: name + class + guardian mobile
+      if (firstNameHash && parentPhoneHash && data.classId) {
+        const potentialMatches = await executor.query.students.findMany({
+          where: and(
+            eq(students.schoolId, schoolId),
+            eq(students.currentClassId, data.classId),
+            eq(students.firstNameSearchHash, firstNameHash),
+            eq(students.lastNameSearchHash, lastNameHash),
+          ),
+        });
+
+        for (const candidate of potentialMatches) {
+          const familyMatch = await executor.query.studentFamilyMembers.findFirst({
+            where: and(
+              eq(studentFamilyMembers.studentId, candidate.id),
+              eq(studentFamilyMembers.schoolId, schoolId),
+              eq(studentFamilyMembers.mobileSearchHash, parentPhoneHash),
+            ),
+          });
+
+          if (familyMatch) {
+            // Conflicting match check: if candidate has different admission number, require human resolution
+            if (candidate.admissionNumber.toLowerCase() !== admNumber.toLowerCase()) {
+              throw new Error(
+                `Conflicting student match: Student '${firstName} ${lastName}' in this class with guardian mobile '${data.parentPhone}' matches existing student with admission number '${candidate.admissionNumber}' (provided: '${admNumber}'). Action required: resolve conflicting admission number.`,
+              );
+            }
+            return {
+              success: true,
+              studentId: candidate.id,
+              admissionNumber: candidate.admissionNumber,
+              isNew: false,
+              personId: "",
+              parentUserId: candidate.primaryParentUserId,
+            };
+          }
+        }
+      }
+
       // 3. Validate Target Class and Section
       const targetClass = await executor.query.classes.findFirst({
         where: and(
@@ -1071,13 +1118,9 @@ export class StudentLifecycleEngine {
       }
 
       // 5. Parse Names, Hashes, and Date of Birth
-      const firstName = (data.firstName || "").trim();
       if (!firstName) {
         throw new Error("First name is required for imported student");
       }
-      const lastName = (data.lastName || "").trim();
-      const firstNameHash = computeSearchHash(firstName);
-      const lastNameHash = computeSearchHash(lastName);
 
       const parsedDob =
         typeof data.dob === "string" ? new Date(data.dob) : data.dob;
@@ -1095,7 +1138,7 @@ export class StudentLifecycleEngine {
           schoolId,
           primaryType: "STUDENT",
           firstNameEncrypted: encryptData(firstName),
-          lastNameEncrypted: encryptData(lastName),
+          lastNameEncrypted: encryptData(effectiveLastName),
           firstNameSearchHash: firstNameHash,
           lastNameSearchHash: lastNameHash,
           gender,
@@ -1116,7 +1159,7 @@ export class StudentLifecycleEngine {
           academicYearId: activeYearId,
           admissionNumber: admNumber,
           firstNameEncrypted: encryptData(firstName),
-          lastNameEncrypted: encryptData(lastName),
+          lastNameEncrypted: encryptData(effectiveLastName),
           firstNameSearchHash: firstNameHash,
           lastNameSearchHash: lastNameHash,
           dateOfBirth: parsedDob,

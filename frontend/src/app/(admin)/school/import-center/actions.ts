@@ -30,6 +30,18 @@ import {
   MAX_IMPORT_ROWS,
 } from "../../../../lib/importExportEngine";
 import { StudentLifecycleEngine } from "@schoolmitra/backend/lib/studentLifecycleEngine";
+import {
+  validateStudentImportRows,
+  executeStudentImportBatch,
+  validateStaffImportRows,
+  executeStaffImportBatch,
+  validateFeeImportRows,
+  executeFeeImportBatch,
+  generateClerkRejectedRowsCsv,
+  type ClerkRowReport,
+  type DryRunValidationSummary,
+  type ImportCommitSummary,
+} from "@schoolmitra/backend/lib/bulkImportResilience";
 import { getClientRequestContext } from "@/lib/requestContext";
 import { generateRoleTempPassword } from "@/lib/tempPassword";
 import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
@@ -44,14 +56,31 @@ function safeRevalidate(path: string) {
 export interface DryRunValidationResult {
   rowNumber: number;
   admissionNumber: string;
-  studentName?: string;
+  studentName?: string | undefined;
   amount: number;
   isValid: boolean;
-  error?: string;
+  error?: string | undefined;
+}
+
+export interface ImportCommitResult {
+  success: boolean;
+  totalProcessed: number;
+  createdCount: number;
+  skippedCount: number;
+  duplicatesMergedCount?: number | undefined;
+  errors: string[];
+  rejectedRowsCsv: string;
+  message?: string | undefined;
+  finishedState?: {
+    title: string;
+    message: string;
+    nextActionLabel: string;
+    nextActionHref: string;
+  } | undefined;
 }
 
 /**
- * FIX-04: Dry-run preview validator for bulk opening fee balance import.
+ * Dry-run preview validator for bulk opening fee balance import.
  * Strictly role-gated to carry_forward_and_import: SUPER_ADMIN, SCHOOL_ADMIN.
  */
 export async function validateHistoricalFeeBalances(
@@ -59,7 +88,7 @@ export async function validateHistoricalFeeBalances(
   rows: {
     admissionNumber: string;
     grossAmount: number;
-    dueDate?: string;
+    dueDate?: string | undefined;
   }[]
 ) {
   try {
@@ -69,76 +98,30 @@ export async function validateHistoricalFeeBalances(
     if (!academicYearId) throw new Error("Academic Year is required.");
     if (!rows || rows.length === 0) throw new Error("No data rows supplied for validation.");
 
-    const validationRows: DryRunValidationResult[] = [];
+    const stringRows = rows.map((r) => ({
+      admissionNumber: r.admissionNumber || "",
+      grossAmount: String(r.grossAmount ?? ""),
+      dueDate: r.dueDate || "",
+    }));
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row) continue;
-      const adm = row.admissionNumber?.trim();
-      const gross = row.grossAmount;
+    const summary = await validateFeeImportRows(school.id, stringRows, academicYearId, db);
 
-      if (!adm) {
-        validationRows.push({
-          rowNumber: i + 1,
-          admissionNumber: "",
-          amount: gross || 0,
-          isValid: false,
-          error: "Admission number is required.",
-        });
-        continue;
-      }
-
-      if (isNaN(gross) || gross <= 0) {
-        validationRows.push({
-          rowNumber: i + 1,
-          admissionNumber: adm,
-          amount: gross || 0,
-          isValid: false,
-          error: `Invalid gross amount '${row.grossAmount}'. Must be greater than 0.`,
-        });
-        continue;
-      }
-
-      const student = await db.query.students.findFirst({
-        where: and(
-          eq(students.schoolId, school.id),
-          eq(students.admissionNumber, adm),
-        ),
-      });
-
-      if (!student) {
-        validationRows.push({
-          rowNumber: i + 1,
-          admissionNumber: adm,
-          amount: gross,
-          isValid: false,
-          error: `Student '${adm}' not registered in this institution.`,
-        });
-        continue;
-      }
-
-      const fn = decryptData(student.firstNameEncrypted) || "";
-      const ln = decryptData(student.lastNameEncrypted) || "";
-      const studentName = `${fn} ${ln}`.trim() || "Student";
-
-      validationRows.push({
-        rowNumber: i + 1,
-        admissionNumber: adm,
-        studentName,
-        amount: gross,
-        isValid: true,
-      });
-    }
-
-    const validCount = validationRows.filter((r) => r.isValid).length;
-    const invalidCount = validationRows.length - validCount;
+    const validationRows: DryRunValidationResult[] = summary.rows.map((r) => ({
+      rowNumber: r.rowNumber,
+      admissionNumber: r.identifier,
+      studentName: r.displayName,
+      amount: r.normalizedData?.grossAmount ?? (typeof r.classSection === "string" ? parseFloat(r.classSection.replace(/[^0-9.]/g, "")) : 0),
+      isValid: r.isValid,
+      error: r.error,
+    }));
 
     return {
       success: true,
-      totalCount: validationRows.length,
-      validCount,
-      invalidCount,
+      totalCount: summary.totalRows,
+      validCount: summary.validRowsCount,
+      invalidCount: summary.invalidRowsCount,
       results: validationRows,
+      summary,
     };
   } catch (err: any) {
     return {
@@ -150,15 +133,15 @@ export async function validateHistoricalFeeBalances(
 }
 
 /**
- * FIX-04: Commit imported opening/historical balances into fee_invoices.
- * Strictly role-gated to carry_forward_and_import: SUPER_ADMIN, SCHOOL_ADMIN.
+ * Commit imported opening/historical balances into fee_invoices.
+ * Resilient row-level execution: valid rows persist, invalid rows skipped with reasons.
  */
 export async function importHistoricalFeeBalances(
   academicYearId: string,
   rows: {
     admissionNumber: string;
     grossAmount: number;
-    dueDate?: string;
+    dueDate?: string | undefined;
   }[]
 ) {
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
@@ -167,113 +150,100 @@ export async function importHistoricalFeeBalances(
   if (!academicYearId) throw new Error("Academic Year is required.");
   if (!rows || rows.length === 0) throw new Error("No data rows supplied for import.");
 
-  let successCount = 0;
-  const errors: string[] = [];
+  const stringRows = rows.map((r) => ({
+    admissionNumber: r.admissionNumber || "",
+    grossAmount: String(r.grossAmount ?? ""),
+    dueDate: r.dueDate || "",
+  }));
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row) continue;
-    try {
-      const student = await db.query.students.findFirst({
-        where: and(
-          eq(students.schoolId, school.id),
-          eq(students.admissionNumber, row.admissionNumber.trim()),
-        ),
-      });
+  const commitSummary = await executeFeeImportBatch(
+    school.id,
+    academicYearId,
+    stringRows,
+    {
+      userId: ctx.userId,
+      userEmail: ctx.email,
+    },
+    db
+  );
 
-      if (!student) {
-        errors.push(`Row ${i + 1}: Student with Adm No '${row.admissionNumber}' not found.`);
-        continue;
-      }
+  safeRevalidate("/school/import-center");
+  safeRevalidate("/school/due-fees");
 
-      const gross = row.grossAmount;
-      if (isNaN(gross) || gross <= 0) {
-        errors.push(`Row ${i + 1}: Invalid gross amount '${row.grossAmount}'.`);
-        continue;
-      }
-
-      const randSuffix = Math.floor(1000 + Math.random() * 9000);
-      const invoiceNumber = `IMP-${Date.now().toString().slice(-6)}-${randSuffix}`;
-      const dueDate = row.dueDate ? new Date(row.dueDate) : new Date(Date.now() + 30 * 86400000);
-
-      await db.transaction(async (tx) => {
-        const [inv] = await tx
-          .insert(feeInvoices)
-          .values({
-            schoolId: school.id,
-            studentId: student.id,
-            academicYearId,
-            invoiceNumber,
-            term: "ANNUAL",
-            grossAmount: gross.toFixed(2),
-            discountAmount: "0",
-            lateFeeAmount: "0",
-            taxAmount: "0",
-            netAmount: gross.toFixed(2),
-            paidAmount: "0",
-            balanceAmount: gross.toFixed(2),
-            dueDate,
-            status: "PENDING",
-          })
-          .returning();
-
-        if (!inv) throw new Error("Failed to insert opening balance invoice.");
-
-        await logFeeAuditEvent(tx, {
-          schoolId: school.id,
-          action: "HISTORICAL_BALANCE_IMPORTED",
-          entityType: "FEE_INVOICE",
-          entityId: inv.id,
-          reason: `Imported legacy balance ₹${gross.toFixed(2)} for ${student.admissionNumber}`,
-          performedById: ctx.userId,
-        });
-      });
-
-      successCount++;
-    } catch (err: any) {
-      errors.push(`Row ${i + 1}: ${err.message || "Failed to process row"}`);
-    }
-  }
-
-  revalidatePath("/school/import-center");
-  revalidatePath("/school/due-fees");
-  return { success: true, count: successCount, errors };
-}
-
-export interface ImportCommitResult {
-  success: boolean;
-  totalProcessed: number;
-  createdCount: number;
-  skippedCount: number;
-  errors: string[];
-  rejectedRowsCsv: string;
-  message?: string;
+  return {
+    success: commitSummary.success,
+    count: commitSummary.createdCount,
+    skippedCount: commitSummary.skippedCount,
+    errors: commitSummary.errors,
+    rejectedRowsCsv: commitSummary.rejectedRowsCsv,
+    message: commitSummary.message,
+    finishedState: commitSummary.finishedState,
+  };
 }
 
 /**
- * F06 & F08: Domain-guarded commit action for bulk STUDENTS import.
- * - Enforces 5,000-row maximum cap with clear user guidance.
- * - Resolves className and sectionName to tenant class/section IDs.
- * - All-or-nothing rollback: aborts with zero writes if any row is invalid.
- * - Idempotently skips existing admission numbers and reports truthful skip counts.
+ * Dry-run preview validator for bulk STUDENTS import.
+ */
+export async function validateStudentImportAction(
+  rows: Record<string, string>[]
+): Promise<DryRunValidationSummary> {
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+  const school = await requireSchool(ctx);
+  enforceImportRowLimit(rows);
+
+  return await validateStudentImportRows(school.id, rows, db);
+}
+
+/**
+ * Domain-guarded commit action for bulk STUDENTS import.
+ * - Row-level resilience (Charter BR4): Valid rows persist, invalid rows yield detailed clerk reasons.
+ * - Idempotency: re-running creates zero duplicates (match on admissionNumber or name+class+guardian mobile).
  * - Delegates student creation exclusively to S13 StudentLifecycleEngine.
  */
 export async function commitStudentImportAction(
-  rows: Record<string, string>[]
+  rows: Record<string, string>[],
+  options?: { allOrNothing?: boolean; resilient?: boolean }
 ): Promise<ImportCommitResult> {
-  // 1. Auth & Tenant Isolation
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
   const school = await requireSchool(ctx);
   const schoolId = school.id;
   const reqCtx = getClientRequestContext();
 
-  // 2. 5,000-Row Boundary Defense
   enforceImportRowLimit(rows);
 
-  // 3. Schema & Format Validation
-  const validation = validateImportBatch("STUDENTS", rows);
+  // When resilient mode is enabled (Default in D1-L3 ImportCenterClient):
+  if (options?.resilient === true) {
+    const commitResult = await executeStudentImportBatch(
+      schoolId,
+      rows,
+      {
+        userId: ctx.userId,
+        userEmail: ctx.email || "admin@schoolmitra.internal",
+        userRole: ctx.role,
+        ipAddress: reqCtx.ipAddress,
+        userAgent: reqCtx.userAgent,
+      },
+      db
+    );
 
-  // 4. Pre-Resolve Tenant Classes and Sections
+    safeRevalidate("/school/import-center");
+    safeRevalidate("/students");
+
+    return {
+      success: commitResult.success,
+      totalProcessed: commitResult.totalProcessed,
+      createdCount: commitResult.createdCount,
+      skippedCount: commitResult.skippedCount,
+      duplicatesMergedCount: commitResult.duplicatesMergedCount,
+      errors: commitResult.errors,
+      rejectedRowsCsv: commitResult.rejectedRowsCsv,
+      message: commitResult.message,
+      finishedState: commitResult.finishedState,
+    };
+  }
+
+  // Legacy S21 validation & all-or-nothing rollback behavior
+  const validation = validateImportBatch("STUDENTS", rows);
   const tenantClasses = await db.query.classes.findMany({
     where: and(eq(classes.schoolId, schoolId), eq(classes.isActive, true)),
   });
@@ -293,9 +263,7 @@ export async function commitStudentImportAction(
     );
 
     if (!matchedClass) {
-      r.errors.push(
-        `Class '${rawClassName}' not found in current institutional curriculum.`
-      );
+      r.errors.push(`Class '${rawClassName}' not found in current institutional curriculum.`);
       r.isValid = false;
     } else {
       const matchedSection = tenantSections.find(
@@ -304,21 +272,17 @@ export async function commitStudentImportAction(
           (s.name || "").toLowerCase().trim() === rawSectionName.toLowerCase()
       );
       if (!matchedSection) {
-        r.errors.push(
-          `Section '${rawSectionName}' not found in Class '${rawClassName}'.`
-        );
+        r.errors.push(`Section '${rawSectionName}' not found in Class '${rawClassName}'.`);
         r.isValid = false;
       }
     }
   }
 
-  // Recompute validation summary
   const invalidRows = validation.rows.filter((r) => !r.isValid);
   validation.invalidRowsCount = invalidRows.length;
   validation.validRowsCount = validation.rows.length - invalidRows.length;
   validation.canCommit = invalidRows.length === 0;
 
-  // 5. All-or-Nothing Rollback Guard: Abort if ANY row is defective
   if (!validation.canCommit) {
     const rejectedRowsCsv = generateRejectedRowsCsv(validation);
     const lineErrors = invalidRows.flatMap((r) =>
@@ -335,7 +299,6 @@ export async function commitStudentImportAction(
     };
   }
 
-  // 6. 100% Valid: Execute Inside Tenant Transaction
   const commitResult = await withTenant(schoolId, async (tx: Db) => {
     let createdCount = 0;
     let skippedCount = 0;
@@ -346,7 +309,6 @@ export async function commitStudentImportAction(
       const adm = (row["Admission Number"] || row["admissionNumber"] || "").trim();
       const admKey = adm.toLowerCase();
 
-      // Within-batch duplicate skip
       if (seenAdmissionNumbers.has(admKey)) {
         skippedCount++;
         continue;
@@ -367,7 +329,6 @@ export async function commitStudentImportAction(
           (s.name || "").toLowerCase().trim() === rawSectionName.toLowerCase()
       )!;
 
-      // Delegate creation to S13 canonical write path
       const result = await StudentLifecycleEngine.createImportedStudent(
         schoolId,
         {
@@ -388,7 +349,7 @@ export async function commitStudentImportAction(
           requestIp: reqCtx.ipAddress,
           userAgent: reqCtx.userAgent,
         },
-        tx,
+        tx
       );
 
       if (result.isNew) {
@@ -416,29 +377,68 @@ export async function commitStudentImportAction(
 }
 
 /**
- * F07 & F08: Domain-guarded commit action for bulk STAFF import.
- * - 5,000-row cap defense.
- * - Role clamping: strictly permits TEACHER, STAFF, ACCOUNTANT; rejects PRINCIPAL/admin roles.
- * - Auto-resolves department and designation records.
- * - Idempotently skips existing employeeCode records.
- * - All-or-nothing rollback on validation failure.
+ * Dry-run preview validator for bulk STAFF import.
+ */
+export async function validateStaffImportAction(
+  rows: Record<string, string>[]
+): Promise<DryRunValidationSummary> {
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+  const school = await requireSchool(ctx);
+  enforceImportRowLimit(rows);
+
+  return await validateStaffImportRows(school.id, rows, db);
+}
+
+/**
+ * Domain-guarded commit action for bulk STAFF import.
+ * - Row-level resilience (Charter BR4).
+ * - Role clamping: strictly permits TEACHER, STAFF, ACCOUNTANT.
+ * - Idempotency: re-running creates zero duplicates.
  */
 export async function commitStaffImportAction(
-  rows: Record<string, string>[]
+  rows: Record<string, string>[],
+  options?: { allOrNothing?: boolean; resilient?: boolean }
 ): Promise<ImportCommitResult> {
-  // 1. Auth & Tenant Isolation
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
   const school = await requireSchool(ctx);
   const schoolId = school.id;
   const reqCtx = getClientRequestContext();
 
-  // 2. 5,000-Row Boundary Defense
   enforceImportRowLimit(rows);
 
-  // 3. Schema & Format Validation
-  const validation = validateImportBatch("STAFF", rows);
+  // When resilient mode is enabled (Default in D1-L3 ImportCenterClient):
+  if (options?.resilient === true) {
+    const commitResult = await executeStaffImportBatch(
+      schoolId,
+      rows,
+      {
+        userId: ctx.userId,
+        userEmail: ctx.email || "admin@schoolmitra.internal",
+        userRole: ctx.role,
+        ipAddress: reqCtx.ipAddress,
+        userAgent: reqCtx.userAgent,
+      },
+      db
+    );
 
-  // 4. Role Clamping Guard
+    safeRevalidate("/school/import-center");
+    safeRevalidate("/hr");
+
+    return {
+      success: commitResult.success,
+      totalProcessed: commitResult.totalProcessed,
+      createdCount: commitResult.createdCount,
+      skippedCount: commitResult.skippedCount,
+      duplicatesMergedCount: commitResult.duplicatesMergedCount,
+      errors: commitResult.errors,
+      rejectedRowsCsv: commitResult.rejectedRowsCsv,
+      message: commitResult.message,
+      finishedState: commitResult.finishedState,
+    };
+  }
+
+  // Legacy S21 validation & all-or-nothing rollback behavior
+  const validation = validateImportBatch("STAFF", rows);
   const S21_PERMITTED_STAFF_ROLES = new Set(["TEACHER", "STAFF", "ACCOUNTANT"]);
 
   for (let idx = 0; idx < validation.rows.length; idx++) {
@@ -452,13 +452,11 @@ export async function commitStaffImportAction(
     }
   }
 
-  // Recompute validation summary
   const invalidRows = validation.rows.filter((r) => !r.isValid);
   validation.invalidRowsCount = invalidRows.length;
   validation.validRowsCount = validation.rows.length - invalidRows.length;
   validation.canCommit = invalidRows.length === 0;
 
-  // 5. All-or-Nothing Rollback Guard: Abort if ANY row is defective
   if (!validation.canCommit) {
     const rejectedRowsCsv = generateRejectedRowsCsv(validation);
     const lineErrors = invalidRows.flatMap((r) =>
@@ -475,7 +473,6 @@ export async function commitStaffImportAction(
     };
   }
 
-  // 6. 100% Valid: Execute Inside Tenant Transaction
   const commitResult = await withTenant(schoolId, async (tx: Db) => {
     let createdCount = 0;
     let skippedCount = 0;
@@ -571,7 +568,7 @@ export async function commitStaffImportAction(
       const rawMobile = (row["Contact Phone"] || row["phone"] || "").trim();
       const cleanMobile = rawMobile.replace(/\D/g, "").slice(-10) || "0000000000";
       const defaultPassword = generateRoleTempPassword(
-        (rawRole === "TEACHER" || rawRole === "ACCOUNTANT") ? rawRole : "STAFF",
+        rawRole === "TEACHER" || rawRole === "ACCOUNTANT" ? rawRole : "STAFF",
         cleanMobile
       );
       const passwordHash = await bcrypt.hash(defaultPassword, 12);
@@ -594,7 +591,8 @@ export async function commitStaffImportAction(
             updatedAt: new Date(),
           })
           .returning();
-        if (!createdUser?.id) throw new Error(`Failed to create user credential for '${emailNormalized}'`);
+        if (!createdUser?.id)
+          throw new Error(`Failed to create user credential for '${emailNormalized}'`);
         user = createdUser;
       }
 
@@ -609,9 +607,8 @@ export async function commitStaffImportAction(
         row["dateOfBirth"] ||
         ""
       ).trim();
-      const validDob = rawDob && !isNaN(new Date(rawDob).getTime())
-        ? new Date(rawDob)
-        : new Date("1990-01-01");
+      const validDob =
+        rawDob && !isNaN(new Date(rawDob).getTime()) ? new Date(rawDob) : new Date("1990-01-01");
       const dobString = /^\d{4}-\d{2}-\d{2}$/.test(rawDob) ? rawDob : "1990-01-01";
 
       // Canonical Person Record
@@ -745,4 +742,3 @@ export async function commitStaffImportAction(
     message: `Successfully processed ${rows.length} rows (${commitResult.createdCount} created, ${commitResult.skippedCount} skipped).`,
   };
 }
-
