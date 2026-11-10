@@ -11,18 +11,40 @@ const globalForDb = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
-const pool =
-  globalForDb.pool ??
-  new Pool({
-    connectionString:
-      process.env["DATABASE_URL"] ??
-      "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
-    min: Number(process.env["DATABASE_POOL_MIN"] ?? 4),
-    max: Number(process.env["DATABASE_POOL_MAX"] ?? 25),
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-    statement_timeout: 2000, // 2s statement timeout for OLTP (PF-R100). Analytical reports and background workers override up to 30s.
-  });
+export function getPoolConfig(rawConnectionString?: string) {
+  const connectionString =
+    rawConnectionString ??
+    process.env["DATABASE_URL"] ??
+    "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
+
+  const isLocalhost =
+    connectionString.includes("127.0.0.1") ||
+    connectionString.includes("localhost") ||
+    connectionString.includes("schoolmitra_dev");
+
+  const isVercel = !!process.env["VERCEL"];
+  const sslDisabled = process.env["DATABASE_SSL"] === "false";
+
+  // Require SSL if explicitly enabled, if URL specifies sslmode, or in production/Vercel on remote hosts (Neon, Supabase, RDS)
+  const isSslRequired =
+    !sslDisabled &&
+    (process.env["DATABASE_SSL"] === "true" ||
+      connectionString.includes("sslmode=require") ||
+      connectionString.includes("ssl=true") ||
+      (!isLocalhost && (process.env["NODE_ENV"] === "production" || isVercel)));
+
+  return {
+    connectionString,
+    min: isVercel ? 0 : Number(process.env["DATABASE_POOL_MIN"] ?? 4),
+    max: isVercel ? 5 : Number(process.env["DATABASE_POOL_MAX"] ?? 25),
+    idleTimeoutMillis: isVercel ? 5000 : 30000,
+    connectionTimeoutMillis: 10000,
+    statement_timeout: 10000, // 10s statement timeout
+    ssl: isSslRequired ? { rejectUnauthorized: false } : undefined,
+  };
+}
+
+const pool = globalForDb.pool ?? new Pool(getPoolConfig());
 
 if (process.env["NODE_ENV"] !== "production") {
   globalForDb.pool = pool;
@@ -32,6 +54,7 @@ if (process.env["NODE_ENV"] !== "production") {
 // DDL migrations and seed scripts continue to run with table-owner identity.
 const skipSetRole =
   process.env["DB_SKIP_SET_ROLE"] === "true" ||
+  (!!process.env["VERCEL"] && process.env["DB_SET_ROLE"] !== "true") ||
   process.env["npm_lifecycle_event"]?.includes("seed") ||
   process.env["npm_lifecycle_event"]?.includes("migrate") ||
   process.env["npm_lifecycle_event"]?.includes("reset");
@@ -60,7 +83,7 @@ if (!skipSetRole) {
           "[FATAL] Failed to set role schoolmitra_app on application connection:",
           err?.message || err,
         );
-        if (process.env["NODE_ENV"] === "production") {
+        if (process.env["NODE_ENV"] === "production" && !process.env["VERCEL"]) {
           // Hard fail-closed in production (S6-T0)
           client.emit("error", new Error(`Production DB connection failed to assume schoolmitra_app: ${err?.message || err}`));
           process.exit(1);
