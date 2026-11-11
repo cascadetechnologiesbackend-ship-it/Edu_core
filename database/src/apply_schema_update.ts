@@ -2,7 +2,7 @@ import "dotenv/config";
 import { Pool } from "pg";
 import { getPoolConfig } from "./index";
 
-const pool = new Pool(getPoolConfig());
+const pool = new Pool(getPoolConfig(undefined, { isMigration: true }));
 
 async function main() {
   console.log("Applying schema updates...");

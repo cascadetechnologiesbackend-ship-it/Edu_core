@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkParentConsentStatus, submitParentLoginConsent } from "@/app/(parent)/portal/actions";
-import { Shield, Check, Info, AlertTriangle, Lock } from "lucide-react";
+import { Shield, Check, Info, AlertTriangle, Lock, X, ExternalLink } from "lucide-react";
 
 interface Purpose {
   id: string;
@@ -37,6 +37,9 @@ export default function DpdpOptInModal() {
     let mounted = true;
     async function checkStatus() {
       try {
+        if (typeof window !== "undefined" && sessionStorage.getItem("dpdp_optin_done") === "true") {
+          return;
+        }
         const res = await checkParentConsentStatus();
         if (!mounted) return;
         if (res.success && res.needsConsent && res.students && res.students.length > 0) {
@@ -107,6 +110,9 @@ export default function DpdpOptInModal() {
 
       const res = await submitParentLoginConsent({ consents: consentPayload });
       if (res.success) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("dpdp_optin_done", "true");
+        }
         setIsOpen(false);
         router.refresh();
       } else {
@@ -143,14 +149,29 @@ export default function DpdpOptInModal() {
             </div>
           </div>
 
-          {/* Language Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsHindi(!isHindi)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
-          >
-            {isHindi ? "English" : "हिंदी"}
-          </button>
+          {/* Language Toggle & Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsHindi(!isHindi)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+            >
+              {isHindi ? "English" : "हिंदी"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  sessionStorage.setItem("dpdp_optin_done", "true");
+                }
+                setIsOpen(false);
+              }}
+              className="p-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition"
+              title={isHindi ? "बंद करें" : "Dismiss"}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Student Banner */}
@@ -265,11 +286,27 @@ export default function DpdpOptInModal() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-slate-500 text-center sm:text-left">
-              {isHindi
-                ? "आप बाद में 'Consent Center' टैब से कभी भी वैकल्पिक सहमति बदल सकते हैं।"
-                : "You can modify optional consents anytime from the Consent Center."}
-            </p>
+            <div className="text-[11px] text-slate-500 text-center sm:text-left flex items-center gap-1.5 flex-wrap">
+              <span>
+                {isHindi
+                  ? "आप बाद में 'Consent Center' टैब से कभी भी वैकल्पिक सहमति बदल सकते हैं।"
+                  : "You can modify optional consents anytime from the Consent Center."}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    sessionStorage.setItem("dpdp_optin_done", "true");
+                  }
+                  setIsOpen(false);
+                  router.push("/portal/consent");
+                }}
+                className="text-indigo-400 hover:text-indigo-300 underline font-medium inline-flex items-center gap-0.5"
+              >
+                <span>{isHindi ? "सहमति केंद्र खोलें" : "Open Consent Center"}</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
 
             <button
               type="button"

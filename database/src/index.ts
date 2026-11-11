@@ -11,35 +11,98 @@ const globalForDb = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
-export function getPoolConfig(rawConnectionString?: string) {
+export function getPoolConfig(
+  rawConnectionString?: string,
+  options?: { isMigration?: boolean }
+) {
   const connectionString =
     rawConnectionString ??
     process.env["DATABASE_URL"] ??
     "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
-  const isLocalhost =
-    connectionString.includes("127.0.0.1") ||
-    connectionString.includes("localhost") ||
-    connectionString.includes("schoolmitra_dev");
-
   const isVercel = !!process.env["VERCEL"];
   const sslDisabled = process.env["DATABASE_SSL"] === "false";
 
-  // Require SSL if explicitly enabled, if URL specifies sslmode, or in production/Vercel on remote hosts (Neon, Supabase, RDS)
-  const isSslRequired =
-    !sslDisabled &&
-    (process.env["DATABASE_SSL"] === "true" ||
-      connectionString.includes("sslmode=require") ||
-      connectionString.includes("ssl=true") ||
-      (!isLocalhost && (process.env["NODE_ENV"] === "production" || isVercel)));
+  let isSslRequired = false;
+
+  if (!sslDisabled) {
+    if (process.env["DATABASE_SSL"] === "true") {
+      isSslRequired = true;
+    } else {
+      try {
+        const urlStr = connectionString
+          .replace(/^postgresql:\/\//i, "http://")
+          .replace(/^postgres:\/\//i, "http://");
+        const parsed = new URL(urlStr);
+        const sslMode = parsed.searchParams.get("sslmode");
+        const sslParam = parsed.searchParams.get("ssl");
+
+        if (sslMode === "disable" || sslParam === "false") {
+          isSslRequired = false;
+        } else if (
+          sslMode === "require" ||
+          sslMode === "verify-ca" ||
+          sslMode === "verify-full" ||
+          sslParam === "true"
+        ) {
+          isSslRequired = true;
+        } else {
+          const hostname = parsed.hostname.toLowerCase();
+          const isLocal =
+            hostname === "localhost" ||
+            hostname === "127.0.0.1" ||
+            hostname === "::1" ||
+            hostname.includes("schoolmitra_dev");
+
+          const isRenderInternal =
+            hostname.endsWith(".internal") ||
+            (hostname.startsWith("dpg-") && !hostname.includes(".render.com"));
+
+          if (isLocal || isRenderInternal) {
+            isSslRequired = false;
+          } else if (
+            isVercel ||
+            hostname.includes("neon.tech") ||
+            hostname.includes("supabase.co") ||
+            hostname.includes("rds.amazonaws.com") ||
+            hostname.includes(".render.com") ||
+            hostname.includes("cockroachlabs.cloud")
+          ) {
+            isSslRequired = true;
+          } else if (process.env["NODE_ENV"] === "production" && !process.env["RENDER"]) {
+            isSslRequired = true;
+          }
+        }
+      } catch {
+        const lower = connectionString.toLowerCase();
+        if (lower.includes("sslmode=disable") || lower.includes("ssl=false")) {
+          isSslRequired = false;
+        } else if (lower.includes("sslmode=require") || lower.includes("ssl=true")) {
+          isSslRequired = true;
+        } else if (
+          lower.includes("127.0.0.1") ||
+          lower.includes("localhost") ||
+          lower.includes(".internal") ||
+          (lower.includes("dpg-") && !lower.includes(".render.com"))
+        ) {
+          isSslRequired = false;
+        } else if (isVercel || lower.includes("neon.tech") || lower.includes("supabase.co")) {
+          isSslRequired = true;
+        }
+      }
+    }
+  }
+
+  const isMigration =
+    options?.isMigration || process.env["npm_lifecycle_event"]?.includes("migrate");
 
   return {
     connectionString,
     min: isVercel ? 0 : Number(process.env["DATABASE_POOL_MIN"] ?? 4),
     max: isVercel ? 5 : Number(process.env["DATABASE_POOL_MAX"] ?? 25),
     idleTimeoutMillis: isVercel ? 5000 : 30000,
-    connectionTimeoutMillis: 10000,
-    statement_timeout: 10000, // 10s statement timeout
+    connectionTimeoutMillis: 15000,
+    statement_timeout: isMigration ? 0 : 10000,
     ssl: isSslRequired ? { rejectUnauthorized: false } : undefined,
   };
 }

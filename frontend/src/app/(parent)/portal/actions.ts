@@ -491,15 +491,14 @@ export async function checkParentConsentStatus(): Promise<CheckParentConsentResu
       return { success: false, needsConsent: false };
     }
 
-    const parentUserId = session.user.id;
-    const isParentRole = session.user.role === "PARENT";
-    const isAdmin = ["ADMIN", "SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(session.user.role);
-
-    // If role is neither parent nor admin, no parent consent modal needed
-    if (!isParentRole && !isAdmin) {
+    // Role check: ONLY real parent users need to provide parental consent under DPDP Act 2023 Sec 9.
+    // Administrators, school staff, and teachers previewing/managing the parent portal are NOT
+    // parents of the enrolled students and must never be blocked by or prompted for parental consent.
+    if (session.user.role !== "PARENT") {
       return { success: true, needsConsent: false };
     }
 
+    const parentUserId = session.user.id;
     const schoolId = (session.user as any).schoolId;
     if (!schoolId) {
       return { success: true, needsConsent: false, reason: "NO_SCHOOL_CONTEXT" };
@@ -582,16 +581,20 @@ export async function checkParentConsentStatus(): Promise<CheckParentConsentResu
       const studentsRequiringConsent = [];
 
       for (const student of myWards) {
+        // Query active consent records for this student in this school
         const records = await tx.query.consentRecords.findMany({
           where: and(
             eq(consentRecords.schoolId, schoolId),
             eq(consentRecords.studentId, student.id),
-            eq(consentRecords.parentUserId, parentUserId),
           ),
         });
 
+        // A mandatory purpose is satisfied if there is an active grant (not withdrawn)
+        // for this student in this school
         const grantedPurposes = new Set(
-          records.filter((r: any) => r.granted && !r.withdrawnAt).map((r: any) => r.purposeId)
+          records
+            .filter((r: any) => r.granted && !r.withdrawnAt)
+            .map((r: any) => r.purposeId)
         );
 
         const hasAllMandatory = mandatoryPurposes.every((mp: any) => grantedPurposes.has(mp.purposeId));
@@ -665,7 +668,14 @@ export async function submitParentLoginConsent(input: {
             ),
           });
           if (!familyLink) {
-            continue;
+            if (!student.primaryParentUserId) {
+              await tx
+                .update(students)
+                .set({ primaryParentUserId: parentUserId })
+                .where(eq(students.id, student.id));
+            } else {
+              continue;
+            }
           }
         }
 

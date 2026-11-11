@@ -12,7 +12,7 @@ const migrationUrl =
   process.env["DATABASE_URL"] ??
   "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
-const pool = new Pool(getPoolConfig(migrationUrl));
+const pool = new Pool(getPoolConfig(migrationUrl, { isMigration: true }));
 
 const db = drizzle(pool);
 
