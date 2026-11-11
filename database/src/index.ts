@@ -36,19 +36,14 @@ export function getPoolConfig(
     const sslParam = parsed.searchParams.get("ssl");
 
     const hostname = parsed.hostname.toLowerCase();
+    // Only truly SSL-free: local dev and explicit opt-out
     const isLocal =
       hostname === "localhost" ||
       hostname === "127.0.0.1" ||
       hostname === "::1" ||
       hostname.includes("schoolmitra_dev");
 
-    // Render internal connections: within Render private network, hosts are dpg-xxx (without .render.com) or end in .internal
-    const isRenderInternal =
-      hostname.endsWith(".internal") ||
-      (hostname.startsWith("dpg-") && !hostname.includes(".render.com")) ||
-      (isRender && !hostname.includes(".render.com") && !hostname.includes("neon.tech") && !hostname.includes("supabase.co") && !hostname.includes("amazonaws.com"));
-
-    if (sslDisabled || isLocal || isRenderInternal) {
+    if (sslDisabled || isLocal) {
       isSslRequired = false;
     } else if (process.env["DATABASE_SSL"] === "true") {
       isSslRequired = true;
@@ -56,6 +51,9 @@ export function getPoolConfig(
       isSslRequired = false;
     } else if (
       isVercel ||
+      isRender ||
+      hostname.startsWith("dpg-") ||
+      hostname.endsWith(".internal") ||
       hostname.includes("neon.tech") ||
       hostname.includes("supabase.co") ||
       hostname.includes("rds.amazonaws.com") ||
@@ -67,7 +65,7 @@ export function getPoolConfig(
       sslParam === "true"
     ) {
       isSslRequired = true;
-    } else if (process.env["NODE_ENV"] === "production" && !isRender) {
+    } else if (process.env["NODE_ENV"] === "production") {
       isSslRequired = true;
     }
 
@@ -80,23 +78,26 @@ export function getPoolConfig(
     cleanConnectionString = originalScheme + parsed.toString().slice("http:".length).replace(/\?$/, "");
   } catch {
     const lower = connectionString.toLowerCase();
+    // Only truly SSL-free: local dev and explicit opt-out
     if (
       sslDisabled ||
       lower.includes("127.0.0.1") ||
-      lower.includes("localhost") ||
-      lower.includes(".internal") ||
-      (lower.includes("dpg-") && !lower.includes(".render.com")) ||
-      (isRender && !lower.includes(".render.com") && !lower.includes("neon.tech"))
+      lower.includes("localhost")
     ) {
       isSslRequired = false;
     } else if (
       process.env["DATABASE_SSL"] === "true" ||
       isVercel ||
+      isRender ||
+      lower.includes("dpg-") ||
+      lower.includes(".internal") ||
       lower.includes("neon.tech") ||
       lower.includes("supabase.co") ||
       lower.includes("rds.amazonaws.com") ||
       lower.includes(".render.com")
     ) {
+      isSslRequired = true;
+    } else if (process.env["NODE_ENV"] === "production") {
       isSslRequired = true;
     }
 

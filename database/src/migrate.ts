@@ -13,8 +13,8 @@ const migrationUrl =
   "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
 const poolConfig = getPoolConfig(migrationUrl, { isMigration: true });
-let activePool = new Pool(poolConfig);
-let activeDb = drizzle(activePool);
+const activePool = new Pool(poolConfig);
+const activeDb = drizzle(activePool);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,30 +85,6 @@ async function main() {
   const migrationsFolder = path.resolve(__dirname, "migrations");
   console.log(`Using migrations folder: ${migrationsFolder}`);
   console.log(`[Migrate] SSL enabled: ${Boolean(poolConfig.ssl)}`);
-
-  // Probe connection and automatically fallback between SSL / non-SSL if needed
-  try {
-    await activePool.query("SELECT 1");
-  } catch (probeErr: any) {
-    const msg = probeErr?.message || String(probeErr);
-    if (
-      msg.includes("Connection terminated") ||
-      msg.includes("SSL") ||
-      msg.includes("ECONNRESET") ||
-      msg.includes("certificate")
-    ) {
-      const toggledSsl = poolConfig.ssl ? false : { rejectUnauthorized: false };
-      console.warn(
-        `[Migrate] Connection probe failed (${msg}). Retrying with SSL=${Boolean(toggledSsl)}...`
-      );
-      await activePool.end().catch(() => {});
-      activePool = new Pool({ ...poolConfig, ssl: toggledSsl });
-      activeDb = drizzle(activePool);
-      await activePool.query("SELECT 1");
-    } else {
-      throw probeErr;
-    }
-  }
 
   await sanitizeMigrationHistory(activePool);
 
