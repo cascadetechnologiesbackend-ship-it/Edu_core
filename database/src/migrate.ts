@@ -12,9 +12,9 @@ const migrationUrl =
   process.env["DATABASE_URL"] ??
   "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
-const pool = new Pool(getPoolConfig(migrationUrl, { isMigration: true }));
-
-const db = drizzle(pool);
+const poolConfig = getPoolConfig(migrationUrl, { isMigration: true });
+let activePool = new Pool(poolConfig);
+let activeDb = drizzle(activePool);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,15 +84,40 @@ async function main() {
   console.log("Migration started");
   const migrationsFolder = path.resolve(__dirname, "migrations");
   console.log(`Using migrations folder: ${migrationsFolder}`);
+  console.log(`[Migrate] SSL enabled: ${Boolean(poolConfig.ssl)}`);
 
-  await sanitizeMigrationHistory(pool);
+  // Probe connection and automatically fallback between SSL / non-SSL if needed
+  try {
+    await activePool.query("SELECT 1");
+  } catch (probeErr: any) {
+    const msg = probeErr?.message || String(probeErr);
+    if (
+      msg.includes("Connection terminated") ||
+      msg.includes("SSL") ||
+      msg.includes("ECONNRESET") ||
+      msg.includes("certificate")
+    ) {
+      const toggledSsl = poolConfig.ssl ? false : { rejectUnauthorized: false };
+      console.warn(
+        `[Migrate] Connection probe failed (${msg}). Retrying with SSL=${Boolean(toggledSsl)}...`
+      );
+      await activePool.end().catch(() => {});
+      activePool = new Pool({ ...poolConfig, ssl: toggledSsl });
+      activeDb = drizzle(activePool);
+      await activePool.query("SELECT 1");
+    } else {
+      throw probeErr;
+    }
+  }
+
+  await sanitizeMigrationHistory(activePool);
 
   // S6-T1 / S7-T1: Production credential closure and APP_DB_PASSWORD enforcement
   const appDbPassword = process.env["APP_DB_PASSWORD"];
   const isProduction = process.env["NODE_ENV"] === "production";
 
   if (isProduction) {
-    const roleCheck = await pool.query(`
+    const roleCheck = await activePool.query(`
       SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'schoolmitra_app_login') AS exists;
     `);
     const roleExists = Boolean(roleCheck.rows[0]?.exists);
@@ -105,21 +130,21 @@ async function main() {
   }
 
   if (appDbPassword) {
-    await pool.query(`SELECT set_config('app.app_db_password', $1, false)`, [appDbPassword]);
+    await activePool.query(`SELECT set_config('app.app_db_password', $1, false)`, [appDbPassword]);
     console.log("[Migrate] Injected APP_DB_PASSWORD into migration session context.");
   }
 
-  await migrate(db, { migrationsFolder });
+  await migrate(activeDb, { migrationsFolder });
   console.log("Migration completed");
 
   // S7-T1: In production, enforce NOLOGIN on schoolmitra_app_login to close the credential surface.
   // The application connection pool connects as the owner role and sets session role to schoolmitra_app.
   if (isProduction) {
-    const roleExists = (await pool.query(
+    const roleExists = (await activePool.query(
       `SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'schoolmitra_app_login') AS exists;`
     )).rows[0]?.exists;
     if (roleExists) {
-      await pool.query(`ALTER ROLE schoolmitra_app_login NOLOGIN;`);
+      await activePool.query(`ALTER ROLE schoolmitra_app_login NOLOGIN;`);
       console.log("[Migrate] S7-T1: Hardened production - altered role schoolmitra_app_login to NOLOGIN.");
     }
   }
@@ -131,7 +156,7 @@ async function main() {
     console.error("Warning: Failed to ensure super admin during migration:", seedErr);
   }
 
-  await pool.end();
+  await activePool.end();
   process.exit(0);
 }
 

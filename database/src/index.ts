@@ -21,89 +21,103 @@ export function getPoolConfig(
     "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp";
 
   const isVercel = !!process.env["VERCEL"];
+  const isRender = !!process.env["RENDER"];
   const sslDisabled = process.env["DATABASE_SSL"] === "false";
 
   let isSslRequired = false;
+  let cleanConnectionString = connectionString;
 
-  if (!sslDisabled) {
-    if (process.env["DATABASE_SSL"] === "true") {
+  try {
+    const urlStr = connectionString
+      .replace(/^postgresql:\/\//i, "http://")
+      .replace(/^postgres:\/\//i, "http://");
+    const parsed = new URL(urlStr);
+    const sslMode = parsed.searchParams.get("sslmode");
+    const sslParam = parsed.searchParams.get("ssl");
+
+    const hostname = parsed.hostname.toLowerCase();
+    const isLocal =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1" ||
+      hostname.includes("schoolmitra_dev");
+
+    // Render internal connections: within Render private network, hosts are dpg-xxx (without .render.com) or end in .internal
+    const isRenderInternal =
+      hostname.endsWith(".internal") ||
+      (hostname.startsWith("dpg-") && !hostname.includes(".render.com")) ||
+      (isRender && !hostname.includes(".render.com") && !hostname.includes("neon.tech") && !hostname.includes("supabase.co") && !hostname.includes("amazonaws.com"));
+
+    if (sslDisabled || isLocal || isRenderInternal) {
+      isSslRequired = false;
+    } else if (process.env["DATABASE_SSL"] === "true") {
       isSslRequired = true;
-    } else {
-      try {
-        const urlStr = connectionString
-          .replace(/^postgresql:\/\//i, "http://")
-          .replace(/^postgres:\/\//i, "http://");
-        const parsed = new URL(urlStr);
-        const sslMode = parsed.searchParams.get("sslmode");
-        const sslParam = parsed.searchParams.get("ssl");
-
-        if (sslMode === "disable" || sslParam === "false") {
-          isSslRequired = false;
-        } else if (
-          sslMode === "require" ||
-          sslMode === "verify-ca" ||
-          sslMode === "verify-full" ||
-          sslParam === "true"
-        ) {
-          isSslRequired = true;
-        } else {
-          const hostname = parsed.hostname.toLowerCase();
-          const isLocal =
-            hostname === "localhost" ||
-            hostname === "127.0.0.1" ||
-            hostname === "::1" ||
-            hostname.includes("schoolmitra_dev");
-
-          const isRenderInternal =
-            hostname.endsWith(".internal") ||
-            (hostname.startsWith("dpg-") && !hostname.includes(".render.com"));
-
-          if (isLocal || isRenderInternal) {
-            isSslRequired = false;
-          } else if (
-            isVercel ||
-            hostname.includes("neon.tech") ||
-            hostname.includes("supabase.co") ||
-            hostname.includes("rds.amazonaws.com") ||
-            hostname.includes(".render.com") ||
-            hostname.includes("cockroachlabs.cloud")
-          ) {
-            isSslRequired = true;
-          } else if (process.env["NODE_ENV"] === "production" && !process.env["RENDER"]) {
-            isSslRequired = true;
-          }
-        }
-      } catch {
-        const lower = connectionString.toLowerCase();
-        if (lower.includes("sslmode=disable") || lower.includes("ssl=false")) {
-          isSslRequired = false;
-        } else if (lower.includes("sslmode=require") || lower.includes("ssl=true")) {
-          isSslRequired = true;
-        } else if (
-          lower.includes("127.0.0.1") ||
-          lower.includes("localhost") ||
-          lower.includes(".internal") ||
-          (lower.includes("dpg-") && !lower.includes(".render.com"))
-        ) {
-          isSslRequired = false;
-        } else if (isVercel || lower.includes("neon.tech") || lower.includes("supabase.co")) {
-          isSslRequired = true;
-        }
-      }
+    } else if (sslMode === "disable" || sslParam === "false") {
+      isSslRequired = false;
+    } else if (
+      isVercel ||
+      hostname.includes("neon.tech") ||
+      hostname.includes("supabase.co") ||
+      hostname.includes("rds.amazonaws.com") ||
+      hostname.includes(".render.com") ||
+      hostname.includes("cockroachlabs.cloud") ||
+      sslMode === "require" ||
+      sslMode === "verify-ca" ||
+      sslMode === "verify-full" ||
+      sslParam === "true"
+    ) {
+      isSslRequired = true;
+    } else if (process.env["NODE_ENV"] === "production" && !isRender) {
+      isSslRequired = true;
     }
+
+    // Strip sslmode and ssl query params so pg-connection-string does not override our ssl config or trigger deprecation warnings
+    parsed.searchParams.delete("sslmode");
+    parsed.searchParams.delete("ssl");
+    parsed.searchParams.delete("uselibpqcompat");
+
+    const originalScheme = connectionString.startsWith("postgresql:") ? "postgresql:" : "postgres:";
+    cleanConnectionString = originalScheme + parsed.toString().slice("http:".length).replace(/\?$/, "");
+  } catch {
+    const lower = connectionString.toLowerCase();
+    if (
+      sslDisabled ||
+      lower.includes("127.0.0.1") ||
+      lower.includes("localhost") ||
+      lower.includes(".internal") ||
+      (lower.includes("dpg-") && !lower.includes(".render.com")) ||
+      (isRender && !lower.includes(".render.com") && !lower.includes("neon.tech"))
+    ) {
+      isSslRequired = false;
+    } else if (
+      process.env["DATABASE_SSL"] === "true" ||
+      isVercel ||
+      lower.includes("neon.tech") ||
+      lower.includes("supabase.co") ||
+      lower.includes("rds.amazonaws.com") ||
+      lower.includes(".render.com")
+    ) {
+      isSslRequired = true;
+    }
+
+    cleanConnectionString = connectionString
+      .replace(/[?&]sslmode=[^&]+/gi, "")
+      .replace(/[?&]ssl=[^&]+/gi, "")
+      .replace(/[?&]uselibpqcompat=[^&]+/gi, "")
+      .replace(/\?$/, "");
   }
 
   const isMigration =
     options?.isMigration || process.env["npm_lifecycle_event"]?.includes("migrate");
 
   return {
-    connectionString,
+    connectionString: cleanConnectionString,
     min: isVercel ? 0 : Number(process.env["DATABASE_POOL_MIN"] ?? 4),
     max: isVercel ? 5 : Number(process.env["DATABASE_POOL_MAX"] ?? 25),
     idleTimeoutMillis: isVercel ? 5000 : 30000,
     connectionTimeoutMillis: 15000,
     statement_timeout: isMigration ? 0 : 10000,
-    ssl: isSslRequired ? { rejectUnauthorized: false } : undefined,
+    ssl: isSslRequired ? { rejectUnauthorized: false } : false,
   };
 }
 
