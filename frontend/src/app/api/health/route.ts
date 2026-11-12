@@ -7,7 +7,22 @@ export const dynamic = "force-dynamic";
 
 const startTime = Date.now();
 
-export async function GET() {
+function sanitizeDiagnosticError(raw: string | null): string | null {
+  if (!raw) return null;
+  // Scrub any embedded URI credentials or secrets before returning diagnostics
+  return raw.replace(/([a-z]+:\/\/)([^:\s@]+):([^@\s]+)@/gi, "$1***:***@");
+}
+
+function isAuthorizedDiagnosticRequest(req?: Request): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  const cronSecret = process.env.CRON_SECRET;
+  const token = req?.headers.get("x-health-token");
+  return Boolean(cronSecret && token && token === cronSecret);
+}
+
+export async function GET(): Promise<NextResponse>;
+export async function GET(req: Request): Promise<NextResponse>;
+export async function GET(req?: Request) {
   const startedAt = Date.now();
   let dbStatus = "ok";
   let redisStatus = "ok";
@@ -56,22 +71,28 @@ export async function GET() {
     process.env.NEXT_PUBLIC_APP_VERSION ||
     "dev";
 
+  const includeDiagnostics = isAuthorizedDiagnosticRequest(req);
+  const safeDbError = includeDiagnostics
+    ? sanitizeDiagnosticError(dbError)
+    : "Database connectivity check failed";
+  const safeRedisNote = includeDiagnostics
+    ? sanitizeDiagnosticError(redisError)
+    : "Cache connectivity check degraded";
+
   // If Database fails, return 503
   if (dbStatus === "error") {
     return NextResponse.json(
       {
         status: "error",
         database: "error",
-        dbRole,
-        activeRole,
+        ...(includeDiagnostics ? { dbRole, activeRole, commit: commitSha } : {}),
         redis: redisStatus,
         valkey: redisStatus,
         version: process.env.NEXT_PUBLIC_APP_VERSION || "11.0.0",
-        commit: commitSha,
         uptime: uptimeSeconds,
         timestamp: new Date().toISOString(),
         durationMs,
-        error: dbError,
+        error: safeDbError,
       },
       { status: 503 },
     );
@@ -84,16 +105,14 @@ export async function GET() {
     {
       status: overallStatus,
       database: "ok",
-      dbRole,
-      activeRole,
+      ...(includeDiagnostics ? { dbRole, activeRole, commit: commitSha } : {}),
       redis: redisStatus,
       valkey: redisStatus,
       version: process.env.NEXT_PUBLIC_APP_VERSION || "11.0.0",
-      commit: commitSha,
       uptime: uptimeSeconds,
       timestamp: new Date().toISOString(),
       durationMs,
-      ...(redisError ? { redisNote: redisError, valkeyNote: redisError } : {}),
+      ...(redisError ? { redisNote: safeRedisNote, valkeyNote: safeRedisNote } : {}),
     },
     { status: 200 },
   );

@@ -37,6 +37,7 @@ const ONBOARDING_STEPS = [
 
 function OnboardingWizardContent() {
   const {
+    mode,
     activeStep,
     setActiveStep,
     loading,
@@ -62,11 +63,12 @@ function OnboardingWizardContent() {
         setSuccessResult({
           message: result.message,
           email: (result as any).adminEmail || payload.adminEmail,
+          schoolId: (result as any).schoolId,
         });
         setActiveStep(8);
 
-        // Auto-signIn with created admin credentials for seamless auto-handoff to /admin/day-one
-        if (payload.adminEmail && payload.adminPassword) {
+        // Auto-signIn with created admin credentials ONLY for public self-service onboarding
+        if (mode !== "superadmin" && payload.adminEmail && payload.adminPassword) {
           try {
             await signIn("credentials", {
               email: payload.adminEmail,
@@ -87,30 +89,55 @@ function OnboardingWizardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-primary selection:text-white">
+    <div className={mode === "superadmin" ? "text-slate-100 font-sans flex flex-col selection:bg-primary selection:text-white space-y-4" : "min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-primary selection:text-white"}>
       {/* ── Top Bar ────────────────────────────────────────────────────────── */}
-      <header className="h-16 border-b border-slate-800/80 bg-slate-900/60 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <GraduationCap className="w-5 h-5 text-white" />
+      {mode !== "superadmin" ? (
+        <header className="h-16 border-b border-slate-800/80 bg-slate-900/60 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <GraduationCap className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <span className="text-base sm:text-lg font-black tracking-tight text-white">
+                SchoolMitra ERP
+              </span>
+              <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                Tenant Onboarding
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-base sm:text-lg font-black tracking-tight text-white">
-              SchoolMitra ERP
-            </span>
-            <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-              Tenant Onboarding
-            </span>
-          </div>
-        </div>
 
-        <Link
-          href="/login"
-          className="text-xs font-bold text-slate-400 hover:text-white transition"
-        >
-          Sign in to existing school →
-        </Link>
-      </header>
+          <Link
+            href="/login"
+            className="text-xs font-bold text-slate-400 hover:text-white transition"
+          >
+            Sign in to existing school →
+          </Link>
+        </header>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                Super Admin Provisioning
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
+              Provision New School Instance
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Unified multi-tenant school onboarding wizard with statutory board matrix, fee structures, and credentials.
+            </p>
+          </div>
+
+          <Link
+            href="/super-admin/schools"
+            className="self-start sm:self-auto text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800"
+          >
+            ← Back to Schools Directory
+          </Link>
+        </div>
+      )}
 
       {/* ── Main Container ─────────────────────────────────────────────────── */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-8 space-y-6">
@@ -173,10 +200,16 @@ function OnboardingWizardContent() {
   );
 }
 
-export default function DedicatedSchoolOnboardingWizard() {
+export function DedicatedSchoolOnboardingWizard({
+  mode = "public",
+}: {
+  mode?: "public" | "superadmin";
+}) {
   return (
-    <OnboardingProvider>
+    <OnboardingProvider mode={mode}>
       <OnboardingWizardContent />
     </OnboardingProvider>
   );
 }
+
+export default DedicatedSchoolOnboardingWizard;

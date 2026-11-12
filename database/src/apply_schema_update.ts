@@ -1,11 +1,15 @@
-import "dotenv/config";
 import { Pool } from "pg";
+import {
+  createPoolConfig,
+  getMigrationDatabaseUrl,
+  loadLocalEnvFiles,
+} from "./neonEnv";
 
-const pool = new Pool({
-  connectionString:
-    process.env["DATABASE_URL"] ??
-    "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
-});
+loadLocalEnvFiles();
+
+const pool = new Pool(
+  createPoolConfig(getMigrationDatabaseUrl(), { isMigration: true }),
+);
 
 async function main() {
   console.log("Applying schema updates...");

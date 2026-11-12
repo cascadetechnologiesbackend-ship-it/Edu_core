@@ -1,17 +1,20 @@
-import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import path from "path";
 import { fileURLToPath } from "url";
 import { ensureSuperAdmin } from "./manage_super_admin";
+import {
+  createPoolConfig,
+  getMigrationDatabaseUrl,
+  loadLocalEnvFiles,
+} from "./neonEnv";
 
-const pool = new Pool({
-  connectionString:
-    process.env["MIGRATION_DATABASE_URL"] ??
-    process.env["DATABASE_URL"] ??
-    "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
-});
+loadLocalEnvFiles();
+
+const pool = new Pool(
+  createPoolConfig(getMigrationDatabaseUrl(), { isMigration: true }),
+);
 
 const db = drizzle(pool);
 

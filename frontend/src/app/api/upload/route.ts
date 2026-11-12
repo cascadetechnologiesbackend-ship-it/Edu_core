@@ -4,6 +4,23 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+const ALLOWED_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".pdf",
+  ".csv",
+  ".xlsx",
+  ".docx",
+  ".txt",
+]);
+
+function isPermittedFileExtension(nameOrKey: string): boolean {
+  const ext = path.extname(nameOrKey).toLowerCase();
+  return ALLOWED_EXTENSIONS.has(ext);
+}
+
 export async function POST(req: Request) {
   try {
     // Only allow authenticated users to generate upload URLs
@@ -25,6 +42,13 @@ export async function POST(req: Request) {
     if (!filename || !contentType) {
       return NextResponse.json(
         { success: false, message: "Missing filename or contentType" },
+        { status: 400 }
+      );
+    }
+
+    if (!isPermittedFileExtension(filename)) {
+      return NextResponse.json(
+        { success: false, message: "File type not permitted" },
         { status: 400 }
       );
     }
@@ -77,19 +101,7 @@ export async function PUT(req: Request) {
     }
 
     // Extension whitelisting - reject executable and script formats
-    const ext = path.extname(key).toLowerCase();
-    const ALLOWED_EXTENSIONS = new Set([
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".webp",
-      ".pdf",
-      ".csv",
-      ".xlsx",
-      ".docx",
-      ".txt",
-    ]);
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
+    if (!isPermittedFileExtension(key)) {
       return NextResponse.json(
         { success: false, message: "File type not permitted" },
         { status: 400 }

@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { decryptData } from "@/lib/encryption";
 import { getClientRequestContext } from "@/lib/requestContext";
 import { getStudentAdvanceBalance } from "@/lib/advanceFeesEngine";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { CheckoutButton } from "./CheckoutButton";
 import Link from "next/link";
 import {
@@ -236,7 +237,7 @@ export default async function ParentFeesPage({
               </h3>
               <div
                 className="text-xs text-slate-300 prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: welcomeNotice.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(welcomeNotice.content) }}
               />
             </div>
           </div>

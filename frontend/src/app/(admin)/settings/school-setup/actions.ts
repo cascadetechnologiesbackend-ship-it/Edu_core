@@ -246,7 +246,12 @@ export async function setupSchool(data: z.infer<typeof wizardSchema>) {
         deletedAt: null,
         updatedAt: new Date(),
       })
-      .where(eq(academicYears.id, existingYear.id));
+      .where(
+        and(
+          eq(academicYears.id, existingYear.id),
+          eq(academicYears.schoolId, school.id)
+        )
+      );
   } else {
     await db.insert(academicYears).values({
       schoolId: school.id,

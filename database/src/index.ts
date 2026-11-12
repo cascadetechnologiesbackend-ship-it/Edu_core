@@ -4,6 +4,7 @@ import { sql, eq } from "drizzle-orm";
 import * as schema from "./schema";
 import fs from "fs";
 import path from "path";
+import { createPoolConfig, getAppDatabaseUrl } from "./neonEnv";
 
 // ─── Connection Pool ──────────────────────────────────────────────────────────
 
@@ -13,16 +14,7 @@ const globalForDb = globalThis as unknown as {
 
 const pool =
   globalForDb.pool ??
-  new Pool({
-    connectionString:
-      process.env["DATABASE_URL"] ??
-      "postgresql://schoolmitra:schoolmitra_dev@127.0.0.1:5444/schoolmitra_erp",
-    min: Number(process.env["DATABASE_POOL_MIN"] ?? 4),
-    max: Number(process.env["DATABASE_POOL_MAX"] ?? 25),
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-    statement_timeout: 2000, // 2s statement timeout for OLTP (PF-R100). Analytical reports and background workers override up to 30s.
-  });
+  new Pool(createPoolConfig(getAppDatabaseUrl()));
 
 if (process.env["NODE_ENV"] !== "production") {
   globalForDb.pool = pool;

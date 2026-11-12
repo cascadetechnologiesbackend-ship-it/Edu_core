@@ -13,11 +13,10 @@ import {
   emitDayOneJourneyFinishedIfReady,
   type ReadinessCheckItem,
 } from "@/lib/dayOneReadiness";
-import {
-  OnboardingMetricBadge,
-  OnboardingMetricServerBadge,
-} from "@/components/telemetry/OnboardingMetricBadge";
+import { OnboardingMetricBadge, OnboardingMetricServerBadge } from "@/components/telemetry/OnboardingMetricBadge";
 import { getNorthStarMetricsSummary } from "@/lib/northStarTelemetry";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 import {
   CheckCircle2,
   Clock,
@@ -156,13 +155,17 @@ export default async function DayOneCockpitPage({
         </div>
 
         {/* Readout: Onboarding North Star Metric Badge (Law: A metric without a readout is a lie) */}
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-3">
+          <TutorialLauncherButton label="Tutorial Guide" />
           <OnboardingMetricBadge
             summary={northStarSummary?.onboardingDays}
             variant="card"
           />
         </div>
       </div>
+
+      {/* Feature Setup Tutorial Flashcards */}
+      <FeatureTutorialFlashCards initialOpen={isWelcome} />
 
       {/* ── Progress Strip ─────────────────────────────────────────────────── */}
       <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3">

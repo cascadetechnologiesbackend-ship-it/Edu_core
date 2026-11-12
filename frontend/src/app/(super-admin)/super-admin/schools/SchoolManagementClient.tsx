@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
+import Link from "next/link";
 import {
   Building2,
   Plus,
@@ -27,7 +28,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  createSchoolAction,
   updateSchoolAction,
   deleteSchoolAction,
   toggleSchoolStatusAction,
@@ -69,7 +69,6 @@ export function SchoolManagementClient({ initialSchools }: Props) {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   // Modal states
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<SchoolItem | null>(null);
   const [deletingSchool, setDeletingSchool] = useState<SchoolItem | null>(null);
   const [provisioningSchool, setProvisioningSchool] = useState<SchoolItem | null>(null);
@@ -111,13 +110,13 @@ export function SchoolManagementClient({ initialSchools }: Props) {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsCreateOpen(true)}
+        <Link
+          href="/super-admin/schools/provision"
           className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25 active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>Provision New School</span>
-        </button>
+        </Link>
       </div>
 
       {/* Filter / Search Bar */}
@@ -590,25 +589,6 @@ export function SchoolManagementClient({ initialSchools }: Props) {
           })
         )}
       </div>
-
-      {/* CREATE MODAL */}
-      {isCreateOpen && (
-        <SchoolFormModal
-          title="Provision New School Instance"
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSubmit={async (formData) => {
-            const res = await createSchoolAction(formData);
-            if (res.success && res.school) {
-              setSchoolsList((prev) => [res.school as SchoolItem, ...prev]);
-              toast.success(`School "${res.school.name}" created successfully!`);
-              setIsCreateOpen(false);
-            } else {
-              toast.error(res.error || "Failed to create school");
-            }
-          }}
-        />
-      )}
 
       {/* EDIT MODAL */}
       {editingSchool && (

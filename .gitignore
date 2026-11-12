@@ -67,3 +67,4 @@ docs/retrieved_chat_history*
 artifacts/
 .agents/teamwork/
 RELEASE_NOTES.md
+.neon

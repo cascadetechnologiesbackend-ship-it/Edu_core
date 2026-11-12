@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 export interface NoticeDetailModalProps {
   open: boolean;
@@ -142,7 +143,7 @@ export function NoticeDetailModal({
         {/* Notice Content (sanitized text/html) */}
         <div
           className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap text-sm"
-          dangerouslySetInnerHTML={{ __html: notice.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(notice.content) }}
         />
 
         {/* Attachment */}
