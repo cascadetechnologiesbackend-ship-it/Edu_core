@@ -1,0 +1,286 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "role_tour_flashcards",
+  "version": "1.0.0",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "journey_spec",
+  "governing_charter": "docs/product-destination-charter.json",
+  "spec_role": "Extends the landed tutorial flashcards from a single 7-card admin deck into a role-aware, two-level guided tour: every role gets a deck of its real modules first, then each module drills into its real sub-modules, with skip tour at every level, resume where left off, and a completion state. Grounds the tour in the actual route trees and route guards so no card can advertise a module that does not exist or a link the role cannot open.",
+  "predecessor_specs": [
+    {
+      "spec_id": "product_destination",
+      "version": "1.0",
+      "status": "landed; governing charter"
+    },
+    {
+      "spec_id": "J10_school_onboarding",
+      "version": "1.0.0",
+      "status": "D1 telemetry and Day One Cockpit landed (northStarTelemetry, OnboardingMetricBadge, onboarding clock visible on admin dashboard)"
+    },
+    {
+      "spec_id": "unified_provisioning_flashcards_v0",
+      "version": "0",
+      "status": "landed in commit a0d5b9fb (feat(onboarding,super-admin): unify school provisioning and add tutorial flashcards), release v11.42.x; this spec supersedes its single-deck tutorial design"
+    }
+  ],
+  "north_star": {
+    "destination_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "charter_phase": "D1 (onboarding journey completion) feeding D2 (persona journey loops)",
+    "journeys_advanced": [
+      "J10_school_onboarding"
+    ],
+    "target_metrics_moved": [
+      {
+        "metric": "journey_completion_rate",
+        "definition_source": "docs/product/metrics.md",
+        "target": "95%+ of started journeys reach their finished state",
+        "expected_delta": "The tour itself becomes an instrumented journey with started / completed / skipped telemetry; first-session orientation stops being a dead end for the ten roles that currently have no tour at all"
+      }
+    ],
+    "metric_rule": "Tour events are plain usage events carrying journey id and role, first-party, tenant-isolated, zero PII. They are NOT north_star events; the six north-star event definitions in docs/product/metrics.md are untouched. A tour completion is not a business outcome and must never be presented as one."
+  },
+  "intent": "The first flashcard cut landed for one role only: seven module cards on the school admin dashboard, dismissed once via localStorage, no sub-modules, no skip progress, no completion state, and nothing for the other ten roles. The user's requirement is a real guided tour: modules first, then sub-modules, skippable at every level, for every role. The defect class this spec prevents is the series' recurring fabricated-truth class applied to tours: a card that describes a module that does not exist, links to a route the role cannot open, or claims progress that was not earned. The tour engine therefore derives its content from the codebase's real route trees, verifies every card target against the role's route guards in an automated test, and treats the route tree as the single source of truth for what the tour may claim. The tour is part of J10: a school where the office admin, teachers, accountant, and principal each finish their first session knowing where their jobs live is a school that reaches Day One readiness faster and stays.",
+  "grounding_audit": {
+    "verified_at_head": "d2fe3894, release v11.42.6, verified 2026-11-12",
+    "verified_facts": [
+      "frontend/src/components/onboarding/FeatureTutorialFlashCards.tsx exists: exports TutorialCardItem interface and a hardcoded TUTORIAL_FLASH_CARDS array of 7 admin module cards (day-one-cockpit, admissions-enrolment, academics-timetable, fee-structures, staff-faculty, daily-attendance, examinations-reports), each with tag, title, summary, whatItIs, whyItMatters, ctaText, ctaHref, icon, colors.",
+      "Current behavior: single-level carousel, wrap-around next/prev, dismissal via localStorage key 'schoolmitra_tutorial_flashcards_dismissed', re-open via window CustomEvent 'open-tutorial-flashcards', data-testid 'feature-tutorial-flashcards'. No per-role decks, no sub-module level, no skip-progress, no completion state, no resume.",
+      "frontend/src/components/onboarding/TutorialLauncherButton.tsx exists: dispatches the 'open-tutorial-flashcards' CustomEvent; label prop defaults to 'Quick Tutorial'.",
+      "Mount points today: frontend/src/app/(admin)/dashboard/page.tsx renders both components; the Day One Cockpit page is the intended second mount.",
+      "Role apps and their real top-level route areas under frontend/src/app: (admin): academics, admin, admissions, attendance, communication, dpdp, exams, fees, hr, library, profile, school, settings, students, transport. (teacher): teacher/. (parent): parent/, portal/. (student): student/. (principal): principal/. (accountant): accountant/. (hr-manager): hr/. (librarian): librarian/. (transport-manager): transport/. (driver): driver/. (super-admin): super-admin/.",
+      "Route authorization is centralized: dashboard/page.tsx imports assertRouteAccess from '@/lib/routeGuards'; requireAuth/requireSchool from '@/lib/serverAuth'. A per-role route-truth test can therefore assert every card's ctaHref against the same guard the router uses.",
+      "North-star telemetry landed: '@/lib/northStarTelemetry' with getNorthStarMetricsSummary and '@/components/telemetry/OnboardingMetricBadge'; the admin dashboard shows the onboarding clock. Tour telemetry must reuse this first-party, tenant-scoped pattern, not invent a second pipeline.",
+      "Eleven role apps exist in total: school-admin, teacher, parent, student, principal, accountant, hr-manager, librarian, transport-manager, driver, super-admin."
+    ],
+    "honest_caveats": [
+      "Sub-module routes inside each role area (for example (teacher)/teacher/*, (parent)/parent/*) were not enumerated page by page at spec time. The L0 audit must walk every role's route directory and routeGuards source and produce the verified card matrix; this spec fixes the structure and the laws, not the card copy.",
+      "Some role apps are thin (driver, librarian, transport-manager). Their decks will be short. A short honest deck is correct; padding it with invented modules is the fabricated-truth defect and is prohibited.",
+      "localStorage is the existing persistence pattern for tour state. It is per-browser, not per-account; acceptable for tour state, and the spec keeps it while namespacing keys per role."
+    ]
+  },
+  "persona_jobs": [
+    {
+      "persona_id": "office_admin",
+      "job_name": "Learn where my daily jobs live before my first fee day",
+      "trigger": "First login after onboarding, or any later moment via the launcher button",
+      "steps": "See the module deck (16 real admin areas) -> enter a module -> see its real sub-modules with one-line jobs -> jump straight to any surface -> skip at any level -> resume where left off on return -> reach the tour-complete state",
+      "finished_state_message": "Tour complete. You know where admissions, fees, attendance, and exams live. Resume any time from Quick Tutorial.",
+      "walkthrough_verification": "Scripted first-login walkthrough: deck opens, module level renders 16 real areas, one module drill-down shows its real sub-modules, skip works at both levels, refresh resumes, completion state renders"
+    },
+    {
+      "persona_id": "teacher",
+      "job_name": "Find my day in one tour: attendance, homework, marks, leaves",
+      "trigger": "First login on the Teacher PWA",
+      "steps": "Open the teacher deck built from the real (teacher)/teacher/* route tree -> module cards for the teacher's actual surfaces -> drill into sub-modules -> skip -> resume",
+      "finished_state_message": "Tour complete. Mark attendance, post homework, and enter marks from your home surface.",
+      "walkthrough_verification": "Walkthrough as a teacher account: every card link opens successfully under the teacher role guard; no card advertises an admin-only surface"
+    },
+    {
+      "persona_id": "parent",
+      "job_name": "See what my child's app can do in under two minutes",
+      "trigger": "First login on the Parent PWA",
+      "steps": "Open the parent deck built from the real (parent) route tree -> modules for feed, homework, fees, documents, claims -> drill in -> skip -> resume",
+      "finished_state_message": "Tour complete. Attendance, fees, and homework for your child are one tap away.",
+      "walkthrough_verification": "Walkthrough as a parent account on the demo tenant: every card link opens under the parent guard; the deck never references school-admin surfaces"
+    },
+    {
+      "persona_id": "student",
+      "job_name": "Know where my homework, timetable, and marks live",
+      "trigger": "First login on the Student PWA",
+      "steps": "Open the student deck built from the real (student) route tree -> short module deck -> drill in -> skip -> resume",
+      "finished_state_message": "Tour complete. Today's homework and timetable are on your home screen.",
+      "walkthrough_verification": "Walkthrough as a student account on the demo tenant; every link opens under the student guard"
+    },
+    {
+      "persona_id": "accountant",
+      "job_name": "Learn the fee ledger surfaces before the first fee day",
+      "trigger": "First login on the accountant app",
+      "steps": "Open the accountant deck built from the real (accountant) route tree -> modules -> sub-modules -> skip -> resume",
+      "finished_state_message": "Tour complete. Fee collection, reconciliation, and the ledger are where you need them.",
+      "walkthrough_verification": "Walkthrough as an accountant account; every link opens under the accountant guard"
+    },
+    {
+      "persona_id": "principal",
+      "job_name": "See every lever I can pull without walking the corridors",
+      "trigger": "First login on the principal app",
+      "steps": "Open the principal deck built from the real (principal) route tree -> modules -> sub-modules -> skip -> resume",
+      "finished_state_message": "Tour complete. Approvals, oversight, and reports are one tap away.",
+      "walkthrough_verification": "Walkthrough as a principal account; every link opens under the principal guard"
+    }
+  ],
+  "scope_boundaries": {
+    "non_goals_confirmed": [
+      "No hardware, no edtech content, no LLMs in workflows, no new role apps, no price tiers, no WhatsApp"
+    ],
+    "out_of_scope_for_this_spec": [
+      "Changing the six north-star metric definitions or their emission; tour telemetry is plain usage events",
+      "Changing onboarding wizard steps or the unified super-admin provisioning flow landed in a0d5b9fb beyond mounting the super-admin deck",
+      "Video tutorials, tooltips-on-page, or spotlight overlays; this spec is flashcard decks only",
+      "Multi-language tour copy; English first, i18n later",
+      "Server-side tour progress sync; localStorage per role is the accepted store for now"
+    ],
+    "roles_in_scope": [
+      "school-admin",
+      "teacher",
+      "parent",
+      "student",
+      "principal",
+      "accountant",
+      "hr-manager",
+      "librarian",
+      "transport-manager",
+      "driver",
+      "super-admin"
+    ]
+  },
+  "tour_laws": {
+    "law_1_route_truth": "Every card's ctaHref must be a real route in the role's app directory and must pass that role's assertRouteAccess guard. An automated test walks every deck and fails the build on a dead or forbidden link. The route tree is the single source of truth for what a deck may claim.",
+    "law_2_no_fabricated_modules": "A deck contains only modules that exist in the code. A thin role gets a short deck. Padding with invented modules is the fabricated-truth defect class and is prohibited.",
+    "law_3_two_levels": "Level 1 is modules. Level 2 is the chosen module's real sub-modules. Navigation: module card offers 'See what's inside' to drill down, a breadcrumb returns to module level, and the level indicator always shows where the user is (Module 3 of 7 / Sub-module 2 of 5).",
+    "law_4_skip_everywhere": "A 'Skip tour' control is visible at every level and every card. Skipping ends the tour and marks it dismissed for that role. A 'Skip this module' control at module level jumps to the next module without forcing its sub-modules.",
+    "law_5_resume_and_complete": "Progress (current level, current module, current sub-module) persists per role in localStorage. Returning resumes where the user left, unless the tour was completed or dismissed. Reaching the last card renders a completion state with a 'Restart tour' action and the launcher button remains permanently available in the role's home header.",
+    "law_6_job_named_cards": "Every card's title names the job the surface does (charter BR1), its summary is one sentence a tired adult reads in five seconds, and 'what it is / why it matters' stays honest to what the surface actually does in code. Card copy is written from the L0 audit of the real pages, not from imagination.",
+    "law_7_one_engine": "One tour engine, one card schema, per-role deck definitions as data. No per-role copies of the component. The existing FeatureTutorialFlashCards shell is refactored into this engine, not forked."
+  },
+  "phases": [
+    {
+      "phase_id": "RT-L0",
+      "title": "Pre-flight: the verified role-route card matrix",
+      "tasks": [
+        "Walk every role app's route directory under frontend/src/app: (admin), (teacher), (parent), (student), (principal), (accountant), (hr-manager), (librarian), (transport-manager), (driver), (super-admin). Enumerate every page route.",
+        "Read frontend/src/lib/routeGuards.ts and record each route's allowed roles.",
+        "Read each significant page's H1 or primary heading to extract its real job for card copy. Where a page has no job-named heading, record it as a finding; do not fix pages in this spec beyond what the tour requires.",
+        "Produce docs/product/tour-card-matrix.md: per role, its modules, each module's sub-modules, each card's ctaHref, and one-line copy drafts. This matrix is the review artifact the operator approves before decks are written.",
+        "Record which roles get short decks honestly. No feature code in this layer."
+      ],
+      "walkthrough_verification": "The matrix document exists, covers all eleven roles, and every ctaHref in it resolves to a real page file in the repo"
+    },
+    {
+      "phase_id": "RT-L1",
+      "title": "Tour engine: role-aware, two-level, skippable, resumable",
+      "tasks": [
+        "Refactor FeatureTutorialFlashCards into a role-aware tour engine driven by deck data: TourDeck { role, modules:[{ id, tag, title, summary, whatItIs, whyItMatters, ctaHref, icon, subModules:[{ id, title, summary, ctaHref }] }] }. Keep the existing visual shell and data-testid.",
+        "Implement the two-level navigation per tour_laws law_3: module level, drill-down, breadcrumb back, level indicator.",
+        "Implement skip controls per law_4: Skip tour at every card and level; Skip this module at module level.",
+        "Implement resume and completion per law_5: per-role localStorage keys namespaced like 'schoolmitra_tour_{role}' holding { status: 'in_progress'|'completed'|'dismissed', level, moduleIndex, subIndex }; refresh resumes; completion state with Restart tour; the existing 'open-tutorial-flashcards' event pattern generalized to carry the role.",
+        "Generalize TutorialLauncherButton to accept a role and label; keep backward compatibility with the admin dashboard usage.",
+        "Emit tour usage events through the existing first-party telemetry pattern: tour_started, tour_completed, tour_skipped, carrying role and journey id J10, tenant-scoped, zero PII. These are usage events, not north_star events.",
+        "Automated tests: engine state transitions (start, drill, back, skip module, skip tour, resume, complete, restart), per-role key isolation, and event emission."
+      ],
+      "walkthrough_verification": "Engine walkthrough on the admin deck: full path to completion, then skip paths, then resume after refresh; all transitions asserted by test"
+    },
+    {
+      "phase_id": "RT-L2",
+      "title": "School admin deck: modules then sub-modules",
+      "tasks": [
+        "Convert the existing 7-card admin array into the new deck schema, preserving its honest copy, and extend the module set to the real admin areas from the L0 matrix (academics, admissions, attendance, communication, dpdp, exams, fees, hr, library, profile, school, settings, students, transport; dashboard and day-one cockpit are the host surfaces, not deck modules).",
+        "Add level 2: each module's real sub-modules from the matrix, each with one-line job copy and a working ctaHref.",
+        "Mount the engine on the admin dashboard (replacing the current component usage) and on the Day One Cockpit page with the launcher in both headers.",
+        "The Day One Cockpit card keeps its deep link and its position as module one; the onboarding clock badge is untouched."
+      ],
+      "walkthrough_verification": "Walkthrough as office_admin: module deck renders the real admin areas, every drill-down shows real sub-modules, every link opens, skip and resume behave per the laws"
+    },
+    {
+      "phase_id": "RT-L3",
+      "title": "Staff decks: teacher, principal, accountant, hr-manager, librarian, transport-manager, driver",
+      "tasks": [
+        "Author per-role deck data from the L0 matrix for the seven staff roles. Honest deck lengths: teacher and principal get full decks of their real modules with sub-modules; accountant, hr-manager, librarian, transport-manager get decks sized to their real surface count; driver gets a short deck covering exactly what the driver app does.",
+        "Mount the engine and launcher on each role's home surface.",
+        "Every card copy follows law_6: job-named title, five-second summary, honest what/why.",
+        "No staff deck may link to a surface its role cannot open; the route-truth test in RT-L6 enforces this."
+      ],
+      "walkthrough_verification": "One walkthrough per role account on the demo tenant: deck opens on first login, links all open under that role's guard, skip and resume work"
+    },
+    {
+      "phase_id": "RT-L4",
+      "title": "Family decks: parent and student",
+      "tasks": [
+        "Author the parent deck from the real (parent) and (parent)/portal route trees: feed, homework, fees and payments, documents, claims, settings as the matrix dictates. Copy tone for a parent with ninety seconds at a tea break.",
+        "Author the student deck from the real (student) route tree: home feed, homework submission, timetable, marks, attendance, omnibox as the matrix dictates.",
+        "Mount engine and launcher on each role's home surface; respect the existing offline queue and PWA shell patterns; decks must render and be skippable offline.",
+        "Both decks must not reference school-admin concepts; they speak to the family, not the office."
+      ],
+      "walkthrough_verification": "Walkthrough as parent and as student on the demo tenant; deck works on a mobile viewport and in an offline state; skip persists"
+    },
+    {
+      "phase_id": "RT-L5",
+      "title": "Super-admin deck and provisioning handoff",
+      "tasks": [
+        "Author the super-admin deck from the real (super-admin) route tree: school directory and unified provisioning, impersonation, telemetry and delivery-health surfaces, DPDP and compliance surfaces as the matrix dictates.",
+        "Mount engine and launcher on the super-admin home surface.",
+        "After unified provisioning completes in super-admin mode, the completion view offers 'Open tour for this school's admin' guidance text so the handover moment points the operator at the new school's Day One tour; no session changes, text and link only."
+      ],
+      "walkthrough_verification": "Walkthrough as super_admin: deck opens, provisioning completion view shows the tour handoff text, impersonation and directory links all open"
+    },
+    {
+      "phase_id": "RT-L6",
+      "title": "Route-truth test and telemetry verification",
+      "tasks": [
+        "Automated route-truth test: for every role deck, assert every module and sub-module ctaHref corresponds to an existing page file and passes that role's assertRouteAccess. This test is the law_1 and law_2 enforcement and runs in CI with the existing test suite.",
+        "Telemetry verification: tour_started, tour_completed, tour_skipped events land tenant-scoped with role and journey id; readout or log verification per the repo's existing telemetry test patterns; assert no north_star event definitions were touched.",
+        "Accessibility and viewport pass: keyboard navigation through the deck, focus management on open/close, reduced-motion respect, mobile and desktop viewports for all decks."
+      ],
+      "walkthrough_verification": "CI green including the new route-truth test; a deliberately broken ctaHref in a scratch commit is proven to fail the test, then reverted"
+    },
+    {
+      "phase_id": "RT-L7",
+      "title": "Ratification: walkthroughs, honesty scan, journey-map update",
+      "tasks": [
+        "Run the full tour walkthrough for all eleven roles on the demo tenant; record per-role finished states in the commit body.",
+        "Honesty scan: no card claims a capability the target page lacks; grep the deck data against the matrix; any drift is a defect.",
+        "Update docs/product/journey-map.md J10 row with the tour as completed onboarding surface; record any discovered page-level gaps (missing job-named headings, orphan pages) as gap entries, not silent fixes.",
+        "Typecheck, build, smoke render green; release evidence per repo convention."
+      ],
+      "walkthrough_verification": "Final commit body lists all eleven roles with the finished state each saw; journey-map.md cites the evidence"
+    }
+  ],
+  "business_logic_rules": [
+    "BR-RT-1: The route tree plus route guards are the single source of truth for deck content. A card without a verified, role-accessible ctaHref does not ship (law_1).",
+    "BR-RT-2: One engine, per-role deck data. Duplicated per-role components do not merge (law_7).",
+    "BR-RT-3: Skip tour is visible at every level and every card; skip persists as dismissed for that role; the launcher button always allows revisit (law_4).",
+    "BR-RT-4: Progress persists per role and resumes; completion is a real state with restart; a dismissed tour never auto-opens again (law_5).",
+    "BR-RT-5: Tour telemetry is first-party usage events with role and journey id, tenant-scoped, zero PII; north-star metric definitions remain untouched.",
+    "BR-RT-6: Card copy is honest to the code: a module that cannot do X must not say it does X (charter BR2/BR3 spirit; the honesty scanners' law applied to tour content).",
+    "BR-RT-7: Decks render and are skippable on mobile viewports and in offline states where the host PWA supports offline.",
+    "BR-RT-8: Security unchanged: assertRouteAccess remains the authorization authority; the tour adds no routes, no new permissions, and no data access."
+  ],
+  "acceptance_criteria": [
+    "AC-RT-1: docs/product/tour-card-matrix.md exists, covers all eleven roles, and every ctaHref in it resolves to a real page file.",
+    "AC-RT-2: The tour engine supports module level, sub-module drill-down, breadcrumb back, level indicator, skip tour, skip module, resume, completion, and restart, all covered by automated state tests.",
+    "AC-RT-3: The admin deck shows the real admin modules with sub-modules and mounts on both the dashboard and the Day One Cockpit with launcher buttons in both headers.",
+    "AC-RT-4: Teacher, principal, accountant, hr-manager, librarian, transport-manager, and driver each have a deck mounted on their home surface, sized honestly to their real surfaces.",
+    "AC-RT-5: Parent and student decks exist, speak family language, work on mobile and offline where the host PWA does, and never reference admin surfaces.",
+    "AC-RT-6: The super-admin deck exists and the unified provisioning completion view points the operator at the new school's tour without changing sessions.",
+    "AC-RT-7: The route-truth test passes in CI for every deck and demonstrably fails on a dead or forbidden link.",
+    "AC-RT-8: tour_started, tour_completed, and tour_skipped are emitted tenant-scoped with role and journey id, and no north_star event definition changed.",
+    "AC-RT-9: Skip, resume, and completion behave per the laws on every role: refresh resumes an in-progress tour, dismissed tours stay dismissed, launcher reopens at the saved position.",
+    "AC-RT-10: Keyboard navigation, focus management, and reduced motion pass; all eleven decks render on mobile and desktop viewports.",
+    "AC-RT-11: journey-map.md J10 row records the tour as a completed onboarding surface with evidence; page-level gaps found during L0 are recorded as gap entries.",
+    "AC-RT-12: Typecheck, build, and smoke render green; zero new npm dependencies; the existing FeatureTutorialFlashCards usages are migrated, not left dangling."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. The engine is a refactor of the existing component shell.",
+    "Phases land in strict order RT-L0 through RT-L7, one commit series per layer. Commit prefixes: docs(tour) for L0, feat(tour) for L1 through L7.",
+    "Every phase lands with typecheck, build, and smoke render green. The S7 gate is permanent series law.",
+    "The L0 matrix is a review artifact: the operator approves the card matrix before decks are authored in L2 through L5.",
+    "Do not modify north-star metric definitions, the onboarding wizard's steps, or the unified provisioning flow beyond the L5 handoff text.",
+    "Do not add tooltip, spotlight, or video tour mechanisms; flashcard decks only.",
+    "Where this spec conflicts with in-repo security constraints, security wins; log the conflict in the commit body.",
+    "Deck data lives in one location per the repo's conventions (suggested: frontend/src/lib/tours/ or frontend/src/components/onboarding/tours/); follow the codebase's existing structure at implementation time."
+  ],
+  "definition_of_done": "The tour is done when every one of the eleven roles, on first login on the demo tenant, can take a two-level guided tour of their real modules and sub-modules, skip it at any point, refresh and resume, finish it and restart it, and when every link on every card of every deck opens under that role's own route guard, enforced by a CI test. The tour is instrumented with first-party usage events, the north-star definitions are untouched, and journey-map.md records J10's onboarding surface as complete with per-role evidence. A new employee at a customer school learns the product in their first session without calling anyone.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/role-tour-flashcards-spec.json. It derives from docs/product-destination-charter.json and supersedes the single-deck tutorial design landed in commit a0d5b9fb.",
+      "Execute layers RT-L0 through RT-L7 in strict order. L0 produces the verified card matrix and is a review gate: do not author decks before the operator approves the matrix.",
+      "Read every role's route directory and routeGuards.ts from the codebase at implementation time. The grounding facts here were verified at head d2fe3894 (v11.42.6) and may have moved. Real routes, guard behavior, and page headings come from the code, not from this spec.",
+      "Follow the tour_laws as binding. The route-truth test is the enforcement mechanism; write it in RT-L6 but design deck data for it from RT-L1.",
+      "Every layer's commit body records the persona walkthrough: which role, which deck, which finished state was seen.",
+      "Gaps larger than a layer's scope go to docs/product/journey-map.md as gap entries, never silent scope expansion.",
+      "Keep the existing visual language of the landed flashcards; this spec changes structure and reach, not the design system.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
+
