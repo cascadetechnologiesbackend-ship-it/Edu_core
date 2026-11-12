@@ -16,6 +16,8 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export const metadata = {
   title: "Principal Executive Dashboard | SchoolMitra ERP",
@@ -51,6 +53,7 @@ export default async function PrincipalDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+            <TutorialLauncherButton role="PRINCIPAL" />
             <Link
               href="/academics"
               className="w-full sm:w-auto min-h-[38px] px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition flex items-center justify-center gap-2"
@@ -60,6 +63,9 @@ export default async function PrincipalDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Principal Guided Tour Flashcards */}
+      <FeatureTutorialFlashCards role="PRINCIPAL" />
 
       {/* Fresh Provisioned School Next-Best-Action State */}
       {isFreshSchool && (

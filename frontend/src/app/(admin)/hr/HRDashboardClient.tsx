@@ -19,6 +19,8 @@ import { StructureTab } from "./tabs/StructureTab";
 import { LeavesTab } from "./tabs/LeavesTab";
 import { PayrollTab } from "./tabs/PayrollTab";
 import { SettingsTab } from "./tabs/SettingsTab";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export type HRTabKey =
   | "overview"
@@ -219,7 +221,12 @@ export default function HRDashboardClient({
             </div>
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <TutorialLauncherButton role={userRole === "HR_MANAGER" ? "HR_MANAGER" : "SCHOOL_ADMIN"} />
+        </div>
       </div>
+
+      <FeatureTutorialFlashCards role={userRole === "HR_MANAGER" ? "HR_MANAGER" : "SCHOOL_ADMIN"} />
 
       {/* Hub Spokes Navigation Bar */}
       <div className="border-b border-slate-200 dark:border-slate-800">

@@ -62,6 +62,17 @@ export function Step8Completion() {
           </div>
         </div>
 
+        {/* Day One Cockpit & Guided Tour Handoff */}
+        <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 text-xs text-indigo-200 max-w-md mx-auto space-y-1.5 text-left">
+          <div className="flex items-center gap-2 font-bold text-indigo-300">
+            <Compass className="w-4 h-4 text-indigo-400" />
+            <span>Day One Cockpit &amp; Role Tours Ready</span>
+          </div>
+          <p className="text-[11px] text-slate-300 leading-relaxed">
+            The school admin dashboard is primed with the Day One Cockpit and an interactive 14-module guided tour. The school administrator and all 10 staff/family roles can launch their role-specific tours anytime from Quick Tutorial.
+          </p>
+        </div>
+
         {/* Primary Super Admin Actions */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link

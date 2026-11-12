@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DedicatedSchoolOnboardingWizard } from "@/app/onboard/page";
+import { DedicatedSchoolOnboardingWizard } from "@/app/onboard/DedicatedSchoolOnboardingWizard";
 
 export const metadata: Metadata = {
   title: "Provision New School Instance | Super Admin",

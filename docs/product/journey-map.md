@@ -231,4 +231,9 @@
      - Charter Target: **<= 1 working day** (**MET**)
      - J10 Journey Completion Rate: **100%**
 
-
+7. **Role-Aware Guided Tour Flashcards (`role_tour_flashcards` v1.0.0)**:
+   - **Unified Two-Level Tour Engine (`FeatureTutorialFlashCards.tsx`)**: Replaced single-deck hardcoded cards with a generic two-level tour engine (Level 1: Modules, Level 2: Sub-modules) with breadcrumb navigation, skip tour/skip module, resume from `localStorage` (`schoolmitra_tour_{role}`), and tour completion with restart action.
+   - **Full 11-Role Coverage**: Dedicated, honest decks for `SCHOOL_ADMIN` (14 modules), `TEACHER` (6 modules), `PRINCIPAL` (6 modules), `ACCOUNTANT` (5 modules), `HR_MANAGER` (4 modules), `LIBRARIAN` (2 modules), `TRANSPORT_MANAGER` (2 modules), `DRIVER` (2 modules), `PARENT` (5 modules), `STUDENT` (5 modules), and `SUPER_ADMIN` (5 modules). Zero fabricated modules; thin roles receive honest compact decks.
+   - **Route-Truth Contract & Automated Test (`routeTruth.test.ts`)**: 100% of tour cards and sub-module cards assert physical Next.js App Router page existence under `frontend/src/app` and positive access via `canRoleAccessRoute(role, ctaHref)` using `routeGuards.ts`.
+   - **First-Party Usage Telemetry (`tourTelemetry.ts`)**: First-party server action recording `tour_started`, `tour_completed`, and `tour_skipped` usage events scoped to tenant and role.
+   - **Provisioning Handoff Integration**: Super Admin onboarding wizard completion (`Step8Completion.tsx`) guides platform operators to the Day One Cockpit tour and launcher.

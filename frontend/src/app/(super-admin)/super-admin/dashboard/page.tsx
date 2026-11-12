@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { getInfrastructureTelemetryAction } from "./telemetryActions";
 import { InfrastructureTelemetryPanel } from "./InfrastructureTelemetryPanel";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export const metadata = {
   title: "Platform Command Center | SchoolMitra ERP",
@@ -70,6 +72,7 @@ export default async function SuperAdminDashboardPage() {
           </div>
 
           <div className="w-full sm:w-auto flex flex-wrap items-center gap-3">
+            <TutorialLauncherButton role="SUPER_ADMIN" label="Super Admin Tour" />
             <Link
               href="/super-admin/schools"
               className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition active:scale-95"
@@ -81,6 +84,8 @@ export default async function SuperAdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      <FeatureTutorialFlashCards role="SUPER_ADMIN" />
 
       {/* ─── Live AWS Infrastructure Telemetry Panel ──────────────────── */}
       {telemetryRes.data && (

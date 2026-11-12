@@ -5,6 +5,8 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { assertQueryBudget } from "@schoolmitra/database";
 import { getLibrarianConsoleMetrics } from "@/lib/roleConsoleEngine";
 import Link from "next/link";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 import {
   BookOpen,
   ArrowLeftRight,
@@ -48,6 +50,7 @@ export default async function LibrarianDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+            <TutorialLauncherButton role="LIBRARIAN" />
             <Link
               href="/library"
               className="w-full sm:w-auto min-h-[38px] px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition flex items-center justify-center gap-2"
@@ -57,6 +60,8 @@ export default async function LibrarianDashboardPage() {
           </div>
         </div>
       </div>
+
+      <FeatureTutorialFlashCards role="LIBRARIAN" />
 
       {/* Fresh Provisioned Library Next-Best-Action State */}
       {isFreshLibrary && (

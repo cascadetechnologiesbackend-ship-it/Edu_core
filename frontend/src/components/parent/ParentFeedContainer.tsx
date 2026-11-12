@@ -41,6 +41,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowUp, RotateCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export interface ParentFeedContainerProps {
   initialCards: DerivedFeedCard[];
@@ -416,6 +418,13 @@ export function ParentFeedContainer({
       )}
 
       {/* 1. Child Identity Header (sticky on scroll) */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1" />
+        <TutorialLauncherButton role="PARENT" label="Parent App Tour" />
+      </div>
+
+      <FeatureTutorialFlashCards role="PARENT" />
+
       <ParentIdentityHeader
         currentStudent={selectedStudent}
         availableStudents={availableStudents}

@@ -5,6 +5,8 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { assertQueryBudget } from "@schoolmitra/database";
 import { getTransportConsoleMetrics } from "@/lib/roleConsoleEngine";
 import Link from "next/link";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 import {
   Bus,
   MapPin,
@@ -49,6 +51,7 @@ export default async function TransportManagerDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+            <TutorialLauncherButton role="TRANSPORT_MANAGER" />
             <Link
               href="/transport"
               className="w-full sm:w-auto min-h-[38px] px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium text-sm transition flex items-center justify-center gap-2"
@@ -58,6 +61,8 @@ export default async function TransportManagerDashboardPage() {
           </div>
         </div>
       </div>
+
+      <FeatureTutorialFlashCards role="TRANSPORT_MANAGER" />
 
       {/* Fresh Provisioned Fleet Next-Best-Action State */}
       {isFreshFleet && (

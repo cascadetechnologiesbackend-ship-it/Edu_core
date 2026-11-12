@@ -44,6 +44,8 @@ interface CachedBands23Payload {
 }
 
 import { assertRouteAccess } from "@/lib/routeGuards";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export default async function FeesDashboardPage({
   searchParams,
@@ -433,8 +435,17 @@ export default async function FeesDashboardPage({
           </p>
         </div>
 
-        <QuickActionBar userRole={session.user.role} />
+        <div className="flex items-center gap-2">
+          <TutorialLauncherButton role={session.user.role === "ACCOUNTANT" ? "ACCOUNTANT" : "SCHOOL_ADMIN"} />
+          <QuickActionBar userRole={session.user.role} />
+        </div>
       </div>
+
+      {/* Accountant / Finance Guided Tour Flashcards */}
+      <FeatureTutorialFlashCards
+        role={session.user.role === "ACCOUNTANT" ? "ACCOUNTANT" : "SCHOOL_ADMIN"}
+        initialOpen={session.user.role === "ACCOUNTANT"}
+      />
 
       {/* Interactive Client Component with Band 1, 2, 3 and Slide-Over Drawer */}
       <FeesDashboardClient

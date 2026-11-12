@@ -156,3 +156,4 @@ Total Modules: 5
 | `sa-audit` | Platform Audit Trail | `/super-admin/audit` | • `logs`: Immutable Append-Only Audit Log (`/super-admin/audit`) |
 | `sa-dpdp` | DPDP Governance | `/super-admin/dpdp` | • `vault`: Cross-tenant DPDP Compliance Records (`/super-admin/dpdp`) |
 | `sa-blueprints` | Blueprint Profiles | `/super-admin/templates` | • `standards`: CBSE, ICSE & State Board Templates (`/super-admin/templates`) |
+

@@ -12,6 +12,8 @@ import { eq, and, isNull } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
 import DriverDashboardClient from "./DriverDashboardClient";
 import { Bus, AlertCircle } from "lucide-react";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export default async function DriverDashboardPage() {
   const session = await getCachedSession();
@@ -65,10 +67,15 @@ export default async function DriverDashboardPage() {
       : null;
 
     return (
-      <div
-        data-testid="driver-setup-missing-card"
-        className="rounded-2xl border border-amber-500/20 bg-slate-900/90 p-6 sm:p-8 text-center max-w-lg mx-auto mt-8 shadow-xl space-y-5"
-      >
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <TutorialLauncherButton role="DRIVER" />
+        </div>
+        <FeatureTutorialFlashCards role="DRIVER" />
+        <div
+          data-testid="driver-setup-missing-card"
+          className="rounded-2xl border border-amber-500/20 bg-slate-900/90 p-6 sm:p-8 text-center max-w-lg mx-auto mt-4 shadow-xl space-y-5"
+        >
         <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
           <Bus className="w-7 h-7" />
         </div>
@@ -103,6 +110,7 @@ export default async function DriverDashboardPage() {
           </div>
         )}
       </div>
+      </div>
     );
   }
 
@@ -118,11 +126,17 @@ export default async function DriverDashboardPage() {
     : [];
 
   return (
-    <DriverDashboardClient
-      driver={decryptedDriver}
-      vehicle={assignedVehicle}
-      route={assignedRoute}
-      stops={stops}
-    />
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <TutorialLauncherButton role="DRIVER" />
+      </div>
+      <FeatureTutorialFlashCards role="DRIVER" />
+      <DriverDashboardClient
+        driver={decryptedDriver}
+        vehicle={assignedVehicle}
+        route={assignedRoute}
+        stops={stops}
+      />
+    </div>
   );
 }

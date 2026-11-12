@@ -18,6 +18,7 @@ import { ClassworkPendingFeedCard } from "./cards/ClassworkPendingFeedCard";
 import { AttendanceWorkbench } from "./AttendanceWorkbench";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
+import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
 
 export interface TeacherFeedContainerProps {
   initialCards: DerivedTeacherFeedCard[];
@@ -116,6 +117,9 @@ export function TeacherFeedContainer({
         missingAllocationsSummary={missingAllocationsSummary}
         locale={locale}
       />
+
+      {/* Teacher Guided Tour Flashcards */}
+      <FeatureTutorialFlashCards role="TEACHER" className="my-3" />
 
       {/* Night Quiet Hours Staleness Note */}
       {isNight && (
