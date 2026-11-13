@@ -232,8 +232,21 @@
      - J10 Journey Completion Rate: **100%**
 
 7. **Role-Aware Guided Tour Flashcards (`role_tour_flashcards` v1.0.0)**:
-   - **Unified Two-Level Tour Engine (`FeatureTutorialFlashCards.tsx`)**: Replaced single-deck hardcoded cards with a generic two-level tour engine (Level 1: Modules, Level 2: Sub-modules) with breadcrumb navigation, skip tour/skip module, resume from `localStorage` (`schoolmitra_tour_{role}`), and tour completion with restart action.
-   - **Full 11-Role Coverage**: Dedicated, honest decks for `SCHOOL_ADMIN` (14 modules), `TEACHER` (6 modules), `PRINCIPAL` (6 modules), `ACCOUNTANT` (5 modules), `HR_MANAGER` (4 modules), `LIBRARIAN` (2 modules), `TRANSPORT_MANAGER` (2 modules), `DRIVER` (2 modules), `PARENT` (5 modules), `STUDENT` (5 modules), and `SUPER_ADMIN` (5 modules). Zero fabricated modules; thin roles receive honest compact decks.
-   - **Route-Truth Contract & Automated Test (`routeTruth.test.ts`)**: 100% of tour cards and sub-module cards assert physical Next.js App Router page existence under `frontend/src/app` and positive access via `canRoleAccessRoute(role, ctaHref)` using `routeGuards.ts`.
-   - **First-Party Usage Telemetry (`tourTelemetry.ts`)**: First-party server action recording `tour_started`, `tour_completed`, and `tour_skipped` usage events scoped to tenant and role.
-   - **Provisioning Handoff Integration**: Super Admin onboarding wizard completion (`Step8Completion.tsx`) guides platform operators to the Day One Cockpit tour and launcher.
+   - **Unified Two-Level Tour Engine (`FeatureTutorialFlashCards.tsx`)**: Centralized two-level tour deck (Level 1: Modules, Level 2: Sub-modules) serving as the role overview map, opened via `TutorialLauncherButton.tsx`.
+   - **Full 11-Role Coverage**: Dedicated, honest decks for `SCHOOL_ADMIN`, `TEACHER`, `PRINCIPAL`, `ACCOUNTANT`, `HR_MANAGER`, `LIBRARIAN`, `TRANSPORT_MANAGER`, `DRIVER`, `PARENT`, `STUDENT`, and `SUPER_ADMIN`.
+   - **Route-Truth Contract & Automated Test (`routeTruth.test.ts`)**: Tour cards assert physical Next.js App Router page existence under `frontend/src/app` and positive access via `canRoleAccessRoute(role, ctaHref)` using `routeGuards.ts`.
+
+8. **Contextual Guided Tour Engine (`contextual_guided_tour` v1.0.0)**:
+   - **Game-Style Contextual Popups**: Primary first-run orientation experience that triggers when a user enters a module page, anchoring coach-mark spotlights directly to live DOM controls (`data-tour="{anchorId}"`) instead of an auto-opening centralized card modal.
+   - **Spotlight Engine (`SpotlightOverlay.tsx`, `CoachMarkCard.tsx`, `TourHost.tsx`)**: Hand-crafted SVG cutout overlay with halo glow, viewport-clamped tooltip positioning with flip logic, and mobile bottom-sheet fallback (<640px). Zero new npm dependencies.
+   - **The 8 Tour Laws Enforced**:
+     1. *Contextual Trigger*: Fires automatically when entering an uncompleted module's starting route.
+     2. *Real Anchors*: Zero ghost popups. Suppressed and logged if DOM anchor is missing; asserted in CI.
+     3. *One-Line Explanatory Copy*: Punchy single sentence describing what the control does.
+     4. *Progress Trails*: Level-progress stepper indicating completed vs remaining modules in the role journey.
+     5. *Skip and Resume*: Module-level skip and global tour dismissal persisted in `localStorage` (`schoolmitra_tour_{role}`).
+     6. *Spotlight Overlay*: SVG cutout hole leaving active control visible, clickable, and highlighted.
+     7. *Launcher Re-entry*: Centralized overview deck accessible anytime via `TutorialLauncherButton`.
+     8. *Mobile & Accessibility*: Bottom-sheet fallback, high-contrast dark theme, ARIA attributes, and full keyboard navigation (Next: Enter, Back: Shift+Enter, Dismiss: Escape).
+   - **Universal Coverage**: All 11 roles mapped across 27+ pages and 60+ real interactive controls.
+   - **Automated CI Anchor-Truth Test (`anchorTruth.test.ts`)**: 115 test cases verifying every defined anchor physically exists in production JSX/TSX markup and that all routes are accessible by their respective roles.

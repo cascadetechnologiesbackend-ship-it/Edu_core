@@ -87,8 +87,10 @@ function getAllDataTourAnchors(): Set<string> {
         const regex = /(?:data-tour=["']|["']data-tour["']:\s*["'])([^"']+)["']/g;
         let match;
         while ((match = regex.exec(content)) !== null) {
-          const tokens = match[1].split(/\s+/).filter(Boolean);
-          tokens.forEach((t) => anchors.add(t));
+          if (match[1]) {
+            const tokens = match[1].split(/\s+/).filter(Boolean);
+            tokens.forEach((t) => anchors.add(t));
+          }
         }
       }
     }
