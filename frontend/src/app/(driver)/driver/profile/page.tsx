@@ -17,7 +17,7 @@ export default async function DriverProfilePage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div data-tour="driver-licence-card" className="p-4 md:p-6">
       <UserProfileView
         initialProfile={result.profile}
         initialCompleteness={result.completeness!}

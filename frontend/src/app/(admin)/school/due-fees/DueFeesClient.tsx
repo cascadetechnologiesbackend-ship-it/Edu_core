@@ -221,29 +221,40 @@ export function DueFeesClient({
           <h2 className="text-base font-bold text-gray-900 dark:text-white">
             Outstanding Fee Dues Ledger ({filteredItems.length})
           </h2>
+          <button
+            data-tour="accountant-reminder-btn"
+            type="button"
+            onClick={() => toast.info("Select student invoices below to dispatch SMS reminder alerts")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Send Due Reminders</span>
+          </button>
         </div>
 
         {/* FilterBar with URL query sync and debounced search */}
-        <FilterBar
-          searchPlaceholder="Filter by student name, admission no, or invoice..."
-          onSearchChange={setClientSearch}
-          filters={[
-            {
-              key: "classId",
-              label: "Class",
-              options: classesList.map((c) => ({ label: c.label, value: c.id })),
-            },
-            {
-              key: "bracket",
-              label: "Aging Bracket",
-              options: [
-                { label: "0-30 Days (Current)", value: "0-30" },
-                { label: "31-60 Days (Overdue)", value: "31-60" },
-                { label: "60+ Days (Critical)", value: "60+" },
-              ],
-            },
-          ]}
-        />
+        <div data-tour="accountant-defaulter-filters">
+          <FilterBar
+            searchPlaceholder="Filter by student name, admission no, or invoice..."
+            onSearchChange={setClientSearch}
+            filters={[
+              {
+                key: "classId",
+                label: "Class",
+                options: classesList.map((c) => ({ label: c.label, value: c.id })),
+              },
+              {
+                key: "bracket",
+                label: "Aging Bracket",
+                options: [
+                  { label: "0-30 Days (Current)", value: "0-30" },
+                  { label: "31-60 Days (Overdue)", value: "31-60" },
+                  { label: "60+ Days (Critical)", value: "60+" },
+                ],
+              },
+            ]}
+          />
+        </div>
 
         {/* TanStack DataTable */}
         <DataTable

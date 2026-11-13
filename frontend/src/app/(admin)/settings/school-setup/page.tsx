@@ -1026,7 +1026,10 @@ export default function SchoolSetupPage() {
               data-tour="settings-board-info"
               className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6"
             >
-              <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800">
+              <div
+                data-tour="principal-affiliation-card"
+                className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800"
+              >
                 <BookOpen className="w-5 h-5 text-purple-600" />
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                   2. Board Affiliation & Accreditation

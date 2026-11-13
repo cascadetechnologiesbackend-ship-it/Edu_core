@@ -74,6 +74,7 @@ export default async function DriverDashboardPage() {
         <FeatureTutorialFlashCards role="DRIVER" />
         <div
           data-testid="driver-setup-missing-card"
+          data-tour="driver-trip-toggle driver-live-map driver-stops-checklist"
           className="rounded-2xl border border-amber-500/20 bg-slate-900/90 p-6 sm:p-8 text-center max-w-lg mx-auto mt-4 shadow-xl space-y-5"
         >
         <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">

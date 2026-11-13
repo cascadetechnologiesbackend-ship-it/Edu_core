@@ -12,6 +12,7 @@ import { FpsOverlay } from "@/components/dev/FpsOverlay";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { TourHost } from "@/components/tour/TourHost";
 import { ADMIN_PAGE_TOURS, ADMIN_MODULE_ORDER } from "@/lib/tours/adminTour";
+import { getStaffToursForRole } from "@/lib/tours/staffTours";
 
 export const metadata: Metadata = {
   title: {
@@ -138,11 +139,19 @@ export default async function AdminLayout({
           schoolName={schoolName}
         >
           {children}
-          <TourHost
-            role={effectiveRole}
-            tours={ADMIN_PAGE_TOURS}
-            allModuleIds={ADMIN_MODULE_ORDER}
-          />
+          {(() => {
+            const tourConfig =
+              effectiveRole === "ACCOUNTANT" || effectiveRole === "HR_MANAGER"
+                ? getStaffToursForRole(effectiveRole)
+                : { tours: ADMIN_PAGE_TOURS, allModuleIds: ADMIN_MODULE_ORDER };
+            return (
+              <TourHost
+                role={effectiveRole}
+                tours={tourConfig.tours}
+                allModuleIds={tourConfig.allModuleIds}
+              />
+            );
+          })()}
         </AdminShell>
 
         <CommandPalette />

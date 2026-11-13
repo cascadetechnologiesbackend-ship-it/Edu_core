@@ -302,6 +302,7 @@ export function TeacherHomeworkClient({
         </div>
 
         <button
+          data-tour="teacher-homework-post-btn"
           type="button"
           onClick={handleOpenCreate}
           data-testid="post-homework-cta"
@@ -353,103 +354,106 @@ export function TeacherHomeworkClient({
       </div>
 
       {/* ─── Homework Cards Grid ─────────────────────────────────────────────── */}
-      {filteredHomework.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center space-y-3">
-          <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-            {isHi ? "कोई गृहकार्य पोस्ट नहीं मिला" : "No Homework Posted Yet"}
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-            {isHi
-              ? "अपनी आवंटित कक्षाओं के लिए नया गृहकार्य पोस्ट करें ताकि अभिभावकों के पास पहुंच सके।"
-              : "Post your first assignment for this class-subject. It will appear on parents' feeds immediately."}
-          </p>
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{isHi ? "पहला गृहकार्य बनाएं" : "Create Assignment"}</span>
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="teacher-homework-list">
-          {filteredHomework.map((hw) => {
-            const dueDate = new Date(hw.dueDate);
-            const isPastDue = dueDate.getTime() < Date.now();
-            const formattedDueDate = dueDate.toLocaleDateString(isHi ? "hi-IN" : "en-IN", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
+      <div data-tour="teacher-homework-list">
+        {filteredHomework.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center space-y-3">
+            <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              {isHi ? "कोई गृहकार्य पोस्ट नहीं मिला" : "No Homework Posted Yet"}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+              {isHi
+                ? "अपनी आवंटित कक्षाओं के लिए नया गृहकार्य पोस्ट करें ताकि अभिभावकों के पास पहुंच सके।"
+                : "Post your first assignment for this class-subject. It will appear on parents' feeds immediately."}
+            </p>
+            <button
+              data-tour="teacher-homework-roster-btn"
+              type="button"
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isHi ? "पहला गृहकार्य बनाएं" : "Create Assignment"}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="teacher-homework-list">
+            {filteredHomework.map((hw) => {
+              const dueDate = new Date(hw.dueDate);
+              const isPastDue = dueDate.getTime() < Date.now();
+              const formattedDueDate = dueDate.toLocaleDateString(isHi ? "hi-IN" : "en-IN", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
 
-            return (
-              <div
-                key={hw.id}
-                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
-              >
-                <div className="space-y-3">
-                  {/* Top Meta Chips */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 truncate">
-                        {hw.className}-{hw.sectionName} · {hw.subjectName}
+              return (
+                <div
+                  key={hw.id}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
+                >
+                  <div className="space-y-3">
+                    {/* Top Meta Chips */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 truncate">
+                          {hw.className}-{hw.sectionName} · {hw.subjectName}
+                        </span>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                          hw.status === "PUBLISHED"
+                            ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60"
+                            : hw.status === "DRAFT"
+                            ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                            : "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60"
+                        )}
+                      >
+                        {hw.status}
                       </span>
                     </div>
 
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                        hw.status === "PUBLISHED"
-                          ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60"
-                          : hw.status === "DRAFT"
-                          ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                          : "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60"
-                      )}
+                    {/* Title & Description */}
+                    <div className="space-y-1">
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white line-clamp-1">
+                        {hw.title}
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {hw.description}
+                      </p>
+                    </div>
+
+                    {/* Due Date & Submission Counts */}
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{formattedDueDate}</span>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-1 font-bold text-indigo-600 dark:text-indigo-400">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>
+                          {hw.totalSubmissions}/{hw.totalStudents || 35} {isHi ? "जमा" : "Submitted"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80 gap-2">
+                    <button
+                      data-tour="teacher-homework-roster-btn"
+                      type="button"
+                      onClick={() => handleOpenRoster(hw)}
+                      data-testid="view-roster-btn"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
-                      {hw.status}
-                    </span>
-                  </div>
-
-                  {/* Title & Description */}
-                  <div className="space-y-1">
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white line-clamp-1">
-                      {hw.title}
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {hw.description}
-                    </p>
-                  </div>
-
-                  {/* Due Date & Submission Counts */}
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{formattedDueDate}</span>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-1 font-bold text-indigo-600 dark:text-indigo-400">
-                      <Users className="w-3.5 h-3.5" />
-                      <span>
-                        {hw.totalSubmissions}/{hw.totalStudents || 35} {isHi ? "जमा" : "Submitted"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenRoster(hw)}
-                    data-testid="view-roster-btn"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    <span>{isHi ? "सबमिशन व अंक देखें" : "Submissions & Grading"}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                      <span>{isHi ? "सबमिशन व अंक देखें" : "Submissions & Grading"}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
 
                   <div className="flex items-center gap-1.5">
                     {hw.status === "DRAFT" && (
@@ -477,6 +481,7 @@ export function TeacherHomeworkClient({
           })}
         </div>
       )}
+      </div>
 
       {/* ─── Create / Edit Homework Modal ────────────────────────────────────── */}
       <AppModal

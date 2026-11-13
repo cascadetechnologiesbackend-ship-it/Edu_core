@@ -262,7 +262,7 @@ export default function LibraryClientTabs({
         <div className="relative max-w-xs w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
-            data-tour="library-search-input"
+            data-tour="library-search-input librarian-catalog-search"
             type="text"
             placeholder="Search catalog by title, author..."
             value={bookSearch}
@@ -367,7 +367,7 @@ export default function LibraryClientTabs({
                   />
                 </div>
                 <button
-                  data-tour="library-issue-btn"
+                  data-tour="library-issue-btn librarian-issue-btn"
                   type="submit"
                   disabled={loading}
                   className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-semibold text-xs rounded-lg transition-colors"

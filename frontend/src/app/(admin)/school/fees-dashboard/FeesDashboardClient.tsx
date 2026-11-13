@@ -197,7 +197,10 @@ export function FeesDashboardClient({
   return (
     <div className="space-y-8">
       {/* Session / Academic Year Selector Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/80 dark:bg-slate-900/40 p-4 rounded-2xl border border-gray-200 dark:border-slate-800">
+      <div
+        data-tour="accountant-spokes-tabs"
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/80 dark:bg-slate-900/40 p-4 rounded-2xl border border-gray-200 dark:border-slate-800"
+      >
         <div className="flex flex-wrap items-center gap-2">
           <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-slate-400">
@@ -315,21 +318,26 @@ export function FeesDashboardClient({
 
       {/* Band 1: Money KPIs (Every KPI is a Clickable Link to prefiltered worklists) */}
       <div>
-        <div className="mb-3 flex items-center justify-between">
+        <div
+          data-tour="principal-fee-collection-trend"
+          className="mb-3 flex items-center justify-between"
+        >
           <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
             Band 1: Core Financial Metrics & Quick Drills
           </h2>
           <span className="text-xs text-gray-400">Click any card to inspect underlying ledger</span>
         </div>
         <div data-tour="fees-collection-kpi" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <MoneyKpi
-            title="Today's Collections"
-            amount={kpis.todayCollected}
-            subtitle={`${kpis.todayPaymentsCount} receipts cleared today`}
-            delta={{ value: "Live", label: "Cash & Bank", isPositive: true }}
-            href="/school/transactions"
-            variant="emerald"
-          />
+          <div data-tour="accountant-today-collection">
+            <MoneyKpi
+              title="Today's Collections"
+              amount={kpis.todayCollected}
+              subtitle={`${kpis.todayPaymentsCount} receipts cleared today`}
+              delta={{ value: "Live", label: "Cash & Bank", isPositive: true }}
+              href="/school/transactions"
+              variant="emerald"
+            />
+          </div>
 
           <MoneyKpi
             title="Total Outstanding Dues"

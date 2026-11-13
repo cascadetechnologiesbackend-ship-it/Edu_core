@@ -115,7 +115,7 @@ export function TourHost({
     }
 
     const currentStep = activeTour.steps[stepIndex]!;
-    const anchorSelector = `[data-tour="${currentStep.anchorId}"]`;
+    const anchorSelector = `[data-tour~="${currentStep.anchorId}"], [data-tour="${currentStep.anchorId}"]`;
 
     let element = document.querySelector<HTMLElement>(anchorSelector);
 

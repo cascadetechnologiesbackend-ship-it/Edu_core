@@ -19,6 +19,8 @@ import { AttendanceWorkbench } from "./AttendanceWorkbench";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
 import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
+import Link from "next/link";
+import { CalendarCheck, BookOpen, Award } from "lucide-react";
 
 export interface TeacherFeedContainerProps {
   initialCards: DerivedTeacherFeedCard[];
@@ -105,18 +107,48 @@ export function TeacherFeedContainer({
       />
 
       {/* 2. Today Strip (Day summary, Rest-Day strip, or Calm Day-Complete strip) */}
-      <TeacherTodayStrip
-        activeCardsCount={cards.length}
-        daySummary={daySummary}
-        dayCompleteSummary={dayCompleteSummary}
-        isDayComplete={isDayComplete}
-        isRestDay={isRestDay}
-        isWorkingDay={isWorkingDay}
-        holidayTitle={calendarEventTitle}
-        isSetupMissing={isSetupMissing}
-        missingAllocationsSummary={missingAllocationsSummary}
-        locale={locale}
-      />
+      <div data-tour="teacher-today-periods">
+        <TeacherTodayStrip
+          activeCardsCount={cards.length}
+          daySummary={daySummary}
+          dayCompleteSummary={dayCompleteSummary}
+          isDayComplete={isDayComplete}
+          isRestDay={isRestDay}
+          isWorkingDay={isWorkingDay}
+          holidayTitle={calendarEventTitle}
+          isSetupMissing={isSetupMissing}
+          missingAllocationsSummary={missingAllocationsSummary}
+          locale={locale}
+        />
+      </div>
+
+      {/* Podium Quick Actions Bar */}
+      <div
+        data-tour="teacher-quick-actions"
+        className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
+      >
+        <Link
+          href="/teacher/attendance"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-semibold text-slate-200 transition"
+        >
+          <CalendarCheck className="w-4 h-4 text-emerald-400" />
+          <span>{locale === "hi" ? "उपस्थिति दर्ज करें" : "Mark Attendance"}</span>
+        </Link>
+        <Link
+          href="/teacher/homework"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-semibold text-slate-200 transition"
+        >
+          <BookOpen className="w-4 h-4 text-indigo-400" />
+          <span>{locale === "hi" ? "गृहकार्य पोस्ट करें" : "Post Homework"}</span>
+        </Link>
+        <Link
+          href="/teacher/grading"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-semibold text-slate-200 transition"
+        >
+          <Award className="w-4 h-4 text-amber-400" />
+          <span>{locale === "hi" ? "अंक व मूल्यांकन" : "Grading & Marks"}</span>
+        </Link>
+      </div>
 
       {/* Teacher Guided Tour Flashcards */}
       <FeatureTutorialFlashCards role="TEACHER" className="my-3" />

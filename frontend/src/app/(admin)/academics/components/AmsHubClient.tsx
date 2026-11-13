@@ -407,6 +407,7 @@ export default function AmsHubClient({
             </div>
           </div>
           <Link
+            data-tour="principal-timetable-link"
             href="/academics/setup/bell-schedule"
             className="text-xs font-bold text-primary hover:underline flex items-center gap-1 mt-2"
           >
@@ -419,7 +420,7 @@ export default function AmsHubClient({
       </div>
 
       {/* ─── 5. Pinned Search Input (Law L1: width 320px pinned left) ─────────── */}
-      <div id="classes-grid" className="space-y-4">
+      <div id="classes-grid" data-tour="principal-classes-overview" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="w-full sm:w-80 relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />

@@ -167,7 +167,10 @@ export default function TeacherAttendanceClient({
   return (
     <div className="space-y-4">
       {/* ─── Top Filter & Controls Card ────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 space-y-3 shadow-md">
+      <div
+        data-tour="teacher-attendance-header"
+        className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 space-y-3 shadow-md"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Section Selector */}
           <div>
@@ -266,113 +269,114 @@ export default function TeacherAttendanceClient({
       )}
 
       {/* ─── Student Roster Attendance Sheet ─────────────────────────────────── */}
-      {loadingStudents ? (
-        <div className="p-8 text-center text-slate-400 text-xs">
-          Loading student roll roster...
-        </div>
-      ) : students.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center text-slate-400 space-y-2">
-          <Users className="w-8 h-8 text-slate-500 mx-auto" />
-          <div className="text-sm font-semibold text-white">No Students Found</div>
-          <p className="text-xs text-slate-400">
-            No active student enrollments exist in this section.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {students.map((student, idx) => {
-            const status = student.attendanceStatus || "PRESENT";
+      <div data-tour="teacher-attendance-roster">
+        {loadingStudents ? (
+          <div className="p-8 text-center text-slate-400 text-xs">
+            Loading student roll roster...
+          </div>
+        ) : students.length === 0 ? (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center text-slate-400 space-y-2">
+            <Users className="w-8 h-8 text-slate-500 mx-auto" />
+            <div className="text-sm font-semibold text-white">No Students Found</div>
+            <p className="text-xs text-slate-400">
+              No active student enrollments exist in this section.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {students.map((student, idx) => {
+              const status = student.attendanceStatus || "PRESENT";
 
-            return (
-              <div
-                key={student.studentId}
-                className="rounded-2xl border border-slate-800/90 bg-slate-900/70 backdrop-blur-sm p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:border-slate-700"
-              >
-                {/* Student Info */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center shrink-0">
-                    {student.rollNumber || idx + 1}
+              return (
+                <div
+                  key={student.studentId}
+                  className="rounded-2xl border border-slate-800/90 bg-slate-900/70 backdrop-blur-sm p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:border-slate-700"
+                >
+                  {/* Student Info */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center shrink-0">
+                      {student.rollNumber || idx + 1}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                        {student.firstName} {student.lastName}
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          ({student.admissionNumber})
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Roll #{student.rollNumber || idx + 1}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      {student.firstName} {student.lastName}
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        ({student.admissionNumber})
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Roll #{student.rollNumber || idx + 1}
-                    </div>
+
+                  {/* Status Toggle Buttons */}
+                  <div className="flex items-center gap-1.5 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => updateStatus(student.studentId, "PRESENT")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
+                        status === "PRESENT"
+                          ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/40"
+                          : "bg-slate-800/80 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      P
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateStatus(student.studentId, "ABSENT")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
+                        status === "ABSENT"
+                          ? "bg-rose-600 text-white shadow-sm shadow-rose-600/40"
+                          : "bg-slate-800/80 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      A
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateStatus(student.studentId, "LATE")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
+                        status === "LATE"
+                          ? "bg-amber-600 text-white shadow-sm shadow-amber-600/40"
+                          : "bg-slate-800/80 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      L
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateStatus(student.studentId, "LEAVE")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
+                        status === "LEAVE"
+                          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/40"
+                          : "bg-slate-800/80 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      LV
+                    </button>
                   </div>
                 </div>
-
-                {/* Status Toggle Buttons */}
-                <div className="flex items-center gap-1.5 self-end sm:self-center">
-                  <button
-                    type="button"
-                    onClick={() => updateStatus(student.studentId, "PRESENT")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
-                      status === "PRESENT"
-                        ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    P
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateStatus(student.studentId, "ABSENT")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
-                      status === "ABSENT"
-                        ? "bg-rose-600 text-white shadow-sm shadow-rose-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    A
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateStatus(student.studentId, "LATE")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
-                      status === "LATE"
-                        ? "bg-amber-600 text-white shadow-sm shadow-amber-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    L
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateStatus(student.studentId, "LEAVE")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
-                      status === "LEAVE"
-                        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    LV
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* ─── Submit Action Bar ──────────────────────────────────────────────── */}
-      {students.length > 0 && (
-        <div className="sticky bottom-20 z-20 pt-2">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isPending}
-            className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-sm transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {isPending ? "Submitting Roll Call..." : "Submit Attendance Register"}
-          </button>
-        </div>
-      )}
+      <div className="sticky bottom-20 z-20 pt-2">
+        <button
+          data-tour="teacher-attendance-save-btn"
+          type="button"
+          onClick={handleSubmit}
+          disabled={isPending || students.length === 0}
+          className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-sm transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" />
+          {isPending ? "Submitting Roll Call..." : "Submit Attendance Register"}
+        </button>
+      </div>
     </div>
   );
 }

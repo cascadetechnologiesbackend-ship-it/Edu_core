@@ -373,7 +373,10 @@ export default async function ExamsDashboardPage() {
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+            <div
+              data-tour="principal-exams-lifecycle"
+              className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider"
+            >
               <Sparkles className="w-4 h-4" />
               <span>Full Six-Stage Workflow</span>
             </div>

@@ -1,3 +1,4 @@
+import { PageTourDefinition, TourDeck } from "./types";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -19,8 +20,540 @@ import {
   MapPin,
   User,
 } from "lucide-react";
-import { TourDeck } from "./types";
 
+// ============================================================================
+// 1. TEACHER TOURS
+// ============================================================================
+export const TEACHER_MODULE_ORDER = [
+  "teacher-attendance",
+  "teacher-homework",
+  "teacher-grading",
+  "teacher-classes",
+  "teacher-home",
+  "teacher-leaves",
+];
+
+export const TEACHER_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/teacher/attendance",
+    moduleId: "teacher-attendance",
+    moduleTitle: "Attendance Roster",
+    steps: [
+      {
+        anchorId: "teacher-attendance-header",
+        title: "Section & Date",
+        line: "Confirm your active classroom period and attendance date.",
+      },
+      {
+        anchorId: "teacher-attendance-roster",
+        title: "Roll Call Matrix",
+        line: "Fast touch attendance list with present, absent, and late toggles.",
+      },
+      {
+        anchorId: "teacher-attendance-save-btn",
+        title: "Save Roll Call",
+        line: "Submit morning attendance in under 4 minutes with instant parent notices.",
+        ctaLabel: "Save Attendance",
+      },
+    ],
+  },
+  {
+    pagePath: "/teacher/homework",
+    moduleId: "teacher-homework",
+    moduleTitle: "Homework Center",
+    steps: [
+      {
+        anchorId: "teacher-homework-post-btn",
+        title: "Post Homework",
+        line: "Create homework tasks with subject tags, descriptions, and submission deadlines.",
+        ctaLabel: "New Homework",
+      },
+      {
+        anchorId: "teacher-homework-list",
+        title: "Active Homework",
+        line: "View posted assignments and track submission rates per section.",
+      },
+      {
+        anchorId: "teacher-homework-roster-btn",
+        title: "Review Submissions",
+        line: "Review student uploaded homework solutions and mark completion status.",
+      },
+    ],
+  },
+  {
+    pagePath: "/teacher/grading",
+    moduleId: "teacher-grading",
+    moduleTitle: "Examinations & Grading",
+    steps: [
+      {
+        anchorId: "teacher-grading-class-select",
+        title: "Exam & Class",
+        line: "Choose examination and subject to open student marks entry matrix.",
+      },
+      {
+        anchorId: "teacher-grading-score-table",
+        title: "Marks Entry Grid",
+        line: "Enter theory and practical marks with automatic validation against max marks.",
+      },
+      {
+        anchorId: "teacher-grading-lock-btn",
+        title: "Lock Marks",
+        line: "Lock marks to prevent tampering and send for report card compilation.",
+      },
+    ],
+  },
+  {
+    pagePath: "/teacher/classes",
+    moduleId: "teacher-classes",
+    moduleTitle: "Assigned Classrooms",
+    steps: [
+      {
+        anchorId: "teacher-classes-list",
+        title: "Class Sections",
+        line: "View all class sections where you are appointed as class or subject teacher.",
+      },
+      {
+        anchorId: "teacher-classes-students",
+        title: "Student Roster",
+        line: "Access student roll numbers, attendance rates, and guardian phone numbers.",
+      },
+    ],
+  },
+  {
+    pagePath: "/teacher/dashboard",
+    moduleId: "teacher-home",
+    moduleTitle: "Teacher Podium & Feed",
+    steps: [
+      {
+        anchorId: "teacher-today-periods",
+        title: "Teaching Schedule",
+        line: "See your daily timetable periods, classroom locations, and substitutions.",
+      },
+      {
+        anchorId: "teacher-quick-actions",
+        title: "Rapid Period Actions",
+        line: "Quick buttons for roll call and homework right from your podium view.",
+      },
+    ],
+  },
+  {
+    pagePath: "/teacher/leaves",
+    moduleId: "teacher-leaves",
+    moduleTitle: "Leave Applications",
+    steps: [
+      {
+        anchorId: "teacher-leave-balance",
+        title: "Leave Balances",
+        line: "View remaining casual, medical, and earned leave balances.",
+      },
+      {
+        anchorId: "teacher-leave-apply-btn",
+        title: "Apply for Leave",
+        line: "Submit absence requests with dates, reason, and substitute teacher preferences.",
+        ctaLabel: "Apply Leave",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// 2. PRINCIPAL TOURS
+// ============================================================================
+export const PRINCIPAL_MODULE_ORDER = [
+  "principal-home",
+  "principal-academics",
+  "principal-attendance",
+  "principal-exams",
+  "principal-finance",
+  "principal-school-setup",
+];
+
+export const PRINCIPAL_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/principal/dashboard",
+    moduleId: "principal-home",
+    moduleTitle: "Principal Command Center",
+    steps: [
+      {
+        anchorId: "principal-kpi-summary",
+        title: "Executive Telemetry",
+        line: "Truthful overview of student attendance, teacher coverage, and fee pace.",
+      },
+      {
+        anchorId: "principal-approvals-queue",
+        title: "Approvals Queue",
+        line: "Review marks lock requests, teacher leaves, and statutory exceptions.",
+      },
+    ],
+  },
+  {
+    pagePath: "/academics",
+    moduleId: "principal-academics",
+    moduleTitle: "Academic Oversight",
+    steps: [
+      {
+        anchorId: "principal-classes-overview",
+        title: "Classes Overview",
+        line: "Canonical class structure, student strength, and faculty allocations.",
+      },
+      {
+        anchorId: "principal-timetable-link",
+        title: "Master Timetable",
+        line: "Audit school-wide period schedules and teacher workload distribution.",
+      },
+    ],
+  },
+  {
+    pagePath: "/attendance",
+    moduleId: "principal-attendance",
+    moduleTitle: "Attendance Governance",
+    steps: [
+      {
+        anchorId: "principal-attendance-metrics",
+        title: "Attendance Benchmark",
+        line: "Monitor school attendance against the 85% statutory board requirement.",
+      },
+    ],
+  },
+  {
+    pagePath: "/exams/dashboard",
+    moduleId: "principal-exams",
+    moduleTitle: "Examination Oversight",
+    steps: [
+      {
+        anchorId: "principal-exams-lifecycle",
+        title: "Assessment Milestones",
+        line: "Track timetable publishing, question paper setup, and report card releases.",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/fees-dashboard",
+    moduleId: "principal-finance",
+    moduleTitle: "Financial Realization",
+    steps: [
+      {
+        anchorId: "principal-fee-collection-trend",
+        title: "Fee Realization",
+        line: "Monitor fee demand recovery rate and approved scholarship concessions.",
+      },
+    ],
+  },
+  {
+    pagePath: "/settings/school-setup",
+    moduleId: "principal-school-setup",
+    moduleTitle: "Board Affiliation",
+    steps: [
+      {
+        anchorId: "principal-affiliation-card",
+        title: "Affiliation Profile",
+        line: "Institutional affiliation number, board matrix, and school metadata.",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// 3. ACCOUNTANT TOURS
+// ============================================================================
+export const ACCOUNTANT_MODULE_ORDER = [
+  "accountant-collect",
+  "accountant-defaulters",
+  "accountant-home",
+  "accountant-concessions",
+  "accountant-bank-recon",
+];
+
+export const ACCOUNTANT_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/school/collect-fees",
+    moduleId: "accountant-collect",
+    moduleTitle: "Counter Fee Collection",
+    steps: [
+      {
+        anchorId: "accountant-student-search",
+        title: "Student Lookup",
+        line: "Rapidly find student by admission number or name to pull pending dues.",
+      },
+      {
+        anchorId: "accountant-payment-modes",
+        title: "Payment Modes",
+        line: "Choose collection channel and enter cheque/reference transaction ID.",
+      },
+      {
+        anchorId: "accountant-record-btn",
+        title: "Post & Print Receipt",
+        line: "Post collection atomically and print GST/statutory thermal fee receipt.",
+        ctaLabel: "Collect & Print",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/due-fees",
+    moduleId: "accountant-defaulters",
+    moduleTitle: "Fee Dues & Recovery",
+    steps: [
+      {
+        anchorId: "accountant-defaulter-filters",
+        title: "Arrears Aging",
+        line: "Filter overdue student balances by class, month, and amount threshold.",
+      },
+      {
+        anchorId: "accountant-reminder-btn",
+        title: "Payment Reminders",
+        line: "Send automated SMS payment reminders with direct online payment link.",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/fees-dashboard",
+    moduleId: "accountant-home",
+    moduleTitle: "Fees Command Center",
+    steps: [
+      {
+        anchorId: "accountant-today-collection",
+        title: "Daily Cash Drawer",
+        line: "Real-time counter cash reconciled against payment gateway bank deposits.",
+      },
+      {
+        anchorId: "accountant-spokes-tabs",
+        title: "Accounting Spokes",
+        line: "Jump directly to Fee Heads, Structure Mapping, Refunds, and Audit Logs.",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/accounting/reports/concessions",
+    moduleId: "accountant-concessions",
+    moduleTitle: "Concession Register",
+    steps: [
+      {
+        anchorId: "accountant-concession-table",
+        title: "Concession Register",
+        line: "Audit sibling discounts, merit scholarships, and RTE 25% waiver ledger.",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/accounts/bank-reconciliation",
+    moduleId: "accountant-bank-recon",
+    moduleTitle: "Bank Reconciliation",
+    steps: [
+      {
+        anchorId: "accountant-bank-selector",
+        title: "Bank Account Picker",
+        line: "Select active school bank account for statement clearance matching.",
+      },
+      {
+        anchorId: "accountant-recon-table",
+        title: "Reconciliation Table",
+        line: "Reconcile counter collection cash batches with official bank slips.",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// 4. HR MANAGER TOURS
+// ============================================================================
+export const HR_MANAGER_MODULE_ORDER = [
+  "hr-overview",
+  "hr-staff-directory",
+  "hr-leave-approvals",
+  "hr-payroll-runs",
+];
+
+export const HR_MANAGER_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/hr",
+    moduleId: "hr-overview",
+    moduleTitle: "HR Overview & Census",
+    steps: [
+      {
+        anchorId: "hr-stats-grid",
+        title: "Operations KPI Grid",
+        line: "Active faculty headcount, department distribution, and staff attendance.",
+      },
+      {
+        anchorId: "hr-staff-table",
+        title: "Staff Directory",
+        line: "Faculty database with qualifications, designations, and biometric codes.",
+      },
+      {
+        anchorId: "hr-leave-requests-list",
+        title: "Leave Applications",
+        line: "Review teacher leave applications with one-click approve/reject actions.",
+      },
+      {
+        anchorId: "hr-payroll-month-select",
+        title: "Monthly Payroll",
+        line: "Generate monthly salary slips, statutory PF/ESI deductions, and bank lists.",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// 5. LIBRARIAN TOURS
+// ============================================================================
+export const LIBRARIAN_MODULE_ORDER = [
+  "librarian-home",
+  "librarian-catalog",
+];
+
+export const LIBRARIAN_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/librarian/dashboard",
+    moduleId: "librarian-home",
+    moduleTitle: "Librarian Command Desk",
+    steps: [
+      {
+        anchorId: "librarian-metrics-row",
+        title: "Circulation Metrics",
+        line: "Live total book copies, active loans, and overdue fines summary.",
+      },
+      {
+        anchorId: "librarian-catalog-btn",
+        title: "Master Inventory",
+        line: "Fast shortcut to access the master inventory catalog and issue desk.",
+      },
+    ],
+  },
+  {
+    pagePath: "/library",
+    moduleId: "librarian-catalog",
+    moduleTitle: "Library Circulation Desk",
+    steps: [
+      {
+        anchorId: "librarian-catalog-search",
+        title: "Catalog Search",
+        line: "Search books by title, ISBN, subject, or rack shelf location.",
+      },
+      {
+        anchorId: "librarian-issue-btn",
+        title: "Issue & Return",
+        line: "Check-out book copies to students and teachers with automatic due dates.",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// 6. TRANSPORT MANAGER TOURS
+// ============================================================================
+export const TRANSPORT_MANAGER_MODULE_ORDER = [
+  "transport-home",
+  "transport-fleet",
+];
+
+export const TRANSPORT_MANAGER_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/transport/dashboard",
+    moduleId: "transport-home",
+    moduleTitle: "Fleet Operations Command",
+    steps: [
+      {
+        anchorId: "transport-manager-kpi",
+        title: "Fleet Health",
+        line: "Active buses on route, GPS signal health, and student pass allocations.",
+      },
+      {
+        anchorId: "transport-manager-fleet-btn",
+        title: "Fleet Manager",
+        line: "Jump straight to fleet vehicle registrations and transit route setup.",
+      },
+    ],
+  },
+  {
+    pagePath: "/transport",
+    moduleId: "transport-fleet",
+    moduleTitle: "Transit Routes & Live Tracking",
+    steps: [
+      {
+        anchorId: "transport-routes-list",
+        title: "Transit Routes",
+        line: "View bus routes with ordered stop sequences and assigned drivers.",
+      },
+      {
+        anchorId: "transport-live-tracking",
+        title: "Live GPS Map",
+        line: "Live tracking map showing real-time GPS pings from driver apps.",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// 7. DRIVER TOURS
+// ============================================================================
+export const DRIVER_MODULE_ORDER = [
+  "driver-home",
+  "driver-profile",
+];
+
+export const DRIVER_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/driver/dashboard",
+    moduleId: "driver-home",
+    moduleTitle: "Driver Cockpit",
+    steps: [
+      {
+        anchorId: "driver-trip-toggle",
+        title: "Trip Broadcast",
+        line: "Tap to start or end trip and broadcast live bus GPS coordinates to parents.",
+      },
+      {
+        anchorId: "driver-live-map",
+        title: "Mini Route Map",
+        line: "High-contrast route map showing your live bus location and vehicle speed.",
+      },
+      {
+        anchorId: "driver-stops-checklist",
+        title: "Stops Checklist",
+        line: "Clear bus stops sequentially as students embark or disembark.",
+      },
+    ],
+  },
+  {
+    pagePath: "/driver/profile",
+    moduleId: "driver-profile",
+    moduleTitle: "Driver Licence & Bus",
+    steps: [
+      {
+        anchorId: "driver-licence-card",
+        title: "Licence & Bus Details",
+        line: "View your verified commercial driving licence and allocated transit bus.",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// HELPER FOR STAFF ROLES
+// ============================================================================
+export function getStaffToursForRole(role: string): {
+  tours: PageTourDefinition[];
+  allModuleIds: string[];
+} {
+  switch (role) {
+    case "TEACHER":
+      return { tours: TEACHER_PAGE_TOURS, allModuleIds: TEACHER_MODULE_ORDER };
+    case "PRINCIPAL":
+      return { tours: PRINCIPAL_PAGE_TOURS, allModuleIds: PRINCIPAL_MODULE_ORDER };
+    case "ACCOUNTANT":
+      return { tours: ACCOUNTANT_PAGE_TOURS, allModuleIds: ACCOUNTANT_MODULE_ORDER };
+    case "HR_MANAGER":
+      return { tours: HR_MANAGER_PAGE_TOURS, allModuleIds: HR_MANAGER_MODULE_ORDER };
+    case "LIBRARIAN":
+      return { tours: LIBRARIAN_PAGE_TOURS, allModuleIds: LIBRARIAN_MODULE_ORDER };
+    case "TRANSPORT_MANAGER":
+      return { tours: TRANSPORT_MANAGER_PAGE_TOURS, allModuleIds: TRANSPORT_MANAGER_MODULE_ORDER };
+    case "DRIVER":
+      return { tours: DRIVER_PAGE_TOURS, allModuleIds: DRIVER_MODULE_ORDER };
+    default:
+      return { tours: [], allModuleIds: [] };
+  }
+}
 export const TEACHER_DECK: TourDeck = {
   role: "TEACHER",
   roleDisplayName: "Educator / Teacher",

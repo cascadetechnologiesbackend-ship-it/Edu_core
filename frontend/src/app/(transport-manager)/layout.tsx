@@ -9,6 +9,8 @@ import { SessionProvider } from "next-auth/react";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { TourHost } from "@/components/tour/TourHost";
+import { TRANSPORT_MANAGER_PAGE_TOURS, TRANSPORT_MANAGER_MODULE_ORDER } from "@/lib/tours/staffTours";
 
 export const metadata: Metadata = {
   title: {
@@ -70,6 +72,11 @@ export default async function TransportManagerLayout({
         }}
       >
         {children}
+        <TourHost
+          role="TRANSPORT_MANAGER"
+          tours={TRANSPORT_MANAGER_PAGE_TOURS}
+          allModuleIds={TRANSPORT_MANAGER_MODULE_ORDER}
+        />
       </AdminShell>
     </SessionProvider>
   );

@@ -243,6 +243,7 @@ export default function HRDashboardClient({
               <button
                 key={tab.id}
                 type="button"
+                data-tour={tab.id === "payroll" ? "hr-payroll-month-select" : undefined}
                 onClick={() => handleTabChange(tab.id)}
                 className={`flex items-center gap-2 py-3 px-3.5 sm:px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition-all outline-hidden min-h-[44px] ${
                   isActive

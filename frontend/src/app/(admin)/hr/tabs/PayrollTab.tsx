@@ -179,6 +179,7 @@ export function PayrollTab({
                 Target Month
               </span>
               <input
+                data-tour="hr-payroll-month-select"
                 type="text"
                 placeholder="YYYY-MM (e.g. 2026-10)"
                 value={payrollMonth}

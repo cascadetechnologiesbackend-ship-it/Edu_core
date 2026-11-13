@@ -183,7 +183,10 @@ export default function AttendanceManager({
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-gray-200 dark:border-slate-800">
+      <div
+        data-tour="principal-attendance-metrics"
+        className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-gray-200 dark:border-slate-800"
+      >
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
             Classroom / Section
