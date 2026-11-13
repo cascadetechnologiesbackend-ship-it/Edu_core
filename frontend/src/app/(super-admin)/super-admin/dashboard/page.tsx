@@ -74,6 +74,15 @@ export default async function SuperAdminDashboardPage() {
           <div className="w-full sm:w-auto flex flex-wrap items-center gap-3">
             <TutorialLauncherButton role="SUPER_ADMIN" label="Super Admin Tour" />
             <Link
+              data-tour="super-admin-provision-btn"
+              href="/super-admin/schools/provision"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 transition active:scale-95"
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Provision School</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
               href="/super-admin/schools"
               className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition active:scale-95"
             >
@@ -93,7 +102,7 @@ export default async function SuperAdminDashboardPage() {
       )}
 
       {/* ─── 4 KPI Metrics ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div data-tour="super-admin-metrics-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1 */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm hover:border-indigo-500/30 transition-all">
           <div className="flex items-center justify-between text-slate-400">

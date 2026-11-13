@@ -5,7 +5,7 @@ import {
   ShieldCheck,
   Layers,
 } from "lucide-react";
-import { TourDeck } from "./types";
+import { TourDeck, PageTourDefinition } from "./types";
 
 export const SUPER_ADMIN_DECK: TourDeck = {
   role: "SUPER_ADMIN",
@@ -126,4 +126,59 @@ export const SUPER_ADMIN_DECK: TourDeck = {
     },
   ],
 };
+
+// ============================================================================
+// CONTEXTUAL PAGE TOURS (CT-L5)
+// ============================================================================
+
+export const SUPER_ADMIN_MODULE_ORDER = [
+  "super-admin-command",
+  "super-admin-tenants",
+  "super-admin-provisioning",
+];
+
+export const SUPER_ADMIN_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/super-admin/dashboard",
+    moduleId: "super-admin-command",
+    moduleTitle: "Super Admin Command Center",
+    steps: [
+      {
+        anchorId: "super-admin-metrics-grid",
+        title: "Platform Metrics",
+        line: "Total tenants, active schools, global pupil census, and platform revenue telemetry.",
+      },
+      {
+        anchorId: "super-admin-provision-btn",
+        title: "Provision School Instance",
+        line: "Launch the 8-step idempotent school tenant onboarding wizard.",
+        ctaLabel: "Provision School",
+      },
+    ],
+  },
+  {
+    pagePath: "/super-admin/schools",
+    moduleId: "super-admin-tenants",
+    moduleTitle: "Tenant Registry & Impersonation",
+    steps: [
+      {
+        anchorId: "super-admin-schools-table",
+        title: "Tenant Registry Table",
+        line: "Live listing of all registered school instances with health checks and impersonate action.",
+      },
+    ],
+  },
+  {
+    pagePath: "/super-admin/provisioning/new",
+    moduleId: "super-admin-provisioning",
+    moduleTitle: "Unified School Provisioning Wizard",
+    steps: [
+      {
+        anchorId: "super-admin-wizard-stepper",
+        title: "8-Step Onboarding Stepper",
+        line: "Board, academic term, grade range, fee cycles, and admin credentials.",
+      },
+    ],
+  },
+];
 

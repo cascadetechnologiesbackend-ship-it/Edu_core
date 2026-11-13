@@ -141,7 +141,7 @@ function OnboardingWizardContent() {
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-8 space-y-6">
         {/* Stepper (hidden on completion) */}
         {activeStep <= 7 && (
-          <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs">
+          <div data-tour="super-admin-wizard-stepper" className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs">
             <Stepper
               steps={ONBOARDING_STEPS}
               currentStep={activeStep}
