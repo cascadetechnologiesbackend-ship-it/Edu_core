@@ -58,6 +58,7 @@ export function StudentMarksClient({ data }: { data: StudentMarksData }) {
           {/* Tab Switcher */}
           <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-slate-800 self-start sm:self-auto">
             <button
+              data-tour="student-marks-term-select"
               onClick={() => setActiveTab("results")}
               className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
                 activeTab === "results"

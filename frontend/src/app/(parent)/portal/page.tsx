@@ -291,7 +291,7 @@ export default async function ParentFeesPage({
       </div>
 
       {/* ─── 2. Outstanding Invoices & Dues ─────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4">
+      <div data-tour="parent-due-invoice" className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 sm:p-5 shadow-md space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-indigo-400" />
@@ -302,7 +302,7 @@ export default async function ParentFeesPage({
         </div>
 
         {pendingInvoices.length === 0 ? (
-          <div className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-6 text-center text-xs text-emerald-300">
+          <div data-tour="parent-pay-btn" className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-6 text-center text-xs text-emerald-300">
             All fees are fully cleared. No outstanding dues found!
           </div>
         ) : (
@@ -372,6 +372,7 @@ export default async function ParentFeesPage({
                   {/* Bottom Action: Pay Online Button */}
                   <div className="pt-1">
                     <CheckoutButton
+                      data-tour="parent-pay-btn"
                       invoiceId={inv.id}
                       amount={balanceAmt}
                       className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs transition shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2"

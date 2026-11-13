@@ -116,6 +116,7 @@ export function StudentTimetableClient({
               Today / आज
             </button>
             <button
+              data-tour="student-timetable-grid"
               onClick={() => setActiveTab("weekly")}
               className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
                 activeTab === "weekly"

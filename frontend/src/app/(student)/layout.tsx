@@ -11,6 +11,8 @@ import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { SessionProvider } from "next-auth/react";
 import { resolveStudentScope } from "@/lib/studentEventEngine/scopeResolver";
+import { TourHost } from "@/components/tour/TourHost";
+import { STUDENT_PAGE_TOURS, STUDENT_MODULE_ORDER } from "@/lib/tours/familyTours";
 
 export const metadata: Metadata = {
   title: {
@@ -105,7 +107,14 @@ export default async function StudentLayout({
         )}
 
         {/* Main Content Area (Max-w-3xl for optimal mobile/tablet reading) */}
-        <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+        <main className="flex-1 max-w-3xl w-full mx-auto p-4">
+          {children}
+          <TourHost
+            role="STUDENT"
+            tours={STUDENT_PAGE_TOURS}
+            allModuleIds={STUDENT_MODULE_ORDER}
+          />
+        </main>
 
         {/* Bottom Thumb-Zone Navigation */}
         <BottomNav items={STUDENT_NAV_ITEMS} />

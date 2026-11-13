@@ -425,14 +425,16 @@ export function ParentFeedContainer({
 
       <FeatureTutorialFlashCards role="PARENT" />
 
-      <ParentIdentityHeader
-        currentStudent={selectedStudent}
-        availableStudents={availableStudents}
-        onSelectStudent={handleStudentSelect}
-      />
+      <div data-tour="parent-identity-header">
+        <ParentIdentityHeader
+          currentStudent={selectedStudent}
+          availableStudents={availableStudents}
+          onSelectStudent={handleStudentSelect}
+        />
+      </div>
 
       {/* 2. Today Strip with Pull/Click to Refresh */}
-      <div className="relative">
+      <div data-tour="parent-today-strip" className="relative">
         <TodayStrip activeCardsCount={cards.length} locale={locale} />
         <button
           type="button"
@@ -466,47 +468,49 @@ export function ParentFeedContainer({
       )}
 
       {/* 3. Event-Driven Feed: Zero cards is a valid, calm state (AC-P1) */}
-      {cards.length > 0 && (
-        <div className="space-y-3.5 pt-1">
-          {/* Pinned "Needs Attention" Strip (AC-12) */}
-          {pinnedCards.length > 0 && (
-            <div
-              data-testid="needs-attention-strip"
-              className="space-y-3 p-3 sm:p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/20"
-            >
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{locale === "hi" ? "जरूरी सूचनाएं" : "Needs Attention"}</span>
+      <div data-tour="parent-feed-cards">
+        {cards.length > 0 && (
+          <div className="space-y-3.5 pt-1">
+            {/* Pinned "Needs Attention" Strip (AC-12) */}
+            {pinnedCards.length > 0 && (
+              <div
+                data-testid="needs-attention-strip"
+                className="space-y-3 p-3 sm:p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/20"
+              >
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{locale === "hi" ? "जरूरी सूचनाएं" : "Needs Attention"}</span>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500">
+                    {pinnedCards.length}
+                  </span>
                 </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500">
-                  {pinnedCards.length}
-                </span>
+                <div className="space-y-3">
+                  {pinnedCards.map((card) => renderCard(card))}
+                </div>
               </div>
-              <div className="space-y-3">
-                {pinnedCards.map((card) => renderCard(card))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* 4. Chronological Stream (AC-12) with Timeline Day Grouping */}
-          <div data-testid="parent-feed-cards" className="space-y-3.5">
-            <ParentTimeline
-              cards={streamCards.length > 0 ? streamCards : cards}
-              renderCard={renderCard}
-              locale={locale}
-              wardName={selectedStudent.name}
-            />
-            {/* Direct cards.map ensures structural invariant certification */}
-            <div className="hidden" aria-hidden="true">
-              {cards.map((card) => {
-                if (card.isPinned && pinnedCards.length > 0) return null;
-                return renderCard(card);
-              })}
+            {/* 4. Chronological Stream (AC-12) with Timeline Day Grouping */}
+            <div data-testid="parent-feed-cards" className="space-y-3.5">
+              <ParentTimeline
+                cards={streamCards.length > 0 ? streamCards : cards}
+                renderCard={renderCard}
+                locale={locale}
+                wardName={selectedStudent.name}
+              />
+              {/* Direct cards.map ensures structural invariant certification */}
+              <div className="hidden" aria-hidden="true">
+                {cards.map((card) => {
+                  if (card.isPinned && pinnedCards.length > 0) return null;
+                  return renderCard(card);
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 5. Modals for 1-Tap Details (AC-13) */}
       <HomeworkDetailModal

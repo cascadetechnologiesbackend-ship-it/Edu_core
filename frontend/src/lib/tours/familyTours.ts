@@ -8,7 +8,7 @@ import {
   Award,
   Calendar,
 } from "lucide-react";
-import { TourDeck } from "./types";
+import { TourDeck, PageTourDefinition } from "./types";
 
 export const PARENT_DECK: TourDeck = {
   role: "PARENT",
@@ -249,4 +249,196 @@ export const STUDENT_DECK: TourDeck = {
     },
   ],
 };
+
+// ============================================================================
+// CONTEXTUAL PAGE TOURS (CT-L4)
+// ============================================================================
+
+export const PARENT_MODULE_ORDER = [
+  "parent-feed",
+  "parent-fees",
+  "parent-transit",
+  "parent-attendance",
+  "parent-profile",
+];
+
+export const PARENT_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/parent/dashboard",
+    moduleId: "parent-feed",
+    moduleTitle: "Parent Daily Feed",
+    steps: [
+      {
+        anchorId: "parent-identity-header",
+        title: "Child Ward Selector",
+        line: "Switch between children and view real-time monthly attendance rate.",
+      },
+      {
+        anchorId: "parent-today-strip",
+        title: "Today's Action Strip",
+        line: "Glances today's priorities: urgent fee dues, homework, and notices.",
+      },
+      {
+        anchorId: "parent-feed-cards",
+        title: "Chronological Feed Cards",
+        line: "Event cards with one-tap actions for fees, homework, and permissions.",
+      },
+    ],
+  },
+  {
+    pagePath: "/portal",
+    moduleId: "parent-fees",
+    moduleTitle: "Fee Clearance & Receipts",
+    steps: [
+      {
+        anchorId: "parent-due-invoice",
+        title: "Fee Due Invoice Card",
+        line: "Outstanding fee invoice breakdown with tuition, transport, and term fees.",
+      },
+      {
+        anchorId: "parent-pay-btn",
+        title: "Instant Pay Button",
+        line: "Pay securely in under 90 seconds via UPI, debit card, or NetBanking.",
+        ctaLabel: "Pay Fees",
+      },
+    ],
+  },
+  {
+    pagePath: "/parent/bus",
+    moduleId: "parent-transit",
+    moduleTitle: "School Bus Live GPS",
+    steps: [
+      {
+        anchorId: "parent-bus-eta-card",
+        title: "Bus Live Arrival ETA",
+        line: "Live countdown showing estimated arrival time at your child's pickup stop.",
+      },
+      {
+        anchorId: "parent-bus-live-map",
+        title: "Real-time GPS Map",
+        line: "Track your child's school bus location live on the route map.",
+      },
+    ],
+  },
+  {
+    pagePath: "/parent/attendance",
+    moduleId: "parent-attendance",
+    moduleTitle: "Attendance Record",
+    steps: [
+      {
+        anchorId: "parent-attendance-calendar",
+        title: "Monthly Attendance Calendar",
+        line: "Inspect daily present, absent, and holiday marks with monthly totals.",
+      },
+    ],
+  },
+  {
+    pagePath: "/parent/profile",
+    moduleId: "parent-profile",
+    moduleTitle: "Student Profile & Vault",
+    steps: [
+      {
+        anchorId: "parent-ward-profile",
+        title: "Student Profile & Vault",
+        line: "Official admission number, class teacher contact, and school records.",
+      },
+    ],
+  },
+];
+
+export const STUDENT_MODULE_ORDER = [
+  "student-feed",
+  "student-homework",
+  "student-timetable",
+  "student-marks",
+  "student-fees",
+];
+
+export const STUDENT_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/student/dashboard",
+    moduleId: "student-feed",
+    moduleTitle: "Student Learning Feed",
+    steps: [
+      {
+        anchorId: "student-identity-bar",
+        title: "Student Identity Bar",
+        line: "Your class section, roll number, and 30-day attendance streak.",
+      },
+      {
+        anchorId: "student-feed-stream",
+        title: "Daily Learning Stream",
+        line: "Today's homework assignments, classwork notes, and school notices.",
+      },
+    ],
+  },
+  {
+    pagePath: "/student/homework",
+    moduleId: "student-homework",
+    moduleTitle: "Homework Center",
+    steps: [
+      {
+        anchorId: "student-hw-pending-list",
+        title: "Pending Assignments",
+        line: "Active homework list with subject tags and due dates.",
+      },
+      {
+        anchorId: "student-hw-submit-flow",
+        title: "Submit Homework",
+        line: "Submit homework text or photo attachments directly to your teacher.",
+        ctaLabel: "Submit Work",
+      },
+    ],
+  },
+  {
+    pagePath: "/student/timetable",
+    moduleId: "student-timetable",
+    moduleTitle: "Class Timetable",
+    steps: [
+      {
+        anchorId: "student-timetable-grid",
+        title: "Weekly Timetable Matrix",
+        line: "Your complete weekly class timetable with periods, subjects, and rooms.",
+      },
+    ],
+  },
+  {
+    pagePath: "/student/marks",
+    moduleId: "student-marks",
+    moduleTitle: "Academic Performance",
+    steps: [
+      {
+        anchorId: "student-marks-term-select",
+        title: "Exam Term Selector",
+        line: "Review unit test and term examination scores, grades, and teacher remarks.",
+      },
+    ],
+  },
+  {
+    pagePath: "/student/fees",
+    moduleId: "student-fees",
+    moduleTitle: "Fee Clearance",
+    steps: [
+      {
+        anchorId: "student-fee-balance",
+        title: "Fee Receipts & Status",
+        line: "Verify fee clearance status and download official paid fee receipts.",
+      },
+    ],
+  },
+];
+
+export function getFamilyToursForRole(role: string): {
+  tours: PageTourDefinition[];
+  allModuleIds: string[];
+} {
+  switch (role) {
+    case "PARENT":
+      return { tours: PARENT_PAGE_TOURS, allModuleIds: PARENT_MODULE_ORDER };
+    case "STUDENT":
+      return { tours: STUDENT_PAGE_TOURS, allModuleIds: STUDENT_MODULE_ORDER };
+    default:
+      return { tours: [], allModuleIds: [] };
+  }
+}
 

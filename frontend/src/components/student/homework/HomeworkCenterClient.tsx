@@ -298,6 +298,7 @@ export function HomeworkCenterClient({
         {/* 3-Tab Pill Switcher */}
         <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-950/70 border border-slate-800/80 mt-4">
           <button
+            data-tour="student-hw-pending-list"
             type="button"
             onClick={() => setActiveTab("pending")}
             className={cn(
@@ -445,20 +446,22 @@ export function HomeworkCenterClient({
       {/* Empty State Handlers */}
       {currentItems.length === 0 ? (
         activeTab === "pending" ? (
-          <EmptyStateCTA
-            icon={<Sparkles className="w-8 h-8 text-emerald-400" />}
-            title={
-              isHi
-                ? "कोई गृहकार्य लंबित नहीं है"
-                : "No homework pending. Enjoy the evening."
-            }
-            hint={
-              isHi
-                ? "आपकी कक्षा के लिए सभी असाइनमेंट समय पर पूरे कर लिए गए हैं।"
-                : "All assignments for your subjects have been completed. Great job staying on top of your studies!"
-            }
-            className="bg-slate-900/60 border-slate-800 text-slate-300"
-          />
+          <div data-tour="student-hw-submit-flow">
+            <EmptyStateCTA
+              icon={<Sparkles className="w-8 h-8 text-emerald-400" />}
+              title={
+                isHi
+                  ? "कोई गृहकार्य लंबित नहीं है"
+                  : "No homework pending. Enjoy the evening."
+              }
+              hint={
+                isHi
+                  ? "आपकी कक्षा के लिए सभी असाइनमेंट समय पर पूरे कर लिए गए हैं।"
+                  : "All assignments for your subjects have been completed. Great job staying on top of your studies!"
+              }
+              className="bg-slate-900/60 border-slate-800 text-slate-300"
+            />
+          </div>
         ) : activeTab === "submitted" ? (
           <EmptyStateCTA
             icon={<CheckCircle2 className="w-8 h-8 text-blue-400" />}
@@ -492,7 +495,7 @@ export function HomeworkCenterClient({
         )
       ) : (
         /* Homework List */
-        <div className="space-y-3">
+        <div data-tour="student-hw-pending-list" className="space-y-3">
           {currentItems.map((item) => {
             const dueDate = new Date(item.dueDate);
             const formattedDueDate = dueDate.toLocaleDateString(
@@ -612,6 +615,7 @@ export function HomeworkCenterClient({
                     {/* Action Buttons (Strict Click Budget: 2-3 clicks) */}
                     {activeTab === "pending" ? (
                       <button
+                        data-tour="student-hw-submit-flow"
                         type="button"
                         onClick={() => handleOpenSubmit(item)}
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25 transition min-h-[38px]"

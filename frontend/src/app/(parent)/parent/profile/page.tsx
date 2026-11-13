@@ -201,7 +201,7 @@ export default async function ParentProfilePage({
   });
 
   return (
-    <div className="py-2">
+    <div data-tour="parent-ward-profile" className="py-2">
       <ChildProfileView
         student={{
           id: activeStudent.id,

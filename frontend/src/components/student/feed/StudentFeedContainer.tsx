@@ -119,7 +119,7 @@ export function StudentFeedContainer({
       )}
 
       {/* 1. Student Identity Header & Today Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-indigo-800/40">
+      <div data-tour="student-identity-bar" className="rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-indigo-800/40">
         <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -192,11 +192,12 @@ export function StudentFeedContainer({
       )}
 
       {/* 3. Event-Driven Feed or Calm State (Zero-Clutter Invariant AC-5) */}
-      {cards.length === 0 ? (
-        <div
-          data-testid="student-calm-state"
-          className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-4 shadow-sm"
-        >
+      <div data-tour="student-feed-stream">
+        {cards.length === 0 ? (
+          <div
+            data-testid="student-calm-state"
+            className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-4 shadow-sm"
+          >
           <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
             <Sparkles className="w-8 h-8" />
           </div>
@@ -305,6 +306,7 @@ export function StudentFeedContainer({
           })}
         </div>
       )}
+      </div>
 
       {/* 4. One-Tap Detail Modals */}
       <HomeworkDetailModal

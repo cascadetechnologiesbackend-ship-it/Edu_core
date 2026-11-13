@@ -9,6 +9,8 @@ import { Users } from "lucide-react";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { TourHost } from "@/components/tour/TourHost";
+import { PARENT_PAGE_TOURS, PARENT_MODULE_ORDER } from "@/lib/tours/familyTours";
 
 import { SessionProvider } from "next-auth/react";
 import DpdpOptInModal from "@/components/parent/DpdpOptInModal";
@@ -79,7 +81,14 @@ export default async function ParentLayout({
         <DpdpOptInModal />
 
         {/* Main Content Area (Max-w-3xl for optimal mobile/tablet reading) */}
-        <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
+        <main className="flex-1 max-w-3xl w-full mx-auto p-4">
+          {children}
+          <TourHost
+            role="PARENT"
+            tours={PARENT_PAGE_TOURS}
+            allModuleIds={PARENT_MODULE_ORDER}
+          />
+        </main>
 
         {/* Bottom Thumb-Zone Navigation */}
         <BottomNav items={PARENT_NAV_ITEMS} />

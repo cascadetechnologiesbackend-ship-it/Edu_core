@@ -19,6 +19,7 @@ export interface RazorpayPaymentButtonProps {
   parentPhone?: string;
   className?: string;
   label?: string;
+  "data-tour"?: string;
   onSuccess?: (data: RazorpayPaymentSuccessData) => void;
 }
 
@@ -30,6 +31,7 @@ export function CheckoutButton({
   parentPhone,
   className,
   label = "Pay Online",
+  "data-tour": dataTour,
   onSuccess,
 }: RazorpayPaymentButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -163,6 +165,7 @@ export function CheckoutButton({
         </a>
       ) : (
         <button
+          data-tour={dataTour}
           type="button"
           onClick={handlePayment}
           disabled={loading}
