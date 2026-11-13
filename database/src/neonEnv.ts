@@ -38,13 +38,36 @@ export function loadLocalEnvFiles(): void {
 }
 
 /**
+ * Normalizes connection strings by removing query parameters that cause
+ * authentication/handshake failures with node-postgres (pg). Specifically,
+ * Neon default connection strings include `channel_binding=require`, which
+ * causes SCRAM authentication to fail with code 28P01 in pg 8.x.
+ */
+export function normalizeConnectionString(rawUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== "string") return rawUrl;
+  try {
+    const parsed = new URL(rawUrl);
+    let changed = false;
+    if (parsed.searchParams.has("channel_binding")) {
+      parsed.searchParams.delete("channel_binding");
+      changed = true;
+    }
+    return changed ? parsed.toString() : rawUrl;
+  } catch {
+    return rawUrl.replace(/[?&]channel_binding=[^&]+(&|$)/, (m, end) =>
+      m.startsWith("?") ? (end ? "?" : "") : end ? "&" : "",
+    );
+  }
+}
+
+/**
  * Returns the pooled application connection string (`DATABASE_URL`), validated
  * through `@neon/env`'s `parseEnv` against `neon.ts` when set in `process.env`.
  */
 export function getAppDatabaseUrl(): string {
   if (process.env["DATABASE_URL"] && process.env["DATABASE_URL"].trim() !== "") {
     const { postgres } = parseEnv(neonConfig, ["DATABASE_URL"]);
-    return postgres.databaseUrl;
+    return normalizeConnectionString(postgres.databaseUrl);
   }
   return DEFAULT_LOCAL_DATABASE_URL;
 }
@@ -79,21 +102,21 @@ export function getMigrationDatabaseDetails(): MigrationDatabaseDetails {
     process.env["MIGRATION_DATABASE_URL"].trim() !== ""
   ) {
     source = "MIGRATION_DATABASE_URL";
-    url = process.env["MIGRATION_DATABASE_URL"];
+    url = normalizeConnectionString(process.env["MIGRATION_DATABASE_URL"]);
   } else if (
     process.env["DATABASE_URL_UNPOOLED"] &&
     process.env["DATABASE_URL_UNPOOLED"].trim() !== ""
   ) {
     source = "DATABASE_URL_UNPOOLED";
     const { postgres } = parseEnv(neonConfig, ["DATABASE_URL_UNPOOLED"]);
-    url = postgres.databaseUrlUnpooled;
+    url = normalizeConnectionString(postgres.databaseUrlUnpooled);
   } else if (
     process.env["DATABASE_URL"] &&
     process.env["DATABASE_URL"].trim() !== ""
   ) {
     source = "DATABASE_URL";
     const { postgres } = parseEnv(neonConfig, ["DATABASE_URL"]);
-    url = postgres.databaseUrl;
+    url = normalizeConnectionString(postgres.databaseUrl);
   }
 
   let sanitized = url;
@@ -134,19 +157,20 @@ export function createPoolConfig(
   connectionString: string,
   options?: { isMigration?: boolean },
 ): PoolConfig {
+  const normalizedUrl = normalizeConnectionString(connectionString);
   const isMigration = options?.isMigration ?? false;
-  const isNeon = isNeonDatabaseUrl(connectionString);
+  const isNeon = isNeonDatabaseUrl(normalizedUrl);
   const isServerless = Boolean(process.env["VERCEL"]);
 
   if (isMigration) {
     return {
-      connectionString,
+      connectionString: normalizedUrl,
       connectionTimeoutMillis: isNeon ? 30000 : 10000,
     };
   }
 
   return {
-    connectionString,
+    connectionString: normalizedUrl,
     min: isServerless ? 0 : Number(process.env["DATABASE_POOL_MIN"] ?? 4),
     max: isServerless
       ? Number(process.env["DATABASE_POOL_MAX"] ?? 5)

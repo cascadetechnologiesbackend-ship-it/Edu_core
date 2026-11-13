@@ -6,6 +6,7 @@ import {
   getMigrationDatabaseUrl,
   getMigrationDatabaseDetails,
   isNeonDatabaseUrl,
+  normalizeConnectionString,
 } from "../../../../database/src/neonEnv";
 
 describe("Neon Connection & Pool Config (neon + neon-postgres skills)", () => {
@@ -74,6 +75,17 @@ describe("Neon Connection & Pool Config (neon + neon-postgres skills)", () => {
     expect(details.username).toBe("migrator");
     expect(details.host).toBe("custom.example.com");
     expect(details.sanitized).toContain("migrator:******@custom.example.com");
+  });
+
+  it("strips channel_binding=require from Neon connection strings to avoid pg driver 28P01 authentication failure", () => {
+    const raw =
+      "postgresql://neondb_owner:secret@ep-little-fire-aoi2dobz.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+    const cleaned = normalizeConnectionString(raw);
+
+    expect(cleaned).toBe(
+      "postgresql://neondb_owner:secret@ep-little-fire-aoi2dobz.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+    );
+    expect(cleaned).not.toContain("channel_binding");
   });
 
   it("identifies Neon endpoints accurately", () => {
