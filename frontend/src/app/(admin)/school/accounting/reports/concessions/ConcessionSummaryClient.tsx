@@ -385,10 +385,7 @@ export function ConcessionSummaryClient({
       )}
 
       {/* Authoritative Detailed Concession Matrix */}
-      <div
-        data-tour="accountant-concession-table"
-        className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden"
-      >
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-indigo-600" />

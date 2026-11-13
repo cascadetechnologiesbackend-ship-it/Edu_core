@@ -515,7 +515,6 @@ export function CounterCollectionClient({
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
-                data-tour="accountant-student-search"
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search by student name or admission number..."
@@ -810,10 +809,7 @@ export function CounterCollectionClient({
 
         {/* Right Column: POS Collection Terminal (5 cols) */}
         <div className="lg:col-span-5">
-          <div
-            data-tour="accountant-payment-modes"
-            className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm sticky top-6 space-y-4"
-          >
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm sticky top-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-indigo-600" />
@@ -821,10 +817,7 @@ export function CounterCollectionClient({
                   Payment Terminal
                 </h2>
               </div>
-              <span
-                data-tour="accountant-record-btn"
-                className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold"
-              >
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold">
                 POS Ready
               </span>
             </div>

@@ -183,10 +183,7 @@ export default function AttendanceManager({
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
-      <div
-        data-tour="principal-attendance-metrics"
-        className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-gray-200 dark:border-slate-800"
-      >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-gray-200 dark:border-slate-800">
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
             Classroom / Section
@@ -197,7 +194,6 @@ export default function AttendanceManager({
             </p>
           ) : (
             <select
-              data-tour="attendance-section-select"
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
               className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -263,10 +259,7 @@ export default function AttendanceManager({
       )}
 
       {/* Student List */}
-      <div
-        data-tour="attendance-roster"
-        className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 overflow-hidden"
-      >
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 overflow-hidden">
         {loadingStudents ? (
           <div className="flex flex-col justify-center items-center py-20 space-y-2">
             <RefreshCw className="w-8 h-8 animate-spin text-primary" />
@@ -492,7 +485,6 @@ export default function AttendanceManager({
         {students.length > 0 && !loadingStudents && (
           <div className="hidden md:flex bg-gray-50 dark:bg-slate-800/30 px-6 py-4 justify-end border-t border-gray-100 dark:border-slate-800">
             <button
-              data-tour="attendance-submit-btn"
               onClick={handleSave}
               disabled={isPending}
               className="bg-primary hover:bg-primary-700 text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-all disabled:opacity-60 flex items-center gap-2"

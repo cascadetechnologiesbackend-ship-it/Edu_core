@@ -346,7 +346,6 @@ export function BankReconciliationClient({
             </p>
           </div>
           <select
-            data-tour="accountant-bank-selector"
             value={selectedBankId}
             onChange={(e) => handleBankChange(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-indigo-500"
@@ -546,10 +545,7 @@ export function BankReconciliationClient({
           </div>
 
           <div className="overflow-x-auto">
-            <table
-              data-tour="accountant-recon-table"
-              className="w-full text-left text-sm border-collapse"
-            >
+            <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-800/60 border-y border-gray-100 dark:border-slate-800 text-xs font-semibold text-gray-500 dark:text-slate-400">
                   <th className="py-3 px-4">STATEMENT DATE</th>
@@ -753,10 +749,7 @@ export function BankReconciliationClient({
           </h3>
 
           <div className="overflow-x-auto">
-            <table
-              data-tour="accountant-recon-table"
-              className="w-full text-left text-sm border-collapse"
-            >
+            <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-800/60 border-y border-gray-100 dark:border-slate-800 text-xs font-semibold text-gray-500">
                   <th className="py-2.5 px-4">DATE</th>

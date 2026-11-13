@@ -13,10 +13,11 @@ import {
   emitDayOneJourneyFinishedIfReady,
   type ReadinessCheckItem,
 } from "@/lib/dayOneReadiness";
-import { OnboardingMetricBadge, OnboardingMetricServerBadge } from "@/components/telemetry/OnboardingMetricBadge";
+import {
+  OnboardingMetricBadge,
+  OnboardingMetricServerBadge,
+} from "@/components/telemetry/OnboardingMetricBadge";
 import { getNorthStarMetricsSummary } from "@/lib/northStarTelemetry";
-import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 import {
   CheckCircle2,
   Clock,
@@ -155,25 +156,16 @@ export default async function DayOneCockpitPage({
         </div>
 
         {/* Readout: Onboarding North Star Metric Badge (Law: A metric without a readout is a lie) */}
-        <div className="shrink-0 flex items-center gap-3">
-          <TutorialLauncherButton label="Tutorial Guide" />
-          <div data-tour="day-one-metric-badge">
-            <OnboardingMetricBadge
-              summary={northStarSummary?.onboardingDays}
-              variant="card"
-            />
-          </div>
+        <div className="shrink-0">
+          <OnboardingMetricBadge
+            summary={northStarSummary?.onboardingDays}
+            variant="card"
+          />
         </div>
       </div>
 
-      {/* Feature Setup Tutorial Flashcards */}
-      <FeatureTutorialFlashCards initialOpen={isWelcome} />
-
       {/* ── Progress Strip ─────────────────────────────────────────────────── */}
-      <div
-        data-tour="day-one-readiness-strip"
-        className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3"
-      >
+      <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-primary" />
@@ -241,7 +233,7 @@ export default async function DayOneCockpitPage({
           Day One Readiness Checks ({readiness.readyChecksCount} of {readiness.totalChecks} Ready)
         </h3>
 
-        <div data-tour="day-one-checks-grid" className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {readiness.checks.map((check) => (
             <ReadinessCheckCard key={check.id} check={check} />
           ))}

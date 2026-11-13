@@ -1022,14 +1022,8 @@ export default function SchoolSetupPage() {
             </div>
 
             {/* Section 2: Affiliation & Board */}
-            <div
-              data-tour="settings-board-info"
-              className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6"
-            >
-              <div
-                data-tour="principal-affiliation-card"
-                className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800"
-              >
+            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800">
                 <BookOpen className="w-5 h-5 text-purple-600" />
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                   2. Board Affiliation & Accreditation
@@ -1314,7 +1308,6 @@ export default function SchoolSetupPage() {
             {/* Action Save Bar */}
             <div className="flex flex-col sm:flex-row justify-end pt-2">
               <button
-                data-tour="settings-save-btn"
                 type="submit"
                 disabled={isPending}
                 className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-sm shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"

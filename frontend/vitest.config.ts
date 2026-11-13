@@ -21,7 +21,6 @@ export default defineConfig({
       { find: "@schoolmitra/entity-engine", replacement: path.resolve(__dirname, "../packages/entity-engine/src/index.ts") },
       { find: /^@\/lib\/pii\/(.*)$/, replacement: path.resolve(__dirname, "./src/lib/pii/$1") },
       { find: /^@\/lib\/offline\/(.*)$/, replacement: path.resolve(__dirname, "./src/lib/offline/$1") },
-      { find: /^@\/lib\/tours\/(.*)$/, replacement: path.resolve(__dirname, "./src/lib/tours/$1") },
       { find: /^@\/lib\/(timetableEngine|provisioningEngine|importExportEngine|canonicalBlueprints|requestContext|serverTiming|sanitizeHtml)$/, replacement: path.resolve(__dirname, "./src/lib/$1.ts") },
       { find: /^@\/lib\/(.*)$/, replacement: path.resolve(__dirname, "../backend/src/lib/$1") },
       { find: /^@\/server\/(.*)$/, replacement: path.resolve(__dirname, "../backend/src/server/$1") },

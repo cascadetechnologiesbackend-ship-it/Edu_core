@@ -99,7 +99,7 @@ export function StudentFeesClient({ data }: { data: StudentFeesData }) {
         </div>
 
         {/* Financial Summary Strip */}
-        <div data-tour="student-fee-balance" className="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4">
             <span className="text-[10px] uppercase font-semibold text-slate-400">
               Total Billed / कुल देय

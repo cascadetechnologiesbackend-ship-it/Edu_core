@@ -8,8 +8,6 @@ import { Bus } from "lucide-react";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { TourHost } from "@/components/tour/TourHost";
-import { DRIVER_PAGE_TOURS, DRIVER_MODULE_ORDER } from "@/lib/tours/staffTours";
 
 import { SessionProvider } from "next-auth/react";
 
@@ -68,14 +66,7 @@ export default async function DriverLayout({
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 max-w-3xl w-full mx-auto p-4">
-          {children}
-          <TourHost
-            role="DRIVER"
-            tours={DRIVER_PAGE_TOURS}
-            allModuleIds={DRIVER_MODULE_ORDER}
-          />
-        </main>
+        <main className="flex-1 max-w-3xl w-full mx-auto p-4">{children}</main>
 
         {/* Mobile-First Bottom Nav (Thumb Comfort Zone) */}
         <BottomNav items={DRIVER_NAV_ITEMS} />

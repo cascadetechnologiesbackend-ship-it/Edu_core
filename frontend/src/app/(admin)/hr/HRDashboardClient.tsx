@@ -19,8 +19,6 @@ import { StructureTab } from "./tabs/StructureTab";
 import { LeavesTab } from "./tabs/LeavesTab";
 import { PayrollTab } from "./tabs/PayrollTab";
 import { SettingsTab } from "./tabs/SettingsTab";
-import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export type HRTabKey =
   | "overview"
@@ -221,20 +219,11 @@ export default function HRDashboardClient({
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <TutorialLauncherButton role={userRole === "HR_MANAGER" ? "HR_MANAGER" : "SCHOOL_ADMIN"} />
-        </div>
       </div>
-
-      <FeatureTutorialFlashCards role={userRole === "HR_MANAGER" ? "HR_MANAGER" : "SCHOOL_ADMIN"} />
 
       {/* Hub Spokes Navigation Bar */}
       <div className="border-b border-slate-200 dark:border-slate-800">
-        <nav
-          data-tour="hr-spokes-nav"
-          className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px"
-          aria-label="HR Hub Spokes"
-        >
+        <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px" aria-label="HR Hub Spokes">
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -243,7 +232,6 @@ export default function HRDashboardClient({
               <button
                 key={tab.id}
                 type="button"
-                data-tour={tab.id === "payroll" ? "hr-payroll-month-select" : undefined}
                 onClick={() => handleTabChange(tab.id)}
                 className={`flex items-center gap-2 py-3 px-3.5 sm:px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition-all outline-hidden min-h-[44px] ${
                   isActive

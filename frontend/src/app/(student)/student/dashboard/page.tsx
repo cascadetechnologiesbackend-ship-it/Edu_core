@@ -27,8 +27,6 @@ import { resolveStudentScope } from "@/lib/studentEventEngine/scopeResolver";
 import { assembleStudentSnapshot } from "@/lib/studentEventEngine/snapshotAssembler";
 import { deriveStudentFeed } from "@/lib/studentEventEngine/deriveStudentFeed";
 import { StudentFeedContainer } from "@/components/student/feed/StudentFeedContainer";
-import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export const metadata = {
   title: "Student Feed & Learning Workspace | SchoolMitra ERP",
@@ -181,13 +179,6 @@ export default async function StudentDashboardPage({
 
   return (
     <div className="space-y-8 p-4 sm:p-6 max-w-4xl mx-auto pb-24">
-      <div className="flex items-center justify-between">
-        <div className="flex-1" />
-        <TutorialLauncherButton role="STUDENT" label="Student App Tour" />
-      </div>
-
-      <FeatureTutorialFlashCards role="STUDENT" />
-
       {/* 1. Primary Chronological Feed & Due Today Strip (Phase S3, Surface S1) */}
       <StudentFeedContainer
         initialCards={feedCards}

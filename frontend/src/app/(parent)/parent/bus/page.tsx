@@ -94,7 +94,7 @@ export default function ParentBusPage() {
             <span>Back to Today</span>
           </Link>
 
-          <div data-tour="parent-bus-eta-card parent-bus-live-map" className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
               <Bus className="w-6 h-6" />
             </div>
@@ -132,7 +132,7 @@ export default function ParentBusPage() {
           </div>
 
           {/* Calm Notice Banner (AC-P3) */}
-          <div data-tour="parent-bus-live-map" className="p-4 sm:p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-start gap-3.5">
+          <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-start gap-3.5">
             <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/80 flex items-center justify-center text-blue-700 dark:text-blue-300 shrink-0">
               <Calendar className="w-5 h-5" />
             </div>
@@ -148,7 +148,7 @@ export default function ParentBusPage() {
 
           {/* Child Designated Stop Spotlight */}
           {designatedStop && (
-            <div data-tour="parent-bus-eta-card" className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-blue-500/30 shadow-sm space-y-3">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-blue-500/30 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold tracking-wider text-blue-600 dark:text-blue-400 uppercase">
                   Your Child&apos;s Designated Stop
@@ -268,7 +268,7 @@ export default function ParentBusPage() {
         </div>
 
         {/* Live Map Box */}
-        <div data-tour="parent-bus-live-map" className="shadow-lg rounded-2xl overflow-hidden">
+        <div className="shadow-lg rounded-2xl overflow-hidden">
           <BusLiveMap
             busPosition={latestPing}
             studentStop={
@@ -288,7 +288,7 @@ export default function ParentBusPage() {
         </div>
 
         {/* Live Metrics Grid */}
-        <div data-tour="parent-bus-eta-card" className="grid grid-cols-3 gap-2.5 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+        <div className="grid grid-cols-3 gap-2.5 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
               <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />

@@ -16,8 +16,6 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
-import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export const metadata = {
   title: "Principal Executive Dashboard | SchoolMitra ERP",
@@ -53,7 +51,6 @@ export default async function PrincipalDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <TutorialLauncherButton role="PRINCIPAL" />
             <Link
               href="/academics"
               className="w-full sm:w-auto min-h-[38px] px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition flex items-center justify-center gap-2"
@@ -63,9 +60,6 @@ export default async function PrincipalDashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Principal Guided Tour Flashcards */}
-      <FeatureTutorialFlashCards role="PRINCIPAL" />
 
       {/* Fresh Provisioned School Next-Best-Action State */}
       {isFreshSchool && (
@@ -99,10 +93,7 @@ export default async function PrincipalDashboardPage() {
       )}
 
       {/* Live Metric Cards */}
-      <div
-        data-tour="principal-kpi-summary"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Metric 1: Class Sections */}
         <div
           data-testid="principal-sections-metric"
@@ -227,10 +218,7 @@ export default async function PrincipalDashboardPage() {
       </div>
 
       {/* Matrix-Legal Operational Deep Links */}
-      <div
-        data-tour="principal-approvals-queue"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <Link
           href="/exams"
           className="group p-5 sm:p-6 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-500 transition shadow-sm space-y-2 min-h-[38px]"

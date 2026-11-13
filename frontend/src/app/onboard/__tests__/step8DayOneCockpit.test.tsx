@@ -40,18 +40,4 @@ describe("Phase D1-L2: Step 8 Completion & Day One Cockpit Handoff", () => {
     expect(links).not.toContain("/dashboard");
     expect(links).not.toContain("/admin/dashboard");
   });
-
-  it("renders Super Admin return action when mode is superadmin", () => {
-    render(
-      <OnboardingProvider mode="superadmin">
-        <Step8Completion />
-      </OnboardingProvider>
-    );
-
-    const returnBtn = screen.getByTestId("return-to-schools-directory-btn");
-    expect(returnBtn).toBeDefined();
-    expect(returnBtn.getAttribute("href")).toBe("/super-admin/schools");
-    expect(screen.getByText("Return to School Directory")).toBeDefined();
-    expect(screen.getByText("Provision Another School")).toBeDefined();
-  });
 });

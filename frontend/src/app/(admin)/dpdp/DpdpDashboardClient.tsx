@@ -413,10 +413,7 @@ export default function DpdpDashboardClient({
       {/* Overview Consent & Purge */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <div
-            data-tour="dpdp-kpi-row"
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Consent coverage */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
               <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
@@ -549,64 +546,6 @@ export default function DpdpDashboardClient({
                   )}
               </div>
             </div>
-          </div>
-
-          {/* Incident & Breach Summary Section */}
-          <div
-            data-tour="dpdp-incident-table"
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4"
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
-                  PII Incidents & Breach Register (72h CERT-In SLA)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Track security notices, legal holds, and data protection board notifications
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab("breaches")}
-                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-              >
-                Open Breach Center &rarr;
-              </button>
-            </div>
-
-            {breachList.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-500">
-                <CheckCircle className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
-                Zero reportable data breaches or PII leakage incidents on record.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold uppercase">
-                      <th className="py-2">Reference</th>
-                      <th className="py-2">Severity</th>
-                      <th className="py-2">Detected</th>
-                      <th className="py-2">Board Notified</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {breachList.slice(0, 5).map((b) => (
-                      <tr key={b.id}>
-                        <td className="py-2.5 font-mono font-bold text-slate-800 dark:text-slate-200">
-                          {b.incidentReference}
-                        </td>
-                        <td className="py-2.5">{b.severity}</td>
-                        <td className="py-2.5">{new Date(b.detectedAt).toLocaleDateString()}</td>
-                        <td className="py-2.5">
-                          {b.boardNotifiedAt ? "Notified" : "Pending (72h SLA)"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
         </div>
       )}

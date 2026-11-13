@@ -3,7 +3,6 @@
 import React from "react";
 import { GraduationCap, BookOpen, School, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export interface TeacherIdentityHeaderProps {
   teacherName: string;
@@ -80,12 +79,8 @@ export function TeacherIdentityHeader({
           </div>
         </div>
 
-        {/* Right: Allocation Chips & Tutorial */}
+        {/* Right: Allocation Chips */}
         <div className="flex flex-wrap items-center gap-1.5 self-stretch sm:self-auto justify-start sm:justify-end">
-          <TutorialLauncherButton
-            role="TEACHER"
-            label={locale === "hi" ? "त्वरित ट्यूटोरियल" : "Quick Tutorial"}
-          />
           {subjectsTaught.slice(0, 3).map((sub, idx) => (
             <span
               key={`sub-${idx}`}

@@ -263,7 +263,6 @@ export default function MarksEntryGrid({
             </label>
             <div className="relative">
               <select
-                data-tour="teacher-grading-class-select"
                 value={selectedExamId}
                 onChange={(e) => handleExamChange(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 appearance-none pr-8"
@@ -388,10 +387,7 @@ export default function MarksEntryGrid({
       </div>
 
       {/* ─── Students Roster & Keyboard-First Input ────────────────────── */}
-      <div
-        data-tour="teacher-grading-score-table"
-        className="rounded-2xl border border-slate-800 bg-slate-900/90 overflow-hidden shadow-lg"
-      >
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 overflow-hidden shadow-lg">
         <div className="px-4 py-3 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
           <span className="text-xs font-bold text-white tracking-wide uppercase">
             Roster ({students.length} Students)
@@ -484,7 +480,6 @@ export default function MarksEntryGrid({
             {evaluatedStudents.length} of {students.length} students recorded
           </span>
           <button
-            data-tour="teacher-grading-lock-btn"
             type="button"
             onClick={handleSaveMarks}
             disabled={isPending || isLocked || students.length === 0}

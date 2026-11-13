@@ -39,7 +39,6 @@ function StatCard({
   color,
   onClick,
   actionLabel,
-  dataTour,
 }: {
   icon: React.ElementType;
   label: string;
@@ -48,11 +47,9 @@ function StatCard({
   color: string;
   onClick?: (() => void) | undefined;
   actionLabel?: string | undefined;
-  dataTour?: string | undefined;
 }) {
   return (
     <div
-      data-tour={dataTour}
       className={`relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm flex flex-col gap-3 ${onClick ? "cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors" : ""}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
@@ -149,22 +146,16 @@ export function OverviewTab({
         <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
           Staff Census
         </h2>
-        <div
-          data-tour="hr-stats-grid"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
-        >
-          <div data-tour="hr-staff-table hr-staff-count-card">
-            <StatCard
-              data-tour="hr-staff-count-card"
-              icon={Users}
-              label="Total Staff"
-              value={totalStaff}
-              sublabel={`${activeStaff} active`}
-              color="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400"
-              onClick={() => onTabChange("directory")}
-              actionLabel="View Directory"
-            />
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={Users}
+            label="Total Staff"
+            value={totalStaff}
+            sublabel={`${activeStaff} active`}
+            color="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400"
+            onClick={() => onTabChange("directory")}
+            actionLabel="View Directory"
+          />
           <StatCard
             icon={GraduationCap}
             label="Teaching Staff"
@@ -240,12 +231,10 @@ export function OverviewTab({
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Pending Leaves */}
-          <div data-tour="hr-leave-requests-list" className="w-full">
-            <button
-              data-tour="hr-pending-leaves-card"
-              onClick={() => onTabChange("leaves")}
-              className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-amber-400 dark:hover:border-amber-600 transition-colors text-left w-full"
-            >
+          <button
+            onClick={() => onTabChange("leaves")}
+            className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-amber-400 dark:hover:border-amber-600 transition-colors text-left"
+          >
             <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50">
               <CalendarDays className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
@@ -266,7 +255,6 @@ export function OverviewTab({
             )}
             <ArrowRight className="w-4 h-4 text-slate-400" />
           </button>
-          </div>
 
           {/* Departments health */}
           <button

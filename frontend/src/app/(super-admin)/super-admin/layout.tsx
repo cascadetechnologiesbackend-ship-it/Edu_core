@@ -19,8 +19,6 @@ export const metadata: Metadata = {
 };
 
 import { SuperAdminBottomNav } from "@/components/platform/SuperAdminBottomNav";
-import { TourHost } from "@/components/tour/TourHost";
-import { SUPER_ADMIN_PAGE_TOURS, SUPER_ADMIN_MODULE_ORDER } from "@/lib/tours/superAdminTour";
 
 export default async function SuperAdminLayout({
   children,
@@ -77,11 +75,6 @@ export default async function SuperAdminLayout({
         <main className="flex-1 overflow-y-auto" id="platform-main">
           <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24 md:pb-8 animate-fade-in">
             {children}
-            <TourHost
-              role="SUPER_ADMIN"
-              tours={SUPER_ADMIN_PAGE_TOURS}
-              allModuleIds={SUPER_ADMIN_MODULE_ORDER}
-            />
           </div>
         </main>
       </div>

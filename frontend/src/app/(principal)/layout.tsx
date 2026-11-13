@@ -9,8 +9,6 @@ import { SessionProvider } from "next-auth/react";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { TourHost } from "@/components/tour/TourHost";
-import { PRINCIPAL_PAGE_TOURS, PRINCIPAL_MODULE_ORDER } from "@/lib/tours/staffTours";
 
 export const metadata: Metadata = {
   title: {
@@ -72,11 +70,6 @@ export default async function PrincipalLayout({
         }}
       >
         {children}
-        <TourHost
-          role="PRINCIPAL"
-          tours={PRINCIPAL_PAGE_TOURS}
-          allModuleIds={PRINCIPAL_MODULE_ORDER}
-        />
       </AdminShell>
     </SessionProvider>
   );

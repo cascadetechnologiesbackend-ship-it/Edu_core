@@ -9,8 +9,6 @@ import { SessionProvider } from "next-auth/react";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { TourHost } from "@/components/tour/TourHost";
-import { LIBRARIAN_PAGE_TOURS, LIBRARIAN_MODULE_ORDER } from "@/lib/tours/staffTours";
 
 export const metadata: Metadata = {
   title: {
@@ -72,11 +70,6 @@ export default async function LibrarianLayout({
         }}
       >
         {children}
-        <TourHost
-          role="LIBRARIAN"
-          tours={LIBRARIAN_PAGE_TOURS}
-          allModuleIds={LIBRARIAN_MODULE_ORDER}
-        />
       </AdminShell>
     </SessionProvider>
   );

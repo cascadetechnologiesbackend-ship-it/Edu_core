@@ -57,18 +57,12 @@ export default function TransportClientTabs({
       {/* Tab Selectors */}
       <div className="border-b border-gray-200 dark:border-slate-800">
         <ul
-          data-tour="transport-tabs"
           className="flex flex-wrap -mb-px text-sm font-medium text-center"
           role="tablist"
         >
           {tabs.map((tab) => (
             <li key={tab.id} className="mr-2" role="presentation">
               <button
-                {...(tab.id === "routes"
-                  ? { "data-tour": "transport-routes-list" }
-                  : tab.id === "gps"
-                  ? { "data-tour": "transport-live-map transport-live-tracking" }
-                  : {})}
                 onClick={() => handleTabChange(tab.id)}
                 className={`inline-block p-4 border-b-2 rounded-t-lg transition font-semibold ${
                   activeTab === tab.id

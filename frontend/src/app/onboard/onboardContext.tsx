@@ -425,16 +425,14 @@ export function getDefaultSubjectMatrixForBoard(board: BoardType): MatrixSubject
 }
 
 export interface OnboardingContextType {
-  mode: "public" | "superadmin";
   activeStep: number;
   setActiveStep: (step: number) => void;
   loading: boolean;
   setLoading: (l: boolean) => void;
   error: string;
   setError: (e: string) => void;
-  successResult: { message: string; email: string; schoolId?: string } | null;
-  setSuccessResult: (res: { message: string; email: string; schoolId?: string } | null) => void;
-  resetWizard: () => void;
+  successResult: { message: string; email: string } | null;
+  setSuccessResult: (res: { message: string; email: string } | null) => void;
 
   // Board Selection (Step 1)
   board: BoardType;
@@ -516,17 +514,11 @@ export interface OnboardingContextType {
 
 const OnboardingContext = createContext<OnboardingContextType | null>(null);
 
-export function OnboardingProvider({
-  children,
-  mode = "public",
-}: {
-  children: React.ReactNode;
-  mode?: "public" | "superadmin";
-}) {
+export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [activeStep, setActiveStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successResult, setSuccessResult] = useState<{ message: string; email: string; schoolId?: string } | null>(null);
+  const [successResult, setSuccessResult] = useState<{ message: string; email: string } | null>(null);
 
   // 1. Board
   const [board, setBoard] = useState<BoardType>("CBSE");
@@ -779,34 +771,9 @@ export function OnboardingProvider({
     }
   };
 
-  const resetWizard = () => {
-    setActiveStep(1);
-    setLoading(false);
-    setError("");
-    setSuccessResult(null);
-    setBoard("CBSE");
-    setSchoolName("");
-    setUdiseCode("");
-    setAddress("");
-    setCity("");
-    setState("");
-    setPincode("");
-    setPhone("");
-    setEmail("");
-    setPrincipalName("");
-    setCurrencySymbol("₹");
-    setAdminName("");
-    setAdminEmail("");
-    setAdminPassword("");
-    setConfirmPassword("");
-    setCaptchaAnswer("");
-  };
-
   return (
     <OnboardingContext.Provider
       value={{
-        mode,
-        resetWizard,
         activeStep,
         setActiveStep,
         loading,

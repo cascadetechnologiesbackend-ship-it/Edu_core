@@ -69,7 +69,6 @@ export default function VehiclesTab({
         </h2>
         {isAdmin && (
           <button
-            data-tour="transport-add-vehicle-btn"
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
           >

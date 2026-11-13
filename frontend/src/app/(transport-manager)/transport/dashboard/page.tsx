@@ -5,8 +5,6 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { assertQueryBudget } from "@schoolmitra/database";
 import { getTransportConsoleMetrics } from "@/lib/roleConsoleEngine";
 import Link from "next/link";
-import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 import {
   Bus,
   MapPin,
@@ -51,9 +49,7 @@ export default async function TransportManagerDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <TutorialLauncherButton role="TRANSPORT_MANAGER" />
             <Link
-              data-tour="transport-manager-fleet-btn"
               href="/transport"
               className="w-full sm:w-auto min-h-[38px] px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium text-sm transition flex items-center justify-center gap-2"
             >
@@ -62,8 +58,6 @@ export default async function TransportManagerDashboardPage() {
           </div>
         </div>
       </div>
-
-      <FeatureTutorialFlashCards role="TRANSPORT_MANAGER" />
 
       {/* Fresh Provisioned Fleet Next-Best-Action State */}
       {isFreshFleet && (
@@ -91,7 +85,7 @@ export default async function TransportManagerDashboardPage() {
       )}
 
       {/* Live Metric Cards */}
-      <div data-tour="transport-manager-kpi" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Metric 1: Bus Fleet Vehicles */}
         <div
           data-testid="transport-vehicles-metric"

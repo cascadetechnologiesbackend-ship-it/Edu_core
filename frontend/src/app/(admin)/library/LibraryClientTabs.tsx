@@ -237,42 +237,26 @@ export default function LibraryClientTabs({
         </div>
       )}
 
-      {/* Control Tabs & Search */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-3">
-        <div className="flex border border-border bg-card p-1 rounded-xl max-w-md w-full sm:w-auto shadow-sm">
-          {(["overview", "books", "members", "transactions"] as const).map(
-            (tab) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setErrorMsg(null);
-                }}
-                className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg capitalize transition-all ${
-                  activeTab === tab
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {tab}
-              </button>
-            ),
-          )}
-        </div>
-        <div className="relative max-w-xs w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            data-tour="library-search-input librarian-catalog-search"
-            type="text"
-            placeholder="Search catalog by title, author..."
-            value={bookSearch}
-            onChange={(e) => {
-              setBookSearch(e.target.value);
-              if (activeTab !== "books") setActiveTab("books");
-            }}
-            className="w-full pl-9 pr-4 py-2 border border-border rounded-xl bg-card text-xs focus:outline-none"
-          />
-        </div>
+      {/* Control Tabs */}
+      <div className="flex border-b border-border bg-card p-1 rounded-xl max-w-md shadow-sm">
+        {(["overview", "books", "members", "transactions"] as const).map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                setErrorMsg(null);
+              }}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg capitalize transition-all ${
+                activeTab === tab
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {tab}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Tab contents */}
@@ -367,7 +351,6 @@ export default function LibraryClientTabs({
                   />
                 </div>
                 <button
-                  data-tour="library-issue-btn librarian-issue-btn"
                   type="submit"
                   disabled={loading}
                   className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-semibold text-xs rounded-lg transition-colors"
@@ -456,81 +439,6 @@ export default function LibraryClientTabs({
                 </button>
               </form>
             </div>
-          </div>
-
-          {/* Active & Overdue Circulation Table */}
-          <div
-            data-tour="library-overdue-table"
-            className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">
-                  Active & Overdue Circulation
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Latest checkouts and overdue return status
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab("transactions")}
-                className="text-xs text-primary font-semibold hover:underline"
-              >
-                View all transactions &rarr;
-              </button>
-            </div>
-
-            {issuesList.filter((i) => i.returnedAt === null).length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                No active book checkouts currently on loan.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground font-semibold">
-                      <th className="py-2 px-3">Barcode</th>
-                      <th className="py-2 px-3">Title</th>
-                      <th className="py-2 px-3">Member</th>
-                      <th className="py-2 px-3">Due Date</th>
-                      <th className="py-2 px-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {issuesList
-                      .filter((i) => i.returnedAt === null)
-                      .slice(0, 5)
-                      .map((i) => {
-                        const isOverdue = new Date(i.dueDate) < new Date();
-                        return (
-                          <tr key={i.id} className="hover:bg-muted/10">
-                            <td className="py-2.5 px-3 font-mono font-medium text-primary">
-                              {i.barcodeNumber}
-                            </td>
-                            <td className="py-2.5 px-3 font-medium">{i.title}</td>
-                            <td className="py-2.5 px-3">{i.memberName}</td>
-                            <td className="py-2.5 px-3">
-                              {new Date(i.dueDate).toLocaleDateString()}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                  isOverdue
-                                    ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                                }`}
-                              >
-                                {isOverdue ? "OVERDUE" : "ACTIVE"}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
         </div>
       )}

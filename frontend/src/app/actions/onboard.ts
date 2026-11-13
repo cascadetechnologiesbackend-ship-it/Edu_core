@@ -28,7 +28,6 @@ import { normalizeProfessionalTaxState } from "@/lib/reference/indiaReferenceDat
 import { recordJourneyCompletion } from "@/lib/northStarTelemetry";
 import { checkRateLimit } from "@/lib/rateLimiter";
 import { getClientRequestContext } from "@/lib/requestContext";
-import { auth } from "@/lib/auth";
 
 export interface ClassSetupItem {
   gradeLevel: string;
@@ -93,17 +92,13 @@ export type OnboardSchoolPayload = ComprehensiveOnboardPayload;
 export async function registerSchoolTenant(payload: ComprehensiveOnboardPayload) {
   try {
     // Public tenant onboarding abuse shield (max 10 provisioning attempts/min per client IP)
-    // Authenticated Super Admins are exempt from client IP rate limits
-    const session = await auth().catch(() => null);
-    const isSuperAdmin = (session?.user as any)?.role === "SUPER_ADMIN";
-
     let clientIp = "test-or-cli";
     try {
       clientIp = getClientRequestContext().ipAddress || "unknown";
     } catch {
       // Outside Next.js request context (e.g., unit tests / CLI seeds)
     }
-    if (!isSuperAdmin && clientIp !== "test-or-cli" && clientIp !== "unknown") {
+    if (clientIp !== "test-or-cli" && clientIp !== "unknown") {
       const allowed = await checkRateLimit(`rate:onboard:${clientIp}`, 10, 60_000);
       if (!allowed) {
         return {

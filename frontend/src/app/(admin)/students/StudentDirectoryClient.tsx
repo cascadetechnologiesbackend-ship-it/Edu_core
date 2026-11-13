@@ -133,7 +133,6 @@ export function StudentDirectoryClient({
         <div className="w-full md:w-80 relative">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
-            data-tour="students-search-input"
             type="text"
             placeholder="Search students by name or admission #..."
             value={searchTerm}
@@ -150,7 +149,6 @@ export function StudentDirectoryClient({
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase text-gray-400">Class:</span>
             <select
-              data-tour="students-class-filter"
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
               className="py-2 px-3 text-xs font-semibold rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-1 focus:ring-primary min-h-[40px]"
@@ -207,10 +205,7 @@ export function StudentDirectoryClient({
       </div>
 
       {/* Results Count & Data Container */}
-      <div
-        data-tour="students-list-table"
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-gray-200 dark:border-slate-800 overflow-hidden"
-      >
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-gray-200 dark:border-slate-800 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/20">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
             Showing <strong className="text-gray-900 dark:text-white">{filteredStudents.length}</strong> enrolled students

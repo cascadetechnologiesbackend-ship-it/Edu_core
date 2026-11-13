@@ -224,7 +224,7 @@ export default function AmsHubClient({
             </h1>
           </div>
 
-          <div data-tour="academics-hub-tabs" className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link
               href="/academics/subjects"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
@@ -250,7 +250,6 @@ export default function AmsHubClient({
             {/* Exactly ONE Primary Action Button (Law O3) */}
             {isAdmin && (
               <button
-                data-tour="academics-new-class-btn"
                 type="button"
                 onClick={() => setShowWizard(true)}
                 className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md shadow-primary/20 min-h-[40px] cursor-pointer"
@@ -407,7 +406,6 @@ export default function AmsHubClient({
             </div>
           </div>
           <Link
-            data-tour="principal-timetable-link"
             href="/academics/setup/bell-schedule"
             className="text-xs font-bold text-primary hover:underline flex items-center gap-1 mt-2"
           >
@@ -420,7 +418,7 @@ export default function AmsHubClient({
       </div>
 
       {/* ─── 5. Pinned Search Input (Law L1: width 320px pinned left) ─────────── */}
-      <div id="classes-grid" data-tour="principal-classes-overview" className="space-y-4">
+      <div id="classes-grid" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="w-full sm:w-80 relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -447,7 +445,7 @@ export default function AmsHubClient({
 
         {/* ─── 7. Class Hub Cards Grid (Surface 1 Layout) ────────────────────── */}
         {filteredClassrooms.length > 0 ? (
-          <div data-tour="academics-class-grid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredClassrooms.map((cls) => {
               const subCount = classSubjectCounts.get(cls.id) ?? 0;
               const teacherAssignedCount = classTeacherAssignedCounts.get(cls.id) ?? 0;

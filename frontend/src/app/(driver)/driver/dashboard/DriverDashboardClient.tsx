@@ -243,7 +243,7 @@ export default function DriverDashboardClient({
       </div>
 
       {/* ─── 2. Real Mini Leaflet Map ────────────────────────────────────────── */}
-      <div data-tour="driver-live-map" className="rounded-2xl overflow-hidden border border-slate-800 shadow-md">
+      <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-md">
         <LiveMap
           stops={stops}
           busPosition={currentCoords}
@@ -283,7 +283,7 @@ export default function DriverDashboardClient({
       </div>
 
       {/* ─── 4. Route Stops Checklist ───────────────────────────────────────── */}
-      <div data-tour="driver-stops-checklist" className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-indigo-400" />
@@ -350,7 +350,7 @@ export default function DriverDashboardClient({
       </div>
 
       {/* ─── 5. BIG Primary CTA in Heatmap Thumb Comfort Zone ─────────────────── */}
-      <div data-tour="driver-trip-toggle" className="pt-2 sticky bottom-20 md:static z-20">
+      <div className="pt-2 sticky bottom-20 md:static z-20">
         {!isTripActive ? (
           <button
             type="button"

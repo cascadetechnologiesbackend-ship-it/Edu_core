@@ -101,10 +101,7 @@ function TeacherClassesInner({
         /* ─── Condition A: Subject Teacher Workspace ───────────────────── */
         <div className="space-y-4">
           {/* Segmented Tab Switcher */}
-          <div
-            data-tour="teacher-classes-list"
-            className="flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800 w-full sm:w-auto self-start shadow-sm overflow-x-auto"
-          >
+          <div className="flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800 w-full sm:w-auto self-start shadow-sm overflow-x-auto">
             <button
               type="button"
               onClick={() => handleTabSwitch("myday")}
@@ -119,7 +116,6 @@ function TeacherClassesInner({
             </button>
 
             <button
-              data-tour="teacher-classes-students"
               type="button"
               onClick={() => handleTabSwitch("rosters")}
               className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${

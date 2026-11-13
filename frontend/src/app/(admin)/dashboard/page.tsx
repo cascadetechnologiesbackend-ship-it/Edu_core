@@ -47,8 +47,6 @@ import {
 } from "lucide-react";
 import { OnboardingMetricBadge } from "@/components/telemetry/OnboardingMetricBadge";
 import { getNorthStarMetricsSummary } from "@/lib/northStarTelemetry";
-import { FeatureTutorialFlashCards } from "@/components/onboarding/FeatureTutorialFlashCards";
-import { TutorialLauncherButton } from "@/components/onboarding/TutorialLauncherButton";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -763,7 +761,6 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar -mx-3 sm:mx-0 px-3 sm:px-0 py-1">
-          <TutorialLauncherButton />
           <QuickAction
             label="+ Add Student"
             href="/admissions"
@@ -781,9 +778,6 @@ export default async function DashboardPage() {
           />
         </div>
       </div>
-
-      {/* Feature Setup Tutorial Flashcards */}
-      <FeatureTutorialFlashCards />
 
       {/* North-Star Onboarding Clock Readout (D1-L1) */}
       {northStarSummary && (

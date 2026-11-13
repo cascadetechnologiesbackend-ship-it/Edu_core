@@ -254,7 +254,6 @@ export default async function ExamsDashboardPage() {
             <span>Usage & Heat Map</span>
           </Link>
           <Link
-            data-tour="exams-create-btn"
             href="/exams/manage"
             data-ux-id="btn_quick_create_exam"
             data-ux-label="New Exam Setup"
@@ -367,16 +366,10 @@ export default async function ExamsDashboardPage() {
       </div>
 
       {/* Lifecycle Navigation Stage Bar */}
-      <div
-        data-tour="exams-stage-stepper"
-        className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-md border border-indigo-900/40"
-      >
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-md border border-indigo-900/40">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div
-              data-tour="principal-exams-lifecycle"
-              className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider"
-            >
+            <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />
               <span>Full Six-Stage Workflow</span>
             </div>
@@ -402,7 +395,6 @@ export default async function ExamsDashboardPage() {
               <span className="text-xs font-semibold">2. Schedule</span>
             </Link>
             <Link
-              data-tour="exams-admit-cards-link"
               href="/exams/admit-cards"
               className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/10 hover:bg-white/15 transition-all text-center border border-white/10"
             >
