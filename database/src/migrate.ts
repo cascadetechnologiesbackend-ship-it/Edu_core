@@ -6,14 +6,16 @@ import { fileURLToPath } from "url";
 import { ensureSuperAdmin } from "./manage_super_admin";
 import {
   createPoolConfig,
-  getMigrationDatabaseUrl,
+  getMigrationDatabaseDetails,
   loadLocalEnvFiles,
 } from "./neonEnv";
 
 loadLocalEnvFiles();
 
+const migrationDetails = getMigrationDatabaseDetails();
+
 const pool = new Pool(
-  createPoolConfig(getMigrationDatabaseUrl(), { isMigration: true }),
+  createPoolConfig(migrationDetails.url, { isMigration: true }),
 );
 
 const db = drizzle(pool);
@@ -77,13 +79,19 @@ async function sanitizeMigrationHistory(client: Pool) {
         console.log(`[Migrate] Pruned ${delResult.rowCount} unapplied migration record(s) so 0013+ can execute.`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.code === "28P01") {
+      throw err;
+    }
     console.warn("[Migrate] Non-fatal notice during migration history check:", err);
   }
 }
 
 async function main() {
   console.log("Migration started");
+  console.log(
+    `[Migrate] Target: ${migrationDetails.sanitized} (source: process.env.${migrationDetails.source})`,
+  );
   const migrationsFolder = path.resolve(__dirname, "migrations");
   console.log(`Using migrations folder: ${migrationsFolder}`);
 
@@ -137,7 +145,23 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((err: any) => {
+  if (err?.code === "28P01") {
+    console.error(
+      `\n❌ [Migrate FATAL] PostgreSQL password authentication failed for user '${migrationDetails.username ?? "unknown"}' (code: 28P01).\n` +
+      `   Connection Source: process.env.${migrationDetails.source}\n` +
+      `   Target Host:       ${migrationDetails.host ?? "unknown"}\n` +
+      `   Target Database:   ${migrationDetails.database ?? "unknown"}\n\n` +
+      `Actionable Resolution for Render Deployment:\n` +
+      `1. Open Neon Console (https://console.neon.tech) -> Dashboard -> Connection Details.\n` +
+      `2. Verify whether user '${migrationDetails.username ?? "neondb_owner"}' had its password reset or rotated.\n` +
+      `3. In Render Dashboard -> Environment Variables for this service:\n` +
+      `   - Update '${migrationDetails.source}' with the current, direct (unpooled) Neon connection string.\n` +
+      `   - If MIGRATION_DATABASE_URL is set in Render, it overrides DATABASE_URL during db:migrate. Ensure both have the latest credentials.\n` +
+      `4. If your password contains special characters (e.g. #, @, %, &, ?), verify they are URL percent-encoded (e.g. '@' -> '%40', '#' -> '%23').\n`
+    );
+  } else {
+    console.error(err);
+  }
   process.exit(1);
 });

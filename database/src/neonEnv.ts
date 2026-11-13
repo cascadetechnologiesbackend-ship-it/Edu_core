@@ -58,22 +58,63 @@ export function getAppDatabaseUrl(): string {
  *   4. Local development default
  */
 export function getMigrationDatabaseUrl(): string {
+  return getMigrationDatabaseDetails().url;
+}
+
+export interface MigrationDatabaseDetails {
+  url: string;
+  source: "MIGRATION_DATABASE_URL" | "DATABASE_URL_UNPOOLED" | "DATABASE_URL" | "DEFAULT_LOCAL_DATABASE_URL";
+  sanitized: string;
+  username?: string | undefined;
+  host?: string | undefined;
+  database?: string | undefined;
+}
+
+export function getMigrationDatabaseDetails(): MigrationDatabaseDetails {
+  let source: MigrationDatabaseDetails["source"] = "DEFAULT_LOCAL_DATABASE_URL";
+  let url = DEFAULT_LOCAL_DATABASE_URL;
+
   if (
     process.env["MIGRATION_DATABASE_URL"] &&
     process.env["MIGRATION_DATABASE_URL"].trim() !== ""
   ) {
-    return process.env["MIGRATION_DATABASE_URL"];
-  }
-
-  if (
+    source = "MIGRATION_DATABASE_URL";
+    url = process.env["MIGRATION_DATABASE_URL"];
+  } else if (
     process.env["DATABASE_URL_UNPOOLED"] &&
     process.env["DATABASE_URL_UNPOOLED"].trim() !== ""
   ) {
+    source = "DATABASE_URL_UNPOOLED";
     const { postgres } = parseEnv(neonConfig, ["DATABASE_URL_UNPOOLED"]);
-    return postgres.databaseUrlUnpooled;
+    url = postgres.databaseUrlUnpooled;
+  } else if (
+    process.env["DATABASE_URL"] &&
+    process.env["DATABASE_URL"].trim() !== ""
+  ) {
+    source = "DATABASE_URL";
+    const { postgres } = parseEnv(neonConfig, ["DATABASE_URL"]);
+    url = postgres.databaseUrl;
   }
 
-  return getAppDatabaseUrl();
+  let sanitized = url;
+  let username: string | undefined;
+  let host: string | undefined;
+  let database: string | undefined;
+
+  try {
+    const parsed = new URL(url);
+    username = parsed.username || undefined;
+    host = parsed.host || undefined;
+    database = parsed.pathname ? parsed.pathname.replace(/^\//, "") : undefined;
+    if (parsed.password) {
+      parsed.password = "******";
+    }
+    sanitized = parsed.toString();
+  } catch {
+    sanitized = url.replace(/:([^@/]+)@/, ":******@");
+  }
+
+  return { url, source, sanitized, username, host, database };
 }
 
 export function isNeonDatabaseUrl(connectionString: string): boolean {

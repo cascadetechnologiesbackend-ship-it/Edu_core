@@ -4,6 +4,7 @@ import {
   createPoolConfig,
   getAppDatabaseUrl,
   getMigrationDatabaseUrl,
+  getMigrationDatabaseDetails,
   isNeonDatabaseUrl,
 } from "../../../../database/src/neonEnv";
 
@@ -67,6 +68,12 @@ describe("Neon Connection & Pool Config (neon + neon-postgres skills)", () => {
     process.env.MIGRATION_DATABASE_URL = explicit;
 
     expect(getMigrationDatabaseUrl()).toBe(explicit);
+
+    const details = getMigrationDatabaseDetails();
+    expect(details.source).toBe("MIGRATION_DATABASE_URL");
+    expect(details.username).toBe("migrator");
+    expect(details.host).toBe("custom.example.com");
+    expect(details.sanitized).toContain("migrator:******@custom.example.com");
   });
 
   it("identifies Neon endpoints accurately", () => {
