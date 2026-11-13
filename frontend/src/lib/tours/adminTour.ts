@@ -14,7 +14,324 @@ import {
   ShieldCheck,
   Settings,
 } from "lucide-react";
-import { TourDeck } from "./types";
+import { TourDeck, PageTourDefinition } from "./types";
+
+export const ADMIN_MODULE_ORDER: string[] = [
+  "admin-day-one",
+  "admin-admissions",
+  "admin-students",
+  "admin-academics",
+  "admin-attendance",
+  "admin-fees",
+  "admin-accounting",
+  "admin-exams",
+  "admin-hr",
+  "admin-transport",
+  "admin-library",
+  "admin-communication",
+  "admin-dpdp",
+  "admin-settings",
+];
+
+export const ADMIN_PAGE_TOURS: PageTourDefinition[] = [
+  {
+    pagePath: "/admin/day-one",
+    moduleId: "admin-day-one",
+    moduleTitle: "Day One Cockpit",
+    steps: [
+      {
+        anchorId: "day-one-readiness-strip",
+        title: "Readiness Progress",
+        line: "Track your 8 essential Day One operational milestones before school opens.",
+      },
+      {
+        anchorId: "day-one-checks-grid",
+        title: "8 Database Checks",
+        line: "Live diagnostics verifying academic year, classes, fee heads, staff, and parent claims.",
+      },
+      {
+        anchorId: "day-one-metric-badge",
+        title: "Onboarding Benchmark",
+        line: "First-party readout measuring time from registration to Day One readiness.",
+      },
+    ],
+  },
+  {
+    pagePath: "/admissions",
+    moduleId: "admin-admissions",
+    moduleTitle: "Admissions & Intake",
+    steps: [
+      {
+        anchorId: "admissions-new-btn",
+        title: "+ New Admission",
+        line: "Enrol a new student with statutory quota rules, Aadhaar encryption, and parent KYC.",
+        ctaLabel: "Open Enrolment Form",
+      },
+      {
+        anchorId: "admissions-rte-tracker",
+        title: "RTE 25% Quota",
+        line: "Monitor mandatory Right to Education quotas and compliance status live.",
+      },
+      {
+        anchorId: "admissions-table",
+        title: "Applications Register",
+        line: "Review submitted applications, verify documents, and assign admission numbers.",
+      },
+    ],
+  },
+  {
+    pagePath: "/students",
+    moduleId: "admin-students",
+    moduleTitle: "Student Directory",
+    steps: [
+      {
+        anchorId: "students-search-input",
+        title: "Student Search",
+        line: "Instantly search any student across all classes by name or admission number.",
+      },
+      {
+        anchorId: "students-class-filter",
+        title: "Class & Section Filter",
+        line: "Scope directory view to a specific grade level or active section.",
+      },
+      {
+        anchorId: "students-list-table",
+        title: "Student Roster",
+        line: "Comprehensive student roster with emergency contacts, blood group, and claim status.",
+      },
+    ],
+  },
+  {
+    pagePath: "/academics",
+    moduleId: "admin-academics",
+    moduleTitle: "Academics & Timetable",
+    steps: [
+      {
+        anchorId: "academics-new-class-btn",
+        title: "+ New Class",
+        line: "Configure new grade levels, sections, class teachers, and student capacities.",
+        ctaLabel: "Create Classroom",
+      },
+      {
+        anchorId: "academics-hub-tabs",
+        title: "Academic Spokes",
+        line: "Seamlessly switch between Classes, Timetable, Curriculum, and Staff Allocations.",
+      },
+      {
+        anchorId: "academics-class-grid",
+        title: "Classrooms Grid",
+        line: "Inspect active classrooms, sections, and assigned class teachers.",
+      },
+    ],
+  },
+  {
+    pagePath: "/attendance",
+    moduleId: "admin-attendance",
+    moduleTitle: "Daily Attendance",
+    steps: [
+      {
+        anchorId: "attendance-section-select",
+        title: "Section & Date",
+        line: "Pick target classroom and calendar date to mark or review roll call.",
+      },
+      {
+        anchorId: "attendance-roster",
+        title: "Roll Call Grid",
+        line: "Rapid roll call roster with Present, Absent, Late, and Leave toggle buttons.",
+      },
+      {
+        anchorId: "attendance-submit-btn",
+        title: "Submit Roll Call",
+        line: "Save daily attendance in under 4 minutes with instant absentee alerts to parents.",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/fees-dashboard",
+    moduleId: "admin-fees",
+    moduleTitle: "Fee Structures & Collection",
+    steps: [
+      {
+        anchorId: "fees-collect-btn",
+        title: "Collection Desk",
+        line: "Open fee collection desk for counter cash, cheque, and POS payments.",
+        ctaLabel: "Go to Collect Fees",
+      },
+      {
+        anchorId: "fees-collection-kpi",
+        title: "Demand Realization",
+        line: "Real-time demand vs collected fees telemetry and monthly recovery rate.",
+      },
+      {
+        anchorId: "fees-defaulters-tab",
+        title: "Arrears Ledger",
+        line: "Filter student ledger arrears and dispatch one-tap SMS fee reminders.",
+      },
+    ],
+  },
+  {
+    pagePath: "/school/accounting/dashboard",
+    moduleId: "admin-accounting",
+    moduleTitle: "Double-Entry Accounting",
+    steps: [
+      {
+        anchorId: "accounting-kpi-row",
+        title: "Financial Invariants",
+        line: "Live double-entry ledger summaries: Assets, Liabilities, and Collections.",
+      },
+      {
+        anchorId: "accounting-actions-bar",
+        title: "Vouchers & Day Book",
+        line: "Post journal vouchers, review day books, and verify accounting invariants.",
+      },
+      {
+        anchorId: "accounting-recon-link",
+        title: "Bank Reconciliation",
+        line: "Match bank deposits against daily counter cash collection batches.",
+      },
+    ],
+  },
+  {
+    pagePath: "/exams/dashboard",
+    moduleId: "admin-exams",
+    moduleTitle: "Examinations & Grading",
+    steps: [
+      {
+        anchorId: "exams-stage-stepper",
+        title: "Exam Lifecycle",
+        line: "Track exam progression: Schedule, Admit Cards, Marks Entry, Lock, and Publishing.",
+      },
+      {
+        anchorId: "exams-create-btn",
+        title: "Schedule Exam",
+        line: "Create new term examination timetable with maximum and passing marks.",
+        ctaLabel: "Schedule New Exam",
+      },
+      {
+        anchorId: "exams-admit-cards-link",
+        title: "Admit Cards",
+        line: "Generate official admit cards with fee-clearance access verification.",
+      },
+    ],
+  },
+  {
+    pagePath: "/hr",
+    moduleId: "admin-hr",
+    moduleTitle: "HR & Staff Operations",
+    steps: [
+      {
+        anchorId: "hr-spokes-nav",
+        title: "Operations Spokes",
+        line: "Navigate Staff Directory, Allocations, Leave Approvals, and Payroll Runs.",
+      },
+      {
+        anchorId: "hr-staff-count-card",
+        title: "Staff Headcount",
+        line: "Total faculty and clerk count with departmental breakdown.",
+      },
+      {
+        anchorId: "hr-pending-leaves-card",
+        title: "Leave Approvals",
+        line: "Review pending teacher absence requests with one-tap approval actions.",
+      },
+    ],
+  },
+  {
+    pagePath: "/transport",
+    moduleId: "admin-transport",
+    moduleTitle: "Transport Fleet",
+    steps: [
+      {
+        anchorId: "transport-tabs",
+        title: "Fleet Spokes",
+        line: "Switch between Vehicles, Bus Routes, Live Tracking, and Bus Passes.",
+      },
+      {
+        anchorId: "transport-live-map",
+        title: "Live Bus GPS",
+        line: "Live GPS broadcast map displaying active bus coordinates and speeds.",
+      },
+      {
+        anchorId: "transport-add-vehicle-btn",
+        title: "Add Fleet Vehicle",
+        line: "Add transport fleet vehicles, licence details, and seating capacity.",
+      },
+    ],
+  },
+  {
+    pagePath: "/library",
+    moduleId: "admin-library",
+    moduleTitle: "Library Circulation",
+    steps: [
+      {
+        anchorId: "library-search-input",
+        title: "Catalog Search",
+        line: "Search library inventory by ISBN, title, category, or author.",
+      },
+      {
+        anchorId: "library-issue-btn",
+        title: "Issue Desk",
+        line: "Circulate book copies to students and teachers with automatic due date calculation.",
+      },
+      {
+        anchorId: "library-overdue-table",
+        title: "Overdue Books",
+        line: "Track overdue book returns and collect fine payments into the fee ledger.",
+      },
+    ],
+  },
+  {
+    pagePath: "/communication/delivery",
+    moduleId: "admin-communication",
+    moduleTitle: "School Communication",
+    steps: [
+      {
+        anchorId: "comm-broadcast-summary",
+        title: "Delivery Telemetry",
+        line: "Inspect SMS, push notification, and email delivery rates and bounce telemetry.",
+      },
+      {
+        anchorId: "comm-status-table",
+        title: "Dispatch Logs",
+        line: "Trace per-student and parent notification dispatch status with timestamp logs.",
+      },
+    ],
+  },
+  {
+    pagePath: "/dpdp",
+    moduleId: "admin-dpdp",
+    moduleTitle: "DPDP Privacy Governance",
+    steps: [
+      {
+        anchorId: "dpdp-kpi-row",
+        title: "Compliance Status",
+        line: "Statutory Aadhaar encryption rate and DPDP parent consent verification status.",
+      },
+      {
+        anchorId: "dpdp-incident-table",
+        title: "Access Audit Logs",
+        line: "Immutable security logs tracking all personal data access and exports.",
+      },
+    ],
+  },
+  {
+    pagePath: "/settings/school-setup",
+    moduleId: "admin-settings",
+    moduleTitle: "School Setup & Profile",
+    steps: [
+      {
+        anchorId: "settings-board-info",
+        title: "School Affiliation",
+        line: "Verify school affiliation board, registration codes, and academic calendar.",
+      },
+      {
+        anchorId: "settings-save-btn",
+        title: "Save Profile",
+        line: "Update institutional profile, address, and official school branding.",
+      },
+    ],
+  },
+];
 
 export const SCHOOL_ADMIN_DECK: TourDeck = {
   role: "SCHOOL_ADMIN",

@@ -122,7 +122,7 @@ export function AccountsDashboardClient({
             {asOf ? `Snapshot as of ${asOf}` : "Real-time synchronized across fee & accounting ledgers"}
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div data-tour="accounting-kpi-row" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MoneyKpi
             title="Total Treasury Liquidity"
             amount={totalTreasury}
@@ -317,6 +317,7 @@ export function AccountsDashboardClient({
           </div>
 
           <Link
+            data-tour="accounting-recon-link"
             href="/school/accounts/bank-accounts"
             className="inline-flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-800 dark:text-slate-200 transition"
           >

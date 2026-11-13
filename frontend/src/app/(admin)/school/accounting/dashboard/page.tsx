@@ -275,7 +275,9 @@ export default async function AccountsDashboardPage() {
           </p>
         </div>
 
-        <QuickActionBar userRole={session.user.role} />
+        <div data-tour="accounting-actions-bar">
+          <QuickActionBar userRole={session.user.role} />
+        </div>
       </div>
 
       {/* Main Accounts Dashboard Client Component */}

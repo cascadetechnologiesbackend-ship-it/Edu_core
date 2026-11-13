@@ -230,7 +230,11 @@ export default function HRDashboardClient({
 
       {/* Hub Spokes Navigation Bar */}
       <div className="border-b border-slate-200 dark:border-slate-800">
-        <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px" aria-label="HR Hub Spokes">
+        <nav
+          data-tour="hr-spokes-nav"
+          className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px"
+          aria-label="HR Hub Spokes"
+        >
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

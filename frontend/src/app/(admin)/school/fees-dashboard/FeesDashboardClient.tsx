@@ -321,7 +321,7 @@ export function FeesDashboardClient({
           </h2>
           <span className="text-xs text-gray-400">Click any card to inspect underlying ledger</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div data-tour="fees-collection-kpi" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <MoneyKpi
             title="Today's Collections"
             amount={kpis.todayCollected}
@@ -359,6 +359,7 @@ export function FeesDashboardClient({
 
           {/* Slot 5: Collect Fee CTA Card (Spec 4.1.0 SCR-HUB) */}
           <Link
+            data-tour="fees-collect-btn"
             href="/school/collect-fees"
             className="group relative flex flex-col justify-between p-5 rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] transition-all duration-200 border border-indigo-500/30 min-h-[140px]"
           >
@@ -483,7 +484,10 @@ export function FeesDashboardClient({
         </div>
 
         {/* Top-10 Defaulters Work List */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between">
+        <div
+          data-tour="fees-defaulters-tab"
+          className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between"
+        >
           <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">

@@ -35,7 +35,7 @@ export interface FeatureTutorialFlashCardsProps {
 
 export function FeatureTutorialFlashCards({
   role = "SCHOOL_ADMIN",
-  initialOpen = true,
+  initialOpen = false,
   className = "",
 }: FeatureTutorialFlashCardsProps) {
   const deck = getTourDeckForRole(role);

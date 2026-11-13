@@ -70,7 +70,7 @@ export default async function AdmissionsDashboard() {
             Manage student applications and enrolments.
           </p>
         </div>
-        <Link href="/admissions/new" className="w-full sm:w-auto">
+        <Link href="/admissions/new" className="w-full sm:w-auto" data-tour="admissions-new-btn">
           <button className="w-full sm:w-auto min-h-[44px] bg-primary hover:bg-primary/90 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center text-sm">
             + New Admission
           </button>
@@ -86,7 +86,10 @@ export default async function AdmissionsDashboard() {
             {totalApps}
           </p>
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-slate-800">
+        <div
+          data-tour="admissions-rte-tracker"
+          className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-slate-800"
+        >
           <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
             RTE 25% Quota Tracker
           </h3>
@@ -112,7 +115,10 @@ export default async function AdmissionsDashboard() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div
+        data-tour="admissions-table"
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden"
+      >
         {/* Desktop Table View (>= 768px) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">

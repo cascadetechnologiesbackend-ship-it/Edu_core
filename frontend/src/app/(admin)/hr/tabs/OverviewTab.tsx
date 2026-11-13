@@ -39,6 +39,7 @@ function StatCard({
   color,
   onClick,
   actionLabel,
+  dataTour,
 }: {
   icon: React.ElementType;
   label: string;
@@ -47,9 +48,11 @@ function StatCard({
   color: string;
   onClick?: (() => void) | undefined;
   actionLabel?: string | undefined;
+  dataTour?: string | undefined;
 }) {
   return (
     <div
+      data-tour={dataTour}
       className={`relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm flex flex-col gap-3 ${onClick ? "cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors" : ""}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
@@ -148,6 +151,7 @@ export function OverviewTab({
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <StatCard
+            dataTour="hr-staff-count-card"
             icon={Users}
             label="Total Staff"
             value={totalStaff}
@@ -232,6 +236,7 @@ export function OverviewTab({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Pending Leaves */}
           <button
+            data-tour="hr-pending-leaves-card"
             onClick={() => onTabChange("leaves")}
             className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-amber-400 dark:hover:border-amber-600 transition-colors text-left"
           >

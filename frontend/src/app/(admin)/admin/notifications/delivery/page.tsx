@@ -232,7 +232,10 @@ export default async function NotificationDeliveryHealthPage() {
       </div>
 
       {/* Channel Status Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div
+        data-tour="comm-broadcast-summary"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
         {/* Web Push Card */}
         <div className="bg-card border border-border p-4 sm:p-5 rounded-xl shadow-sm space-y-3">
           <div className="flex items-center justify-between">
@@ -382,7 +385,10 @@ export default async function NotificationDeliveryHealthPage() {
       </div>
 
       {/* Recent Telemetry Log Cards (Reflowed Vertically per Mobile Law) */}
-      <div className="bg-card border border-border p-4 sm:p-6 rounded-xl shadow-sm space-y-4">
+      <div
+        data-tour="comm-status-table"
+        className="bg-card border border-border p-4 sm:p-6 rounded-xl shadow-sm space-y-4"
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-bold">Recent Dispatch Telemetry</h2>
           <span className="text-xs text-muted-foreground font-medium">Latest 5 events</span>
