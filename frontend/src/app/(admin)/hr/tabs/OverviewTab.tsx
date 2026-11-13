@@ -153,9 +153,9 @@ export function OverviewTab({
           data-tour="hr-stats-grid"
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
         >
-          <div data-tour="hr-staff-table">
+          <div data-tour="hr-staff-table hr-staff-count-card">
             <StatCard
-              dataTour="hr-staff-count-card"
+              data-tour="hr-staff-count-card"
               icon={Users}
               label="Total Staff"
               value={totalStaff}

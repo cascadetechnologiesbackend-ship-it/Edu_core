@@ -169,7 +169,7 @@ export const SUPER_ADMIN_PAGE_TOURS: PageTourDefinition[] = [
     ],
   },
   {
-    pagePath: "/super-admin/provisioning/new",
+    pagePath: "/super-admin/schools/provision",
     moduleId: "super-admin-provisioning",
     moduleTitle: "Unified School Provisioning Wizard",
     steps: [
