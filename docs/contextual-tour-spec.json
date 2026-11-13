@@ -1,0 +1,263 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "contextual_guided_tour",
+  "version": "1.0.0",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "journey_spec",
+  "governing_charter": "docs/product-destination-charter.json",
+  "spec_role": "Changes the tour paradigm from a centralized flashcard deck to game-style contextual popups: when a user enters a module, a spotlight popup appears anchored to the real UI elements on that page, teaching the module's buttons, sub-features, and actions in sequence, then hands off to the next module like a game level. The landed centralized deck (v11.43.0) is demoted to an overview map and re-entry point; the contextual popup tour becomes the primary first-run experience. Supersedes the delivery mechanism of the role_tour_flashcards spec; inherits its content and route-truth laws.",
+  "predecessor_specs": [
+    {
+      "spec_id": "product_destination",
+      "version": "1.0",
+      "status": "landed; governing charter"
+    },
+    {
+      "spec_id": "role_tour_flashcards",
+      "version": "1.0.0",
+      "status": "landed in v11.43.0 (commits 0612c0c4 RT-L0, 32fc212b RT-L1..RT-L7); supplies the per-role deck data in frontend/src/lib/tours/ and the route-truth laws this spec inherits"
+    }
+  ],
+  "north_star": {
+    "destination_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "charter_phase": "D1 (onboarding journey completion) feeding D2 (persona journey loops)",
+    "journeys_advanced": [
+      "J10_school_onboarding"
+    ],
+    "target_metrics_moved": [
+      {
+        "metric": "journey_completion_rate",
+        "definition_source": "docs/product/metrics.md",
+        "target": "95%+ of started journeys reach their finished state",
+        "expected_delta": "The tour becomes a page-by-page guided journey with per-step telemetry; first-session users are walked to the actual button that does their job instead of reading about it elsewhere"
+      }
+    ],
+    "metric_rule": "Tour events are plain first-party usage events carrying journey id, role, and step id, tenant-isolated, zero PII. They are NOT north_star events; the six north-star definitions in docs/product/metrics.md are untouched."
+  },
+  "intent": "The user's verdict on the landed centralized deck: correct content, wrong delivery. A stack of module cards in one section is a menu, not a tour. Games teach differently: the popup appears where you are, points at the actual button, tells you what it does in one line, waits for you to act or skip, and the next lesson appears at the next place you land. This spec rebuilds the tour that way. When a role enters a module page for the first time, a spotlight popup anchors to the page's real controls (the Collect Fee button, the attendance matrix, the marks-entry table) and walks its steps in order. Finishing or skipping a module's steps marks that module done; the next module's popup fires when the user navigates there, with a progress trail like game level progress. The landed deck data in frontend/src/lib/tours/ is the content source for module and sub-module copy, so nothing is rewritten, only re-delivered in context. The defect class this spec prevents is unchanged: ghost anchors (popups pointing at elements that do not exist), fabricated features, and claimed progress. Every popup anchor is verified against the page's actual markup by an automated test.",
+  "grounding_audit": {
+    "verified_at_head": "770cc4ce, release v11.43.0, verified 2026-11-13",
+    "verified_facts": [
+      "The role_tour_flashcards spec landed fully: frontend/src/lib/tours/ contains types.ts (TourModule, TourSubModule, TourDeck, TourProgressState {status: in_progress|completed|dismissed, level, moduleIndex, subIndex}), decks.ts (ALL_TOUR_DECKS for all 11 roles via getTourDeckForRole), storage.ts (localStorage prefix 'schoolmitra_tour_', per-role keys, getSavedTourState/saveTourState/clearTourState), adminTour.ts (14 admin modules with sub-module ctaHrefs and honest copy), staffTours.ts, familyTours.ts, superAdminTour.ts.",
+      "frontend/src/components/onboarding/ contains FeatureTutorialFlashCards.tsx (20.6 KB centralized deck engine) and TutorialLauncherButton.tsx; both are mounted on the admin dashboard and per-role home surfaces. The centralized deck keeps working; this spec adds the contextual layer and demotes the deck to overview/re-entry.",
+      "Tour usage events tour_started, tour_completed, tour_skipped already exist from the RT spec; this spec extends the vocabulary with per-step events, same first-party pipeline.",
+      "Route truth infrastructure exists: per-role decks were verified against assertRouteAccess in routeGuards.ts with a CI test; the same test pattern extends to popup anchors.",
+      "Eleven roles with landed decks: SCHOOL_ADMIN, TEACHER, PRINCIPAL, ACCOUNTANT, HR_MANAGER, LIBRARIAN, TRANSPORT_MANAGER, DRIVER, PARENT, STUDENT, SUPER_ADMIN."
+    ],
+    "honest_caveats": [
+      "Popup positioning requires DOM anchors. The pages' current markup was not audited element by element at spec time. L0 must inventory each module page's real controls and define the anchor plan; pages may need data-tour attributes added, which is in scope.",
+      "Zero new npm dependencies is binding: the spotlight/coach-mark engine is built by hand (overlay, getBoundingClientRect positioning, keyboard, mobile bottom-sheet). No driver.js, shepherd, intro.js, or similar.",
+      "Deep pages (for example /school/accounting/reports) are sub-module surfaces; the popup tour covers module landing pages and their highest-value sub-module pages as the L0 matrix decides. Covering every leaf page is not the goal; teaching the jobs is."
+    ]
+  },
+  "persona_jobs": [
+    {
+      "persona_id": "office_admin",
+      "job_name": "Be taught each module at the moment I open it, pointing at the real buttons",
+      "trigger": "First visit to any module page, or resume via the launcher",
+      "steps": "Open Admissions -> popup anchors to the New Admission button: what it does, one line -> Next step anchors to the consent control -> module done, progress trail updates -> navigate to Fees -> its popup sequence fires there -> skip any time -> next session resumes at the first incomplete module",
+      "finished_state_message": "Guided tour complete. Every module taught you at its own desk. Restart any time from Quick Tutorial.",
+      "walkthrough_verification": "Scripted walkthrough as office_admin across at least five module pages: popup anchors render on the real elements, steps advance, module completion persists, next module fires on arrival, skip works at step, module, and tour level"
+    },
+    {
+      "persona_id": "teacher",
+      "job_name": "Learn my surfaces by doing, not by reading a card stack",
+      "trigger": "First visit to teacher surfaces",
+      "steps": "Open attendance -> popup anchors to the roll-call matrix -> mark one student -> next step -> open homework -> popup anchors to the post button -> done",
+      "finished_state_message": "Tour complete. Attendance, homework, and marks taught you their buttons.",
+      "walkthrough_verification": "Walkthrough as a teacher on the demo tenant; anchors land on real teacher controls; nothing references admin surfaces"
+    },
+    {
+      "persona_id": "parent",
+      "job_name": "Learn the app in the ninety seconds I actually have",
+      "trigger": "First login and first visit to each parent surface",
+      "steps": "Home feed popup -> fees popup anchors to the pay button -> homework popup -> skip available everywhere",
+      "finished_state_message": "Tour complete. You know where to look, and paying takes under ninety seconds.",
+      "walkthrough_verification": "Mobile-viewport walkthrough as a parent on the demo tenant; popups render as bottom sheets on small screens; offline state does not break the tour"
+    },
+    {
+      "persona_id": "student",
+      "job_name": "Find my homework and timetable without asking anyone",
+      "trigger": "First login on the Student PWA",
+      "steps": "Home popup -> homework popup anchors to the submit flow -> timetable popup -> done",
+      "finished_state_message": "Tour complete. Homework and timetable are where your thumbs already are.",
+      "walkthrough_verification": "Walkthrough as a student on the demo tenant on mobile viewport"
+    },
+    {
+      "persona_id": "accountant",
+      "job_name": "Learn the fee ledger controls before the first fee day",
+      "trigger": "First visit to accountant surfaces",
+      "steps": "Fee counter popup anchors to payment controls -> day book popup -> reconciliation popup -> done",
+      "finished_state_message": "Tour complete. Collection, day book, and reconciliation taught you their controls.",
+      "walkthrough_verification": "Walkthrough as an accountant on the demo tenant; every anchor exists and is operable by the accountant role"
+    },
+    {
+      "persona_id": "principal",
+      "job_name": "See the levers I can pull, taught at each lever",
+      "trigger": "First visit to principal surfaces",
+      "steps": "Approvals popup -> oversight popup -> reports popup -> done",
+      "finished_state_message": "Tour complete. Approvals and oversight taught you their controls.",
+      "walkthrough_verification": "Walkthrough as a principal on the demo tenant"
+    }
+  ],
+  "scope_boundaries": {
+    "non_goals_confirmed": [
+      "No hardware, no edtech content, no LLMs in workflows, no new role apps, no price tiers, no WhatsApp"
+    ],
+    "out_of_scope_for_this_spec": [
+      "Rewriting deck copy; the frontend/src/lib/tours/ content is reused as the source of module and sub-module text",
+      "The six north-star metric definitions; tour telemetry stays plain usage events",
+      "Video tours, multi-language copy, server-side progress sync",
+      "Onboarding wizard steps and unified provisioning flow, beyond keeping the existing handoff",
+      "New npm tour libraries of any kind; the engine is hand-built"
+    ],
+    "in_scope_surfaces_rule": "The L0 matrix decides which pages get popup tours per role: every module landing page, plus the sub-module pages the matrix marks high-value. Every other page is untouched."
+  },
+  "tour_laws": {
+    "law_1_contextual_trigger": "A popup tour step appears only on the page it teaches, triggered by first visit to that page for that role, or by resume/restart from the launcher. No page hosts another page's tour. The centralized deck never auto-opens anymore; it becomes the overview map opened only by the launcher.",
+    "law_2_real_anchors": "Every step anchors to a real DOM element marked data-tour='{anchor-id}' in the page's markup. A step whose anchor is missing from the page renders nothing and logs a defect; the CI anchor-truth test fails the build if a defined anchor does not exist in the target page source. Ghost popups are the fabricated-truth defect class applied to tours and are prohibited.",
+    "law_3_game_sequence": "Steps within a page run in defined order with Next/Back, a step counter ('Step 2 of 4'), and a progress trail of modules per role shown as game-style level progress (done / current / locked-by-visit). Completing a module's steps marks that module done; the trail persists; the next module's tour fires when the user first visits it. The trail is shown in the overview deck and inside popups as a compact progress strip.",
+    "law_4_skip_everywhere": "Skip tour (whole tour, marks all modules dismissed), skip module (marks this module done, moves on), and step-level Next-past are all available on every popup. A skipped tour never auto-opens again on any page. The launcher button always allows revisit, restarting at the first incomplete module or the current page's module.",
+    "law_5_act_or_read": "Each step's popup states the job in one line ('This button enrolls a student and starts their fee ledger'), what it is, and offers the primary action CTA when the anchor is itself actionable ('Do it now' simply closes the popup so the user can act). Popups never block the underlying control; the user can act while the popup shows, and acting on the anchored control auto-advances the step where detection is reliable, otherwise Next advances.",
+    "law_6_honest_copy": "Popup copy comes from the landed deck data plus the L0 page audit. A popup must not claim a capability the anchored control lacks. Copy is five-second readable for a tired adult.",
+    "law_7_one_engine": "One hand-built spotlight/coach-mark engine, one step schema, per-role step definitions as data extending the existing tours/ directory. No per-role copies of the engine. The existing FeatureTutorialFlashCards is refactored into the overview map; nothing is forked.",
+    "law_8_mobile_and_a11y": "On small viewports popups render as bottom sheets with the anchored element outlined. Keyboard navigation, focus management on open/close, Escape closes the current step (counts as skip module with confirmation), reduced-motion respected, overlay never traps scroll on the taught control."
+  },
+  "phases": [
+    {
+      "phase_id": "CT-L0",
+      "title": "Pre-flight: page and anchor inventory",
+      "tasks": [
+        "For each of the 11 roles, walk the module landing pages and high-value sub-module pages from the landed decks. For each page, inventory the real controls worth teaching: primary action buttons, filters, tables, status badges.",
+        "Produce docs/product/tour-anchor-matrix.md: per role, per page, the ordered step list, each step's anchor-id, the element it marks, and the one-line copy drafted from the existing deck data. Mark pages needing data-tour attributes added.",
+        "Decide and record the per-role module order for the progress trail (start with the role's highest-frequency job: admin starts at Day One Cockpit, teacher at attendance, parent at feed, accountant at fee counter).",
+        "Record honestly which roles get short tours (driver, librarian). The operator approves this matrix before any code. No feature code in this layer."
+      ],
+      "walkthrough_verification": "The matrix exists, covers all 11 roles, and every listed anchor corresponds to a real element or a page explicitly marked as needing instrumentation"
+    },
+    {
+      "phase_id": "CT-L1",
+      "title": "Spotlight engine: hand-built, zero dependencies",
+      "tasks": [
+        "Build the coach-mark engine under frontend/src/components/tour/: overlay with cutout highlight, positioning via getBoundingClientRect with viewport clamping and scroll handling, Next/Back/Skip controls, step counter, progress strip, bottom-sheet mode on small viewports.",
+        "Extend frontend/src/lib/tours/types.ts with TourStep { anchorId, title, line, ctaLabel? } and per-page tour definitions { pagePath, steps[] }; extend storage.ts with per-role, per-page, per-step progress keys reusing the existing 'schoolmitra_tour_' prefix pattern and TourProgressState evolution (status: not_started|in_progress|module_done|completed|dismissed at module granularity).",
+        "Implement the contextual trigger: a TourHost mounted in each role's layout that checks the current pathname against the role's tour definitions, fires the page's popup on first visit, and updates the progress trail on module completion and skip.",
+        "Implement the game-sequence trail: modules as levels (done / current / not-visited), persisted, rendered in a compact strip inside popups and in the overview deck.",
+        "Emit usage events through the existing first-party pipeline: tour_step_viewed, tour_module_completed, tour_skipped, carrying role, pagePath, stepId, journey id J10, tenant-scoped, zero PII.",
+        "Automated tests: trigger logic (first visit, resume, dismiss persistence), step navigation, skip at all three levels, progress persistence, event emission, and that no tour auto-opens after dismissal."
+      ],
+      "walkthrough_verification": "Engine walkthrough with a scratch test page: popup anchors, advances, skips, resumes across refresh, and the trail updates; all asserted by test"
+    },
+    {
+      "phase_id": "CT-L2",
+      "title": "School admin tours: the 14 module pages",
+      "tasks": [
+        "Add data-tour attributes to the real controls on the admin module pages per the approved matrix (Day One Cockpit, admissions, students, academics, attendance, finance surfaces, accounting, exams, hr, transport, library, communication, dpdp, settings).",
+        "Author the admin per-page step data from the matrix, copy drawn from the existing adminTour.ts module and sub-module text.",
+        "Mount the TourHost in the admin layout; demote the centralized deck to launcher-only overview with the progress trail visible in it; the launcher button stays in the header.",
+        "The Day One Cockpit tour fires first in the sequence and its final step hands off to the next module in the trail."
+      ],
+      "walkthrough_verification": "Walkthrough as office_admin across all 14 admin module pages: every popup anchors to a real element, every step's copy matches what the control does, skip and resume behave per the laws"
+    },
+    {
+      "phase_id": "CT-L3",
+      "title": "Staff role tours: teacher, principal, accountant, hr-manager, librarian, transport-manager, driver",
+      "tasks": [
+        "Anchor and author per-page tours for the seven staff roles from the matrix, sized honestly to their real surfaces; driver gets a short tour of exactly what the driver app does.",
+        "Mount TourHost in each role's layout; launcher on each home surface.",
+        "No staff tour anchors to or references a surface its role cannot open; the anchor-truth test enforces role-accessible pages via the existing routeGuards pattern."
+      ],
+      "walkthrough_verification": "One walkthrough per staff role on the demo tenant; popups fire on first visit per page, anchors are real and operable by that role"
+    },
+    {
+      "phase_id": "CT-L4",
+      "title": "Family tours: parent and student",
+      "tasks": [
+        "Anchor and author parent tours across the parent surfaces (feed, fees and pay button, homework, documents) with tea-break copy; student tours across home, homework submission, timetable, marks.",
+        "Mount TourHost in both layouts; verify bottom-sheet mode, offline behavior alongside the existing PWA shell and offline queue, and that tours never block the underlying app.",
+        "No family tour references school-admin concepts."
+      ],
+      "walkthrough_verification": "Mobile-viewport walkthroughs as parent and student on the demo tenant, including one offline pass; skip persists"
+    },
+    {
+      "phase_id": "CT-L5",
+      "title": "Super-admin tour and provisioning handoff",
+      "tasks": [
+        "Anchor and author the super-admin per-page tours (school directory and unified provisioning, impersonation, telemetry and delivery-health, DPDP surfaces) from the matrix.",
+        "Keep the existing provisioning completion handoff text pointing new schools' admins at their tour; add that the school admin's contextual tour begins automatically at the Day One Cockpit on their first login."
+      ],
+      "walkthrough_verification": "Walkthrough as super_admin; provisioning completion view still hands off correctly; super-admin pages' popups anchor to real controls"
+    },
+    {
+      "phase_id": "CT-L6",
+      "title": "Anchor-truth test and telemetry verification",
+      "tasks": [
+        "CI anchor-truth test: for every role's every tour page, parse the page source and assert every defined anchorId exists as data-tour='{anchorId}' in that page or its imported components, and that the page is route-accessible for the role via the existing routeGuards pattern. A missing anchor fails the build.",
+        "Prove the test: a scratch commit removing one anchor fails CI; revert.",
+        "Telemetry verification: tour_step_viewed, tour_module_completed, tour_skipped land tenant-scoped with role, pagePath, stepId; assert no north_star event definitions changed; readout or log verification per the repo's existing telemetry test patterns.",
+        "Accessibility and viewport pass: keyboard traversal of steps, focus management, Escape behavior, reduced motion, mobile bottom sheets, desktop popups, across all 11 roles."
+      ],
+      "walkthrough_verification": "CI green including the anchor-truth test; the deliberately broken anchor was proven to fail it"
+    },
+    {
+      "phase_id": "CT-L7",
+      "title": "Ratification: walkthroughs, honesty scan, journey-map update",
+      "tasks": [
+        "Run the contextual tour walkthrough for all 11 roles on the demo tenant; record per-role finished states and the module trail progression in the commit body.",
+        "Honesty scan: every popup line checked against the anchored control's real behavior; any drift is a defect; extend the repo's honesty scanner patterns to tour data if the structure supports it.",
+        "Update docs/product/journey-map.md J10 row: the contextual tour is the primary onboarding teaching surface, the deck the overview map; record any page-level gaps found in L0 as gap entries.",
+        "Typecheck, build, smoke render green; release evidence per repo convention."
+      ],
+      "walkthrough_verification": "Final commit body lists all 11 roles with the finished state and trail progression each saw; journey-map.md cites the evidence"
+    }
+  ],
+  "business_logic_rules": [
+    "BR-CT-1: Popups fire only on the page they teach, on first visit per role, or via launcher resume. No cross-page popups, no auto-opening deck (law_1).",
+    "BR-CT-2: Every step anchors to a real data-tour element verified by the CI anchor-truth test; a popup without its anchor renders nothing and logs a defect (law_2).",
+    "BR-CT-3: Progress is a per-role module trail with game-style states (done / current / not-visited), persisted in localStorage under the existing key pattern, resumed on return, never re-shown after dismissal (law_3, law_4).",
+    "BR-CT-4: Skip exists at step, module, and tour level on every popup; a skipped tour never auto-opens on any page; the launcher always allows revisit (law_4).",
+    "BR-CT-5: Popups never block the anchored control; the user can act underneath; acting auto-advances where detection is reliable (law_5).",
+    "BR-CT-6: Copy is honest to the code and five-second readable, drawn from the landed deck data plus the L0 audit (law_6).",
+    "BR-CT-7: One hand-built engine, per-role data. Zero new npm dependencies; no third-party tour library (law_7).",
+    "BR-CT-8: Telemetry is first-party usage events with role, pagePath, stepId, journey id J10, tenant-scoped, zero PII; north-star definitions untouched.",
+    "BR-CT-9: Security unchanged: assertRouteAccess remains the authorization authority; the tour adds no routes, no permissions, no data access; anchor ids are inert markup attributes."
+  ],
+  "acceptance_criteria": [
+    "AC-CT-1: docs/product/tour-anchor-matrix.md exists, covers all 11 roles with ordered steps and anchor ids, and was approved by the operator before deck authoring.",
+    "AC-CT-2: The spotlight engine renders anchored popups with cutout highlight, step counter, progress strip, Next/Back/Skip, bottom-sheet mode on mobile, keyboard and reduced-motion support, with zero new dependencies.",
+    "AC-CT-3: Popups fire contextually on first visit per role per page, never on pages without tour definitions, never again after tour-level dismissal, and resume correctly after refresh.",
+    "AC-CT-4: The admin role has contextual tours on its 14 module pages with data-tour anchors on real controls and copy inherited from the landed deck data.",
+    "AC-CT-5: The seven staff roles have contextual tours sized honestly to their real surfaces; driver's tour is short and complete for what the driver app does.",
+    "AC-CT-6: Parent and student contextual tours work on mobile viewports, in offline states where the host PWA supports them, and never reference admin surfaces.",
+    "AC-CT-7: The super-admin tour exists and the provisioning handoff still points new schools' admins at their Day One tour.",
+    "AC-CT-8: The CI anchor-truth test passes for every role and demonstrably fails when an anchor is missing or a page is not role-accessible.",
+    "AC-CT-9: tour_step_viewed, tour_module_completed, and tour_skipped are emitted tenant-scoped with role, pagePath, and stepId; no north_star event definition changed.",
+    "AC-CT-10: The module progress trail persists per role, shows done/current/not-visited states, renders inside popups and the overview deck, and drives resume order.",
+    "AC-CT-11: The centralized deck no longer auto-opens; it is the launcher-opened overview map showing the trail; the existing FeatureTutorialFlashCards usages are migrated, not left dangling.",
+    "AC-CT-12: journey-map.md J10 records the contextual tour as the primary teaching surface with per-role evidence; L0 page gaps are recorded as gap entries.",
+    "AC-CT-13: Typecheck, build, and smoke render green; keyboard, focus, Escape, and reduced-motion pass across all roles on mobile and desktop."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. No driver.js, shepherd, intro.js, react-joyride, or any tour library; the engine is hand-built.",
+    "Phases land in strict order CT-L0 through CT-L7, one commit series per layer. Commit prefixes: docs(tour) for L0, feat(tour) for L1 through L7.",
+    "Every phase lands with typecheck, build, and smoke render green. The S7 gate is permanent series law.",
+    "The L0 anchor matrix is a review gate: the operator approves it before anchors and step data are authored.",
+    "Reuse frontend/src/lib/tours/ content and storage patterns; extend types and storage, do not fork them.",
+    "Do not modify north-star metric definitions, onboarding wizard steps, or the unified provisioning flow beyond the L5 handoff note.",
+    "Where this spec conflicts with in-repo security constraints, security wins; log the conflict in the commit body."
+  ],
+  "definition_of_done": "The contextual tour is done when a first-session user of any of the 11 roles is taught at the moment they open each module: a popup anchors to the module's real buttons, explains the job in one line, lets them act or skip, marks the module done on a persistent game-style progress trail, and the next module's lesson fires when they get there. Every anchor is verified against real page markup by a CI test, every line of copy is honest to what the control does, skip works at step, module, and tour level and is respected forever, and the whole thing is built by hand with zero new dependencies. The centralized deck survives only as the launcher-opened overview map. A new employee at a customer school learns each module while standing in it, without calling anyone.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/contextual-tour-spec.json. It derives from docs/product-destination-charter.json and supersedes the delivery mechanism of docs/role-tour-flashcards-spec.json while inheriting its content and route-truth laws.",
+      "Execute layers CT-L0 through CT-L7 in strict order. L0 produces the anchor matrix and is a review gate; do not author anchors or step data before the operator approves the matrix.",
+      "Read frontend/src/lib/tours/ (types, decks, storage, per-role decks) and every target page's markup from the codebase at implementation time. The grounding facts here were verified at head 770cc4ce (v11.43.0) and may have moved. Real element structure, page routes, and guard behavior come from the code, not from this spec.",
+      "Follow the tour_laws as binding. The anchor-truth test is the enforcement mechanism; design step data for it from CT-L1 and write it in CT-L6.",
+      "Every layer's commit body records the persona walkthrough: which role, which pages toured, which finished state was seen.",
+      "Gaps larger than a layer's scope go to docs/product/journey-map.md as gap entries, never silent scope expansion.",
+      "Keep the existing visual language of the landed flashcards for the overview map; the popup engine follows the same design system.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
