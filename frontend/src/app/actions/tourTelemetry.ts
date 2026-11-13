@@ -8,7 +8,12 @@ import { TourUsageEventName } from "@/lib/tours/types";
 
 export async function recordTourUsageAction(
   eventName: TourUsageEventName,
-  role: UserRole | string
+  role: UserRole | string,
+  meta?: {
+    pagePath?: string;
+    stepId?: string;
+    moduleId?: string;
+  }
 ) {
   try {
     const session = await auth().catch(() => null);
@@ -21,14 +26,23 @@ export async function recordTourUsageAction(
       tour_started: "START",
       tour_completed: "COMPLETE",
       tour_skipped: "SKIP",
+      tour_step_viewed: "VIEW_STEP",
+      tour_module_completed: "COMPLETE_MODULE",
     };
+
+    const screenLabel = meta?.pagePath ? `tour:${meta.pagePath}` : "tour_flashcards";
+    const elementLabel = meta?.stepId
+      ? `J10_step:${meta.stepId}`
+      : meta?.moduleId
+      ? `J10_module:${meta.moduleId}`
+      : "J10_school_onboarding";
 
     await db.insert(usageEvents).values({
       schoolId: session.user.schoolId,
       userId: session.user.id,
-      screen: "tour_flashcards",
+      screen: screenLabel,
       elementId: eventName,
-      elementLabel: "J10_school_onboarding",
+      elementLabel,
       action: actionMap[eventName] || "INTERACT",
       role: String(role || session.user.role || "UNKNOWN"),
     });

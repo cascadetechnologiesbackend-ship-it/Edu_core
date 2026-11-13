@@ -33,12 +33,35 @@ export interface TourDeck {
 }
 
 export interface TourProgressState {
-  status: "in_progress" | "completed" | "dismissed";
-  level: 1 | 2;
-  moduleIndex: number;
-  subIndex: number;
+  status: "not_started" | "in_progress" | "module_done" | "completed" | "dismissed";
+  level?: 1 | 2;
+  moduleIndex?: number;
+  subIndex?: number;
+  completedModules?: string[];
+  dismissedModules?: string[];
+  currentModuleId?: string;
   updatedAt: string;
 }
 
-export type TourUsageEventName = "tour_started" | "tour_completed" | "tour_skipped";
+export type TourUsageEventName =
+  | "tour_started"
+  | "tour_completed"
+  | "tour_skipped"
+  | "tour_step_viewed"
+  | "tour_module_completed";
+
+export interface TourStep {
+  anchorId: string;
+  title: string;
+  line: string;
+  ctaLabel?: string;
+  placement?: "top" | "bottom" | "left" | "right" | "auto";
+}
+
+export interface PageTourDefinition {
+  pagePath: string;
+  moduleId: string;
+  moduleTitle: string;
+  steps: TourStep[];
+}
 
