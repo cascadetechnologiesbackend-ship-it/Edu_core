@@ -27,7 +27,6 @@ export const metadata = {
 };
 
 export default async function SuperAdminDashboardPage() {
-  // Aggregate Metrics & active schools in parallel
   let totalSchools = { count: 0 };
   let totalStudents = { count: 0 };
   let totalStaff = { count: 0 };

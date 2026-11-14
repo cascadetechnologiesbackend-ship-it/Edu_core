@@ -112,6 +112,60 @@ const nextConfig = {
             permanent: false,
             basePath: false,
           },
+          {
+            source: "/dashboard",
+            destination: `${basePath}/dashboard`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/principal/:path*",
+            destination: `${basePath}/principal/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/admin/:path*",
+            destination: `${basePath}/admin/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/super-admin/:path*",
+            destination: `${basePath}/super-admin/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/teacher/:path*",
+            destination: `${basePath}/teacher/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/student/:path*",
+            destination: `${basePath}/student/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/parent/:path*",
+            destination: `${basePath}/parent/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/accountant/:path*",
+            destination: `${basePath}/accountant/:path*`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/school/:path*",
+            destination: `${basePath}/school/:path*`,
+            permanent: false,
+            basePath: false,
+          },
         ]
       : [];
 

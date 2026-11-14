@@ -42,8 +42,10 @@ export default function ForcePasswordChangePage() {
         const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
         const nextParam = urlParams?.get("next");
         const destination = nextParam || res.redirectUrl || "/dashboard";
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+        const targetDest = basePath && !destination.startsWith(basePath) ? `${basePath}${destination}` : destination;
         setTimeout(() => {
-          window.location.href = destination;
+          window.location.href = targetDest;
         }, 800);
       }
     } catch (err: any) {

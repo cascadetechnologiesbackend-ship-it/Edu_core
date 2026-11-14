@@ -85,7 +85,8 @@ function ClaimStudentAccountForm() {
         }
 
         setTimeout(() => {
-          window.location.href = "/student/dashboard";
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+          window.location.href = `${basePath}/student/dashboard`;
         }, 1200);
       }
     } catch (err: any) {

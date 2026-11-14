@@ -89,12 +89,20 @@ export default function LoginForm() {
         const role = (session?.user as any)?.role as UserRole;
         const mustChangePassword = (session?.user as any)?.mustChangePassword;
 
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
         const defaultDashboard = (role && ROLE_CONFIGS[role]?.defaultDashboard) || "/dashboard";
+        const targetDashboard =
+          basePath && !defaultDashboard.startsWith(basePath)
+            ? `${basePath}${defaultDashboard}`
+            : defaultDashboard;
 
         if (mustChangePassword) {
-          window.location.replace(`/force-password-change?next=${encodeURIComponent(defaultDashboard)}`);
+          const forceUrl = basePath
+            ? `${basePath}/force-password-change?next=${encodeURIComponent(targetDashboard)}`
+            : `/force-password-change?next=${encodeURIComponent(defaultDashboard)}`;
+          window.location.replace(forceUrl);
         } else {
-          window.location.replace(defaultDashboard);
+          window.location.replace(targetDashboard);
         }
       }
     } catch (err) {
@@ -103,9 +111,14 @@ export default function LoginForm() {
       try {
         const session = await getSession();
         if (session?.user) {
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
           const role = (session.user as any)?.role as UserRole;
           const defaultDashboard = (role && ROLE_CONFIGS[role]?.defaultDashboard) || "/dashboard";
-          window.location.replace(defaultDashboard);
+          const targetDashboard =
+            basePath && !defaultDashboard.startsWith(basePath)
+              ? `${basePath}${defaultDashboard}`
+              : defaultDashboard;
+          window.location.replace(targetDashboard);
           return;
         }
       } catch {}

@@ -73,7 +73,8 @@ function ClaimAccountForm() {
         }
 
         setTimeout(() => {
-          window.location.href = "/parent/dashboard";
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+          window.location.href = `${basePath}/parent/dashboard`;
         }, 1200);
       }
     } catch (err: any) {
