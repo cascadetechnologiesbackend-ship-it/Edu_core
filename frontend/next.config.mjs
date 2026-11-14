@@ -14,6 +14,10 @@ if (process.env.ANALYZE === "true") {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Support reverse-proxy base path when hosted under cascade-erp.in/educore
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
+
   // Standalone output for Docker
   ...(process.env.NEXT_OUTPUT_STANDALONE ? { output: "standalone" } : {}),
 
