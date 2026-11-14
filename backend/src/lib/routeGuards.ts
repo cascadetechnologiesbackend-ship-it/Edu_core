@@ -176,6 +176,12 @@ export const securityAuditLogs: RouteAccessAuditRecord[] = [];
 export function canRoleAccessRoute(role: string | undefined | null, pathname: string): boolean {
   if (!role) return false;
 
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const cleanPath =
+    basePath && pathname.startsWith(basePath)
+      ? pathname.slice(basePath.length) || "/"
+      : pathname;
+
   // SUPER_ADMIN has platform-wide access
   if (role === "SUPER_ADMIN") return true;
 
@@ -184,14 +190,14 @@ export function canRoleAccessRoute(role: string | undefined | null, pathname: st
   if (!allowedPrefixes || allowedPrefixes.length === 0) return false;
 
   // Special check: Student full profile (/students/[id])
-  if (pathname.startsWith("/students/")) {
+  if (cleanPath.startsWith("/students/")) {
     return FULL_STUDENT_PROFILE_ALLOWED_ROLES.includes(validRole);
   }
 
   // Exact or prefix matching
   const hasAccess = allowedPrefixes.some((prefix) => {
-    if (pathname === prefix) return true;
-    if (pathname.startsWith(prefix + "/") || pathname.startsWith(prefix + "?")) return true;
+    if (cleanPath === prefix) return true;
+    if (cleanPath.startsWith(prefix + "/") || cleanPath.startsWith(prefix + "?")) return true;
     return false;
   });
 

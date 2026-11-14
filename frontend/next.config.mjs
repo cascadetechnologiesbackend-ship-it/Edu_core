@@ -91,7 +91,32 @@ const nextConfig = {
 
   // Canonical redirects from legacy fees routes to unified finance suite
   async redirects() {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH;
+    const baseRedirects = basePath
+      ? [
+          {
+            source: "/",
+            destination: basePath,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/login",
+            destination: `${basePath}/login`,
+            permanent: false,
+            basePath: false,
+          },
+          {
+            source: "/onboard",
+            destination: `${basePath}/onboard`,
+            permanent: false,
+            basePath: false,
+          },
+        ]
+      : [];
+
     return [
+      ...baseRedirects,
       {
         source: "/fees/collect",
         destination: "/school/collect-fees",

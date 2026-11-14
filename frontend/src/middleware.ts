@@ -25,7 +25,13 @@ function isEdgeRateLimited(ip: string, bucket: string, limit: number): boolean {
 }
 
 export default async function middleware(req: NextRequest) {
-  const pathname = req.nextUrl.pathname;
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const rawPath = req.nextUrl.pathname;
+  const pathname =
+    basePath && rawPath.startsWith(basePath)
+      ? rawPath.slice(basePath.length) || "/"
+      : rawPath;
+
   const isSensitivePublicPost =
     req.method === "POST" &&
     (pathname.startsWith("/api/auth/callback") ||

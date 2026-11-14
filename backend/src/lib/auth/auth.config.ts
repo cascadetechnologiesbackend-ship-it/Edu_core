@@ -22,14 +22,18 @@ function resolveAuthSecret(): string {
 function getSafeRedirect(path: string, nextUrl: URL, headers?: Headers) {
   const host = headers?.get("x-forwarded-host") || headers?.get("host");
   const proto = headers?.get("x-forwarded-proto") || (nextUrl.protocol ? nextUrl.protocol.replace(":", "") : "http");
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const fullPath = basePath && !path.startsWith(basePath) ? `${basePath}${path}` : path;
   if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
-    return Response.redirect(new URL(path, `${proto}://${host}`));
+    return Response.redirect(new URL(fullPath, `${proto}://${host}`));
   }
   if (host) {
-    return Response.redirect(new URL(path, `${proto}://${host}`));
+    return Response.redirect(new URL(fullPath, `${proto}://${host}`));
   }
-  return Response.redirect(new URL(path, nextUrl));
+  return Response.redirect(new URL(fullPath, nextUrl));
 }
+
+const configuredBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 export const authConfig: NextAuthConfig = {
   // trustHost: required for deployments behind a reverse proxy (Render, Vercel, Railway, AWS ALB)
@@ -43,12 +47,16 @@ export const authConfig: NextAuthConfig = {
     updateAge: 60 * 60,  // Only re-sign JWT token every 1 hour
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: configuredBasePath ? `${configuredBasePath}/login` : "/login",
+    error: configuredBasePath ? `${configuredBasePath}/login` : "/login",
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      if (url.startsWith("/")) {
+        const fullPath = basePath && !url.startsWith(basePath) ? `${basePath}${url}` : url;
+        return `${baseUrl}${fullPath}`;
+      }
       try {
         const parsed = new URL(url);
         const baseObj = new URL(baseUrl);
@@ -56,10 +64,15 @@ export const authConfig: NextAuthConfig = {
           return url;
         }
       } catch {}
-      return baseUrl;
+      return `${baseUrl}${basePath || ""}`;
     },
     authorized({ auth, request: { nextUrl, headers } }) {
-      const pathname = nextUrl.pathname;
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const rawPath = nextUrl.pathname;
+      const pathname =
+        basePath && rawPath.startsWith(basePath)
+          ? rawPath.slice(basePath.length) || "/"
+          : rawPath;
 
       // Strictly match static asset extensions to prevent dot-truncation middleware auth bypass
       const isStaticAsset =
