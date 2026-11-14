@@ -28,30 +28,51 @@ export const metadata = {
 
 export default async function SuperAdminDashboardPage() {
   // Aggregate Metrics & active schools in parallel
-  const [
-    [totalSchools],
-    [totalStudents],
-    [totalStaff],
-    [totalAudits],
-    activeSchools,
-    telemetryRes,
-  ] = await Promise.all([
-    db.select({ count: count() }).from(schools),
-    db.select({ count: count() }).from(students),
-    db.select({ count: count() }).from(staff),
-    db.select({ count: count() }).from(auditLogs),
-    db.query.schools.findMany({
-      orderBy: [desc(schools.createdAt)],
-      limit: 8,
-    }),
-    getInfrastructureTelemetryAction().catch((err: any) => {
-      console.error("[SuperAdminDashboard] Telemetry fetch error:", err);
-      return { success: false, data: undefined, error: err?.message || "Failed to load telemetry" };
-    }),
-  ]);
+  let totalSchools = { count: 0 };
+  let totalStudents = { count: 0 };
+  let totalStaff = { count: 0 };
+  let totalAudits = { count: 0 };
+  let activeSchools: any[] = [];
+  let dbError: string | null = null;
+  let telemetryRes: any = { success: false, data: undefined };
+
+  try {
+    const results = await Promise.all([
+      db.select({ count: count() }).from(schools),
+      db.select({ count: count() }).from(students),
+      db.select({ count: count() }).from(staff),
+      db.select({ count: count() }).from(auditLogs),
+      db.query.schools.findMany({
+        orderBy: [desc(schools.createdAt)],
+        limit: 8,
+      }),
+      getInfrastructureTelemetryAction().catch((err: any) => {
+        console.error("[SuperAdminDashboard] Telemetry fetch error:", err);
+        return { success: false, data: undefined, error: err?.message || "Failed to load telemetry" };
+      }),
+    ]);
+    totalSchools = results[0][0] ?? { count: 0 };
+    totalStudents = results[1][0] ?? { count: 0 };
+    totalStaff = results[2][0] ?? { count: 0 };
+    totalAudits = results[3][0] ?? { count: 0 };
+    activeSchools = results[4] || [];
+    telemetryRes = results[5];
+  } catch (err: any) {
+    console.error("[SuperAdminDashboard] DB query error:", err);
+    dbError = err?.message || "Failed to connect to database";
+  }
 
   return (
     <div className="space-y-8">
+      {dbError && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-amber-300 text-sm flex items-center gap-3">
+          <Activity className="w-5 h-5 flex-shrink-0 text-amber-400" />
+          <div>
+            <p className="font-semibold">Database Connection Issue</p>
+            <p className="text-xs text-amber-400/80 mt-0.5">{dbError}</p>
+          </div>
+        </div>
+      )}
       {/* ─── Hero Command Banner ────────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-[#090d16] p-5 sm:p-8 border border-slate-800/80 shadow-2xl">
         <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
