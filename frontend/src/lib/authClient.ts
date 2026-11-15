@@ -6,7 +6,12 @@ import { signOut } from "next-auth/react";
  * 2. Purges window.caches directly to ensure no authenticated HTML/data lingers on shared devices.
  * 3. Triggers next-auth signOut().
  */
-export async function secureSignOut(options: { callbackUrl?: string } = { callbackUrl: "/login" }) {
+export async function secureSignOut(options?: { callbackUrl?: string }) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const defaultCallback = basePath ? `${basePath}/login` : "/login";
+  const callbackUrl = options?.callbackUrl
+    ? (basePath && !options.callbackUrl.startsWith(basePath) ? `${basePath}${options.callbackUrl}` : options.callbackUrl)
+    : defaultCallback;
   if (typeof window !== "undefined") {
     if ("serviceWorker" in navigator) {
       try {
@@ -25,5 +30,5 @@ export async function secureSignOut(options: { callbackUrl?: string } = { callba
     }
   }
 
-  await signOut(options);
+  await signOut({ callbackUrl });
 }

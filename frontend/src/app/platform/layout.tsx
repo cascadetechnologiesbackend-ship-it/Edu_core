@@ -7,5 +7,6 @@ export default function PlatformLayout({
 }: {
   children: React.ReactNode;
 }) {
-  redirect("/super-admin/dashboard");
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  redirect(basePath ? `${basePath}/super-admin/dashboard` : "/super-admin/dashboard");
 }

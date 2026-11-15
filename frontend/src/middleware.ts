@@ -61,6 +61,37 @@ export default async function middleware(req: NextRequest) {
     const existing = res.headers.get("Server-Timing");
     const timingHeader = `auth;dur=${durationMs};desc="Auth Gateway"`;
     res.headers.set("Server-Timing", existing ? `${existing}, ${timingHeader}` : timingHeader);
+
+    // CRITICAL: Normalize redirect location header to keep corporate domain (cascade-erp.in)
+    const location = res.headers.get("location");
+    if (location) {
+      const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+      const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
+      if (forwardedHost) {
+        try {
+          const locUrl = new URL(location, `${forwardedProto}://${forwardedHost}`);
+          if (locUrl.hostname.includes("onrender.com") || locUrl.hostname !== forwardedHost) {
+            locUrl.protocol = `${forwardedProto}:`;
+            locUrl.host = forwardedHost;
+            if (locUrl.searchParams.has("callbackUrl")) {
+              const cb = locUrl.searchParams.get("callbackUrl");
+              if (cb) {
+                try {
+                  const cbUrl = new URL(cb);
+                  if (cbUrl.hostname.includes("onrender.com")) {
+                    cbUrl.protocol = `${forwardedProto}:`;
+                    cbUrl.host = forwardedHost;
+                    locUrl.searchParams.set("callbackUrl", cbUrl.toString());
+                  }
+                } catch {}
+              }
+            }
+            res.headers.set("location", locUrl.toString());
+          }
+        } catch {}
+      }
+    }
+
     return res;
   }
 

@@ -54,8 +54,12 @@ export default async function PrincipalLayout({
     }
   }
 
+  const authBasePath = process.env.NEXT_PUBLIC_BASE_PATH
+    ? `${process.env.NEXT_PUBLIC_BASE_PATH}/api/auth`
+    : "/api/auth";
+
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} basePath={authBasePath}>
       <AdminShell
         currentUser={{
           id: session.user.id,

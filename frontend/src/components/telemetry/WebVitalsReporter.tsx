@@ -72,7 +72,8 @@ export function WebVitalsReporter() {
     bufferRef.current = [];
 
     const data = JSON.stringify(payload);
-    const endpoint = "/api/telemetry/vitals";
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+    const endpoint = `${basePath}/api/telemetry/vitals`;
 
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
       const blob = new Blob([data], { type: "application/json" });

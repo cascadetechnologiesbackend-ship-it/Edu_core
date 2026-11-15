@@ -73,7 +73,8 @@ export default function LoginForm() {
           setServerError("Too many login attempts. Please wait a moment and try again.");
         } else {
           try {
-            const lockoutRes = await fetch(`/api/auth/lockout?email=${encodeURIComponent(data.email)}`);
+            const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+            const lockoutRes = await fetch(`${basePath}/api/auth/lockout?email=${encodeURIComponent(data.email)}`);
             if (lockoutRes.ok) {
               const lockoutData = await lockoutRes.json();
               if (lockoutData.locked) {
@@ -96,13 +97,28 @@ export default function LoginForm() {
             ? `${basePath}${defaultDashboard}`
             : defaultDashboard;
 
+        let finalRedirect = targetDashboard;
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const cb = params.get("callbackUrl");
+          if (cb) {
+            try {
+              const parsedCb = cb.startsWith("/") ? cb : new URL(cb).pathname;
+              const fullCb = basePath && !parsedCb.startsWith(basePath) ? `${basePath}${parsedCb}` : parsedCb;
+              if (fullCb && !fullCb.includes("/login")) {
+                finalRedirect = fullCb;
+              }
+            } catch {}
+          }
+        }
+
         if (mustChangePassword) {
           const forceUrl = basePath
-            ? `${basePath}/force-password-change?next=${encodeURIComponent(targetDashboard)}`
-            : `/force-password-change?next=${encodeURIComponent(defaultDashboard)}`;
+            ? `${basePath}/force-password-change?next=${encodeURIComponent(finalRedirect)}`
+            : `/force-password-change?next=${encodeURIComponent(finalRedirect)}`;
           window.location.replace(forceUrl);
         } else {
-          window.location.replace(targetDashboard);
+          window.location.replace(finalRedirect);
         }
       }
     } catch (err) {

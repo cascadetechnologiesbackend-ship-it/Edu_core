@@ -52,8 +52,12 @@ export default async function DriverLayout({
     }
   }
 
+  const authBasePath = process.env.NEXT_PUBLIC_BASE_PATH
+    ? `${process.env.NEXT_PUBLIC_BASE_PATH}/api/auth`
+    : "/api/auth";
+
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} basePath={authBasePath}>
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-6">
         {/* Mobile-First PWA Top Bar */}
         <PwaHeader

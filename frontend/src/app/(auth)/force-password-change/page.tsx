@@ -35,14 +35,14 @@ export default function ForcePasswordChangePage() {
       } else {
         setSuccess(res.message || "Password updated successfully!");
         // Refresh session state so middleware permits dashboard navigation
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
         try {
-          await fetch("/api/auth/session");
+          await fetch(`${basePath}/api/auth/session`);
         } catch {}
 
         const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
         const nextParam = urlParams?.get("next");
         const destination = nextParam || res.redirectUrl || "/dashboard";
-        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
         const targetDest = basePath && !destination.startsWith(basePath) ? `${basePath}${destination}` : destination;
         setTimeout(() => {
           window.location.href = targetDest;

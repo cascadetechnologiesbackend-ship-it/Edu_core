@@ -27,8 +27,10 @@ export default async function SuperAdminLayout({
 }) {
   const session = await auth();
 
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
   if (!session?.user) {
-    redirect("/login?callbackUrl=/super-admin/dashboard");
+    redirect(`${basePath}/login?callbackUrl=${encodeURIComponent(`${basePath}/super-admin/dashboard`)}`);
   }
 
   if (session.user.role !== "SUPER_ADMIN") {
@@ -38,7 +40,9 @@ export default async function SuperAdminLayout({
       email: session.user.email ?? undefined,
       schoolId: session.user.schoolId ?? undefined,
     });
-    redirect(access.redirectUrl || "/dashboard");
+    const defaultDash = access.redirectUrl || "/dashboard";
+    const targetDash = basePath && !defaultDash.startsWith(basePath) ? `${basePath}${defaultDash}` : defaultDash;
+    redirect(targetDash);
   }
 
   // Check if impersonation session cookie exists (cryptographically verified)

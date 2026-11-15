@@ -89,6 +89,32 @@ const nextConfig = {
     ];
   },
 
+  // Direct un-prefixed root API calls (Auth, Telemetry, Manifest) to basePath handlers
+  async rewrites() {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/educore";
+    return {
+      beforeFiles: [
+        {
+          source: "/api/auth/:path*",
+          destination: `${basePath}/api/auth/:path*`,
+          basePath: false,
+        },
+        {
+          source: "/api/telemetry/:path*",
+          destination: `${basePath}/api/telemetry/:path*`,
+          basePath: false,
+        },
+        {
+          source: "/manifest.json",
+          destination: `${basePath}/manifest.json`,
+          basePath: false,
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
+
   // Canonical redirects from legacy fees routes to unified finance suite
   async redirects() {
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH;

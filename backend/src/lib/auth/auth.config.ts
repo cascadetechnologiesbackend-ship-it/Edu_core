@@ -39,6 +39,7 @@ export const authConfig: NextAuthConfig = {
   // trustHost: required for deployments behind a reverse proxy (Render, Vercel, Railway, AWS ALB)
   // NextAuth v5 validates the HOST header against AUTH_URL or requires trustHost: true.
   trustHost: true,
+  basePath: configuredBasePath ? `${configuredBasePath}/api/auth` : "/api/auth",
   secret: resolveAuthSecret(),
   providers: [], // Providers like Credentials with DB access go in index.ts
   session: {
@@ -55,16 +56,22 @@ export const authConfig: NextAuthConfig = {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
       if (url.startsWith("/")) {
         const fullPath = basePath && !url.startsWith(basePath) ? `${basePath}${url}` : url;
-        return `${baseUrl}${fullPath}`;
+        return fullPath;
       }
       try {
         const parsed = new URL(url);
         const baseObj = new URL(baseUrl);
-        if (parsed.origin === baseObj.origin || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+        if (
+          parsed.origin === baseObj.origin ||
+          parsed.hostname === "localhost" ||
+          parsed.hostname === "127.0.0.1" ||
+          parsed.hostname.includes("cascade-erp.in") ||
+          parsed.hostname.includes("onrender.com")
+        ) {
           return url;
         }
       } catch {}
-      return `${baseUrl}${basePath || ""}`;
+      return basePath ? `${basePath}/dashboard` : "/dashboard";
     },
     authorized({ auth, request: { nextUrl, headers } }) {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";

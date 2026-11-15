@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
             Enter your email to receive a password reset link.
           </p>
         </div>
-        <form className="space-y-6" action="/api/auth/reset-password" method="POST">
+        <form className="space-y-6" action={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/auth/reset-password`} method="POST">
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium leading-none">Email address</label>
             <input

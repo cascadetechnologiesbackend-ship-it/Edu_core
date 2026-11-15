@@ -117,8 +117,12 @@ export default async function AdminLayout({
     image: session.user.image ?? null,
   };
 
+  const authBasePath = process.env.NEXT_PUBLIC_BASE_PATH
+    ? `${process.env.NEXT_PUBLIC_BASE_PATH}/api/auth`
+    : "/api/auth";
+
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} basePath={authBasePath}>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
         {/* Impersonation Banner at top of School Admin Portal */}
         {impersonationData && (
