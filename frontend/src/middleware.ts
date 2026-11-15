@@ -70,19 +70,25 @@ export default async function middleware(req: NextRequest) {
       if (forwardedHost) {
         try {
           const locUrl = new URL(location, `${forwardedProto}://${forwardedHost}`);
-          if (locUrl.hostname.includes("onrender.com") || locUrl.hostname !== forwardedHost) {
+          if (locUrl.hostname.includes("onrender.com") || locUrl.hostname !== forwardedHost || (basePath && !locUrl.pathname.startsWith(basePath))) {
             locUrl.protocol = `${forwardedProto}:`;
             locUrl.host = forwardedHost;
+            if (basePath && !locUrl.pathname.startsWith(basePath)) {
+              locUrl.pathname = `${basePath}${locUrl.pathname}`;
+            }
             if (locUrl.searchParams.has("callbackUrl")) {
               const cb = locUrl.searchParams.get("callbackUrl");
               if (cb) {
                 try {
-                  const cbUrl = new URL(cb);
-                  if (cbUrl.hostname.includes("onrender.com")) {
+                  const cbUrl = new URL(cb, `${forwardedProto}://${forwardedHost}`);
+                  if (cbUrl.hostname.includes("onrender.com") || cbUrl.hostname !== forwardedHost) {
                     cbUrl.protocol = `${forwardedProto}:`;
                     cbUrl.host = forwardedHost;
-                    locUrl.searchParams.set("callbackUrl", cbUrl.toString());
                   }
+                  if (basePath && !cbUrl.pathname.startsWith(basePath)) {
+                    cbUrl.pathname = `${basePath}${cbUrl.pathname}`;
+                  }
+                  locUrl.searchParams.set("callbackUrl", cbUrl.toString());
                 } catch {}
               }
             }

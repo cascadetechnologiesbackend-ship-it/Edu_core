@@ -39,7 +39,7 @@ export const authConfig: NextAuthConfig = {
   // trustHost: required for deployments behind a reverse proxy (Render, Vercel, Railway, AWS ALB)
   // NextAuth v5 validates the HOST header against AUTH_URL or requires trustHost: true.
   trustHost: true,
-  basePath: configuredBasePath ? `${configuredBasePath}/api/auth` : "/api/auth",
+  basePath: "/api/auth",
   secret: resolveAuthSecret(),
   providers: [], // Providers like Credentials with DB access go in index.ts
   session: {
@@ -48,8 +48,8 @@ export const authConfig: NextAuthConfig = {
     updateAge: 60 * 60,  // Only re-sign JWT token every 1 hour
   },
   pages: {
-    signIn: configuredBasePath ? `${configuredBasePath}/login` : "/login",
-    error: configuredBasePath ? `${configuredBasePath}/login` : "/login",
+    signIn: "/login",
+    error: "/login",
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
