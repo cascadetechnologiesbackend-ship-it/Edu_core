@@ -25,7 +25,7 @@ export function PageHeader({
   className = "",
 }: PageHeaderProps) {
   return (
-    <header className={`mb-6 pb-4 border-b border-border/70 ${className}`}>
+    <header className={`mb-6 pb-4 border-b border-border/40 ${className}`}>
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav aria-label="Breadcrumb" className="mb-2">
           <ol className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -41,7 +41,7 @@ export function PageHeader({
                       {crumb.label}
                     </Link>
                   ) : (
-                    <span className={isLast ? "font-medium text-foreground" : ""}>
+                    <span className={isLast ? "font-semibold text-foreground tracking-tight" : ""}>
                       {crumb.label}
                     </span>
                   )}
@@ -62,7 +62,7 @@ export function PageHeader({
             {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>
           {description && (
-            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
               {description}
             </p>
           )}

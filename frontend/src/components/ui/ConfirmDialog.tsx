@@ -46,7 +46,7 @@ export function ConfirmDialog({
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition disabled:opacity-50 min-h-[40px]"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-foreground border border-border/50 bg-muted/40 hover:bg-muted/70 transition disabled:opacity-50 min-h-[44px]"
           >
             {cancelText}
           </button>
@@ -54,10 +54,10 @@ export function ConfirmDialog({
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
-            className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition disabled:opacity-50 min-h-[40px] shadow-sm ${
+            className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white transition disabled:opacity-50 min-h-[44px] shadow-sm ${
               confirmVariant === "danger"
-                ? "bg-red-600 hover:bg-red-700 active:bg-red-800 shadow-red-500/20"
-                : "bg-primary hover:bg-primary/95 shadow-primary/20"
+                ? "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 shadow-rose-500/20"
+                : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
             }`}
           >
             {isLoading ? (

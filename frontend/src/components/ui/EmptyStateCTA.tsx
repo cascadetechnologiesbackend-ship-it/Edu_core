@@ -36,19 +36,19 @@ export function EmptyStateCTA({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900 border border-dashed border-gray-300 dark:border-slate-800 rounded-2xl py-12 px-6 text-center flex flex-col items-center justify-center my-4",
+        "bg-card border border-dashed border-border/60 rounded-2xl py-12 px-6 text-center flex flex-col items-center justify-center my-4",
         className
       )}
     >
       {Icon && (
-        <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-slate-800/60 flex items-center justify-center mb-3.5 border border-gray-100 dark:border-slate-800">
+        <div className="w-16 h-16 rounded-2xl bg-muted/40 flex items-center justify-center mb-3.5 border border-border/40">
           {renderIcon()}
         </div>
       )}
-      <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white tracking-tight">
+      <h3 className="text-sm sm:text-base font-semibold text-foreground tracking-tight">
         {title}
       </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-1 mb-5 leading-relaxed">
+      <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1 mb-5 leading-relaxed">
         {hint}
       </p>
 
@@ -57,7 +57,7 @@ export function EmptyStateCTA({
           {ctaHref ? (
             <Link
               href={ctaHref}
-              className="inline-flex items-center gap-2 bg-primary hover:bg-primary/95 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-md shadow-primary/20 min-h-[40px] focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition shadow-sm shadow-blue-500/20 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               {ctaIcon ?? <Plus className="w-4 h-4" />}
               <span>{ctaLabel}</span>
@@ -66,7 +66,7 @@ export function EmptyStateCTA({
             <button
               type="button"
               onClick={onCta}
-              className="inline-flex items-center gap-2 bg-primary hover:bg-primary/95 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-md shadow-primary/20 min-h-[40px] focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition shadow-sm shadow-blue-500/20 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
             >
               {ctaIcon ?? <Plus className="w-4 h-4" />}
               <span>{ctaLabel}</span>

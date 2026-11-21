@@ -71,13 +71,13 @@ export function DataTable<TData, TValue>({
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-muted/40 hover:bg-muted/60 border border-border/60 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
         </div>
 
@@ -87,14 +87,14 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Table Container */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-border/40 bg-card overflow-hidden shadow-level-1">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr
                   key={headerGroup.id}
-                  className="border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                  className="border-b border-border/40 bg-muted/30 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
                 >
                   {headerGroup.headers.map((header) => {
                     const isSortable = header.column.getCanSort();

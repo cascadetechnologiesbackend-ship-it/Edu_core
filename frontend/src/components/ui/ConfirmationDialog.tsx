@@ -59,7 +59,7 @@ export function ConfirmationDialog({
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-foreground bg-muted hover:bg-muted/80 transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-foreground bg-muted/60 hover:bg-muted transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {cancelText}
           </button>
@@ -67,10 +67,10 @@ export function ConfirmationDialog({
             type="button"
             disabled={!isConfirmed || isLoading}
             onClick={handleConfirm}
-            className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed ${
               isDestructive
-                ? "bg-destructive hover:bg-destructive/90 shadow-sm"
-                : "bg-primary hover:bg-primary/90 shadow-sm"
+                ? "bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/20"
+                : "bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20"
             }`}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
