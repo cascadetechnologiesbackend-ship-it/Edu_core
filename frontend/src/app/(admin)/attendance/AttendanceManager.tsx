@@ -183,20 +183,20 @@ export default function AttendanceManager({
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow border border-gray-200 dark:border-slate-800">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-5 rounded-2xl shadow-level-1 border border-border/40">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
             Classroom / Section
           </label>
           {sectionsList.length === 0 ? (
-            <p className="text-sm text-warning-dark bg-warning/10 p-2 rounded">
+            <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
               No classrooms assigned.
             </p>
           ) : (
             <select
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-xl border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[44px] transition"
             >
               {sectionsList.map((sec) => (
                 <option key={sec.id} value={sec.id}>
@@ -208,7 +208,7 @@ export default function AttendanceManager({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
             Attendance Date
           </label>
           <div className="relative">
@@ -216,24 +216,24 @@ export default function AttendanceManager({
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-xl border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[44px] transition"
             />
-            <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Calendar className="absolute right-3.5 top-3 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
         </div>
 
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2.5">
           <button
             onClick={() => handleMarkAll("PRESENT")}
             disabled={students.length === 0 || loadingStudents}
-            className="flex-1 bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400 border border-green-200 dark:border-green-800 font-medium py-2 rounded-md hover:bg-green-100 transition text-sm disabled:opacity-50"
+            className="flex-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 font-semibold py-2.5 rounded-xl hover:bg-emerald-500/20 active:scale-[0.98] transition text-xs sm:text-sm min-h-[44px] disabled:opacity-50"
           >
             Mark All Present
           </button>
           <button
             onClick={() => handleMarkAll("ABSENT")}
             disabled={students.length === 0 || loadingStudents}
-            className="flex-1 bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200 dark:border-red-800 font-medium py-2 rounded-md hover:bg-red-100 transition text-sm disabled:opacity-50"
+            className="flex-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25 font-semibold py-2.5 rounded-xl hover:bg-rose-500/20 active:scale-[0.98] transition text-xs sm:text-sm min-h-[44px] disabled:opacity-50"
           >
             Mark All Absent
           </button>
@@ -259,17 +259,17 @@ export default function AttendanceManager({
       )}
 
       {/* Student List */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-level-1 border border-border/40 overflow-hidden">
         {loadingStudents ? (
           <div className="flex flex-col justify-center items-center py-20 space-y-2">
-            <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-            <span className="text-sm text-gray-500">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+            <span className="text-sm text-muted-foreground">
               Retrieving classroom register…
             </span>
           </div>
         ) : students.length === 0 ? (
-          <div className="text-center py-20 text-gray-500 space-y-2">
-            <AlertTriangle className="w-8 h-8 mx-auto text-gray-400" />
+          <div className="text-center py-20 text-muted-foreground space-y-2">
+            <AlertTriangle className="w-8 h-8 mx-auto text-muted-foreground/60" />
             <p className="text-sm">No students found enrolled in this section.</p>
           </div>
         ) : (
@@ -277,7 +277,7 @@ export default function AttendanceManager({
             {/* Desktop Table View (>= 768px) */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-semibold">
+                <thead className="bg-muted/30 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border/40">
                   <tr>
                     <th className="px-6 py-3.5 w-16">Roll No</th>
                     <th className="px-6 py-3.5">Student Name</th>
@@ -286,7 +286,7 @@ export default function AttendanceManager({
                     <th className="px-6 py-3.5">Remarks</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/40">
                   {students.map((student) => (
                     <tr
                       key={student.studentId}
@@ -483,11 +483,11 @@ export default function AttendanceManager({
 
         {/* Desktop Footer Actions */}
         {students.length > 0 && !loadingStudents && (
-          <div className="hidden md:flex bg-gray-50 dark:bg-slate-800/30 px-6 py-4 justify-end border-t border-gray-100 dark:border-slate-800">
+          <div className="hidden md:flex bg-muted/20 px-6 py-4 justify-end border-t border-border/40">
             <button
               onClick={handleSave}
               disabled={isPending}
-              className="bg-primary hover:bg-primary-700 text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-all disabled:opacity-60 flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-semibold py-2.5 px-6 rounded-xl shadow-sm min-h-[44px] transition-all disabled:opacity-60 flex items-center gap-2 text-sm"
             >
               {isPending ? (
                 <>
@@ -504,13 +504,13 @@ export default function AttendanceManager({
 
       {/* Mobile Sticky Action Bar (UX-R20: Bottom Thumb Zone) */}
       {students.length > 0 && !loadingStudents && (
-        <div className="md:hidden sticky bottom-16 left-0 right-0 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-30">
+        <div className="md:hidden sticky bottom-16 left-0 right-0 p-3.5 bg-card/85 dark:bg-slate-900/85 backdrop-blur-xl border border-border/40 rounded-2xl shadow-level-3 flex items-center justify-between gap-3 z-30">
           <div className="text-xs">
             <p className="font-semibold text-foreground">
               {students.filter((s) => s.attendanceStatus === "PRESENT").length} Present /{" "}
               {students.filter((s) => s.attendanceStatus === "ABSENT").length} Absent
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Total {students.length} students
             </p>
           </div>
@@ -518,7 +518,7 @@ export default function AttendanceManager({
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="min-h-[44px] bg-primary hover:bg-primary-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+            className="min-h-[44px] bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
           >
             {isPending ? (
               <>

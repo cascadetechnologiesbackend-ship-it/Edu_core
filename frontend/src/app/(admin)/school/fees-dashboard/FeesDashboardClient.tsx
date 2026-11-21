@@ -197,16 +197,16 @@ export function FeesDashboardClient({
   return (
     <div className="space-y-8">
       {/* Session / Academic Year Selector Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/80 dark:bg-slate-900/40 p-4 rounded-2xl border border-gray-200 dark:border-slate-800">
-        <div className="flex flex-wrap items-center gap-2">
-          <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-slate-400">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-border/40 shadow-level-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Active Scope
           </span>
           <select
             value={selectedAyId}
             onChange={handleYearChange}
-            className="text-xs font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="text-xs font-semibold bg-muted/40 hover:bg-muted/60 border border-border/60 text-foreground rounded-xl px-3 py-1.5 min-h-[40px] focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           >
             {academicYearsList.map((ay) => (
               <option key={ay.id} value={ay.id}>
@@ -219,12 +219,14 @@ export function FeesDashboardClient({
           {selectedAy?.isLocked ? (
             <span
               title={`Locked on ${selectedAy.label}. Ledger mutations are strictly immutable.`}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25"
             >
+              <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
               <Lock className="w-3 h-3" /> Fiscal Locked
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+              <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
               <Unlock className="w-3 h-3" /> Fiscal Open
             </span>
           )}

@@ -74,24 +74,24 @@ function MetricCard({
   accentColor,
 }: MetricCardProps) {
   return (
-    <div className="metric-card group relative overflow-hidden bg-card border border-border p-4 sm:p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="metric-card group relative overflow-hidden bg-card border border-border/40 p-5 sm:p-6 rounded-2xl shadow-level-1 hover:shadow-level-2 hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium">{title}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1 tracking-tight truncate">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1.5 tracking-tight truncate">
             {value}
           </p>
           {subtext && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtext}</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{subtext}</p>
           )}
           {trend && (
             <div
-              className={`flex items-center gap-1 mt-2 text-xs font-medium ${
+              className={`inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
                 trend.direction === "up"
-                  ? "text-secondary"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                   : trend.direction === "down"
-                    ? "text-danger"
-                    : "text-muted-foreground"
+                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {trend.direction === "up" ? (
@@ -104,13 +104,13 @@ function MetricCard({
           )}
         </div>
         <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ml-3 sm:ml-4 ${iconBgClass}`}
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ml-3 sm:ml-4 shadow-xs ${iconBgClass}`}
         >
           <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${accentColor}`} aria-hidden="true" />
         </div>
       </div>
       <div
-        className={`absolute bottom-0 left-0 h-0.5 w-0 group-hover:w-full transition-all duration-500 ${accentColor.replace("text-", "bg-")}`}
+        className={`absolute bottom-0 left-0 h-0.5 w-0 group-hover:w-full transition-all duration-300 ${accentColor.replace("text-", "bg-")}`}
       />
     </div>
   );
@@ -130,8 +130,8 @@ function QuickAction({
   return (
     <a
       href={href}
-      className={`inline-flex items-center justify-center min-h-[44px] px-3.5 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold
-                  transition-all duration-200 active:scale-95 hover:shadow-md select-none ${className}`}
+      className={`inline-flex items-center justify-center min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold
+                  transition-all duration-150 active:scale-[0.98] shadow-xs select-none ${className}`}
     >
       {label}
     </a>
@@ -753,10 +753,10 @@ export default async function DashboardPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Good morning, {session?.user?.name || "Admin"} 👋
           </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1 leading-relaxed">
             {school?.name || "School ERP"} — Academic Year {summary.activeYearLabel}
           </p>
         </div>
@@ -764,17 +764,17 @@ export default async function DashboardPage() {
           <QuickAction
             label="+ Add Student"
             href="/admissions"
-            className="bg-primary text-white hover:bg-primary/90 flex-shrink-0"
+            className="bg-blue-600 hover:bg-blue-500 text-white flex-shrink-0 shadow-sm"
           />
           <QuickAction
             label="Collect Fee"
             href="/fees"
-            className="bg-secondary/10 text-secondary hover:bg-secondary/20 flex-shrink-0"
+            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex-shrink-0"
           />
           <QuickAction
             label="Mark Attendance"
             href="/attendance"
-            className="bg-muted text-foreground hover:bg-muted/80 flex-shrink-0"
+            className="bg-muted/60 hover:bg-muted text-foreground flex-shrink-0"
           />
         </div>
       </div>

@@ -128,10 +128,10 @@ export function StudentDirectoryClient({
   return (
     <div className="space-y-6">
       {/* Search & Filter Bar (Law L1: 320px search input pinned left) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-xs border border-gray-200 dark:border-slate-800 flex flex-col md:flex-row flex-wrap gap-3 items-stretch md:items-center justify-between">
+      <div className="bg-card rounded-2xl p-4 shadow-level-1 border border-border/40 flex flex-col md:flex-row flex-wrap gap-3 items-stretch md:items-center justify-between">
         {/* Search Input (320px width) */}
         <div className="w-full md:w-80 relative">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search students by name or admission #..."
@@ -140,18 +140,18 @@ export function StudentDirectoryClient({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleServerSearch();
             }}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-800/60 text-gray-900 dark:text-white focus:outline-hidden focus:ring-1 focus:ring-primary min-h-[40px] transition"
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-full border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[44px] transition"
           />
         </div>
 
         {/* Filter Dropdowns + Add Student Primary Action */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase text-gray-400">Class:</span>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Class:</span>
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
-              className="py-2 px-3 text-xs font-semibold rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-1 focus:ring-primary min-h-[40px]"
+              className="py-2 px-3 text-xs font-semibold rounded-xl border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[44px]"
             >
               <option value="ALL">All Classes</option>
               {classes.map((c) => (
@@ -162,12 +162,12 @@ export function StudentDirectoryClient({
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase text-gray-400">Status:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Status:</span>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="py-2 px-3 text-xs font-semibold rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-1 focus:ring-primary min-h-[40px]"
+              className="py-2 px-3 text-xs font-semibold rounded-xl border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[44px]"
             >
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -178,25 +178,25 @@ export function StudentDirectoryClient({
           {/* Parent Linkage Repair Queue Action */}
           <Link
             href="/students/linkage"
-            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition inline-flex items-center gap-1.5 min-h-[40px]"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition inline-flex items-center gap-1.5 min-h-[44px]"
           >
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
             <span>Parent Linkage</span>
           </Link>
 
           {/* Student Access Queue Action */}
           <Link
             href="/students/access"
-            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition inline-flex items-center gap-1.5 min-h-[40px]"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-blue-500/25 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition inline-flex items-center gap-1.5 min-h-[44px]"
           >
-            <KeyRound className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <KeyRound className="w-3.5 h-3.5 text-blue-500" />
             <span>Student Access</span>
           </Link>
 
           {/* Primary Action Button: Add Student */}
           <Link
             href="/admissions/new"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/95 transition shadow-xs inline-flex items-center gap-1.5 min-h-[40px]"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white transition shadow-sm inline-flex items-center gap-1.5 min-h-[44px]"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Enroll Student</span>
@@ -205,11 +205,11 @@ export function StudentDirectoryClient({
       </div>
 
       {/* Results Count & Data Container */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-gray-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/20">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Showing <strong className="text-gray-900 dark:text-white">{filteredStudents.length}</strong> enrolled students
-            {isPending && <span className="ml-2 text-xs text-primary animate-pulse">(Searching…)</span>}
+      <div className="bg-card rounded-2xl shadow-level-1 border border-border/40 overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-border/40 flex justify-between items-center bg-muted/30">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Showing <strong className="text-foreground">{filteredStudents.length}</strong> enrolled students
+            {isPending && <span className="ml-2 text-xs text-blue-500 animate-pulse">(Searching…)</span>}
           </span>
           {searchTerm && (
             <button
@@ -217,7 +217,7 @@ export function StudentDirectoryClient({
                 setSearchTerm("");
                 handleServerSearch();
               }}
-              className="text-xs text-primary font-bold hover:underline"
+              className="text-xs text-blue-500 font-semibold hover:underline"
             >
               Clear Search
             </button>
@@ -227,7 +227,7 @@ export function StudentDirectoryClient({
         {/* Desktop Table View (People Render as People per Law L12) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-gray-50/75 dark:bg-slate-800/40 text-gray-500 font-bold uppercase text-[11px] border-b border-gray-200 dark:border-slate-700">
+            <thead className="bg-muted/30 text-muted-foreground font-semibold uppercase text-[11px] tracking-wider border-b border-border/40">
               <tr>
                 <th className="px-6 py-3.5">Student</th>
                 <th className="px-6 py-3.5">Admission Number</th>
@@ -237,7 +237,7 @@ export function StudentDirectoryClient({
                 <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border/40">
               {filteredStudents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12">
@@ -312,13 +312,14 @@ export function StudentDirectoryClient({
                       {/* Status badge */}
                       <td className="px-6 py-4 text-center">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                             student.isActive
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                              : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                           }`}
                         >
-                          {student.isActive ? "ACTIVE" : "INACTIVE"}
+                          <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
+                          <span>{student.isActive ? "Active" : "Inactive"}</span>
                         </span>
                       </td>
 
@@ -328,7 +329,7 @@ export function StudentDirectoryClient({
                           href={`/students/${student.id}`}
                           prefetch={false}
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-primary font-bold hover:underline text-xs"
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:underline text-xs"
                         >
                           <span>Student 360</span>
                           <ChevronRight className="w-3.5 h-3.5" />
@@ -345,7 +346,7 @@ export function StudentDirectoryClient({
         {/* Mobile Card View (< 768px per UX-R47) */}
         <div className="block md:hidden p-3 space-y-3">
           {filteredStudents.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-xs">
+            <div className="p-8 text-center text-muted-foreground text-xs">
               {isPending ? "Searching student records..." : "No students found matching your criteria."}
             </div>
           ) : (
@@ -357,7 +358,7 @@ export function StudentDirectoryClient({
                 <div
                   key={student.id}
                   onClick={() => router.push(`/students/${student.id}`)}
-                  className="p-4 bg-gray-50/70 dark:bg-slate-800/40 rounded-2xl border border-gray-200/80 dark:border-slate-800 space-y-3 cursor-pointer"
+                  className="p-4 bg-card rounded-2xl border border-border/40 shadow-level-1 space-y-3 cursor-pointer active:scale-[0.99] transition-all"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">

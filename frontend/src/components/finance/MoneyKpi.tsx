@@ -49,34 +49,34 @@ export function MoneyKpi({
   const content = (
     <div
       className={cn(
-        "group relative p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all duration-200 shadow-sm",
-        href && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
+        "group relative p-5 rounded-2xl bg-card border border-border/40 transition-all duration-200 shadow-level-1",
+        href && "hover:shadow-level-2 hover:-translate-y-0.5 cursor-pointer",
         effectiveVariant === "primary" &&
-          "border-indigo-100 dark:border-indigo-950 hover:border-indigo-300 dark:hover:border-indigo-700",
+          "hover:border-blue-500/40",
         effectiveVariant === "emerald" &&
-          "border-emerald-100 dark:border-emerald-950 hover:border-emerald-300 dark:hover:border-emerald-700",
+          "hover:border-emerald-500/40",
         effectiveVariant === "amber" &&
-          "border-amber-100 dark:border-amber-950 hover:border-amber-300 dark:hover:border-amber-700",
+          "hover:border-amber-500/40",
         effectiveVariant === "rose" &&
-          "border-rose-100 dark:border-rose-950 hover:border-rose-300 dark:hover:border-rose-700",
+          "hover:border-rose-500/40",
         effectiveVariant === "slate" &&
-          "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700",
+          "hover:border-border",
         className
       )}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {displayLabel}
         </span>
         {Icon && (
           <div
             className={cn(
-              "p-2 rounded-xl transition-colors",
-              effectiveVariant === "primary" && "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400",
-              effectiveVariant === "emerald" && "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
-              effectiveVariant === "amber" && "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
-              effectiveVariant === "rose" && "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400",
-              effectiveVariant === "slate" && "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-300"
+              "w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-xs",
+              effectiveVariant === "primary" && "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+              effectiveVariant === "emerald" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+              effectiveVariant === "amber" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              effectiveVariant === "rose" && "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+              effectiveVariant === "slate" && "bg-muted text-muted-foreground"
             )}
           >
             <Icon className="w-4 h-4" />
@@ -84,25 +84,25 @@ export function MoneyKpi({
         )}
       </div>
 
-      <div className="font-mono text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+      <div className="font-mono text-2xl md:text-3xl font-bold tracking-tight text-foreground">
         {formatINR(amount)}
       </div>
 
-      <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
+      <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground">
         {delta && (
           <div className="flex items-center gap-1 font-medium">
             {delta.isNeutral ? (
-              <span className="inline-flex items-center text-gray-500">
+              <span className="inline-flex items-center text-muted-foreground bg-muted px-2 py-0.5 rounded-full text-xs font-semibold">
                 <Minus className="w-3.5 h-3.5 mr-0.5" />
                 {delta.value}
               </span>
             ) : delta.isPositive ? (
-              <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-xs font-semibold">
                 <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
                 {delta.value}
               </span>
             ) : (
-              <span className="inline-flex items-center text-rose-600 dark:text-rose-400">
+              <span className="inline-flex items-center text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full text-xs font-semibold">
                 <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
                 {delta.value}
               </span>
@@ -112,9 +112,8 @@ export function MoneyKpi({
         )}
 
         {subtitle && <span className="truncate">{subtitle}</span>}
-
         {href && (
-          <span className="inline-flex items-center text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 group-hover:underline ml-auto">
+          <span className="inline-flex items-center text-[11px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline ml-auto">
             View List →
           </span>
         )}

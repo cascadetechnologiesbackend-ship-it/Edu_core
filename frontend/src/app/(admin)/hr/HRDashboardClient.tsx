@@ -204,15 +204,15 @@ export default function HRDashboardClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-              <Users className="w-6 h-6" />
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Human Resources & Staff Operations Hub
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                Human Resources & Staff Operations
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
                 {school?.name || "SchoolMitra ERP"}
                 {activeYear?.label ? ` • Academic Year ${activeYear.label}` : ""}
               </p>
@@ -221,9 +221,9 @@ export default function HRDashboardClient({
         </div>
       </div>
 
-      {/* Hub Spokes Navigation Bar */}
-      <div className="border-b border-slate-200 dark:border-slate-800">
-        <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-px" aria-label="HR Hub Spokes">
+      {/* Hub Spokes Navigation Bar (Apple Segmented Bar) */}
+      <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/40 overflow-x-auto no-scrollbar">
+        <nav className="flex space-x-1" aria-label="HR Hub Spokes">
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -233,23 +233,23 @@ export default function HRDashboardClient({
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center gap-2 py-3 px-3.5 sm:px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition-all outline-hidden min-h-[44px] ${
+                className={`flex items-center gap-2 py-2 px-3.5 sm:px-4 text-xs font-semibold whitespace-nowrap transition-all outline-none rounded-xl min-h-[44px] ${
                   isActive
-                    ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-t-xl"
-                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
+                    ? "bg-card text-foreground shadow-level-1 font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-medium"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
                   <span
-                    className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                    className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
                       tab.badgeColor
                         ? tab.badgeColor
                         : isActive
-                        ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                        ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {tab.count}

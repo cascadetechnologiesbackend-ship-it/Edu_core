@@ -699,12 +699,12 @@ export default function ClassHubClient({
       />
 
       {/* ─── SETUP PROGRESS BAR (Replaces loose chip row) ─────────────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-4 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-card border border-border/40 p-4 rounded-2xl shadow-level-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-xs uppercase font-bold text-gray-400 block mb-1">
+          <span className="text-xs uppercase font-semibold text-muted-foreground block mb-1">
             Class Readiness Checklist
           </span>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {isClassFullySetup
               ? "All setup milestones completed."
               : "Click any incomplete step to jump to its setup workbench."}
@@ -744,7 +744,7 @@ export default function ClassHubClient({
 
       {/* ─── ERROR BANNER ─────────────────────────────────────────────────── */}
       {errorMsg && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between animate-fade-in">
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -755,16 +755,16 @@ export default function ClassHubClient({
         </div>
       )}
 
-      {/* ─── 10 NAVIGATION TABS BAR (Law L2, L11, F9) ─────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-slate-800 overflow-x-auto">
-        <nav className="flex space-x-5 py-1">
+      {/* ─── 10 NAVIGATION TABS BAR (Apple Segmented Bar) ──────────────────── */}
+      <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/40 overflow-x-auto no-scrollbar">
+        <nav className="flex space-x-1" aria-label="Class Hub Tabs">
           {[
             { id: "overview", label: "Overview", icon: Layers },
             { id: "roster", label: `Roster (${rosterStudents.length})`, icon: Users },
             { id: "subjects", label: `Subjects (${cls.classSubjects.length})`, icon: BookOpen },
             { id: "timetable", label: "Timetable", icon: Clock },
             { id: "exams", label: `Exams (${classExams.length})`, icon: Award },
-            { id: "syllabus", label: "Syllabus Progress", icon: GraduationCap },
+            { id: "syllabus", label: "Syllabus", icon: GraduationCap },
             { id: "assignments", label: `Assignments (${initialAssignments.length})`, icon: FileText },
             { id: "lessons", label: `Lessons (${initialLessonPlans.length})`, icon: ClipboardList },
             { id: "assessments", label: "Assessments", icon: Sparkles },
@@ -777,14 +777,14 @@ export default function ClassHubClient({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as TabId)}
-                className={`py-3 px-1 border-b-2 font-bold text-xs flex items-center gap-1.5 transition whitespace-nowrap min-h-[44px] ${
+                className={`py-2 px-3 sm:px-3.5 text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap min-h-[44px] rounded-xl outline-none ${
                   isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-card text-foreground shadow-level-1 font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-medium"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                {tab.label}
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -795,9 +795,9 @@ export default function ClassHubClient({
       {activeTab === "overview" && (
         <div className="space-y-6 animate-fade-in">
           {/* Today Strip (Date + Human summary) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-white dark:from-slate-800/80 dark:via-slate-800/40 dark:to-slate-900 border border-blue-100/80 dark:border-slate-700/60 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border/40 shadow-level-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-extrabold text-sm shadow-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
                 {format(new Date(), "d")}
               </div>
               <div>
