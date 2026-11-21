@@ -64,9 +64,13 @@ export function TeacherFeedContainer({
   calendarEventTitle,
   isSetupMissing = false,
   missingAllocationsSummary = [],
-  isDayComplete = false,
+  isDayComplete,
 }: TeacherFeedContainerProps) {
   const isNight = isNightOverride ?? isNightQuietHours(now ?? new Date());
+  const effectiveIsDayComplete =
+    isDayComplete !== undefined
+      ? isDayComplete
+      : (initialCards.length === 0 && sectionsTaught.length > 0);
 
   const [workbenchModalOpen, setWorkbenchModalOpen] = useState(false);
   const [workbenchSectionId, setWorkbenchSectionId] = useState<string | undefined>(undefined);
@@ -108,7 +112,7 @@ export function TeacherFeedContainer({
         activeCardsCount={cards.length}
         daySummary={daySummary}
         dayCompleteSummary={dayCompleteSummary}
-        isDayComplete={isDayComplete}
+        isDayComplete={effectiveIsDayComplete}
         isRestDay={isRestDay}
         isWorkingDay={isWorkingDay}
         holidayTitle={calendarEventTitle}

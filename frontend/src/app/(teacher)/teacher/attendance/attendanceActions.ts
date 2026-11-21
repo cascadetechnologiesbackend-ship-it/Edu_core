@@ -409,10 +409,12 @@ export async function saveTeacherAttendanceRoster(
     );
 
     // D1-L1: Check if any prior attendance existed for this school before this submission
-    const priorAttendance = await tx.query.studentAttendance.findFirst({
-      where: eq(studentAttendance.schoolId, school.id),
-      columns: { id: true },
-    });
+    const priorAttendance = tx.query.studentAttendance?.findFirst
+      ? await tx.query.studentAttendance.findFirst({
+          where: eq(studentAttendance.schoolId, school.id),
+          columns: { id: true },
+        })
+      : null;
 
     // 5. Fetch existing records and approved leaves for date
     const [existingRecords, approvedLeaves] = await Promise.all([

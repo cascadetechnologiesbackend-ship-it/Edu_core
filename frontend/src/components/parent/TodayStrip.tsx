@@ -35,7 +35,7 @@ export function TodayStrip({
         "rounded-2xl p-4 transition-all border shadow-level-1",
         isAllGood
           ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
-          : "bg-card border-border/80 text-foreground",
+          : "bg-slate-900/60 border-border/80 text-foreground",
         className
       )}
     >

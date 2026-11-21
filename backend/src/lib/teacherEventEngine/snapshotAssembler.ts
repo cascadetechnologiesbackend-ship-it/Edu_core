@@ -684,13 +684,15 @@ export async function assembleTeacherSnapshot(
       csMap.set(`${cs.classId}:${cs.subjectId}`, cs.id);
     }
 
-    const todayPlans = await txDb.query.lessonPlans.findMany({
-      where: and(
-        eq(lessonPlans.schoolId, schoolId),
-        eq(lessonPlans.teacherId, teacherUserId),
-        eq(lessonPlans.status, "COMPLETED")
-      ),
-    });
+    const todayPlans = txDb.query.lessonPlans
+      ? await txDb.query.lessonPlans.findMany({
+          where: and(
+            eq(lessonPlans.schoolId, schoolId),
+            eq(lessonPlans.teacherId, teacherUserId),
+            eq(lessonPlans.status, "COMPLETED")
+          ),
+        })
+      : [];
     const completedClassSubjectIds = new Set<string>(
       todayPlans.map((lp: any) => lp.classSubjectId)
     );

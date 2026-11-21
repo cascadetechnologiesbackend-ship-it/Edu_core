@@ -50,7 +50,7 @@ export default async function LibrarianDashboardPage() {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Link
               href="/library"
-              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-[0.98] text-white font-semibold text-xs shadow-level-1 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto min-h-[38px] sm:min-h-[44px] px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-[0.98] text-white font-semibold text-xs shadow-level-1 transition-all flex items-center justify-center gap-2"
             >
               <BookOpen className="w-4 h-4" /> Open Library Catalog
             </Link>
@@ -73,7 +73,7 @@ export default async function LibrarianDashboardPage() {
               <div className="pt-2 flex flex-wrap gap-2">
                 <Link
                   href="/library"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline min-h-[44px] py-1 px-2"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline min-h-[38px] sm:min-h-[44px] py-1 px-2"
                 >
                   Add Catalog Titles <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -205,7 +205,7 @@ export default async function LibrarianDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Link
           href="/library"
-          className="group p-5 sm:p-6 rounded-2xl border border-border/80 bg-card hover:border-amber-500/50 hover:shadow-level-2 transition-all space-y-3 min-h-[44px]"
+          className="group p-5 sm:p-6 rounded-2xl border border-border/80 bg-card hover:border-amber-500/50 hover:shadow-level-2 transition-all space-y-3 min-h-[38px] sm:min-h-[44px]"
         >
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
             <BookOpen className="w-5 h-5" />
@@ -220,7 +220,7 @@ export default async function LibrarianDashboardPage() {
 
         <Link
           href="/library?tab=issues"
-          className="group p-5 sm:p-6 rounded-2xl border border-border/80 bg-card hover:border-blue-500/50 hover:shadow-level-2 transition-all space-y-3 min-h-[44px]"
+          className="group p-5 sm:p-6 rounded-2xl border border-border/80 bg-card hover:border-blue-500/50 hover:shadow-level-2 transition-all space-y-3 min-h-[38px] sm:min-h-[44px]"
         >
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
             <ArrowLeftRight className="w-5 h-5" />
