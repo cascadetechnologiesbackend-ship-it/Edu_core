@@ -38,30 +38,30 @@ export function StudentMarksClient({ data }: { data: StudentMarksData }) {
   return (
     <div className="space-y-6 pb-12">
       {/* Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-5 shadow-level-2 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <span className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
               <Award className="w-5 h-5" />
             </span>
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">
                 Marks & Examinations
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-300">
                 परीक्षा परिणाम एवं समय-सारणी • {data.student.className} - {data.student.sectionName}
               </p>
             </div>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-slate-800 self-start sm:self-auto">
+          <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-white/[0.08] self-start sm:self-auto">
             <button
               onClick={() => setActiveTab("results")}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`px-4 py-2 min-h-[38px] rounded-xl text-xs font-semibold active:scale-95 transition-all ${
                 activeTab === "results"
-                  ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+                  ? "bg-amber-600 text-white shadow-level-1"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -69,9 +69,9 @@ export function StudentMarksClient({ data }: { data: StudentMarksData }) {
             </button>
             <button
               onClick={() => setActiveTab("datesheet")}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`px-4 py-2 min-h-[38px] rounded-xl text-xs font-semibold active:scale-95 transition-all ${
                 activeTab === "datesheet"
-                  ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+                  ? "bg-amber-600 text-white shadow-level-1"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >

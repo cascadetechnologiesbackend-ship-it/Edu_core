@@ -189,34 +189,34 @@ export default function DriverDashboardClient({
   return (
     <div className="space-y-4">
       {/* ─── 1. Vehicle & Route Hero Card ────────────────────────────────────── */}
-      <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950/60 to-slate-900 border border-slate-800 shadow-xl relative overflow-hidden">
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-indigo-950/60 backdrop-blur-xl border border-white/[0.12] shadow-level-2 relative overflow-hidden">
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                   isTripActive
                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "bg-slate-800 text-slate-400 border border-slate-700"
+                    : "bg-slate-800/80 text-slate-300 border border-slate-700/60"
                 }`}
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    isTripActive ? "bg-emerald-400 animate-ping" : "bg-slate-500"
+                    isTripActive ? "bg-emerald-400 animate-ping" : "bg-slate-400"
                   }`}
                 />
                 {isTripActive ? "TRIP IN PROGRESS" : "TRIP IDLE"}
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-300">
                 Licence: {driver.licence}
               </span>
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
               <Bus className="w-6 h-6 text-amber-400" />
               {vehicle ? vehicle.busNumber : "No Bus Assigned"}
             </h1>
-            <p className="text-xs text-indigo-300 font-medium mt-0.5">
+            <p className="text-xs text-indigo-200 font-medium mt-0.5">
               Route: {route ? route.routeName : "Default Transit Route"}
               {vehicle?.registrationNumber && ` • Reg: ${vehicle.registrationNumber}`}
             </p>
@@ -224,9 +224,9 @@ export default function DriverDashboardClient({
 
           {/* Telemetry pill */}
           <div className="text-right">
-            <div className="text-2xl font-black text-emerald-400 font-mono">
+            <div className="text-2xl font-bold text-emerald-400 font-mono tracking-tight">
               {currentCoords?.speed != null ? Math.round(currentCoords.speed) : 0}
-              <span className="text-xs font-sans text-slate-400 font-normal ml-1">
+              <span className="text-xs font-sans text-slate-300 font-normal ml-1">
                 km/h
               </span>
             </div>
@@ -235,7 +235,7 @@ export default function DriverDashboardClient({
         </div>
 
         {geoError && (
-          <div className="mt-3 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1.5">
+          <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
             <span>{geoError}</span>
           </div>
@@ -243,7 +243,7 @@ export default function DriverDashboardClient({
       </div>
 
       {/* ─── 2. Real Mini Leaflet Map ────────────────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-md">
+      <div className="rounded-2xl overflow-hidden border border-border/80 shadow-level-1">
         <LiveMap
           stops={stops}
           busPosition={currentCoords}
@@ -253,9 +253,9 @@ export default function DriverDashboardClient({
       </div>
 
       {/* ─── 3. Telemetry Mini Badges ────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+      <div className="grid grid-cols-3 gap-2.5 text-center">
+        <div className="p-3.5 rounded-2xl bg-slate-900/90 dark:bg-slate-950/90 border border-white/[0.08] shadow-level-1">
+          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
             Pings Broadcast
           </div>
           <div className="text-lg font-bold text-white font-mono mt-0.5">
@@ -263,17 +263,17 @@ export default function DriverDashboardClient({
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+        <div className="p-3.5 rounded-2xl bg-slate-900/90 dark:bg-slate-950/90 border border-white/[0.08] shadow-level-1">
+          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
             Last Ping
           </div>
-          <div className="text-xs font-semibold text-indigo-400 mt-1 truncate">
+          <div className="text-xs font-semibold text-blue-400 mt-1 truncate">
             {lastPingTime || "Not started"}
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+        <div className="p-3.5 rounded-2xl bg-slate-900/90 dark:bg-slate-950/90 border border-white/[0.08] shadow-level-1">
+          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
             Stops Cleared
           </div>
           <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">
@@ -283,10 +283,10 @@ export default function DriverDashboardClient({
       </div>
 
       {/* ─── 4. Route Stops Checklist ───────────────────────────────────────── */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+      <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/90 dark:bg-slate-950/90 border border-white/[0.08] shadow-level-1 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-indigo-400" />
+          <h2 className="text-sm font-bold text-white flex items-center gap-1.5 tracking-tight">
+            <MapPin className="w-4 h-4 text-blue-400" />
             Scheduled Bus Stops
           </h2>
           <span className="text-[11px] text-slate-400">
@@ -307,10 +307,10 @@ export default function DriverDashboardClient({
                   key={stop.id}
                   type="button"
                   onClick={() => toggleStopPassed(stop.id)}
-                  className={`w-full text-left flex items-center justify-between p-3 rounded-xl transition border ${
+                  className={`w-full text-left flex items-center justify-between p-3 min-h-[44px] rounded-xl transition-all border active:scale-[0.99] ${
                     isDone
                       ? "bg-emerald-950/30 border-emerald-800/40 text-emerald-300"
-                      : "bg-slate-800/50 hover:bg-slate-800 border-slate-700/60 text-slate-200"
+                      : "bg-slate-800/50 hover:bg-slate-800/80 border-slate-700/60 text-slate-200"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -318,7 +318,7 @@ export default function DriverDashboardClient({
                       className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
                         isDone
                           ? "bg-emerald-500 text-white"
-                          : "bg-indigo-600/30 text-indigo-400 border border-indigo-500/40"
+                          : "bg-blue-600/30 text-blue-400 border border-blue-500/40"
                       }`}
                     >
                       {isDone ? "✓" : stop.stopOrder}
@@ -338,7 +338,7 @@ export default function DriverDashboardClient({
                       Reached
                     </span>
                   ) : (
-                    <span className="text-[10px] text-slate-500">
+                    <span className="text-[10px] text-slate-400">
                       Pending
                     </span>
                   )}
@@ -355,18 +355,18 @@ export default function DriverDashboardClient({
           <button
             type="button"
             onClick={handleStartTrip}
-            className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-black text-white text-base tracking-wider transition-all shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 uppercase"
+            className="w-full py-4 px-6 min-h-[56px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] font-bold text-white text-base tracking-wide transition-all shadow-level-2 flex items-center justify-center gap-3"
           >
-            <Play className="w-6 h-6 fill-current" />
+            <Play className="w-5 h-5 fill-current" />
             Start Trip (Broadcast GPS)
           </button>
         ) : (
           <button
             type="button"
             onClick={handleStopTrip}
-            className="w-full py-4 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 active:scale-[0.99] font-black text-white text-base tracking-wider transition-all shadow-xl shadow-rose-600/30 flex items-center justify-center gap-3 uppercase animate-pulse"
+            className="w-full py-4 px-6 min-h-[56px] rounded-2xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] font-bold text-white text-base tracking-wide transition-all shadow-level-2 flex items-center justify-center gap-3 animate-pulse"
           >
-            <Square className="w-6 h-6 fill-current" />
+            <Square className="w-5 h-5 fill-current" />
             End Trip (Stop GPS)
           </button>
         )}

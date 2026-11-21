@@ -36,7 +36,7 @@ export function TeacherIdentityHeader({
   return (
     <div
       className={cn(
-        "rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-900/90 to-emerald-950/40 border border-slate-800 shadow-lg relative overflow-hidden backdrop-blur-sm",
+        "rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-slate-900/95 via-slate-900/90 to-emerald-950/40 border border-white/[0.12] shadow-level-2 relative overflow-hidden backdrop-blur-xl",
         className
       )}
     >
@@ -44,7 +44,7 @@ export function TeacherIdentityHeader({
         {/* Left: Avatar & Teacher Identity */}
         <div className="flex items-center gap-3.5">
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white font-bold flex items-center justify-center text-base shadow-md shadow-emerald-900/30 border border-emerald-400/30">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold flex items-center justify-center text-base shadow-level-1 border border-emerald-400/30">
               {initials || <GraduationCap className="w-6 h-6" />}
             </div>
             {isClassTeacher && (

@@ -59,17 +59,17 @@ export default async function StudentDashboardPage({
   if (!scope) {
     return (
       <div className="space-y-6 p-6 max-w-3xl mx-auto">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-xl">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+        <div className="bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-xl border border-white/[0.12] rounded-3xl p-8 text-center space-y-4 shadow-level-2">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center mx-auto">
             <GraduationCap className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">
+            <h1 className="text-lg font-bold text-white tracking-tight">
               {["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)
                 ? "Admin Student Preview"
                 : "Student Record Not Found"}
             </h1>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
               {["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role)
                 ? "Please provide an active student's ID via ?studentId=<id> to preview their learning portal."
                 : "No active student enrollment is associated with your account in this school."}
@@ -78,7 +78,7 @@ export default async function StudentDashboardPage({
           {["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"].includes(ctx.role) && (
             <Link
               href="/students"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition"
+              className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-level-1 active:scale-[0.98] transition-all"
             >
               Open Student Directory
             </Link>
@@ -194,20 +194,20 @@ export default async function StudentDashboardPage({
 
       {/* 2. Upcoming Examinations & Datesheet Card (Retained Scope UX-P03) */}
       {upcomingExamSchedules.length > 0 && (
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-level-1 hover:shadow-level-2 transition-all duration-200 space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
             <div className="flex items-center gap-2.5">
-              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              <Calendar className="w-5 h-5 text-indigo-500" />
+              <h2 className="text-base font-bold text-foreground tracking-tight">
                 Upcoming Examinations &amp; Datesheet
               </h2>
-              <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                 {upcomingExamSchedules.length} Papers
               </span>
             </div>
             <Link
               href="/student/timetable"
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+              className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline flex items-center gap-1 min-h-[36px]"
             >
               Full Schedule →
             </Link>
@@ -219,20 +219,20 @@ export default async function StudentDashboardPage({
               className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
                 totalDue > 0
                   ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300"
-                  : "bg-indigo-500/10 border-indigo-500/30 text-indigo-900 dark:text-indigo-200"
+                  : "bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200"
               }`}
             >
               <div className="flex items-start sm:items-center gap-2.5">
                 {totalDue > 0 ? (
                   <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" />
                 ) : (
-                  <FileCheck className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5 sm:mt-0" />
+                  <FileCheck className="w-5 h-5 text-blue-500 shrink-0 mt-0.5 sm:mt-0" />
                 )}
                 <div>
-                  <span className="font-bold text-sm">
+                  <span className="font-bold text-sm tracking-tight">
                     {totalDue > 0 ? "Admit Card Fee-Locked" : "Admit Card Ready for Download"}
                   </span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                     {totalDue > 0
                       ? `Outstanding fee balance detected (₹${totalDue.toLocaleString()}). Settle dues online below to release your examination hall ticket.`
                       : "Official admit card / hall ticket generated. Download and save offline before exam day."}
@@ -242,7 +242,7 @@ export default async function StudentDashboardPage({
               {totalDue > 0 ? (
                 <a
                   href="#fee-settlement"
-                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 self-start sm:self-center transition"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs shrink-0 self-start sm:self-center shadow-level-1 active:scale-[0.98] transition-all flex items-center justify-center"
                 >
                   Pay Pending Dues
                 </a>
@@ -250,7 +250,7 @@ export default async function StudentDashboardPage({
                 <Link
                   href={upcomingExamSchedules[0]?.examId ? (`/api/admit-cards/${scope.studentId}/${upcomingExamSchedules[0].examId}/pdf` as any) : ("#" as any)}
                   download
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 self-start sm:self-center shadow-md transition"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shrink-0 flex items-center justify-center gap-1.5 self-start sm:self-center shadow-level-1 active:scale-[0.98] transition-all"
                 >
                   <Download className="w-4 h-4" />
                   Download Admit Card PDF
@@ -263,30 +263,30 @@ export default async function StudentDashboardPage({
               {upcomingExamSchedules.map((sched) => (
                 <div
                   key={sched.id}
-                  className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex flex-col justify-between space-y-2 text-xs"
+                  className="p-3.5 rounded-2xl border border-border/70 bg-muted/30 flex flex-col justify-between space-y-2 text-xs hover:border-border transition-colors"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-1">
-                      <span className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                      <span className="font-bold text-foreground text-sm truncate">
                         {sched.subject?.name || "Subject"}
                       </span>
-                      <span className="text-[9px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20 shrink-0">
+                      <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 shrink-0">
                         {sched.exam?.name || "Exam"}
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-1 text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/80 pt-2">
+                  <div className="space-y-1 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                         {sched.examDate}
                       </span>
-                      <span className="font-mono bg-slate-200/60 dark:bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700/80">
+                      <span className="font-mono bg-muted px-2 py-0.5 rounded-md border border-border/60">
                         {sched.roomNumber ? `Room ${sched.roomNumber}` : "Hall"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                       {sched.startTime} ({sched.durationMinutes}m)
                     </div>
                   </div>
@@ -298,31 +298,31 @@ export default async function StudentDashboardPage({
       )}
 
       {/* 3. Online Fee Payment Section with Razorpay Integration (Retained Scope) */}
-      <div id="fee-settlement" className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+      <div id="fee-settlement" className="rounded-2xl border border-border/80 bg-card p-6 shadow-level-1 hover:shadow-level-2 transition-all duration-200 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Receipt className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Fee Dues & Online Settlement
+              <h2 className="text-base font-bold text-foreground tracking-tight">
+                Fee Dues &amp; Online Settlement
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Pay tuition and facility fees securely via UPI, NetBanking, Debit/Credit Cards.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Razorpay Secured
             </span>
           </div>
         </div>
 
         {invoices.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-xs rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/80">
+          <div className="p-8 text-center text-muted-foreground text-xs rounded-2xl bg-muted/30 border border-border/60">
             No fee invoices currently assigned to your student account.
           </div>
         ) : (
@@ -335,48 +335,48 @@ export default async function StudentDashboardPage({
               return (
                 <div
                   key={inv.id}
-                  className="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/60 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
+                  className="p-5 rounded-2xl border border-border/70 bg-muted/20 flex flex-col justify-between space-y-4 hover:border-border transition-all"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-white text-sm">{feeHeadName}</span>
+                        <span className="font-bold text-foreground text-sm tracking-tight">{feeHeadName}</span>
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                             isPaid
-                              ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                              : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25"
                           }`}
                         >
                           {inv.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
+                      <p className="text-xs text-muted-foreground font-mono mt-1">
                         Invoice #{inv.invoiceNumber} • Due: {new Date(inv.dueDate).toLocaleDateString()}
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-xs text-slate-400 block">Balance Due</span>
-                      <span className="text-lg font-black text-slate-900 dark:text-white">
+                      <span className="text-xs text-muted-foreground block">Balance Due</span>
+                      <span className="text-lg font-bold text-foreground tracking-tight">
                         ₹{balanceAmt.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
                   {/* Financial Breakdown */}
-                  <div className="grid grid-cols-3 gap-2 text-[11px] p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center">
+                  <div className="grid grid-cols-3 gap-2 text-[11px] p-2.5 rounded-xl bg-card border border-border/70 text-center">
                     <div>
-                      <span className="text-slate-400 block">Gross</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">₹{parseFloat(inv.grossAmount).toLocaleString()}</span>
+                      <span className="text-muted-foreground block">Gross</span>
+                      <span className="font-semibold text-foreground">₹{parseFloat(inv.grossAmount).toLocaleString()}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Paid</span>
+                      <span className="text-muted-foreground block">Paid</span>
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">₹{parseFloat(inv.paidAmount).toLocaleString()}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Discount</span>
-                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">₹{parseFloat(inv.discountAmount || "0").toLocaleString()}</span>
+                      <span className="text-muted-foreground block">Discount</span>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">₹{parseFloat(inv.discountAmount || "0").toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -387,10 +387,10 @@ export default async function StudentDashboardPage({
                       amount={balanceAmt}
                       studentName={studentName}
                       label={`Pay ₹${balanceAmt.toLocaleString()} via Razorpay`}
-                      className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-level-1 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                     />
                   ) : (
-                    <div className="py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1.5">
+                    <div className="py-2.5 px-3 min-h-[44px] rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
                       Invoice Completely Paid
                     </div>
@@ -403,20 +403,20 @@ export default async function StudentDashboardPage({
 
         {/* Payment History */}
         {payments.length > 0 && (
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <div className="pt-4 border-t border-border/60 space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Recent Payment Receipts ({payments.length})
             </h3>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-50/40 dark:bg-slate-950/40">
+            <div className="divide-y divide-border/60 border border-border/70 rounded-2xl overflow-hidden bg-muted/20">
               {payments.map((p) => (
                 <div key={p.id} className="p-3.5 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     <div>
-                      <span className="font-semibold text-slate-900 dark:text-white">
+                      <span className="font-semibold text-foreground">
                         Receipt #{p.receiptNumber}
                       </span>
-                      <span className="text-slate-400 block text-[11px]">
+                      <span className="text-muted-foreground block text-[11px]">
                         Paid on {new Date(p.paymentDate).toLocaleDateString()} via {p.paymentMethod}
                       </span>
                     </div>
@@ -430,7 +430,7 @@ export default async function StudentDashboardPage({
                       href={`/api/receipt/${p.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
+                      className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-all"
                       title="Download PDF Receipt"
                     >
                       <Download className="w-3.5 h-3.5" />

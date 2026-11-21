@@ -111,7 +111,7 @@ export function StudentFeedContainer({
           type="button"
           onClick={handleNewPostsClick}
           data-testid="new-posts-pill"
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 px-4 py-1.5 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 animate-bounce transition-all cursor-pointer"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 min-h-[44px] rounded-full shadow-level-3 bg-blue-600/90 hover:bg-blue-600 active:scale-95 backdrop-blur-md text-white font-medium text-xs flex items-center gap-2 transition-all cursor-pointer"
         >
           <ArrowUp className="w-3.5 h-3.5" />
           <span>{isHi ? "नई अपडेट्स • ऊपर देखें" : "New updates • Tap to view"}</span>
@@ -119,13 +119,13 @@ export function StudentFeedContainer({
       )}
 
       {/* 1. Student Identity Header & Today Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-indigo-800/40">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-indigo-950/60 backdrop-blur-xl border border-white/[0.12] p-6 md:p-8 text-white shadow-level-2 relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
                 <GraduationCap className="w-3.5 h-3.5" />
                 {className} {sectionName ? `• Sec ${sectionName}` : ""}
               </span>
@@ -135,18 +135,18 @@ export function StudentFeedContainer({
                 </span>
               )}
               {academicYearLabel && (
-                <span className="text-xs text-indigo-200/70">
+                <span className="text-xs text-blue-200/70">
                   {academicYearLabel}
                 </span>
               )}
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               {isHi ? `नमस्ते, ${studentName}` : `Welcome back, ${studentName}`}
             </h1>
 
-            <div className="flex items-center gap-2 text-xs text-indigo-200/80">
-              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="flex items-center gap-2 text-xs text-slate-300">
+              <Calendar className="w-3.5 h-3.5 text-blue-400" />
               <span>{todayDateFormatted}</span>
               {attendanceRate && (
                 <>
@@ -164,7 +164,7 @@ export function StudentFeedContainer({
             <button
               type="button"
               onClick={() => setLocale(isHi ? "en" : "hi")}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition border border-white/15"
+              className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all border border-white/15 flex items-center justify-center"
               aria-label="Switch language"
             >
               {isHi ? "English" : "हिन्दी"}
@@ -173,7 +173,7 @@ export function StudentFeedContainer({
               type="button"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="p-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition border border-white/15"
+              className="p-2.5 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all border border-white/15 flex items-center justify-center"
               title={isHi ? "ताज़ा करें" : "Refresh feed"}
             >
               <RotateCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
@@ -195,17 +195,17 @@ export function StudentFeedContainer({
       {cards.length === 0 ? (
         <div
           data-testid="student-calm-state"
-          className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-4 shadow-sm"
+          className="p-8 sm:p-10 rounded-2xl bg-card border border-border/80 text-center space-y-4 shadow-level-1"
         >
-          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
             <Sparkles className="w-8 h-8" />
           </div>
 
           <div className="max-w-md mx-auto space-y-1.5">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
               {isHi ? "सब कुछ व्यवस्थित है! कोई लंबित कार्य नहीं" : "All caught up! No homework due"}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {isHi
                 ? "आज कोई नया गृहकार्य या सूचना लंबित नहीं है। आप अपनी आने वाली कक्षाओं और समय सारिणी की समीक्षा कर सकते हैं।"
                 : "No homework due or unread notices today. Great job keeping your assignments up to date!"}

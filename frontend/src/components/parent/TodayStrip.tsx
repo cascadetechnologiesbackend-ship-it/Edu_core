@@ -32,10 +32,10 @@ export function TodayStrip({
   return (
     <div
       className={cn(
-        "rounded-2xl p-4 transition-all border",
+        "rounded-2xl p-4 transition-all border shadow-level-1",
         isAllGood
-          ? "bg-emerald-950/20 border-emerald-900/40 text-emerald-300"
-          : "bg-slate-900/60 border-slate-800 text-slate-200",
+          ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
+          : "bg-card border-border/80 text-foreground",
         className
       )}
     >

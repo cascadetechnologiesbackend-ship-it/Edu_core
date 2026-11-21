@@ -43,14 +43,14 @@ export function ParentIdentityHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 py-3 px-4 -mx-4 mb-4 transition-all",
+        "sticky top-0 z-30 bg-slate-950/85 backdrop-blur-xl border-b border-border/40 py-3.5 px-4 -mx-4 mb-4 transition-all",
         className
       )}
     >
       <div className="flex items-center justify-between gap-3">
         {/* Avatar + Name + Class */}
         <div className="flex items-center gap-3 min-w-0">
-          <AvatarPrimitive.Root className="relative flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl shadow-sm border border-slate-700 bg-slate-800">
+          <AvatarPrimitive.Root className="relative flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl shadow-level-1 border border-border/80 bg-muted">
             {currentStudent.avatarUrl && (
               <AvatarPrimitive.Image
                 src={currentStudent.avatarUrl}

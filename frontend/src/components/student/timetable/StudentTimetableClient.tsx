@@ -84,19 +84,19 @@ export function StudentTimetableClient({
   return (
     <div className="space-y-6 pb-12">
       {/* Student Scope Context Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-5 shadow-level-2 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <span className="p-2.5 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
                 <Calendar className="w-5 h-5" />
               </span>
               <div>
                 <h1 className="text-xl font-bold text-white tracking-tight">
                   Class Timetable
                 </h1>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-300">
                   समय-सारणी • {data.student.className} - {data.student.sectionName}
                 </p>
               </div>
@@ -104,12 +104,12 @@ export function StudentTimetableClient({
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-slate-800 self-start sm:self-auto">
+          <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-white/[0.08] self-start sm:self-auto">
             <button
               onClick={() => setActiveTab("today")}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`px-4 py-2 min-h-[38px] rounded-xl text-xs font-semibold active:scale-95 transition-all ${
                 activeTab === "today"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  ? "bg-blue-600 text-white shadow-level-1"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -117,9 +117,9 @@ export function StudentTimetableClient({
             </button>
             <button
               onClick={() => setActiveTab("weekly")}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`px-4 py-2 min-h-[38px] rounded-xl text-xs font-semibold active:scale-95 transition-all ${
                 activeTab === "weekly"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  ? "bg-blue-600 text-white shadow-level-1"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -295,10 +295,10 @@ export function StudentTimetableClient({
                 <button
                   key={day}
                   onClick={() => setSelectedDay(day)}
-                  className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                  className={`p-3 min-h-[44px] rounded-2xl border text-center active:scale-95 transition-all flex flex-col items-center justify-center gap-1 ${
                     isSelected
-                      ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30"
-                      : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-blue-600 border-blue-500 text-white shadow-level-1"
+                      : "bg-slate-900/80 dark:bg-slate-950/80 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
                   }`}
                 >
                   <span className="text-xs font-bold">
