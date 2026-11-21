@@ -39,10 +39,16 @@ export default function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const handleQuickFill = (email: string) => {
+    setValue("email", email, { shouldValidate: true });
+    setValue("password", "schoolmitra_dev", { shouldValidate: true });
+  };
 
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true);
@@ -289,12 +295,54 @@ export default function LoginForm() {
           </div>
         )}
 
+        {/* Quick Demo Personas (Apple Segmented Bar) */}
+        <div className="pt-1">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-2 flex items-center justify-between">
+            <span>Demo Role Journeys</span>
+            <span className="text-[10px] text-blue-400 font-mono">1-Tap Fill</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleQuickFill("school_admin1@school.edu.in")}
+              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
+              title="Fill School Admin credentials"
+            >
+              School Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill("teacher1@school.edu.in")}
+              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
+              title="Fill Teacher credentials"
+            >
+              Teacher
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill("accountant1@school.edu.in")}
+              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
+              title="Fill Accountant credentials"
+            >
+              Accountant
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill("superadmin@schoolos.com")}
+              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
+              title="Fill Super Admin credentials"
+            >
+              Super Admin
+            </button>
+          </div>
+        </div>
+
         {/* Submit Primary CTA */}
         <button
           type="submit"
           id="login-submit"
           disabled={isLoading}
-          className="w-full h-12 rounded-xl font-semibold text-[15px] text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-2"
+          className="w-full h-12 rounded-xl font-semibold text-[15px] text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-level-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-3"
         >
           {isLoading ? (
             <>

@@ -28,27 +28,27 @@ export function Stepper({
       {/* Mobile view: "Step X of N: Label" */}
       <div className="flex sm:hidden items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-xs font-bold shadow-xs">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold shadow-level-1">
             {currentStep}
           </span>
           <div className="text-xs">
-            <span className="text-gray-400 font-medium">Step {currentStep} of {steps.length}:</span>{" "}
-            <span className="font-bold text-gray-900 dark:text-white">
+            <span className="text-slate-400 font-medium">Step {currentStep} of {steps.length}:</span>{" "}
+            <span className="font-bold text-white">
               {steps[currentStep - 1]?.label}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {steps.map((_, i) => (
             <div
               key={i}
               className={cn(
                 "h-1.5 rounded-full transition-all duration-200",
                 i + 1 === currentStep
-                  ? "w-5 bg-primary"
+                  ? "w-5 bg-blue-500"
                   : i + 1 < currentStep
                   ? "w-2 bg-emerald-500"
-                  : "w-2 bg-gray-200 dark:bg-slate-700"
+                  : "w-2 bg-white/20"
               )}
             />
           ))}
@@ -71,14 +71,14 @@ export function Stepper({
                   disabled={!isClickable}
                   onClick={() => isClickable && onStepClick?.(stepNumber)}
                   className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all duration-150 min-h-[32px] min-w-[32px] focus:outline-none focus:ring-2 focus:ring-primary/20",
+                    "flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all duration-150 min-h-[32px] min-w-[32px] focus:outline-none focus:ring-2 focus:ring-blue-500/20",
                     isCompleted &&
-                      "bg-emerald-600 text-white cursor-pointer hover:bg-emerald-700 shadow-sm",
+                      "bg-emerald-600 text-white cursor-pointer hover:bg-emerald-500 shadow-level-1",
                     isCurrent &&
-                      "bg-primary text-white ring-4 ring-primary/20 shadow-md",
+                      "bg-blue-600 text-white ring-4 ring-blue-500/25 shadow-level-1",
                     !isCompleted &&
                       !isCurrent &&
-                      "bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-slate-700 cursor-default"
+                      "bg-white/[0.06] text-slate-400 border border-white/10 cursor-default"
                   )}
                   aria-label={`Step ${stepNumber}: ${step.label}`}
                 >
@@ -87,16 +87,16 @@ export function Stepper({
                 <div className="text-left">
                   <p
                     className={cn(
-                      "text-xs font-bold leading-tight",
-                      isCurrent && "text-primary dark:text-blue-400",
-                      isCompleted && "text-gray-800 dark:text-gray-200",
-                      !isCurrent && !isCompleted && "text-gray-400 dark:text-gray-500"
+                      "text-xs font-semibold leading-tight",
+                      isCurrent && "text-blue-400",
+                      isCompleted && "text-slate-200",
+                      !isCurrent && !isCompleted && "text-slate-400"
                     )}
                   >
                     {step.label}
                   </p>
                   {step.description && (
-                    <p className="text-[10px] text-gray-400 mt-0.5 max-w-[120px] truncate">
+                    <p className="text-[10px] text-slate-400 mt-0.5 max-w-[120px] truncate">
                       {step.description}
                     </p>
                   )}
@@ -105,7 +105,7 @@ export function Stepper({
 
               {/* Connecting line between steps */}
               {index < steps.length - 1 && (
-                <div className="flex-1 mx-3 h-0.5 bg-gray-200 dark:bg-slate-800 relative overflow-hidden">
+                <div className="flex-1 mx-3 h-0.5 bg-white/10 relative overflow-hidden rounded-full">
                   <div
                     className={cn(
                       "h-full transition-all duration-300",

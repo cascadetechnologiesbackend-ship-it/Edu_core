@@ -353,11 +353,11 @@ export function Sidebar({
                           onFocus={() => handlePointerEnter(item.href)}
                           onBlur={handlePointerLeave}
                           className={cn(
-                            "transition-all relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium",
+                            "transition-all relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium min-h-[38px] sm:min-h-[40px]",
                             isActive
-                              ? "bg-white/10 text-white font-semibold shadow-sm before:absolute before:left-1 before:top-2 before:bottom-2 before:w-1 before:bg-blue-500 before:rounded-full"
-                              : "text-slate-300 hover:bg-white/8 hover:text-white",
-                            isPending && "opacity-80 animate-pulse bg-white/10",
+                              ? "bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20 shadow-level-0"
+                              : "text-slate-300 hover:bg-white/[0.06] hover:text-white",
+                            isPending && "opacity-80 animate-pulse bg-blue-500/10",
                             collapsed ? "md:justify-center md:px-2" : ""
                           )}
                           aria-current={isActive ? "page" : undefined}

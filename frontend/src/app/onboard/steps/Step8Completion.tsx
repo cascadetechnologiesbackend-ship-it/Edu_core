@@ -20,7 +20,7 @@ export function Step8Completion() {
     <div className="py-8 max-w-2xl mx-auto text-center space-y-6">
       {/* Emotional Milestone Celebration */}
       <div className="relative inline-block">
-        <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 shadow-xl shadow-emerald-500/10">
+        <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/25 shadow-level-2">
           <CheckCircle2 className="w-10 h-10" />
         </div>
         <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
@@ -29,10 +29,10 @@ export function Step8Completion() {
       </div>
 
       <div className="space-y-2">
-        <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+        <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
           Tenant Provisioning Complete
         </span>
-        <h2 className="text-3xl font-black text-white">
+        <h2 className="text-3xl font-bold tracking-tight text-white">
           {schoolName} is Officially Live!
         </h2>
         <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
@@ -42,8 +42,8 @@ export function Step8Completion() {
       </div>
 
       {/* Admin credentials note */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-300 max-w-md mx-auto flex items-center justify-between">
-        <span className="text-slate-400">Administrator:</span>
+      <div className="p-4 rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] text-xs text-slate-300 max-w-md mx-auto flex items-center justify-between shadow-level-0">
+        <span className="text-slate-400 font-medium">Administrator:</span>
         <span className="font-mono font-bold text-white">
           {successResult?.email || adminEmail}
         </span>
@@ -54,7 +54,7 @@ export function Step8Completion() {
         <Link
           data-testid="enter-day-one-cockpit-btn"
           href="/admin/day-one?welcome=true"
-          className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-500 text-white font-black text-sm inline-flex items-center justify-center gap-2.5 shadow-xl shadow-primary/25 transition transform hover:-translate-y-0.5"
+          className="w-full sm:w-auto px-8 py-3.5 min-h-[48px] rounded-2xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold text-sm inline-flex items-center justify-center gap-2.5 shadow-level-2 transition"
         >
           <Compass className="w-4 h-4" />
           <span>Enter Day One Cockpit</span>
@@ -66,28 +66,28 @@ export function Step8Completion() {
       </div>
 
       {/* Direct Quick Shortcuts */}
-      <div className="space-y-3 pt-6 border-t border-slate-800 text-left">
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block text-center">
+      <div className="space-y-3 pt-6 border-t border-white/[0.08] text-left">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block text-center">
           Day One Setup Shortcuts
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Action 1: Staff Import */}
           <Link
             href="/school/import-center?tab=staff"
-            className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-primary/60 transition group flex flex-col justify-between gap-2 shadow-xs"
+            className="p-4 rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] hover:border-blue-500/30 transition-all group flex flex-col justify-between gap-3 shadow-level-0 hover:shadow-level-1 min-h-[110px]"
           >
             <div>
-              <div className="p-2 rounded-lg bg-blue-950/60 text-blue-400 w-fit mb-2">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit mb-2">
                 <Users className="w-4 h-4" />
               </div>
-              <h4 className="font-bold text-xs text-white group-hover:text-primary transition-colors">
+              <h4 className="font-semibold text-xs text-white group-hover:text-blue-400 transition-colors">
                 Import Staff
               </h4>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                 Upload teaching faculty roster via CSV.
               </p>
             </div>
-            <div className="text-[11px] font-bold text-primary inline-flex items-center gap-1 mt-2">
+            <div className="text-[11px] font-semibold text-blue-400 inline-flex items-center gap-1 mt-1">
               <span>Import Center</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </div>
@@ -96,20 +96,20 @@ export function Step8Completion() {
           {/* Action 2: Student Import */}
           <Link
             href="/school/import-center?tab=students"
-            className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-primary/60 transition group flex flex-col justify-between gap-2 shadow-xs"
+            className="p-4 rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] hover:border-blue-500/30 transition-all group flex flex-col justify-between gap-3 shadow-level-0 hover:shadow-level-1 min-h-[110px]"
           >
             <div>
-              <div className="p-2 rounded-lg bg-emerald-950/60 text-emerald-400 w-fit mb-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 w-fit mb-2">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <h4 className="font-bold text-xs text-white group-hover:text-primary transition-colors">
+              <h4 className="font-semibold text-xs text-white group-hover:text-blue-400 transition-colors">
                 Import Students
               </h4>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                 Enrol student cohort into sections.
               </p>
             </div>
-            <div className="text-[11px] font-bold text-primary inline-flex items-center gap-1 mt-2">
+            <div className="text-[11px] font-semibold text-blue-400 inline-flex items-center gap-1 mt-1">
               <span>Import Center</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </div>
@@ -118,20 +118,20 @@ export function Step8Completion() {
           {/* Action 3: Fee Structures */}
           <Link
             href="/school/fee-structures"
-            className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-primary/60 transition group flex flex-col justify-between gap-2 shadow-xs"
+            className="p-4 rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] hover:border-blue-500/30 transition-all group flex flex-col justify-between gap-3 shadow-level-0 hover:shadow-level-1 min-h-[110px]"
           >
             <div>
-              <div className="p-2 rounded-lg bg-amber-950/60 text-amber-400 w-fit mb-2">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 w-fit mb-2">
                 <IndianRupee className="w-4 h-4" />
               </div>
-              <h4 className="font-bold text-xs text-white group-hover:text-primary transition-colors">
+              <h4 className="font-semibold text-xs text-white group-hover:text-blue-400 transition-colors">
                 Fee Structures
               </h4>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                 Set fees & generate initial demands.
               </p>
             </div>
-            <div className="text-[11px] font-bold text-primary inline-flex items-center gap-1 mt-2">
+            <div className="text-[11px] font-semibold text-blue-400 inline-flex items-center gap-1 mt-1">
               <span>Fee Setup</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </div>

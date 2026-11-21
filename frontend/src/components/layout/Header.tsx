@@ -155,7 +155,7 @@ export function Header({
       <button
         type="button"
         onClick={() => setExamCmdOpen(true)}
-        className="hidden md:flex items-center justify-between gap-3 pl-3.5 pr-2 py-1.5 text-xs text-muted-foreground bg-muted/40 hover:bg-muted/70 rounded-full border border-border/60 transition-all w-64 text-left shadow-xs"
+        className="hidden md:flex items-center justify-between gap-3 pl-3.5 pr-2 py-2 text-xs text-muted-foreground bg-muted/40 hover:bg-muted/70 rounded-full border border-border/60 transition-all w-64 text-left shadow-xs min-h-[38px] sm:min-h-[40px]"
         title="Academics & General Search (⌘K)"
         aria-label="Command Search"
       >
@@ -171,7 +171,7 @@ export function Header({
       <button
         type="button"
         onClick={() => setExamCmdOpen(true)}
-        className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+        className="md:hidden w-11 h-11 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Open Command Search"
       >
         <Search className="w-5 h-5" />
@@ -187,7 +187,7 @@ export function Header({
       <div className="relative" ref={notifRef}>
         <button
           onClick={() => setNotifOpen(!notifOpen)}
-          className="relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
+          className="relative w-10 h-10 min-h-[38px] sm:min-h-[40px] flex items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
           aria-label={`Notifications${notificationCount > 0 ? ` (${notificationCount} unread)` : ""}`}
           aria-haspopup="true"
           aria-expanded={notifOpen}

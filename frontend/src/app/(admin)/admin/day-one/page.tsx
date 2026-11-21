@@ -116,12 +116,12 @@ export default async function DayOneCockpitPage({
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* ── Welcome Banner (if coming straight from wizard completion) ──────── */}
       {isWelcome && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/30 flex items-start gap-3 shadow-xs">
-          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/25 flex items-start gap-3 shadow-level-1">
+          <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 shrink-0 mt-0.5">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white">
+            <h2 className="text-sm font-semibold text-white">
               Welcome to the Day One Cockpit!
             </h2>
             <p className="text-xs text-slate-300 mt-1 leading-relaxed">
@@ -133,10 +133,10 @@ export default async function DayOneCockpitPage({
       )}
 
       {/* ── Header: Mandatory Law F1 (H1 names the job) ────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-primary px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-blue-400 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
               Journey J10 · School Onboarding
             </span>
             <span className="text-xs text-slate-400 font-medium">
@@ -145,7 +145,7 @@ export default async function DayOneCockpitPage({
           </div>
           <h1
             data-testid="day-one-h1"
-            className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1"
+            className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1.5"
           >
             Open the school for Day One
           </h1>
@@ -165,26 +165,26 @@ export default async function DayOneCockpitPage({
       </div>
 
       {/* ── Progress Strip ─────────────────────────────────────────────────── */}
-      <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3">
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 sm:p-5 space-y-3 shadow-level-1">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-primary" />
-            <span className="font-bold text-white">Readiness Progress</span>
+            <Compass className="w-4 h-4 text-blue-400" />
+            <span className="font-semibold text-white">Readiness Progress</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-primary text-sm">
+            <span className="font-mono font-bold text-blue-400 text-sm">
               {readiness.readyChecksCount} / {readiness.totalChecks}
             </span>
             <span className="text-slate-400">checks ready ({completionPercent}%)</span>
           </div>
         </div>
 
-        <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+        <div className="w-full bg-slate-950/80 rounded-full h-2.5 overflow-hidden border border-white/10">
           <div
             className={`h-full transition-all duration-500 rounded-full ${
               readiness.isReadyForDayOne
                 ? "bg-emerald-500"
-                : "bg-gradient-to-r from-primary to-indigo-500"
+                : "bg-blue-600"
             }`}
             style={{ width: `${completionPercent}%` }}
           />
@@ -195,18 +195,18 @@ export default async function DayOneCockpitPage({
       {readiness.isReadyForDayOne && (
         <div
           data-testid="day-one-finished-state"
-          className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-emerald-950/50 via-slate-900 to-slate-950 border-2 border-emerald-500/50 shadow-2xl shadow-emerald-950/40 space-y-5"
+          className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-950 border border-emerald-500/40 shadow-level-2 space-y-5"
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 block">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400 block">
                   Finished State · Day One Certified
                 </span>
-                <h3 className="text-lg sm:text-xl font-black text-white mt-0.5">
+                <h3 className="text-lg sm:text-xl font-bold text-white mt-0.5">
                   {readiness.finishedStateMessage}
                 </h3>
                 <p className="text-xs text-slate-300 mt-1">
@@ -218,7 +218,7 @@ export default async function DayOneCockpitPage({
             <Link
               data-testid="mark-first-attendance-btn"
               href="/attendance"
-              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 shrink-0"
+              className="px-6 py-3 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-semibold text-xs inline-flex items-center gap-2 shadow-level-1 transition shrink-0"
             >
               <span>Mark the first attendance</span>
               <ArrowRight className="w-4 h-4" />
@@ -252,12 +252,12 @@ function ReadinessCheckCard({ check }: { check: ReadinessCheckItem }) {
       data-status={check.status}
       className={`p-4 sm:p-5 rounded-2xl border transition-all ${
         check.status === "READY"
-          ? "bg-slate-900/60 border-emerald-900/40 hover:border-emerald-800/60"
+          ? "bg-slate-900/60 backdrop-blur-xl border-emerald-500/30 hover:border-emerald-500/50 shadow-level-0"
           : check.status === "IN_PROGRESS"
-          ? "bg-slate-900/80 border-amber-900/40 hover:border-amber-700/60"
+          ? "bg-slate-900/70 backdrop-blur-xl border-amber-500/30 hover:border-amber-500/50 shadow-level-0"
           : check.status === "UNKNOWN"
-          ? "bg-purple-950/20 border-purple-900/40 hover:border-purple-700/60"
-          : "bg-slate-900/40 border-slate-800 hover:border-slate-700"
+          ? "bg-purple-950/20 backdrop-blur-xl border-purple-500/30 hover:border-purple-500/50 shadow-level-0"
+          : "bg-slate-900/40 backdrop-blur-xl border-white/[0.08] hover:border-white/20 shadow-level-0"
       }`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -321,7 +321,7 @@ function ReadinessCheckCard({ check }: { check: ReadinessCheckItem }) {
           {check.status !== "READY" ? (
             <Link
               href={check.deepLink.href}
-              className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition"
+              className="px-4 py-2 min-h-[38px] sm:min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-level-1 transition"
             >
               <span>{check.deepLink.label}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -329,7 +329,7 @@ function ReadinessCheckCard({ check }: { check: ReadinessCheckItem }) {
           ) : (
             <Link
               href={check.deepLink.href}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium inline-flex items-center gap-1.5 border border-slate-700/60 transition"
+              className="px-3.5 py-2 min-h-[38px] sm:min-h-[44px] rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs font-medium inline-flex items-center gap-1.5 border border-white/10 transition active:scale-[0.98]"
             >
               <span>View details</span>
               <ArrowRight className="w-3 h-3 text-slate-400" />
@@ -344,7 +344,7 @@ function ReadinessCheckCard({ check }: { check: ReadinessCheckItem }) {
 function StatusBadge({ status }: { status: ReadinessCheckItem["status"] }) {
   if (status === "READY") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
         <CheckCircle2 className="w-3 h-3 text-emerald-400" />
         <span>Ready</span>
       </span>
@@ -353,7 +353,7 @@ function StatusBadge({ status }: { status: ReadinessCheckItem["status"] }) {
 
   if (status === "IN_PROGRESS") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25">
         <Clock className="w-3 h-3 text-amber-400" />
         <span>In Progress</span>
       </span>
@@ -362,7 +362,7 @@ function StatusBadge({ status }: { status: ReadinessCheckItem["status"] }) {
 
   if (status === "UNKNOWN") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-950 text-purple-300 border border-purple-800">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/25">
         <AlertTriangle className="w-3 h-3 text-purple-400" />
         <span>Unknown</span>
       </span>
@@ -370,7 +370,7 @@ function StatusBadge({ status }: { status: ReadinessCheckItem["status"] }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.06] text-slate-400 border border-white/10">
       <AlertCircle className="w-3 h-3 text-slate-400" />
       <span>Not Started</span>
     </span>
