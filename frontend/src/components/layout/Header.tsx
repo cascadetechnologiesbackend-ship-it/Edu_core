@@ -104,7 +104,7 @@ export function Header({
 
   return (
     <header
-      className="h-16 bg-card border-b border-border flex items-center px-3 sm:px-4 md:px-6 gap-2 sm:gap-4 flex-shrink-0"
+      className="h-14 bg-background/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-border/40 flex items-center px-3 sm:px-4 md:px-6 gap-2 sm:gap-4 flex-shrink-0 sticky top-0 z-40 transition-colors"
       role="banner"
     >
       {/* Mobile Hamburger Drawer Trigger (UX-R21: min 44px tap target) */}
@@ -112,7 +112,7 @@ export function Header({
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="md:hidden flex items-center justify-center w-11 h-11 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="md:hidden flex items-center justify-center w-11 h-11 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" aria-hidden="true" />
@@ -121,18 +121,18 @@ export function Header({
 
       {/* Breadcrumbs */}
       <nav aria-label="Breadcrumb" className="flex-1 min-w-0">
-        <ol className="flex items-center gap-1 text-sm" role="list">
+        <ol className="flex items-center gap-1.5 text-sm" role="list">
           {breadcrumbs.map((crumb, idx) => (
-            <li key={crumb.label} className="flex items-center gap-1">
+            <li key={crumb.label} className="flex items-center gap-1.5">
               {idx > 0 && (
                 <ChevronRight
-                  className="w-3 h-3 text-muted-foreground flex-shrink-0"
+                  className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0"
                   aria-hidden="true"
                 />
               )}
               {idx === breadcrumbs.length - 1 ? (
                 <span
-                  className="font-semibold text-foreground truncate"
+                  className="font-semibold text-foreground truncate tracking-tight"
                   aria-current="page"
                 >
                   {crumb.label}
@@ -141,7 +141,7 @@ export function Header({
                 <Link
                   href={(crumb.href || "#") as any}
                   prefetch={false}
-                  className="text-muted-foreground hover:text-foreground transition-colors truncate"
+                  className="text-muted-foreground hover:text-foreground transition-colors truncate font-normal"
                 >
                   {crumb.label}
                 </Link>
@@ -155,23 +155,23 @@ export function Header({
       <button
         type="button"
         onClick={() => setExamCmdOpen(true)}
-        className="hidden md:flex items-center justify-between gap-3 pl-3 pr-2 py-1.5 text-xs text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition-all w-64 text-left"
-        title="Examination & Academics Command Search (⌘K)"
+        className="hidden md:flex items-center justify-between gap-3 pl-3.5 pr-2 py-1.5 text-xs text-muted-foreground bg-muted/40 hover:bg-muted/70 rounded-full border border-border/60 transition-all w-64 text-left shadow-xs"
+        title="Academics & General Search (⌘K)"
         aria-label="Command Search"
       >
         <span className="flex items-center gap-2 truncate">
-          <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate">Search exams, marks, students…</span>
+          <Search className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
+          <span className="truncate">Search students, exams, actions…</span>
         </span>
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shrink-0">
-          <span className="text-xs">⌘</span>K
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded-full border border-border/80 bg-background/80 px-2 font-mono text-[10px] font-medium text-muted-foreground shrink-0">
+          <span className="text-[11px]">⌘</span>K
         </kbd>
       </button>
 
       <button
         type="button"
         onClick={() => setExamCmdOpen(true)}
-        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+        className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Open Command Search"
       >
         <Search className="w-5 h-5" />
@@ -187,50 +187,47 @@ export function Header({
       <div className="relative" ref={notifRef}>
         <button
           onClick={() => setNotifOpen(!notifOpen)}
-          className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+          className="relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
           aria-label={`Notifications${notificationCount > 0 ? ` (${notificationCount} unread)` : ""}`}
           aria-haspopup="true"
           aria-expanded={notifOpen}
           id="notification-btn"
         >
-          <Bell className="w-5 h-5" aria-hidden="true" />
+          <Bell className="w-4 h-4" aria-hidden="true" />
           {notificationCount > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-danger text-white
-                         text-[10px] font-bold rounded-full flex items-center justify-center"
+              className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full"
               aria-hidden="true"
-            >
-              {notificationCount > 9 ? "9+" : notificationCount}
-            </span>
+            />
           )}
         </button>
 
-        {/* Notifications Dropdown Panel */}
+        {/* Notifications Dropdown Panel (Apple popover) */}
         {notifOpen && (
           <div
-            className="absolute right-0 top-full mt-2 w-80 bg-card border border-border
-                       rounded-xl shadow-glass py-3 px-4 z-50 animate-fade-in text-sm"
+            className="absolute right-0 top-full mt-2 w-80 bg-card/95 dark:bg-slate-900/95 backdrop-blur-xl border border-border/50
+                       rounded-2xl shadow-level-3 py-3 px-4 z-50 animate-fade-scale-in text-sm"
             role="dialog"
             aria-label="Notifications"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <span className="font-semibold text-foreground">Notifications</span>
+            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+              <span className="font-semibold text-foreground tracking-tight">Notifications</span>
               {notificationCount > 0 ? (
-                <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-blue-500/10 text-blue-500 font-medium px-2 py-0.5 rounded-full">
                   {notificationCount} new
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground">0 unread</span>
+                <span className="text-xs text-muted-foreground">All caught up</span>
               )}
             </div>
             <div className="py-6 flex flex-col items-center justify-center text-center text-muted-foreground">
               <Bell className="w-8 h-8 mb-2 opacity-30 text-muted-foreground" aria-hidden="true" />
-              <p className="text-sm font-medium text-foreground">All caught up!</p>
+              <p className="text-sm font-medium text-foreground">No new alerts</p>
               <p className="text-xs text-muted-foreground mt-1">
-                No unread announcements or urgent alerts at this time.
+                You are completely up to date.
               </p>
             </div>
-            <div className="pt-2 border-t border-border mt-2 flex items-center justify-between">
+            <div className="pt-2 border-t border-border/50 mt-2 flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground">Web Push Alerts</span>
               <button
                 onClick={async () => {
@@ -243,7 +240,7 @@ export function Header({
                     }
                   } catch {}
                 }}
-                className="text-xs text-primary font-semibold hover:underline"
+                className="text-xs text-blue-500 font-semibold hover:underline"
               >
                 Enable Alerts
               </button>
@@ -255,16 +252,16 @@ export function Header({
       {/* Dark Mode Toggle */}
       <button
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        className="p-2 rounded-lg hover:bg-muted transition-colors"
+        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         id="theme-toggle"
       >
         {!mounted ? (
-          <div className="w-5 h-5" />
+          <div className="w-4 h-4" />
         ) : theme === "dark" ? (
-          <Sun className="w-5 h-5" aria-hidden="true" />
+          <Sun className="w-4 h-4 text-amber-400" aria-hidden="true" />
         ) : (
-          <Moon className="w-5 h-5" aria-hidden="true" />
+          <Moon className="w-4 h-4 text-slate-700" aria-hidden="true" />
         )}
       </button>
 
@@ -272,60 +269,64 @@ export function Header({
       <div className="relative" ref={userMenuRef}>
         <button
           onClick={() => setUserMenuOpen(!userMenuOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted/60 transition-colors"
           aria-haspopup="true"
           aria-expanded={userMenuOpen}
           aria-label="User menu"
           id="user-menu-btn"
         >
           <div
-            className="w-7 h-7 rounded-full bg-primary flex items-center justify-center
-                        text-white text-sm font-semibold flex-shrink-0"
+            className="w-7 h-7 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center
+                        text-white text-xs font-semibold flex-shrink-0 shadow-xs"
             aria-hidden="true"
           >
             {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
           </div>
           <div className="hidden md:block text-left min-w-0">
-            <p className="text-sm font-medium truncate max-w-[120px]">
+            <p className="text-sm font-medium truncate max-w-[120px] leading-tight">
               {user?.name ?? "User"}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground leading-tight">
               {role ?? "Admin"}
             </p>
           </div>
         </button>
 
-        {/* Dropdown */}
+        {/* Dropdown (Apple menu style) */}
         {userMenuOpen && (
           <div
-            className="absolute right-0 top-full mt-1 w-48 bg-card border border-border
-                        rounded-lg shadow-glass py-1 z-50 animate-fade-in"
+            className="absolute right-0 top-full mt-1.5 w-52 bg-card/95 dark:bg-slate-900/95 backdrop-blur-xl border border-border/50
+                        rounded-2xl shadow-level-3 p-1.5 z-50 animate-fade-scale-in"
             role="menu"
             aria-labelledby="user-menu-btn"
           >
+            <div className="px-3 py-2 border-b border-border/40 mb-1">
+              <p className="text-xs font-semibold text-foreground truncate">{user?.name ?? "User"}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user?.email ?? ""}</p>
+            </div>
             <Link
               href={profileHref as any}
               prefetch={false}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm
-                         hover:bg-muted transition-colors text-foreground"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-xl
+                         hover:bg-muted/70 transition-colors text-foreground font-medium"
               role="menuitem"
               onClick={() => setUserMenuOpen(false)}
             >
-              <User className="w-4 h-4" aria-hidden="true" />
-              Profile
+              <User className="w-3.5 h-3.5 text-blue-500" aria-hidden="true" />
+              Profile & Settings
             </Link>
-            <hr className="border-border my-1" />
+            <hr className="border-border/40 my-1" />
             <button
               onClick={() => {
                 setUserMenuOpen(false);
                 secureSignOut({ callbackUrl: "/login" });
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger
-                         hover:bg-danger/10 transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-500
+                         hover:bg-rose-500/10 rounded-xl transition-colors text-left font-medium"
               role="menuitem"
             >
-              <LogOut className="w-4 h-4" aria-hidden="true" />
-              Sign out
+              <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+              Sign Out
             </button>
           </div>
         )}

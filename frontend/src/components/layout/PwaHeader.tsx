@@ -76,11 +76,11 @@ export default function PwaHeader({
           <span className="text-[9px] text-amber-300/70 font-mono shrink-0 ml-2">DPA-DEMO</span>
         </div>
       )}
-      <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-30 bg-slate-900/85 dark:bg-slate-950/85 backdrop-blur-xl border-b border-white/10 px-4 py-2.5 flex items-center justify-between transition-colors">
         {/* Brand & Role Identification */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div
-            className={`w-9 h-9 rounded-xl border flex items-center justify-center font-bold shrink-0 ${accentStyles.iconBg}`}
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center font-bold shrink-0 shadow-sm ${accentStyles.iconBg}`}
           >
             {icon || <Sparkles className="w-4 h-4" />}
           </div>
@@ -90,18 +90,18 @@ export default function PwaHeader({
               {roleLabel}
             </span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${accentStyles.pwa}`}
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-semibold uppercase tracking-wider ${accentStyles.pwa}`}
             >
               PWA
             </span>
           </div>
-          <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+          <div className="text-[11px] text-slate-400 truncate flex items-center gap-1.5 mt-0.5">
             <span className="font-medium text-slate-300 capitalize">{userName}</span>
-            <span>•</span>
+            <span className="text-slate-500">•</span>
             <span className="truncate">{schoolName}</span>
             {schoolName?.includes("DEMO") && (
               <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
-                [DEMO DATA]
+                [DEMO]
               </span>
             )}
           </div>
@@ -113,7 +113,7 @@ export default function PwaHeader({
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 transition"
           title="Command Search (⌘K)"
           aria-label="Command Search"
         >
@@ -124,17 +124,17 @@ export default function PwaHeader({
           <button
             type="button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 transition"
             aria-label="Toggle theme"
           >
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
         )}
 
         <button
           type="button"
           onClick={() => secureSignOut({ callbackUrl: "/login" })}
-          className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
           title="Sign Out"
           aria-label="Sign Out"
         >

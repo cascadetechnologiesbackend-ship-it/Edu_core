@@ -185,15 +185,15 @@ export function Sidebar({
     return (
       <aside
         className={cn(
-          "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
+          "flex flex-col h-full bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
         )}
         aria-label="Navigation loading"
       >
-        <div className="flex items-center h-16 px-4 border-b border-white/10 animate-pulse">
-          <div className="w-8 h-8 bg-white/10 rounded-lg shrink-0" />
+        <div className="flex items-center h-14 px-4 border-b border-white/10 animate-pulse">
+          <div className="w-8 h-8 bg-white/10 rounded-xl shrink-0" />
           <div className={cn("ml-3 h-4 w-28 bg-white/10 rounded", collapsed && "md:hidden")} />
         </div>
         <div className="flex-1 p-3 space-y-4 animate-pulse">
@@ -213,15 +213,15 @@ export function Sidebar({
     return (
       <aside
         className={cn(
-          "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
+          "flex flex-col h-full bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
         )}
         aria-label="Authentication required"
       >
-        <div className="flex items-center h-16 px-4 border-b border-white/10">
-          <div className="w-8 h-8 bg-rose-500/20 text-rose-400 rounded-lg flex items-center justify-center shrink-0">
+        <div className="flex items-center h-14 px-4 border-b border-white/10">
+          <div className="w-8 h-8 bg-rose-500/20 text-rose-400 rounded-xl flex items-center justify-center shrink-0">
             <AlertOctagon className="w-5 h-5" />
           </div>
           <div className={cn("ml-3 min-w-0", collapsed && "md:hidden")}>
@@ -276,7 +276,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "flex flex-col h-full bg-sidebar border-r border-white/10 transition-all duration-300",
+          "flex flex-col h-full bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
@@ -284,24 +284,24 @@ export function Sidebar({
         aria-label="Main navigation"
       >
         {/* Workspace Identity (Spec 4.1.0) */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-white/10 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-              <GraduationCap className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex-shrink-0 w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-level-1">
+              <GraduationCap className="w-4 h-4 text-white" />
             </div>
             <div className={cn("min-w-0", collapsed && "md:hidden")}>
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-white font-semibold text-sm truncate leading-tight">
+                <p className="text-white font-semibold text-sm truncate leading-tight tracking-tight">
                   {schoolName}
                 </p>
                 {schoolName?.includes("DEMO") && (
                   <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
-                    [DEMO DATA]
+                    [DEMO]
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-white/10 text-slate-300 border border-white/10">
                   {roleConfig.displayName}
                 </span>
               </div>
@@ -322,12 +322,12 @@ export function Sidebar({
         </div>
 
         {/* Grouped Nav Items */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5" role="navigation">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4" role="navigation">
           {groupOrder.map((groupName) => {
             const items = groupsRecord[groupName] || [];
             return (
               <div key={groupName} className="space-y-1">
-                <p className={cn("text-[10px] font-bold text-sidebar-text/50 uppercase tracking-wider px-2.5 mb-1.5", collapsed && "md:hidden")}>
+                <p className={cn("text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2.5 mb-1", collapsed && "md:hidden")}>
                   {groupName}
                 </p>
                 <ul className="space-y-0.5" role="list">
@@ -353,10 +353,10 @@ export function Sidebar({
                           onFocus={() => handlePointerEnter(item.href)}
                           onBlur={handlePointerLeave}
                           className={cn(
-                            "sidebar-nav-item transition-all relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium",
+                            "transition-all relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium",
                             isActive
-                              ? "bg-indigo-50/10 text-indigo-400 font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-indigo-500 before:rounded-r"
-                              : "text-sidebar-text hover:bg-white/5 hover:text-white",
+                              ? "bg-white/10 text-white font-semibold shadow-sm before:absolute before:left-1 before:top-2 before:bottom-2 before:w-1 before:bg-blue-500 before:rounded-full"
+                              : "text-slate-300 hover:bg-white/8 hover:text-white",
                             isPending && "opacity-80 animate-pulse bg-white/10",
                             collapsed ? "md:justify-center md:px-2" : ""
                           )}
@@ -367,8 +367,8 @@ export function Sidebar({
                             name={item.icon}
                             className={cn(
                               "w-4 h-4 flex-shrink-0 transition-transform",
-                              isActive ? "text-indigo-400" : "text-sidebar-text/80",
-                              isPending && "scale-110 text-indigo-400"
+                              isActive ? "text-blue-400" : "text-slate-400",
+                              isPending && "scale-110 text-blue-400"
                             )}
                             aria-hidden="true"
                           />
@@ -381,7 +381,7 @@ export function Sidebar({
                             </kbd>
                           )}
                           {isPending && (
-                            <span className={cn("ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping", collapsed && "md:hidden")} />
+                            <span className={cn("ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping", collapsed && "md:hidden")} />
                           )}
                         </Link>
                       </li>
@@ -481,7 +481,7 @@ export function Sidebar({
               {accountMenuOpen && (
                 <div
                   className={cn(
-                    "absolute bottom-full mb-2 z-50 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 w-56 text-xs divide-y divide-slate-800",
+                    "absolute bottom-full mb-2 z-50 rounded-2xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-level-3 p-2 w-56 text-xs divide-y divide-white/10 animate-fade-scale-in",
                     collapsed ? "left-2 md:left-14" : "left-2"
                   )}
                   role="menu"
@@ -505,7 +505,7 @@ export function Sidebar({
                       role="menuitem"
                     >
                       <span className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-indigo-400" /> My Profile
+                        <User className="w-3.5 h-3.5 text-blue-400" /> My Profile
                       </span>
                       <kbd className="px-1 py-0.5 text-[9px] font-mono text-slate-400 bg-white/5 rounded border border-white/10">
                         ⌘,
@@ -533,7 +533,7 @@ export function Sidebar({
         <div className="hidden md:block flex-shrink-0 p-2 border-t border-white/10">
           <button
             onClick={handleToggleCollapse}
-            className="sidebar-nav-item w-full justify-center"
+            className="flex items-center gap-2 w-full justify-center px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
           >
