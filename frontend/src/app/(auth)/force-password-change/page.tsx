@@ -55,15 +55,22 @@ export default function ForcePasswordChangePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-8">
+    <div className="relative min-h-screen bg-[#070b18] text-slate-100 flex items-center justify-center p-4 selection:bg-blue-600/30 selection:text-blue-200">
+      {/* ── Ambient Background Lighting ── */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+        <div className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-br from-blue-700/15 via-indigo-600/10 to-transparent blur-[120px]" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full bg-gradient-to-tl from-amber-600/10 via-blue-600/5 to-transparent blur-[140px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-[0.06]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[440px] bg-slate-900/60 border border-white/[0.12] rounded-3xl shadow-level-3 backdrop-blur-2xl p-7 sm:p-9">
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-4 text-indigo-400">
-            <KeyRound className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400 shadow-sm">
+            <KeyRound className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Security Setup</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Welcome to the ERP! For security, please set a new personal password before accessing your dashboard.
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Security Setup</h1>
+          <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
+            Welcome! For security, please set a new personal password before accessing your dashboard.
           </p>
         </div>
 
@@ -151,7 +158,7 @@ export default function ForcePasswordChangePage() {
           <button
             type="submit"
             disabled={!isValid || loading}
-            className="w-full mt-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed font-semibold text-white text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
+            className="w-full mt-2 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-white text-[15px] transition-all shadow-sm flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

@@ -294,7 +294,7 @@ export default function LoginForm() {
           type="submit"
           id="login-submit"
           disabled={isLoading}
-          className="w-full h-12 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] shadow-[0_4px_24px_rgba(37,99,235,0.4),0_1px_0_rgba(255,255,255,0.2)_inset] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-200 mt-2"
+          className="w-full h-12 rounded-xl font-semibold text-[15px] text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-2"
         >
           {isLoading ? (
             <>

@@ -84,20 +84,20 @@ function ClaimAccountForm() {
   }
 
   return (
-    <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-xl p-6 sm:p-8 space-y-6">
+    <div className="w-full max-w-md bg-slate-900/60 border border-white/[0.12] rounded-3xl shadow-level-3 backdrop-blur-2xl p-6 sm:p-8 space-y-6">
       {/* Brand Header */}
       <div className="flex flex-col items-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-4 text-indigo-400 shadow-lg shadow-indigo-950/40">
-          <KeyRound className="w-7 h-7" />
+        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400 shadow-sm">
+          <KeyRound className="w-6 h-6" />
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-bold text-indigo-300 uppercase tracking-widest mb-2">
-          <Sparkles className="w-3 h-3 text-indigo-400" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-semibold text-blue-300 uppercase tracking-widest mb-2">
+          <Sparkles className="w-3 h-3 text-blue-400" />
           <span>Parent Portal Access</span>
         </div>
-        <h1 className="text-2xl font-black text-white tracking-tight">
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
           Claim Parent Account
         </h1>
-        <p className="text-xs text-slate-400 mt-1 max-w-sm leading-relaxed">
+        <p className="text-xs text-slate-400 mt-1.5 max-w-sm leading-relaxed">
           Set your private password to link and view your child&apos;s attendance, fee demands, homework, and reports.
         </p>
       </div>
@@ -256,7 +256,7 @@ function ClaimAccountForm() {
         <button
           type="submit"
           disabled={!isValid || loading || Boolean(success)}
-          className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5"
+          className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-[15px] flex items-center justify-center gap-2 shadow-sm transition-all"
         >
           {loading ? (
             <>
