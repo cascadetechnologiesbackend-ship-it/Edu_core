@@ -26,8 +26,21 @@
     --info-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 221 83% 40%;
-    --radius: 0.5rem;
+    --ring: 211 100% 50%;
+    --radius: 0.75rem;
+
+    /* ── Apple HIG Elevation & Materials (Light) ────────────────────────── */
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-blur: saturate(180%) blur(20px);
+
+    --color-accent: #007AFF;
+    --color-accent-hover: #0068DB;
+    --color-accent-subtle: rgba(0, 122, 255, 0.10);
   }
 
   .dark {
@@ -51,7 +64,20 @@
     --info-foreground: 0 0% 100%;
     --border: 216 34% 17%;
     --input: 216 34% 17%;
-    --ring: 221 83% 53%;
+    --ring: 211 100% 52%;
+
+    /* ── Apple HIG Elevation & Materials (Dark) ─────────────────────────── */
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+
+    --glass-bg: rgba(28, 28, 30, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-blur: saturate(190%) blur(24px);
+
+    --color-accent: #0A84FF;
+    --color-accent-hover: #2196FF;
+    --color-accent-subtle: rgba(10, 132, 255, 0.16);
   }
 
   * {
@@ -66,6 +92,22 @@
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Apple-style minimalist scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 
   /* Focus visible */
@@ -99,6 +141,22 @@
 
   .glass-card {
     @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-xl;
+  }
+
+  /* ── Apple Frosted Materials & Surface Cards ─────────────────────────────── */
+  .glass-frosted {
+    background-color: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-color: var(--glass-border);
+  }
+
+  .apple-card {
+    @apply bg-card rounded-xl shadow-level-1 border border-border/40 transition-all duration-200;
+  }
+
+  .apple-card:hover {
+    @apply shadow-level-2 -translate-y-0.5;
   }
 
   /* ── Tables ───────────────────────────────────────────────────────────────── */
