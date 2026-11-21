@@ -54,8 +54,8 @@
     --muted-foreground: 215 16% 57%;
     --accent: 223 47% 15%;
     --accent-foreground: 213 31% 91%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 213 31% 91%;
+    --destructive: 356 100% 61%;
+    --destructive-foreground: 0 0% 100%;
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 90% 55%;

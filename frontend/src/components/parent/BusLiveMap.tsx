@@ -61,7 +61,7 @@ const createBusIcon = (speedKmh: number = 0) =>
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: #059669;
+          background: #34C759;
           border: 2px solid #ffffff;
           box-shadow: 0 4px 10px rgba(0,0,0,0.3);
           display: flex;
@@ -95,7 +95,7 @@ const createStudentStopIcon = () =>
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          background: #1e40af;
+          background: #007AFF;
           border: 2px solid #ffffff;
           box-shadow: 0 3px 8px rgba(0,0,0,0.3);
           display: flex;
@@ -120,7 +120,7 @@ const createNumberedStopIcon = (order: number) =>
     className: "custom-numbered-stop-icon",
     html: `
       <div style="
-        background: #64748b;
+        background: #8E8E93;
         color: white;
         width: 20px;
         height: 20px;
@@ -188,7 +188,7 @@ export default function BusLiveMap({
         {polylineCoords.length > 1 && (
           <Polyline
             positions={polylineCoords}
-            color="#059669"
+            color="#34C759"
             weight={3}
             opacity={0.65}
             dashArray="6, 8"

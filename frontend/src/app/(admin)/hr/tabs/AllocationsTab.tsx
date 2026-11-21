@@ -249,30 +249,30 @@ export function AllocationsTab({
               <p className="text-xs text-slate-400">Set up classes in Academics before assigning class teachers.</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-level-1">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Section</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Current Class Teacher</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Change</th>
+                  <tr className="border-b border-border/80 bg-muted/40">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Section</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Current Class Teacher</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Change</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/60">
                   {sections.map((sec) => {
                     const currentTeacherId = sectionCTMap[sec.id] ?? null;
                     const currentTeacher = currentTeacherId ? teacherMap[currentTeacherId] : null;
                     return (
-                      <tr key={sec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">
+                      <tr key={sec.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 font-medium text-foreground">
                           <div>{sec.class?.displayName || "—"}</div>
-                          <div className="text-xs text-slate-500">{sec.name}</div>
+                          <div className="text-xs text-muted-foreground">{sec.name}</div>
                         </td>
                         <td className="px-4 py-3">
                           {currentTeacher ? (
                             <div className="flex items-center gap-2">
                               <UserCheck className="w-4 h-4 text-emerald-500" />
-                              <span className="text-slate-700 dark:text-slate-300">{currentTeacher.name}</span>
+                              <span className="text-foreground">{currentTeacher.name}</span>
                             </div>
                           ) : (
                             <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5">
@@ -324,29 +324,29 @@ export function AllocationsTab({
               <p className="text-xs text-slate-400">Assign subjects to classes in Academics first.</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-level-1">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Subject</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Current Lead</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Change</th>
+                  <tr className="border-b border-border/80 bg-muted/40">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Subject</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Current Lead</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Change</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/60">
                   {uniqueClassSubjects.map((cs) => {
                     const currentTeacherId = cstLeadMap[cs.id] ?? null;
                     const currentTeacher = currentTeacherId ? teacherMap[currentTeacherId] : null;
                     return (
-                      <tr key={cs.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">
+                      <tr key={cs.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {cs.subject?.name || cs.classSubject?.subject?.name || "Subject"}
                         </td>
                         <td className="px-4 py-3">
                           {currentTeacher ? (
-                            <span className="text-slate-700 dark:text-slate-300">{currentTeacher.name}</span>
+                            <span className="text-foreground">{currentTeacher.name}</span>
                           ) : (
-                            <span className="text-slate-400 italic">Unassigned</span>
+                            <span className="text-muted-foreground italic">Unassigned</span>
                           )}
                         </td>
                         <td className="px-4 py-3">

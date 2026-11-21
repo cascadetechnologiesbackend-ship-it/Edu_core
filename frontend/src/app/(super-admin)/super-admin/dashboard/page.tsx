@@ -92,7 +92,7 @@ export default async function SuperAdminDashboardPage() {
           <div className="w-full sm:w-auto flex flex-wrap items-center gap-3">
             <Link
               href="/super-admin/schools"
-              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-level-1 active:scale-[0.98] transition-all"
+              className="w-full sm:w-auto min-h-[38px] sm:min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-level-1 active:scale-[0.98] transition-all"
             >
               <Building2 className="w-4 h-4" />
               <span>Manage School Tenants</span>
@@ -216,7 +216,7 @@ export default async function SuperAdminDashboardPage() {
           <div className="pt-2">
             <Link
               href="/super-admin/schools"
-              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted hover:bg-muted/80 active:scale-[0.98] text-foreground text-xs font-semibold transition-all"
+              className="w-full min-h-[38px] sm:min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted hover:bg-muted/80 active:scale-[0.98] text-foreground text-xs font-semibold transition-all"
             >
               <span>Manage School Directory</span>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
@@ -257,7 +257,7 @@ export default async function SuperAdminDashboardPage() {
           <div className="pt-2">
             <Link
               href="/super-admin/announcements"
-              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted hover:bg-muted/80 active:scale-[0.98] text-foreground text-xs font-semibold transition-all"
+              className="w-full min-h-[38px] sm:min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted hover:bg-muted/80 active:scale-[0.98] text-foreground text-xs font-semibold transition-all"
             >
               <span>Broadcast Hub</span>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
@@ -298,7 +298,7 @@ export default async function SuperAdminDashboardPage() {
           <div className="pt-2">
             <Link
               href="/super-admin/audit"
-              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted hover:bg-muted/80 active:scale-[0.98] text-foreground text-xs font-semibold transition-all"
+              className="w-full min-h-[38px] sm:min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted hover:bg-muted/80 active:scale-[0.98] text-foreground text-xs font-semibold transition-all"
             >
               <span>View Audit Timeline</span>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
@@ -322,7 +322,7 @@ export default async function SuperAdminDashboardPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/super-admin/schools"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1 transition-all min-h-[36px]"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1 transition-all min-h-[38px] sm:min-h-[44px] py-1"
             >
               <span>View Directory ({totalSchools?.count ?? 0})</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -387,7 +387,7 @@ export default async function SuperAdminDashboardPage() {
                       <div className="inline-flex items-center gap-2">
                         <Link
                           href={`/super-admin/schools`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium transition-all text-[11px]"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium transition-all text-[11px]"
                           title="Manage in School Directory"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -441,7 +441,7 @@ export default async function SuperAdminDashboardPage() {
                   </div>
                   <Link
                     href={`/super-admin/schools`}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold transition-all text-xs active:scale-95 flex items-center justify-center"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[38px] sm:min-h-[44px] rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold transition-all text-xs active:scale-95 flex items-center justify-center"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>Inspect</span>

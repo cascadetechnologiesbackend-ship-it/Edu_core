@@ -52,7 +52,7 @@ export function Drawer({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring min-h-[38px] sm:min-h-[44px] min-w-[38px] sm:min-w-[44px] inline-flex items-center justify-center"
                 aria-label="Close drawer"
               >
                 <X className="h-4 w-4" />

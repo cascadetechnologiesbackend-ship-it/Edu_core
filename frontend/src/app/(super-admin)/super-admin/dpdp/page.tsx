@@ -118,7 +118,7 @@ export default async function SuperAdminDpdpPage() {
   return (
     <div className="space-y-8">
       {/* ─── Hero Platform Header ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-[#090d16] p-5 sm:p-8 border border-slate-800/80 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-blue-950/60 p-5 sm:p-8 border border-white/[0.12] shadow-level-2">
         <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
@@ -249,7 +249,7 @@ export default async function SuperAdminDpdpPage() {
       </div>
 
       {/* ─── Multi-Tenant Schools Compliance Matrix ──────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] overflow-hidden shadow-xl">
+      <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-level-1">
         <div className="p-4 sm:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
@@ -443,7 +443,7 @@ export default async function SuperAdminDpdpPage() {
       </div>
 
       {/* ─── Statutory Consent Purposes Registry ─────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] p-4 sm:p-6 shadow-xl space-y-4">
+      <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-level-1 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
@@ -502,7 +502,7 @@ export default async function SuperAdminDpdpPage() {
       </div>
 
       {/* ─── Recent DPDP Audit Logs ───────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0d1322] p-4 sm:p-6 shadow-xl space-y-4">
+      <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-level-1 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">

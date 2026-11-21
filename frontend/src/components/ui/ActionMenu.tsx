@@ -29,7 +29,7 @@ export function ActionMenu({
         <button
           type="button"
           aria-label={triggerLabel}
-          className={`h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${className}`}
+          className={`h-9 w-9 min-h-[38px] sm:min-h-[44px] min-w-[38px] sm:min-w-[44px] rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${className}`}
         >
           <MoreVertical className="h-4 w-4" />
         </button>

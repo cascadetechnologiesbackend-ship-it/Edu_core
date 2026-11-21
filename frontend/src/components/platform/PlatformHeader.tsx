@@ -75,7 +75,7 @@ export function PlatformHeader({
 
   return (
     <>
-      <header className="h-16 border-b border-slate-800/80 bg-[#090d16]/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 text-slate-200">
+      <header className="h-16 border-b border-border/80 bg-background/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 text-foreground">
         {/* Left Section: Mobile Menu Trigger + Breadcrumbs */}
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Hamburger trigger for phones & tablets */}
@@ -156,7 +156,7 @@ export function PlatformHeader({
 
       {/* Mobile Collapsible Search Dropdown */}
       {isMobileSearchOpen && (
-        <div className="md:hidden px-4 py-3 bg-[#0c121e] border-b border-slate-800 animate-in slide-in-from-top-2 duration-150">
+        <div className="md:hidden px-4 py-3 bg-card border-b border-border/80 animate-in slide-in-from-top-2 duration-150">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
@@ -181,7 +181,7 @@ export function PlatformHeader({
           />
 
           {/* Drawer Content */}
-          <div className="relative w-72 max-w-[85vw] bg-[#090d16] border-r border-slate-800 flex flex-col h-full text-slate-300 z-10 shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="relative w-72 max-w-[85vw] bg-card border-r border-border/80 flex flex-col h-full text-muted-foreground z-10 shadow-2xl animate-in slide-in-from-left duration-200">
             {/* Header */}
             <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
               <Link

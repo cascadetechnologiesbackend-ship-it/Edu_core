@@ -55,12 +55,12 @@ export default function ForcePasswordChangePage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#070b18] text-slate-100 flex items-center justify-center p-4 selection:bg-blue-600/30 selection:text-blue-200">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 selection:bg-blue-600/30 selection:text-blue-200">
       {/* ── Ambient Background Lighting ── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
         <div className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-br from-blue-700/15 via-indigo-600/10 to-transparent blur-[120px]" />
         <div className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full bg-gradient-to-tl from-amber-600/10 via-blue-600/5 to-transparent blur-[140px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-[0.06]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(0,122,255,0.75)_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-[0.06]" />
       </div>
 
       <div className="relative z-10 w-full max-w-[440px] bg-slate-900/60 border border-white/[0.12] rounded-3xl shadow-level-3 backdrop-blur-2xl p-7 sm:p-9">

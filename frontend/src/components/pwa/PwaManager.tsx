@@ -259,7 +259,7 @@ export function PwaManager() {
       {/* ─── Direct PWA Install Pop-Up (Clean, Direct Action, Zero Long Instructions) ─── */}
       {showInstallModal && !isStandalone && !isInstalled && (
         <div className="fixed inset-0 z-[999999] bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-sm bg-gradient-to-b from-slate-900 via-slate-900 to-[#0b101b] border border-indigo-500/30 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
+          <div className="relative w-full max-w-sm bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
             {/* Top Close Button */}
             <button
               onClick={handleDismissModal}

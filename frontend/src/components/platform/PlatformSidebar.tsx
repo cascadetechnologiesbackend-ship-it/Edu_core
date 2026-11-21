@@ -64,7 +64,7 @@ export function PlatformSidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex md:w-64 shrink-0 bg-[#090d16] border-r border-slate-800/80 flex-col h-full text-slate-300 select-none">
+    <aside className="hidden md:flex md:w-64 shrink-0 bg-card border-r border-border/80 flex-col h-full text-muted-foreground select-none">
       {/* Platform Brand Header */}
       <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
         <Link href="/super-admin/dashboard" className="flex items-center gap-2.5 group">

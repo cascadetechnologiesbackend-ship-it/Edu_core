@@ -125,12 +125,12 @@ export function NextBestAction({
     );
 
     const baseClasses = cn(
-      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition min-h-[32px] focus:outline-none focus:ring-2 whitespace-nowrap",
+      "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition min-h-[38px] sm:min-h-[44px] focus:outline-none focus:ring-2 whitespace-nowrap active:scale-[0.98]",
       isPrimary
         ? isCelebration
-          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs focus:ring-emerald-400/30"
-          : "bg-primary hover:bg-primary/95 text-white shadow-xs focus:ring-primary/30"
-        : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/80 border border-gray-200/80 dark:border-slate-700/80"
+          ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-level-1 focus:ring-emerald-400/30"
+          : "bg-blue-600 hover:bg-blue-500 text-white shadow-level-1 focus:ring-blue-500/30"
+        : "text-foreground hover:bg-muted/60 border border-border/80"
     );
 
     if (action.href) {
@@ -156,10 +156,10 @@ export function NextBestAction({
   return (
     <div
       className={cn(
-        "w-full rounded-xl px-4 py-2.5 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-1",
+        "w-full rounded-2xl px-4 py-3 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-1 shadow-level-1",
         isCelebration
-          ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 shadow-xs shadow-emerald-500/10 text-emerald-950 dark:text-emerald-100"
-          : "bg-blue-50/80 dark:bg-slate-800/80 border border-blue-200/70 dark:border-slate-700/80 text-gray-900 dark:text-gray-100",
+          ? "bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+          : "bg-card border border-border/80 text-foreground",
         className
       )}
     >

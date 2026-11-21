@@ -28,7 +28,7 @@ const createStopIcon = (order: number) =>
     className: "custom-stop-icon",
     html: `
       <div style="
-        background: #4f46e5;
+        background: #007AFF;
         color: white;
         width: 26px;
         height: 26px;
@@ -61,7 +61,7 @@ const busIcon = L.divIcon({
       "></div>
       <div style="
         position: relative;
-        background: #ef4444;
+        background: #FF3B30;
         color: white;
         width: 38px;
         height: 38px;
@@ -157,7 +157,7 @@ export default function LiveMap({
           <Polyline
             positions={polylinePositions}
             pathOptions={{
-              color: "#4f46e5",
+              color: "#007AFF",
               weight: 5,
               opacity: 0.85,
               dashArray: "8, 6",

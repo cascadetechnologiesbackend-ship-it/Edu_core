@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function LoginPage() {
   await getActiveTenant();
   return (
-    <div className="relative min-h-screen w-full bg-[#070b18] text-slate-100 flex flex-col justify-between selection:bg-blue-600/30 selection:text-blue-200 overflow-x-hidden">
+    <div className="relative min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-blue-600/30 selection:text-blue-200 overflow-x-hidden">
       {/* ── Subtle Ambient Background Lighting ── */}
       <div
         className="pointer-events-none fixed inset-0 overflow-hidden z-0"
@@ -25,7 +25,7 @@ export default async function LoginPage() {
         <div className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full bg-gradient-to-tl from-amber-600/10 via-blue-600/5 to-transparent blur-[140px] will-change-transform" />
 
         {/* Micro-dot grid texture for architectural tactility */}
-        <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-[0.06]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(0,122,255,0.75)_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-[0.06]" />
       </div>
 
       {/* ── Main Split-Screen Container ── */}
@@ -50,8 +50,8 @@ export default async function LoginPage() {
                 className="object-cover object-center scale-[1.02] transition-transform duration-1000 ease-out group-hover:scale-[1.04]"
               />
               {/* Multi-layered dark and warm gradient overlays */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#070b18] via-[#070b18]/70 to-[#070b18]/30" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#070b18]/80 via-transparent to-blue-950/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-blue-950/20" />
             </div>
 
             {/* Top Brand Header */}

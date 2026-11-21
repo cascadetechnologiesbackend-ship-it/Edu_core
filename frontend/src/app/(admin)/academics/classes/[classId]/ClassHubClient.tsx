@@ -815,14 +815,14 @@ export default function ClassHubClient({
               <button
                 type="button"
                 onClick={() => setActiveTab("roster")}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 transition min-h-[36px]"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-card border border-border/80 text-foreground hover:bg-muted/60 transition min-h-[38px] sm:min-h-[44px]"
               >
                 View Roster
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("timetable")}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/95 transition shadow-xs min-h-[36px]"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-500 transition shadow-level-1 active:scale-[0.98] min-h-[38px] sm:min-h-[44px]"
               >
                 Today's Timetable
               </button>
@@ -832,7 +832,7 @@ export default function ClassHubClient({
           {/* Needs Attention Cards */}
           {needsAttentionItems.length > 0 && (
             <div className="space-y-3">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-gray-400 block">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
                 Needs Attention
               </span>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -845,22 +845,22 @@ export default function ClassHubClient({
 
           {/* 4 Visual Key Metric Cards (F3: visual progress, no bare numbers) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <span className="text-xs uppercase text-gray-400 font-bold block mb-1">
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-level-1">
+              <span className="text-xs uppercase text-muted-foreground font-bold block mb-1">
                 Enrolled Students
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-gray-900 dark:text-white">
+                <span className="text-2xl font-black text-foreground">
                   {rosterStudents.length}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   across {cls.sections.length} sec
                 </span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <span className="text-xs uppercase text-gray-400 font-bold block mb-1">
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-level-1">
+              <span className="text-xs uppercase text-muted-foreground font-bold block mb-1">
                 Attendance Rate
               </span>
               <div className="flex items-baseline gap-2">
@@ -875,12 +875,12 @@ export default function ClassHubClient({
                 >
                   {avgAttendance}%
                 </span>
-                <span className="text-xs text-gray-500">30-day avg</span>
+                <span className="text-xs text-muted-foreground">30-day avg</span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <span className="text-xs uppercase text-gray-400 font-bold block mb-1">
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-level-1">
+              <span className="text-xs uppercase text-muted-foreground font-bold block mb-1">
                 Fee Status
               </span>
               <div className="flex items-baseline gap-2">
@@ -893,33 +893,33 @@ export default function ClassHubClient({
                 >
                   {defaultersCount}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {defaultersCount > 0 ? "defaulters" : "all cleared"}
                 </span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <span className="text-xs uppercase text-gray-400 font-bold block mb-1">
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-level-1">
+              <span className="text-xs uppercase text-muted-foreground font-bold block mb-1">
                 Syllabus Pace
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-primary">
+                <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
                   {overview.overallProgress}%
                 </span>
-                <span className="text-xs text-gray-500">completed</span>
+                <span className="text-xs text-muted-foreground">completed</span>
               </div>
             </div>
           </div>
 
           {/* Activity Feed Chronological Timeline (Law F2) */}
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-level-1">
+            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                  Class Activity & Timeline
+                <h3 className="text-sm font-bold text-foreground">
+                  Class Activity &amp; Timeline
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Chronological trail of homework, lesson plans, and assessments.
                 </p>
               </div>
@@ -934,20 +934,20 @@ export default function ClassHubClient({
       {activeTab === "roster" && (
         <div className="space-y-4 animate-fade-in">
           {/* Controls: Section Switcher + Search */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border/80 p-3 rounded-2xl shadow-level-1">
             {/* Section Switcher */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-gray-500 uppercase">
+              <span className="text-xs font-bold text-muted-foreground uppercase">
                 Section:
               </span>
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setSelectedRosterSection("ALL")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition min-h-[36px] ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition min-h-[38px] sm:min-h-[44px] ${
                     selectedRosterSection === "ALL"
-                      ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
-                      : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                      ? "bg-card text-blue-600 dark:text-blue-400 shadow-level-1"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   All Sections ({rosterStudents.length})
@@ -957,10 +957,10 @@ export default function ClassHubClient({
                     key={sec.id}
                     type="button"
                     onClick={() => setSelectedRosterSection(sec.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition min-h-[36px] ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition min-h-[38px] sm:min-h-[44px] ${
                       selectedRosterSection === sec.id
-                        ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
-                        : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                        ? "bg-card text-blue-600 dark:text-blue-400 shadow-level-1"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Section {sec.name}
@@ -971,13 +971,13 @@ export default function ClassHubClient({
 
             {/* Search Input (Law L1: 320px) */}
             <div className="relative w-full sm:w-80">
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search students by name, roll, or admission #..."
                 value={rosterSearchQuery}
                 onChange={(e) => setRosterSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/60 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-border/80 bg-card text-foreground placeholder:text-muted-foreground/60 text-xs focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 min-h-[38px] sm:min-h-[44px]"
               />
             </div>
           </div>
@@ -992,10 +992,10 @@ export default function ClassHubClient({
               onCta={() => router.push(`/students?classId=${cls.id}`)}
             />
           ) : (
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-x-auto">
+            <div className="bg-card border border-border/80 rounded-2xl shadow-level-1 overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/75 dark:bg-slate-800/40 border-b border-gray-200 dark:border-slate-800 text-[11px] font-bold uppercase text-gray-500">
+                  <tr className="bg-muted/40 border-b border-border/80 text-[11px] font-bold uppercase text-muted-foreground">
                     <th className="p-3.5">Student</th>
                     <th className="p-3.5">Section</th>
                     <th className="p-3.5 text-right">Attendance (30D)</th>
@@ -1053,33 +1053,33 @@ export default function ClassHubClient({
                             <span
                               className={`px-2 py-0.5 rounded-md text-xs ${
                                 student.attendancePct >= 85
-                                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
                                   : student.attendancePct >= 75
-                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                                    : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25"
+                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25"
                               }`}
                             >
                               {student.attendancePct}%
                             </span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
 
                         {/* Fee Status Badge */}
                         <td className="p-3.5 text-center">
                           {student.feeStatus === "PAID" && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                               PAID
                             </span>
                           )}
                           {student.feeStatus === "DUE" && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                               DUE
                             </span>
                           )}
                           {student.feeStatus === "DEFAULTER" && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25">
                               DEFAULTER
                             </span>
                           )}

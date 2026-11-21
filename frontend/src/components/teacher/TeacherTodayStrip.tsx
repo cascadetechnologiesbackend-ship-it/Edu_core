@@ -69,8 +69,8 @@ export function TeacherTodayStrip({
                   {holidayTitle
                     ? `${holidayTitle} • ${locale === "hi" ? "अवकाश" : "School Closed"}`
                     : locale === "hi"
-                    ? "रविवार • विद्यालय बंद"
-                    : "Sunday • Rest Day"}
+                      ? "रविवार • विद्यालय बंद"
+                      : "Sunday • Rest Day"}
                 </span>
                 <span className="text-xs text-slate-400 hidden sm:inline">
                   — {locale === "hi" ? "आज कोई शैक्षणिक सत्र नहीं है" : "No instructional sessions scheduled today"}
@@ -185,9 +185,8 @@ export function TeacherTodayStrip({
                     {daySummary ||
                       (locale === "hi"
                         ? `आज ${activeCardsCount} कार्य ध्यान देने की प्रतीक्षा में हैं`
-                        : `${activeCardsCount} ${
-                            activeCardsCount === 1 ? "task awaits" : "tasks await"
-                          } your attention today`)}
+                        : `${activeCardsCount} ${activeCardsCount === 1 ? "task awaits" : "tasks await"
+                        } your attention today`)}
                   </span>
                 </>
               )}

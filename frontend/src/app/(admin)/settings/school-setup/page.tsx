@@ -67,8 +67,8 @@ export default function SchoolSetupPage() {
     socialFacebook: "",
     socialLinkedin: "",
     socialYoutube: "",
-    themeLight: "#4f46e5",
-    themeDark: "#6366f1",
+    themeLight: "#007AFF",
+    themeDark: "#0A84FF",
   });
 
   const loadData = async () => {
@@ -105,8 +105,8 @@ export default function SchoolSetupPage() {
         socialFacebook: social.facebook || "",
         socialLinkedin: social.linkedin || "",
         socialYoutube: social.youtube || "",
-        themeLight: theme.light || "#4f46e5",
-        themeDark: theme.dark || "#6366f1",
+        themeLight: theme.light || "#007AFF",
+        themeDark: theme.dark || "#0A84FF",
       });
     } catch (err: any) {
       toast.error(err.message || "Failed to load school profile");

@@ -45,7 +45,7 @@ export function SuperAdminBottomNav() {
   return (
     <nav
       aria-label="Super Admin Mobile Navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#090d16]/95 backdrop-blur-lg border-t border-slate-800/90 text-slate-400 shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-lg border-t border-border/90 text-muted-foreground shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
     >
       <div className="grid grid-cols-5 h-16 items-center px-1 max-w-md mx-auto">
         {NAV_ITEMS.map((item) => {

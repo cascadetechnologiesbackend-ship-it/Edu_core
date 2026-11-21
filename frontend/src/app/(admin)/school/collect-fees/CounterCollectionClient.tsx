@@ -370,7 +370,7 @@ export function CounterCollectionClient({
           contact: (selectedStudent as any).primaryParentMobile || (selectedStudent as any).parentPhone || "9999999999",
         },
         theme: {
-          color: "#4f46e5",
+          color: "#007AFF",
         },
         modal: {
           ondismiss: function () {

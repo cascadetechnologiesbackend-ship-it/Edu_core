@@ -20,8 +20,8 @@ import {
 const LiveMap = dynamic(() => import("@/app/(admin)/transport/LiveMap"), {
   ssr: false,
   loading: () => (
-    <div className="h-[280px] w-full rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
-      <Loader2 className="w-4 h-4 animate-spin mr-2 text-indigo-400" />
+    <div className="h-[280px] w-full rounded-2xl bg-card border border-border/80 flex items-center justify-center text-muted-foreground text-xs">
+      <Loader2 className="w-4 h-4 animate-spin mr-2 text-blue-500" />
       Loading Route Map...
     </div>
   ),

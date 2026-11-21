@@ -125,7 +125,7 @@ export function ConfirmationDialog({
               value={typedPhrase}
               onChange={(e) => setTypedPhrase(e.target.value)}
               placeholder={requiredPhrase}
-              className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+              className="w-full px-3.5 py-2.5 text-xs bg-card border border-input rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-mono min-h-[38px] sm:min-h-[44px]"
               autoFocus
             />
           </div>

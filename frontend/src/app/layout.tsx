@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "theme-color": "#1e40af",
+    "theme-color": "#007AFF",
   },
 };
 
@@ -72,8 +72,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#1e40af" },
-    { media: "(prefers-color-scheme: dark)", color: "#172554" },
+    { media: "(prefers-color-scheme: light)", color: "#007AFF" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A84FF" },
   ],
 };
 

@@ -15,7 +15,7 @@ export function SuspendedWall({
   supportPhone = "+91 80 4000 8899",
 }: SuspendedWallProps) {
   return (
-    <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-200">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 text-foreground">
       <div className="max-w-md w-full rounded-2xl bg-slate-900 border border-slate-800 p-8 shadow-2xl text-center space-y-6">
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
           <ShieldAlert className="w-8 h-8" />

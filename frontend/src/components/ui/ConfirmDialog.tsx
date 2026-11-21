@@ -77,21 +77,21 @@ export function ConfirmDialog({
     >
       <div className="space-y-4 pt-1">
         <div className="flex items-start gap-3.5">
-          <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 shrink-0">
+          <div className="p-2.5 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base font-bold text-foreground">
               {title}
             </h3>
             {description ? (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {description}
               </div>
             ) : itemName ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 This action will permanently delete{" "}
-                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                <span className="font-semibold text-foreground">
                   {itemName}
                 </span>{" "}
                 and its related configurations.
@@ -101,7 +101,7 @@ export function ConfirmDialog({
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-xs text-red-700 dark:text-red-300 space-y-1">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 dark:bg-rose-950/20 border border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 space-y-1">
             <div className="font-bold flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Cannot Proceed
             </div>
@@ -110,7 +110,7 @@ export function ConfirmDialog({
         )}
 
         {consequences && consequences.length > 0 && (
-          <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40 space-y-1">
+          <div className="bg-amber-500/10 dark:bg-amber-950/20 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-300 border border-amber-500/30 space-y-1">
             <div className="font-semibold">Consequences:</div>
             <ul className="list-disc list-inside space-y-0.5 text-[11px]">
               {consequences.map((item, idx) => (
@@ -121,11 +121,11 @@ export function ConfirmDialog({
         )}
 
         {safetyChecks && safetyChecks.length > 0 && (
-          <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-3.5 text-xs text-gray-600 dark:text-gray-400 space-y-1 border border-gray-100 dark:border-slate-800">
-            <div className="font-semibold text-gray-700 dark:text-gray-300">
+          <div className="bg-muted/40 rounded-xl p-3.5 text-xs text-muted-foreground space-y-1 border border-border/60">
+            <div className="font-semibold text-foreground">
               Deletion Safety Checks:
             </div>
-            <ul className="list-disc list-inside space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+            <ul className="list-disc list-inside space-y-0.5 text-[11px] text-muted-foreground">
               {safetyChecks.map((check, idx) => (
                 <li key={idx}>{check}</li>
               ))}

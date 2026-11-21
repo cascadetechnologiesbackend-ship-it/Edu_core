@@ -54,7 +54,7 @@ export default async function SuperAdminLayout({
   const userName = session.user.name ?? "Platform Super Admin";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#090d16] text-slate-100 font-sans antialiased">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground font-sans antialiased">
       {/* Platform Sidebar - Desktop */}
       <PlatformSidebar userEmail={userEmail} userName={userName} />
 

@@ -39,7 +39,7 @@ export function BulkActionBar({
           <button
             type="button"
             onClick={onClearSelection}
-            className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 transition min-h-[32px] min-w-[32px] flex items-center justify-center text-xs"
+            className="p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-slate-800 transition min-h-[38px] sm:min-h-[44px] min-w-[38px] sm:min-w-[44px] flex items-center justify-center text-xs"
             title="Clear selection"
             aria-label="Clear selection"
           >
