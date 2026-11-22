@@ -53,6 +53,10 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   const start = performance.now();
   const res = await (auth as any)(req);
   const durationMs = Math.round((performance.now() - start) * 100) / 100;
@@ -105,5 +109,5 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/trpc|_next/static|_next/image|favicon.ico|manifest.json|icon.svg).*)"],
+  matcher: ["/((?!api/auth|api/trpc|_next/static|_next/image|favicon.ico|manifest.json|icon.svg).*)"],
 };
