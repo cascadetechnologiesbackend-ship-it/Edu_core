@@ -15,6 +15,7 @@ out
 .env.production
 .env.staging
 *.env
+*.bak
 *api_keys*.csv
 *.pem
 *.key
