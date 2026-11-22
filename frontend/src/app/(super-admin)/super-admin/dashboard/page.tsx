@@ -4,6 +4,7 @@ import { count, eq, desc } from "drizzle-orm";
 import Link from "next/link";
 import {
   Building2,
+  Plus,
   Users,
   UserCheck,
   ShieldCheck,
@@ -91,8 +92,15 @@ export default async function SuperAdminDashboardPage() {
 
           <div className="w-full sm:w-auto flex flex-wrap items-center gap-3">
             <Link
-              href="/super-admin/schools"
+              href="/onboard"
               className="w-full sm:w-auto min-h-[38px] sm:min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-level-1 active:scale-[0.98] transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Provision New School</span>
+            </Link>
+            <Link
+              href="/super-admin/schools"
+              className="w-full sm:w-auto min-h-[38px] sm:min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold text-xs border border-border shadow-level-1 active:scale-[0.98] transition-all"
             >
               <Building2 className="w-4 h-4" />
               <span>Manage School Tenants</span>
@@ -346,8 +354,17 @@ export default async function SuperAdminDashboardPage() {
             <tbody className="divide-y divide-border/60">
               {activeSchools.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                    No school tenants registered yet.
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <div className="max-w-xs mx-auto space-y-3">
+                      <p>No school tenants registered yet.</p>
+                      <Link
+                        href="/onboard"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Provision First School</span>
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -405,8 +422,15 @@ export default async function SuperAdminDashboardPage() {
         {/* Mobile Card View (UX-R47) */}
         <div className="block md:hidden p-3.5 space-y-3">
           {activeSchools.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground text-xs">
-              No school tenants registered yet.
+            <div className="py-8 text-center text-muted-foreground text-xs space-y-3">
+              <p>No school tenants registered yet.</p>
+              <Link
+                href="/onboard"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Provision First School</span>
+              </Link>
             </div>
           ) : (
             activeSchools.map((s) => (

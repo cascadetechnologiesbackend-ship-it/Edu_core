@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
+import Link from "next/link";
 import {
   Building2,
   Plus,
@@ -27,7 +28,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  createSchoolAction,
   updateSchoolAction,
   deleteSchoolAction,
   toggleSchoolStatusAction,
@@ -69,7 +69,6 @@ export function SchoolManagementClient({ initialSchools }: Props) {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   // Modal states
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<SchoolItem | null>(null);
   const [deletingSchool, setDeletingSchool] = useState<SchoolItem | null>(null);
   const [provisioningSchool, setProvisioningSchool] = useState<SchoolItem | null>(null);
@@ -111,13 +110,13 @@ export function SchoolManagementClient({ initialSchools }: Props) {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsCreateOpen(true)}
+        <Link
+          href="/onboard"
           className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25 active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>Provision New School</span>
-        </button>
+        </Link>
       </div>
 
       {/* Filter / Search Bar */}
@@ -213,7 +212,18 @@ export function SchoolManagementClient({ initialSchools }: Props) {
               {filteredSchools.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-500">
-                    No schools match the specified search or filter criteria.
+                    <p>No schools match the specified search or filter criteria.</p>
+                    {schoolsList.length === 0 && (
+                      <div className="mt-3">
+                        <Link
+                          href="/onboard"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Provision First School</span>
+                        </Link>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -392,8 +402,17 @@ export function SchoolManagementClient({ initialSchools }: Props) {
       {/* Mobile School Cards View (UX-R47: Phones show cards) */}
       <div className="block md:hidden space-y-3">
         {filteredSchools.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 rounded-xl border border-slate-800 bg-slate-900/40 text-xs">
-            No schools match the specified search or filter criteria.
+          <div className="p-8 text-center text-slate-500 rounded-xl border border-slate-800 bg-slate-900/40 text-xs space-y-3">
+            <p>No schools match the specified search or filter criteria.</p>
+            {schoolsList.length === 0 && (
+              <Link
+                href="/onboard"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/25"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Provision First School</span>
+              </Link>
+            )}
           </div>
         ) : (
           filteredSchools.map((s) => {
@@ -591,24 +610,7 @@ export function SchoolManagementClient({ initialSchools }: Props) {
         )}
       </div>
 
-      {/* CREATE MODAL */}
-      {isCreateOpen && (
-        <SchoolFormModal
-          title="Provision New School Instance"
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSubmit={async (formData) => {
-            const res = await createSchoolAction(formData);
-            if (res.success && res.school) {
-              setSchoolsList((prev) => [res.school as SchoolItem, ...prev]);
-              toast.success(`School "${res.school.name}" created successfully!`);
-              setIsCreateOpen(false);
-            } else {
-              toast.error(res.error || "Failed to create school");
-            }
-          }}
-        />
-      )}
+
 
       {/* EDIT MODAL */}
       {editingSchool && (
