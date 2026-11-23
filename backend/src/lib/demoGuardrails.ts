@@ -8,8 +8,8 @@
  * 3. Identifies demo tenant scopes across CBSE, ICSE, State Board, and International sandboxes.
  */
 
-import { db } from "@/db";
-import { schools } from "@/db/schema/core";
+import { db } from "@schoolmitra/database";
+import { schools } from "@schoolmitra/database/schema";
 import { eq } from "drizzle-orm";
 
 export const DEMO_DOMAINS = ["demo.schoolos.io", "schoolmitra.internal"];
