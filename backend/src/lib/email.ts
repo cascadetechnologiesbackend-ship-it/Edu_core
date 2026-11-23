@@ -53,6 +53,16 @@ function getTransporter() {
  * 5. On send error: returns { delivered: false, error: errMsg, attempts: 1 }.
  */
 export async function sendEmail(options: EmailOptions): Promise<EmailDeliveryResult> {
+  // Demo mode safeguard: short-circuit demo recipient emails so external SMTP/SES is never touched
+  if (options.to.endsWith("@demo.schoolos.io") || options.to.endsWith("@schoolmitra.internal") || options.to.includes("demo-")) {
+    console.log("[EMAIL DEMO SHORT-CIRCUIT]", { to: options.to, subject: options.subject });
+    return {
+      delivered: true,
+      messageId: `demo-mock-email-${Date.now()}`,
+      attempts: 1,
+    };
+  }
+
   const configured = isEmailConfigured();
 
   if (!configured) {

@@ -95,12 +95,13 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
-      // Webhook, health, telemetry, and pincode reference endpoints
+      // Webhook, health, telemetry, pincode and demo endpoints
       if (
         pathname.startsWith("/api/webhooks") ||
         pathname.startsWith("/api/health") ||
         pathname.startsWith("/api/telemetry") ||
-        pathname.startsWith("/api/pincode")
+        pathname.startsWith("/api/pincode") ||
+        pathname.startsWith("/api/demo")
       ) {
         return true;
       }
@@ -153,6 +154,7 @@ export const authConfig: NextAuthConfig = {
         token.schoolId = user.schoolId;
         token.role = user.role;
         token.mustChangePassword = (user as any).mustChangePassword ?? false;
+        token.isDemo = (user as any).isDemo ?? false;
       }
       if (trigger === "update" && session) {
         if (session.mustChangePassword !== undefined) {
@@ -167,6 +169,7 @@ export const authConfig: NextAuthConfig = {
         (session.user as any).schoolId = token.schoolId as string | null;
         session.user.role = token.role as string;
         (session.user as any).mustChangePassword = (token.mustChangePassword as boolean) ?? false;
+        (session.user as any).isDemo = (token.isDemo as boolean) ?? false;
       }
       return session;
     },

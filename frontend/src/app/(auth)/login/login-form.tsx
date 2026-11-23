@@ -16,6 +16,14 @@ import {
   ArrowRight,
   AlertCircle,
   KeyRound,
+  Sparkles,
+  Building2,
+  GraduationCap,
+  BookOpen,
+  IndianRupee,
+  Users,
+  Compass,
+  CheckCircle2,
 } from "lucide-react";
 import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
 
@@ -29,8 +37,162 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+// ─── Demo Board Specifications ────────────────────────────────────────────────
+
+interface DemoBoard {
+  code: "CBSE" | "ICSE" | "STATE" | "INTL";
+  label: string;
+  shortLabel: string;
+  schoolName: string;
+  prefix: string;
+  curriculum: string;
+}
+
+const DEMO_BOARDS: DemoBoard[] = [
+  {
+    code: "CBSE",
+    label: "CBSE (National)",
+    shortLabel: "CBSE",
+    schoolName: "Oakridge Global Academy",
+    prefix: "cbse",
+    curriculum: "CCE 9-Point Grading · NCERT Standards",
+  },
+  {
+    code: "ICSE",
+    label: "ICSE (Comprehensive)",
+    shortLabel: "ICSE",
+    schoolName: "St. Xavier's International Academy",
+    prefix: "icse",
+    curriculum: "Percentage Grading · Project Practicals",
+  },
+  {
+    code: "STATE",
+    label: "State Board",
+    shortLabel: "State Board",
+    schoolName: "Adarsh Vidya Mandir",
+    prefix: "state",
+    curriculum: "State Board (SSC) · Regional Language",
+  },
+  {
+    code: "INTL",
+    label: "International",
+    shortLabel: "Cambridge",
+    schoolName: "The Cambridge International School",
+    prefix: "intl",
+    curriculum: "CAIE / IGCSE · Checkpoint Evaluations",
+  },
+];
+
+// ─── Demo Role Card Specifications ────────────────────────────────────────────
+
+interface DemoRoleCard {
+  role: UserRole;
+  title: string;
+  description: string;
+  emailPrefix: string;
+  icon: any;
+  accentColor: {
+    bg: string;
+    text: string;
+    border: string;
+    ring: string;
+  };
+  destination: string;
+}
+
+const DEMO_ROLE_CARDS: DemoRoleCard[] = [
+  {
+    role: "SCHOOL_ADMIN",
+    title: "School Admin",
+    description: "Command Center, admissions, 360 roster & settings",
+    emailPrefix: "admin",
+    icon: Building2,
+    accentColor: {
+      bg: "bg-blue-500/15",
+      text: "text-blue-400",
+      border: "border-blue-500/30",
+      ring: "group-hover:border-blue-400/60",
+    },
+    destination: "/dashboard",
+  },
+  {
+    role: "PRINCIPAL",
+    title: "Principal",
+    description: "Academic health, exam approvals & attendance audits",
+    emailPrefix: "principal",
+    icon: GraduationCap,
+    accentColor: {
+      bg: "bg-purple-500/15",
+      text: "text-purple-400",
+      border: "border-purple-500/30",
+      ring: "group-hover:border-purple-400/60",
+    },
+    destination: "/principal/dashboard",
+  },
+  {
+    role: "TEACHER",
+    title: "Teacher",
+    description: "Mark attendance, record grades & post homework",
+    emailPrefix: "teacher",
+    icon: BookOpen,
+    accentColor: {
+      bg: "bg-emerald-500/15",
+      text: "text-emerald-400",
+      border: "border-emerald-500/30",
+      ring: "group-hover:border-emerald-400/60",
+    },
+    destination: "/teacher/dashboard",
+  },
+  {
+    role: "ACCOUNTANT",
+    title: "Accountant",
+    description: "Fee collections, receipts & pending dues worklist",
+    emailPrefix: "finance",
+    icon: IndianRupee,
+    accentColor: {
+      bg: "bg-amber-500/15",
+      text: "text-amber-400",
+      border: "border-amber-500/30",
+      ring: "group-hover:border-amber-400/60",
+    },
+    destination: "/school/fees-dashboard",
+  },
+  {
+    role: "PARENT",
+    title: "Parent",
+    description: "Child's live attendance, report cards & fee dues",
+    emailPrefix: "parent",
+    icon: Users,
+    accentColor: {
+      bg: "bg-rose-500/15",
+      text: "text-rose-400",
+      border: "border-rose-500/30",
+      ring: "group-hover:border-rose-400/60",
+    },
+    destination: "/parent/dashboard",
+  },
+  {
+    role: "STUDENT",
+    title: "Student",
+    description: "Weekly timetable, homework & exam scores",
+    emailPrefix: "student",
+    icon: Compass,
+    accentColor: {
+      bg: "bg-cyan-500/15",
+      text: "text-cyan-400",
+      border: "border-cyan-500/30",
+      ring: "group-hover:border-cyan-400/60",
+    },
+    destination: "/student/dashboard",
+  },
+];
+
 export default function LoginForm() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"demo" | "credentials">("demo");
+  const [selectedBoard, setSelectedBoard] = useState<DemoBoard>(DEMO_BOARDS[0]!);
+  const [launchingRole, setLaunchingRole] = useState<string | null>(null);
+
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,8 +209,53 @@ export default function LoginForm() {
 
   const handleQuickFill = (email: string) => {
     setValue("email", email, { shouldValidate: true });
-    setValue("password", "schoolmitra_dev", { shouldValidate: true });
+    setValue("password", "SchoolMitra@123", { shouldValidate: true });
   };
+
+  // ─── 1-Tap Demo Role Launch ─────────────────────────────────────────────────
+
+  const handleLaunchDemoRole = async (card: DemoRoleCard) => {
+    setLaunchingRole(card.role);
+    setServerError(null);
+
+    try {
+      const isCbse = selectedBoard.code === "CBSE";
+      const targetEmail = isCbse
+        ? `${card.emailPrefix}@demo.schoolos.io`
+        : `${card.emailPrefix}.${selectedBoard.prefix}@demo.schoolos.io`;
+
+      const result = await signIn("credentials", {
+        email: targetEmail,
+        password: "SchoolMitra@123",
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setServerError(`Failed to launch demo role: ${result.error}`);
+        setLaunchingRole(null);
+        return;
+      }
+
+      // Success: determine target route and navigate immediately
+      const session = await getSession();
+      const role = (session?.user as any)?.role as UserRole;
+      const defaultDashboard =
+        (role && ROLE_CONFIGS[role]?.defaultDashboard) || card.destination;
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const targetDashboard =
+        basePath && !defaultDashboard.startsWith(basePath)
+          ? `${basePath}${defaultDashboard}`
+          : defaultDashboard;
+
+      window.location.replace(targetDashboard);
+    } catch (err) {
+      console.error("[DEMO LAUNCH ERROR]", err);
+      setServerError("Failed to launch role demo. Please check connection and try again.");
+      setLaunchingRole(null);
+    }
+  };
+
+  // ─── Standard Credentials Sign-In ───────────────────────────────────────────
 
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true);
@@ -129,7 +336,6 @@ export default function LoginForm() {
       }
     } catch (err) {
       console.error("[LOGIN ERROR]", err);
-      // Fallback: If session was established despite client error, redirect directly
       try {
         const session = await getSession();
         if (session?.user) {
@@ -152,224 +358,371 @@ export default function LoginForm() {
 
   return (
     <>
+      {/* ── Mode Switcher Tab (Apple HIG Segmented Control) ── */}
+      <div className="flex p-1 bg-white/[0.04] border border-white/10 rounded-2xl mb-6">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("demo");
+            setServerError(null);
+          }}
+          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === "demo"
+              ? "bg-blue-600 text-white shadow-level-1"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <span>Explore Live Demo</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("credentials");
+            setServerError(null);
+          }}
+          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === "credentials"
+              ? "bg-blue-600 text-white shadow-level-1"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <Lock className="w-3.5 h-3.5" />
+          <span>Sign In</span>
+        </button>
+      </div>
+
       {/* Server Error Alert Banner */}
       {serverError && (
         <div
-          className="mb-6 rounded-2xl bg-rose-500/[0.08] border border-rose-500/25 p-4 text-sm text-rose-200 flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-200"
+          className="mb-5 rounded-2xl bg-rose-500/[0.08] border border-rose-500/25 p-3.5 text-sm text-rose-200 flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-200"
           role="alert"
           aria-live="assertive"
         >
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="text-xs sm:text-sm font-medium leading-relaxed">
-            {serverError}
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="text-xs font-medium leading-relaxed">{serverError}</div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* TAB 1: 1-Click Interactive Demo Role Explorer                         */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "demo" && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Board Selector Tabs */}
+          <div>
+            <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 mb-1.5">
+              Select School Curriculum
+            </div>
+            <div className="grid grid-cols-4 gap-1 p-1 bg-white/[0.03] border border-white/10 rounded-xl">
+              {DEMO_BOARDS.map((b) => (
+                <button
+                  key={b.code}
+                  type="button"
+                  onClick={() => setSelectedBoard(b)}
+                  className={`py-1.5 px-1 text-[11px] font-medium rounded-lg transition text-center truncate ${
+                    selectedBoard.code === b.code
+                      ? "bg-white/[0.12] text-white font-semibold shadow-sm border border-white/15"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+                  }`}
+                  title={b.label}
+                >
+                  {b.shortLabel}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Active School Snapshot Card */}
+          <div className="rounded-2xl p-3 bg-white/[0.03] border border-white/10 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <span>{selectedBoard.schoolName}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {selectedBoard.curriculum} · 200 Students
+              </div>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-medium">
+              Demo Tenant
+            </span>
+          </div>
+
+          {/* 6 Role Cards (2-column grid on desktop, 1-col on small screens) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {DEMO_ROLE_CARDS.map((card) => {
+              const Icon = card.icon;
+              const isCardLaunching = launchingRole === card.role;
+              const isAnyLaunching = Boolean(launchingRole);
+
+              return (
+                <div
+                  key={card.role}
+                  className={`group relative rounded-2xl p-3.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 ${card.accentColor.ring} transition-all duration-200 flex flex-col justify-between`}
+                >
+                  <div>
+                    {/* Header: Icon + Title */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div
+                        className={`w-7 h-7 rounded-xl ${card.accentColor.bg} ${card.accentColor.border} border ${card.accentColor.text} flex items-center justify-center shrink-0`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-semibold text-white tracking-tight">
+                        {card.title}
+                      </h4>
+                    </div>
+
+                    {/* Capability Tagline */}
+                    <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mb-3">
+                      {card.description}
+                    </p>
+                  </div>
+
+                  {/* 1-Tap Launch Button */}
+                  <button
+                    type="button"
+                    disabled={isAnyLaunching}
+                    onClick={() => handleLaunchDemoRole(card)}
+                    className="w-full h-8 rounded-xl bg-white/[0.06] hover:bg-blue-600 hover:text-white border border-white/10 hover:border-blue-500 text-[11px] font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isCardLaunching ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin text-white" />
+                        <span>Launching…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Launch Role</span>
+                        <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Notice */}
+          <div className="pt-2 text-center text-[11px] text-slate-400">
+            <span>Universal Demo Sandbox · </span>
+            <button
+              type="button"
+              onClick={() => setActiveTab("credentials")}
+              className="text-blue-400 hover:text-blue-300 underline font-medium focus:outline-none"
+            >
+              Sign in with custom credentials →
+            </button>
           </div>
         </div>
       )}
 
-      {/* Form */}
-      <form
-        method="POST"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit(onSubmit)(e);
-        }}
-        className="space-y-5"
-        noValidate
-      >
-        {/* Email Field */}
-        <div className="space-y-1.5">
-          <label
-            htmlFor="login-email"
-            className="block text-xs font-medium uppercase tracking-wider text-slate-300"
-          >
-            Email Address
-          </label>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
-              <Mail className="w-4 h-4" aria-hidden="true" />
-            </div>
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              {...register("email")}
-              placeholder="admin@school.edu.in"
-              aria-describedby={errors.email ? "email-error" : undefined}
-              aria-invalid={errors.email ? "true" : "false"}
-              className="w-full h-12 pl-10 pr-4 bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/10 focus:border-blue-500/70 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition-all duration-200"
-            />
-          </div>
-          {errors.email && (
-            <p
-              id="email-error"
-              className="text-xs text-rose-400 flex items-center gap-1.5 pt-0.5"
-              role="alert"
-            >
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              <span>{errors.email.message}</span>
-            </p>
-          )}
-        </div>
-
-        {/* Password Field */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* TAB 2: Standard Staff & Super Admin Credentials Form                  */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "credentials" && (
+        <form
+          method="POST"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(onSubmit)(e);
+          }}
+          className="space-y-4 animate-in fade-in duration-200"
+          noValidate
+        >
+          {/* Email Field */}
+          <div className="space-y-1.5">
             <label
-              htmlFor="login-password"
+              htmlFor="login-email"
               className="block text-xs font-medium uppercase tracking-wider text-slate-300"
             >
-              Password
+              Email Address
             </label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
+                <Mail className="w-4 h-4" aria-hidden="true" />
+              </div>
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                {...register("email")}
+                placeholder="admin@school.edu.in"
+                aria-describedby={errors.email ? "email-error" : undefined}
+                aria-invalid={errors.email ? "true" : "false"}
+                className="w-full h-11 pl-10 pr-4 bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/10 focus:border-blue-500/70 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition-all duration-200"
+              />
+            </div>
+            {errors.email && (
+              <p
+                id="email-error"
+                className="text-xs text-rose-400 flex items-center gap-1.5 pt-0.5"
+                role="alert"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{errors.email.message}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Password Field */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="login-password"
+                className="block text-xs font-medium uppercase tracking-wider text-slate-300"
+              >
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-blue-400/90 hover:text-blue-300 transition-colors font-medium focus:outline-none focus:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
+                <Lock className="w-4 h-4" aria-hidden="true" />
+              </div>
+              <input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                {...register("password")}
+                placeholder="Enter your password"
+                aria-describedby={errors.password ? "password-error" : undefined}
+                aria-invalid={errors.password ? "true" : "false"}
+                className="w-full h-11 pl-10 pr-11 bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/10 focus:border-blue-500/70 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition-all duration-200"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:text-white transition-colors p-2 focus:outline-none"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="w-4 h-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p
+                id="password-error"
+                className="text-xs text-rose-400 flex items-center gap-1.5 pt-0.5"
+                role="alert"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{errors.password.message}</span>
+              </p>
+            )}
+          </div>
+
+          {/* 2FA Prompt if required */}
+          {requiresTOTP && (
+            <div className="rounded-2xl p-3.5 bg-amber-500/[0.08] border border-amber-500/30 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <label
+                htmlFor="login-totp"
+                className="block text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-2"
+              >
+                <KeyRound className="w-4 h-4 text-amber-400" />
+                Authenticator Code (TOTP)
+              </label>
+              <input
+                id="login-totp"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                autoComplete="one-time-code"
+                {...register("totpCode")}
+                placeholder="000000"
+                autoFocus
+                className="w-full h-11 text-center text-lg font-mono tracking-[0.35em] text-white bg-slate-950/60 border border-amber-400/40 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-400 transition-all"
+              />
+              <p className="text-[11px] text-amber-200/80 leading-relaxed text-center">
+                Enter 6-digit code from your authenticator app
+              </p>
+            </div>
+          )}
+
+          {/* Development Quick-Fill Shortcuts */}
+          <div className="pt-1">
+            <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 mb-1.5 flex items-center justify-between">
+              <span>Quick Personas</span>
+              <span className="text-[10px] text-blue-400 font-mono">1-Tap Fill</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleQuickFill("admin@demo.schoolos.io")}
+                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+              >
+                School Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill("teacher@demo.schoolos.io")}
+                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+              >
+                Teacher
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill("finance@demo.schoolos.io")}
+                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+              >
+                Accountant
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill("superadmin@schoolos.com")}
+                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+              >
+                Super Admin
+              </button>
+            </div>
+          </div>
+
+          {/* Submit CTA */}
+          <button
+            type="submit"
+            id="login-submit"
+            disabled={isLoading}
+            className="w-full h-11 rounded-xl font-semibold text-sm text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-level-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white/90" aria-hidden="true" />
+                <span>Signing in…</span>
+              </>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4 text-blue-100 group-hover:translate-x-0.5 transition-transform" />
+              </>
+            )}
+          </button>
+
+          {/* Secondary Pathway: Parent Portal */}
+          <div className="pt-1 text-center">
             <Link
-              href="/forgot-password"
-              className="text-xs text-blue-400/90 hover:text-blue-300 transition-colors font-medium focus:outline-none focus:underline"
+              href="/portal"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors group focus:outline-none focus:underline"
             >
-              Forgot password?
+              <span>Are you a parent or student?</span>
+              <span className="text-blue-400 group-hover:text-blue-300">
+                Access Parent Portal →
+              </span>
             </Link>
           </div>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
-              <Lock className="w-4 h-4" aria-hidden="true" />
-            </div>
-            <input
-              id="login-password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              {...register("password")}
-              placeholder="Enter your password"
-              aria-describedby={errors.password ? "password-error" : undefined}
-              aria-invalid={errors.password ? "true" : "false"}
-              className="w-full h-12 pl-10 pr-11 bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/10 focus:border-blue-500/70 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition-all duration-200"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:text-white transition-colors p-2 focus:outline-none"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4" aria-hidden="true" />
-              ) : (
-                <Eye className="w-4 h-4" aria-hidden="true" />
-              )}
-            </button>
-          </div>
-          {errors.password && (
-            <p
-              id="password-error"
-              className="text-xs text-rose-400 flex items-center gap-1.5 pt-0.5"
-              role="alert"
-            >
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              <span>{errors.password.message}</span>
-            </p>
-          )}
-        </div>
-
-        {/* ── Two-Factor Authentication Prompt (for Super Admins & 2FA Users) ── */}
-        {requiresTOTP && (
-          <div className="rounded-2xl p-4 bg-amber-500/[0.08] border border-amber-500/30 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-            <label
-              htmlFor="login-totp"
-              className="block text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-2"
-            >
-              <KeyRound className="w-4 h-4 text-amber-400" />
-              Authenticator Code (TOTP)
-            </label>
-            <input
-              id="login-totp"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              autoComplete="one-time-code"
-              {...register("totpCode")}
-              placeholder="000000"
-              autoFocus
-              className="w-full h-12 text-center text-xl font-mono tracking-[0.35em] text-white bg-slate-950/60 border border-amber-400/40 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-400 transition-all"
-            />
-            <p className="text-[11px] text-amber-200/80 leading-relaxed text-center">
-              Enter the 6-digit code from Google Authenticator or 1Password
-            </p>
-          </div>
-        )}
-
-        {/* Quick Demo Personas (Apple Segmented Bar) */}
-        <div className="pt-1">
-          <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-2 flex items-center justify-between">
-            <span>Demo Role Journeys</span>
-            <span className="text-[10px] text-blue-400 font-mono">1-Tap Fill</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleQuickFill("school_admin1@school.edu.in")}
-              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
-              title="Fill School Admin credentials"
-            >
-              School Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickFill("teacher1@school.edu.in")}
-              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
-              title="Fill Teacher credentials"
-            >
-              Teacher
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickFill("accountant1@school.edu.in")}
-              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
-              title="Fill Accountant credentials"
-            >
-              Accountant
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickFill("superadmin@schoolos.com")}
-              className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate min-h-[36px]"
-              title="Fill Super Admin credentials"
-            >
-              Super Admin
-            </button>
-          </div>
-        </div>
-
-        {/* Submit Primary CTA */}
-        <button
-          type="submit"
-          id="login-submit"
-          disabled={isLoading}
-          className="w-full h-12 rounded-xl font-semibold text-[15px] text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-level-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-3"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-white/90" aria-hidden="true" />
-              <span>Signing in…</span>
-            </>
-          ) : (
-            <>
-              <span>Sign In</span>
-              <ArrowRight className="w-4 h-4 text-blue-100 group-hover:translate-x-0.5 transition-transform" />
-            </>
-          )}
-        </button>
-
-        {/* Secondary Pathway: Parent & Student Portal */}
-        <div className="pt-2 text-center">
-          <Link
-            href="/portal"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors group focus:outline-none focus:underline"
-          >
-            <span>Are you a parent or student?</span>
-            <span className="text-blue-400 group-hover:text-blue-300">
-              Access Parent Portal →
-            </span>
-          </Link>
-        </div>
-      </form>
+        </form>
+      )}
     </>
   );
 }

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { users, userRoles, roles } from "@/db/schema/core";
 import { eq, sql } from "drizzle-orm";
 import { withAuthContext, withTenant } from "@/lib/tenant";
+import { isDemoEmail } from "@/lib/demoGuardrails";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
@@ -13,6 +14,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig.callbacks,
     async jwt(params) {
       let token = await (authConfig.callbacks?.jwt ? authConfig.callbacks.jwt(params) : params.token);
+      if (params.user && token) {
+        token.isDemo = (params.user as any).isDemo || false;
+      }
       if (token?.id) {
         try {
           const schoolId = (token.schoolId as string) || (params.user as any)?.schoolId;
@@ -72,6 +76,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             return null as any;
           }
         } catch {}
+      }
+      if (session?.user) {
+        (session.user as any).isDemo = Boolean(params.token?.isDemo);
       }
       return session;
     },
@@ -330,6 +337,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           schoolId: user.schoolId,
           role: resolvedRole,
           mustChangePassword: user.mustChangePassword ?? false,
+          isDemo: isDemoEmail(email),
         };
       },
     }),

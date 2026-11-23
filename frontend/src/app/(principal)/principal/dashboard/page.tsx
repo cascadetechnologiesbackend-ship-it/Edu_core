@@ -134,17 +134,16 @@ export default async function PrincipalDashboardPage() {
             </div>
           </div>
           <p
-            className={`text-xs mt-2 ${
-              metrics.staffAttendanceRate
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-muted-foreground"
-            }`}
+            className={`text-xs mt-2 ${metrics.staffAttendanceRate
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-muted-foreground"
+              }`}
           >
             {metrics.staffAttendanceRate
               ? `${metrics.staffAttendanceRate.formattedPercent} Staff Attendance Today`
               : metrics.activeTeachingStaffCount === 0
-              ? "0 active faculty members"
-              : `${metrics.activeTeachingStaffCount} active educators`}
+                ? "0 active faculty members"
+                : `${metrics.activeTeachingStaffCount} active educators`}
           </p>
         </div>
 
@@ -161,11 +160,10 @@ export default async function PrincipalDashboardPage() {
               <CalendarCheck className="w-5 h-5 text-emerald-500" />
             </div>
             <div
-              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${
-                metrics.todayStudentAttendance.isMarkedToday
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-muted-foreground"
-              }`}
+              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${metrics.todayStudentAttendance.isMarkedToday
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-muted-foreground"
+                }`}
             >
               {metrics.todayStudentAttendance.isMarkedToday
                 ? metrics.todayStudentAttendance.formattedPercent
@@ -192,11 +190,10 @@ export default async function PrincipalDashboardPage() {
               <Award className="w-5 h-5 text-amber-500" />
             </div>
             <div
-              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${
-                metrics.pendingExamVerificationsCount > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-foreground"
-              }`}
+              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${metrics.pendingExamVerificationsCount > 0
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-foreground"
+                }`}
             >
               {metrics.pendingExamVerificationsCount === 0
                 ? "0 Classes"
@@ -204,11 +201,10 @@ export default async function PrincipalDashboardPage() {
             </div>
           </div>
           <p
-            className={`text-xs mt-2 ${
-              metrics.pendingExamVerificationsCount > 0
-                ? "text-amber-600 dark:text-amber-400"
-                : "text-muted-foreground"
-            }`}
+            className={`text-xs mt-2 ${metrics.pendingExamVerificationsCount > 0
+              ? "text-amber-600 dark:text-amber-400"
+              : "text-muted-foreground"
+              }`}
           >
             {metrics.pendingExamVerificationsCount === 0
               ? "All marks verified & locked"

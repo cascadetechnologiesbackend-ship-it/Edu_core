@@ -7,6 +7,7 @@ declare module "next-auth" {
       role: string;
       schoolId: string | null;
       mustChangePassword?: boolean;
+      isDemo?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -15,5 +16,6 @@ declare module "next-auth" {
     schoolId?: string | null;
     role: string;
     mustChangePassword?: boolean;
+    isDemo?: boolean;
   }
 }

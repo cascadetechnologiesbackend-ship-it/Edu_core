@@ -134,11 +134,10 @@ export default async function LibrarianDashboardPage() {
         {/* Metric 3: Overdue Returns */}
         <div
           data-testid="librarian-overdue-metric"
-          className={`rounded-2xl border p-5 sm:p-6 shadow-level-1 hover:shadow-level-2 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between ${
-            metrics.overdueCount > 0
-              ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-950/20"
-              : "border-border/80 bg-card"
-          }`}
+          className={`rounded-2xl border p-5 sm:p-6 shadow-level-1 hover:shadow-level-2 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between ${metrics.overdueCount > 0
+            ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-950/20"
+            : "border-border/80 bg-card"
+            }`}
         >
           <div>
             <div className="flex items-center justify-between">
@@ -146,27 +145,24 @@ export default async function LibrarianDashboardPage() {
                 Overdue Returns
               </span>
               <AlertCircle
-                className={`w-5 h-5 ${
-                  metrics.overdueCount > 0 ? "text-rose-500" : "text-emerald-500"
-                }`}
+                className={`w-5 h-5 ${metrics.overdueCount > 0 ? "text-rose-500" : "text-emerald-500"
+                  }`}
               />
             </div>
             <div
-              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${
-                metrics.overdueCount > 0
-                  ? "text-rose-600 dark:text-rose-400"
-                  : "text-foreground"
-              }`}
+              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${metrics.overdueCount > 0
+                ? "text-rose-600 dark:text-rose-400"
+                : "text-foreground"
+                }`}
             >
               {metrics.overdueCount} Books
             </div>
           </div>
           <p
-            className={`text-xs mt-2 ${
-              metrics.overdueCount > 0
-                ? "text-rose-600 dark:text-rose-400 font-medium"
-                : "text-muted-foreground"
-            }`}
+            className={`text-xs mt-2 ${metrics.overdueCount > 0
+              ? "text-rose-600 dark:text-rose-400 font-medium"
+              : "text-muted-foreground"
+              }`}
           >
             {metrics.overdueCount > 0 ? "Late fine applicable" : "No overdue returns"}
           </p>
@@ -192,11 +188,11 @@ export default async function LibrarianDashboardPage() {
             {metrics.distinctCategoriesCount === 0
               ? "No categories configured"
               : metrics.topCategories.length > 0
-              ? metrics.topCategories
+                ? metrics.topCategories
                   .slice(0, 3)
                   .map((c) => c.category)
                   .join(", ")
-              : "Active subjects"}
+                : "Active subjects"}
           </p>
         </div>
       </div>

@@ -52,15 +52,15 @@ export function MoneyKpi({
         "group relative p-5 rounded-2xl bg-card border border-border/40 transition-all duration-200 shadow-level-1",
         href && "hover:shadow-level-2 hover:-translate-y-0.5 cursor-pointer",
         effectiveVariant === "primary" &&
-          "hover:border-blue-500/40",
+        "hover:border-blue-500/40",
         effectiveVariant === "emerald" &&
-          "hover:border-emerald-500/40",
+        "hover:border-emerald-500/40",
         effectiveVariant === "amber" &&
-          "hover:border-amber-500/40",
+        "hover:border-amber-500/40",
         effectiveVariant === "rose" &&
-          "hover:border-rose-500/40",
+        "hover:border-rose-500/40",
         effectiveVariant === "slate" &&
-          "hover:border-border",
+        "hover:border-border",
         className
       )}
     >

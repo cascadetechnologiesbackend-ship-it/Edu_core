@@ -82,6 +82,7 @@ import { Suspense } from "react";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { ClarityScript } from "@/components/analytics/ClarityScript";
 import { PwaManager } from "@/components/pwa/PwaManager";
+import { DemoTopBanner } from "@/components/demo/DemoTopBanner";
 
 export default function RootLayout({
   children,
@@ -100,6 +101,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background antialiased font-sans">
         <Providers>
+          <DemoTopBanner />
           <Suspense fallback={null}>
             <TopProgressBar />
             <ClarityScript />

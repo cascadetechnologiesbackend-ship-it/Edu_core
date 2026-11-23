@@ -71,9 +71,8 @@ export function TodayStrip({
                   <span>
                     {locale === "hi"
                       ? `आज ${activeCardsCount} मामलों पर ध्यान देने की आवश्यकता है`
-                      : `${activeCardsCount} ${
-                          activeCardsCount === 1 ? "item needs" : "items need"
-                        } your attention`}
+                      : `${activeCardsCount} ${activeCardsCount === 1 ? "item needs" : "items need"
+                      } your attention`}
                   </span>
                 </>
               )}

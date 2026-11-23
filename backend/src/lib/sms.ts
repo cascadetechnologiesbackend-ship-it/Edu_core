@@ -113,6 +113,16 @@ export async function sendSMSWithStatus(
 ): Promise<SmsDeliveryResult> {
   const formattedMobile = normalizeIndianMobile(mobileNumber);
 
+  // Demo mode safeguard: short-circuit synthetic demo numbers (+91 981100xxxx, +91 980000xxxx)
+  if (formattedMobile.startsWith("+91981100") || formattedMobile.startsWith("+91980000")) {
+    console.log("[SMS DEMO SHORT-CIRCUIT]", { mobile: formattedMobile, message });
+    return {
+      delivered: true,
+      messageId: `demo-mock-sms-${Date.now()}`,
+      attempts: 1,
+    };
+  }
+
   if (!isSmsConfigured()) {
     console.warn(
       `[SMS Service] [UNCONFIGURED] Would have sent: "${message}" to ${formattedMobile}`

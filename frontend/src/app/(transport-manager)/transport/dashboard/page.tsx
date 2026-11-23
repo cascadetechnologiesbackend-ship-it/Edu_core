@@ -103,11 +103,10 @@ export default async function TransportManagerDashboardPage() {
             </div>
           </div>
           <p
-            className={`text-xs mt-2 ${
-              metrics.gpsStatus.hasActivePings
-                ? "text-emerald-600 dark:text-emerald-400 font-medium"
-                : "text-muted-foreground"
-            }`}
+            className={`text-xs mt-2 ${metrics.gpsStatus.hasActivePings
+              ? "text-emerald-600 dark:text-emerald-400 font-medium"
+              : "text-muted-foreground"
+              }`}
           >
             {metrics.activeVehiclesCount === 0
               ? "0 vehicles registered"
@@ -164,11 +163,10 @@ export default async function TransportManagerDashboardPage() {
         {/* Metric 4: Maintenance Alert */}
         <div
           data-testid="transport-maintenance-metric"
-          className={`rounded-2xl border p-5 sm:p-6 shadow-level-1 hover:shadow-level-2 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between ${
-            metrics.maintenanceAlertsCount > 0
-              ? "border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/20"
-              : "border-border/80 bg-card"
-          }`}
+          className={`rounded-2xl border p-5 sm:p-6 shadow-level-1 hover:shadow-level-2 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between ${metrics.maintenanceAlertsCount > 0
+            ? "border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/20"
+            : "border-border/80 bg-card"
+            }`}
         >
           <div>
             <div className="flex items-center justify-between">
@@ -176,28 +174,25 @@ export default async function TransportManagerDashboardPage() {
                 Maintenance Alert
               </span>
               <AlertCircle
-                className={`w-5 h-5 ${
-                  metrics.maintenanceAlertsCount > 0 ? "text-amber-500" : "text-emerald-500"
-                }`}
+                className={`w-5 h-5 ${metrics.maintenanceAlertsCount > 0 ? "text-amber-500" : "text-emerald-500"
+                  }`}
               />
             </div>
             <div
-              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${
-                metrics.maintenanceAlertsCount > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-foreground"
-              }`}
+              className={`text-2xl sm:text-3xl font-bold mt-2 tracking-tight ${metrics.maintenanceAlertsCount > 0
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-foreground"
+                }`}
             >
               {metrics.maintenanceAlertsCount}{" "}
               {metrics.maintenanceAlertsCount === 1 ? "Vehicle" : "Vehicles"}
             </div>
           </div>
           <p
-            className={`text-xs mt-2 truncate ${
-              metrics.maintenanceAlertsCount > 0
-                ? "text-amber-600 dark:text-amber-400 font-medium"
-                : "text-muted-foreground"
-            }`}
+            className={`text-xs mt-2 truncate ${metrics.maintenanceAlertsCount > 0
+              ? "text-amber-600 dark:text-amber-400 font-medium"
+              : "text-muted-foreground"
+              }`}
           >
             {metrics.maintenanceAlertsCount > 0
               ? metrics.vehiclesWithMaintenanceAlert[0]

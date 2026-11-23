@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./migrations": "./src/migrations/index.ts"
+    "./migrations": "./src/migrations/index.ts",
+    "./seed_demo": "./src/seed_demo.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
@@ -17,6 +18,7 @@
     "db:migrate": "pnpm exec tsx src/migrate.ts",
     "db:check-migrations": "pnpm exec tsx src/check-migrations.ts",
     "db:seed": "tsx src/seed.ts",
+    "db:seed-demo": "tsx src/seed_demo.ts",
     "db:seed-coa": "pnpm exec tsx src/seed_chart_of_accounts.ts",
     "db:seed-superadmin": "pnpm exec tsx src/manage_super_admin.ts",
     "db:reset": "tsx src/factory_reset.ts",

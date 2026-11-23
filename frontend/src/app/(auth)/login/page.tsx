@@ -146,15 +146,15 @@ export default async function LoginPage() {
             </div>
 
             {/* ── Refined Apple-Quality Floating Glass Card ── */}
-            <div className="w-full max-w-[440px] rounded-3xl bg-slate-900/60 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.12)_inset] p-7 sm:p-9 xl:p-10 transition-all duration-300">
+            <div className="w-full max-w-[480px] sm:max-w-[540px] rounded-3xl bg-slate-900/60 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.12)_inset] p-6 sm:p-8 xl:p-9 transition-all duration-300">
               
               {/* Header inside card */}
-              <div className="mb-7">
+              <div className="mb-5">
                 <h2 className="text-2xl sm:text-[26px] font-semibold tracking-tight text-white">
-                  Welcome back
+                  Welcome to SchoolMitra
                 </h2>
-                <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
-                  Sign in to continue to your school account.
+                <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed">
+                  Explore interactive live demo or sign in to your school account.
                 </p>
               </div>
 
