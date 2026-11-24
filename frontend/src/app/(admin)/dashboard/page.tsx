@@ -764,17 +764,17 @@ export default async function DashboardPage() {
           <QuickAction
             label="+ Add Student"
             href="/admissions"
-            className="bg-blue-600 hover:bg-blue-500 text-white flex-shrink-0 shadow-sm"
+            className="bg-semantic-interactive hover:bg-semantic-interactive/90 text-white flex-shrink-0 shadow-sm rounded-xl"
           />
           <QuickAction
             label="Collect Fee"
             href="/fees"
-            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex-shrink-0"
+            className="bg-semantic-interactive/12 text-semantic-interactive hover:bg-semantic-interactive/18 flex-shrink-0 rounded-xl"
           />
           <QuickAction
             label="Mark Attendance"
             href="/attendance"
-            className="bg-muted/60 hover:bg-muted text-foreground flex-shrink-0"
+            className="bg-muted/60 hover:bg-muted text-foreground flex-shrink-0 rounded-xl"
           />
         </div>
       </div>

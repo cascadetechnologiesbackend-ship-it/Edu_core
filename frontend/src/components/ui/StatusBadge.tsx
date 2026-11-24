@@ -14,11 +14,19 @@ import {
 export type StatusVariant =
   | "active"
   | "completed"
+  | "paid"
+  | "verified"
+  | "present"
   | "pending"
-  | "draft"
+  | "due_soon"
+  | "warning"
   | "suspended"
   | "error"
-  | "warning"
+  | "failed"
+  | "overdue"
+  | "absent"
+  | "draft"
+  | "provisional"
   | "info"
   | "neutral";
 
@@ -30,73 +38,146 @@ export interface StatusBadgeProps {
   className?: string;
 }
 
+const DEFAULT_CONFIG: {
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+  icon: LucideIcon;
+} = {
+  label: "Neutral",
+  bg: "bg-semantic-neutral/15",
+  text: "text-muted-foreground",
+  border: "border-semantic-neutral/25",
+  icon: Circle,
+};
+
 const STATUS_CONFIG: Record<
-  StatusVariant,
+  string,
   { label: string; bg: string; text: string; border: string; icon: LucideIcon }
 > = {
+  // Money in / Healthy / Done (apple.green semantics)
   active: {
     label: "Active",
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/15",
-    text: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/25",
+    bg: "bg-semantic-money-in/12",
+    text: "text-semantic-money-in",
+    border: "border-semantic-money-in/25",
     icon: CheckCircle2,
   },
   completed: {
     label: "Completed",
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/15",
-    text: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/25",
+    bg: "bg-semantic-money-in/12",
+    text: "text-semantic-money-in",
+    border: "border-semantic-money-in/25",
     icon: CheckCircle2,
   },
+  paid: {
+    label: "Paid",
+    bg: "bg-semantic-money-in/12",
+    text: "text-semantic-money-in",
+    border: "border-semantic-money-in/25",
+    icon: CheckCircle2,
+  },
+  verified: {
+    label: "Verified",
+    bg: "bg-semantic-money-in/12",
+    text: "text-semantic-money-in",
+    border: "border-semantic-money-in/25",
+    icon: CheckCircle2,
+  },
+  present: {
+    label: "Present",
+    bg: "bg-semantic-money-in/12",
+    text: "text-semantic-money-in",
+    border: "border-semantic-money-in/25",
+    icon: CheckCircle2,
+  },
+
+  // Attention / Pending / Due Soon (apple.orange semantics)
   pending: {
     label: "Pending",
-    bg: "bg-amber-500/10 dark:bg-amber-500/15",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/25",
+    bg: "bg-semantic-attention/12",
+    text: "text-semantic-attention",
+    border: "border-semantic-attention/25",
     icon: Clock,
   },
-  draft: {
-    label: "Draft",
-    bg: "bg-slate-500/10 dark:bg-slate-500/15",
-    text: "text-slate-600 dark:text-slate-400",
-    border: "border-slate-500/25",
-    icon: FileText,
-  },
-  suspended: {
-    label: "Suspended",
-    bg: "bg-orange-500/10 dark:bg-orange-500/15",
-    text: "text-orange-600 dark:text-orange-400",
-    border: "border-orange-500/25",
-    icon: PauseCircle,
-  },
-  error: {
-    label: "Error",
-    bg: "bg-rose-500/10 dark:bg-rose-500/15",
-    text: "text-rose-600 dark:text-rose-400",
-    border: "border-rose-500/25",
-    icon: XCircle,
+  due_soon: {
+    label: "Due Soon",
+    bg: "bg-semantic-attention/12",
+    text: "text-semantic-attention",
+    border: "border-semantic-attention/25",
+    icon: Clock,
   },
   warning: {
     label: "Warning",
-    bg: "bg-amber-500/10 dark:bg-amber-500/15",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/25",
+    bg: "bg-semantic-attention/12",
+    text: "text-semantic-attention",
+    border: "border-semantic-attention/25",
     icon: AlertTriangle,
   },
+  suspended: {
+    label: "Suspended",
+    bg: "bg-semantic-attention/12",
+    text: "text-semantic-attention",
+    border: "border-semantic-attention/25",
+    icon: PauseCircle,
+  },
+
+  // Money Owed / Errors / Absent (apple.red semantics)
+  error: {
+    label: "Error",
+    bg: "bg-semantic-money-owed/12",
+    text: "text-semantic-money-owed",
+    border: "border-semantic-money-owed/25",
+    icon: XCircle,
+  },
+  failed: {
+    label: "Failed",
+    bg: "bg-semantic-money-owed/12",
+    text: "text-semantic-money-owed",
+    border: "border-semantic-money-owed/25",
+    icon: XCircle,
+  },
+  overdue: {
+    label: "Overdue",
+    bg: "bg-semantic-money-owed/12",
+    text: "text-semantic-money-owed",
+    border: "border-semantic-money-owed/25",
+    icon: XCircle,
+  },
+  absent: {
+    label: "Absent",
+    bg: "bg-semantic-money-owed/12",
+    text: "text-semantic-money-owed",
+    border: "border-semantic-money-owed/25",
+    icon: XCircle,
+  },
+
+  // Provisional / Draft (apple.yellow tint)
+  draft: {
+    label: "Draft",
+    bg: "bg-semantic-provisional/15",
+    text: "text-foreground",
+    border: "border-semantic-provisional/35",
+    icon: FileText,
+  },
+  provisional: {
+    label: "Provisional",
+    bg: "bg-semantic-provisional/15",
+    text: "text-foreground",
+    border: "border-semantic-provisional/35",
+    icon: FileText,
+  },
+
+  // Neutral / Informational
   info: {
     label: "Info",
-    bg: "bg-blue-500/10 dark:bg-blue-500/15",
-    text: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-500/25",
+    bg: "bg-semantic-neutral/15",
+    text: "text-muted-foreground",
+    border: "border-semantic-neutral/25",
     icon: Info,
   },
-  neutral: {
-    label: "Neutral",
-    bg: "bg-muted/60",
-    text: "text-muted-foreground",
-    border: "border-border/60",
-    icon: Circle,
-  },
+  neutral: DEFAULT_CONFIG,
 };
 
 export function StatusBadge({
@@ -106,8 +187,8 @@ export function StatusBadge({
   showIcon = true,
   className = "",
 }: StatusBadgeProps) {
-  const normalized = (status || "neutral").toLowerCase() as StatusVariant;
-  const config = STATUS_CONFIG[normalized] || STATUS_CONFIG.neutral;
+  const normalized = (status || "neutral").toLowerCase().replace(/[\s-]/g, "_");
+  const config = STATUS_CONFIG[normalized] ?? DEFAULT_CONFIG;
   const displayLabel = label || config.label;
   const IconComponent = config.icon;
 
@@ -118,15 +199,10 @@ export function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center font-semibold rounded-full border ${config.bg} ${config.text} ${config.border} ${sizeClasses} ${className}`}
-      role="status"
+      className={`inline-flex items-center font-medium rounded-full border ${config.bg} ${config.text} ${config.border} ${sizeClasses} ${className}`}
     >
-      {showIcon ? (
-        <IconComponent className={`${iconSizes} flex-shrink-0`} aria-hidden="true" />
-      ) : (
-        <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" aria-hidden="true" />
-      )}
-      <span>{displayLabel}</span>
+      {showIcon && <IconComponent className={`${iconSizes} flex-shrink-0`} aria-hidden="true" />}
+      <span className="truncate">{displayLabel}</span>
     </span>
   );
 }

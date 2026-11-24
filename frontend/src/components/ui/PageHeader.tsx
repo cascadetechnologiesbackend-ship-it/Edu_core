@@ -56,7 +56,7 @@ export function PageHeader({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl truncate">
+            <h1 className="text-2xl sm:text-[34px] sm:leading-[41px] font-bold tracking-tight text-foreground truncate">
               {title}
             </h1>
             {badge && <div className="flex-shrink-0">{badge}</div>}

@@ -27,9 +27,9 @@ export function MetricCard({
   const getTrendIcon = (dir: "up" | "down" | "neutral") => {
     switch (dir) {
       case "up":
-        return <TrendingUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />;
+        return <TrendingUp className="h-3.5 w-3.5 text-semantic-money-in" />;
       case "down":
-        return <TrendingDown className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />;
+        return <TrendingDown className="h-3.5 w-3.5 text-semantic-money-owed" />;
       default:
         return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
     }
@@ -38,11 +38,11 @@ export function MetricCard({
   const getTrendBadgeStyle = (dir: "up" | "down" | "neutral") => {
     switch (dir) {
       case "up":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+        return "bg-semantic-money-in/12 text-semantic-money-in border border-semantic-money-in/20";
       case "down":
-        return "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+        return "bg-semantic-money-owed/12 text-semantic-money-owed border border-semantic-money-owed/20";
       default:
-        return "bg-muted text-muted-foreground";
+        return "bg-muted/80 text-muted-foreground border border-border/40";
     }
   };
 
@@ -55,14 +55,14 @@ export function MetricCard({
           {title}
         </span>
         {icon && (
-          <div className="h-8 w-8 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground flex-shrink-0">
+          <div className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground flex-shrink-0">
             {icon}
           </div>
         )}
       </div>
 
       <div className="mt-3 flex items-baseline gap-2 flex-wrap">
-        <span className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <span className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl tabular-nums font-mono">
           {value}
         </span>
         {trend && (
@@ -72,7 +72,7 @@ export function MetricCard({
             )}`}
           >
             {getTrendIcon(trend.direction)}
-            <span>{trend.value}</span>
+            <span className="tabular-nums font-mono">{trend.value}</span>
             {trend.label && (
               <span className="opacity-80 font-normal ml-0.5">
                 {trend.label}
