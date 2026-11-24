@@ -115,10 +115,10 @@ export function AccountsDashboardClient({
       {/* Band 1: Cash Position & Treasury KPIs */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
             Band 1: Institutional Cash Position & Liquidity
           </h2>
-          <span className="text-xs text-gray-400 font-mono">
+          <span className="text-xs text-muted-foreground font-mono">
             {asOf ? `Snapshot as of ${asOf}` : "Real-time synchronized across fee & accounting ledgers"}
           </span>
         </div>
@@ -172,21 +172,21 @@ export function AccountsDashboardClient({
       {/* Band 2: Expense Approval Queue & Bank Vaults */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pending Expense Approvals Queue */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="lg:col-span-2 bg-card rounded-2xl border border-border/40 shadow-xs overflow-hidden flex flex-col justify-between">
+          <div className="p-6 border-b border-border/40 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                <h3 className="text-base font-bold text-foreground">
                   Expense Voucher Approval Queue
                 </h3>
               </div>
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Awaiting administrative authorization prior to bank debit and ledger posting.
               </p>
             </div>
             {pendingExpensesCount > 0 && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25 font-mono">
                 {pendingExpensesCount} Pending (₹{pendingExpensesTotal.toLocaleString("en-IN")})
               </span>
             )}
@@ -195,7 +195,7 @@ export function AccountsDashboardClient({
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                <tr className="bg-muted/60 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                   <th className="py-3 px-4">Voucher #</th>
                   <th className="py-3 px-4">Category Head</th>
                   <th className="py-3 px-4">Beneficiary / Vendor</th>
@@ -203,10 +203,10 @@ export function AccountsDashboardClient({
                   <th className="py-3 px-4 text-right">Approval Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40">
                 {pendingExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       <CheckCircle className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
                       All expense vouchers are approved and up to date!
                     </td>
@@ -215,21 +215,21 @@ export function AccountsDashboardClient({
                   pendingExpenses.map((v) => (
                     <tr
                       key={v.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition"
+                      className="hover:bg-muted/30 transition"
                     >
-                      <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      <td className="py-3 px-4 font-mono font-bold text-[#00875A] dark:text-[#63E6BE]">
                         #{v.voucherNumber}
-                        <span className="block text-[11px] text-gray-400 font-sans">
+                        <span className="block text-[11px] text-muted-foreground font-sans">
                           {new Date(v.entryDate).toLocaleDateString("en-IN")}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-medium text-foreground">
                         {v.expenseHeadName}
-                        <span className="block text-[11px] text-gray-400">
+                        <span className="block text-[11px] text-muted-foreground">
                           via {v.paymentMode}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-slate-300">
+                      <td className="py-3 px-4 text-muted-foreground">
                         {v.vendorName || "Operational Vendor"}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400 text-sm">
@@ -241,7 +241,7 @@ export function AccountsDashboardClient({
                             type="button"
                             onClick={() => handleApproveVoucher(v.id)}
                             disabled={approvingId === v.id}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition active:scale-95 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs min-h-[36px] transition active:scale-95 disabled:opacity-50 cursor-pointer"
                           >
                             {approvingId === v.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -251,7 +251,7 @@ export function AccountsDashboardClient({
                             Approve & Debit
                           </button>
                         ) : (
-                          <span className="text-[11px] text-gray-400 italic">
+                          <span className="text-[11px] text-muted-foreground italic">
                             Admin approval required
                           </span>
                         )}
@@ -265,41 +265,41 @@ export function AccountsDashboardClient({
         </div>
 
         {/* Bank Balances Vault Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between">
+        <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-xs space-y-4 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Landmark className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center justify-between pb-3 border-b border-border/40">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-[#00875A] dark:text-[#63E6BE]" />
                 Institutional Bank Vaults
               </h3>
               <Link
                 href="/school/accounts/bank-accounts"
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+                className="text-xs text-[#00875A] dark:text-[#63E6BE] hover:underline font-semibold"
               >
                 Manage &rarr;
               </Link>
             </div>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Liquid reserves across registered operating accounts.
             </p>
           </div>
 
           <div className="space-y-3 my-2 flex-1">
             {banks.length === 0 ? (
-              <p className="text-xs text-gray-500 py-6 text-center">
+              <p className="text-xs text-muted-foreground py-6 text-center">
                 No bank accounts registered.
               </p>
             ) : (
               banks.map((b) => (
                 <div
                   key={b.id}
-                  className="p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex justify-between items-center hover:scale-[1.01] transition"
+                  className="p-3.5 rounded-xl border border-border/40 bg-muted/20 flex justify-between items-center hover:scale-[1.01] transition"
                 >
                   <div>
-                    <div className="text-xs font-bold text-gray-900 dark:text-white">
+                    <div className="text-xs font-bold text-foreground">
                       {b.bankName}
                     </div>
-                    <div className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                    <div className="text-[11px] font-mono text-muted-foreground">
                       Acc: {b.accountNumber}
                     </div>
                   </div>
@@ -307,7 +307,7 @@ export function AccountsDashboardClient({
                     <div className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
                       ₹{b.currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
-                    <div className="text-[10px] text-gray-400">
+                    <div className="text-[10px] text-muted-foreground">
                       {b.isActive ? "Active Vault" : "Inactive"}
                     </div>
                   </div>
@@ -318,7 +318,7 @@ export function AccountsDashboardClient({
 
           <Link
             href="/school/accounts/bank-accounts"
-            className="inline-flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-800 dark:text-slate-200 transition"
+            className="inline-flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold rounded-xl bg-card border border-border/40 hover:bg-muted/40 text-foreground transition min-h-[44px]"
           >
             Bank Register & Reconciliations &rarr;
           </Link>
@@ -326,14 +326,14 @@ export function AccountsDashboardClient({
       </div>
 
       {/* Band 3: Master General Ledger Real-Time Journal */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-xs overflow-hidden">
+        <div className="p-6 border-b border-border/40 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[#00875A] dark:text-[#63E6BE]" />
               General Ledger Live Journal
             </h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Synchronous audit trail of double-entry credit collections and debit disbursements.
             </p>
           </div>
@@ -341,7 +341,7 @@ export function AccountsDashboardClient({
           <div className="flex items-center gap-2">
             <Link
               href="/school/transactions"
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-xs font-semibold text-[#00875A] dark:text-[#63E6BE] hover:underline"
             >
               Fee Day Book &rarr;
             </Link>
@@ -351,7 +351,7 @@ export function AccountsDashboardClient({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+              <tr className="bg-muted/60 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Tx #</th>
                 <th className="py-3 px-4">Source</th>
@@ -360,17 +360,17 @@ export function AccountsDashboardClient({
                 <th className="py-3 px-4 text-right">Amount (₹)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
+            <tbody className="divide-y divide-border/40 text-foreground">
               {ledgerEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
                     No ledger transactions logged yet.
                   </td>
                 </tr>
               ) : (
                 ledgerEntries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                    <td className="py-3 px-4 text-gray-500 dark:text-slate-400 font-mono whitespace-nowrap">
+                  <tr key={entry.id} className="hover:bg-muted/30">
+                    <td className="py-3 px-4 text-muted-foreground font-mono whitespace-nowrap">
                       {new Date(entry.transactionDate).toLocaleDateString("en-IN", {
                         month: "short",
                         day: "numeric",
@@ -378,11 +378,11 @@ export function AccountsDashboardClient({
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="py-3 px-4 font-mono font-semibold text-gray-900 dark:text-white">
+                    <td className="py-3 px-4 font-mono font-semibold text-foreground">
                       {entry.transactionNumber}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-muted text-muted-foreground">
                         {entry.sourceType}
                       </span>
                     </td>
@@ -391,8 +391,8 @@ export function AccountsDashboardClient({
                         className={cn(
                           "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
                           entry.transactionType === "CREDIT"
-                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                            : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800"
+                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/25"
+                            : "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/25"
                         )}
                       >
                         {entry.transactionType === "CREDIT" ? (
@@ -403,7 +403,7 @@ export function AccountsDashboardClient({
                         {entry.transactionType}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-slate-300 max-w-sm truncate">
+                    <td className="py-3 px-4 text-muted-foreground max-w-sm truncate">
                       {entry.description || "—"}
                     </td>
                     <td

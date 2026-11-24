@@ -125,7 +125,7 @@ export default function LessonPlansTab({
             <select
               value={selectedSubjectMapping}
               onChange={(e) => setSelectedSubjectMapping(e.target.value)}
-              className="rounded border border-gray-300 dark:border-slate-600 bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="rounded border border-gray-300 dark:border-border/40 bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {mappings.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -146,7 +146,7 @@ export default function LessonPlansTab({
       </div>
 
       {/* Completion progress bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 p-6 flex flex-col md:flex-row items-center gap-6">
+      <div className="bg-card rounded-xl shadow border border-gray-200 dark:border-border/40 p-6 flex flex-col md:flex-row items-center gap-6">
         <div className="relative flex-shrink-0 w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center border-4 border-primary">
           <span className="text-xl font-bold text-primary">
             {completionPercentage}%
@@ -164,7 +164,7 @@ export default function LessonPlansTab({
       </div>
 
       {/* Plans List */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-card rounded-xl shadow border border-gray-200 dark:border-border/40 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-20">
             <RefreshCw className="w-8 h-8 animate-spin text-primary" />
@@ -178,7 +178,7 @@ export default function LessonPlansTab({
           </div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300 text-xs font-semibold uppercase">
+            <thead className="bg-gray-50 dark:bg-muted/30 text-gray-600 dark:text-gray-300 text-xs font-semibold uppercase">
               <tr>
                 <th className="px-6 py-3.5">Chapter</th>
                 <th className="px-6 py-3.5">Objectives</th>
@@ -188,11 +188,11 @@ export default function LessonPlansTab({
                 <th className="px-6 py-3.5">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40">
               {plans.map((p) => (
                 <tr
                   key={p.id}
-                  className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                  className="hover:bg-gray-50/50 dark:hover:bg-muted/30 transition"
                 >
                   <td className="px-6 py-4">
                     <p className="font-semibold text-gray-900 dark:text-white">
@@ -213,7 +213,7 @@ export default function LessonPlansTab({
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${p.status === "COMPLETED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : p.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" : "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-400"}`}
+                      className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${p.status === "COMPLETED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : p.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" : "bg-gray-100 text-gray-800 bg-muted/60 dark:text-gray-400"}`}
                     >
                       {p.status}
                     </span>
@@ -245,7 +245,7 @@ export default function LessonPlansTab({
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              className="bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -277,7 +277,7 @@ export default function LessonPlansTab({
               onChange={(e) =>
                 setPlanData({ ...planData, chapterName: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -291,7 +291,7 @@ export default function LessonPlansTab({
               onChange={(e) =>
                 setPlanData({ ...planData, title: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -304,7 +304,7 @@ export default function LessonPlansTab({
               onChange={(e) =>
                 setPlanData({ ...planData, ncertReference: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -317,7 +317,7 @@ export default function LessonPlansTab({
                 setPlanData({ ...planData, objectives: e.target.value })
               }
               rows={2}
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -332,7 +332,7 @@ export default function LessonPlansTab({
                 onChange={(e) =>
                   setPlanData({ ...planData, plannedDate: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
@@ -344,7 +344,7 @@ export default function LessonPlansTab({
                 onChange={(e) =>
                   setPlanData({ ...planData, status: e.target.value as any })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="PLANNED">PLANNED</option>
                 <option value="IN_PROGRESS">IN PROGRESS</option>

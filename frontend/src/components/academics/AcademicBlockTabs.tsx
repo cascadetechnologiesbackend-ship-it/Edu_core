@@ -164,7 +164,7 @@ export default function AcademicBlockTabs({
   className = "",
 }: AcademicBlockTabsProps) {
   return (
-    <div className={`w-full bg-gray-100/80 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-gray-200/80 dark:border-slate-700/80 ${className}`}>
+    <div className={`w-full bg-muted/40 p-1.5 rounded-2xl border border-border/40 ${className}`}>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
         {ACADEMIC_BLOCKS.map((block) => {
           const Icon = block.icon;
@@ -176,17 +176,17 @@ export default function AcademicBlockTabs({
               key={block.key}
               type="button"
               onClick={() => onBlockChange(block.key)}
-              className={`group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 select-none ${
+              className={`group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 select-none min-h-[44px] cursor-pointer ${
                 isActive
-                  ? "bg-white dark:bg-slate-900 text-primary shadow-sm shadow-black/5 border border-gray-200/60 dark:border-slate-700/60"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-900/40"
+                  ? "bg-card text-[#00A3C4] dark:text-[#64D2FF] shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
               }`}
             >
               <div
                 className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                   isActive
-                    ? "bg-primary/10 text-primary dark:bg-primary/20"
-                    : "bg-gray-200/60 dark:bg-slate-700/60 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200"
+                    ? "bg-[#00A3C4]/15 dark:bg-[#64D2FF]/20 text-[#00A3C4] dark:text-[#64D2FF]"
+                    : "bg-muted/60 text-muted-foreground group-hover:text-foreground"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -197,17 +197,17 @@ export default function AcademicBlockTabs({
                   <span className="truncate">{block.label}</span>
                   {typeof count === "number" && (
                     <span
-                      className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono ${
+                      className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full font-mono ${
                         isActive
-                          ? "bg-primary/15 text-primary dark:bg-primary/30"
-                          : "bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-400"
+                          ? "bg-[#00A3C4]/15 dark:bg-[#64D2FF]/25 text-[#00A3C4] dark:text-[#64D2FF]"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {count}
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] font-medium text-gray-400 dark:text-gray-500 truncate">
+                <div className="text-[10px] font-medium text-muted-foreground truncate">
                   {block.sublabel}
                 </div>
               </div>

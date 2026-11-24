@@ -262,15 +262,15 @@ export default async function AccountsDashboardPage() {
       <FinanceTabs activeSection="accounts" />
 
       {/* Header Banner & Quick Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-xs">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
             <BookOpen className="w-3.5 h-3.5" /> General Ledger & Treasury
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Institutional Accounts Command Hub
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Real-time cash flow, bank ledger balances, voucher verification, and double-entry trail.
           </p>
         </div>

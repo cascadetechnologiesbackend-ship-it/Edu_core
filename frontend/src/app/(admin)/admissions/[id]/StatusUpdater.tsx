@@ -126,20 +126,20 @@ export function StatusUpdater({
         </div>
       ) : currentStatus === "WITHDRAWN" ? (
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/40">
             ⊘ WITHDRAWN (Terminal)
           </span>
         </div>
       ) : (
         <>
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-medium text-foreground">
             Status:
           </span>
           <select
             defaultValue={currentStatus}
             onChange={handleStatusChange}
             disabled={loading || isTerminal || legalTransitions.length === 0}
-            className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+            className="block w-48 rounded-xl border border-border bg-muted/30 text-foreground px-3 py-2 text-sm focus:border-[#007AFF] focus:ring-[#007AFF]/20 min-h-[40px]"
           >
             <option value={currentStatus} disabled>
               {currentStatus.replace("_", " ")} (Current)
@@ -154,19 +154,19 @@ export function StatusUpdater({
             })}
           </select>
           {loading && (
-            <span className="text-sm text-blue-500">Updating...</span>
+            <span className="text-sm text-[#007AFF] dark:text-[#0A84FF]">Updating...</span>
           )}
         </>
       )}
 
       {/* Enrollment Class & Section Selection Modal */}
       {showEnrollModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-card-elevated rounded-2xl shadow-level-3 border border-border/40 max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-bold text-foreground">
               Enroll Student
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Assign this applicant to an active Class and Section. This will
               atomically create their Student 360 profile, initial academic
               history, and fee structures.
@@ -174,7 +174,7 @@ export function StatusUpdater({
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Target Class
                 </label>
                 <select
@@ -190,7 +190,7 @@ export function StatusUpdater({
                       setSelectedSectionId("");
                     }
                   }}
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"
+                  className="w-full rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm text-foreground min-h-[44px]"
                 >
                   {availableClasses.map((cls) => (
                     <option key={cls.id} value={cls.id}>
@@ -201,13 +201,13 @@ export function StatusUpdater({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Target Section
                 </label>
                 <select
                   value={selectedSectionId}
                   onChange={(e) => setSelectedSectionId(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"
+                  className="w-full rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm text-foreground min-h-[44px]"
                 >
                   {availableSections.length === 0 ? (
                     <option value="">No active sections in this class</option>
@@ -222,12 +222,12 @@ export function StatusUpdater({
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
               <button
                 type="button"
                 onClick={() => setShowEnrollModal(false)}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 rounded-md hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+                className="px-4 py-2 text-sm font-semibold text-foreground bg-muted/40 hover:bg-muted/80 rounded-xl transition-colors min-h-[44px] cursor-pointer"
               >
                 Cancel
               </button>
@@ -235,7 +235,7 @@ export function StatusUpdater({
                 type="button"
                 onClick={handleConfirmEnroll}
                 disabled={loading || !selectedClassId || !selectedSectionId}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow transition-colors disabled:opacity-50"
+                className="px-5 py-2 text-sm font-semibold text-white bg-[#007AFF] dark:bg-[#0A84FF] hover:bg-[#0068DB] dark:hover:bg-[#0071E3] rounded-xl shadow-sm transition-colors disabled:opacity-50 min-h-[44px] cursor-pointer"
               >
                 {loading ? "Enrolling..." : "Confirm & Enroll"}
               </button>

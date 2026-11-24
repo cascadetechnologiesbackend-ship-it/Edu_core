@@ -541,7 +541,7 @@ export default function SubjectWorkspaceClient({
         </div>
       )}
       {/* ─── Breadcrumb & Top Context Header ──────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-border/40 pb-5">
         <div>
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
             <Link
@@ -604,7 +604,7 @@ export default function SubjectWorkspaceClient({
 
         {/* Section Operational Switcher */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700">
+          <div className="flex items-center gap-1.5 bg-gray-100 bg-muted/60 p-1.5 rounded-xl border border-gray-200 dark:border-border/40">
             <span className="text-[11px] font-bold text-gray-500 pl-2">
               Scope:
             </span>
@@ -612,7 +612,7 @@ export default function SubjectWorkspaceClient({
               onClick={() => setSelectedSectionId("ALL")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
                 selectedSectionId === "ALL"
-                  ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                  ? "bg-card text-primary shadow-xs"
                   : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
@@ -624,7 +624,7 @@ export default function SubjectWorkspaceClient({
                 onClick={() => setSelectedSectionId(sec.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
                   selectedSectionId === sec.id
-                    ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                    ? "bg-card text-primary shadow-xs"
                     : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -636,7 +636,7 @@ export default function SubjectWorkspaceClient({
           {isAdmin && (
             <button
               onClick={() => setShowAllocateModal(true)}
-              className="px-3 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 text-gray-700 dark:text-gray-200 flex items-center gap-1 shadow-xs"
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-card border border-gray-200 dark:border-border/40 hover:bg-gray-50 text-gray-700 dark:text-gray-200 flex items-center gap-1 shadow-xs"
             >
               <UserCheck className="w-3.5 h-3.5 text-blue-500" />
               Assign Teacher
@@ -656,7 +656,7 @@ export default function SubjectWorkspaceClient({
 
       {/* ─── Top Stats Banner ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold block mb-1">
             Syllabus Progress
           </span>
@@ -668,7 +668,7 @@ export default function SubjectWorkspaceClient({
           </span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold block mb-1">
             Lesson Plans
           </span>
@@ -680,7 +680,7 @@ export default function SubjectWorkspaceClient({
           </span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold block mb-1">
             Assignments
           </span>
@@ -692,7 +692,7 @@ export default function SubjectWorkspaceClient({
           </span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold block mb-1">
             Assessments
           </span>
@@ -704,7 +704,7 @@ export default function SubjectWorkspaceClient({
           </span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold block mb-1">
             Syllabus Units
           </span>
@@ -718,7 +718,7 @@ export default function SubjectWorkspaceClient({
       </div>
 
       {/* ─── Workspace Navigation Tabs ───────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-slate-800 overflow-x-auto">
+      <div className="border-b border-gray-200 dark:border-border/40 overflow-x-auto">
         <nav className="flex space-x-6">
           {[
             { id: "overview", label: "Trajectory Overview", icon: Layers },
@@ -751,7 +751,7 @@ export default function SubjectWorkspaceClient({
       {/* ─── TAB 1: OVERVIEW ──────────────────────────────────────────────── */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-xs">
             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">
               Academic Trajectory & Coverage
             </h3>
@@ -760,7 +760,7 @@ export default function SubjectWorkspaceClient({
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
+              <div className="p-4 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/20">
                 <span className="text-xs font-bold text-gray-900 dark:text-white block mb-1">
                   1. Curriculum Mastery
                 </span>
@@ -775,7 +775,7 @@ export default function SubjectWorkspaceClient({
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
+              <div className="p-4 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/20">
                 <span className="text-xs font-bold text-gray-900 dark:text-white block mb-1">
                   2. Lesson Execution
                 </span>
@@ -790,7 +790,7 @@ export default function SubjectWorkspaceClient({
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
+              <div className="p-4 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/20">
                 <span className="text-xs font-bold text-gray-900 dark:text-white block mb-1">
                   3. Section Operations
                 </span>
@@ -837,10 +837,10 @@ export default function SubjectWorkspaceClient({
             {units.map((unit) => (
               <div
                 key={unit.id}
-                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs"
+                className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-xs"
               >
                 {/* Unit Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/40">
                   <div className="flex items-center gap-2">
                     <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
                       U{unit.sortOrder}
@@ -863,7 +863,7 @@ export default function SubjectWorkspaceClient({
                         setChapterOrder((unit.chapters?.length || 0) + 1);
                         setShowChapterModal(true);
                       }}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 flex items-center gap-1"
                     >
                       <Plus className="w-3.5 h-3.5" /> Chapter
                     </button>
@@ -877,7 +877,7 @@ export default function SubjectWorkspaceClient({
                 </div>
 
                 {/* Chapters list under this unit */}
-                <div className="divide-y divide-gray-100 dark:divide-slate-800/80 mt-2">
+                <div className="divide-y divide-gray-100 dark:divide-border/40 mt-2">
                   {unit.chapters?.map((ch) => (
                     <div key={ch.id} className="py-3 pl-4">
                       <div className="flex items-center justify-between mb-2">
@@ -886,7 +886,7 @@ export default function SubjectWorkspaceClient({
                             {ch.name}
                           </span>
                           {ch.ncertReference && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 font-mono text-gray-500">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 bg-muted/60 font-mono text-gray-500">
                               NCERT: {ch.ncertReference}
                             </span>
                           )}
@@ -912,7 +912,7 @@ export default function SubjectWorkspaceClient({
                         {ch.topics?.map((topic) => (
                           <div
                             key={topic.id}
-                            className="p-2.5 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 flex items-center justify-between"
+                            className="p-2.5 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/20 flex items-center justify-between"
                           >
                             <div className="min-w-0 pr-2">
                               <span className="text-xs font-semibold text-gray-900 dark:text-white block truncate">
@@ -947,7 +947,7 @@ export default function SubjectWorkspaceClient({
             ))}
 
             {units.length === 0 && (
-              <div className="text-center py-12 bg-white dark:bg-slate-900 border border-dashed border-gray-200 dark:border-slate-800 rounded-2xl text-gray-400 text-xs">
+              <div className="text-center py-12 bg-card border border-dashed border-gray-200 dark:border-border/40 rounded-2xl text-gray-400 text-xs">
                 No syllabus units defined for {subjectName} yet. Click "+ Add Unit" to begin curriculum setup.
               </div>
             )}
@@ -980,7 +980,7 @@ export default function SubjectWorkspaceClient({
             </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl divide-y divide-gray-100 dark:divide-slate-800 shadow-xs">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl divide-y divide-gray-100 dark:divide-border/40 shadow-xs">
             {lessonPlans.map((lp) => (
               <div key={lp.id} className="p-4 flex items-center justify-between">
                 <div>
@@ -1045,7 +1045,7 @@ export default function SubjectWorkspaceClient({
             </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl divide-y divide-gray-100 dark:divide-slate-800 shadow-xs">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl divide-y divide-gray-100 dark:divide-border/40 shadow-xs">
             {filteredAssignments.map((a) => (
               <div key={a.id} className="p-4 flex items-center justify-between">
                 <div>
@@ -1061,7 +1061,7 @@ export default function SubjectWorkspaceClient({
                     Max Marks: {a.maxMarks} · Due: {new Date(a.dueDate).toLocaleDateString()}
                   </p>
                 </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 bg-muted/60 text-gray-700 dark:text-gray-300">
                   {a.status}
                 </span>
               </div>
@@ -1099,7 +1099,7 @@ export default function SubjectWorkspaceClient({
             </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl divide-y divide-gray-100 dark:divide-slate-800 shadow-xs">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl divide-y divide-gray-100 dark:divide-border/40 shadow-xs">
             {filteredAssignments
               .filter((a) => a.title.toLowerCase().includes("homework") || a.title.toLowerCase().includes("hw"))
               .map((hw) => (
@@ -1147,7 +1147,7 @@ export default function SubjectWorkspaceClient({
             </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl divide-y divide-gray-100 dark:divide-slate-800 shadow-xs">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl divide-y divide-gray-100 dark:divide-border/40 shadow-xs">
             {filteredAssessments.map((asm) => (
               <div key={asm.id} className="p-4 flex items-center justify-between">
                 <div>
@@ -1158,7 +1158,7 @@ export default function SubjectWorkspaceClient({
                     <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                       {asm.type}
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600">
+                    <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-gray-100 bg-muted/60 text-gray-600">
                       {asm.section ? `Section ${asm.section.name}` : "Class-Wide"}
                     </span>
                   </div>
@@ -1166,7 +1166,7 @@ export default function SubjectWorkspaceClient({
                     Max Marks: {asm.maxMarks} · Scheduled Date: {asm.date}
                   </p>
                 </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 bg-muted/60 text-gray-700 dark:text-gray-300">
                   {asm.status}
                 </span>
               </div>
@@ -1184,7 +1184,7 @@ export default function SubjectWorkspaceClient({
       {/* ─── TAB 7: PROGRESS ─────────────────────────────────────────────── */}
       {activeTab === "progress" && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-xs">
             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">
               Unit-wise Syllabus Completion
             </h3>
@@ -1195,7 +1195,7 @@ export default function SubjectWorkspaceClient({
                   0,
                 );
                 return (
-                  <div key={u.id} className="p-4 rounded-xl border border-gray-100 dark:border-slate-800">
+                  <div key={u.id} className="p-4 rounded-xl border border-gray-100 dark:border-border/40">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-bold text-sm text-gray-900 dark:text-white">
                         {u.name}
@@ -1204,7 +1204,7 @@ export default function SubjectWorkspaceClient({
                         {totalInUnit} Topics Defined
                       </span>
                     </div>
-                    <div className="w-full bg-gray-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-100 bg-muted/60 h-2 rounded-full overflow-hidden">
                       <div
                         className="bg-primary h-full rounded-full"
                         style={{ width: `${progress.percentage}%` }}
@@ -1223,9 +1223,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveUnit}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Add Syllabus Unit
               </h3>
@@ -1248,7 +1248,7 @@ export default function SubjectWorkspaceClient({
                 value={unitName}
                 onChange={(e) => setUnitName(e.target.value)}
                 placeholder="e.g. Unit 1: Number Systems"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1260,11 +1260,11 @@ export default function SubjectWorkspaceClient({
                 type="number"
                 value={unitOrder}
                 onChange={(e) => setUnitOrder(parseInt(e.target.value) || 1)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowUnitModal(false)}
@@ -1289,9 +1289,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveChapter}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Add Chapter
               </h3>
@@ -1314,7 +1314,7 @@ export default function SubjectWorkspaceClient({
                 value={chapterName}
                 onChange={(e) => setChapterName(e.target.value)}
                 placeholder="e.g. Knowing Our Numbers"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1327,11 +1327,11 @@ export default function SubjectWorkspaceClient({
                 value={chapterNcert}
                 onChange={(e) => setChapterNcert(e.target.value)}
                 placeholder="e.g. NCERT Chapter 1"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowChapterModal(false)}
@@ -1356,9 +1356,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveTopic}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Add Syllabus Topic
               </h3>
@@ -1381,7 +1381,7 @@ export default function SubjectWorkspaceClient({
                 value={topicName}
                 onChange={(e) => setTopicName(e.target.value)}
                 placeholder="e.g. Place Value & Face Value"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1395,11 +1395,11 @@ export default function SubjectWorkspaceClient({
                 onChange={(e) =>
                   setTopicPeriods(parseInt(e.target.value) || 1)
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowTopicModal(false)}
@@ -1424,9 +1424,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveLessonPlan}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Plan Curriculum Lesson
               </h3>
@@ -1449,7 +1449,7 @@ export default function SubjectWorkspaceClient({
                 value={lessonTitle}
                 onChange={(e) => setLessonTitle(e.target.value)}
                 placeholder="e.g. Introduction to Number Systems"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1468,7 +1468,7 @@ export default function SubjectWorkspaceClient({
                     setLessonChapterName(found.chapterName);
                   }
                 }}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               >
                 <option value="">No linked topic</option>
                 {allActiveTopics.map((t) => (
@@ -1488,7 +1488,7 @@ export default function SubjectWorkspaceClient({
                 required
                 value={lessonChapterName}
                 onChange={(e) => setLessonChapterName(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1501,7 +1501,7 @@ export default function SubjectWorkspaceClient({
                   type="date"
                   value={lessonPlannedDate}
                   onChange={(e) => setLessonPlannedDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 />
               </div>
 
@@ -1512,7 +1512,7 @@ export default function SubjectWorkspaceClient({
                 <select
                   value={lessonStatus}
                   onChange={(e) => setLessonStatus(e.target.value as any)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 >
                   <option value="PLANNED">PLANNED</option>
                   <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -1521,7 +1521,7 @@ export default function SubjectWorkspaceClient({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowLessonModal(false)}
@@ -1546,9 +1546,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveAssignment}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Create Assignment for {subjectName}
               </h3>
@@ -1569,7 +1569,7 @@ export default function SubjectWorkspaceClient({
                 required
                 value={assignmentSectionId}
                 onChange={(e) => setAssignmentSectionId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               >
                 {sections.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -1589,7 +1589,7 @@ export default function SubjectWorkspaceClient({
                 value={assignmentTitle}
                 onChange={(e) => setAssignmentTitle(e.target.value)}
                 placeholder="e.g. Exercise 1.2 Problems 1-10"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1603,7 +1603,7 @@ export default function SubjectWorkspaceClient({
                   required
                   value={assignmentDueDate}
                   onChange={(e) => setAssignmentDueDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 />
               </div>
 
@@ -1617,12 +1617,12 @@ export default function SubjectWorkspaceClient({
                   onChange={(e) =>
                     setAssignmentMaxMarks(parseInt(e.target.value) || 10)
                   }
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowAssignmentModal(false)}
@@ -1647,9 +1647,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveAssessment}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Create Assessment
               </h3>
@@ -1672,7 +1672,7 @@ export default function SubjectWorkspaceClient({
                 value={assessmentTitle}
                 onChange={(e) => setAssessmentTitle(e.target.value)}
                 placeholder="e.g. Unit Test 1 — Mathematics"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               />
             </div>
 
@@ -1684,7 +1684,7 @@ export default function SubjectWorkspaceClient({
                 <select
                   value={assessmentType}
                   onChange={(e) => setAssessmentType(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 >
                   <option value="UNIT_TEST">Unit Test</option>
                   <option value="MIDTERM">Midterm Exam</option>
@@ -1704,7 +1704,7 @@ export default function SubjectWorkspaceClient({
                 <select
                   value={assessmentSectionId}
                   onChange={(e) => setAssessmentSectionId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 >
                   <option value="">Class-Wide (All Sections)</option>
                   {sections.map((s) => (
@@ -1726,7 +1726,7 @@ export default function SubjectWorkspaceClient({
                   required
                   value={assessmentDate}
                   onChange={(e) => setAssessmentDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 />
               </div>
 
@@ -1740,12 +1740,12 @@ export default function SubjectWorkspaceClient({
                   onChange={(e) =>
                     setAssessmentMaxMarks(parseInt(e.target.value) || 50)
                   }
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowAssessmentModal(false)}
@@ -1770,9 +1770,9 @@ export default function SubjectWorkspaceClient({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleAllocateTeacher}
-            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
+            className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Assign Section Teacher
               </h3>
@@ -1793,7 +1793,7 @@ export default function SubjectWorkspaceClient({
                 required
                 value={allocSectionId}
                 onChange={(e) => setAllocSectionId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
               >
                 {sections.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -1831,7 +1831,7 @@ export default function SubjectWorkspaceClient({
                   required
                   value={allocTeacherId}
                   onChange={(e) => setAllocTeacherId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
                 >
                   <option value="">Select teacher</option>
                   {allTeachers.map((t) => (
@@ -1852,7 +1852,7 @@ export default function SubjectWorkspaceClient({
                 required
                 value={allocDate}
                 onChange={(e) => setAllocDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-mono"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs font-mono"
               />
               <p className="text-[10px] text-gray-400 mt-1">
                 Previous teacher allocation will be automatically closed with this date.
@@ -1863,7 +1863,7 @@ export default function SubjectWorkspaceClient({
               Note: Subject Lead applies across all sections by default. To change the subject lead teacher, edit from the header above.
             </p>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowAllocateModal(false)}
@@ -1895,7 +1895,7 @@ export default function SubjectWorkspaceClient({
             <button
               type="button"
               onClick={() => setShowLeadModal(false)}
-              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[38px]"
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[38px]"
             >
               Cancel
             </button>
@@ -1939,7 +1939,7 @@ export default function SubjectWorkspaceClient({
               <select
                 value={selectedLeadTeacherId}
                 onChange={(e) => setSelectedLeadTeacherId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               >
                 <option value="">None / Unassigned</option>
                 {allTeachers.map((t) => (

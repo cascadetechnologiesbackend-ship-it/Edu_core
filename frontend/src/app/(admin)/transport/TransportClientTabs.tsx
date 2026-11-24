@@ -54,29 +54,23 @@ export default function TransportClientTabs({
 
   return (
     <div className="space-y-6">
-      {/* Tab Selectors */}
-      <div className="border-b border-gray-200 dark:border-slate-800">
-        <ul
-          className="flex flex-wrap -mb-px text-sm font-medium text-center"
-          role="tablist"
-        >
-          {tabs.map((tab) => (
-            <li key={tab.id} className="mr-2" role="presentation">
-              <button
-                onClick={() => handleTabChange(tab.id)}
-                className={`inline-block p-4 border-b-2 rounded-t-lg transition font-semibold ${
-                  activeTab === tab.id
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-              >
-                {tab.label}
-              </button>
-            </li>
-          ))}
-        </ul>
+      {/* Tab Selectors - Apple Inset Segmented Control */}
+      <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/40 inline-flex flex-wrap gap-1.5">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id)}
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center ${
+              activeTab === tab.id
+                ? "bg-card text-[#D97706] dark:text-[#FF9F0A] shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground border border-transparent"
+            }`}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab Panels */}

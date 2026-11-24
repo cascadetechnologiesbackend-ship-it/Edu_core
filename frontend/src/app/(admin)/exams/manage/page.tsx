@@ -148,11 +148,11 @@ export default async function ExamManagePage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-5">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-border/40 pb-5">
         <div className="space-y-1">
           <Link
             href="/exams/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition-colors mb-1"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white transition-colors mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>
@@ -161,7 +161,7 @@ export default async function ExamManagePage() {
             <SlidersHorizontal className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <span>Examination Setup & Standards</span>
           </h1>
-          <p className="text-xs text-gray-500 dark:text-slate-400">
+          <p className="text-xs text-gray-500 dark:text-muted-foreground">
             Define exam terms, weightages, sub-components, co-curricular metrics, and grading brackets.
           </p>
         </div>

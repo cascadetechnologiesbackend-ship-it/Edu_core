@@ -260,7 +260,7 @@ export function ExamManageClient({
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
               Pre-seed {board || "CBSE"} Examination Standards & Blueprint
             </h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400 max-w-xl">
+            <p className="text-xs text-gray-500 dark:text-muted-foreground max-w-xl">
               Automatically provision board-compliant assessment types, 0–100% contiguous grade rules across class categories, and cocurricular rubrics in one click.
             </p>
           </div>
@@ -285,13 +285,13 @@ export function ExamManageClient({
           </button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-muted/30 border border-gray-200 dark:border-border/40">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{board || "CBSE"} Blueprint Defaults Active</span>
             </span>
-            <span className="text-xs text-gray-500 dark:text-slate-400 hidden sm:inline">
+            <span className="text-xs text-gray-500 dark:text-muted-foreground hidden sm:inline">
               ({examTypes.length} exam types, {gradeRules.length} grade rules, {cocurricularAreas.length} cocurricular areas)
             </span>
           </div>
@@ -313,7 +313,7 @@ export function ExamManageClient({
                 }
               });
             }}
-            className="text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition flex items-center gap-1.5"
+            className="text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white transition flex items-center gap-1.5"
             title="Ensures all board defaults exist without altering custom modifications"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
@@ -323,7 +323,7 @@ export function ExamManageClient({
       )}
 
       {/* Tab Switcher */}
-      <div className="flex border-b border-gray-200 dark:border-slate-800">
+      <div className="flex border-b border-gray-200 dark:border-border/40">
         <button
           data-ux-id="btn_create_exam_modal"
           data-ux-label="Exam Setup Wizard Tab"
@@ -332,7 +332,7 @@ export function ExamManageClient({
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "wizard"
               ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-muted-foreground dark:hover:text-foreground"
           }`}
         >
           <SlidersHorizontal className="w-4 h-4" />
@@ -347,7 +347,7 @@ export function ExamManageClient({
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "cocurricular"
               ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-muted-foreground dark:hover:text-foreground"
           }`}
         >
           <Palette className="w-4 h-4" />
@@ -362,7 +362,7 @@ export function ExamManageClient({
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "rules"
               ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-muted-foreground dark:hover:text-foreground"
           }`}
         >
           <Award className="w-4 h-4" />
@@ -377,7 +377,7 @@ export function ExamManageClient({
           className={`py-3 px-5 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "distributions"
               ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-muted-foreground dark:hover:text-foreground"
           }`}
         >
           <Sparkles className="w-4 h-4 text-indigo-500" />
@@ -386,7 +386,7 @@ export function ExamManageClient({
 
         <Link
           href="/exams/setup/enrollments"
-          className="py-3 px-5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-2"
+          className="py-3 px-5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-muted-foreground dark:hover:text-foreground transition-all flex items-center gap-2"
         >
           <Users className="w-4 h-4 text-indigo-500" />
           <span>Student Elective Enrollments</span>
@@ -413,7 +413,7 @@ export function ExamManageClient({
 
       {/* TAB 1: EXAM SETUP WIZARD */}
       {activeTab === "wizard" && (
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 sm:p-8 shadow-sm">
           {/* Wizard Step Progress */}
           <div className="flex items-center justify-between mb-8 max-w-2xl mx-auto">
             <div className="flex items-center gap-3">
@@ -423,17 +423,17 @@ export function ExamManageClient({
                     ? "bg-indigo-600 text-white"
                     : step > 1
                     ? "bg-emerald-600 text-white"
-                    : "bg-gray-100 text-gray-500 dark:bg-slate-800"
+                    : "bg-gray-100 text-gray-500 bg-muted/60"
                 }`}
               >
                 1
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground">
                 1. Basic Info
               </span>
             </div>
 
-            <div className="h-0.5 w-12 sm:w-20 bg-gray-200 dark:bg-slate-800" />
+            <div className="h-0.5 w-12 sm:w-20 bg-gray-200 bg-muted/60" />
 
             <div className="flex items-center gap-3">
               <div
@@ -442,29 +442,29 @@ export function ExamManageClient({
                     ? "bg-indigo-600 text-white"
                     : step > 2
                     ? "bg-emerald-600 text-white"
-                    : "bg-gray-100 text-gray-500 dark:bg-slate-800"
+                    : "bg-gray-100 text-gray-500 bg-muted/60"
                 }`}
               >
                 2
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground">
                 2. Class Scopes
               </span>
             </div>
 
-            <div className="h-0.5 w-12 sm:w-20 bg-gray-200 dark:bg-slate-800" />
+            <div className="h-0.5 w-12 sm:w-20 bg-gray-200 bg-muted/60" />
 
             <div className="flex items-center gap-3">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
                   step === 3
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-500 dark:bg-slate-800"
+                    : "bg-gray-100 text-gray-500 bg-muted/60"
                 }`}
               >
                 3
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground">
                 3. Components
               </span>
             </div>
@@ -483,7 +483,7 @@ export function ExamManageClient({
                   placeholder="e.g. Mid-Term Assessment 2025"
                   value={examName}
                   onChange={(e) => setExamName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
                 />
               </div>
 
@@ -495,7 +495,7 @@ export function ExamManageClient({
                   required
                   value={selectedExamTypeId}
                   onChange={(e) => setSelectedExamTypeId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
                 >
                   {examTypes.map((et) => (
                     <option key={et.id} value={et.id}>
@@ -515,7 +515,7 @@ export function ExamManageClient({
                     required
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
                   />
                 </div>
                 <div>
@@ -527,7 +527,7 @@ export function ExamManageClient({
                     required
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm focus:ring-2 focus:ring-indigo-500 dark:text-white"
                   />
                 </div>
               </div>
@@ -589,7 +589,7 @@ export function ExamManageClient({
                       className={`p-3 rounded-xl border text-left text-sm transition-all flex items-center justify-between ${
                         isChecked
                           ? "bg-indigo-50/80 border-indigo-400 text-indigo-900 dark:bg-indigo-950/40 dark:border-indigo-600 dark:text-indigo-200"
-                          : "border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+                          : "border-gray-200 dark:border-border/40 text-gray-700 dark:text-muted-foreground hover:bg-gray-50 dark:hover:bg-muted/40"
                       }`}
                     >
                       <span className="font-semibold">{cls.displayName}</span>
@@ -599,14 +599,14 @@ export function ExamManageClient({
                 })}
               </div>
 
-              <div className="flex justify-between pt-4 border-t border-gray-100 dark:border-slate-800">
+              <div className="flex justify-between pt-4 border-t border-gray-100 dark:border-border/40">
                 <button
                   type="button"
                   data-ux-id="btn_wizard_prev_step"
                   data-ux-label="Back to Basic Info"
                   data-ux-action="click"
                   onClick={() => setStep(1)}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-slate-300"
+                  className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-border/40 text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-muted-foreground"
                 >
                   ← Back to Basic Info
                 </button>
@@ -634,7 +634,7 @@ export function ExamManageClient({
 
               <form onSubmit={handleAddComponent} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Component Name *
                   </label>
                   <input
@@ -643,12 +643,12 @@ export function ExamManageClient({
                     placeholder="e.g. Theory or Practical"
                     value={componentName}
                     onChange={(e) => setComponentName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 text-sm bg-white dark:bg-slate-800 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-border/40 text-sm bg-card dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Weight %
                   </label>
                   <input
@@ -657,7 +657,7 @@ export function ExamManageClient({
                     max="100"
                     value={componentWeight}
                     onChange={(e) => setComponentWeight(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 text-sm bg-white dark:bg-slate-800 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-border/40 text-sm bg-card dark:text-white"
                   />
                 </div>
 
@@ -673,7 +673,7 @@ export function ExamManageClient({
                 </button>
               </form>
 
-              <div className="flex justify-end pt-6 border-t border-gray-100 dark:border-slate-800">
+              <div className="flex justify-end pt-6 border-t border-gray-100 dark:border-border/40">
                 <a
                   href="/exams/dashboard"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all shadow-sm"
@@ -689,7 +689,7 @@ export function ExamManageClient({
       {/* TAB 2: CO-CURRICULAR AREAS */}
       {activeTab === "cocurricular" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm h-fit">
+          <div className="lg:col-span-1 bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm h-fit">
             <h3 className="font-bold text-base text-gray-900 dark:text-white mb-1">
               Add Co-Curricular Area
             </h3>
@@ -699,7 +699,7 @@ export function ExamManageClient({
 
             <form onSubmit={handleAddCocurricular} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                   Area Name *
                 </label>
                 <input
@@ -708,12 +708,12 @@ export function ExamManageClient({
                   placeholder="e.g. Visual Arts & Craft"
                   value={cocurricularName}
                   onChange={(e) => setCocurricularName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                   Description / Guidelines
                 </label>
                 <textarea
@@ -721,7 +721,7 @@ export function ExamManageClient({
                   placeholder="Evaluated on 5-point scale (A to E)"
                   value={cocurricularDesc}
                   onChange={(e) => setCocurricularDesc(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                 />
               </div>
 
@@ -735,7 +735,7 @@ export function ExamManageClient({
             </form>
           </div>
 
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <div className="lg:col-span-2 bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-base text-gray-900 dark:text-white mb-3">
               Registered Co-Curricular Areas
             </h3>
@@ -745,7 +745,7 @@ export function ExamManageClient({
                 No co-curricular areas defined yet.
               </p>
             ) : (
-              <div className="divide-y divide-gray-100 dark:divide-slate-800">
+              <div className="divide-y divide-gray-100 dark:divide-border/40">
                 {cocurricularAreas.map((area) => (
                   <div key={area.id} className="py-3 flex items-center justify-between">
                     <div>
@@ -770,7 +770,7 @@ export function ExamManageClient({
       {/* TAB 3: CLASS-SPECIFIC GRADE SCALES */}
       {activeTab === "rules" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm h-fit">
+          <div className="lg:col-span-1 bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm h-fit">
             <h3 className="font-bold text-base text-gray-900 dark:text-white mb-1">
               Add / Update Grade Rule
             </h3>
@@ -780,13 +780,13 @@ export function ExamManageClient({
 
             <form onSubmit={handleAddGradeRule} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                   Class Group *
                 </label>
                 <select
                   value={ruleGroup}
                   onChange={(e) => setRuleGroup(e.target.value as any)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                 >
                   <option value="NURSERY_UKG">Nursery - UKG (Foundation)</option>
                   <option value="CLASS_1_5">Class 1 to 5 (Primary)</option>
@@ -798,7 +798,7 @@ export function ExamManageClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Grade Letter *
                   </label>
                   <input
@@ -807,11 +807,11 @@ export function ExamManageClient({
                     placeholder="e.g. A1"
                     value={ruleGrade}
                     onChange={(e) => setRuleGrade(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Grade Point *
                   </label>
                   <input
@@ -820,14 +820,14 @@ export function ExamManageClient({
                     required
                     value={rulePoint}
                     onChange={(e) => setRulePoint(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Min % *
                   </label>
                   <input
@@ -836,11 +836,11 @@ export function ExamManageClient({
                     required
                     value={ruleMin}
                     onChange={(e) => setRuleMin(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Max % *
                   </label>
                   <input
@@ -849,7 +849,7 @@ export function ExamManageClient({
                     required
                     value={ruleMax}
                     onChange={(e) => setRuleMax(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
               </div>
@@ -864,7 +864,7 @@ export function ExamManageClient({
             </form>
           </div>
 
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm overflow-hidden">
+          <div className="lg:col-span-2 bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm overflow-hidden">
             <h3 className="font-bold text-base text-gray-900 dark:text-white mb-3">
               Configured Grade Scales
             </h3>
@@ -876,7 +876,7 @@ export function ExamManageClient({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 dark:bg-slate-800/60 text-xs font-semibold uppercase text-gray-500">
+                  <thead className="bg-gray-50 dark:bg-muted/40 text-xs font-semibold uppercase text-gray-500">
                     <tr>
                       <th className="px-4 py-2.5">Class Group</th>
                       <th className="px-4 py-2.5">Grade</th>
@@ -884,7 +884,7 @@ export function ExamManageClient({
                       <th className="px-4 py-2.5">Grade Point</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                     {gradeRules.map((rule) => (
                       <tr key={rule.id}>
                         <td className="px-4 py-2.5 font-medium">{rule.classGroup}</td>
@@ -908,8 +908,8 @@ export function ExamManageClient({
       {/* TAB 4: MARK DISTRIBUTIONS AUTOMATION */}
       {activeTab === "distributions" && (
         <div className="space-y-6">
-          <div className="p-6 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-slate-800">
+          <div className="p-6 bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-border/40">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -917,14 +917,14 @@ export function ExamManageClient({
                     Automated Mark Distributions
                   </h3>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-slate-400">
+                <p className="text-xs text-gray-500 dark:text-muted-foreground">
                   Bulk generate component mark distributions across classes and subjects according to board blueprints.
                 </p>
               </div>
             </div>
 
             {exams.length === 0 ? (
-              <div className="py-12 text-center text-sm text-gray-500 dark:text-slate-400">
+              <div className="py-12 text-center text-sm text-gray-500 dark:text-muted-foreground">
                 No active exams found. Create an examination in the Setup Wizard first.
               </div>
             ) : (
@@ -932,14 +932,14 @@ export function ExamManageClient({
                 {exams.map((exam) => (
                   <div
                     key={exam.id}
-                    className="p-5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 hover:border-indigo-300 dark:hover:border-indigo-700 transition space-y-4"
+                    className="p-5 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30 hover:border-indigo-300 dark:hover:border-indigo-700 transition space-y-4"
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-bold text-sm text-gray-900 dark:text-white">
                           {exam.name}
                         </h4>
-                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                        <p className="text-xs text-gray-500 dark:text-muted-foreground mt-0.5">
                           Type: {exam.examType?.name ?? "General"} • {exam.startDate} to {exam.endDate}
                         </p>
                       </div>
@@ -953,7 +953,7 @@ export function ExamManageClient({
                         {exam.components.map((comp) => (
                           <span
                             key={comp.id}
-                            className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300"
+                            className="px-2 py-0.5 rounded text-[10px] font-medium bg-white bg-muted border border-gray-200 dark:border-border/40 text-gray-700 dark:text-muted-foreground"
                           >
                             {comp.displayName} ({comp.weightPercent ?? 100}%)
                           </span>
@@ -961,10 +961,10 @@ export function ExamManageClient({
                       </div>
                     )}
 
-                    <div className="pt-3 border-t border-gray-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                    <div className="pt-3 border-t border-gray-200/60 dark:border-border/40/60 flex items-center justify-between">
                       <Link
                         href={`/exams/schedule?examId=${exam.id}`}
-                        className="text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition"
+                        className="text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white transition"
                       >
                         View Schedules →
                       </Link>

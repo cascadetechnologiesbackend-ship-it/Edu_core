@@ -97,11 +97,11 @@ export default async function ReportCardSetupsPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-5">
         <div className="flex items-center gap-3">
           <Link
             href="/exams/report-cards"
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+            className="p-2 rounded-xl bg-card border border-border/40 text-muted-foreground hover:text-white transition"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -114,7 +114,7 @@ export default async function ReportCardSetupsPage() {
                 Report Card Framework Setups
               </h1>
             </div>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Configure term combinations, weightage distributions, and holistic grading templates
             </p>
           </div>

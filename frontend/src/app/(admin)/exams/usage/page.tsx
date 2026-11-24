@@ -82,7 +82,7 @@ export default async function ExamsUsagePage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* ─── Breadcrumb & Navigation ────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-slate-400">
+      <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-muted-foreground">
         <Link
           href="/exams/dashboard"
           className="hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition"
@@ -95,7 +95,7 @@ export default async function ExamsUsagePage() {
       </div>
 
       {/* ─── Page Title Header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-border/40 pb-6">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
             <Activity className="w-4 h-4" />
@@ -104,7 +104,7 @@ export default async function ExamsUsagePage() {
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
             Examination Telemetry &amp; Element Heat Map
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1">
             Measured usage density and interaction frequency guiding ergonomic positioning across examination workflows.
           </p>
         </div>
@@ -112,7 +112,7 @@ export default async function ExamsUsagePage() {
         <div className="flex items-center gap-3">
           <Link
             href="/exams/analytics"
-            className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 px-4 py-2.5 rounded-lg font-medium text-sm transition-all"
+            className="inline-flex items-center gap-2 bg-card border border-gray-200 dark:border-border/40 text-gray-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-muted/60/50 px-4 py-2.5 rounded-lg font-medium text-sm transition-all"
           >
             <span>Cohort Performance</span>
           </Link>

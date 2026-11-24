@@ -28,7 +28,7 @@ export default async function NewExamPage() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-6">
+      <div className="bg-card rounded-xl border border-gray-200 dark:border-border/40 shadow-sm p-6">
         <form action={createExam as any} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -38,7 +38,7 @@ export default async function NewExamPage() {
               name="name"
               required
               placeholder="e.g., Unit Test 1 — July 2025"
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -49,7 +49,7 @@ export default async function NewExamPage() {
             <select
               name="examTypeId"
               required
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm"
             >
               <option value="">-- Select Type --</option>
               {allExamTypes.map((et) => (
@@ -74,7 +74,7 @@ export default async function NewExamPage() {
                 type="date"
                 name="startDate"
                 required
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm"
               />
             </div>
             <div>
@@ -85,7 +85,7 @@ export default async function NewExamPage() {
                 type="date"
                 name="endDate"
                 required
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm"
               />
             </div>
           </div>

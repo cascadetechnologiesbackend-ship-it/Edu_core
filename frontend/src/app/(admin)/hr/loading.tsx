@@ -15,29 +15,29 @@ export default function HRLoading() {
       </div>
 
       {/* Navigation Tabs Bar */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 pb-3">
+      <div className="flex border-b border-border/40 dark:border-border/40 gap-6 pb-3">
         {[1, 2, 3, 4, 5, 6].map((tab) => (
           <div key={tab} className="h-5 w-28 bg-muted/40 rounded" />
         ))}
       </div>
 
       {/* Search & Filter Controls Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-card p-4 rounded-xl border border-gray-200 dark:border-border/40 shadow-sm">
         <div className="h-10 bg-muted/30 rounded-lg md:col-span-2" />
         <div className="h-10 bg-muted/30 rounded-lg" />
         <div className="h-10 bg-muted/30 rounded-lg" />
       </div>
 
       {/* Staff Directory Table Skeleton */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="h-12 bg-muted/30 border-b border-gray-200 dark:border-slate-800 px-6 flex items-center justify-between">
+      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/40 shadow-sm overflow-hidden">
+        <div className="h-12 bg-muted/30 border-b border-gray-200 dark:border-border/40 px-6 flex items-center justify-between">
           <div className="h-4 w-32 bg-muted/50 rounded" />
           <div className="h-4 w-28 bg-muted/50 rounded" />
           <div className="h-4 w-28 bg-muted/50 rounded" />
           <div className="h-4 w-20 bg-muted/50 rounded" />
           <div className="h-4 w-16 bg-muted/50 rounded" />
         </div>
-        <div className="divide-y divide-gray-100 dark:divide-slate-800">
+        <div className="divide-y divide-gray-100 dark:divide-border/40">
           {[1, 2, 3, 4, 5, 6, 7].map((row) => (
             <div key={row} className="h-16 px-6 flex items-center justify-between">
               <div className="flex items-center gap-3">

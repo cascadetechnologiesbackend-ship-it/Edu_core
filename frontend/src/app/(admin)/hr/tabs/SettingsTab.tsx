@@ -19,10 +19,10 @@ export function SettingsTab({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-slate-800 dark:text-white">
+        <h2 className="text-sm font-semibold text-foreground dark:text-white">
           HR Configuration & Salary Templates
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-0.5">
           Manage salary structure templates, statutory deduction percentages, and default allowances.
         </p>
       </div>

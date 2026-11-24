@@ -184,7 +184,7 @@ export function AdmitCardClient({
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
@@ -193,7 +193,7 @@ export function AdmitCardClient({
             <select
               value={selectedExamId}
               onChange={(e) => handleExamChange(e.target.value)}
-              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold dark:text-white"
+              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm font-semibold dark:text-white"
             >
               {exams.map((ex) => (
                 <option key={ex.id} value={ex.id}>
@@ -210,7 +210,7 @@ export function AdmitCardClient({
             <select
               value={selectedClassFilter}
               onChange={(e) => setSelectedClassFilter(e.target.value)}
-              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium dark:text-white"
+              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm font-medium dark:text-white"
             >
               <option value="ALL">All Classes</option>
               {classes.map((cls) => (
@@ -259,8 +259,8 @@ export function AdmitCardClient({
       )}
 
       {/* Settings & Fee Gate Configuration Panel */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-4 mb-5">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 border-b border-gray-100 dark:border-border/40 pb-4 mb-5">
           <SlidersHorizontal className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           <h3 className="font-bold text-base text-gray-900 dark:text-white">
             Admit Card Release Window & Fee Defaulter Gate
@@ -270,7 +270,7 @@ export function AdmitCardClient({
         <form onSubmit={handleSaveSettings} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                 Release Start Date *
               </label>
               <input
@@ -278,12 +278,12 @@ export function AdmitCardClient({
                 required
                 value={availFrom}
                 onChange={(e) => setAvailFrom(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                 Release End Date *
               </label>
               <input
@@ -291,18 +291,18 @@ export function AdmitCardClient({
                 required
                 value={availUntil}
                 onChange={(e) => setAvailUntil(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                 Fee Defaulter Lock Mode *
               </label>
               <select
                 value={feeMode}
                 onChange={(e) => setFeeMode(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold dark:text-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm font-semibold dark:text-white"
               >
                 <option value="OFF">OFF — No fee verification</option>
                 <option value="SOFT">SOFT — Warn student/parent on download</option>
@@ -311,7 +311,7 @@ export function AdmitCardClient({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                 Due Threshold Amount (₹)
               </label>
               <input
@@ -320,14 +320,14 @@ export function AdmitCardClient({
                 step="50"
                 value={threshold}
                 onChange={(e) => setThreshold(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                 Exam Centre
               </label>
               <input
@@ -335,12 +335,12 @@ export function AdmitCardClient({
                 placeholder="School Main Campus / Junior Wing"
                 value={examCentre}
                 onChange={(e) => setExamCentre(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                 Candidate Reporting Time
               </label>
               <input
@@ -348,20 +348,20 @@ export function AdmitCardClient({
                 placeholder="08:45 AM"
                 value={reportingTime}
                 onChange={(e) => setReportingTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
               Instructions for Candidates
             </label>
             <textarea
               rows={2}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+              className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
             />
           </div>
 
@@ -378,8 +378,8 @@ export function AdmitCardClient({
       </div>
 
       {/* Student Admit Card Roster & Defaulter List */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-200 dark:border-border/40 flex items-center justify-between">
           <div>
             <h3 className="font-bold text-lg text-gray-900 dark:text-white">
               Student Admit Cards Roster ({filteredStudents.length})
@@ -397,7 +397,7 @@ export function AdmitCardClient({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-800/60 text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-muted/40 text-xs font-semibold uppercase text-gray-500 dark:text-muted-foreground border-b border-gray-200 dark:border-border/40">
                 <tr>
                   <th className="px-6 py-3.5">Roll No</th>
                   <th className="px-6 py-3.5">Student</th>
@@ -408,7 +408,7 @@ export function AdmitCardClient({
                   <th className="px-6 py-3.5 text-right">Hold Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-200 dark:divide-border/40">
                 {filteredStudents.map((st) => {
                   const isDefaulter = st.dueAmount > threshold;
                   const isHardBlocked = isDefaulter && feeMode === "HARD";
@@ -416,9 +416,9 @@ export function AdmitCardClient({
                   return (
                     <tr
                       key={st.id}
-                      className="hover:bg-gray-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-gray-50/70 dark:hover:bg-muted/30 transition-colors"
                     >
-                      <td className="px-6 py-4 font-mono text-xs text-gray-600 dark:text-slate-400">
+                      <td className="px-6 py-4 font-mono text-xs text-gray-600 dark:text-muted-foreground">
                         {st.rollNumber ?? "—"}
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
@@ -427,7 +427,7 @@ export function AdmitCardClient({
                           {st.admissionNumber}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-700 dark:text-slate-300">
+                      <td className="px-6 py-4 text-gray-700 dark:text-muted-foreground">
                         {st.className}
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
@@ -468,7 +468,7 @@ export function AdmitCardClient({
                           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
                             st.isHeld
                               ? "border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-300"
-                              : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                              : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-border/40 dark:text-muted-foreground dark:hover:bg-muted/40"
                           }`}
                         >
                           {st.isHeld ? "Release Hold" : "Place Hold"}
@@ -486,8 +486,8 @@ export function AdmitCardClient({
       {/* MODAL: PLACE HOLD */}
       {holdModalStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="font-bold text-base text-gray-900 dark:text-white">
                 Withhold Admit Card
               </h3>
@@ -502,14 +502,14 @@ export function AdmitCardClient({
             <form onSubmit={handleConfirmPlaceHold} className="space-y-4">
               <p className="text-xs text-gray-500">
                 Specify the reason for withholding the admit card for{" "}
-                <span className="font-bold text-gray-800 dark:text-slate-200">
+                <span className="font-bold text-gray-800 dark:text-foreground">
                   {holdModalStudent.name}
                 </span>
                 . The student/parent will see this reason in their portal.
               </p>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                   Reason for Hold *
                 </label>
                 <textarea
@@ -517,7 +517,7 @@ export function AdmitCardClient({
                   required
                   value={holdReasonInput}
                   onChange={(e) => setHoldReasonInput(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                 />
               </div>
 
@@ -525,7 +525,7 @@ export function AdmitCardClient({
                 <button
                   type="button"
                   onClick={() => setHoldModalStudent(null)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-gray-600 dark:text-slate-300"
+                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-border/40 text-sm text-gray-600 dark:text-muted-foreground"
                 >
                   Cancel
                 </button>

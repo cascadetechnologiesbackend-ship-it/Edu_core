@@ -213,7 +213,7 @@ export default function AssignmentsTab({
             <select
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
-              className="rounded border border-gray-300 dark:border-slate-600 bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="rounded border border-gray-300 dark:border-border/40 bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {classrooms.map((cls) =>
                 cls.sections.map((sec) => (
@@ -231,7 +231,7 @@ export default function AssignmentsTab({
             <select
               value={selectedSubjectMapping}
               onChange={(e) => setSelectedSubjectMapping(e.target.value)}
-              className="rounded border border-gray-300 dark:border-slate-600 bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="rounded border border-gray-300 dark:border-border/40 bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {mappings.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -253,7 +253,7 @@ export default function AssignmentsTab({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Assignments List */}
-        <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 p-4 space-y-3">
+        <div className="lg:col-span-1 bg-card rounded-xl shadow border border-gray-200 dark:border-border/40 p-4 space-y-3">
           <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider">
             Assignments
           </h3>
@@ -274,14 +274,14 @@ export default function AssignmentsTab({
                   className={`p-3 rounded-lg border cursor-pointer transition text-left space-y-1.5 ${
                     selectedAssignment?.id === assign.id
                       ? "border-primary bg-primary/5"
-                      : "border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/30"
+                      : "border-gray-100 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-muted/30"
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <p className="font-semibold text-xs text-gray-800 dark:text-gray-200 truncate">
                       {assign.title}
                     </p>
-                    <span className="text-[10px] bg-gray-100 dark:bg-slate-800 text-gray-500 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-[10px] bg-gray-100 bg-muted/60 text-gray-500 px-1.5 py-0.5 rounded font-semibold">
                       {assign.status}
                     </span>
                   </div>
@@ -295,10 +295,10 @@ export default function AssignmentsTab({
         </div>
 
         {/* Selected Assignment Submissions/Evaluation */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 p-6 space-y-6">
+        <div className="lg:col-span-2 bg-card rounded-xl shadow border border-gray-200 dark:border-border/40 p-6 space-y-6">
           {selectedAssignment ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-start border-b border-gray-100 dark:border-slate-800 pb-4">
+              <div className="flex justify-between items-start border-b border-gray-100 dark:border-border/40 pb-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                     {selectedAssignment.title}
@@ -337,7 +337,7 @@ export default function AssignmentsTab({
                     No submissions yet.
                   </p>
                 ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-slate-800">
+                  <div className="divide-y divide-gray-100 dark:divide-border/40">
                     {submissionsList.map((sub) => (
                       <div
                         key={sub.id}
@@ -411,7 +411,7 @@ export default function AssignmentsTab({
             <button
               type="button"
               onClick={() => setShowAssignForm(false)}
-              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              className="bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -443,7 +443,7 @@ export default function AssignmentsTab({
               onChange={(e) =>
                 setAssignData({ ...assignData, title: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -457,7 +457,7 @@ export default function AssignmentsTab({
                 setAssignData({ ...assignData, description: e.target.value })
               }
               rows={3}
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -475,7 +475,7 @@ export default function AssignmentsTab({
                     maxMarks: parseInt(e.target.value),
                   })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
@@ -489,7 +489,7 @@ export default function AssignmentsTab({
                 onChange={(e) =>
                   setAssignData({ ...assignData, dueDate: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
           </div>
@@ -506,7 +506,7 @@ export default function AssignmentsTab({
             <button
               type="button"
               onClick={() => setShowGradeForm(false)}
-              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              className="bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -542,7 +542,7 @@ export default function AssignmentsTab({
                   marksAwarded: parseInt(e.target.value),
                 })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -555,7 +555,7 @@ export default function AssignmentsTab({
               onChange={(e) =>
                 setGradeData({ ...gradeData, remarks: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </form>
@@ -571,7 +571,7 @@ export default function AssignmentsTab({
             <button
               type="button"
               onClick={() => setShowSubmitForm(false)}
-              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              className="bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -607,7 +607,7 @@ export default function AssignmentsTab({
                 })
               }
               placeholder="s3://bucket/path/homework.pdf"
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -621,7 +621,7 @@ export default function AssignmentsTab({
                 setSubmitData({ ...submitData, remarks: e.target.value })
               }
               placeholder="Explain details of your submission"
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </form>

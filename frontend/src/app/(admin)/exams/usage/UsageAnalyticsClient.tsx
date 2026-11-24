@@ -107,7 +107,7 @@ export function UsageAnalyticsClient({
   return (
     <div className="space-y-8">
       {/* ─── Top Stats & Filters ──────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
@@ -119,7 +119,7 @@ export function UsageAnalyticsClient({
             data-ux-action="filter_change"
             value={selectedScreen}
             onChange={(e) => setSelectedScreen(e.target.value)}
-            className="text-xs font-medium bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+            className="text-xs font-medium bg-gray-50 bg-muted/60 border border-gray-300 dark:border-border/40 rounded-xl px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">All Examination Screens</option>
             {availableScreens.map((s) => (
@@ -139,7 +139,7 @@ export function UsageAnalyticsClient({
             data-ux-action="filter_change"
             value={timeRangeDays}
             onChange={(e) => setTimeRangeDays(Number(e.target.value))}
-            className="text-xs font-medium bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+            className="text-xs font-medium bg-gray-50 bg-muted/60 border border-gray-300 dark:border-border/40 rounded-xl px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
           >
             <option value={7}>Last 7 Days</option>
             <option value={30}>Last 30 Days</option>
@@ -147,7 +147,7 @@ export function UsageAnalyticsClient({
           </select>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-muted-foreground">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Tenant Telemetry: {schoolName}</span>
         </div>
@@ -155,9 +155,9 @@ export function UsageAnalyticsClient({
 
       {/* ─── Metric Cards ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
+            <span className="text-xs font-semibold text-gray-500 dark:text-muted-foreground uppercase">
               Total Interactions
             </span>
             <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
@@ -172,9 +172,9 @@ export function UsageAnalyticsClient({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
+            <span className="text-xs font-semibold text-gray-500 dark:text-muted-foreground uppercase">
               Active Screen Target
             </span>
             <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
@@ -189,9 +189,9 @@ export function UsageAnalyticsClient({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
+            <span className="text-xs font-semibold text-gray-500 dark:text-muted-foreground uppercase">
               Top Action Intensity
             </span>
             <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
@@ -208,9 +208,9 @@ export function UsageAnalyticsClient({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <div className="bg-card border border-gray-200 dark:border-border/40 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
+            <span className="text-xs font-semibold text-gray-500 dark:text-muted-foreground uppercase">
               Privacy Standard
             </span>
             <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
@@ -227,8 +227,8 @@ export function UsageAnalyticsClient({
       </div>
 
       {/* ─── Element-Intensity Heat Map Overlays ─────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-4">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-border/40 pb-4">
           <div>
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
               <Flame className="w-4 h-4" />
@@ -285,7 +285,7 @@ export function UsageAnalyticsClient({
                     <h4 className="font-bold text-sm text-gray-900 dark:text-white leading-tight">
                       {el.label}
                     </h4>
-                    <p className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                    <p className="text-[11px] font-mono text-gray-500 dark:text-muted-foreground">
                       ID: {el.elementId}
                     </p>
                   </div>
@@ -307,14 +307,14 @@ export function UsageAnalyticsClient({
       </div>
 
       {/* ─── Frequency Ranking Table ────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm overflow-hidden">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-sm overflow-hidden">
         <h3 className="font-bold text-base text-gray-900 dark:text-white mb-4">
           Top-Interacted Element Frequency Ranking
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50 dark:bg-slate-800/60 text-gray-500 uppercase font-semibold text-[10px]">
+            <thead className="bg-gray-50 dark:bg-muted/40 text-gray-500 uppercase font-semibold text-[10px]">
               <tr>
                 <th className="px-4 py-3">Rank</th>
                 <th className="px-4 py-3">Element / Target Control</th>
@@ -323,19 +323,19 @@ export function UsageAnalyticsClient({
                 <th className="px-4 py-3">Usage Share</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40">
               {metrics.rankedElements.slice(0, 15).map((item, idx) => {
                 const percentage = Math.round((item.count / (metrics.total || 1)) * 100);
                 return (
-                  <tr key={item.key} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="px-4 py-3 font-bold text-gray-700 dark:text-slate-300">
+                  <tr key={item.key} className="hover:bg-gray-50 dark:hover:bg-muted/40 transition">
+                    <td className="px-4 py-3 font-bold text-gray-700 dark:text-muted-foreground">
                       #{idx + 1}
                     </td>
                     <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
                       <div>{item.label}</div>
                       <span className="font-mono text-[10px] text-gray-500">{item.elementId}</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-600 dark:text-slate-400">
+                    <td className="px-4 py-3 font-mono text-gray-600 dark:text-muted-foreground">
                       {item.screen}
                     </td>
                     <td className="px-4 py-3 text-center font-extrabold text-sm text-indigo-600 dark:text-indigo-400">
@@ -343,7 +343,7 @@ export function UsageAnalyticsClient({
                     </td>
                     <td className="px-4 py-3 w-48">
                       <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-gray-200 bg-muted rounded-full h-2 overflow-hidden">
                           <div
                             className="bg-indigo-600 h-2 rounded-full transition-all"
                             style={{ width: `${Math.min(100, Math.max(5, percentage))}%` }}

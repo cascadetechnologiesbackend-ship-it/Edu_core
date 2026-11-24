@@ -197,7 +197,7 @@ export default function AmsHubClient({
   return (
     <div className="space-y-6 max-w-[1280px] mx-auto px-4 md:px-6">
       {/* ─── 1. Header with Breadcrumbs & Single Primary Action (Law L4, O3, O4) ─── */}
-      <div className="border-b border-gray-100 dark:border-slate-800 pb-4">
+      <div className="border-b border-border/40 pb-4">
         <nav className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-1">
           <Link href="/dashboard" className="hover:text-primary transition">
             Home
@@ -227,21 +227,21 @@ export default function AmsHubClient({
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href="/academics/subjects"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-card border border-border/40 hover:bg-muted/40 text-foreground transition shadow-xs min-h-[40px]"
             >
               <BookOpen className="w-3.5 h-3.5 text-blue-500" />
               Manage Subjects
             </Link>
             <Link
               href="/academics/mapping"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-card border border-border/40 hover:bg-muted/40 text-foreground transition shadow-xs min-h-[40px]"
             >
               <ListOrdered className="w-3.5 h-3.5 text-purple-500" />
               Subject Matrix
             </Link>
             <Link
               href="/academics/setup/calendar"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-card border border-border/40 hover:bg-muted/40 text-foreground transition shadow-xs min-h-[40px]"
             >
               <Calendar className="w-3.5 h-3.5 text-amber-500" />
               Calendar
@@ -252,7 +252,7 @@ export default function AmsHubClient({
               <button
                 type="button"
                 onClick={() => setShowWizard(true)}
-                className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md shadow-primary/20 min-h-[40px] cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-[#00A3C4] dark:bg-[#64D2FF] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm min-h-[44px] cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Create Class
@@ -263,16 +263,16 @@ export default function AmsHubClient({
       </div>
 
       {/* ─── 2. School-Wide Setup Health Readiness Banner (Surface 1 Spec) ────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-[#00A3C4]/10 dark:bg-[#64D2FF]/12 border border-[#00A3C4]/25 dark:border-[#64D2FF]/30 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-[#00A3C4]/20 dark:bg-[#64D2FF]/20 text-[#00A3C4] dark:text-[#64D2FF] flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-bold text-gray-900 dark:text-white block">
+            <span className="text-xs font-bold text-foreground block">
               School Academic Readiness
             </span>
-            <span className="text-[11px] text-gray-500">
+            <span className="text-[11px] text-muted-foreground">
               Module-wide setup signals and curriculum completion
             </span>
           </div>
@@ -281,45 +281,45 @@ export default function AmsHubClient({
         <div className="flex items-center gap-4 text-xs font-semibold">
           <a
             href="#classes-grid"
-            className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 hover:text-primary transition"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-[#00A3C4] dark:hover:text-[#64D2FF] transition"
           >
             <span
               className={`w-2 h-2 rounded-full ${
                 classesWithSections === totalClasses && totalClasses > 0
-                  ? "bg-emerald-500"
-                  : "bg-amber-500"
+                  ? "bg-[#34C759] dark:bg-[#30D158]"
+                  : "bg-[#FF9500] dark:bg-[#FF9F0A]"
               }`}
             />
             <span>
-              Classes: <strong className="font-bold text-gray-900 dark:text-white">{classesWithSections}/{totalClasses}</strong> configured
+              Classes: <strong className="font-bold text-foreground font-mono tabular-nums">{classesWithSections}/{totalClasses}</strong> configured
             </span>
           </a>
 
-          <span className="text-gray-300 dark:text-slate-700">·</span>
+          <span className="text-border">·</span>
 
           <Link
             href="/academics/mapping"
-            className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 hover:text-primary transition"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-[#00A3C4] dark:hover:text-[#64D2FF] transition"
           >
             <span
               className={`w-2 h-2 rounded-full ${
                 classesWithSubjects === totalClasses && totalClasses > 0
-                  ? "bg-emerald-500"
-                  : "bg-amber-500"
+                  ? "bg-[#34C759] dark:bg-[#30D158]"
+                  : "bg-[#FF9500] dark:bg-[#FF9F0A]"
               }`}
             />
             <span>
-              Subjects mapped: <strong className="font-bold text-gray-900 dark:text-white">{classesWithSubjects}/{totalClasses}</strong>
+              Subjects mapped: <strong className="font-bold text-foreground font-mono tabular-nums">{classesWithSubjects}/{totalClasses}</strong>
             </span>
           </Link>
 
-          <span className="text-gray-300 dark:text-slate-700 hidden md:inline">·</span>
+          <span className="text-border hidden md:inline">·</span>
 
           <Link
             href="/academics/setup/bell-schedule"
-            className="hidden md:flex items-center gap-1.5 text-gray-700 dark:text-gray-300 hover:text-primary transition"
+            className="hidden md:flex items-center gap-1.5 text-muted-foreground hover:text-[#00A3C4] dark:hover:text-[#64D2FF] transition"
           >
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="w-2 h-2 rounded-full bg-[#00A3C4] dark:bg-[#64D2FF]" />
             <span>Bell Schedule: Active</span>
           </Link>
         </div>
@@ -337,81 +337,81 @@ export default function AmsHubClient({
 
       {/* ─── 4. Workloads Section (Merge Plan: Assignments & Lesson Plans) ─────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="bg-card border border-border/40 hover:border-[#00A3C4]/40 transition rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Classes
             </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#00A3C4]/15 dark:bg-[#64D2FF]/20 text-[#00A3C4] dark:text-[#64D2FF] flex items-center justify-center">
               <GraduationCap className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="text-2xl font-bold text-foreground font-mono tabular-nums">
             {classrooms.length}
           </div>
-          <div className="text-[11px] text-gray-400 mt-1">
+          <div className="text-[11px] text-muted-foreground mt-1">
             {totalSections} active sections
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="bg-card border border-border/40 hover:border-[#00A3C4]/40 transition rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Subjects Mapped
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="text-2xl font-bold text-foreground font-mono tabular-nums">
             {mappings.length}
           </div>
-          <div className="text-[11px] text-gray-400 mt-1">
+          <div className="text-[11px] text-muted-foreground mt-1">
             Across {subjects.length} catalog subjects
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="bg-card border border-border/40 hover:border-[#00A3C4]/40 transition rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Substitutions
             </span>
             <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                 pendingSubstitutionsCount > 0
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600"
-                  : "bg-green-50 dark:bg-green-900/20 text-green-600"
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
               }`}
             >
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="text-2xl font-bold text-foreground font-mono tabular-nums">
             {pendingSubstitutionsCount}
           </div>
-          <div className="text-[11px] text-gray-400 mt-1">
+          <div className="text-[11px] text-muted-foreground mt-1">
             {pendingSubstitutionsCount > 0
               ? "Pending coverage today"
               : "All periods covered"}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="bg-card border border-border/40 hover:border-[#00A3C4]/40 transition rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Bell Schedule
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#00A3C4]/15 dark:bg-[#64D2FF]/20 text-[#00A3C4] dark:text-[#64D2FF] flex items-center justify-center">
               <CalendarDays className="w-4 h-4" />
             </div>
           </div>
           <Link
             href="/academics/setup/bell-schedule"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 mt-2"
+            className="text-xs font-bold text-[#00A3C4] dark:text-[#64D2FF] hover:underline flex items-center gap-1 mt-2"
           >
             Configure Periods <ArrowRight className="w-3.5 h-3.5" />
           </Link>
-          <div className="text-[11px] text-gray-400 mt-1">
+          <div className="text-[11px] text-muted-foreground mt-1">
             Dynamic period schedule
           </div>
         </div>
@@ -421,18 +421,18 @@ export default function AmsHubClient({
       <div id="classes-grid" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="w-full sm:w-80 relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search classes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[40px]"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-border/40 bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#00A3C4]/30 min-h-[44px]"
             />
           </div>
 
-          <div className="text-xs text-gray-400 font-medium">
-            Showing {filteredClassrooms.length} of {classList.length} classes
+          <div className="text-xs text-muted-foreground font-medium">
+            Showing <strong className="font-mono tabular-nums text-foreground">{filteredClassrooms.length}</strong> of <strong className="font-mono tabular-nums text-foreground">{classList.length}</strong> classes
           </div>
         </div>
 
@@ -457,15 +457,15 @@ export default function AmsHubClient({
                 <div
                   key={cls.id}
                   onClick={() => router.push(`/academics/classes/${cls.id}`)}
-                  className="group bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md hover:border-primary/40 transition duration-150 flex flex-col justify-between cursor-pointer animate-fade-in"
+                  className="group bg-card border border-border/40 rounded-2xl p-5 hover:shadow-md hover:border-[#00A3C4]/40 transition duration-150 flex flex-col justify-between cursor-pointer animate-fade-in"
                 >
                   <div>
                     {/* Card Top: displayName + gradeLevel badge */}
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-mono">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/40 font-mono">
                         {cls.gradeLevel}
                       </span>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Users className="w-3.5 h-3.5" />
                         <span>
                           {cls.sections.length} Section{cls.sections.length === 1 ? "" : "s"}
@@ -473,7 +473,7 @@ export default function AmsHubClient({
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition tracking-tight">
+                    <h3 className="text-xl font-bold text-foreground group-hover:text-[#00A3C4] dark:group-hover:text-[#64D2FF] transition tracking-tight">
                       {cls.displayName}
                     </h3>
 
@@ -482,7 +482,7 @@ export default function AmsHubClient({
                       {cls.sections.map((sec) => (
                         <span
                           key={sec.id}
-                          className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                          className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#00A3C4]/12 dark:bg-[#64D2FF]/15 text-[#00A3C4] dark:text-[#64D2FF] border border-[#00A3C4]/25 dark:border-[#64D2FF]/30 font-mono"
                         >
                           Section {sec.name}
                         </span>
@@ -495,8 +495,8 @@ export default function AmsHubClient({
                     </div>
 
                     {/* Card Middle: SetupProgressBar 4-dot */}
-                    <div className="py-3 border-t border-gray-100 dark:border-slate-800/80">
-                      <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider block mb-2">
+                    <div className="py-3 border-t border-border/40">
+                      <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider block mb-2">
                         Setup Progress
                       </span>
                       <SetupProgressBar
@@ -520,22 +520,22 @@ export default function AmsHubClient({
 
                   {/* Card Bottom Row: 'Open Hub' (primary), 'Edit' (secondary), 'Delete' (tertiary danger) */}
                   <div
-                    className="pt-4 border-t border-gray-100 dark:border-slate-800/80 mt-2 flex items-center gap-2"
+                    className="pt-4 border-t border-border/40 mt-2 flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Link
                       href={`/academics/classes/${cls.id}`}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/95 transition duration-150 min-h-[36px]"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-[#00A3C4] dark:bg-[#64D2FF] text-white dark:text-black hover:opacity-90 transition duration-150 min-h-[40px]"
                     >
                       Open Hub <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
 
                     <Link
                       href={`/academics/classes/${cls.id}?tab=sections`}
-                      className="inline-flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-semibold border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200 transition min-h-[36px]"
+                      className="inline-flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-semibold border border-border/40 hover:bg-muted/40 text-foreground transition min-h-[40px]"
                       title="Edit class & sections"
                     >
-                      <Edit2 className="w-3.5 h-3.5 text-gray-500" />
+                      <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                       Edit
                     </Link>
 
@@ -547,7 +547,7 @@ export default function AmsHubClient({
                           setClassToDelete(cls);
                         }}
                         title={`Delete ${cls.displayName}`}
-                        className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-gray-200 dark:border-slate-800 transition min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
+                        className="p-2 rounded-xl text-muted-foreground hover:text-red-600 hover:bg-red-500/10 border border-border/40 hover:border-red-500/30 transition min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

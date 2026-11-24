@@ -115,7 +115,7 @@ export default function RoutesStopsTab({
               }
               setShowRouteForm(true);
             }}
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+            className="flex items-center gap-1.5 bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition shadow-xs"
           >
             <Plus className="w-4 h-4" /> Add Route
           </button>
@@ -124,7 +124,7 @@ export default function RoutesStopsTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {routesList.length === 0 ? (
-          <div className="md:col-span-2 bg-white dark:bg-slate-900 shadow border border-gray-200 dark:border-slate-800 rounded-xl p-12 text-center text-gray-500">
+          <div className="md:col-span-2 bg-white dark:bg-card shadow border border-gray-200 dark:border-border/40 rounded-xl p-12 text-center text-gray-500">
             <Navigation className="w-12 h-12 mx-auto mb-3 text-gray-300 animate-pulse" />
             <p className="font-semibold text-sm">
               No transport routes created yet.
@@ -134,7 +134,7 @@ export default function RoutesStopsTab({
           routesList.map((route) => (
             <div
               key={route.id}
-              className="bg-white dark:bg-slate-900 shadow border border-gray-200 dark:border-slate-800 rounded-xl p-5 space-y-4"
+              className="bg-white dark:bg-card shadow border border-gray-200 dark:border-border/40 rounded-xl p-5 space-y-4"
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -164,7 +164,7 @@ export default function RoutesStopsTab({
               </div>
 
               {/* Stops Timeline */}
-              <div className="space-y-4 relative border-l-2 border-gray-100 dark:border-slate-800 pl-4 ml-2">
+              <div className="space-y-4 relative border-l-2 border-gray-100 dark:border-border/40 pl-4 ml-2">
                 {route.stops.length === 0 ? (
                   <p className="text-xs text-gray-500 italic pl-2">
                     No stops added yet.
@@ -178,7 +178,7 @@ export default function RoutesStopsTab({
                         className="relative flex justify-between items-start group"
                       >
                         {/* Circle Bullet */}
-                        <div className="absolute -left-[23px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-white dark:ring-slate-900" />
+                        <div className="absolute -left-[23px] top-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-4 ring-card" />
                         <div>
                           <p className="text-sm font-semibold text-gray-800 dark:text-white pl-2">
                             {stop.stopOrder}. {stop.stopName}
@@ -189,7 +189,7 @@ export default function RoutesStopsTab({
                             </p>
                           )}
                         </div>
-                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-semibold text-[#D97706] dark:text-[#FF9F0A] bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full font-mono tabular-nums">
                           {stop.estimatedArrivalTime || "--:--"}
                         </span>
                       </div>
@@ -205,7 +205,7 @@ export default function RoutesStopsTab({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleRouteSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4 shadow-xl"
+            className="bg-white dark:bg-card rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-border/40 space-y-4 shadow-xl"
           >
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Create Transport Route
@@ -223,7 +223,7 @@ export default function RoutesStopsTab({
                 onChange={(e) =>
                   setRouteData({ ...routeData, routeName: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
               />
             </div>
 
@@ -238,7 +238,7 @@ export default function RoutesStopsTab({
                 onChange={(e) =>
                   setRouteData({ ...routeData, routeCode: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
               />
             </div>
 
@@ -251,7 +251,7 @@ export default function RoutesStopsTab({
                 onChange={(e) =>
                   setRouteData({ ...routeData, vehicleId: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
               >
                 <option value="">Unassigned</option>
                 {vehicles.map((v) => (
@@ -262,18 +262,18 @@ export default function RoutesStopsTab({
               </select>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowRouteForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                className="bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+                className="bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition disabled:opacity-60 flex items-center gap-1 shadow-xs"
               >
                 {isPending && (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -289,7 +289,7 @@ export default function RoutesStopsTab({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleStopSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4 shadow-xl"
+            className="bg-white dark:bg-card rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-border/40 space-y-4 shadow-xl"
           >
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Add Stop to Route
@@ -307,7 +307,7 @@ export default function RoutesStopsTab({
                 onChange={(e) =>
                   setStopData({ ...stopData, stopName: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
               />
             </div>
 
@@ -326,7 +326,7 @@ export default function RoutesStopsTab({
                       stopOrder: parseInt(e.target.value),
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -344,7 +344,7 @@ export default function RoutesStopsTab({
                       estimatedArrivalTime: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
             </div>
@@ -361,7 +361,7 @@ export default function RoutesStopsTab({
                   onChange={(e) =>
                     setStopData({ ...stopData, gpsLatitude: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -375,23 +375,23 @@ export default function RoutesStopsTab({
                   onChange={(e) =>
                     setStopData({ ...stopData, gpsLongitude: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowStopForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                className="bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+                className="bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition disabled:opacity-60 flex items-center gap-1 shadow-xs"
               >
                 {isPending && (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />

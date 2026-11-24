@@ -314,7 +314,7 @@ export default function ClassCreationWizard({
           <button
             type="button"
             onClick={() => setStep((s) => (s - 1) as any)}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition flex items-center gap-1 min-h-[40px]"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition flex items-center gap-1 min-h-[44px] cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
@@ -322,7 +322,7 @@ export default function ClassCreationWizard({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition min-h-[40px]"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition min-h-[44px] cursor-pointer"
           >
             Cancel
           </button>
@@ -331,8 +331,8 @@ export default function ClassCreationWizard({
 
       <div className="flex items-center gap-2">
         {step === 3 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium mr-2">
-            <strong className="text-gray-900 dark:text-white font-bold">{selectedSubjectIds.length}</strong> subjects selected
+          <span className="text-xs text-muted-foreground font-medium mr-2">
+            <strong className="text-foreground font-bold font-mono tabular-nums">{selectedSubjectIds.length}</strong> subjects selected
           </span>
         )}
 
@@ -341,7 +341,7 @@ export default function ClassCreationWizard({
             type="button"
             disabled={!canContinueStep1}
             onClick={() => setStep(2)}
-            className="bg-primary hover:bg-primary/95 text-white px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm min-h-[40px] disabled:opacity-50"
+            className="bg-[#00A3C4] dark:bg-[#64D2FF] hover:opacity-90 text-white dark:text-black px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs min-h-[44px] disabled:opacity-50 cursor-pointer"
           >
             Continue <ArrowRight className="w-3.5 h-3.5" />
           </button>
@@ -350,7 +350,7 @@ export default function ClassCreationWizard({
             type="button"
             disabled={!canContinueStep2}
             onClick={() => setStep(3)}
-            className="bg-primary hover:bg-primary/95 text-white px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm min-h-[40px] disabled:opacity-50"
+            className="bg-[#00A3C4] dark:bg-[#64D2FF] hover:opacity-90 text-white dark:text-black px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs min-h-[44px] disabled:opacity-50 cursor-pointer"
           >
             Continue <ArrowRight className="w-3.5 h-3.5" />
           </button>
@@ -359,7 +359,7 @@ export default function ClassCreationWizard({
             type="button"
             disabled={isPending}
             onClick={handleFinalSubmit}
-            className="bg-primary hover:bg-primary/95 text-white px-6 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md disabled:opacity-50 min-h-[40px]"
+            className="bg-[#00A3C4] dark:bg-[#64D2FF] hover:opacity-90 text-white dark:text-black px-6 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs disabled:opacity-50 min-h-[44px] cursor-pointer"
           >
             {isPending ? (
               <>
@@ -393,7 +393,7 @@ export default function ClassCreationWizard({
     >
       <div className="space-y-4">
         {/* Horizontal Step Progress Bar */}
-        <div className="border-b border-gray-100 dark:border-slate-800 pb-3">
+        <div className="border-b border-border/40 pb-3">
           <Stepper
             steps={WIZARD_STEPS}
             currentStep={step}
@@ -406,7 +406,7 @@ export default function ClassCreationWizard({
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -416,7 +416,7 @@ export default function ClassCreationWizard({
         {step === 1 && (
           <div className="space-y-4 py-2">
             {duplicateClass && (
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>
                   A class for <strong>{duplicateClass.displayName}</strong> ({gradeLevel}) already exists in this school. Please pick another standard.
@@ -425,13 +425,13 @@ export default function ClassCreationWizard({
             )}
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1.5">
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1.5">
                 Standard / Grade Level
               </label>
               <select
                 value={gradeLevel}
                 onChange={(e) => handleGradeLevelChange(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+                className="w-full rounded-xl border border-border/40 bg-card text-foreground px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A3C4]/30 font-medium min-h-[44px]"
               >
                 {GRADE_LEVELS.map((g) => (
                   <option key={g.value} value={g.value}>
@@ -439,13 +439,13 @@ export default function ClassCreationWizard({
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-gray-400 mt-1">
-                Class group: <span className="font-semibold text-gray-600 dark:text-gray-300">{currentClassGroup}</span> (used to auto-suggest board blueprint subjects)
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Class group: <span className="font-semibold text-foreground">{currentClassGroup}</span> (used to auto-suggest board blueprint subjects)
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1.5">
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1.5">
                 Display Name
               </label>
               <input
@@ -454,12 +454,12 @@ export default function ClassCreationWizard({
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Class 6 or Grade 6"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full rounded-xl border border-border/40 bg-card text-foreground px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A3C4]/30 min-h-[44px]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1.5">
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1.5">
                 Sort Order
               </label>
               <input
@@ -467,9 +467,9 @@ export default function ClassCreationWizard({
                 required
                 value={sortOrder}
                 onChange={(e) => setSortOrder(parseInt(e.target.value) || 1)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full rounded-xl border border-border/40 bg-card text-foreground px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A3C4]/30 min-h-[44px] font-mono"
               />
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[11px] text-muted-foreground mt-1">
                 Determines display sequence across reports and navigation (pre-computed by canonical grade ordering).
               </p>
             </div>
@@ -480,20 +480,20 @@ export default function ClassCreationWizard({
         {step === 2 && (
           <div className="space-y-4 py-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-muted-foreground">
                 Configure initial sections for {displayName}. You can add more anytime.
               </p>
               <button
                 type="button"
                 onClick={addSection}
-                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 min-h-[32px]"
+                className="text-xs font-semibold text-[#00A3C4] dark:text-[#64D2FF] hover:underline flex items-center gap-1 min-h-[32px] cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Add Section
               </button>
             </div>
 
             {hasDuplicateSectionNames && (
-              <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
                 Section names must be unique within {displayName}.
               </div>
             )}
@@ -502,10 +502,10 @@ export default function ClassCreationWizard({
               {sectionsList.map((sec, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 grid grid-cols-12 gap-2.5 items-center"
+                  className="p-3.5 rounded-xl border border-border/40 bg-muted/20 grid grid-cols-12 gap-2.5 items-center"
                 >
                   <div className="col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                    <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                       Section
                     </label>
                     <input
@@ -514,12 +514,12 @@ export default function ClassCreationWizard({
                       value={sec.name}
                       onChange={(e) => updateSection(idx, "name", e.target.value)}
                       placeholder="e.g. A"
-                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full rounded-lg border border-border/40 bg-card text-foreground px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px]"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                    <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                       Cap.
                     </label>
                     <input
@@ -528,12 +528,12 @@ export default function ClassCreationWizard({
                       onChange={(e) =>
                         updateSection(idx, "capacity", parseInt(e.target.value) || 40)
                       }
-                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full rounded-lg border border-border/40 bg-card text-foreground px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px] font-mono"
                     />
                   </div>
 
                   <div className="col-span-4">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                    <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                       Class Teacher
                     </label>
                     <select
@@ -541,7 +541,7 @@ export default function ClassCreationWizard({
                       onChange={(e) =>
                         updateSection(idx, "classTeacherId", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full rounded-lg border border-border/40 bg-card text-foreground px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px]"
                     >
                       <option value="">None / Unassigned</option>
                       {teachers.map((t) => (
@@ -553,7 +553,7 @@ export default function ClassCreationWizard({
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                    <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                       Room
                     </label>
                     <input
@@ -563,7 +563,7 @@ export default function ClassCreationWizard({
                         updateSection(idx, "roomNumber", e.target.value)
                       }
                       placeholder="101"
-                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full rounded-lg border border-border/40 bg-card text-foreground px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px]"
                     />
                   </div>
 
@@ -572,7 +572,7 @@ export default function ClassCreationWizard({
                       <button
                         type="button"
                         onClick={() => removeSection(idx)}
-                        className="text-gray-400 hover:text-red-500 transition p-1 min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
+                        className="text-muted-foreground hover:text-red-500 transition p-1 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
                         title="Remove section"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -590,7 +590,7 @@ export default function ClassCreationWizard({
           <div className="space-y-4 py-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Subjects pre-checked from standard curriculum for <strong>{displayName}</strong>. Uncheck any exceptions:
                 </p>
               </div>
@@ -598,39 +598,39 @@ export default function ClassCreationWizard({
                 <button
                   type="button"
                   onClick={selectAllSubjects}
-                  className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  className="text-[11px] font-semibold text-[#00A3C4] dark:text-[#64D2FF] hover:underline cursor-pointer"
                 >
                   Select All
                 </button>
-                <span className="text-gray-300 dark:text-slate-700">|</span>
+                <span className="text-border">|</span>
                 <button
                   type="button"
                   onClick={deselectAllSubjects}
-                  className="text-[11px] font-medium text-gray-500 hover:underline cursor-pointer"
+                  className="text-[11px] font-medium text-muted-foreground hover:underline cursor-pointer"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowInlineSubject(true)}
-                  className="ml-2 inline-flex items-center gap-1 text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-200 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                  className="ml-2 inline-flex items-center gap-1 text-xs font-semibold bg-muted/60 hover:bg-muted text-foreground border border-border/40 px-2.5 py-1 rounded-lg transition cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5 text-primary" /> Create New
+                  <Plus className="w-3.5 h-3.5 text-[#00A3C4] dark:text-[#64D2FF]" /> Create New
                 </button>
               </div>
             </div>
 
             {/* Inline Create Subject Form */}
             {showInlineSubject && (
-              <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 dark:bg-primary/10 space-y-3">
+              <div className="p-3.5 rounded-xl border border-[#00A3C4]/30 bg-[#00A3C4]/5 dark:bg-[#64D2FF]/10 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-primary" /> Quick Add Subject
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#00A3C4] dark:text-[#64D2FF]" /> Quick Add Subject
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowInlineSubject(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 cursor-pointer"
+                    className="text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
                   >
                     ×
                   </button>
@@ -641,19 +641,19 @@ export default function ClassCreationWizard({
                     placeholder="Subject Name (e.g. Sanskrit)"
                     value={newSubjectName}
                     onChange={(e) => setNewSubjectName(e.target.value)}
-                    className="rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-primary"
+                    className="rounded-lg border border-border/40 bg-card text-foreground px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px]"
                   />
                   <input
                     type="text"
                     placeholder="Code (e.g. SKT01)"
                     value={newSubjectCode}
                     onChange={(e) => setNewSubjectCode(e.target.value)}
-                    className="rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2.5 py-1.5 text-xs uppercase focus:ring-1 focus:ring-primary"
+                    className="rounded-lg border border-border/40 bg-card text-foreground px-2.5 py-1.5 text-xs uppercase focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px]"
                   />
                   <select
                     value={newSubjectType}
                     onChange={(e) => setNewSubjectType(e.target.value as any)}
-                    className="rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-primary"
+                    className="rounded-lg border border-border/40 bg-card text-foreground px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-[#00A3C4]/40 min-h-[36px]"
                   >
                     <option value="THEORY">Theory</option>
                     <option value="PRACTICAL">Practical</option>
@@ -671,7 +671,7 @@ export default function ClassCreationWizard({
                       !newSubjectCode.trim()
                     }
                     onClick={handleCreateInlineSubject}
-                    className="bg-primary hover:bg-primary/95 text-white px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                    className="bg-[#00A3C4] dark:bg-[#64D2FF] hover:opacity-90 text-white dark:text-black px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1 cursor-pointer min-h-[32px]"
                   >
                     {isSavingSubject && (
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -687,7 +687,7 @@ export default function ClassCreationWizard({
               {Object.keys(subjectsByType).length > 0 ? (
                 Object.entries(subjectsByType).map(([typeKey, list]) => (
                   <div key={typeKey} className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                       {SUBJECT_TYPE_LABELS[typeKey] || typeKey} ({list.length})
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -699,23 +699,23 @@ export default function ClassCreationWizard({
                             onClick={() => toggleSubject(sub.id)}
                             className={`p-3 rounded-xl border text-left cursor-pointer transition flex items-center justify-between ${
                               isSelected
-                                ? "border-primary bg-primary/5 dark:bg-primary/10 text-gray-900 dark:text-white shadow-xs"
-                                : "border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/30 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-slate-700"
+                                ? "border-[#00A3C4] dark:border-[#64D2FF] bg-[#00A3C4]/10 dark:bg-[#64D2FF]/15 text-foreground shadow-xs"
+                                : "border-border/40 bg-card text-muted-foreground hover:border-border hover:text-foreground"
                             }`}
                           >
                             <div className="min-w-0 pr-2">
                               <div className="font-semibold text-xs truncate">
                                 {sub.name}
                               </div>
-                              <div className="text-[10px] text-gray-400 font-mono">
+                              <div className="text-[10px] text-muted-foreground font-mono">
                                 {sub.code}
                               </div>
                             </div>
                             <div
                               className={`w-4 h-4 rounded-md border flex items-center justify-center transition shrink-0 ${
                                 isSelected
-                                  ? "bg-primary border-primary text-white"
-                                  : "border-gray-300 dark:border-slate-600"
+                                  ? "bg-[#00A3C4] dark:bg-[#64D2FF] border-[#00A3C4] dark:border-[#64D2FF] text-white dark:text-black"
+                                  : "border-border/60"
                               }`}
                             >
                               {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -727,7 +727,7 @@ export default function ClassCreationWizard({
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6 text-gray-400 text-xs">
+                <div className="text-center py-6 text-muted-foreground text-xs">
                   No subjects in master catalog yet. Use "+ Create New" above to add your first subject.
                 </div>
               )}

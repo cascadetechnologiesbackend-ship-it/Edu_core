@@ -455,13 +455,13 @@ export function QuickTimetable({
   return (
     <div className="space-y-4">
       {/* ─── TOOLBAR & CONTROLS ───────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white bg-card border border-gray-200 dark:border-border/40 p-3 rounded-2xl shadow-xs">
         {/* Left: Section switcher */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-gray-500 uppercase">
             Section:
           </span>
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-gray-100 bg-muted/60 p-1 rounded-xl">
             {sections.map((sec) => (
               <button
                 key={sec.id}
@@ -469,7 +469,7 @@ export function QuickTimetable({
                 onClick={() => onSectionChange?.(sec.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition min-h-[36px] ${
                   sectionId === sec.id
-                    ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                    ? "bg-white bg-card text-primary shadow-xs"
                     : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -500,7 +500,7 @@ export function QuickTimetable({
               disabled={isPending}
               onClick={handleCopyMonday}
               title="Copy Monday's periods to Tue-Sat"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition min-h-[38px] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-border/40 bg-white bg-muted/60 hover:bg-gray-50 dark:hover:bg-muted/60 text-gray-700 dark:text-gray-200 transition min-h-[38px] disabled:opacity-50"
             >
               <Copy className="w-3.5 h-3.5 text-primary" />
               <span className="hidden sm:inline">Copy Monday to Week</span>
@@ -509,7 +509,7 @@ export function QuickTimetable({
 
             {/* Tool: Copy to Section */}
             {otherSections.length > 0 && (
-              <div className="inline-flex items-center gap-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 p-1 rounded-xl">
+              <div className="inline-flex items-center gap-1 bg-gray-50 dark:bg-muted/40 border border-gray-200 dark:border-border/40 p-1 rounded-xl">
                 <select
                   value={targetSectionId}
                   onChange={(e) => setTargetSectionId(e.target.value)}
@@ -579,11 +579,11 @@ export function QuickTimetable({
       )}
 
       {/* ─── DESKTOP TIMETABLE GRID (md:block >= 768px) ───────────────────── */}
-      <div className="hidden md:block bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-x-auto">
+      <div className="hidden md:block bg-white bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-gray-50/75 dark:bg-slate-800/40 border-b border-gray-200 dark:border-slate-800 text-[11px] font-bold uppercase text-gray-500">
-              <th className="p-3 w-32 sticky left-0 bg-gray-50 dark:bg-slate-800/90 z-10">
+            <tr className="bg-gray-50/75 dark:bg-muted/30 border-b border-gray-200 dark:border-border/40 text-[11px] font-bold uppercase text-gray-500">
+              <th className="p-3 w-32 sticky left-0 bg-gray-50 dark:bg-muted/60 z-10">
                 Period
               </th>
               {DAYS_OF_WEEK.map((d) => (
@@ -593,11 +593,11 @@ export function QuickTimetable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-gray-100 dark:divide-border/40">
             {effectivePeriods.map((period) => (
-              <tr key={period.periodNumber} className="hover:bg-gray-50/40 dark:hover:bg-slate-800/20">
+              <tr key={period.periodNumber} className="hover:bg-gray-50/40 dark:hover:bg-muted/20">
                 {/* Period timing column (Sticky Left) */}
-                <td className="p-3 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50/50 dark:bg-slate-800/30 sticky left-0 z-10 border-r border-gray-100 dark:border-slate-800">
+                <td className="p-3 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50/50 dark:bg-muted/20 sticky left-0 z-10 border-r border-gray-100 dark:border-border/40">
                   <div className="font-bold text-gray-900 dark:text-white">
                     {period.name}
                   </div>
@@ -665,7 +665,7 @@ export function QuickTimetable({
                           )}
                         </div>
                       ) : (
-                        <div className="min-h-[56px] border border-dashed border-gray-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-[11px] text-gray-400 group-hover:border-primary/40 group-hover:text-primary transition">
+                        <div className="min-h-[56px] border border-dashed border-gray-200 dark:border-border/40 rounded-xl flex items-center justify-center text-[11px] text-gray-400 group-hover:border-primary/40 group-hover:text-primary transition">
                           {isAdmin ? (
                             <span className="inline-flex items-center gap-1 font-medium">
                               <Plus className="w-3 h-3" />
@@ -688,7 +688,7 @@ export function QuickTimetable({
       {/* ─── MOBILE REFLOW: DAY TABS & SINGLE-DAY COLUMN (< md / 390px) ───── */}
       <div className="block md:hidden space-y-3">
         {/* Day Tabs Navigation (Universal Scroll-and-Click Law: zero overflow at 390px) */}
-        <div className="grid grid-cols-6 gap-1 bg-gray-100 dark:bg-slate-800/80 p-1.5 rounded-2xl">
+        <div className="grid grid-cols-6 gap-1 bg-gray-100 dark:bg-muted/40 p-1.5 rounded-2xl">
           {DAYS_OF_WEEK.map((d) => {
             const isSelected = activeMobileDay === d;
             return (
@@ -698,7 +698,7 @@ export function QuickTimetable({
                 onClick={() => setActiveMobileDay(d)}
                 className={`py-2 text-xs font-bold rounded-xl transition min-h-[38px] text-center ${
                   isSelected
-                    ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                    ? "bg-white bg-card text-primary shadow-xs"
                     : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -738,8 +738,8 @@ export function QuickTimetable({
                   entry
                     ? entry.isManualOverride
                       ? "bg-purple-50/30 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900/40 shadow-xs"
-                      : "bg-white dark:bg-slate-900 border-primary/20 hover:border-primary/40 shadow-xs"
-                    : "bg-gray-50/50 dark:bg-slate-900/40 border-dashed border-gray-200 dark:border-slate-800"
+                      : "bg-white bg-card border-primary/20 hover:border-primary/40 shadow-xs"
+                    : "bg-gray-50/50 dark:bg-muted/20 border-dashed border-gray-200 dark:border-border/40"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -781,7 +781,7 @@ export function QuickTimetable({
                       </span>
                     </div>
                     {entry.roomNumber && (
-                      <span className="text-[10px] font-mono text-gray-400 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded-lg shrink-0">
+                      <span className="text-[10px] font-mono text-gray-400 bg-gray-100 bg-muted/60 px-2 py-1 rounded-lg shrink-0">
                         Rm {entry.roomNumber}
                       </span>
                     )}
@@ -825,7 +825,7 @@ export function QuickTimetable({
               <button
                 type="button"
                 onClick={() => setSlotModalOpen(false)}
-                className="px-3.5 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[38px]"
+                className="px-3.5 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[38px]"
               >
                 Cancel
               </button>
@@ -845,7 +845,7 @@ export function QuickTimetable({
         <div className="space-y-4 py-1">
           {/* Timing preview */}
           {activeSlot && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 font-mono bg-gray-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-xs text-gray-500 font-mono bg-gray-50 dark:bg-muted/40 p-2.5 rounded-xl border border-gray-100 dark:border-border/40">
               <Clock className="w-3.5 h-3.5 text-gray-400" />
               <span>
                 {activeSlot.startTime} – {activeSlot.endTime}
@@ -876,8 +876,8 @@ export function QuickTimetable({
                 onClick={() => handleSelectSubjectChip("")}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 min-h-[34px] ${
                   formData.subjectId === ""
-                    ? "bg-gray-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-xs"
-                    : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                    ? "bg-gray-800 text-white dark:bg-muted dark:text-foreground shadow-xs"
+                    : "bg-gray-100 bg-muted/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-muted/60"
                 }`}
               >
                 {formData.subjectId === "" && <Check className="w-3 h-3" />}
@@ -895,7 +895,7 @@ export function QuickTimetable({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 min-h-[34px] ${
                       isSelected
                         ? "bg-primary text-white shadow-xs"
-                        : "border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-primary/50"
+                        : "border border-gray-200 dark:border-border/40 bg-white bg-muted/60 text-gray-700 dark:text-gray-300 hover:border-primary/50"
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
@@ -920,7 +920,7 @@ export function QuickTimetable({
           )}
 
           {/* Advanced toggle */}
-          <div className="pt-2 border-t border-gray-100 dark:border-slate-800">
+          <div className="pt-2 border-t border-gray-100 dark:border-border/40">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
@@ -935,7 +935,7 @@ export function QuickTimetable({
             </button>
 
             {showAdvanced && (
-              <div className="mt-3 space-y-3 p-3 bg-gray-50/70 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-800 animate-fade-in">
+              <div className="mt-3 space-y-3 p-3 bg-gray-50/70 dark:bg-muted/30 rounded-xl border border-gray-100 dark:border-border/40 animate-fade-in">
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
                     Teacher
@@ -945,7 +945,7 @@ export function QuickTimetable({
                     onChange={(e) =>
                       setFormData({ ...formData, teacherId: e.target.value })
                     }
-                    className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                    className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-white bg-muted/60 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
                   >
                     <option value="">No Teacher / Free</option>
                     {teachers.map((t) => (
@@ -967,7 +967,7 @@ export function QuickTimetable({
                       setFormData({ ...formData, roomNumber: e.target.value })
                     }
                     placeholder="e.g. Rm 101, Lab 2"
-                    className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                    className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-white bg-muted/60 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
                   />
                 </div>
 
@@ -980,7 +980,7 @@ export function QuickTimetable({
                     onChange={(e) =>
                       setFormData({ ...formData, periodType: e.target.value })
                     }
-                    className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                    className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-white bg-muted/60 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
                   >
                     <option value="REGULAR">Regular Class</option>
                     <option value="LAB">Laboratory</option>
@@ -1014,7 +1014,7 @@ export function QuickTimetable({
               type="button"
               disabled={isCommitting}
               onClick={() => setGenerateModalOpen(false)}
-              className="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[38px]"
+              className="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[38px]"
             >
               Cancel
             </button>
@@ -1025,7 +1025,7 @@ export function QuickTimetable({
                 disabled={isPreviewLoading || isCommitting}
                 onClick={handleOpenGenerateModal}
                 title="Re-run preview calculation"
-                className="px-3 py-2 text-xs font-bold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition min-h-[38px] flex items-center gap-1.5"
+                className="px-3 py-2 text-xs font-bold border border-gray-200 dark:border-border/40 bg-white bg-muted/60 hover:bg-gray-50 dark:hover:bg-muted/60 rounded-xl transition min-h-[38px] flex items-center gap-1.5"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isPreviewLoading ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">Refresh</span>
@@ -1089,7 +1089,7 @@ export function QuickTimetable({
           {previewData && !isPreviewLoading && (
             <div className="space-y-4">
               {/* 1. WORKLOAD FIT REPORT */}
-              <div className="rounded-2xl border border-gray-200 dark:border-slate-800 p-3.5 bg-gray-50/50 dark:bg-slate-800/30 space-y-3">
+              <div className="rounded-2xl border border-gray-200 dark:border-border/40 p-3.5 bg-gray-50/50 dark:bg-muted/20 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
@@ -1113,7 +1113,7 @@ export function QuickTimetable({
 
                 {/* Fit Metrics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-gray-200/80 dark:border-slate-700/80">
+                  <div className="bg-white bg-card p-2.5 rounded-xl border border-gray-200/80 dark:border-border/40">
                     <span className="text-[10px] font-bold uppercase text-gray-400 block">
                       Available Periods
                     </span>
@@ -1125,7 +1125,7 @@ export function QuickTimetable({
                     </span>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-gray-200/80 dark:border-slate-700/80">
+                  <div className="bg-white bg-card p-2.5 rounded-xl border border-gray-200/80 dark:border-border/40">
                     <span className="text-[10px] font-bold uppercase text-gray-400 block">
                       Required Periods
                     </span>
@@ -1137,7 +1137,7 @@ export function QuickTimetable({
                     </span>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-gray-200/80 dark:border-slate-700/80">
+                  <div className="bg-white bg-card p-2.5 rounded-xl border border-gray-200/80 dark:border-border/40">
                     <span className="text-[10px] font-bold uppercase text-gray-400 block">
                       {previewData.fitReport.slackOrDeficit >= 0 ? "Slack / Free" : "Deficit"}
                     </span>
@@ -1160,11 +1160,11 @@ export function QuickTimetable({
 
                 {/* Subject Quota Breakdown Table */}
                 {previewData.fitReport.subjectBreakdown.length > 0 && (
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/80 dark:border-slate-700/80 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                  <div className="bg-white bg-card rounded-xl border border-gray-200/80 dark:border-border/40 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-border/40 text-[11px] font-bold text-gray-600 dark:text-gray-300">
                       Subject Quota Breakdown
                     </div>
-                    <div className="divide-y divide-gray-100 dark:divide-slate-800/80 max-h-36 overflow-y-auto">
+                    <div className="divide-y divide-gray-100 dark:divide-border/40 max-h-36 overflow-y-auto">
                       {previewData.fitReport.subjectBreakdown.map((sb) => (
                         <div
                           key={sb.subjectId}
@@ -1189,7 +1189,7 @@ export function QuickTimetable({
               </div>
 
               {/* 2. CONCURRENCY CLASH REPORT */}
-              <div className="rounded-2xl border border-gray-200 dark:border-slate-800 p-3.5 bg-gray-50/50 dark:bg-slate-800/30 space-y-2.5">
+              <div className="rounded-2xl border border-gray-200 dark:border-border/40 p-3.5 bg-gray-50/50 dark:bg-muted/20 space-y-2.5">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
                     2. Concurrency Clash Checks
@@ -1240,7 +1240,7 @@ export function QuickTimetable({
               </div>
 
               {/* 3. TEACHER ALLOCATION & NEEDS-ASSIGNMENT REPORT */}
-              <div className="rounded-2xl border border-gray-200 dark:border-slate-800 p-3.5 bg-gray-50/50 dark:bg-slate-800/30 space-y-2.5">
+              <div className="rounded-2xl border border-gray-200 dark:border-border/40 p-3.5 bg-gray-50/50 dark:bg-muted/20 space-y-2.5">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
                     3. Teacher Allocations
@@ -1270,7 +1270,7 @@ export function QuickTimetable({
                     <p className="text-xs text-gray-600 dark:text-gray-300">
                       Subjects with 0 or multiple active teacher allocations cannot be auto-assigned uniquely. They will be scheduled with the subject assigned, but teachers must be mapped manually:
                     </p>
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/80 dark:border-slate-700/80 divide-y divide-gray-100 dark:divide-slate-800/80 max-h-36 overflow-y-auto">
+                    <div className="bg-white bg-card rounded-xl border border-gray-200/80 dark:border-border/40 divide-y divide-gray-100 dark:divide-border/40 max-h-36 overflow-y-auto">
                       {previewData.needsAssignmentReport.map((na) => (
                         <div
                           key={na.subjectId}

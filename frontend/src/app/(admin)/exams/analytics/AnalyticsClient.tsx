@@ -96,17 +96,17 @@ export function AnalyticsClient({
   return (
     <div className="space-y-6">
       {/* ─── 1. Controls Bar ──────────────────────────────────────────────────── */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-5 md:p-6 shadow-xl space-y-4">
+      <div className="rounded-3xl border border-border/40 bg-card backdrop-blur-sm p-5 md:p-6 shadow-xl space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Setup Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Report Card Framework Setup
             </label>
             <select
               value={selectedSetupId}
               onChange={(e) => handleSetupChange(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
             >
               {setups.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -118,13 +118,13 @@ export function AnalyticsClient({
 
           {/* Class Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Standard / Class Division
             </label>
             <select
               value={selectedClassId}
               onChange={(e) => handleClassChange(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
             >
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -137,10 +137,10 @@ export function AnalyticsClient({
       </div>
 
       {metrics.totalAssessed === 0 ? (
-        <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 text-slate-400 text-xs space-y-2">
-          <BookOpen className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+        <div className="p-12 text-center rounded-3xl bg-muted/40 border border-border/40 text-muted-foreground text-xs space-y-2">
+          <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
           <h3 className="text-sm font-bold text-white">No Frozen Snapshots Found</h3>
-          <p className="text-slate-500 max-w-sm mx-auto">
+          <p className="text-muted-foreground max-w-sm mx-auto">
             Results have not yet been frozen for this setup and standard. Freeze result snapshots in Report Cards to generate analytics.
           </p>
         </div>
@@ -148,85 +148,85 @@ export function AnalyticsClient({
         <>
           {/* ─── 2. Top KPI Cards ─────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">
+            <div className="p-5 rounded-2xl border border-border/40 bg-card space-y-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                 Total Evaluated
               </span>
               <p className="text-2xl font-black text-white">
                 {metrics.totalAssessed}
               </p>
-              <span className="text-[11px] text-slate-400">Enrolled Candidates</span>
+              <span className="text-[11px] text-muted-foreground">Enrolled Candidates</span>
             </div>
 
-            <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">
+            <div className="p-5 rounded-2xl border border-border/40 bg-card space-y-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                 Pass Percentage
               </span>
               <p className="text-2xl font-black text-emerald-400">
                 {metrics.passPercentage}%
               </p>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-muted-foreground">
                 {metrics.passCount} passed • {metrics.failCount} failed
               </span>
             </div>
 
-            <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">
+            <div className="p-5 rounded-2xl border border-border/40 bg-card space-y-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                 Class Average
               </span>
               <p className="text-2xl font-black text-indigo-400">
                 {metrics.averagePercentage}%
               </p>
-              <span className="text-[11px] text-slate-400">Mean Composite Score</span>
+              <span className="text-[11px] text-muted-foreground">Mean Composite Score</span>
             </div>
 
-            <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">
+            <div className="p-5 rounded-2xl border border-border/40 bg-card space-y-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                 Highest Score
               </span>
               <p className="text-2xl font-black text-amber-400">
                 {metrics.highestPercentage}%
               </p>
-              <span className="text-[11px] text-slate-400">Top Benchmark</span>
+              <span className="text-[11px] text-muted-foreground">Top Benchmark</span>
             </div>
 
-            <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">
+            <div className="p-5 rounded-2xl border border-border/40 bg-card space-y-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                 Lowest Score
               </span>
               <p className="text-2xl font-black text-rose-400">
                 {metrics.lowestPercentage}%
               </p>
-              <span className="text-[11px] text-slate-400">Minimum Recorded</span>
+              <span className="text-[11px] text-muted-foreground">Minimum Recorded</span>
             </div>
           </div>
 
           {/* ─── 3. Grade Distribution & Subject Performance ───────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Grade Distribution */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                     <TrendingUp className="w-4 h-4" />
                   </span>
                   <h3 className="text-sm font-bold text-white">CBSE Grade Distribution</h3>
                 </div>
-                <span className="text-xs text-slate-400">All Assessed</span>
+                <span className="text-xs text-muted-foreground">All Assessed</span>
               </div>
 
               <div className="space-y-3 pt-1">
                 {gradeDistribution.map((item) => (
                   <div key={item.grade} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-200">
+                      <span className="font-bold text-foreground">
                         Grade {item.grade}
                       </span>
-                      <span className="text-slate-400">
+                      <span className="text-muted-foreground">
                         <strong className="text-white">{item.count}</strong> students ({item.percentage}%)
                       </span>
                     </div>
-                    <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                    <div className="w-full bg-card rounded-full h-2.5 overflow-hidden border border-border/40">
                       <div
                         className={`h-full rounded-full ${item.color}`}
                         style={{ width: `${Math.max(item.percentage, 2)}%` }}
@@ -238,22 +238,22 @@ export function AnalyticsClient({
             </div>
 
             {/* Subject Performance Comparison */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                     <BookOpen className="w-4 h-4" />
                   </span>
                   <h3 className="text-sm font-bold text-white">Subject-Wise Analytics</h3>
                 </div>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {subjectAnalysis.length} Subjects
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/60 text-slate-400 font-semibold border-b border-slate-800">
+                  <thead className="bg-muted/30 text-muted-foreground font-semibold border-b border-border/40">
                     <tr>
                       <th className="p-2.5">Subject</th>
                       <th className="p-2.5 text-right">Avg Score</th>
@@ -262,13 +262,13 @@ export function AnalyticsClient({
                       <th className="p-2.5 text-center">Pass Rate</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-border/40">
                     {subjectAnalysis.map((sub) => (
-                      <tr key={sub.subjectName} className="hover:bg-slate-950/30">
+                      <tr key={sub.subjectName} className="hover:bg-muted/20">
                         <td className="p-2.5 font-bold text-white">
                           {sub.subjectName}
                         </td>
-                        <td className="p-2.5 text-right text-slate-200">
+                        <td className="p-2.5 text-right text-foreground">
                           {sub.averageMarks} / {sub.maxMarks}
                         </td>
                         <td className="p-2.5 text-right font-bold text-indigo-400">
@@ -301,8 +301,8 @@ export function AnalyticsClient({
           {/* ─── 4. Topper Honors Board & Remedial Attention Roster ──────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Toppers Board */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
                     <Award className="w-4 h-4" />
@@ -313,7 +313,7 @@ export function AnalyticsClient({
               </div>
 
               {toppers.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-6">
+                <p className="text-xs text-muted-foreground text-center py-6">
                   No passed candidates eligible for topper ranking.
                 </p>
               ) : (
@@ -321,25 +321,25 @@ export function AnalyticsClient({
                   {toppers.map((t) => (
                     <div
                       key={t.admissionNumber}
-                      className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-3 text-xs"
+                      className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex items-center gap-3">
                         <span
                           className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${
                             t.rank === 1
-                              ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30"
+                              ? "bg-amber-500 text-black shadow-md shadow-amber-500/30"
                               : t.rank === 2
-                              ? "bg-slate-300 text-slate-950"
+                              ? "bg-muted text-black"
                               : t.rank === 3
                               ? "bg-amber-700 text-white"
-                              : "bg-slate-800 text-slate-300"
+                              : "bg-muted/60 text-muted-foreground"
                           }`}
                         >
                           {t.rank}
                         </span>
                         <div>
                           <h4 className="font-bold text-white">{t.studentName}</h4>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-muted-foreground">
                             Adm: {t.admissionNumber} {t.rollNumber ? `• Roll: ${t.rollNumber}` : ""}
                           </span>
                         </div>
@@ -349,7 +349,7 @@ export function AnalyticsClient({
                         <span className="text-sm font-black text-emerald-400 block">
                           {t.percentage}%
                         </span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-muted-foreground">
                           {t.totalMarks}/{t.totalMax} • Grade {t.overallGrade}
                         </span>
                       </div>
@@ -360,8 +360,8 @@ export function AnalyticsClient({
             </div>
 
             {/* Remedial Intervention Roster */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
                     <AlertTriangle className="w-4 h-4" />
@@ -374,7 +374,7 @@ export function AnalyticsClient({
               </div>
 
               {remedialStudents.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-500 space-y-1">
+                <div className="p-6 text-center text-xs text-muted-foreground space-y-1">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
                   <p className="font-semibold text-white">100% Class Pass Rate</p>
                   <p className="text-[11px]">All evaluated students achieved passing marks.</p>
@@ -389,7 +389,7 @@ export function AnalyticsClient({
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-bold text-white">{st.studentName}</h4>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-muted-foreground">
                             Adm: {st.admissionNumber} {st.rollNumber ? `• Roll: ${st.rollNumber}` : ""}
                           </span>
                         </div>

@@ -117,8 +117,8 @@ export function ClassFeePricingMatrix({
       const initialTerm: "ANNUAL" | "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "ONE_TIME" = match
         ? match.term
         : h.category === "ONE_TIME"
-        ? "ONE_TIME"
-        : "ANNUAL";
+          ? "ONE_TIME"
+          : "ANNUAL";
 
       const initialDueDate = match?.dueDate
         ? new Date(match.dueDate).toISOString().split("T")[0] || dateStr
@@ -254,18 +254,18 @@ export function ClassFeePricingMatrix({
   return (
     <div className="space-y-6">
       {/* Top Card: Title, Badge, Description, and Clone Button */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-card rounded-2xl border border-border/40 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Layers className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
               Class-Wise Fee Pricing Matrix
             </h2>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
               Active Cohort: {activeYear.label}
             </span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Set annual fees per grade, auto-fill columns downward, and assign billing frequency schedules.
           </p>
         </div>
@@ -281,9 +281,9 @@ export function ClassFeePricingMatrix({
               }
               setIsCloneModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-slate-950 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg shadow-sm border border-slate-700/60 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-foreground bg-card hover:bg-muted/40 rounded-xl shadow-xs border border-border/40 transition-colors min-h-[44px] cursor-pointer"
           >
-            <Copy className="w-4 h-4" />
+            <Copy className="w-4 h-4 text-muted-foreground" />
             Clone to Other Cohorts (% Uplift)
           </button>
         </div>
@@ -292,11 +292,10 @@ export function ClassFeePricingMatrix({
       {/* Feedback banner */}
       {feedback && (
         <div
-          className={`p-4 rounded-xl border flex items-center justify-between animate-fade-in ${
-            feedback.type === "success"
-              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300"
-              : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300"
-          }`}
+          className={`p-4 rounded-xl border flex items-center justify-between animate-fade-in ${feedback.type === "success"
+            ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300"
+            : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300"
+            }`}
         >
           <div className="flex items-center gap-2 text-sm font-medium">
             {feedback.type === "success" ? (
@@ -316,11 +315,11 @@ export function ClassFeePricingMatrix({
       )}
 
       {/* Matrix Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-xs overflow-hidden">
         {sortedClasses.length === 0 || sortedHeads.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <Sparkles className="w-8 h-8 text-blue-500/60 mx-auto mb-2" />
-            <p className="font-semibold text-gray-700 dark:text-gray-300">
+          <div className="p-12 text-center text-muted-foreground">
+            <Sparkles className="w-8 h-8 text-[#248A3D] dark:text-[#30D158] mx-auto mb-2" />
+            <p className="font-semibold text-foreground">
               {sortedClasses.length === 0
                 ? "No classes found in Academic Management for this cohort."
                 : "No fee heads configured. Switch to Tab 1 to initialize fee heads."}
@@ -329,11 +328,11 @@ export function ClassFeePricingMatrix({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
-              {/* Dark Styled Header matching Screenshot 1 */}
+              {/* Apple Neutral Inset Header */}
               <thead>
-                <tr className="bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-800">
+                <tr className="bg-muted/80 text-foreground border-b border-border/60">
                   {/* Class Column Header */}
-                  <th className="py-4 px-4 font-bold text-xs uppercase tracking-wider min-w-[140px] border-r border-slate-800 sticky left-0 bg-slate-900 dark:bg-slate-950 z-10">
+                  <th className="py-4 px-4 font-bold text-xs uppercase tracking-wider min-w-[140px] border-r border-border/60 sticky left-0 bg-muted/95 z-10 text-foreground">
                     Class / Grade
                   </th>
 
@@ -341,10 +340,10 @@ export function ClassFeePricingMatrix({
                   {sortedHeads.map((head) => (
                     <th
                       key={head.id}
-                      className="py-3 px-3 min-w-[170px] border-r border-slate-800 align-top"
+                      className="py-3 px-3 min-w-[170px] border-r border-border/60 align-top"
                     >
                       <div className="flex items-center justify-between gap-1 mb-2">
-                        <div className="font-bold text-xs text-white truncate" title={head.name}>
+                        <div className="font-bold text-xs text-foreground truncate" title={head.name}>
                           {head.name}
                         </div>
                         {/* Auto-Fill Downward Button */}
@@ -352,18 +351,18 @@ export function ClassFeePricingMatrix({
                           type="button"
                           onClick={() => handleAutoFillDownward(head.id)}
                           title="Auto-fill column downward using top row value"
-                          className="p-1 rounded-full text-slate-300 hover:text-white hover:bg-slate-800 transition-colors flex-shrink-0"
+                          className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 cursor-pointer"
                         >
-                          <ArrowDownCircle className="w-4 h-4 text-blue-400 hover:text-blue-300" />
+                          <ArrowDownCircle className="w-4 h-4 text-[#248A3D] dark:text-[#30D158]" />
                         </button>
                       </div>
 
-                      <div className="text-[11px] font-mono text-slate-400 mb-2">
+                      <div className="text-[11px] font-mono text-muted-foreground mb-2">
                         [{head.code || head.name.slice(0, 3).toUpperCase()}] · Pri #{head.priority}
                       </div>
 
                       {/* Frequency Dropdown & Due Date in Column Header */}
-                      <div className="space-y-1.5 pt-1.5 border-t border-slate-800/80">
+                      <div className="space-y-1.5 pt-1.5 border-t border-border/40">
                         <select
                           value={columnConfigs[head.id]?.term || "ANNUAL"}
                           onChange={(e) => {
@@ -379,7 +378,7 @@ export function ClassFeePricingMatrix({
                               };
                             });
                           }}
-                          className="w-full bg-slate-800 text-slate-200 text-[11px] rounded px-2 py-1 border border-slate-700 focus:outline-none focus:border-blue-500"
+                          className="w-full bg-card text-foreground text-[11px] rounded-lg px-2 py-1.5 border border-border/40 focus:outline-none focus:ring-1 focus:ring-[#248A3D]/40 min-h-[32px]"
                         >
                           <option value="ANNUAL">Annual</option>
                           <option value="QUARTERLY">Quarterly</option>
@@ -388,8 +387,8 @@ export function ClassFeePricingMatrix({
                           <option value="ONE_TIME">One-Time</option>
                         </select>
 
-                        <div className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                          <Calendar className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                        <div className="flex items-center gap-1 bg-card px-2 py-1 rounded-lg border border-border/40 min-h-[32px]">
+                          <Calendar className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                           <input
                             type="date"
                             value={columnConfigs[head.id]?.dueDate || ""}
@@ -406,7 +405,7 @@ export function ClassFeePricingMatrix({
                                 };
                               });
                             }}
-                            className="w-full bg-transparent text-[11px] text-slate-200 focus:outline-none"
+                            className="w-full bg-transparent text-[11px] text-foreground focus:outline-none"
                             title="Schedule Due Date"
                           />
                         </div>
@@ -415,14 +414,14 @@ export function ClassFeePricingMatrix({
                   ))}
 
                   {/* Total Annual Fee Header */}
-                  <th className="py-4 px-4 font-bold text-xs uppercase tracking-wider text-right min-w-[130px] bg-slate-900 dark:bg-slate-950">
+                  <th className="py-4 px-4 font-bold text-xs uppercase tracking-wider text-right min-w-[130px] bg-muted/80 text-foreground">
                     Grade Total
                   </th>
                 </tr>
               </thead>
 
               {/* Table Rows (Classes) */}
-              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40">
                 {sortedClasses.map((cls, idx) => {
                   // Compute row total
                   const rowTotal = sortedHeads.reduce((acc, h) => {
@@ -433,13 +432,13 @@ export function ClassFeePricingMatrix({
                   return (
                     <tr
                       key={cls.id}
-                      className="hover:bg-blue-50/40 dark:hover:bg-slate-800/30 transition-colors"
+                      className="hover:bg-muted/30 transition-colors"
                     >
                       {/* Class Label */}
-                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white border-r border-gray-200 dark:border-slate-800 sticky left-0 bg-white dark:bg-slate-900 z-10">
+                      <td className="py-3 px-4 font-semibold text-foreground border-r border-border/40 sticky left-0 bg-card z-10">
                         <div className="flex items-center justify-between gap-2">
                           <span>{cls.displayName}</span>
-                          <span className="text-xs font-normal text-gray-400">
+                          <span className="text-xs font-normal text-muted-foreground font-mono">
                             #{idx + 1}
                           </span>
                         </div>
@@ -449,10 +448,10 @@ export function ClassFeePricingMatrix({
                       {sortedHeads.map((head) => (
                         <td
                           key={head.id}
-                          className="py-2.5 px-3 border-r border-gray-200 dark:border-slate-800"
+                          className="py-2.5 px-3 border-r border-border/40"
                         >
                           <div className="relative flex items-center">
-                            <span className="absolute left-2.5 text-xs text-gray-400 font-medium select-none">
+                            <span className="absolute left-2.5 text-xs text-muted-foreground font-medium select-none">
                               ₹
                             </span>
                             <input
@@ -461,14 +460,14 @@ export function ClassFeePricingMatrix({
                               onChange={(e) =>
                                 handleCellChange(cls.id, head.id, e.target.value)
                               }
-                              className="w-full pl-6 pr-2 py-1.5 text-xs font-mono font-medium rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right"
+                              className="w-full pl-6 pr-2 py-1.5 text-xs font-mono font-medium rounded-lg border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-[#248A3D]/30 focus:border-[#248A3D] transition-all text-right min-h-[36px]"
                             />
                           </div>
                         </td>
                       ))}
 
                       {/* Row Total */}
-                      <td className="py-3 px-4 font-mono font-bold text-xs text-right text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-mono font-bold text-xs text-right text-foreground tabular-nums">
                         ₹ {rowTotal.toLocaleString("en-IN")}
                       </td>
                     </tr>
@@ -480,8 +479,8 @@ export function ClassFeePricingMatrix({
         )}
 
         {/* Bottom Save Bar */}
-        <div className="p-4 bg-gray-50 dark:bg-slate-800/60 border-t border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="p-4 bg-muted/20 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs text-muted-foreground font-mono">
             {sortedClasses.length} Classes · {sortedHeads.length} Fee Heads ·{" "}
             {sortedClasses.length * sortedHeads.length} Matrix Slots
           </div>
@@ -490,119 +489,129 @@ export function ClassFeePricingMatrix({
             type="button"
             onClick={handleSaveMatrix}
             disabled={isPending}
-            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white dark:text-black bg-[#248A3D] dark:bg-[#30D158] hover:opacity-90 rounded-xl transition-colors shadow-xs min-h-[44px] disabled:opacity-50 cursor-pointer"
           >
             <Save className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
             {isPending ? "Saving Matrix..." : "Save Pricing Matrix"}
           </button>
         </div>
-      </div>
+        onClick={handleSaveMatrix}
+        disabled={isPending}
+        className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+          >
+        <Save className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
+        {isPending ? "Saving Matrix..." : "Save Pricing Matrix"}
+      </button>
+    </div>
+      </div >
 
-      {/* Clone to Other Cohorts Modal */}
-      {isCloneModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Copy className="w-5 h-5 text-blue-500" />
-                Clone to Other Cohort
-              </h3>
+    {/* Clone to Other Cohorts Modal */ }
+  {
+    isCloneModalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xl w-full max-w-md overflow-hidden">
+          <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Copy className="w-5 h-5 text-blue-500" />
+              Clone to Other Cohort
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsCloneModalOpen(false)}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Source Cohort (Current)
+              </label>
+              <input
+                type="text"
+                disabled
+                value={activeYear.label}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Target Academic Year *
+              </label>
+              <select
+                value={targetYearId}
+                onChange={(e) => setTargetYearId(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select target academic year...</option>
+                {allAcademicYears
+                  .filter((y) => y.id !== activeYear.id)
+                  .map((y) => (
+                    <option key={y.id} value={y.id}>
+                      {y.label}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                <span>Annual Fee Hike / Percentage Uplift (%)</span>
+                <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">
+                  +{percentageUplift}%
+                </span>
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={1}
+                  value={percentageUplift}
+                  onChange={(e) => setPercentageUplift(parseInt(e.target.value) || 0)}
+                  className="w-full accent-blue-600"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={percentageUplift}
+                  onChange={(e) => setPercentageUplift(parseInt(e.target.value) || 0)}
+                  className="w-16 px-2 py-1 text-sm font-mono text-center rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                E.g. A ₹20,000 tuition fee will clone as ₹
+                {(20000 * (1 + percentageUplift / 100)).toFixed(0)} to the new cohort.
+              </p>
+            </div>
+
+            <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsCloneModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                Cancel
               </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Source Cohort (Current)
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={activeYear.label}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Target Academic Year *
-                </label>
-                <select
-                  value={targetYearId}
-                  onChange={(e) => setTargetYearId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select target academic year...</option>
-                  {allAcademicYears
-                    .filter((y) => y.id !== activeYear.id)
-                    .map((y) => (
-                      <option key={y.id} value={y.id}>
-                        {y.label}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
-                  <span>Annual Fee Hike / Percentage Uplift (%)</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">
-                    +{percentageUplift}%
-                  </span>
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min={0}
-                    max={30}
-                    step={1}
-                    value={percentageUplift}
-                    onChange={(e) => setPercentageUplift(parseInt(e.target.value) || 0)}
-                    className="w-full accent-blue-600"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    max={50}
-                    value={percentageUplift}
-                    onChange={(e) => setPercentageUplift(parseInt(e.target.value) || 0)}
-                    className="w-16 px-2 py-1 text-sm font-mono text-center rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                  />
-                </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                  E.g. A ₹20,000 tuition fee will clone as ₹
-                  {(20000 * (1 + percentageUplift / 100)).toFixed(0)} to the new cohort.
-                </p>
-              </div>
-
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsCloneModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCloneCohort}
-                  disabled={isPending || !targetYearId}
-                  className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
-                >
-                  {isPending ? "Cloning..." : "Clone & Apply"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleCloneCohort}
+                disabled={isPending || !targetYearId}
+                className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isPending ? "Cloning..." : "Clone & Apply"}
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    )
+  }
+    </div >
   );
 }

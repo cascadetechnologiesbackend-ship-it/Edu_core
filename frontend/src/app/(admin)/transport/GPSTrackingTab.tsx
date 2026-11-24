@@ -19,8 +19,8 @@ import {
 const LiveMap = dynamic(() => import("./LiveMap"), {
   ssr: false,
   loading: () => (
-    <div className="h-[460px] w-full rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 text-sm">
-      <Loader2 className="w-5 h-5 animate-spin mr-2 text-indigo-500" />
+    <div className="h-[460px] w-full rounded-2xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground text-sm">
+      <Loader2 className="w-5 h-5 animate-spin mr-2 text-amber-500" />
       Loading OpenStreetMap Leaflet Engine...
     </div>
   ),
@@ -167,26 +167,26 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 text-white shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-amber-500/25 text-foreground shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                 isLiveConnected
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   isLiveConnected
-                    ? "bg-emerald-400 animate-ping"
-                    : "bg-amber-400"
+                    ? "bg-emerald-500 animate-ping"
+                    : "bg-amber-500"
                 }`}
               />
               {isLiveConnected ? "GPS Signal Active" : "Waiting for Broadcast"}
             </span>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted-foreground">
               OpenStreetMap Real-World Tracking
             </span>
           </div>
@@ -199,7 +199,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
           <select
             value={selectedRouteId}
             onChange={(e) => setSelectedRouteId(e.target.value)}
-            className="rounded-xl border border-slate-700 bg-slate-800/90 text-white px-3.5 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-xl border border-border/40 bg-muted/60 text-foreground px-3.5 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[44px]"
           >
             {routes.map((r) => (
               <option key={r.id} value={r.id}>
@@ -211,7 +211,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
           <button
             onClick={handleSendTestPing}
             disabled={isSendingTestPing || !selectedRoute?.vehicleId}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black shadow-xs transition disabled:opacity-50 min-h-[44px]"
             title="Send test coordinates to verify map polling"
           >
             {isSendingTestPing ? (
@@ -226,12 +226,12 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
 
       {/* Telemetry Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-gray-400 mb-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Assigned Bus
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Bus className="w-4 h-4" />
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-gray-400 mb-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Current Speed
@@ -260,7 +260,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-gray-400 mb-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Last Ping
@@ -277,7 +277,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-gray-400 mb-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider">
               Route Stops
@@ -298,10 +298,10 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
       {/* Main Map + Stop Sequence Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Stops Sequence Sidebar */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-indigo-500" />
+              <Navigation className="w-4 h-4 text-[#D97706] dark:text-[#FF9F0A]" />
               Route Stops & ETAs
             </h3>
             <span className="text-xs text-gray-400">
@@ -318,9 +318,9 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
               sortedStops.map((stop, i) => (
                 <div
                   key={stop.id}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 text-xs"
+                  className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-muted/30 border border-gray-100 dark:border-border/40 text-xs"
                 >
-                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">
+                  <div className="w-6 h-6 rounded-full bg-[#D97706] dark:bg-[#FF9F0A] text-white dark:text-black font-bold flex items-center justify-center shrink-0 text-[11px]">
                     {stop.stopOrder}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -328,7 +328,7 @@ export default function GPSTrackingTab({ routes }: { routes: Route[] }) {
                       {stop.stopName}
                     </div>
                     {stop.estimatedArrivalTime && (
-                      <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">
+                      <div className="text-[11px] text-[#D97706] dark:text-[#FF9F0A] font-medium mt-0.5">
                         ETA: {stop.estimatedArrivalTime}
                       </div>
                     )}

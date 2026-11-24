@@ -68,44 +68,44 @@ export default async function AdmissionDetailPage({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Applicant Details */}
-        <div className="bg-white dark:bg-slate-900 shadow rounded-lg p-6 border border-gray-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold border-b pb-2 mb-4">
+        <div className="bg-card shadow-sm rounded-2xl p-6 border border-border/40">
+          <h2 className="text-lg font-semibold border-b border-border/40 pb-2 mb-4 text-foreground">
             Applicant Details
           </h2>
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">Name</span>
-              <span className="col-span-2 font-medium">
+              <span className="text-muted-foreground">Name</span>
+              <span className="col-span-2 font-medium text-foreground">
                 {decryptData(application.applicantNameEncrypted)}
               </span>
             </div>
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">Grade Applied</span>
-              <span className="col-span-2 font-medium">
+              <span className="text-muted-foreground">Grade Applied</span>
+              <span className="col-span-2 font-medium text-foreground">
                 {application.gradeAppliedFor.replace("_", " ")}
               </span>
             </div>
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">Gender</span>
-              <span className="col-span-2">{application.gender}</span>
+              <span className="text-muted-foreground">Gender</span>
+              <span className="col-span-2 text-foreground">{application.gender}</span>
             </div>
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">DOB</span>
-              <span className="col-span-2">
+              <span className="text-muted-foreground">DOB</span>
+              <span className="col-span-2 text-foreground font-mono">
                 {application.dateOfBirth?.toLocaleDateString()}
               </span>
             </div>
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">Category</span>
-              <span className="col-span-2">{application.category}</span>
+              <span className="text-muted-foreground">Category</span>
+              <span className="col-span-2 text-foreground">{application.category}</span>
             </div>
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">Aadhaar</span>
-              <span className="col-span-2">{decryptData(application.aadhaarNumberEncrypted) || "Not Provided"}</span>
+              <span className="text-muted-foreground">Aadhaar</span>
+              <span className="col-span-2 font-mono text-foreground">{decryptData(application.aadhaarNumberEncrypted) || "Not Provided"}</span>
             </div>
             <div className="grid grid-cols-3">
-              <span className="text-gray-500">RTE Applicant</span>
-              <span className="col-span-2">
+              <span className="text-muted-foreground">RTE Applicant</span>
+              <span className="col-span-2 text-foreground">
                 {application.isRteApplicant ? "Yes" : "No"}
               </span>
             </div>
@@ -113,8 +113,8 @@ export default async function AdmissionDetailPage({
         </div>
 
         {/* Family Details */}
-        <div className="bg-white dark:bg-slate-900 shadow rounded-lg p-6 border border-gray-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold border-b pb-2 mb-4">
+        <div className="bg-card shadow-sm rounded-2xl p-6 border border-border/40">
+          <h2 className="text-lg font-semibold border-b border-border/40 pb-2 mb-4 text-foreground">
             Family & Contact
           </h2>
           <div className="space-y-3 text-sm">
@@ -157,16 +157,16 @@ export default async function AdmissionDetailPage({
       </div>
 
       {/* Documents */}
-      <div className="bg-white dark:bg-slate-900 shadow rounded-lg p-6 border border-gray-200 dark:border-slate-800">
-        <h2 className="text-lg font-semibold border-b pb-2 mb-4">
+      <div className="bg-card shadow-sm rounded-2xl p-6 border border-border/40">
+        <h2 className="text-lg font-semibold border-b border-border/40 pb-2 mb-4 text-foreground">
           Uploaded Documents
         </h2>
         <AdmissionDocumentsList documents={application.documents || []} />
       </div>
 
       {/* Workflow Steps */}
-      <div className="bg-white dark:bg-slate-900 shadow rounded-lg p-6 border border-gray-200 dark:border-slate-800">
-        <h2 className="text-lg font-semibold border-b pb-2 mb-4">
+      <div className="bg-card shadow-sm rounded-2xl p-6 border border-border/40">
+        <h2 className="text-lg font-semibold border-b border-border/40 pb-2 mb-4 text-foreground">
           Workflow History
         </h2>
         <div className="space-y-4">

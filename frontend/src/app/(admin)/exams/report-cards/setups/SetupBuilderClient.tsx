@@ -147,9 +147,9 @@ export function SetupBuilderClient({
       {/* ─── 1. Create New Setup Form ─────────────────────────────────────────── */}
       <form
         onSubmit={handleSave}
-        className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-6 md:p-8 shadow-xl space-y-6"
+        className="rounded-3xl border border-border/40 bg-card backdrop-blur-sm p-6 md:p-8 shadow-xl space-y-6"
       >
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+        <div className="flex items-center gap-3 border-b border-border/40 pb-4">
           <span className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
             <SlidersHorizontal className="w-5 h-5" />
           </span>
@@ -157,7 +157,7 @@ export function SetupBuilderClient({
             <h2 className="text-lg font-bold text-white tracking-tight">
               Create Report Card Framework
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Combine single or multiple term assessments with weighted contributions ({activeYear.label})
             </p>
           </div>
@@ -183,7 +183,7 @@ export function SetupBuilderClient({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Framework Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Setup Title *
             </label>
             <input
@@ -192,19 +192,19 @@ export function SetupBuilderClient({
               placeholder="e.g. CBSE Cumulative Annual Assessment 2026-27"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           {/* Template Style */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Report Card Template Style
             </label>
             <select
               value={template}
               onChange={(e) => setTemplate(e.target.value as any)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
             >
               <option value="CBSE_STANDARD">CBSE Standard Term Marksheet</option>
               <option value="CCE_HOLISTIC">CCE Holistic Progress Card (NEP 2020)</option>
@@ -218,17 +218,17 @@ export function SetupBuilderClient({
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Examination Cycles &amp; Weightages
               </h3>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Configure contributing exams. Sum of percentages must equal 100%.
               </p>
             </div>
             <button
               type="button"
               onClick={addExamRow}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Exam Cycle</span>
@@ -239,13 +239,13 @@ export function SetupBuilderClient({
             {weightages.map((row, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/40"
               >
                 <div className="flex-1">
                   <select
                     value={row.examId}
                     onChange={(e) => updateExamRow(idx, "examId", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-card border border-border/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                   >
                     {exams.map((ex) => (
                       <option key={ex.id} value={ex.id}>
@@ -262,16 +262,16 @@ export function SetupBuilderClient({
                     max={100}
                     value={row.weightPercent}
                     onChange={(e) => updateExamRow(idx, "weightPercent", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-center font-bold focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-card border border-border/40 rounded-xl px-3 py-2 text-xs text-white text-center font-bold focus:outline-none focus:border-indigo-500"
                   />
-                  <span className="text-xs text-slate-400 font-bold">%</span>
+                  <span className="text-xs text-muted-foreground font-bold">%</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => removeExamRow(idx)}
                   disabled={weightages.length <= 1}
-                  className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                  className="p-2 rounded-xl text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -279,8 +279,8 @@ export function SetupBuilderClient({
             ))}
           </div>
 
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
-            <span className="text-slate-400">Total Combined Weightage:</span>
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-muted/30 border border-border/40 text-xs">
+            <span className="text-muted-foreground">Total Combined Weightage:</span>
             <span
               className={`font-black text-sm ${
                 Math.abs(totalWeightage - 100) < 0.01
@@ -295,33 +295,33 @@ export function SetupBuilderClient({
 
         {/* Toggles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer">
+          <label className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/40 cursor-pointer">
             <input
               type="checkbox"
               checked={showCoCurricular}
               onChange={(e) => setShowCoCurricular(e.target.checked)}
-              className="w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-900 border-slate-700"
+              className="w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-card border-border/40"
             />
             <div>
               <p className="text-xs font-semibold text-white">Include Co-Curricular Domains</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Display Work Ed, Art Education, Discipline &amp; Health grades
               </p>
             </div>
           </label>
 
-          <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer">
+          <label className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/40 cursor-pointer">
             <input
               type="checkbox"
               checked={remarksMode === "AUTO_FORMULA"}
               onChange={(e) =>
                 setRemarksMode(e.target.checked ? "AUTO_FORMULA" : "MANUAL")
               }
-              className="w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-900 border-slate-700"
+              className="w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-card border-border/40"
             />
             <div>
               <p className="text-xs font-semibold text-white">Automate Performance Remarks</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Generate descriptive narrative based on aggregate percentage
               </p>
             </div>
@@ -347,13 +347,13 @@ export function SetupBuilderClient({
           <h3 className="text-base font-bold text-white tracking-tight">
             Configured Report Card Frameworks
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Active setups available for snapshot generation and official publication
           </p>
         </div>
 
         {existingSetups.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center text-slate-500 text-xs">
+          <div className="rounded-2xl border border-border/40 bg-muted/40 p-8 text-center text-muted-foreground text-xs">
             No report card setups created yet. Use the form above to build your first template framework.
           </div>
         ) : (
@@ -361,14 +361,14 @@ export function SetupBuilderClient({
             {existingSetups.map((setup) => (
               <div
                 key={setup.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 space-y-3 shadow-lg"
+                className="rounded-2xl border border-border/40 bg-card p-5 space-y-3 shadow-lg"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h4 className="font-bold text-white text-sm">
                       {setup.name}
                     </h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
                       Created on {new Date(setup.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -377,15 +377,15 @@ export function SetupBuilderClient({
                   </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs">
-                  <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                <div className="p-3 rounded-xl bg-card border border-border/40 space-y-1.5 text-xs">
+                  <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
                     Assessment Cycle Breakdown
                   </span>
                   <div className="space-y-1">
                     {setup.examWeightages.map((w, wIdx) => (
                       <div
                         key={wIdx}
-                        className="flex items-center justify-between text-slate-300 text-xs"
+                        className="flex items-center justify-between text-muted-foreground text-xs"
                       >
                         <span>{getExamName(w.examId)}</span>
                         <span className="font-bold text-indigo-400">
@@ -396,9 +396,9 @@ export function SetupBuilderClient({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                   <span>
-                    Template: <strong className="text-slate-300">{setup.layout?.template || "CBSE Standard"}</strong>
+                    Template: <strong className="text-muted-foreground">{setup.layout?.template || "CBSE Standard"}</strong>
                   </span>
                   <button
                     type="button"

@@ -98,20 +98,20 @@ export default function AcademicsClientTabs({
 
   return (
     <div className="space-y-6">
-      {/* Tab Selectors - Horizontally scrollable on mobile with smooth touch snapping */}
-      <div className="border-b border-gray-200 dark:border-slate-800 -mx-3 sm:mx-0 px-3 sm:px-0">
+      {/* Tab Selectors - Apple Segmented Inset Control */}
+      <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/40 -mx-3 sm:mx-0 px-1.5">
         <ul
-          className="flex overflow-x-auto no-scrollbar gap-1 sm:gap-2 -mb-px text-sm font-medium whitespace-nowrap py-1"
+          className="flex overflow-x-auto no-scrollbar gap-1 text-xs font-semibold whitespace-nowrap"
           role="tablist"
         >
           {tabs.map((tab) => (
             <li key={tab.id} className="flex-shrink-0" role="presentation">
               <button
                 onClick={() => handleTabChange(tab.id)}
-                className={`inline-flex items-center px-3.5 py-2.5 sm:px-4 sm:py-3 border-b-2 rounded-t-lg transition font-semibold text-xs sm:text-sm min-h-[44px] select-none ${
+                className={`inline-flex items-center px-4 py-2.5 rounded-xl transition font-bold text-xs min-h-[44px] select-none cursor-pointer ${
                   activeTab === tab.id
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                    ? "bg-card text-[#00A3C4] dark:text-[#64D2FF] shadow-xs border border-border/60"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/40"
                 }`}
                 role="tab"
                 aria-selected={activeTab === tab.id}

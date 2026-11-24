@@ -137,7 +137,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
   return (
     <div className="space-y-6">
       {/* Action Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm print:hidden">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mr-2">
             <Calendar className="w-4 h-4 text-gray-400" />
@@ -147,14 +147,14 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
           />
           <span className="text-xs text-gray-400">to</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
           />
           <button
             onClick={() => handleApplyFilter()}
@@ -165,24 +165,24 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
             Apply Filter
           </button>
 
-          <div className="h-4 w-px bg-gray-200 dark:bg-slate-800 mx-1" />
+          <div className="h-4 w-px bg-gray-200 dark:bg-muted/60 mx-1" />
 
           {/* Preset Buttons */}
           <button
             onClick={() => handlePreset("ALL")}
-            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
+            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted text-gray-700 dark:text-foreground"
           >
             All History
           </button>
           <button
             onClick={() => handlePreset("FY")}
-            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
+            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted text-gray-700 dark:text-foreground"
           >
             Current FY
           </button>
           <button
             onClick={() => handlePreset("MONTH")}
-            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
+            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted text-gray-700 dark:text-foreground"
           >
             This Month
           </button>
@@ -191,7 +191,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-slate-200 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-foreground bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted rounded-xl transition inline-flex items-center gap-1.5"
           >
             <Printer className="w-3.5 h-3.5" />
             Print / PDF
@@ -257,15 +257,15 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
       </div>
 
       {/* Table Container */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-gray-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-gray-200 dark:border-border/40 flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="w-72">
             <input
               type="text"
               placeholder="Search by code, account, or type..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white"
+              className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-900 dark:text-white"
             />
           </div>
           <span className="text-xs text-gray-400">
@@ -276,7 +276,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-slate-300 border-b border-gray-200 dark:border-slate-800 font-semibold">
+              <tr className="bg-gray-50 dark:bg-muted/40 text-gray-600 dark:text-muted-foreground border-b border-gray-200 dark:border-border/40 font-semibold">
                 <th className="py-3 px-4 w-28">Code</th>
                 <th className="py-3 px-4">Account Name</th>
                 <th className="py-3 px-4 w-32">Classification</th>
@@ -284,7 +284,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
                 <th className="py-3 px-4 text-right w-36">Credit Balance (₹)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60 text-gray-700 dark:text-slate-200">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40 text-gray-700 dark:text-foreground">
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-gray-400 italic">
@@ -295,7 +295,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
                 filteredRows.map((row) => (
                   <tr
                     key={row.accountId}
-                    className="hover:bg-gray-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                    className="hover:bg-gray-50/80 dark:hover:bg-muted/30 transition-colors"
                   >
                     <td className="py-2.5 px-4 font-mono font-medium text-gray-900 dark:text-white">
                       {row.code}
@@ -307,14 +307,14 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
                       <span
                         className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
                           row.type === "ASSET"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
+                            ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
                             : row.type === "LIABILITY"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
                             : row.type === "EQUITY"
-                            ? "bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-300"
+                            ? "bg-violet-500/10 text-violet-700 dark:text-violet-300"
                             : row.type === "REVENUE"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
-                            : "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "bg-rose-500/10 text-rose-700 dark:text-rose-300"
                         }`}
                       >
                         {row.type}
@@ -354,7 +354,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
               )}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-100/80 dark:bg-slate-800 border-t-2 border-gray-300 dark:border-slate-700 font-bold text-gray-900 dark:text-white">
+              <tr className="bg-gray-100/80 dark:bg-muted/60 border-t-2 border-gray-300 dark:border-border/40 font-bold text-gray-900 dark:text-white">
                 <td colSpan={3} className="py-3.5 px-4 text-right uppercase tracking-wider text-xs">
                   Grand Total Debits & Credits:
                 </td>

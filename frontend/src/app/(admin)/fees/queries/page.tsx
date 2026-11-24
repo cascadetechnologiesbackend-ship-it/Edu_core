@@ -25,7 +25,7 @@ export default async function AdminFeeQueriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-muted/30 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <FeeQueriesAdminClient
           initialQueries={res.queries || []}

@@ -325,7 +325,7 @@ export default function CalendarClient({
             <>
               <button
                 onClick={handleOpenAddTerm}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 text-gray-700 dark:text-gray-200 transition shadow-xs"
+                className="px-3 py-2 rounded-xl text-xs font-semibold bg-card border border-gray-200 dark:border-border/40 hover:bg-gray-50 text-gray-700 dark:text-gray-200 transition shadow-xs"
               >
                 + Add Term
               </button>
@@ -341,7 +341,7 @@ export default function CalendarClient({
       </div>
 
       {/* ─── Terms Horizontal Strip ────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-primary" />
@@ -363,7 +363,7 @@ export default function CalendarClient({
           {terms.map((t) => (
             <div
               key={t.id}
-              className="p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/40 flex items-center justify-between"
+              className="p-3 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/60 dark:bg-muted/30 flex items-center justify-between"
             >
               <div>
                 <span className="text-xs font-bold text-gray-900 dark:text-white block">
@@ -392,16 +392,16 @@ export default function CalendarClient({
       </div>
 
       {/* ─── Calendar Grid with Month Controls ─────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs overflow-hidden">
         {/* Month Header */}
-        <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-4 border-b border-gray-100 dark:border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               {monthNames[month]} {year}
             </h2>
             <button
               onClick={goToToday}
-              className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:hover:text-white px-2 py-0.5 rounded-md border border-gray-200 dark:border-slate-700"
+              className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:hover:text-white px-2 py-0.5 rounded-md border border-gray-200 dark:border-border/40"
             >
               Today
             </button>
@@ -410,13 +410,13 @@ export default function CalendarClient({
           <div className="flex items-center gap-1">
             <button
               onClick={prevMonth}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+              className="p-1.5 rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-muted/40"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={nextMonth}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+              className="p-1.5 rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-muted/40"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -424,7 +424,7 @@ export default function CalendarClient({
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b border-gray-100 dark:border-slate-800 text-center text-[11px] font-bold uppercase text-gray-400 bg-gray-50/50 dark:bg-slate-800/20 py-2.5">
+        <div className="grid grid-cols-7 border-b border-gray-100 dark:border-border/40 text-center text-[11px] font-bold uppercase text-gray-400 bg-gray-50/50 dark:bg-muted/20 py-2.5">
           <span>Sun</span>
           <span>Mon</span>
           <span>Tue</span>
@@ -435,10 +435,10 @@ export default function CalendarClient({
         </div>
 
         {/* Calendar Day Cells */}
-        <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-gray-100 dark:divide-slate-800/80 border-b border-gray-100 dark:border-slate-800">
+        <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-gray-100 dark:divide-border/40 border-b border-gray-100 dark:border-border/40">
           {/* Empty cells before month starts */}
           {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[110px] bg-gray-50/20 dark:bg-slate-900/40 p-2" />
+            <div key={`empty-${i}`} className="min-h-[110px] bg-gray-50/20 dark:bg-muted/20 p-2" />
           ))}
 
           {/* Days of current month */}
@@ -457,7 +457,7 @@ export default function CalendarClient({
               <div
                 key={dayNum}
                 onClick={() => isAdmin && handleOpenAddEvent(dateStr)}
-                className={`min-h-[110px] p-2 transition cursor-pointer hover:bg-gray-50/80 dark:hover:bg-slate-800/50 flex flex-col justify-between ${
+                className={`min-h-[110px] p-2 transition cursor-pointer hover:bg-gray-50/80 dark:hover:bg-muted/40 flex flex-col justify-between ${
                   isToday ? "bg-primary/5 dark:bg-primary/10" : ""
                 }`}
               >
@@ -532,7 +532,7 @@ export default function CalendarClient({
               <button
                 type="button"
                 onClick={() => setShowEventModal(false)}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40"
               >
                 Cancel
               </button>
@@ -566,7 +566,7 @@ export default function CalendarClient({
                 setEventFormData({ ...eventFormData, title: e.target.value })
               }
               placeholder="e.g. Independence Day, Term 1 Exams"
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -583,7 +583,7 @@ export default function CalendarClient({
                     eventType: e.target.value as any,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
               >
                 <option value="HOLIDAY">Holiday</option>
                 <option value="EVENT">School Event</option>
@@ -608,7 +608,7 @@ export default function CalendarClient({
                     termId: e.target.value,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
               >
                 <option value="">No specific term</option>
                 {terms.map((t) => (
@@ -635,7 +635,7 @@ export default function CalendarClient({
                     startDate: e.target.value,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -653,7 +653,7 @@ export default function CalendarClient({
                     endDate: e.target.value,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -672,7 +672,7 @@ export default function CalendarClient({
                 })
               }
               placeholder="Optional details or instructions..."
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -707,7 +707,7 @@ export default function CalendarClient({
             <button
               type="button"
               onClick={() => setShowTermModal(false)}
-              className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl"
+              className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl"
             >
               Cancel
             </button>
@@ -739,7 +739,7 @@ export default function CalendarClient({
                 setTermFormData({ ...termFormData, name: e.target.value })
               }
               placeholder="e.g. Term 1, Semester 1"
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -758,7 +758,7 @@ export default function CalendarClient({
                     startDate: e.target.value,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -776,7 +776,7 @@ export default function CalendarClient({
                     endDate: e.target.value,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -795,7 +795,7 @@ export default function CalendarClient({
                   sortOrder: parseInt(e.target.value) || 1,
                 })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
             />
           </div>
         </form>

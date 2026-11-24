@@ -70,14 +70,14 @@ export default function VehiclesTab({
         {isAdmin && (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+            className="flex items-center gap-1.5 bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition shadow-xs"
           >
             <Plus className="w-4 h-4" /> Add Vehicle
           </button>
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-900 shadow border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-card shadow border border-gray-200 dark:border-border/40 rounded-xl overflow-hidden">
         {vehicles.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-gray-500">
             <Bus className="w-12 h-12 mb-3 text-gray-300 animate-pulse" />
@@ -85,8 +85,8 @@ export default function VehiclesTab({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-800 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-border/40 text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-muted/60 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3">Bus Number</th>
                   <th className="px-6 py-3">Registration</th>
@@ -96,11 +96,11 @@ export default function VehiclesTab({
                   <th className="px-6 py-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-200 dark:divide-border/40">
                 {vehicles.map((v) => (
                   <tr
                     key={v.id}
-                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                    className="hover:bg-gray-50 dark:hover:bg-muted/30"
                   >
                     <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                       {v.busNumber}
@@ -171,7 +171,7 @@ export default function VehiclesTab({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-lg w-full border border-gray-200 dark:border-slate-800 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-card rounded-xl p-6 max-w-lg w-full border border-gray-200 dark:border-border/40 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto"
           >
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Register New Vehicle
@@ -190,7 +190,7 @@ export default function VehiclesTab({
                   onChange={(e) =>
                     setFormData({ ...formData, busNumber: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -208,7 +208,7 @@ export default function VehiclesTab({
                       registrationNumber: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function VehiclesTab({
                       capacity: parseInt(e.target.value),
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -242,7 +242,7 @@ export default function VehiclesTab({
                   onChange={(e) =>
                     setFormData({ ...formData, make: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -256,7 +256,7 @@ export default function VehiclesTab({
                   onChange={(e) =>
                     setFormData({ ...formData, model: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
             </div>
@@ -271,7 +271,7 @@ export default function VehiclesTab({
               </div>
             </div>
 
-            <div className="border-t border-gray-100 dark:border-slate-800 pt-4 space-y-4">
+            <div className="border-t border-gray-100 dark:border-border/40 pt-4 space-y-4">
               <h4 className="font-semibold text-sm text-primary">
                 Conductor Details (Optional)
               </h4>
@@ -289,7 +289,7 @@ export default function VehiclesTab({
                         conductorName: e.target.value,
                       })
                     }
-                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   />
                 </div>
                 <div>
@@ -305,24 +305,24 @@ export default function VehiclesTab({
                         conductorMobile: e.target.value,
                       })
                     }
-                    className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                className="bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+                className="bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition disabled:opacity-60 flex items-center gap-1 shadow-xs"
               >
                 {isPending && (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />

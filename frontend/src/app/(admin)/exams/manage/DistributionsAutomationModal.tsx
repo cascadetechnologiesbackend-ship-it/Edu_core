@@ -136,9 +136,9 @@ export function DistributionsAutomationModal({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
-        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/50 dark:from-indigo-950/20 to-transparent">
+        <div className="p-6 border-b border-gray-100 dark:border-border/40 flex items-center justify-between bg-gradient-to-r from-indigo-50/50 dark:from-indigo-950/20 to-transparent">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-indigo-600/10 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-400">
               <Sparkles className="w-5 h-5" />
@@ -147,15 +147,15 @@ export function DistributionsAutomationModal({
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                 Automate Mark Distributions
               </h2>
-              <p className="text-xs text-gray-500 dark:text-slate-400">
-                Exam: <span className="font-semibold text-gray-700 dark:text-slate-200">{examName}</span> • Ensure-Semantics & Immutability Guarded
+              <p className="text-xs text-gray-500 dark:text-muted-foreground">
+                Exam: <span className="font-semibold text-gray-700 dark:text-foreground">{examName}</span> • Ensure-Semantics & Immutability Guarded
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-muted-foreground hover:bg-gray-100 dark:hover:bg-muted/40 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -188,7 +188,7 @@ export function DistributionsAutomationModal({
                   <ShieldCheck className="w-4 h-4" />
                   <span>How Distribution Automation Works</span>
                 </div>
-                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-300">
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground dark:text-muted-foreground">
                   <li>
                     <strong>Mandatory Subjects:</strong> Included automatically for all selected classes.
                   </li>
@@ -207,7 +207,7 @@ export function DistributionsAutomationModal({
               {/* Class Selection */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-muted-foreground flex items-center gap-1.5">
                     <Filter className="w-3.5 h-3.5 text-indigo-500" />
                     Target Classes
                   </label>
@@ -221,7 +221,7 @@ export function DistributionsAutomationModal({
                       : "Select All Classes"}
                   </button>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-48 overflow-y-auto p-1 border border-gray-100 dark:border-slate-800 rounded-xl bg-gray-50/50 dark:bg-slate-900/50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-48 overflow-y-auto p-1 border border-gray-100 dark:border-border/40 rounded-xl bg-gray-50/50 dark:bg-muted/20">
                   {classes.map((cls) => {
                     const isSelected = selectedClassIds.includes(cls.id);
                     return (
@@ -232,7 +232,7 @@ export function DistributionsAutomationModal({
                         className={`p-2.5 rounded-lg text-xs font-semibold border transition text-left flex items-center justify-between ${
                           isSelected
                             ? "bg-indigo-50 border-indigo-300 text-indigo-900 dark:bg-indigo-950/60 dark:border-indigo-700 dark:text-indigo-200"
-                            : "bg-white border-gray-200 text-gray-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 hover:border-gray-300"
+                            : "bg-white border-gray-200 text-gray-700 bg-muted/60 dark:border-border/40 dark:text-muted-foreground hover:border-gray-300"
                         }`}
                       >
                         <span className="truncate">{cls.displayName}</span>
@@ -293,10 +293,10 @@ export function DistributionsAutomationModal({
               </div>
 
               {/* Proposals Table */}
-              <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden">
+              <div className="border border-gray-200 dark:border-border/40 rounded-xl overflow-hidden">
                 <div className="max-h-72 overflow-y-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 text-gray-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-gray-200 dark:border-slate-800">
+                    <thead className="bg-gray-50 dark:bg-muted/40 sticky top-0 text-gray-500 dark:text-muted-foreground uppercase tracking-wider font-semibold border-b border-gray-200 dark:border-border/40">
                       <tr>
                         <th className="py-2.5 px-3">Class</th>
                         <th className="py-2.5 px-3">Subject</th>
@@ -306,13 +306,13 @@ export function DistributionsAutomationModal({
                         <th className="py-2.5 px-3">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                       {previewResult?.proposals.map((p, idx) => (
                         <tr
                           key={`${p.classId}-${p.subjectId}-${p.componentId ?? "none"}-${idx}`}
-                          className="hover:bg-gray-50/60 dark:hover:bg-slate-800/40"
+                          className="hover:bg-gray-50/60 dark:hover:bg-muted/30"
                         >
-                          <td className="py-2.5 px-3 font-medium text-gray-800 dark:text-slate-200">
+                          <td className="py-2.5 px-3 font-medium text-gray-800 dark:text-foreground">
                             {p.className}
                           </td>
                           <td className="py-2.5 px-3">
@@ -328,7 +328,7 @@ export function DistributionsAutomationModal({
                               )}
                             </div>
                           </td>
-                          <td className="py-2.5 px-3 text-gray-600 dark:text-slate-400">
+                          <td className="py-2.5 px-3 text-gray-600 dark:text-muted-foreground">
                             {p.componentName ? (
                               <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-[10px] font-semibold">
                                 {p.componentName}
@@ -337,10 +337,10 @@ export function DistributionsAutomationModal({
                               <span className="text-gray-400 italic">Whole Paper</span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-medium text-gray-800 dark:text-slate-200">
+                          <td className="py-2.5 px-3 text-right font-mono font-medium text-gray-800 dark:text-foreground">
                             {p.maxMarks}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono text-gray-600 dark:text-slate-400">
+                          <td className="py-2.5 px-3 text-right font-mono text-gray-600 dark:text-muted-foreground">
                             {p.passingMarks}
                           </td>
                           <td className="py-2.5 px-3">
@@ -374,13 +374,13 @@ export function DistributionsAutomationModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
+        <div className="p-4 border-t border-gray-100 dark:border-border/40 flex items-center justify-between bg-gray-50/50 dark:bg-muted/20">
           {step === "preview" ? (
             <button
               type="button"
               onClick={() => setStep("configure")}
               disabled={isPending}
-              className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-300 hover:text-gray-900 transition"
+              className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-muted-foreground hover:text-gray-900 transition"
             >
               ← Back to Selection
             </button>
@@ -389,7 +389,7 @@ export function DistributionsAutomationModal({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-300 hover:text-gray-900 transition"
+              className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-muted-foreground hover:text-gray-900 transition"
             >
               Cancel
             </button>

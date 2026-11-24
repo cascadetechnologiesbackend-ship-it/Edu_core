@@ -508,7 +508,7 @@ export default function SubjectMappingTab({
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-3 text-xs bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
+        <div className="flex items-center gap-3 text-xs bg-gray-50 dark:bg-muted/40 border border-gray-200 dark:border-border/40 px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
             Legend:
           </span>
@@ -525,7 +525,7 @@ export default function SubjectMappingTab({
             <span className="text-gray-700 dark:text-gray-300 font-medium">Elective</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+            <span className="w-3 h-3 rounded-md border border-gray-300 dark:border-border/40 bg-card" />
             <span className="text-gray-500">Not Offered</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -591,14 +591,14 @@ export default function SubjectMappingTab({
       )}
 
       {/* ─── 4. Class x Subject Matrix Workbench (Surface 4 Matrix) ─────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto max-h-[640px]">
           <table className="w-full border-collapse text-left text-xs">
             {/* Table Header: Canonically ordered classes */}
-            <thead className="bg-gray-50/90 dark:bg-slate-800/90 sticky top-0 z-10 backdrop-blur-xs border-b border-gray-200 dark:border-slate-800">
+            <thead className="bg-gray-50/90 dark:bg-muted/60 sticky top-0 z-10 backdrop-blur-xs border-b border-gray-200 dark:border-border/40">
               <tr>
                 {/* Sticky Left Subject Column */}
-                <th className="sticky left-0 z-20 bg-gray-100 dark:bg-slate-800 p-3 min-w-[220px] max-w-[260px] font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[11px] border-r border-gray-200 dark:border-slate-700 shadow-sm">
+                <th className="sticky left-0 z-20 bg-gray-100 bg-muted/60 p-3 min-w-[220px] max-w-[260px] font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider text-[11px] border-r border-gray-200 dark:border-border/40 shadow-sm">
                   Subject Catalog ({sortedSubjects.length})
                 </th>
 
@@ -607,7 +607,7 @@ export default function SubjectMappingTab({
                     key={cls.id}
                     onClick={() => handleToggleClassColumn(cls)}
                     title={`Click to bulk toggle all subjects for ${cls.displayName}`}
-                    className="p-3 min-w-[120px] font-bold text-gray-900 dark:text-white text-center cursor-pointer hover:bg-primary/10 transition select-none border-r border-gray-100 dark:border-slate-800"
+                    className="p-3 min-w-[120px] font-bold text-gray-900 dark:text-white text-center cursor-pointer hover:bg-primary/10 transition select-none border-r border-gray-100 dark:border-border/40"
                   >
                     <div className="font-bold text-xs truncate">{cls.displayName}</div>
                     <div className="text-[10px] text-gray-400 font-mono font-normal">
@@ -619,17 +619,17 @@ export default function SubjectMappingTab({
             </thead>
 
             {/* Table Body: Rows = subjects, Cells = interactive toggle chips */}
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40">
               {sortedSubjects.map((sub) => (
                 <tr
                   key={sub.id}
-                  className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition group"
+                  className="hover:bg-gray-50/50 dark:hover:bg-muted/30 transition group"
                 >
                   {/* Sticky Subject Header Cell */}
                   <th
                     onClick={() => handleToggleSubjectRow(sub)}
                     title={`Click to bulk toggle ${sub.name} across all classes`}
-                    className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-gray-50 dark:group-hover:bg-slate-800/60 p-3 font-semibold text-gray-900 dark:text-white border-r border-gray-200 dark:border-slate-800 cursor-pointer select-none"
+                    className="sticky left-0 z-10 bg-card group-hover:bg-gray-50 dark:group-hover:bg-muted/40 p-3 font-semibold text-gray-900 dark:text-white border-r border-gray-200 dark:border-border/40 cursor-pointer select-none"
                   >
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="min-w-0">
@@ -668,12 +668,12 @@ export default function SubjectMappingTab({
                       <td
                         key={key}
                         onClick={() => handleCellClick(cls, sub)}
-                        className={`p-2.5 text-center border-r border-gray-100 dark:border-slate-800 cursor-pointer transition select-none relative ${
+                        className={`p-2.5 text-center border-r border-gray-100 dark:border-border/40 cursor-pointer transition select-none relative ${
                           cell.isOffered
                             ? cell.isElective
                               ? "bg-amber-50/40 dark:bg-amber-950/20"
                               : "bg-blue-50/40 dark:bg-blue-950/20"
-                            : "hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
+                            : "hover:bg-gray-100/60 dark:hover:bg-muted/40/40"
                         }`}
                       >
                         {/* Hierarchy Guard: amber corner marker if not in board blueprint */}
@@ -718,7 +718,7 @@ export default function SubjectMappingTab({
                           </div>
                         ) : (
                           <div className="py-2 flex items-center justify-center">
-                            <span className="w-5 h-5 rounded-md border border-dashed border-gray-300 dark:border-slate-700 text-gray-300 dark:text-slate-600 flex items-center justify-center text-xs opacity-60 hover:opacity-100 hover:border-primary hover:text-primary transition">
+                            <span className="w-5 h-5 rounded-md border border-dashed border-gray-300 dark:border-border/40 text-gray-300 dark:text-muted-foreground flex items-center justify-center text-xs opacity-60 hover:opacity-100 hover:border-primary hover:text-primary transition">
                               +
                             </span>
                           </div>
@@ -743,10 +743,10 @@ export default function SubjectMappingTab({
           />
 
           {/* Slide-over Panel */}
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-800 p-6 flex flex-col justify-between shadow-2xl z-10 animate-slide-in-left overflow-y-auto max-h-screen">
+          <div className="relative w-full max-w-md bg-card border-l border-gray-200 dark:border-border/40 p-6 flex flex-col justify-between shadow-2xl z-10 animate-slide-in-left overflow-y-auto max-h-screen">
             <div className="space-y-6">
               {/* Drawer Header */}
-              <div className="flex items-start justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
+              <div className="flex items-start justify-between border-b border-gray-100 dark:border-border/40 pb-4">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">
                     Curriculum Mapping Details
@@ -761,7 +761,7 @@ export default function SubjectMappingTab({
                 <button
                   type="button"
                   onClick={() => setActiveDrawerCell(null)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-muted/40 transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -770,7 +770,7 @@ export default function SubjectMappingTab({
               {/* Drawer Fields */}
               <div className="space-y-4">
                 {/* Offering Status Toggle */}
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40">
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30">
                   <div>
                     <label className="text-xs font-bold text-gray-900 dark:text-white block">
                       Curriculum Status
@@ -793,7 +793,7 @@ export default function SubjectMappingTab({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                       activeDrawerCell.cell.isOffered
                         ? "bg-primary text-white"
-                        : "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300"
+                        : "bg-gray-200 bg-muted text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     {activeDrawerCell.cell.isOffered ? "Offered" : "Not Offered"}
@@ -801,7 +801,7 @@ export default function SubjectMappingTab({
                 </div>
 
                 {/* Elective Toggle */}
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40">
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30">
                   <div>
                     <label className="text-xs font-bold text-gray-900 dark:text-white block">
                       Elective Subject
@@ -824,7 +824,7 @@ export default function SubjectMappingTab({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                       activeDrawerCell.cell.isElective
                         ? "bg-amber-500 text-white"
-                        : "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300"
+                        : "bg-gray-200 bg-muted text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     {activeDrawerCell.cell.isElective ? "Elective" : "Core Subject"}
@@ -864,7 +864,7 @@ export default function SubjectMappingTab({
                           },
                         })
                       }
-                      className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-primary/40 font-medium"
+                      className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card text-gray-900 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-primary/40 font-medium"
                     >
                       <option value="">None / Unassigned</option>
                       {teachers.map((t) => (
@@ -893,7 +893,7 @@ export default function SubjectMappingTab({
                           },
                         })
                       }
-                      className="w-10 h-10 rounded-xl border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-white font-bold text-base flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
+                      className="w-10 h-10 rounded-xl border border-gray-300 dark:border-border/40 bg-gray-50 bg-muted/60 text-gray-800 dark:text-white font-bold text-base flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
                     >
                       -
                     </button>
@@ -911,7 +911,7 @@ export default function SubjectMappingTab({
                           },
                         })
                       }
-                      className="w-10 h-10 rounded-xl border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-white font-bold text-base flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
+                      className="w-10 h-10 rounded-xl border border-gray-300 dark:border-border/40 bg-gray-50 bg-muted/60 text-gray-800 dark:text-white font-bold text-base flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
                     >
                       +
                     </button>
@@ -921,7 +921,7 @@ export default function SubjectMappingTab({
 
                 {/* Section-Level Teacher Overrides (OD2 / S14-F03) */}
                 {activeDrawerCell.cell.isOffered && (
-                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-3">
+                  <div className="pt-4 border-t border-gray-100 dark:border-border/40 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <label className="block text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
@@ -938,7 +938,7 @@ export default function SubjectMappingTab({
                         <span className="font-bold">Newly Staged Subject:</span> Please click &quot;Save All&quot; in the matrix bar to persist this subject before setting per-section teacher overrides.
                       </div>
                     ) : !activeDrawerCell.classroom.sections || activeDrawerCell.classroom.sections.length === 0 ? (
-                      <div className="p-3 bg-gray-50 dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 rounded-xl text-xs text-gray-500">
+                      <div className="p-3 bg-gray-50 dark:bg-muted/30 border border-gray-200 dark:border-border/40 rounded-xl text-xs text-gray-500">
                         No active sections found for this class. Add sections in the Classes tab.
                       </div>
                     ) : (
@@ -952,7 +952,7 @@ export default function SubjectMappingTab({
                           return (
                             <div
                               key={sec.id}
-                              className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40"
+                              className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30"
                             >
                               <div className="min-w-0">
                                 <span className="font-bold text-xs text-gray-900 dark:text-white block">
@@ -1027,7 +1027,7 @@ export default function SubjectMappingTab({
                                       }
                                     });
                                   }}
-                                  className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary font-medium"
+                                  className="w-full rounded-lg border border-gray-300 dark:border-border/40 bg-card text-gray-900 dark:text-white px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary font-medium"
                                 >
                                   <option value="">Inherit Lead Teacher</option>
                                   {teachers.map((t) => (
@@ -1048,11 +1048,11 @@ export default function SubjectMappingTab({
             </div>
 
             {/* Drawer Footer */}
-            <div className="pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-2">
+            <div className="pt-4 border-t border-gray-100 dark:border-border/40 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setActiveDrawerCell(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition min-h-[38px] cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-muted/40 transition min-h-[38px] cursor-pointer"
               >
                 Cancel
               </button>

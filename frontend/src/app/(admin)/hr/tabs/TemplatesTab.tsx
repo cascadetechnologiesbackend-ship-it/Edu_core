@@ -178,11 +178,11 @@ export function TemplatesTab({
       {/* Action Header & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#B45309] dark:text-[#FFD60A]" />
             Wage & Salary Templates
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-0.5">
             Define statutory salary structures, PF/ESI components, and state-wise professional tax bands
           </p>
         </div>
@@ -193,7 +193,7 @@ export function TemplatesTab({
               <button
                 type="button"
                 onClick={() => setModalType("associate")}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-colors min-h-[40px]"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-card border border-border/40 dark:border-border/40 text-muted-foreground dark:text-foreground hover:bg-muted/30 dark:hover:bg-muted/60 shadow-sm transition-colors min-h-[40px]"
               >
                 <UserCheck className="w-4 h-4 text-emerald-600" />
                 <span>Assign Staff Salary</span>
@@ -201,7 +201,7 @@ export function TemplatesTab({
               <button
                 type="button"
                 onClick={() => setModalType("create")}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors min-h-[40px]"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#B45309] dark:bg-[#FFD60A] hover:opacity-90 text-white dark:text-black shadow-xs transition-colors min-h-[44px]"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Create Template</span>
@@ -213,31 +213,31 @@ export function TemplatesTab({
 
       {/* Search Bar */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search templates by title or PT state..."
-          className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-border/40 dark:border-border/40 bg-white dark:bg-card text-foreground dark:text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
         />
       </div>
 
       {/* Templates Grid */}
       {filteredTemplates.length === 0 ? (
-        <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+        <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border/40 dark:border-border/40 bg-muted/20 dark:bg-muted/30">
+          <FileText className="w-10 h-10 text-muted-foreground dark:text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm font-semibold text-muted-foreground dark:text-muted-foreground">
             {searchQuery ? "No templates match your search" : "No salary templates configured yet"}
           </p>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             Create salary templates with standard Basic, DA, HRA splits and statutory deductions to assign to teaching and non-teaching staff.
           </p>
           {isAuthorizedHR && !searchQuery && (
             <button
               type="button"
               onClick={() => setModalType("create")}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#B45309] dark:bg-[#FFD60A] text-white dark:text-black rounded-xl hover:opacity-90 min-h-[44px] transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
               Create First Template
@@ -255,56 +255,56 @@ export function TemplatesTab({
             return (
               <div
                 key={t.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between gap-4"
+                className="bg-white dark:bg-card border border-border/40 dark:border-border/40 p-5 rounded-2xl shadow-sm hover:border-border/60 dark:hover:border-border/40 transition-all flex flex-col justify-between gap-4"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">
+                      <h3 className="font-bold text-sm text-foreground dark:text-white line-clamp-1">
                         {t.name}
                       </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground dark:text-muted-foreground mt-0.5">
                         Statutory Structure
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                       PT: {stateDisplay}
                     </span>
                   </div>
 
                   {/* Components Breakdown */}
-                  <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850 text-center">
+                  <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-muted/30 dark:bg-muted/30 border border-border/40 dark:border-border/40 text-center">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                         Basic
                       </span>
-                      <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                      <p className="text-sm font-extrabold text-foreground dark:text-foreground">
                         {t.basicPercent}%
                       </p>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                         DA
                       </span>
-                      <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                      <p className="text-sm font-extrabold text-foreground dark:text-foreground">
                         {t.daPercent}%
                       </p>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                         HRA
                       </span>
-                      <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                      <p className="text-sm font-extrabold text-foreground dark:text-foreground">
                         {t.hraPercent}%
                       </p>
                     </div>
                   </div>
 
                   {/* Deductions Summary */}
-                  <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 pt-1">
+                  <div className="space-y-1.5 text-xs text-muted-foreground dark:text-muted-foreground pt-1">
                     <div className="flex justify-between items-center text-[11px]">
                       <span>PF Employee / Employer:</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      <span className="font-semibold text-foreground dark:text-foreground">
                         {t.pfEmployeePercent}% / {t.pfEmployerPercent}%
                       </span>
                     </div>
@@ -314,7 +314,7 @@ export function TemplatesTab({
                         className={`font-semibold ${
                           t.esiApplicable
                             ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-slate-400"
+                            : "text-muted-foreground"
                         }`}
                       >
                         {t.esiApplicable ? "Yes (0.75% / 3.25%)" : "No"}
@@ -333,7 +333,7 @@ export function TemplatesTab({
                       }));
                       setModalType("associate");
                     }}
-                    className="w-full py-2 text-xs font-semibold rounded-xl border border-indigo-200 dark:border-indigo-850 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-950/40 transition-colors flex items-center justify-center gap-1.5 min-h-[36px]"
+                    className="w-full py-2 text-xs font-semibold rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 transition-colors flex items-center justify-center gap-1.5 min-h-[36px]"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
                     <span>Assign to Staff</span>
@@ -353,7 +353,7 @@ export function TemplatesTab({
       >
         <form onSubmit={handleCreateTemplate} className="space-y-4 text-xs">
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Template Title *
             </label>
             <input
@@ -362,13 +362,13 @@ export function TemplatesTab({
               placeholder="e.g. Regular Teaching Faculty Pay Band (Grade I)"
               value={templateForm.name}
               onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-              className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             />
           </div>
 
           {/* Professional Tax State Combobox */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Professional Tax Jurisdiction (State / UT) *
             </label>
             <Combobox
@@ -383,19 +383,19 @@ export function TemplatesTab({
               isHindi={false}
               className="w-full"
             />
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-muted-foreground">
               Determines monthly Professional Tax slab rules applied during payroll calculation.
             </p>
           </div>
 
           {/* Gross Percentage Splits */}
           <div>
-            <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground block mb-1.5">
               Gross Salary Allocation Components (% of Base Gross)
             </label>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <span className="text-[11px] text-slate-500 font-medium">Basic % *</span>
+                <span className="text-[11px] text-muted-foreground font-medium">Basic % *</span>
                 <input
                   type="number"
                   min="1"
@@ -408,11 +408,11 @@ export function TemplatesTab({
                       basicPercent: Number(e.target.value),
                     })
                   }
-                  className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
                 />
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] text-slate-500 font-medium">DA % *</span>
+                <span className="text-[11px] text-muted-foreground font-medium">DA % *</span>
                 <input
                   type="number"
                   min="0"
@@ -425,11 +425,11 @@ export function TemplatesTab({
                       daPercent: Number(e.target.value),
                     })
                   }
-                  className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
                 />
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] text-slate-500 font-medium">HRA % *</span>
+                <span className="text-[11px] text-muted-foreground font-medium">HRA % *</span>
                 <input
                   type="number"
                   min="0"
@@ -442,11 +442,11 @@ export function TemplatesTab({
                       hraPercent: Number(e.target.value),
                     })
                   }
-                  className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
                 />
               </div>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
+            <div className="text-[11px] text-muted-foreground mt-1">
               Total allowance percent: {templateForm.basicPercent + templateForm.daPercent + templateForm.hraPercent}%
               {templateForm.basicPercent + templateForm.daPercent + templateForm.hraPercent > 100 && (
                 <span className="text-amber-500 font-semibold ml-1">
@@ -457,13 +457,13 @@ export function TemplatesTab({
           </div>
 
           {/* Statutory Deductions */}
-          <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
-            <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+          <div className="border-t border-border/40 dark:border-border/40 pt-3 space-y-3">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground block">
               Statutory Contributions (EPFO & ESIC)
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <span className="text-[11px] text-slate-500 font-medium">PF Employee %</span>
+                <span className="text-[11px] text-muted-foreground font-medium">PF Employee %</span>
                 <input
                   type="number"
                   step="0.1"
@@ -474,11 +474,11 @@ export function TemplatesTab({
                       pfEmployeePercent: Number(e.target.value),
                     })
                   }
-                  className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
                 />
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] text-slate-500 font-medium">PF Employer %</span>
+                <span className="text-[11px] text-muted-foreground font-medium">PF Employer %</span>
                 <input
                   type="number"
                   step="0.1"
@@ -489,7 +489,7 @@ export function TemplatesTab({
                       pfEmployerPercent: Number(e.target.value),
                     })
                   }
-                  className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
                 />
               </div>
             </div>
@@ -501,26 +501,26 @@ export function TemplatesTab({
                 onChange={(e) =>
                   setTemplateForm({ ...templateForm, esiApplicable: e.target.checked })
                 }
-                className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                className="rounded border-border/60 dark:border-border/40 text-amber-600 focus:ring-amber-500 w-4 h-4"
               />
-              <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+              <span className="text-xs text-muted-foreground dark:text-muted-foreground font-medium">
                 Enable ESIC contributions (applicable for gross monthly wages ≤ ₹21,000)
               </span>
             </label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/40 dark:border-border/40">
             <button
               type="button"
               onClick={() => setModalType(null)}
-              className="px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[38px]"
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground hover:bg-muted/30 dark:hover:bg-muted/60 min-h-[38px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors min-h-[38px] disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold rounded-xl bg-[#B45309] dark:bg-[#FFD60A] hover:opacity-90 text-white dark:text-black shadow-xs transition-colors min-h-[44px] disabled:opacity-50"
             >
               {loading ? "Creating..." : "Save Template"}
             </button>
@@ -537,7 +537,7 @@ export function TemplatesTab({
         <form onSubmit={handleAssociateTemplate} className="space-y-4 text-xs">
           {/* Select Staff Combobox */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Select Staff Member *
             </label>
             <Combobox
@@ -554,7 +554,7 @@ export function TemplatesTab({
 
           {/* Select Template */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Select Salary Template *
             </label>
             <select
@@ -563,7 +563,7 @@ export function TemplatesTab({
               onChange={(e) =>
                 setAssociationForm({ ...associationForm, templateId: e.target.value })
               }
-              className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             >
               <option value="">-- Choose Template --</option>
               {salaryTemplates.map((t) => (
@@ -576,7 +576,7 @@ export function TemplatesTab({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
+              <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
                 Base Monthly Gross (₹) *
               </label>
               <input
@@ -591,11 +591,11 @@ export function TemplatesTab({
                     baseGrossSalary: Number(e.target.value),
                   })
                 }
-                className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white"
+                className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white"
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
+              <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
                 Monthly TDS Deduction (₹)
               </label>
               <input
@@ -609,34 +609,34 @@ export function TemplatesTab({
                     monthlyTds: Number(e.target.value),
                   })
                 }
-                className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white"
+                className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white"
               />
             </div>
           </div>
 
           {/* Live Preview Calculator */}
           {salaryPreview && (
-            <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 space-y-2">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-indigo-900 dark:text-indigo-300">
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-2">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
                 <Calculator className="w-3.5 h-3.5" />
                 <span>Estimated Monthly Compensation Breakdown</span>
               </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground dark:text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Basic ({selectedTemplateForCalc?.basicPercent}%):</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-foreground dark:text-foreground">
                     ₹{salaryPreview.basic.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>DA ({selectedTemplateForCalc?.daPercent}%):</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-foreground dark:text-foreground">
                     ₹{salaryPreview.da.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>HRA ({selectedTemplateForCalc?.hraPercent}%):</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-foreground dark:text-foreground">
                     ₹{salaryPreview.hra.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
@@ -646,8 +646,8 @@ export function TemplatesTab({
                     -₹{salaryPreview.pfEmployee.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
-                <div className="flex justify-between col-span-2 pt-1 border-t border-indigo-200/50 dark:border-indigo-850/50 font-bold text-xs">
-                  <span className="text-slate-800 dark:text-slate-200">Estimated Net Pay:</span>
+                <div className="flex justify-between col-span-2 pt-1 border-t border-border/40 font-bold text-xs">
+                  <span className="text-foreground dark:text-foreground">Estimated Net Pay:</span>
                   <span className="text-emerald-600 dark:text-emerald-400">
                     ₹{salaryPreview.estNet.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </span>
@@ -656,18 +656,18 @@ export function TemplatesTab({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/40 dark:border-border/40">
             <button
               type="button"
               onClick={() => setModalType(null)}
-              className="px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[38px]"
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground hover:bg-muted/30 dark:hover:bg-muted/60 min-h-[38px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors min-h-[38px] disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold rounded-xl bg-[#B45309] dark:bg-[#FFD60A] hover:opacity-90 text-white dark:text-black shadow-xs transition-colors min-h-[44px] disabled:opacity-50"
             >
               {loading ? "Assigning..." : "Assign Salary"}
             </button>

@@ -103,7 +103,7 @@ export default function SubjectsTab({
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition min-h-[40px]"
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-border/40 bg-card hover:bg-gray-50 dark:hover:bg-muted/60 transition min-h-[40px]"
             >
               Cancel
             </button>
@@ -137,7 +137,7 @@ export default function SubjectsTab({
               onChange={(e) =>
                 setSubjectData({ ...subjectData, code: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 font-mono uppercase"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 font-mono uppercase"
             />
           </div>
           <div>
@@ -151,7 +151,7 @@ export default function SubjectsTab({
               onChange={(e) =>
                 setSubjectData({ ...subjectData, name: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
           <div>
@@ -164,7 +164,7 @@ export default function SubjectsTab({
               onChange={(e) =>
                 setSubjectData({ ...subjectData, nameHindi: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
           <div>
@@ -179,7 +179,7 @@ export default function SubjectsTab({
                   subjectType: e.target.value,
                 })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               {[
                 "THEORY",
@@ -209,7 +209,7 @@ export default function SubjectsTab({
                     maxMarks: parseInt(e.target.value) || 100,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
             <div>
@@ -226,7 +226,7 @@ export default function SubjectsTab({
                     passingMarks: parseInt(e.target.value) || 33,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function SubjectsTab({
       </AppModal>
 
       {/* Subjects list */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-xs border border-gray-200 dark:border-border/40 overflow-hidden">
         {subjects.length === 0 ? (
           <EmptyStateCTA
             icon={BookOpen}
@@ -253,7 +253,7 @@ export default function SubjectsTab({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-slate-800/50 text-gray-400 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-muted/30 text-gray-400 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100 dark:border-border/40">
                 <tr>
                   <th className="px-6 py-3.5">Code</th>
                   <th className="px-6 py-3.5">Name</th>
@@ -263,11 +263,11 @@ export default function SubjectsTab({
                   <th className="px-6 py-3.5 text-right tabular-nums">Passing Marks</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                 {subjects.map((sub) => (
                   <tr
                     key={sub.id}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                    className="hover:bg-gray-50/50 dark:hover:bg-muted/30 transition"
                   >
                     <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
                       {sub.code}

@@ -100,7 +100,7 @@ export function MeritListManager({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6 space-y-6">
+    <div className="bg-card rounded-xl border border-gray-200 dark:border-border/40 p-6 space-y-6">
       <div>
         <h2 className="font-semibold text-lg">
           Merit List & Topper Certificates
@@ -117,7 +117,7 @@ export function MeritListManager({
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="rounded-md border border-gray-300 dark:border-slate-700 bg-transparent px-3 py-1.5 text-sm"
+            className="rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-1.5 text-sm"
           >
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
@@ -149,9 +149,9 @@ export function MeritListManager({
       )}
 
       {/* Merit List Table */}
-      <div className="border border-gray-200 dark:border-slate-800 rounded-lg overflow-hidden">
+      <div className="border border-gray-200 dark:border-border/40 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-slate-800 text-xs text-gray-500 uppercase tracking-wider">
+          <thead className="bg-gray-50 bg-muted/60 text-xs text-gray-500 uppercase tracking-wider">
             <tr>
               <th className="px-4 py-3 text-left">Rank</th>
               <th className="px-4 py-3 text-left">Student Name</th>
@@ -160,7 +160,7 @@ export function MeritListManager({
               <th className="px-4 py-3 text-left">Topper Certificate</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-gray-100 dark:divide-border/40">
             {classMeritList.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
@@ -177,7 +177,7 @@ export function MeritListManager({
                 return (
                   <tr
                     key={item.id}
-                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                    className="hover:bg-gray-50 dark:hover:bg-muted/40"
                   >
                     <td className="px-4 py-3 font-semibold text-indigo-600">
                       {item.rank ? `#${item.rank}` : "—"}

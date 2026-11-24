@@ -100,21 +100,21 @@ export function BoardTermPlanCard({
     <>
       {/* UX-P10: First-Run Progressive Onboarding Card (Primary when 0 exams exist) */}
       {!hasExams ? (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white p-6 md:p-8 border border-indigo-700/40 shadow-xl">
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden rounded-2xl bg-card text-foreground p-6 md:p-8 border border-purple-500/30 shadow-xs">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-xs font-semibold text-indigo-300">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-xs font-semibold text-purple-700 dark:text-purple-300">
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
                 <span>First-Run Recommended Action • {board} Board Blueprint</span>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 Create your {board} examination term plan
               </h2>
 
-              <p className="text-sm text-indigo-200/90 leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Your school has {board} blueprint examination defaults loaded. Provision your entire yearly assessment lifecycle shells (Periodic Tests, Half-Yearly, Annual) in one click with proportional dates and automatic class scopes.
               </p>
 
@@ -148,16 +148,16 @@ export function BoardTermPlanCard({
         </div>
       ) : (
         /* Demoted Secondary Card when exam shells already exist */
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border/40 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2.5 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+              <h4 className="text-sm font-bold text-foreground">
                 {board} Board Term Plan Provisioning
               </h4>
-              <p className="text-xs text-gray-500 dark:text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Sync or add missing term shells for session {activeYearLabel || "active"} without duplicating existing exams
               </p>
             </div>
@@ -166,7 +166,7 @@ export function BoardTermPlanCard({
           <button
             type="button"
             onClick={handleOpenDrawer}
-            className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition"
+            className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 transition min-h-[44px] cursor-pointer"
           >
             <PlusCircle className="w-3.5 h-3.5" />
             <span>Generate / Sync Term Shells</span>
@@ -178,22 +178,22 @@ export function BoardTermPlanCard({
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end transition-opacity">
           <div
-            className="w-full max-w-2xl bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full border-l border-gray-200 dark:border-slate-800 animate-in slide-in-from-right duration-300"
+            className="w-full max-w-2xl bg-card-elevated shadow-2xl flex flex-col h-full border-l border-border/40 animate-in slide-in-from-right duration-300"
             role="dialog"
             aria-modal="true"
             aria-labelledby="drawer-title"
           >
             {/* Drawer Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
+            <div className="p-6 border-b border-border/40 flex items-center justify-between bg-card">
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5856D6] dark:text-[#BF5AF2] mb-1">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{board} Examination Blueprint</span>
                 </div>
-                <h3 id="drawer-title" className="text-xl font-extrabold text-gray-900 dark:text-white">
+                <h3 id="drawer-title" className="text-xl font-extrabold text-foreground">
                   Confirm Board Term Plan Creation
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Session: {activeYearLabel || "Active Academic Year"} • Idempotent & non-destructive
                 </p>
               </div>
@@ -201,7 +201,7 @@ export function BoardTermPlanCard({
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
                 aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
@@ -232,13 +232,13 @@ export function BoardTermPlanCard({
               {isLoadingPreview ? (
                 <div className="p-12 text-center space-y-3">
                   <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
-                  <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">
+                  <p className="text-sm text-gray-500 dark:text-muted-foreground font-medium">
                     Calculating proportional dates and active class scopes...
                   </p>
                 </div>
               ) : previewTerms && previewTerms.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-muted-foreground">
                     Term Shells to be Provisioned ({previewTerms.length})
                   </div>
 
@@ -257,7 +257,7 @@ export function BoardTermPlanCard({
                     return (
                       <div
                         key={idx}
-                        className="p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 space-y-3"
+                        className="p-4 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30 space-y-3"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -269,13 +269,13 @@ export function BoardTermPlanCard({
                             </h4>
                           </div>
 
-                          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-gray-200/80 dark:bg-slate-700 text-gray-700 dark:text-slate-300">
+                          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-gray-200/80 bg-muted text-gray-700 dark:text-muted-foreground">
                             {term.examTypeCode}
                           </span>
                         </div>
 
                         {/* Date Window */}
-                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300">
+                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-muted-foreground">
                           <Clock className="w-3.5 h-3.5 text-indigo-500" />
                           <span>Placeholder Window:</span>
                           <span className="font-semibold">{startStr} – {endStr}</span>
@@ -284,7 +284,7 @@ export function BoardTermPlanCard({
 
                         {/* Class Scope */}
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300">
+                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-muted-foreground">
                             <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Scoped Classes ({term.scopedClassCount}):</span>
                           </div>
@@ -293,7 +293,7 @@ export function BoardTermPlanCard({
                               term.scopedClassNames.map((clsName, cIdx) => (
                                 <span
                                   key={cIdx}
-                                  className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-600"
+                                  className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white bg-muted text-gray-700 dark:text-foreground border border-gray-200 dark:border-border/40"
                                 >
                                   {clsName}
                                 </span>
@@ -307,8 +307,8 @@ export function BoardTermPlanCard({
                         </div>
 
                         {/* Components */}
-                        <div className="space-y-1 pt-1 border-t border-gray-200/70 dark:border-slate-700/60">
-                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300">
+                        <div className="space-y-1 pt-1 border-t border-gray-200/70 dark:border-border/40/60">
+                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-muted-foreground">
                             <Layers className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Components:</span>
                           </div>
@@ -342,11 +342,11 @@ export function BoardTermPlanCard({
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-5 border-t border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 flex items-center justify-end gap-3">
+            <div className="p-5 border-t border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-muted/20 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 font-semibold text-xs text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-border/40 font-semibold text-xs text-gray-700 dark:text-muted-foreground hover:bg-gray-100 dark:hover:bg-muted/40 transition"
               >
                 Cancel
               </button>

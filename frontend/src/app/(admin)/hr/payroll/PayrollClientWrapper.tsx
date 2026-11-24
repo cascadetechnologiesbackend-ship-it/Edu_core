@@ -78,10 +78,10 @@ export function PayrollClientWrapper({
   return (
     <div className="space-y-8">
       {/* ── Action Header Bar ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
         <div>
           <h1 className="text-2xl font-black text-white">Monthly Payroll Run & Salary Templates</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Indian Statutory Compliance Engine (PF, ESI, PT), Loss-Of-Pay deductions, and Loan EMI recovery.
           </p>
         </div>
@@ -89,14 +89,14 @@ export function PayrollClientWrapper({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsTemplateModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl border border-border/40 bg-card hover:bg-muted/60 text-white text-xs font-semibold transition flex items-center gap-2"
           >
-            <Sliders className="w-4 h-4 text-blue-400" /> Manage Salary Templates ({templateList.length})
+            <Sliders className="w-4 h-4 text-amber-500" /> Manage Salary Templates ({templateList.length})
           </button>
 
           <button
             onClick={handleDownloadEcrText}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-[#B45309] dark:bg-[#FFD60A] hover:opacity-90 text-white dark:text-black font-bold text-xs shadow-xs transition flex items-center gap-2 min-h-[44px]"
           >
             <Download className="w-4 h-4" /> Download EPFO ECR Text File
           </button>
@@ -113,7 +113,7 @@ export function PayrollClientWrapper({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-white">Staff Payroll Directory ({records.length})</h3>
-          <span className="text-xs text-slate-400">Showing active calculated salaries for {monthLabel}</span>
+          <span className="text-xs text-muted-foreground">Showing active calculated salaries for {monthLabel}</span>
         </div>
 
         <PayrollDataTable
@@ -133,54 +133,54 @@ export function PayrollClientWrapper({
 
       {/* ── Payslip View Modal ───────────────────────────────────────────── */}
       {selectedPayslip && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="fixed inset-0 z-50 bg-card/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-card border border-border/40 rounded-3xl p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-border/40 pb-4">
               <div className="flex items-center gap-3">
                 <FileText className="w-6 h-6 text-emerald-400" />
                 <div>
                   <h3 className="text-lg font-bold text-white">Salary Slip Breakdown</h3>
-                  <p className="text-xs text-slate-400">{selectedPayslip.staffName} ({selectedPayslip.employeeCode})</p>
+                  <p className="text-xs text-muted-foreground">{selectedPayslip.staffName} ({selectedPayslip.employeeCode})</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedPayslip(null)}
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-card border border-border/40">
                 <div>
-                  <span className="text-slate-400">Gross Salary:</span>
+                  <span className="text-muted-foreground">Gross Salary:</span>
                   <div className="text-sm font-bold text-white">₹{selectedPayslip.grossSalary.toLocaleString("en-IN")}</div>
                 </div>
                 <div>
-                  <span className="text-slate-400">Effective Gross (post-LWP):</span>
+                  <span className="text-muted-foreground">Effective Gross (post-LWP):</span>
                   <div className="text-sm font-bold text-amber-400">₹{selectedPayslip.effectiveGross.toLocaleString("en-IN")}</div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950 border border-slate-800">
-                <div className="font-bold text-slate-300 pb-1 border-b border-slate-800">Earnings Components</div>
-                <div className="flex justify-between text-slate-400"><span>Basic Salary (50%):</span> <span className="text-white">₹{selectedPayslip.basicSalary.toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between text-slate-400"><span>Dearness Allowance DA (10%):</span> <span className="text-white">₹{selectedPayslip.daAmount.toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between text-slate-400"><span>House Rent Allowance HRA (20%):</span> <span className="text-white">₹{selectedPayslip.hraAmount.toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between text-slate-400"><span>Special Allowance (20%):</span> <span className="text-white">₹{selectedPayslip.specialAllowance.toLocaleString("en-IN")}</span></div>
+              <div className="space-y-1.5 p-3 rounded-2xl bg-card border border-border/40">
+                <div className="font-bold text-muted-foreground pb-1 border-b border-border/40">Earnings Components</div>
+                <div className="flex justify-between text-muted-foreground"><span>Basic Salary (50%):</span> <span className="text-white">₹{selectedPayslip.basicSalary.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Dearness Allowance DA (10%):</span> <span className="text-white">₹{selectedPayslip.daAmount.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>House Rent Allowance HRA (20%):</span> <span className="text-white">₹{selectedPayslip.hraAmount.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Special Allowance (20%):</span> <span className="text-white">₹{selectedPayslip.specialAllowance.toLocaleString("en-IN")}</span></div>
               </div>
 
-              <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950 border border-slate-800">
-                <div className="font-bold text-slate-300 pb-1 border-b border-slate-800">Deductions Breakdown</div>
-                <div className="flex justify-between text-slate-400"><span>LWP Deduction ({selectedPayslip.lwpDays} days):</span> <span className="text-amber-400">-₹{selectedPayslip.lwpDeduction.toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between text-slate-400"><span>Employee PF (12%):</span> <span className="text-red-400">-₹{selectedPayslip.statutory.employeePF.toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between text-slate-400"><span>Employee ESI (0.75%):</span> <span className="text-red-400">-₹{selectedPayslip.statutory.employeeESI.toLocaleString("en-IN")}</span></div>
-                <div className="flex justify-between text-slate-400"><span>Professional Tax (PT):</span> <span className="text-red-400">-₹{selectedPayslip.statutory.professionalTax}</span></div>
+              <div className="space-y-1.5 p-3 rounded-2xl bg-card border border-border/40">
+                <div className="font-bold text-muted-foreground pb-1 border-b border-border/40">Deductions Breakdown</div>
+                <div className="flex justify-between text-muted-foreground"><span>LWP Deduction ({selectedPayslip.lwpDays} days):</span> <span className="text-amber-400">-₹{selectedPayslip.lwpDeduction.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Employee PF (12%):</span> <span className="text-red-400">-₹{selectedPayslip.statutory.employeePF.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Employee ESI (0.75%):</span> <span className="text-red-400">-₹{selectedPayslip.statutory.employeeESI.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Professional Tax (PT):</span> <span className="text-red-400">-₹{selectedPayslip.statutory.professionalTax}</span></div>
                 {selectedPayslip.loanEmiDeduction > 0 && (
-                  <div className="flex justify-between text-slate-400"><span>Staff Loan EMI:</span> <span className="text-red-400">-₹{selectedPayslip.loanEmiDeduction.toLocaleString("en-IN")}</span></div>
+                  <div className="flex justify-between text-muted-foreground"><span>Staff Loan EMI:</span> <span className="text-red-400">-₹{selectedPayslip.loanEmiDeduction.toLocaleString("en-IN")}</span></div>
                 )}
-                <div className="flex justify-between font-bold text-red-400 pt-1 border-t border-slate-800"><span>Total Deductions:</span> <span>-₹{selectedPayslip.totalDeductions.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between font-bold text-red-400 pt-1 border-t border-border/40"><span>Total Deductions:</span> <span>-₹{selectedPayslip.totalDeductions.toLocaleString("en-IN")}</span></div>
               </div>
 
               <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex justify-between items-center">

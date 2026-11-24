@@ -221,7 +221,7 @@ export function ScheduleClient({
   return (
     <div className="space-y-6">
       {/* Top Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
@@ -230,7 +230,7 @@ export function ScheduleClient({
             <select
               value={selectedExamId}
               onChange={(e) => handleExamChange(e.target.value)}
-              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold dark:text-white"
+              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm font-semibold dark:text-white"
             >
               {exams.map((ex) => (
                 <option key={ex.id} value={ex.id}>
@@ -247,7 +247,7 @@ export function ScheduleClient({
             <select
               value={selectedClassFilter}
               onChange={(e) => setSelectedClassFilter(e.target.value)}
-              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium dark:text-white"
+              className="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm font-medium dark:text-white"
             >
               <option value="ALL">All Classes</option>
               {classes.map((cls) => (
@@ -309,8 +309,8 @@ export function ScheduleClient({
       )}
 
       {/* Timetable Schedule Cards & Table */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-200 dark:border-border/40 flex items-center justify-between">
           <div>
             <h3 className="font-bold text-lg text-gray-900 dark:text-white">
               Subject Datesheets ({filteredSchedules.length})
@@ -343,7 +343,7 @@ export function ScheduleClient({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-800/60 text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-muted/40 text-xs font-semibold uppercase text-gray-500 dark:text-muted-foreground border-b border-gray-200 dark:border-border/40">
                 <tr>
                   <th className="px-6 py-3.5">Date & Time</th>
                   <th className="px-6 py-3.5">Class</th>
@@ -355,7 +355,7 @@ export function ScheduleClient({
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-200 dark:divide-border/40">
                 {filteredSchedules.map((item) => {
                   const dateStr = new Date(item.examDate).toLocaleDateString("en-IN", {
                     weekday: "short",
@@ -369,7 +369,7 @@ export function ScheduleClient({
                   return (
                     <tr
                       key={item.id}
-                      className="hover:bg-gray-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-gray-50/70 dark:hover:bg-muted/30 transition-colors"
                     >
                       <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -381,7 +381,7 @@ export function ScheduleClient({
                           <span>{item.startTime}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-800 dark:text-slate-200">
+                      <td className="px-6 py-4 font-medium text-gray-800 dark:text-foreground">
                         {item.class?.displayName ?? "—"}
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
@@ -390,16 +390,16 @@ export function ScheduleClient({
                           ({item.subject?.code ?? "SUB"})
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-slate-300">
+                      <td className="px-6 py-4 text-gray-600 dark:text-muted-foreground">
                         {item.durationMinutes} mins
                       </td>
-                      <td className="px-6 py-4 text-gray-800 dark:text-slate-200">
+                      <td className="px-6 py-4 text-gray-800 dark:text-foreground">
                         <span className="font-bold text-indigo-600 dark:text-indigo-400">
                           {item.maxMarks}
                         </span>{" "}
                         / <span className="text-gray-500">{item.passingMarks}</span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-slate-300">
+                      <td className="px-6 py-4 text-gray-600 dark:text-muted-foreground">
                         {item.roomNumber ? (
                           <span className="inline-flex items-center gap-1 text-xs">
                             <MapPin className="w-3 h-3 text-gray-400" />
@@ -432,14 +432,14 @@ export function ScheduleClient({
                                 subjectName: item.subject?.name || "Subject",
                               })
                             }
-                            className="p-1.5 text-xs rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 transition-colors"
+                            className="p-1.5 text-xs rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-muted/40 text-gray-700 dark:text-foreground transition-colors"
                             title="Configure Component Mark Breakdown"
                           >
                             <Sliders className="w-4 h-4 text-indigo-500" />
                           </button>
                           <button
                             onClick={() => handleDeleteSchedule(item.id)}
-                            className="p-1.5 text-xs rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 text-gray-400 transition-colors"
+                            className="p-1.5 text-xs rounded-lg border border-gray-200 dark:border-border/40 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 text-gray-400 transition-colors"
                             title="Delete Schedule Entry"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -458,8 +458,8 @@ export function ScheduleClient({
       {/* MODAL: ADD SCHEDULE ENTRY */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white">
                 Add Exam Datesheet Schedule
               </h3>
@@ -474,13 +474,13 @@ export function ScheduleClient({
             <form onSubmit={handleAddSchedule} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Class *
                   </label>
                   <select
                     value={formClassId}
                     onChange={(e) => setFormClassId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   >
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -491,13 +491,13 @@ export function ScheduleClient({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Subject *
                   </label>
                   <select
                     value={formSubjectId}
                     onChange={(e) => setFormSubjectId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   >
                     {subjects.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -510,7 +510,7 @@ export function ScheduleClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Exam Date *
                   </label>
                   <input
@@ -518,12 +518,12 @@ export function ScheduleClient({
                     required
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Start Time *
                   </label>
                   <input
@@ -532,51 +532,51 @@ export function ScheduleClient({
                     placeholder="09:30 AM"
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Duration (mins)
                   </label>
                   <input
                     type="number"
                     value={formDuration}
                     onChange={(e) => setFormDuration(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Max Marks *
                   </label>
                   <input
                     type="number"
                     value={formMaxMarks}
                     onChange={(e) => setFormMaxMarks(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Passing Marks *
                   </label>
                   <input
                     type="number"
                     value={formPassMarks}
                     onChange={(e) => setFormPassMarks(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                   Room / Hall Number (Optional)
                 </label>
                 <input
@@ -584,7 +584,7 @@ export function ScheduleClient({
                   placeholder="e.g. Hall A or Room 204"
                   value={formRoom}
                   onChange={(e) => setFormRoom(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                 />
               </div>
 
@@ -592,7 +592,7 @@ export function ScheduleClient({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-gray-600 dark:text-slate-300"
+                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-border/40 text-sm text-gray-600 dark:text-muted-foreground"
                 >
                   Cancel
                 </button>
@@ -612,8 +612,8 @@ export function ScheduleClient({
       {/* MODAL: COMPONENT BREAKDOWN */}
       {distributionModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-3">
               <div>
                 <h3 className="font-bold text-base text-gray-900 dark:text-white">
                   Mark Distribution Breakdown
@@ -632,13 +632,13 @@ export function ScheduleClient({
 
             <form onSubmit={handleSaveDistribution} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                   Sub-Component (Optional)
                 </label>
                 <select
                   value={distComponentId}
                   onChange={(e) => setDistComponentId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                 >
                   <option value="">-- Main Paper / Aggregate --</option>
                   {components.map((c) => (
@@ -651,7 +651,7 @@ export function ScheduleClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Max Marks *
                   </label>
                   <input
@@ -659,19 +659,19 @@ export function ScheduleClient({
                     required
                     value={distMax}
                     onChange={(e) => setDistMax(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-muted-foreground mb-1">
                     Passing Marks
                   </label>
                   <input
                     type="number"
                     value={distPass}
                     onChange={(e) => setDistPass(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm dark:text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-card text-sm dark:text-white"
                   />
                 </div>
               </div>
@@ -680,7 +680,7 @@ export function ScheduleClient({
                 <button
                   type="button"
                   onClick={() => setDistributionModalData(null)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-gray-600 dark:text-slate-300"
+                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-border/40 text-sm text-gray-600 dark:text-muted-foreground"
                 >
                   Cancel
                 </button>

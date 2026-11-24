@@ -139,14 +139,14 @@ export default function BusPassesTab({
         {isAdmin && (
           <button
             onClick={handleOpenForm}
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+            className="flex items-center gap-1.5 bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition shadow-xs"
           >
             <Plus className="w-4 h-4" /> Map Student / Issue Pass
           </button>
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-900 shadow border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-card shadow border border-gray-200 dark:border-border/40 rounded-xl overflow-hidden">
         {passes.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-gray-500">
             <QrCode className="w-12 h-12 mb-3 text-gray-300 animate-pulse" />
@@ -156,8 +156,8 @@ export default function BusPassesTab({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-800 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-border/40 text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-muted/60 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3">Pass Number</th>
                   <th className="px-6 py-3">Student Name</th>
@@ -166,11 +166,11 @@ export default function BusPassesTab({
                   <th className="px-6 py-3">Offline Pass Verification</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-200 dark:divide-border/40">
                 {passes.map((p) => (
                   <tr
                     key={p.id}
-                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                    className="hover:bg-gray-50 dark:hover:bg-muted/30"
                   >
                     <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                       {p.passNumber}
@@ -192,7 +192,7 @@ export default function BusPassesTab({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="bg-gray-100 dark:bg-slate-800 p-2 rounded-lg border border-gray-200 dark:border-slate-700 flex items-center justify-center">
+                        <div className="bg-gray-100 dark:bg-muted/60 p-2 rounded-lg border border-gray-200 dark:border-border/40 flex items-center justify-center">
                           <QrCode className="w-8 h-8 text-primary" />
                         </div>
                         <div
@@ -215,7 +215,7 @@ export default function BusPassesTab({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleSubmit}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-slate-800 space-y-4 shadow-xl"
+            className="bg-white dark:bg-card rounded-xl p-6 max-w-md w-full border border-gray-200 dark:border-border/40 space-y-4 shadow-xl"
           >
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Map Student & Issue Pass
@@ -244,7 +244,7 @@ export default function BusPassesTab({
                 onChange={(e) =>
                   setFormData({ ...formData, studentId: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 required
               >
                 {students.map((s) => (
@@ -287,7 +287,7 @@ export default function BusPassesTab({
               <select
                 value={formData.routeId}
                 onChange={(e) => handleRouteSelectChange(e.target.value)}
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 required
               >
                 {routes.map((r) => (
@@ -307,7 +307,7 @@ export default function BusPassesTab({
                 onChange={(e) =>
                   setFormData({ ...formData, routeStopId: e.target.value })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 required
               >
                 {stopsForSelectedRoute.map((s) => (
@@ -330,7 +330,7 @@ export default function BusPassesTab({
                   onChange={(e) =>
                     setFormData({ ...formData, validFrom: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
               <div>
@@ -344,16 +344,16 @@ export default function BusPassesTab({
                   onChange={(e) =>
                     setFormData({ ...formData, validTo: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                className="bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
                 Cancel
               </button>
@@ -363,7 +363,7 @@ export default function BusPassesTab({
                   isPending ||
                   (selectedStudent && !selectedStudent.hasTransportConsent)
                 }
-                className="bg-primary hover:bg-primary/95 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-60 flex items-center gap-1"
+                className="bg-[#D97706] dark:bg-[#FF9F0A] hover:opacity-90 text-white dark:text-black px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition disabled:opacity-60 flex items-center gap-1 shadow-xs"
               >
                 {isPending && (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />

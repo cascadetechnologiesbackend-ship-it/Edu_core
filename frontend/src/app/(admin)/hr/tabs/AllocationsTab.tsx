@@ -194,7 +194,7 @@ export function AllocationsTab({
 
   if (loadingState === "loading" || loadingState === "idle") {
     return (
-      <div className="flex items-center justify-center py-24 gap-3 text-slate-400">
+      <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">Loading allocation data…</span>
       </div>
@@ -205,8 +205,8 @@ export function AllocationsTab({
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
         <AlertTriangle className="w-8 h-8 text-amber-500" />
-        <p className="text-sm text-slate-500">Failed to load allocation data.</p>
-        <button onClick={loadData} className="text-sm text-indigo-600 underline">Retry</button>
+        <p className="text-sm text-muted-foreground">Failed to load allocation data.</p>
+        <button onClick={loadData} className="text-sm text-[#B45309] dark:text-[#FFD60A] font-semibold underline">Retry</button>
       </div>
     );
   }
@@ -214,15 +214,15 @@ export function AllocationsTab({
   return (
     <div className="space-y-6">
       {/* Sub-tab selector */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1">
+      <div className="flex border-b border-border/40 dark:border-border/40 gap-1">
         {(["classTeachers", "subjects"] as SubTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setSubTab(t)}
             className={`flex items-center gap-2 py-2.5 px-4 text-sm font-semibold border-b-2 transition-all ${
               subTab === t
-                ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                ? "border-[#B45309] text-[#B45309] dark:text-[#FFD60A] dark:border-[#FFD60A]"
+                : "border-transparent text-muted-foreground hover:text-muted-foreground dark:hover:text-muted-foreground"
             }`}
           >
             {t === "classTeachers" ? (
@@ -237,16 +237,16 @@ export function AllocationsTab({
       {/* ── Class Teachers Sub-tab ──────────────────────────────────────────── */}
       {subTab === "classTeachers" && (
         <div className="space-y-3">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
             Assign homeroom class teachers to sections. One teacher per section per academic year.
           </p>
 
           {sections.length === 0 ? (
             /* TW-4: S14/S15 diagnostics empty state — never a bare empty control */
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-              <GraduationCap className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-              <p className="text-sm text-slate-500">No sections configured yet.</p>
-              <p className="text-xs text-slate-400">Set up classes in Academics before assigning class teachers.</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center rounded-2xl border border-dashed border-border/40 dark:border-border/40">
+              <GraduationCap className="w-8 h-8 text-muted-foreground dark:text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">No sections configured yet.</p>
+              <p className="text-xs text-muted-foreground">Set up classes in Academics before assigning class teachers.</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-level-1">
@@ -297,7 +297,7 @@ export function AllocationsTab({
                               }
                             />
                           ) : (
-                            <span className="text-xs text-slate-400">Read-only</span>
+                            <span className="text-xs text-muted-foreground">Read-only</span>
                           )}
                         </td>
                       </tr>
@@ -313,15 +313,15 @@ export function AllocationsTab({
       {/* ── Subject Allocations Sub-tab ─────────────────────────────────────── */}
       {subTab === "subjects" && (
         <div className="space-y-3">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
             Set the lead teacher for each class-subject. Section-level overrides are managed from Class Hub.
           </p>
 
           {uniqueClassSubjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-              <BookOpen className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-              <p className="text-sm text-slate-500">No subject allocations yet.</p>
-              <p className="text-xs text-slate-400">Assign subjects to classes in Academics first.</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center rounded-2xl border border-dashed border-border/40 dark:border-border/40">
+              <BookOpen className="w-8 h-8 text-muted-foreground dark:text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">No subject allocations yet.</p>
+              <p className="text-xs text-muted-foreground">Assign subjects to classes in Academics first.</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-level-1">
@@ -359,7 +359,7 @@ export function AllocationsTab({
                               onChange={(tid) => handleAssignSubjectTeacher(cs.id, tid)}
                             />
                           ) : (
-                            <span className="text-xs text-slate-400">Read-only</span>
+                            <span className="text-xs text-muted-foreground">Read-only</span>
                           )}
                         </td>
                       </tr>
@@ -387,13 +387,13 @@ export function AllocationsTab({
                 {conflictModal.conflict.message}
               </p>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Confirming will close the previous assignment and create a new one effective today.
             </p>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setConflictModal({ open: false, conflict: null, pending: null })}
-                className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="flex-1 px-4 py-2 rounded-xl border border-border/40 dark:border-border/40 text-sm font-semibold text-muted-foreground dark:text-muted-foreground hover:bg-muted/30 dark:hover:bg-muted/60"
               >
                 Cancel
               </button>
@@ -445,7 +445,7 @@ function TeacherPicker({
 
   if (teachers.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-slate-400 py-1">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
         <Info className="w-3.5 h-3.5" />
         No teaching staff found. Add staff in the Directory first.
       </div>
@@ -461,7 +461,7 @@ function TeacherPicker({
           setLocalValue(e.target.value);
           onChange(e.target.value || null);
         }}
-        className="appearance-none pr-7 pl-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
+        className="appearance-none pr-7 pl-3 py-1.5 rounded-lg text-xs border border-border/40 dark:border-border/40 bg-white dark:bg-muted/60 text-muted-foreground dark:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 cursor-pointer"
       >
         <option value="">{placeholder}</option>
         {teachers.map((t) => (
@@ -470,7 +470,7 @@ function TeacherPicker({
           </option>
         ))}
       </select>
-      <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+      <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-2 pointer-events-none" />
     </div>
   );
 }

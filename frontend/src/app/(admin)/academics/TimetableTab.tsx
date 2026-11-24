@@ -94,7 +94,7 @@ export default function TimetableTab({
   return (
     <div className="space-y-6">
       {/* Header and Classroom filter */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-card border border-gray-200 dark:border-border/40 p-4 rounded-2xl shadow-xs">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
@@ -118,7 +118,7 @@ export default function TimetableTab({
                 setSelectedSection(firstSec);
               }
             }}
-            className="rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-primary min-h-[38px]"
+            className="rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs font-bold text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-primary min-h-[38px]"
           >
             {classrooms.map((c) => (
               <option key={c.id} value={c.id}>
@@ -144,7 +144,7 @@ export default function TimetableTab({
           onTimetableChanged={() => fetchTimetable(selectedSection)}
         />
       ) : (
-        <div className="py-12 text-center text-xs text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl">
+        <div className="py-12 text-center text-xs text-gray-500 bg-card border border-gray-200 dark:border-border/40 rounded-2xl">
           No classroom or section available.
         </div>
       )}

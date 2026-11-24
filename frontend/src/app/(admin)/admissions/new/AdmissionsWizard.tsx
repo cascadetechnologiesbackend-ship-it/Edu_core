@@ -216,16 +216,16 @@ export function AdmissionsWizard({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800">
+    <div className="bg-card shadow-sm rounded-2xl overflow-hidden border border-border/40">
       {/* Stepper Header */}
-      <div className="bg-gray-50 dark:bg-slate-800 p-4 border-b border-gray-100 dark:border-slate-700 flex justify-between">
+      <div className="bg-muted/40 p-4 border-b border-border/40 flex justify-between">
         {[1, 2, 3, 4, 5].map((s) => (
           <div
             key={s}
-            className={`flex items-center space-x-2 ${s === step ? "text-blue-600 font-bold" : s < step ? "text-green-600" : "text-gray-400"}`}
+            className={`flex items-center space-x-2 ${s === step ? "text-[#007AFF] dark:text-[#0A84FF] font-bold" : s < step ? "text-[#34C759] dark:text-[#30D158]" : "text-muted-foreground"}`}
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${s === step ? "border-blue-600 bg-blue-50 dark:bg-blue-900/30" : s < step ? "border-green-600 bg-green-50 dark:bg-green-900/30" : "border-gray-300 dark:border-gray-600"}`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all font-mono text-xs ${s === step ? "border-[#007AFF] dark:border-[#0A84FF] bg-[#007AFF]/15 text-[#007AFF] dark:text-[#0A84FF]" : s < step ? "border-[#34C759] dark:border-[#30D158] bg-[#34C759]/15 text-[#34C759] dark:text-[#30D158]" : "border-border text-muted-foreground"}`}
             >
               {s < step ? "✓" : s}
             </div>
@@ -250,23 +250,23 @@ export function AdmissionsWizard({
         {/* STEP 1: DPDP Consent Notice */}
         {step === 1 && (
           <div className="space-y-6">
-            <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
+            <div className="mb-4 bg-[#007AFF]/10 dark:bg-[#0A84FF]/12 p-5 rounded-2xl border border-[#007AFF]/25 dark:border-[#0A84FF]/30">
               <div className="flex items-start gap-3">
                 <span className="text-2xl mt-0.5">🛡️</span>
                 <div>
-                  <h2 className="font-bold text-base text-blue-950 dark:text-blue-200">
+                  <h2 className="font-bold text-base text-[#007AFF] dark:text-[#0A84FF]">
                     Data Privacy &amp; Processing Notice (DPDP Act 2023)
                   </h2>
-                  <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {isHindi
                       ? `डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम 2023 के तहत स्कूल डेटा प्रसंस्करण सूचना (v${privacyNoticeVersion})।`
                       : `School Data Processing & Privacy Notice under DPDP Act 2023 (Notice v${privacyNoticeVersion}).`}
                   </p>
-                  <div className="mt-3 bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-lg border border-blue-200 dark:border-blue-700/60 text-xs text-blue-900 dark:text-blue-200 space-y-1">
-                    <p className="font-semibold flex items-center gap-1.5">
+                  <div className="mt-3 bg-card/90 p-3.5 rounded-xl border border-border/60 text-xs text-foreground space-y-1">
+                    <p className="font-semibold flex items-center gap-1.5 text-foreground">
                       <span>📲</span> Parent App Digital Consent Workflow
                     </p>
-                    <p className="text-slate-600 dark:text-slate-300">
+                    <p className="text-muted-foreground">
                       In compliance with DPDP regulations, verifiable parental opt-in is collected directly from the parent/guardian when they first log into the <strong>Parent Companion App</strong>. You may review the processing purposes below and click <strong>Continue</strong> to fill the admission details.
                     </p>
                   </div>
@@ -278,23 +278,23 @@ export function AdmissionsWizard({
               {consentPurposes.map((p: any) => (
                 <div
                   key={p.id}
-                  className="flex items-start space-x-3 p-4 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50/60 dark:bg-slate-800/40"
+                  className="flex items-start space-x-3 p-4 border border-border/60 rounded-xl bg-card"
                 >
-                  <div className="mt-0.5 text-blue-600 dark:text-blue-400 font-bold">✓</div>
+                  <div className="mt-0.5 text-[#007AFF] dark:text-[#0A84FF] font-bold">✓</div>
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center justify-between gap-2">
+                    <div className="font-medium text-foreground flex items-center justify-between gap-2">
                       <span>{isHindi ? p.labelHindi || p.labelHi || p.label : p.label}</span>
                       {p.mandatory ? (
-                        <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 rounded-full font-medium whitespace-nowrap">
+                        <span className="px-2 py-0.5 text-xs bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/25 rounded-full font-medium whitespace-nowrap">
                           {isHindi ? "अनिवार्य" : "Core Educational"}
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300 rounded-full whitespace-nowrap">
+                        <span className="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded-full whitespace-nowrap">
                           {isHindi ? "वैकल्पिक" : "Optional"}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {isHindi
                         ? p.descriptionHindi || p.descriptionHi || p.description
                         : p.description}
@@ -304,8 +304,8 @@ export function AdmissionsWizard({
               ))}
             </div>
 
-            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-              <span className="text-base">✓</span>
+            <div className="p-4 bg-[#34C759]/10 dark:bg-[#30D158]/12 border border-[#34C759]/25 dark:border-[#30D158]/30 rounded-xl text-xs text-[#1B6A2E] dark:text-[#30D158] flex items-center gap-2">
+              <span className="text-base font-bold">✓</span>
               <span>Parent login credentials will be dispatched to the primary mobile entered in Family Details upon enrollment.</span>
             </div>
           </div>
@@ -332,7 +332,7 @@ export function AdmissionsWizard({
                       applicantName: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
@@ -346,7 +346,7 @@ export function AdmissionsWizard({
                   onChange={(e) =>
                     setBasicInfo({ ...basicInfo, dateOfBirth: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
@@ -357,7 +357,7 @@ export function AdmissionsWizard({
                   onChange={(e) =>
                     setBasicInfo({ ...basicInfo, gender: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 >
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
@@ -374,7 +374,7 @@ export function AdmissionsWizard({
                   onChange={(e) =>
                     setBasicInfo({ ...basicInfo, bloodGroup: e.target.value })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 >
                   <option value="">Select Blood Group</option>
                   <option value="A_POSITIVE">A+ (A Positive)</option>
@@ -400,7 +400,7 @@ export function AdmissionsWizard({
                       gradeAppliedFor: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 >
                   {availableGrades.length > 0 ? (
                     availableGrades.map((g) => (
@@ -440,11 +440,11 @@ export function AdmissionsWizard({
                     setBasicInfo({ ...basicInfo, aadhaarNumber: e.target.value })
                   }
                   maxLength={12}
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
-              <div className="col-span-2 pt-2 border-t border-gray-200 dark:border-slate-800">
+              <div className="col-span-2 pt-2 border-t border-border/40">
                 <PersonalDemographicsPicker
                   value={demographics}
                   onChange={(val) => {
@@ -469,68 +469,68 @@ export function AdmissionsWizard({
                       previousSchool: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
-              <div className="col-span-2 pt-2 border-t border-gray-200 dark:border-slate-800 space-y-3">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Quota & Facility Opt-Ins (Automated Fee Structure Assignments)
+              <div className="col-span-2 pt-2 border-t border-border/40 space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  Quota &amp; Facility Opt-Ins (Automated Fee Structure Assignments)
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+                  <label className="flex items-center space-x-3 p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 cursor-pointer transition">
                     <input
                       type="checkbox"
                       checked={basicInfo.isRteApplicant}
                       onChange={(e) =>
                         setBasicInfo({ ...basicInfo, isRteApplicant: e.target.checked })
                       }
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="h-4 w-4 text-[#007AFF] dark:text-[#0A84FF] rounded border-border focus:ring-[#007AFF]"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white block">RTE 25% Free Quota</span>
-                      <span className="text-xs text-gray-500 dark:text-slate-400 block">100% Tuition Waiver</span>
+                      <span className="text-sm font-medium text-foreground block">RTE 25% Free Quota</span>
+                      <span className="text-xs text-muted-foreground block">100% Tuition Waiver</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+                  <label className="flex items-center space-x-3 p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 cursor-pointer transition">
                     <input
                       type="checkbox"
                       checked={basicInfo.optInTransport}
                       onChange={(e) =>
                         setBasicInfo({ ...basicInfo, optInTransport: e.target.checked })
                       }
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="h-4 w-4 text-[#007AFF] dark:text-[#0A84FF] rounded border-border focus:ring-[#007AFF]"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white block">Transport Facility</span>
-                      <span className="text-xs text-gray-500 dark:text-slate-400 block">Auto-assign Bus Fee</span>
+                      <span className="text-sm font-medium text-foreground block">Transport Facility</span>
+                      <span className="text-xs text-muted-foreground block">Auto-assign Bus Fee</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+                  <label className="flex items-center space-x-3 p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 cursor-pointer transition">
                     <input
                       type="checkbox"
                       checked={basicInfo.optInHostel}
                       onChange={(e) =>
                         setBasicInfo({ ...basicInfo, optInHostel: e.target.checked })
                       }
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="h-4 w-4 text-[#007AFF] dark:text-[#0A84FF] rounded border-border focus:ring-[#007AFF]"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white block">Hostel / Boarding</span>
-                      <span className="text-xs text-gray-500 dark:text-slate-400 block">Auto-assign Hostel Fee</span>
+                      <span className="text-sm font-medium text-foreground block">Hostel / Boarding</span>
+                      <span className="text-xs text-muted-foreground block">Auto-assign Hostel Fee</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-3 p-3 rounded-lg border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition">
+                  <label className="flex items-center space-x-3 p-3.5 rounded-xl border border-[#007AFF]/25 dark:border-[#0A84FF]/30 bg-[#007AFF]/10 dark:bg-[#0A84FF]/12 cursor-pointer hover:bg-[#007AFF]/15 transition">
                     <input
                       type="checkbox"
                       checked={basicInfo.hasSiblingInSchool}
                       onChange={(e) =>
                         setBasicInfo({ ...basicInfo, hasSiblingInSchool: e.target.checked })
                       }
-                      className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      className="h-4 w-4 text-[#007AFF] dark:text-[#0A84FF] rounded border-border focus:ring-[#007AFF]"
                     />
                     <div>
                       <span className="text-sm font-medium text-gray-900 dark:text-white block">Sibling in School</span>
@@ -565,7 +565,7 @@ export function AdmissionsWizard({
                       fatherName: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
               <div>
@@ -582,7 +582,7 @@ export function AdmissionsWizard({
                       motherName: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
@@ -600,7 +600,7 @@ export function AdmissionsWizard({
                       guardianName: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
@@ -620,7 +620,7 @@ export function AdmissionsWizard({
                     })
                   }
                   maxLength={10}
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
@@ -638,11 +638,11 @@ export function AdmissionsWizard({
                       primaryContactEmail: e.target.value,
                     })
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2"
+                  className="w-full rounded-xl border border-border bg-muted/20 dark:bg-muted/30 text-foreground px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 dark:focus:ring-[#0A84FF]/30 focus:border-[#007AFF] dark:focus:border-[#0A84FF] min-h-[44px]"
                 />
               </div>
 
-              <div className="col-span-2 pt-3 border-t border-gray-200 dark:border-slate-800">
+              <div className="col-span-2 pt-3 border-t border-border/40">
                 <AddressAutofill
                   value={addressValue}
                   onChange={(val) => {
@@ -672,61 +672,61 @@ export function AdmissionsWizard({
               <div className="mt-2 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800/40">
                 <span>✓</span> Documents are optional during initial admission
               </div>
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 You can upload documents now or the parent can upload them later from the Parent Companion App.
               </p>
             </div>
 
             <div className="grid gap-4 text-left">
-              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+              <div className="p-4 border-2 border-dashed border-border/60 rounded-xl bg-muted/20">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">Birth Certificate</label>
-                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                  <label className="block text-sm font-medium text-foreground">Birth Certificate</label>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">Optional</span>
                 </div>
                 <input 
                   type="file" 
                   accept=".pdf,image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, birthCertificate: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#007AFF]/10 file:text-[#007AFF] dark:file:bg-[#0A84FF]/15 dark:file:text-[#0A84FF] hover:file:bg-[#007AFF]/20 cursor-pointer" 
                 />
               </div>
 
-              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+              <div className="p-4 border-2 border-dashed border-border/60 rounded-xl bg-muted/20">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">Aadhaar (Masked)</label>
-                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                  <label className="block text-sm font-medium text-foreground">Aadhaar (Masked)</label>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">Optional</span>
                 </div>
                 <input 
                   type="file" 
                   accept=".pdf,image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, aadhaar: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#007AFF]/10 file:text-[#007AFF] dark:file:bg-[#0A84FF]/15 dark:file:text-[#0A84FF] hover:file:bg-[#007AFF]/20 cursor-pointer" 
                 />
               </div>
 
-              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+              <div className="p-4 border-2 border-dashed border-border/60 rounded-xl bg-muted/20">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">Student Photo</label>
-                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                  <label className="block text-sm font-medium text-foreground">Student Photo</label>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">Optional</span>
                 </div>
                 <input 
                   type="file" 
                   accept="image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, photo: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#007AFF]/10 file:text-[#007AFF] dark:file:bg-[#0A84FF]/15 dark:file:text-[#0A84FF] hover:file:bg-[#007AFF]/20 cursor-pointer" 
                 />
               </div>
 
-              <div className="p-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800/50">
+              <div className="p-4 border-2 border-dashed border-border/60 rounded-xl bg-muted/20">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">Transfer Certificate (TC)</label>
-                  <span className="text-xs text-gray-500 bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">Optional</span>
+                  <label className="block text-sm font-medium text-foreground">Transfer Certificate (TC)</label>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">Optional</span>
                 </div>
                 <input 
                   type="file" 
                   accept=".pdf,image/*"
                   onChange={(e) => setDocuments(prev => ({ ...prev, transferCertificate: e.target.files?.[0] || null }))}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-700 dark:file:text-slate-200" 
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#007AFF]/10 file:text-[#007AFF] dark:file:bg-[#0A84FF]/15 dark:file:text-[#0A84FF] hover:file:bg-[#007AFF]/20 cursor-pointer" 
                 />
               </div>
             </div>
@@ -742,152 +742,152 @@ export function AdmissionsWizard({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Basic Info */}
-              <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Basic Information</h3>
+              <div className="bg-muted/20 rounded-2xl p-6 border border-border/40">
+                <h3 className="text-lg font-semibold mb-4 border-b border-border/40 pb-2 text-foreground">Basic Information</h3>
                 <dl className="grid grid-cols-2 gap-y-4 gap-x-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Applicant Name</dt>
-                    <dd className="font-medium">{basicInfo.applicantName || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Applicant Name</dt>
+                    <dd className="font-medium text-foreground">{basicInfo.applicantName || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Date of Birth</dt>
-                    <dd className="font-medium">{basicInfo.dateOfBirth || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Date of Birth</dt>
+                    <dd className="font-medium text-foreground font-mono">{basicInfo.dateOfBirth || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Gender</dt>
-                    <dd className="font-medium">{basicInfo.gender}</dd>
+                    <dt className="text-sm text-muted-foreground">Gender</dt>
+                    <dd className="font-medium text-foreground">{basicInfo.gender}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Category</dt>
-                    <dd className="font-medium">{demographics.category}</dd>
+                    <dt className="text-sm text-muted-foreground">Category</dt>
+                    <dd className="font-medium text-foreground">{demographics.category}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Religion</dt>
-                    <dd className="font-medium">{demographics.religion || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Religion</dt>
+                    <dd className="font-medium text-foreground">{demographics.religion || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Mother Tongue</dt>
-                    <dd className="font-medium">{demographics.motherTongue || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Mother Tongue</dt>
+                    <dd className="font-medium text-foreground">{demographics.motherTongue || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Blood Group</dt>
-                    <dd className="font-medium">
+                    <dt className="text-sm text-muted-foreground">Blood Group</dt>
+                    <dd className="font-medium text-foreground">
                       {basicInfo.bloodGroup
                         ? basicInfo.bloodGroup.replace("_", " ")
                         : "-"}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Aadhaar</dt>
-                    <dd className="font-medium">{basicInfo.aadhaarNumber || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Aadhaar</dt>
+                    <dd className="font-medium text-foreground font-mono">{basicInfo.aadhaarNumber || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Grade Applied</dt>
-                    <dd className="font-medium">{basicInfo.gradeAppliedFor.replace("_", " ")}</dd>
+                    <dt className="text-sm text-muted-foreground">Grade Applied</dt>
+                    <dd className="font-medium text-foreground">{basicInfo.gradeAppliedFor.replace("_", " ")}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-sm text-gray-500">Previous School</dt>
-                    <dd className="font-medium">{basicInfo.previousSchool || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Previous School</dt>
+                    <dd className="font-medium text-foreground">{basicInfo.previousSchool || "-"}</dd>
                   </div>
                 </dl>
               </div>
 
               {/* Family Details */}
-              <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Family & Contact Details</h3>
+              <div className="bg-muted/20 rounded-2xl p-6 border border-border/40">
+                <h3 className="text-lg font-semibold mb-4 border-b border-border/40 pb-2 text-foreground">Family & Contact Details</h3>
                 <dl className="grid grid-cols-2 gap-y-4 gap-x-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Father's Name</dt>
-                    <dd className="font-medium">{familyDetails.fatherName || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Father's Name</dt>
+                    <dd className="font-medium text-foreground">{familyDetails.fatherName || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Mother's Name</dt>
-                    <dd className="font-medium">{familyDetails.motherName || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Mother's Name</dt>
+                    <dd className="font-medium text-foreground">{familyDetails.motherName || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Guardian's Name</dt>
-                    <dd className="font-medium">{familyDetails.guardianName || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Guardian's Name</dt>
+                    <dd className="font-medium text-foreground">{familyDetails.guardianName || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Contact Number</dt>
-                    <dd className="font-medium">{familyDetails.primaryContactMobile || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Contact Number</dt>
+                    <dd className="font-medium text-foreground font-mono">{familyDetails.primaryContactMobile || "-"}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-sm text-gray-500">Email Address</dt>
-                    <dd className="font-medium">{familyDetails.primaryContactEmail || "-"}</dd>
+                    <dt className="text-sm text-muted-foreground">Email Address</dt>
+                    <dd className="font-medium text-foreground font-mono">{familyDetails.primaryContactEmail || "-"}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-sm text-gray-500">Residential Address</dt>
-                    <dd className="font-medium">{familyDetails.address || "-"} {familyDetails.pincode ? `(${familyDetails.pincode})` : ""}</dd>
+                    <dt className="text-sm text-muted-foreground">Residential Address</dt>
+                    <dd className="font-medium text-foreground">{familyDetails.address || "-"} {familyDetails.pincode ? `(${familyDetails.pincode})` : ""}</dd>
                   </div>
                 </dl>
               </div>
             </div>
 
             {/* Document Previews */}
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
-              <h3 className="text-lg font-semibold mb-4 border-b dark:border-slate-700 pb-2">Document Previews</h3>
+            <div className="bg-muted/20 rounded-2xl p-6 border border-border/40">
+              <h3 className="text-lg font-semibold mb-4 border-b border-border/40 pb-2 text-foreground">Document Previews</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-2">Birth Certificate</dt>
+                  <dt className="text-sm font-medium text-muted-foreground mb-2">Birth Certificate</dt>
                   <dd>
                     {documents.birthCertificate ? (
-                      <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
+                      <div className="p-3 border border-border/40 rounded-xl bg-card text-sm break-all flex items-center shadow-xs">
                         <span className="text-xl mr-2">📄</span>
-                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-1">{documents.birthCertificate.name}</span>
+                        <span className="font-medium text-foreground line-clamp-1">{documents.birthCertificate.name}</span>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/25">
                         Pending (Parent App)
                       </span>
                     )}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-2">Aadhaar (Masked)</dt>
+                  <dt className="text-sm font-medium text-muted-foreground mb-2">Aadhaar (Masked)</dt>
                   <dd>
                     {documents.aadhaar ? (
-                      <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
+                      <div className="p-3 border border-border/40 rounded-xl bg-card text-sm break-all flex items-center shadow-xs">
                         <span className="text-xl mr-2">📄</span>
-                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-1">{documents.aadhaar.name}</span>
+                        <span className="font-medium text-foreground line-clamp-1">{documents.aadhaar.name}</span>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/25">
                         Pending (Parent App)
                       </span>
                     )}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-2">Student Photo</dt>
+                  <dt className="text-sm font-medium text-muted-foreground mb-2">Student Photo</dt>
                   <dd>
                     {documents.photo ? (
-                      <div className="p-2 border rounded-lg bg-white dark:bg-slate-900 flex flex-col items-center shadow-sm">
+                      <div className="p-2 border border-border/40 rounded-xl bg-card flex flex-col items-center shadow-xs">
                         {documents.photo.type.startsWith("image/") ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={URL.createObjectURL(documents.photo)} alt="Student Photo" className="h-24 w-24 object-cover rounded-md mb-1 shadow-sm border" />
+                          <img src={URL.createObjectURL(documents.photo)} alt="Student Photo" className="h-24 w-24 object-cover rounded-xl mb-1 shadow-sm border border-border/40" />
                         ) : (
                           <div className="h-24 flex items-center justify-center text-4xl mb-1">📄</div>
                         )}
-                        <span className="text-xs text-center break-all w-full font-medium text-gray-700 dark:text-gray-200 line-clamp-1" title={documents.photo.name}>{documents.photo.name}</span>
+                        <span className="text-xs text-center break-all w-full font-medium text-foreground line-clamp-1" title={documents.photo.name}>{documents.photo.name}</span>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/25">
                         Pending (Parent App)
                       </span>
                     )}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-2">Transfer Cert. (TC)</dt>
+                  <dt className="text-sm font-medium text-muted-foreground mb-2">Transfer Cert. (TC)</dt>
                   <dd>
                     {documents.transferCertificate ? (
-                      <div className="p-3 border rounded-lg bg-white dark:bg-slate-900 text-sm break-all flex items-center shadow-sm">
+                      <div className="p-3 border border-border/40 rounded-xl bg-card text-sm break-all flex items-center shadow-xs">
                         <span className="text-xl mr-2">📄</span>
-                        <span className="font-medium text-gray-700 dark:text-gray-200 line-clamp-1">{documents.transferCertificate.name}</span>
+                        <span className="font-medium text-foreground line-clamp-1">{documents.transferCertificate.name}</span>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/25">
                         Pending (Parent App)
                       </span>
                     )}
@@ -896,13 +896,13 @@ export function AdmissionsWizard({
               </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center gap-3">
+            <div className="bg-[#007AFF]/10 dark:bg-[#0A84FF]/12 p-4 rounded-2xl border border-[#007AFF]/25 dark:border-[#0A84FF]/30 flex items-center gap-3">
               <span className="text-xl">🛡️</span>
-              <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
-                <p className="font-medium">
+              <div className="text-xs text-[#007AFF] dark:text-[#0A84FF] space-y-1">
+                <p className="font-medium text-foreground">
                   DPDP digital parental consent prompt will be requested directly from the parent upon their first login to the Parent Companion App.
                 </p>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-muted-foreground">
                   Fee structure and first invoice will be generated on enrollment.
                 </p>
               </div>
@@ -912,11 +912,11 @@ export function AdmissionsWizard({
       </div>
 
       {/* Footer Navigation */}
-      <div className="bg-gray-50 dark:bg-slate-800 p-6 border-t border-gray-100 dark:border-slate-700 flex justify-between">
+      <div className="bg-muted/40 p-5 sm:p-6 border-t border-border/40 flex justify-between items-center">
         <button
           onClick={handleBack}
           disabled={step === 1 || loading}
-          className="px-6 py-2 text-gray-700 dark:text-gray-300 font-medium disabled:opacity-50"
+          className="px-6 py-2.5 rounded-xl border border-border text-foreground hover:bg-muted/40 font-semibold min-h-[44px] transition active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           Back
         </button>
@@ -925,7 +925,7 @@ export function AdmissionsWizard({
           <button
             onClick={handleNext}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition disabled:opacity-50"
+            className="px-6 py-2.5 bg-[#007AFF] dark:bg-[#0A84FF] hover:bg-[#0068DB] dark:hover:bg-[#0071E3] text-white font-semibold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50 min-h-[44px] cursor-pointer"
           >
             {loading ? "Processing..." : "Continue"}
           </button>
@@ -933,7 +933,7 @@ export function AdmissionsWizard({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-8 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition disabled:opacity-50"
+            className="px-8 py-2.5 bg-[#34C759] dark:bg-[#30D158] hover:bg-[#248A3D] text-white font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50 min-h-[44px] cursor-pointer"
           >
             {loading ? "Submitting..." : "Submit Application"}
           </button>

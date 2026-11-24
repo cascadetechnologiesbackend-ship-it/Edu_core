@@ -113,16 +113,16 @@ export function ResultSettingsClient({
   return (
     <div className="space-y-6">
       {/* ─── 1. Setup Selector & Live Status Banner ─────────────────────────────── */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-5 md:p-6 shadow-xl space-y-4">
+      <div className="rounded-3xl border border-border/40 bg-card backdrop-blur-sm p-5 md:p-6 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1 max-w-md">
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Target Framework Setup
             </label>
             <select
               value={setupId}
               onChange={(e) => handleSetupChange(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
             >
               {setups.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -175,27 +175,27 @@ export function ResultSettingsClient({
       {/* ─── 2. Gate Settings Grid ────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card A: Release Timing & Emergency Withhold */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-5">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+        <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-border/40 pb-3">
             <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <Calendar className="w-4 h-4" />
             </span>
             <div>
               <h2 className="text-sm font-bold text-white">Release Schedule &amp; Killswitch</h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-muted-foreground">
                 Control global visibility across student portals and external portals
               </p>
             </div>
           </div>
 
           {/* Master Withhold Switch */}
-          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-2xl bg-card/80 border border-border/40 space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-white block">
                   Emergency Withhold All
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-muted-foreground">
                   Immediately hide all report cards for this setup from students &amp; parents.
                 </span>
               </div>
@@ -206,7 +206,7 @@ export function ResultSettingsClient({
                   onChange={(e) => setWithholdAll(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                <div className="w-11 h-6 bg-muted/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
               </label>
             </div>
             {withholdAll && (
@@ -218,7 +218,7 @@ export function ResultSettingsClient({
 
           {/* Scheduled Release Date & Time */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-300">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Scheduled Release Timestamp (Optional)
             </label>
             <div className="flex items-center gap-2">
@@ -227,34 +227,34 @@ export function ResultSettingsClient({
                 value={releaseAt}
                 onChange={(e) => setReleaseAt(e.target.value)}
                 disabled={withholdAll}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+                className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50"
               />
               {releaseAt && (
                 <button
                   type="button"
                   onClick={() => setReleaseAt("")}
-                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition"
+                  className="px-3 py-2.5 rounded-xl bg-muted/60 hover:bg-muted text-xs text-muted-foreground transition"
                   title="Make immediately live"
                 >
                   Clear
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-muted-foreground">
               Leave blank to make results instantly accessible once snapshots are generated.
             </p>
           </div>
         </div>
 
         {/* Card B: Financial Clearance Gate (Fee Defaulter Lock) */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-5">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+        <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-border/40 pb-3">
             <span className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <DollarSign className="w-4 h-4" />
             </span>
             <div>
               <h2 className="text-sm font-bold text-white">Financial Clearance Gate</h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-muted-foreground">
                 Automated enforcement for students with outstanding tuition dues
               </p>
             </div>
@@ -262,7 +262,7 @@ export function ResultSettingsClient({
 
           {/* Mode Selector */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-300">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Fee Lock Policy
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -271,8 +271,8 @@ export function ResultSettingsClient({
                 onClick={() => setFeeLockMode("OFF")}
                 className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
                   feeLockMode === "OFF"
-                    ? "bg-slate-800 text-white border-slate-600 shadow"
-                    : "bg-slate-950/60 text-slate-400 border-slate-800/80 hover:text-white"
+                    ? "bg-muted/60 text-white border-border/40 shadow"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:text-white"
                 }`}
               >
                 Disabled (OFF)
@@ -284,7 +284,7 @@ export function ResultSettingsClient({
                 className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
                   feeLockMode === "SOFT"
                     ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow"
-                    : "bg-slate-950/60 text-slate-400 border-slate-800/80 hover:text-white"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:text-white"
                 }`}
               >
                 Soft Warning
@@ -296,13 +296,13 @@ export function ResultSettingsClient({
                 className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
                   feeLockMode === "HARD"
                     ? "bg-rose-500/20 text-rose-300 border-rose-500/40 shadow"
-                    : "bg-slate-950/60 text-slate-400 border-slate-800/80 hover:text-white"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:text-white"
                 }`}
               >
                 Hard Lock
               </button>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-muted-foreground">
               {feeLockMode === "OFF" &&
                 "All students can view report cards regardless of fee balances."}
               {feeLockMode === "SOFT" &&
@@ -314,22 +314,22 @@ export function ResultSettingsClient({
 
           {/* Threshold Amount */}
           {feeLockMode !== "OFF" && (
-            <div className="space-y-2 pt-2 border-t border-slate-800/60">
-              <label className="block text-xs font-semibold text-slate-300">
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              <label className="block text-xs font-semibold text-muted-foreground">
                 Outstanding Balance Threshold (₹)
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-500 text-xs">₹</span>
+                <span className="absolute left-3.5 top-2.5 text-muted-foreground text-xs">₹</span>
                 <input
                   type="number"
                   min="0"
                   step="50"
                   value={thresholdAmount}
                   onChange={(e) => setThresholdAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-card border border-border/40 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Students with unpaid dues exceeding this amount trigger the fee gate.
               </p>
             </div>
@@ -337,26 +337,26 @@ export function ResultSettingsClient({
         </div>
 
         {/* Card C: Public Result Portal Policies */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-5">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+        <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-border/40 pb-3">
             <span className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
               <Globe className="w-4 h-4" />
             </span>
             <div>
               <h2 className="text-sm font-bold text-white">Public Result Portal (/s/[slug]/results)</h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-muted-foreground">
                 School-branded external portal for student &amp; parent lookup
               </p>
             </div>
           </div>
 
           {/* Public Lookup Switch */}
-          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-card/80 border border-border/40 flex items-center justify-between">
             <div>
               <span className="text-xs font-bold text-white block">
                 Enable Public Result Lookup
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-muted-foreground">
                 Allow students to retrieve marks using admission number + date of birth.
               </span>
             </div>
@@ -367,17 +367,17 @@ export function ResultSettingsClient({
                 onChange={(e) => setPublicLookupEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-muted/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
           {/* Public Toppers Switch */}
-          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-card/80 border border-border/40 flex items-center justify-between">
             <div>
               <span className="text-xs font-bold text-white block">
                 Enable Public Topper Board
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-muted-foreground">
                 Showcase Class Rank #1, #2, and #3 achievers on the public landing page.
               </span>
             </div>
@@ -388,32 +388,32 @@ export function ResultSettingsClient({
                 onChange={(e) => setPublicToppersEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-muted/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
           </div>
         </div>
 
         {/* Card D: Student Experience Simulation Preview */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 md:p-6 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+        <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-border/40 pb-3">
             <span className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400">
               <Sparkles className="w-4 h-4" />
             </span>
             <div>
               <h2 className="text-sm font-bold text-white">Student Experience Preview</h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-muted-foreground">
                 Simulated response for parents viewing `/portal/report-cards`
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-2 text-xs">
+          <div className="p-4 rounded-2xl bg-card border border-border/40 space-y-2 text-xs">
             {withholdAll ? (
               <div className="text-rose-400 flex items-start gap-2">
                 <Lock className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <strong className="block">Status: Blocked (Withheld)</strong>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-muted-foreground">
                     &quot;Term results are currently undergoing final administrative verification.&quot;
                   </span>
                 </div>
@@ -423,7 +423,7 @@ export function ResultSettingsClient({
                 <Clock className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <strong className="block">Status: Countdown Scheduled</strong>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-muted-foreground">
                     &quot;Results will be released on {new Date(releaseAt).toLocaleString("en-IN")}.&quot;
                   </span>
                 </div>
@@ -433,7 +433,7 @@ export function ResultSettingsClient({
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <strong className="block">Status: Hard Fee Defaulter Gate</strong>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-muted-foreground">
                     Students with dues &gt; ₹{thresholdAmount} will see &quot;Outstanding Dues Pending — Please Clear to View Marks&quot;.
                   </span>
                 </div>
@@ -443,7 +443,7 @@ export function ResultSettingsClient({
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <strong className="block">Status: Soft Warning Banner</strong>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-muted-foreground">
                     Students can view &amp; download marksheets, with an urgent dues settlement notice.
                   </span>
                 </div>
@@ -453,7 +453,7 @@ export function ResultSettingsClient({
                 <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <strong className="block">Status: Open &amp; Unrestricted</strong>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-muted-foreground">
                     All enrolled students can immediately view and download report cards.
                   </span>
                 </div>

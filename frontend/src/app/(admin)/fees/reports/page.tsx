@@ -118,12 +118,12 @@ export default async function FeeReportsPage() {
     <div className="space-y-6">
       <FinanceTabs activeSection="finance" />
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-card p-6 rounded-3xl border border-gray-200 dark:border-border/40 shadow-sm">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Fee Reports & Analytics
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1">
             Monitor daily collections, aging defaulter queues, and fiscal recovery ledgers.
           </p>
         </div>
@@ -138,23 +138,23 @@ export default async function FeeReportsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Collections Overview */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-card p-6 rounded-xl shadow border border-gray-200 dark:border-border/40">
           <h2 className="text-lg font-semibold mb-4">
             Recent Daily Collections
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-slate-700 text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-border/40 text-gray-500">
                   <th className="pb-3">Date</th>
                   <th className="pb-3 text-right">Total Collected (₹)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                 {dailyCollectionData.map(([date, amount]) => (
                   <tr
                     key={date}
-                    className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                    className="hover:bg-gray-50 dark:hover:bg-muted/30"
                   >
                     <td className="py-3">{date}</td>
                     <td className="py-3 text-right font-medium text-green-600">
@@ -175,7 +175,7 @@ export default async function FeeReportsPage() {
         </div>
 
         {/* Ageing Buckets */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-card p-6 rounded-xl shadow border border-gray-200 dark:border-border/40">
           <h2 className="text-lg font-semibold mb-4">
             Defaulter Ageing Buckets
           </h2>

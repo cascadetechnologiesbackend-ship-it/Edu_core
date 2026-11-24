@@ -428,23 +428,23 @@ export function StaffTab({
     <div className="space-y-6">
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xs">
+        <div className="bg-white dark:bg-card p-4 rounded-2xl border border-gray-200 dark:border-border/40 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Staff</span>
           <p className="text-3xl font-extrabold mt-1 text-gray-900 dark:text-white tabular-nums">{staffList.length}</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xs">
+        <div className="bg-white dark:bg-card p-4 rounded-2xl border border-gray-200 dark:border-border/40 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Active Staff</span>
           <p className="text-3xl font-extrabold mt-1 text-emerald-600 dark:text-emerald-400 tabular-nums">
             {staffList.filter((s) => s.isActive).length}
           </p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xs">
+        <div className="bg-white dark:bg-card p-4 rounded-2xl border border-gray-200 dark:border-border/40 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Teaching Faculty</span>
           <p className="text-3xl font-extrabold mt-1 text-primary tabular-nums">
             {staffList.filter((s) => s.designation?.isTeaching && s.isActive).length}
           </p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xs">
+        <div className="bg-white dark:bg-card p-4 rounded-2xl border border-gray-200 dark:border-border/40 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">On Probation</span>
           <p className="text-3xl font-extrabold mt-1 text-amber-600 dark:text-amber-400 tabular-nums">
             {staffList.filter((s) => s.contractType === "PROBATION" && s.isActive).length}
@@ -463,12 +463,12 @@ export function StaffTab({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search staff by name, code, or role..."
-              className="w-full h-10 pl-9 pr-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-hidden transition-all shadow-xs"
+              className="w-full h-10 pl-9 pr-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-hidden transition-all shadow-xs"
             />
           </div>
 
           {/* Track Chip Selector */}
-          <div className="inline-flex p-1 bg-gray-100 dark:bg-slate-800 rounded-xl">
+          <div className="inline-flex p-1 bg-gray-100 dark:bg-muted/60 rounded-xl">
             {(["ALL", "TEACHING", "NON_TEACHING"] as const).map((track) => (
               <button
                 key={track}
@@ -476,7 +476,7 @@ export function StaffTab({
                 onClick={() => setTrackFilter(track)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   trackFilter === track
-                    ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                    ? "bg-white dark:bg-card text-primary shadow-xs"
                     : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
               >
@@ -554,11 +554,11 @@ export function StaffTab({
       </div>
 
       {/* Staff Table / Workbench (Law L12: People render as people) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-card rounded-2xl border border-gray-200 dark:border-border/40 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+              <tr className="border-b border-gray-100 dark:border-border/40 bg-gray-50/70 dark:bg-muted/30 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 <th className="py-3 px-4">Staff Member</th>
                 <th className="py-3 px-4">Department & Track</th>
                 <th className="py-3 px-4">Designation</th>
@@ -567,7 +567,7 @@ export function StaffTab({
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40">
               {filteredStaff.map((s) => {
                 const fullName = `${s.firstName || ""} ${s.lastName || ""}`.trim() || "Staff Member";
                 const isTeaching = Boolean(s.designation?.isTeaching);
@@ -577,7 +577,7 @@ export function StaffTab({
                 return (
                   <tr
                     key={s.id}
-                    className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors group"
+                    className="hover:bg-gray-50/60 dark:hover:bg-muted/20 transition-colors group"
                   >
                     {/* Staff Person */}
                     <td className="py-3 px-4">
@@ -601,7 +601,7 @@ export function StaffTab({
                                   <button
                                     type="button"
                                     onClick={() => handleRevealEmail(s.id)}
-                                    className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-0.5 rounded transition-colors"
+                                    className="text-muted-foreground hover:text-[#B45309] dark:hover:text-[#FFD60A] p-0.5 rounded transition-colors"
                                     title="Reveal full unmasked email"
                                   >
                                     <Eye className="w-3 h-3" />
@@ -625,7 +625,7 @@ export function StaffTab({
                             className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                               isTeaching
                                 ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50"
-                                : "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300 border border-gray-200 dark:border-slate-700"
+                                : "bg-gray-100 text-gray-600 dark:bg-muted/60 dark:text-gray-300 border border-gray-200 dark:border-border/40"
                             }`}
                           >
                             {isTeaching ? "Teaching" : "Non-Teaching"}
@@ -689,14 +689,14 @@ export function StaffTab({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {/* PAN */}
                         {revealedPii[s.id]?.pan ? (
-                          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 font-bold text-gray-800 dark:text-gray-200">
+                          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-muted/60 font-bold text-gray-800 dark:text-gray-200">
                             PAN: {revealedPii[s.id]!.pan}
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleReveal(s.id, "pan")}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-muted/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
                             title="Reveal encrypted PAN"
                           >
                             <Lock className="w-3 h-3 text-gray-400" /> PAN
@@ -705,14 +705,14 @@ export function StaffTab({
 
                         {/* Bank */}
                         {revealedPii[s.id]?.bank ? (
-                          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 font-bold text-gray-800 dark:text-gray-200">
+                          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-muted/60 font-bold text-gray-800 dark:text-gray-200">
                             A/C: {revealedPii[s.id]!.bank}
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleReveal(s.id, "bank")}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-muted/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
                             title="Reveal encrypted Bank Account"
                           >
                             <Lock className="w-3 h-3 text-gray-400" /> Bank
@@ -726,7 +726,7 @@ export function StaffTab({
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/hr/staff/${s.id}`}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-muted/60 transition-colors"
                           title="View Staff 360"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -765,7 +765,7 @@ export function StaffTab({
                                   experience: s.experience || "",
                                 });
                               }}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-muted/60 transition-colors"
                               title="Edit profile"
                             >
                               <Edit className="w-4 h-4" />
@@ -839,10 +839,10 @@ export function StaffTab({
                 className={`p-3.5 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                   selectedTrack === "TEACHING"
                     ? "border-primary bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/20 shadow-xs"
-                    : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                    : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/40 bg-white dark:bg-card"
                 }`}
               >
-                <div className={`p-2.5 rounded-xl shrink-0 ${selectedTrack === "TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
+                <div className={`p-2.5 rounded-xl shrink-0 ${selectedTrack === "TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-muted/60 text-gray-500"}`}>
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
@@ -859,10 +859,10 @@ export function StaffTab({
                 className={`p-3.5 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                   selectedTrack === "NON_TEACHING"
                     ? "border-primary bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/20 shadow-xs"
-                    : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                    : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/40 bg-white dark:bg-card"
                 }`}
               >
-                <div className={`p-2.5 rounded-xl shrink-0 ${selectedTrack === "NON_TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500"}`}>
+                <div className={`p-2.5 rounded-xl shrink-0 ${selectedTrack === "NON_TEACHING" ? "bg-primary text-white" : "bg-gray-100 dark:bg-muted/60 text-gray-500"}`}>
                   <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
@@ -930,7 +930,7 @@ export function StaffTab({
                 value={staffForm.firstName}
                 onChange={(e) => setStaffForm({ ...staffForm, firstName: e.target.value })}
                 placeholder="e.g. Priya"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -944,7 +944,7 @@ export function StaffTab({
                 value={staffForm.lastName}
                 onChange={(e) => setStaffForm({ ...staffForm, lastName: e.target.value })}
                 placeholder="e.g. Sharma"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -958,7 +958,7 @@ export function StaffTab({
                 value={staffForm.employeeCode}
                 onChange={(e) => setStaffForm({ ...staffForm, employeeCode: e.target.value })}
                 placeholder="e.g. EMP-101"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -972,7 +972,7 @@ export function StaffTab({
                 value={staffForm.email}
                 onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
                 placeholder="priya.sharma@school.edu"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -986,7 +986,7 @@ export function StaffTab({
                 value={staffForm.mobile}
                 onChange={(e) => setStaffForm({ ...staffForm, mobile: e.target.value })}
                 placeholder="9876543210"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -998,13 +998,13 @@ export function StaffTab({
                 type="date"
                 value={staffForm.joiningDate}
                 onChange={(e) => setStaffForm({ ...staffForm, joiningDate: e.target.value })}
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
           </div>
 
           {/* Address Block via AddressAutofill (Surface 9) */}
-          <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 space-y-3">
+          <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-muted/30 border border-gray-200 dark:border-border/40 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300">
                 Residential Address & Geographical Location
@@ -1032,7 +1032,7 @@ export function StaffTab({
                 value={staffForm.aadhaarLast4}
                 onChange={(e) => setStaffForm({ ...staffForm, aadhaarLast4: e.target.value.replace(/\D/g, "") })}
                 placeholder="1234"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -1046,7 +1046,7 @@ export function StaffTab({
                 value={staffForm.pan}
                 onChange={(e) => setStaffForm({ ...staffForm, pan: e.target.value.toUpperCase() })}
                 placeholder="ABCDE1234F"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -1059,7 +1059,7 @@ export function StaffTab({
                 value={staffForm.bankName}
                 onChange={(e) => setStaffForm({ ...staffForm, bankName: e.target.value })}
                 placeholder="State Bank of India"
-                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
@@ -1072,16 +1072,16 @@ export function StaffTab({
                 value={staffForm.bankAccount}
                 onChange={(e) => setStaffForm({ ...staffForm, bankAccount: e.target.value })}
                 placeholder="Account number"
-                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3 text-xs md:text-sm font-mono rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-border/40">
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
-              className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 text-xs font-bold hover:bg-gray-50 dark:hover:bg-slate-800"
+              className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-border/40 text-xs font-bold hover:bg-gray-50 dark:hover:bg-muted/60"
             >
               Cancel
             </button>
@@ -1113,7 +1113,7 @@ export function StaffTab({
                 required
                 value={editForm.firstName}
                 onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
               />
             </div>
             <div>
@@ -1123,7 +1123,7 @@ export function StaffTab({
                 required
                 value={editForm.lastName}
                 onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
               />
             </div>
           </div>
@@ -1135,7 +1135,7 @@ export function StaffTab({
                 type="tel"
                 value={editForm.mobile}
                 onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
-                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
               />
             </div>
             <div>
@@ -1144,12 +1144,12 @@ export function StaffTab({
                 type="text"
                 value={editForm.qualification}
                 onChange={(e) => setEditForm({ ...editForm, qualification: e.target.value })}
-                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-border/40">
             <button
               type="button"
               onClick={() => setEditStaffTarget(null)}
@@ -1204,7 +1204,7 @@ export function StaffTab({
             <select
               value={offboardData.separationType}
               onChange={(e) => setOffboardData({ ...offboardData, separationType: e.target.value as any })}
-              className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+              className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
             >
               <option value="RESIGNATION">Resignation</option>
               <option value="TERMINATION">Termination</option>
@@ -1219,7 +1219,7 @@ export function StaffTab({
               type="date"
               value={offboardData.relievingDate}
               onChange={(e) => setOffboardData({ ...offboardData, relievingDate: e.target.value })}
-              className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+              className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
             />
           </div>
 
@@ -1230,11 +1230,11 @@ export function StaffTab({
               value={offboardData.separationReason}
               onChange={(e) => setOffboardData({ ...offboardData, separationReason: e.target.value })}
               placeholder="Provide reason for separation..."
-              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-border/40">
             <button
               type="button"
               onClick={() => {
@@ -1266,7 +1266,7 @@ export function StaffTab({
           description="SMS was not configured or could not be delivered. Share these credentials securely with the staff member."
         >
           <div className="space-y-3 text-xs">
-            <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl space-y-1 font-mono">
+            <div className="p-3 bg-gray-50 dark:bg-muted/60 rounded-xl space-y-1 font-mono">
               <div><span className="text-gray-400">Email:</span> {manualCredentials.email}</div>
               <div><span className="text-gray-400">Password:</span> <span className="font-bold text-primary">{manualCredentials.tempPassword}</span></div>
               <div><span className="text-gray-400">Portal:</span> {manualCredentials.dashboardUrl}</div>

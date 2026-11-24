@@ -141,10 +141,10 @@ export function FeeQueriesAdminClient({
       {/* Header with Stats Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-100 tracking-tight">
+          <h1 className="text-xl font-bold text-foreground tracking-tight">
             Fee Query Inbox & SLA Management
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Parent inquiries, breakdown requests, concession questions, and 48-hour SLA tracking.
           </p>
         </div>
@@ -164,7 +164,7 @@ export function FeeQueriesAdminClient({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border/40 pb-3">
         {[
           { id: "ALL", label: `All (${counts.all})` },
           { id: "OPEN", label: `Open (${counts.open})` },
@@ -180,7 +180,7 @@ export function FeeQueriesAdminClient({
             className={`text-xs px-3 py-1.5 rounded-xl font-medium border transition-colors ${
               filter === tab.id
                 ? "bg-indigo-600 text-white border-indigo-500"
-                : "bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200"
+                : "bg-card text-muted-foreground border-border/40 hover:text-foreground"
             }`}
           >
             {tab.label}
@@ -190,20 +190,20 @@ export function FeeQueriesAdminClient({
 
       {/* Search Input */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by student name, admission number, invoice #..."
-          className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+          className="w-full pl-9 pr-4 py-2 rounded-xl bg-card border border-border/40 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500 transition-colors"
         />
       </div>
 
       {/* Queries List */}
       <div className="space-y-3" data-testid="admin-fee-queries-list">
         {filteredQueries.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-8 text-center text-xs text-slate-400">
+          <div className="rounded-2xl border border-border/40 bg-muted/20 p-8 text-center text-xs text-muted-foreground">
             No fee inquiries found matching this criteria.
           </div>
         ) : (
@@ -215,40 +215,40 @@ export function FeeQueriesAdminClient({
               <div
                 key={q.id}
                 data-testid={`fee-query-row-${q.id}`}
-                className={`rounded-2xl bg-slate-900/90 border p-4 sm:p-5 shadow-sm space-y-3 transition-all ${
+                className={`rounded-2xl bg-card border p-4 sm:p-5 shadow-sm space-y-3 transition-all ${
                   isCritical
                     ? "border-rose-600/80 border-l-4 border-l-rose-500"
                     : isBreached
                     ? "border-amber-600/60 border-l-4 border-l-amber-500"
                     : q.status === "ANSWERED"
                     ? "border-indigo-800/60 border-l-4 border-l-indigo-500"
-                    : "border-slate-800"
+                    : "border-border/40"
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-bold text-slate-100">
+                      <span className="text-sm font-bold text-foreground">
                         {q.studentName}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         ({q.admissionNumber})
                       </span>
-                      <span className="text-[10px] text-slate-500">•</span>
+                      <span className="text-[10px] text-muted-foreground">•</span>
                       <span className="text-xs text-indigo-300 font-semibold">
                         {q.invoiceNumber}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         (Bal: ₹{q.invoiceBalance.toLocaleString("en-IN")})
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="font-semibold text-slate-300">
+                      <span className="font-semibold text-muted-foreground">
                         Category: {q.category}
                       </span>
-                      <span className="text-[10px] text-slate-500">•</span>
-                      <span className="text-slate-400">
+                      <span className="text-[10px] text-muted-foreground">•</span>
+                      <span className="text-muted-foreground">
                         Raised {new Date(q.createdAt).toLocaleDateString("en-IN", {
                           day: "numeric",
                           month: "short",
@@ -290,7 +290,7 @@ export function FeeQueriesAdminClient({
                           ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                           : q.status === "ESCALATED"
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                          : "bg-slate-800 text-slate-300 border-slate-700"
+                          : "bg-muted/60 text-muted-foreground border-border/40"
                       }`}
                     >
                       {q.status}
@@ -299,18 +299,18 @@ export function FeeQueriesAdminClient({
                 </div>
 
                 {/* Parent Question Message */}
-                <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-200">
-                  <div className="text-[11px] font-semibold text-slate-400 mb-0.5">
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-xs text-foreground">
+                  <div className="text-[11px] font-semibold text-muted-foreground mb-0.5">
                     Parent Message:
                   </div>
-                  <p className="leading-relaxed text-slate-300 italic">
+                  <p className="leading-relaxed text-muted-foreground italic">
                     "{q.message}"
                   </p>
                 </div>
 
                 {/* Response Block if answered */}
                 {q.answer && (
-                  <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-900/50 text-xs text-slate-200">
+                  <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-900/50 text-xs text-foreground">
                     <div className="text-[11px] font-semibold text-indigo-300 mb-0.5 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
                       <span>
@@ -318,18 +318,18 @@ export function FeeQueriesAdminClient({
                         {q.answeredAt && ` (${new Date(q.answeredAt).toLocaleDateString("en-IN")})`}
                       </span>
                     </div>
-                    <p className="leading-relaxed text-slate-300">{q.answer}</p>
+                    <p className="leading-relaxed text-muted-foreground">{q.answer}</p>
                   </div>
                 )}
 
                 {/* Actions */}
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+                <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-3 flex-wrap">
                   {q.status !== "ESCALATED" && q.status !== "RESOLVED" && (
                     <button
                       type="button"
                       onClick={() => handleEscalateToPrincipal(q.id)}
                       disabled={isSubmitting}
-                      className="text-xs text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1"
+                      className="text-xs text-muted-foreground hover:text-amber-400 transition-colors flex items-center gap-1"
                     >
                       <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
                       <span>Escalate to Principal</span>
@@ -360,13 +360,13 @@ export function FeeQueriesAdminClient({
       {activeQuery && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div
-            className="w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-2xl relative text-left"
+            className="w-full max-w-lg rounded-2xl bg-card border border-border/40 p-5 sm:p-6 shadow-2xl relative text-left"
             data-testid="admin-answer-modal"
           >
             <button
               type="button"
               onClick={() => setActiveQuery(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -375,24 +375,24 @@ export function FeeQueriesAdminClient({
               <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
                 Official Response
               </span>
-              <h2 className="text-base font-bold text-slate-100 mt-0.5">
+              <h2 className="text-base font-bold text-foreground mt-0.5">
                 Respond to {activeQuery.studentName}'s Parent
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Ref: {activeQuery.invoiceNumber} • Category: {activeQuery.category}
               </p>
             </div>
 
             {/* Parent question snippet */}
-            <div className="mt-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300">
-              <span className="font-semibold text-slate-400">Query: </span>
+            <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/40 text-xs text-muted-foreground">
+              <span className="font-semibold text-muted-foreground">Query: </span>
               "{activeQuery.message}"
             </div>
 
             <form onSubmit={handleSendAnswer} className="mt-4 space-y-4">
               {/* Quick templates */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
                   Quick Templates
                 </label>
                 <div className="flex flex-col gap-1.5">
@@ -401,7 +401,7 @@ export function FeeQueriesAdminClient({
                       key={idx}
                       type="button"
                       onClick={() => setAnswerText(t)}
-                      className="text-left text-xs p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-300 transition-colors"
+                      className="text-left text-xs p-2 rounded-lg bg-muted/40 hover:bg-muted/60 border border-border/40 hover:border-border/40 text-muted-foreground transition-colors"
                     >
                       {t}
                     </button>
@@ -411,7 +411,7 @@ export function FeeQueriesAdminClient({
 
               {/* Response textarea */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
                   Official Answer to Parent
                 </label>
                 <textarea
@@ -420,7 +420,7 @@ export function FeeQueriesAdminClient({
                   onChange={(e) => setAnswerText(e.target.value)}
                   placeholder="Type official explanation or confirmation of fee adjustment..."
                   data-testid="admin-answer-textarea"
-                  className="w-full rounded-xl bg-slate-800/90 border border-slate-700 p-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  className="w-full rounded-xl bg-muted/60 border border-border/40 p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500 transition-colors resize-none"
                 />
               </div>
 
@@ -428,7 +428,7 @@ export function FeeQueriesAdminClient({
                 <button
                   type="button"
                   onClick={() => setActiveQuery(null)}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Cancel
                 </button>

@@ -37,7 +37,7 @@ export default async function FeeStructuresPage() {
     return (
       <div className="space-y-6">
         <FinanceTabs activeSection="finance" />
-        <div className="p-8 max-w-4xl mx-auto text-center space-y-4 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
+        <div className="p-8 max-w-4xl mx-auto text-center space-y-4 bg-white dark:bg-card rounded-3xl border border-gray-200 dark:border-border/40 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             No Active Academic Year Found
           </h2>
@@ -118,15 +118,15 @@ export default async function FeeStructuresPage() {
       <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-xs">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#248A3D]/10 dark:bg-[#30D158]/15 text-[#248A3D] dark:text-[#30D158] border border-[#248A3D]/25 dark:border-[#30D158]/30">
             <LayoutTemplate className="w-3.5 h-3.5" /> Setup Architecture & Pricing
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Fee Setup & Class Pricing Matrix
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Configure fee heads master, allocation priorities, and class-wise fee pricing matrix for {activeYearItem.label}.
           </p>
         </div>

@@ -71,6 +71,35 @@
     --color-accent: #007AFF;
     --color-accent-hover: #0068DB;
     --color-accent-subtle: rgba(0, 122, 255, 0.10);
+
+    /* ── Apple HIG Module Scope System (Light) ─────────────────────────── */
+    --module-admissions-primary: 210 100% 50%;             /* #007AFF - Apple Blue */
+    --module-admissions-secondary: 210 100% 96%;           /* rgba(0, 122, 255, 0.08) */
+    --module-admissions-border: 210 100% 88%;              /* rgba(0, 122, 255, 0.20) */
+
+    --module-academics-primary: 189 100% 38%;              /* #00A3C4 - Apple Cyan/Teal */
+    --module-academics-secondary: 189 80% 95%;             /* rgba(0, 163, 196, 0.08) */
+    --module-academics-border: 189 70% 86%;                /* rgba(0, 163, 196, 0.20) */
+
+    --module-exams-primary: 241 61% 59%;                   /* #5856D6 - Apple Purple/Indigo */
+    --module-exams-secondary: 241 61% 96%;                 /* rgba(88, 86, 214, 0.08) */
+    --module-exams-border: 241 61% 88%;                    /* rgba(88, 86, 214, 0.20) */
+
+    --module-fees-primary: 133 60% 34%;                    /* #248A3D - Apple Green */
+    --module-fees-secondary: 133 50% 95%;                  /* rgba(36, 138, 61, 0.08) */
+    --module-fees-border: 133 45% 86%;                     /* rgba(36, 138, 61, 0.20) */
+
+    --module-accounts-primary: 160 100% 26%;               /* #00875A - Apple Mint/Forest */
+    --module-accounts-secondary: 160 60% 95%;              /* rgba(0, 135, 90, 0.08) */
+    --module-accounts-border: 160 50% 86%;                 /* rgba(0, 135, 90, 0.20) */
+
+    --module-transport-primary: 36 94% 44%;                /* #D97706 - Apple Orange */
+    --module-transport-secondary: 36 90% 95%;              /* rgba(217, 119, 6, 0.08) */
+    --module-transport-border: 36 85% 86%;                 /* rgba(217, 119, 6, 0.20) */
+
+    --module-hr-primary: 38 92% 38%;                       /* #B45309 - Apple Warm Amber/Gold */
+    --module-hr-secondary: 48 100% 94%;                    /* rgba(180, 83, 9, 0.08) */
+    --module-hr-border: 45 80% 84%;                        /* rgba(180, 83, 9, 0.20) */
   }
 
   .dark {
@@ -137,6 +166,35 @@
     --color-accent: #0A84FF;
     --color-accent-hover: #2196FF;
     --color-accent-subtle: rgba(10, 132, 255, 0.16);
+
+    /* ── Apple HIG Module Scope System (Dark) ─────────────────────────── */
+    --module-admissions-primary: 210 100% 52%;             /* #0A84FF - Apple Blue Dark */
+    --module-admissions-secondary: 210 100% 20%;           /* rgba(10, 132, 255, 0.15) */
+    --module-admissions-border: 210 100% 30%;              /* rgba(10, 132, 255, 0.28) */
+
+    --module-academics-primary: 198 100% 70%;              /* #64D2FF - Apple Cyan/Teal Dark */
+    --module-academics-secondary: 198 100% 20%;            /* rgba(100, 210, 255, 0.15) */
+    --module-academics-border: 198 100% 30%;               /* rgba(100, 210, 255, 0.25) */
+
+    --module-exams-primary: 280 87% 65%;                   /* #BF5AF2 - Apple Purple/Indigo Dark */
+    --module-exams-secondary: 280 87% 20%;                 /* rgba(191, 90, 242, 0.15) */
+    --module-exams-border: 280 87% 30%;                    /* rgba(191, 90, 242, 0.28) */
+
+    --module-fees-primary: 135 64% 50%;                    /* #30D158 - Apple Green Dark */
+    --module-fees-secondary: 135 64% 20%;                  /* rgba(48, 209, 88, 0.15) */
+    --module-fees-border: 135 64% 30%;                     /* rgba(48, 209, 88, 0.28) */
+
+    --module-accounts-primary: 161 74% 67%;                /* #63E6BE - Apple Mint/Forest Dark */
+    --module-accounts-secondary: 161 74% 20%;              /* rgba(99, 230, 190, 0.15) */
+    --module-accounts-border: 161 74% 30%;                 /* rgba(99, 230, 190, 0.25) */
+
+    --module-transport-primary: 36 100% 52%;               /* #FF9F0A - Apple Orange Dark */
+    --module-transport-secondary: 36 100% 20%;             /* rgba(255, 159, 10, 0.15) */
+    --module-transport-border: 36 100% 30%;                /* rgba(255, 159, 10, 0.28) */
+
+    --module-hr-primary: 50 100% 52%;                      /* #FFD60A - Apple Warm Amber/Gold Dark */
+    --module-hr-secondary: 50 100% 20%;                    /* rgba(255, 214, 10, 0.15) */
+    --module-hr-border: 50 100% 30%;                       /* rgba(255, 214, 10, 0.28) */
   }
 
   * {

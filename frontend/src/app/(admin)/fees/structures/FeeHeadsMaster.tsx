@@ -150,9 +150,9 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
   const sortedHeads = [...feeHeads].sort((a, b) => a.priority - b.priority);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/40 shadow-sm overflow-hidden">
       {/* Header section */}
-      <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="p-6 border-b border-gray-200 dark:border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
             Fee Heads Master & Allocation Priorities
@@ -167,7 +167,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
             type="button"
             onClick={handleResetStarterPack}
             disabled={isPending}
-            className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/80 transition-colors shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-muted/60 border border-gray-300 dark:border-border/40 rounded-lg hover:bg-gray-50 dark:hover:bg-muted/80 transition-colors shadow-sm disabled:opacity-50"
           >
             <RotateCcw className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
             Reset to Starter Pack
@@ -177,7 +177,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
             type="button"
             onClick={handleOpenAdd}
             disabled={isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-card hover:bg-muted/60 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             + Add Fee Head
@@ -214,7 +214,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-slate-800">
+          <thead className="bg-gray-50 dark:bg-muted/40 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-border/40">
             <tr>
               <th className="py-3.5 px-4 w-20 text-center">Priority</th>
               <th className="py-3.5 px-4 min-w-[260px]">Head Particulars</th>
@@ -226,7 +226,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
               <th className="py-3.5 px-4 w-24 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+          <tbody className="divide-y divide-gray-200 dark:divide-border/40">
             {sortedHeads.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center text-gray-500">
@@ -245,11 +245,11 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
               sortedHeads.map((head) => (
                 <tr
                   key={head.id}
-                  className="hover:bg-gray-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                  className="hover:bg-gray-50/70 dark:hover:bg-muted/30 transition-colors"
                 >
                   {/* Priority Circle Badge */}
                   <td className="py-4 px-4 text-center">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-900 dark:bg-slate-800 text-white font-bold text-xs shadow-sm">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-card dark:bg-muted/60 text-white font-bold text-xs shadow-sm">
                       {head.priority}
                     </span>
                   </td>
@@ -268,7 +268,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
 
                   {/* Code */}
                   <td className="py-4 px-4">
-                    <span className="font-mono text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700">
+                    <span className="font-mono text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-muted/60 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-border/40">
                       {head.code || head.name.slice(0, 3).toUpperCase()}
                     </span>
                   </td>
@@ -329,7 +329,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(head)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-muted/60 rounded-md transition-colors"
                         title="Edit Fee Head"
                       >
                         <Pencil className="w-4 h-4" />
@@ -337,7 +337,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                       <button
                         type="button"
                         onClick={() => handleDelete(head.id, head.name)}
-                        className="p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-gray-100 dark:hover:bg-muted/60 rounded-md transition-colors"
                         title="Deactivate Fee Head"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -354,8 +354,8 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
       {/* Add / Edit Dialog Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xl w-full max-w-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-card rounded-2xl border border-gray-200 dark:border-border/40 shadow-xl w-full max-w-xl overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-border/40 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                 {editingHead ? "Edit Fee Head" : "Create New Fee Head"}
               </h3>
@@ -387,7 +387,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                       });
                     }}
                     placeholder="e.g. Tuition Fee"
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -402,7 +402,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                     placeholder="TUI"
-                    className="w-full font-mono uppercase px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full font-mono uppercase px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -419,7 +419,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                     required
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -430,7 +430,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="RECURRING">Recurring</option>
                     <option value="ONE_TIME">One Time</option>
@@ -445,7 +445,7 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                   <select
                     value={formData.headType}
                     onChange={(e) => setFormData({ ...formData, headType: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="TUITION">TUITION</option>
                     <option value="ADMISSION">ADMISSION</option>
@@ -468,12 +468,12 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="e.g. Core curriculum tuition and pedagogical instruction"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* Toggles */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-800">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-gray-50 dark:bg-muted/30 rounded-xl border border-gray-200 dark:border-border/40">
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
@@ -505,11 +505,11 @@ export function FeeHeadsMaster({ feeHeads }: FeeHeadsMasterProps) {
                 </label>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-slate-800">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-border/40">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-muted/60 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>

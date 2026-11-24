@@ -180,11 +180,11 @@ export default async function ReportCardsAdminPage({
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-8">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-5">
         <div className="flex items-center gap-3">
           <Link
             href="/exams/dashboard"
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+            className="p-2 rounded-xl bg-card border border-border/40 text-muted-foreground hover:text-white transition"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -197,7 +197,7 @@ export default async function ReportCardsAdminPage({
                 Report Cards &amp; Result Snapshots
               </h1>
             </div>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Freeze immutable result snapshots, calculate class ranks, and issue topper certificates
             </p>
           </div>
@@ -206,14 +206,14 @@ export default async function ReportCardsAdminPage({
         <div className="flex items-center gap-2">
           <Link
             href="/exams/report-cards/setups"
-            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition"
+            className="px-4 py-2 rounded-xl bg-card border border-border/40 text-muted-foreground hover:text-white text-xs font-semibold flex items-center gap-2 transition"
           >
             <SlidersHorizontal className="w-4 h-4" />
             <span>Framework Setups</span>
           </Link>
           <Link
             href={(`/exams/report-cards/settings${data.selectedSetupId ? `?setupId=${data.selectedSetupId}` : ""}`) as any}
-            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition"
+            className="px-4 py-2 rounded-xl bg-card border border-border/40 text-muted-foreground hover:text-white text-xs font-semibold flex items-center gap-2 transition"
           >
             <ShieldAlert className="w-4 h-4" />
             <span>Release Policies</span>

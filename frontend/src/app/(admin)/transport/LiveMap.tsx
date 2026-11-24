@@ -109,7 +109,7 @@ export default function LiveMap({
     return (
       <div
         style={{ height }}
-        className="w-full rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 text-sm font-medium"
+        className="w-full rounded-2xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground text-sm font-medium"
       >
         Initializing OpenStreetMap...
       </div>
@@ -136,7 +136,7 @@ export default function LiveMap({
     : polylinePositions[0] ?? center;
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 dark:border-slate-800 shadow-lg">
+    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 dark:border-border/40 shadow-lg">
       <MapContainer
         center={initialCenter}
         zoom={zoom}

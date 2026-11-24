@@ -97,6 +97,45 @@ const config: Config = {
         "semantic-neutral": "hsl(var(--semantic-neutral))",
         "semantic-neutral-foreground": "hsl(var(--semantic-neutral-foreground))",
 
+        // ── Apple HIG Module Scope System ─────────────────────────────────
+        module: {
+          admissions: {
+            primary: "hsl(var(--module-admissions-primary))",
+            secondary: "hsl(var(--module-admissions-secondary))",
+            border: "hsl(var(--module-admissions-border))",
+          },
+          academics: {
+            primary: "hsl(var(--module-academics-primary))",
+            secondary: "hsl(var(--module-academics-secondary))",
+            border: "hsl(var(--module-academics-border))",
+          },
+          exams: {
+            primary: "hsl(var(--module-exams-primary))",
+            secondary: "hsl(var(--module-exams-secondary))",
+            border: "hsl(var(--module-exams-border))",
+          },
+          fees: {
+            primary: "hsl(var(--module-fees-primary))",
+            secondary: "hsl(var(--module-fees-secondary))",
+            border: "hsl(var(--module-fees-border))",
+          },
+          accounts: {
+            primary: "hsl(var(--module-accounts-primary))",
+            secondary: "hsl(var(--module-accounts-secondary))",
+            border: "hsl(var(--module-accounts-border))",
+          },
+          transport: {
+            primary: "hsl(var(--module-transport-primary))",
+            secondary: "hsl(var(--module-transport-secondary))",
+            border: "hsl(var(--module-transport-border))",
+          },
+          hr: {
+            primary: "hsl(var(--module-hr-primary))",
+            secondary: "hsl(var(--module-hr-secondary))",
+            border: "hsl(var(--module-hr-border))",
+          },
+        },
+
         // ── Transitional Backward Compatibility Tokens (Phase AD-L1 to AD-L5) ──
         /** @deprecated Phase AD-L1: Re-mapped to Apple Semantic Tokens. Will be retired in Phase AD-L6. */
         secondary: {

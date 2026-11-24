@@ -225,18 +225,18 @@ export default async function ExamsDashboardPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Header and Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#5856D6] dark:text-[#BF5AF2] mb-1">
             <GraduationCap className="w-4 h-4" />
             <span>Academic Assessment Engine</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             Examinations Operations
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Active Year:{" "}
-            <span className="font-semibold text-gray-700 dark:text-slate-300">
+            <span className="font-semibold text-foreground">
               {activeYear?.label ?? "No active academic year configured"}
             </span>{" "}
             • Six-stage assessment lifecycle management
@@ -248,7 +248,7 @@ export default async function ExamsDashboardPage() {
             href="/exams/usage"
             data-ux-id="btn_view_usage"
             data-ux-label="Usage & Heat Map"
-            className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all"
+            className="inline-flex items-center gap-2 bg-card border border-border/40 text-foreground hover:bg-muted/40 px-3.5 py-2.5 rounded-xl font-medium text-xs min-h-[44px] transition-all shadow-xs"
           >
             <Activity className="w-4 h-4 text-emerald-500" />
             <span>Usage & Heat Map</span>
@@ -257,7 +257,7 @@ export default async function ExamsDashboardPage() {
             href="/exams/manage"
             data-ux-id="btn_quick_create_exam"
             data-ux-label="New Exam Setup"
-            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition-all shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow"
+            className="inline-flex items-center gap-2 bg-[#5856D6] dark:bg-[#BF5AF2] text-white dark:text-black hover:opacity-90 px-4 py-2.5 rounded-xl font-bold text-xs min-h-[44px] transition-all shadow-xs cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>New Exam Setup</span>
@@ -266,9 +266,9 @@ export default async function ExamsDashboardPage() {
             href="/exams/schedule"
             data-ux-id="btn_view_schedule"
             data-ux-label="Datesheets"
-            className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 px-4 py-2.5 rounded-lg font-medium text-sm transition-all"
+            className="inline-flex items-center gap-2 bg-card border border-border/40 text-foreground hover:bg-muted/40 px-4 py-2.5 rounded-xl font-medium text-xs min-h-[44px] transition-all shadow-xs"
           >
-            <Calendar className="w-4 h-4 text-gray-500" />
+            <Calendar className="w-4 h-4 text-muted-foreground" />
             <span>Datesheets</span>
           </Link>
         </div>
@@ -280,21 +280,21 @@ export default async function ExamsDashboardPage() {
         <div 
           data-ux-id="card_active_exams"
           data-ux-label="Active Exams KPI"
-          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-indigo-300 transition-colors"
+          className="bg-card border border-border/40 hover:border-purple-500/40 rounded-2xl p-5 shadow-xs cursor-pointer transition-colors"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Total Exams
             </span>
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
               <BookOpen className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
+            <span className="text-3xl font-extrabold text-foreground font-mono tabular-nums">
               {examsList.length}
             </span>
-            <span className="text-xs text-gray-500">configured in year</span>
+            <span className="text-xs text-muted-foreground">configured in year</span>
           </div>
         </div>
 
@@ -302,21 +302,21 @@ export default async function ExamsDashboardPage() {
         <div 
           data-ux-id="card_pending_marks"
           data-ux-label="Active Schedules KPI"
-          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-emerald-300 transition-colors"
+          className="bg-card border border-border/40 hover:border-emerald-500/40 rounded-2xl p-5 shadow-xs cursor-pointer transition-colors"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Active Schedules
             </span>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
               <Clock className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
+            <span className="text-3xl font-extrabold text-foreground font-mono tabular-nums">
               {totalSchedules}
             </span>
-            <span className="text-xs text-gray-500">subject datesheets</span>
+            <span className="text-xs text-muted-foreground">subject datesheets</span>
           </div>
         </div>
 
@@ -324,21 +324,21 @@ export default async function ExamsDashboardPage() {
         <div 
           data-ux-id="card_pending_marks"
           data-ux-label="Marks Locked KPI"
-          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-amber-300 transition-colors"
+          className="bg-card border border-border/40 hover:border-amber-500/40 rounded-2xl p-5 shadow-xs cursor-pointer transition-colors"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Marks Locked
             </span>
-            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
               <Lock className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
+            <span className="text-3xl font-extrabold text-foreground font-mono tabular-nums">
               {lockedMarksCount}
             </span>
-            <span className="text-xs text-gray-500">subjects frozen</span>
+            <span className="text-xs text-muted-foreground">subjects frozen</span>
           </div>
         </div>
 
@@ -346,35 +346,35 @@ export default async function ExamsDashboardPage() {
         <div 
           data-ux-id="card_published_results"
           data-ux-label="Results Released KPI"
-          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-sky-300 transition-colors"
+          className="bg-card border border-border/40 hover:border-[#00A3C4]/40 rounded-2xl p-5 shadow-xs cursor-pointer transition-colors"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Results Released
             </span>
-            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+            <div className="p-2 rounded-xl bg-[#00A3C4]/15 text-[#00A3C4] dark:bg-[#64D2FF]/20 dark:text-[#64D2FF]">
               <ShieldCheck className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
+            <span className="text-3xl font-extrabold text-foreground font-mono tabular-nums">
               {releasedResultsCount}
             </span>
-            <span className="text-xs text-gray-500">live published setups</span>
+            <span className="text-xs text-muted-foreground">live published setups</span>
           </div>
         </div>
       </div>
 
       {/* Lifecycle Navigation Stage Bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-md border border-indigo-900/40">
+      <div className="bg-card border border-purple-500/30 text-foreground rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-[#5856D6] dark:text-[#BF5AF2] text-xs font-semibold uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />
               <span>Full Six-Stage Workflow</span>
             </div>
-            <h2 className="text-xl font-bold">Examination Operations Pipeline</h2>
-            <p className="text-xs text-indigo-200 max-w-xl">
+            <h2 className="text-xl font-bold text-foreground">Examination Operations Pipeline</h2>
+            <p className="text-xs text-muted-foreground max-w-xl">
               Navigate seamlessly across stages: setup exam components, schedule datesheets, configure admit cards, record and lock component marks, generate frozen snapshots, and publish reports.
             </p>
           </div>
@@ -382,38 +382,38 @@ export default async function ExamsDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             <Link
               href="/exams/manage"
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/10 hover:bg-white/15 transition-all text-center border border-white/10"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-all text-center border border-border/40 min-h-[64px]"
             >
-              <SlidersHorizontal className="w-5 h-5 text-indigo-300 mb-1" />
-              <span className="text-xs font-semibold">1. Setup</span>
+              <SlidersHorizontal className="w-5 h-5 text-[#5856D6] dark:text-[#BF5AF2] mb-1" />
+              <span className="text-xs font-semibold text-foreground">1. Setup</span>
             </Link>
             <Link
               href="/exams/schedule"
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/10 hover:bg-white/15 transition-all text-center border border-white/10"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-all text-center border border-border/40 min-h-[64px]"
             >
-              <Calendar className="w-5 h-5 text-indigo-300 mb-1" />
-              <span className="text-xs font-semibold">2. Schedule</span>
+              <Calendar className="w-5 h-5 text-[#5856D6] dark:text-[#BF5AF2] mb-1" />
+              <span className="text-xs font-semibold text-foreground">2. Schedule</span>
             </Link>
             <Link
               href="/exams/admit-cards"
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/10 hover:bg-white/15 transition-all text-center border border-white/10"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-all text-center border border-border/40 min-h-[64px]"
             >
-              <FileCheck2 className="w-5 h-5 text-indigo-300 mb-1" />
-              <span className="text-xs font-semibold">3. Admit Cards</span>
+              <FileCheck2 className="w-5 h-5 text-[#5856D6] dark:text-[#BF5AF2] mb-1" />
+              <span className="text-xs font-semibold text-foreground">3. Admit Cards</span>
             </Link>
             <Link
               href="/exams/marks"
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/10 hover:bg-white/15 transition-all text-center border border-white/10"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-all text-center border border-border/40 min-h-[64px]"
             >
-              <Lock className="w-5 h-5 text-indigo-300 mb-1" />
-              <span className="text-xs font-semibold">4. Marks & Lock</span>
+              <Lock className="w-5 h-5 text-[#5856D6] dark:text-[#BF5AF2] mb-1" />
+              <span className="text-xs font-semibold text-foreground">4. Marks & Lock</span>
             </Link>
             <Link
               href="/exams/results"
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/10 hover:bg-white/15 transition-all text-center border border-white/10 col-span-2 sm:col-span-1"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-all text-center border border-border/40 col-span-2 sm:col-span-1 min-h-[64px]"
             >
-              <Award className="w-5 h-5 text-indigo-300 mb-1" />
-              <span className="text-xs font-semibold">5 & 6. Results</span>
+              <Award className="w-5 h-5 text-[#5856D6] dark:text-[#BF5AF2] mb-1" />
+              <span className="text-xs font-semibold text-foreground">5 & 6. Results</span>
             </Link>
           </div>
         </div>
@@ -436,19 +436,19 @@ export default async function ExamsDashboardPage() {
       />
 
       {/* Active Exams Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-border/40 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+            <h3 className="font-bold text-lg text-foreground">
               Configured Examinations
             </h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Exams registered for the current academic session
             </p>
           </div>
           <Link
             href="/exams/manage"
-            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-[#5856D6] dark:text-[#BF5AF2] hover:underline flex items-center gap-1"
           >
             <span>Manage All Configuration</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -457,20 +457,20 @@ export default async function ExamsDashboardPage() {
 
         {examsList.length === 0 ? (
           <div className="p-12 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
               <BookOpen className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white">
+              <h4 className="font-semibold text-foreground">
                 No examinations found
               </h4>
-              <p className="text-sm text-gray-500 max-w-sm mx-auto">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 No exams have been configured for the current session. Create your first exam using the setup wizard.
               </p>
             </div>
             <Link
               href="/exams/manage"
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+              className="inline-flex items-center gap-2 bg-[#5856D6] dark:bg-[#BF5AF2] text-white dark:text-black px-4 py-2 rounded-xl font-bold text-xs shadow-xs min-h-[44px] transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Create First Exam</span>
@@ -479,7 +479,7 @@ export default async function ExamsDashboardPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-800/60 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
+              <thead className="bg-muted/60 text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/40">
                 <tr>
                   <th className="px-6 py-3.5">Exam Name</th>
                   <th className="px-6 py-3.5">Type & Weightage</th>
@@ -489,7 +489,7 @@ export default async function ExamsDashboardPage() {
                   <th className="px-6 py-3.5 text-right">Lifecycle Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40">
                 {examsList.map((exam) => {
                   const startDateStr = new Date(exam.startDate).toLocaleDateString(
                     "en-IN",
@@ -504,41 +504,41 @@ export default async function ExamsDashboardPage() {
                   return (
                     <tr
                       key={exam.id}
-                      className="hover:bg-gray-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-muted/30 transition-colors"
                     >
-                      <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 font-semibold text-foreground">
                         {exam.name}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
                           {exam.examType?.name ?? "General"}
                           {exam.examType?.weightagePercent
                             ? ` (${exam.examType.weightagePercent}%)`
                             : ""}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-slate-300 whitespace-nowrap">
+                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap font-mono text-xs">
                         {startDateStr} – {endDateStr}
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-slate-300">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {scopedClassesCount > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                             {scopedClassesCount} classes scoped
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground">
                             All Classes
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         {exam.isLocked ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/25">
                             <Lock className="w-3 h-3" />
                             Locked
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                             Active
                           </span>
                         )}
@@ -547,19 +547,19 @@ export default async function ExamsDashboardPage() {
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/exams/schedule?examId=${exam.id}`}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 transition-colors"
+                            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-border/40 hover:bg-muted/40 text-foreground transition-colors min-h-[36px] inline-flex items-center"
                           >
                             Schedule
                           </Link>
                           <Link
                             href={`/exams/admit-cards?examId=${exam.id}`}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 transition-colors"
+                            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-border/40 hover:bg-muted/40 text-foreground transition-colors min-h-[36px] inline-flex items-center"
                           >
                             Admit Cards
                           </Link>
                           <Link
                             href={`/exams/marks?examId=${exam.id}`}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition-colors"
+                            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-purple-500/15 text-purple-700 dark:text-purple-300 hover:bg-purple-500/25 transition-colors min-h-[36px] inline-flex items-center border border-purple-500/30"
                           >
                             Marks
                           </Link>

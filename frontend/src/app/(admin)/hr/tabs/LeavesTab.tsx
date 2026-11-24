@@ -161,11 +161,11 @@ export function LeavesTab({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-[#B45309] dark:text-[#FFD60A]" />
             Leave Management & Approvals
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-0.5">
             Track absence requests, manage approval workflows, and audit faculty leaves
           </p>
         </div>
@@ -174,7 +174,7 @@ export function LeavesTab({
           <button
             type="button"
             onClick={() => setIsApplyModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors min-h-[40px] shrink-0"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#B45309] dark:bg-[#FFD60A] hover:opacity-90 text-white dark:text-black shadow-xs transition-colors min-h-[44px] shrink-0"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Apply for Leave</span>
@@ -183,7 +183,7 @@ export function LeavesTab({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-card p-3 rounded-2xl border border-border/40 dark:border-border/40 shadow-sm">
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
           <button
@@ -191,8 +191,8 @@ export function LeavesTab({
             onClick={() => setStatusFilter("ALL")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               statusFilter === "ALL"
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                ? "bg-card dark:bg-white text-white dark:text-foreground"
+                : "bg-muted/50 dark:bg-muted/60 text-muted-foreground dark:text-muted-foreground hover:bg-muted dark:hover:bg-muted"
             }`}
           >
             <span>All</span>
@@ -244,7 +244,7 @@ export function LeavesTab({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200"
+            className="text-xs py-1.5 px-3 rounded-xl border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card text-foreground dark:text-foreground"
           >
             <option value="ALL">All Leave Types</option>
             {leaveTypes.map((lt) => (
@@ -255,13 +255,13 @@ export function LeavesTab({
           </select>
 
           <div className="relative min-w-[200px]">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search leaves..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card text-foreground dark:text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -269,21 +269,21 @@ export function LeavesTab({
 
       {/* Requests List */}
       {filteredRequests.length === 0 ? (
-        <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <CalendarDays className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+        <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border/40 dark:border-border/40 bg-muted/20 dark:bg-muted/30">
+          <CalendarDays className="w-10 h-10 text-muted-foreground dark:text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm font-semibold text-muted-foreground dark:text-muted-foreground">
             {searchQuery || statusFilter !== "ALL" || typeFilter !== "ALL"
               ? "No leave applications match your filters"
               : "No leave applications submitted yet"}
           </p>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             Faculty and staff leave applications will appear here for review and principal approvals.
           </p>
           {isAuthorizedHR && statusFilter === "ALL" && !searchQuery && (
             <button
               type="button"
               onClick={() => setIsApplyModalOpen(true)}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#B45309] dark:bg-[#FFD60A] text-white dark:text-black rounded-xl hover:opacity-90 min-h-[44px] transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
               Apply for Leave
@@ -291,7 +291,7 @@ export function LeavesTab({
           )}
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="bg-white dark:bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm divide-y divide-border/40 dark:divide-border/40">
           {filteredRequests.map((r) => {
             const fullName = `${r.staff?.firstName || ""} ${r.staff?.lastName || ""}`.trim() || "Staff Member";
             const initials = getInitials(fullName);
@@ -300,7 +300,7 @@ export function LeavesTab({
             return (
               <div
                 key={r.id}
-                className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/40 transition-colors"
+                className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-muted/20 dark:hover:bg-muted/40 transition-colors"
               >
                 {/* Staff & Leave details */}
                 <div className="flex items-start gap-3.5">
@@ -313,15 +313,15 @@ export function LeavesTab({
 
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-sm text-slate-900 dark:text-white">
+                      <span className="font-bold text-sm text-foreground dark:text-white">
                         {fullName}
                       </span>
                       {r.staff?.employeeCode && (
-                        <span className="text-[11px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        <span className="text-[11px] font-mono text-muted-foreground bg-muted/50 dark:bg-muted/60 px-1.5 py-0.5 rounded">
                           {r.staff.employeeCode}
                         </span>
                       )}
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                         {r.leaveType?.name || "General Leave"}
                       </span>
                       <span
@@ -337,18 +337,18 @@ export function LeavesTab({
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                    <div className="text-xs text-muted-foreground dark:text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span className="font-medium text-muted-foreground dark:text-muted-foreground">
                         {r.startDate} to {r.endDate}
                       </span>
                       <span>•</span>
-                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                      <span className="font-semibold text-[#B45309] dark:text-[#FFD60A]">
                         {r.totalDays} day{r.totalDays > 1 ? "s" : ""}
                       </span>
                       {r.reason && (
                         <>
                           <span>•</span>
-                          <span className="italic text-slate-600 dark:text-slate-400">
+                          <span className="italic text-muted-foreground dark:text-muted-foreground">
                             &ldquo;{r.reason}&rdquo;
                           </span>
                         </>
@@ -400,7 +400,7 @@ export function LeavesTab({
         <form onSubmit={handleApplyLeave} className="space-y-4 text-xs">
           {/* Staff Combobox */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Staff Member *
             </label>
             <Combobox
@@ -417,7 +417,7 @@ export function LeavesTab({
 
           {/* Leave Type */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Leave Category *
             </label>
             <select
@@ -426,7 +426,7 @@ export function LeavesTab({
               onChange={(e) =>
                 setLeaveForm({ ...leaveForm, leaveTypeId: e.target.value })
               }
-              className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             >
               <option value="">-- Choose Leave Category --</option>
               {leaveTypes.map((lt) => (
@@ -440,7 +440,7 @@ export function LeavesTab({
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
+              <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
                 Start Date *
               </label>
               <input
@@ -450,11 +450,11 @@ export function LeavesTab({
                 onChange={(e) =>
                   setLeaveForm({ ...leaveForm, startDate: e.target.value })
                 }
-                className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
+              <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
                 End Date *
               </label>
               <input
@@ -464,14 +464,14 @@ export function LeavesTab({
                 onChange={(e) =>
                   setLeaveForm({ ...leaveForm, endDate: e.target.value })
                 }
-                className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+                className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
               />
             </div>
           </div>
 
           {/* Total Days */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Total Days Count *
             </label>
             <input
@@ -483,13 +483,13 @@ export function LeavesTab({
               onChange={(e) =>
                 setLeaveForm({ ...leaveForm, totalDays: Number(e.target.value) })
               }
-              className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-xs text-slate-900 dark:text-white"
+              className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2 rounded-xl text-xs text-foreground dark:text-white"
             />
           </div>
 
           {/* Reason */}
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Reason / Justification *
             </label>
             <textarea
@@ -500,22 +500,22 @@ export function LeavesTab({
               onChange={(e) =>
                 setLeaveForm({ ...leaveForm, reason: e.target.value })
               }
-              className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white"
+              className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/40 dark:border-border/40">
             <button
               type="button"
               onClick={() => setIsApplyModalOpen(false)}
-              className="px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[38px]"
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground hover:bg-muted/30 dark:hover:bg-muted/60 min-h-[38px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors min-h-[38px] disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold rounded-xl bg-[#B45309] dark:bg-[#FFD60A] hover:opacity-90 text-white dark:text-black shadow-xs transition-colors min-h-[44px] disabled:opacity-50"
             >
               {loading ? "Submitting..." : "Submit Application"}
             </button>
@@ -540,7 +540,7 @@ export function LeavesTab({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">
+            <label className="font-semibold text-muted-foreground dark:text-muted-foreground">
               Rejection Reason *
             </label>
             <textarea
@@ -549,15 +549,15 @@ export function LeavesTab({
               placeholder="e.g. Prior examination invigilation duties scheduled on requested dates..."
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl text-xs text-slate-900 dark:text-white"
+              className="w-full border border-border/40 dark:border-border/40 bg-muted/30 dark:bg-card p-2.5 rounded-xl text-xs text-foreground dark:text-white"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/40 dark:border-border/40">
             <button
               type="button"
               onClick={() => setRejectTarget(null)}
-              className="px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[38px]"
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground hover:bg-muted/30 dark:hover:bg-muted/60 min-h-[38px]"
             >
               Cancel
             </button>

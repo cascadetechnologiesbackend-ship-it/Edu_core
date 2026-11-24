@@ -48,7 +48,7 @@ const PERIOD_TYPE_LABELS: Record<string, { label: string; badge: string }> = {
   },
   BREAK: {
     label: "Short Break",
-    badge: "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300 border-gray-200 dark:border-slate-700",
+    badge: "bg-gray-100 text-gray-700 bg-muted/60 dark:text-gray-300 border-gray-200 dark:border-border/40",
   },
   LUNCH: {
     label: "Lunch Break",
@@ -68,7 +68,7 @@ const PERIOD_TYPE_LABELS: Record<string, { label: string; badge: string }> = {
   },
   FREE: {
     label: "Free / Study Period",
-    badge: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    badge: "bg-muted/50 text-muted-foreground dark:text-muted-foreground border-border/40 dark:border-border/40",
   },
 };
 
@@ -200,10 +200,10 @@ export default function BellScheduleClient({
       </div>
 
       {/* ─── Periods Table Card ───────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50/75 dark:bg-slate-800/40 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b border-gray-100 dark:border-slate-800">
+            <thead className="bg-gray-50/75 dark:bg-muted/30 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b border-gray-100 dark:border-border/40">
               <tr>
                 <th className="py-3 px-4 w-16">#</th>
                 <th className="py-3 px-4">Period Name</th>
@@ -213,14 +213,14 @@ export default function BellScheduleClient({
                 {isAdmin && <th className="py-3 px-4 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800/80">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40">
               {periods.map((p) => {
                 const typeMeta =
                   PERIOD_TYPE_LABELS[p.periodType] ?? DEFAULT_PERIOD_META;
                 return (
                   <tr
                     key={p.id}
-                    className="hover:bg-gray-50/60 dark:hover:bg-slate-800/40 transition"
+                    className="hover:bg-gray-50/60 dark:hover:bg-muted/30 transition"
                   >
                     <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
                       {p.periodNumber}
@@ -249,13 +249,13 @@ export default function BellScheduleClient({
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleOpenEdit(p)}
-                            className="p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+                            className="p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-muted/40"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDelete(p.id)}
-                            className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-slate-800"
+                            className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-muted/40"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -289,7 +289,7 @@ export default function BellScheduleClient({
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-3.5 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl"
+              className="px-3.5 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl"
             >
               Cancel
             </button>
@@ -325,7 +325,7 @@ export default function BellScheduleClient({
                     periodNumber: parseInt(e.target.value) || 1,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-bold"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-bold"
               />
             </div>
             <div className="col-span-2">
@@ -340,7 +340,7 @@ export default function BellScheduleClient({
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="Period 1, Assembly"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function BellScheduleClient({
                 onChange={(e) =>
                   setFormData({ ...formData, startTime: e.target.value })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
               />
             </div>
             <div>
@@ -371,7 +371,7 @@ export default function BellScheduleClient({
                 onChange={(e) =>
                   setFormData({ ...formData, endTime: e.target.value })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary font-mono"
               />
             </div>
           </div>
@@ -388,7 +388,7 @@ export default function BellScheduleClient({
                   periodType: e.target.value as any,
                 })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
             >
               <option value="REGULAR">Regular Class</option>
               <option value="ASSEMBLY">Morning Assembly</option>

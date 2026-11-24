@@ -73,17 +73,17 @@ export function FeeSetupWorkspace({
 
   return (
     <div className="space-y-6">
-      {/* Top Navigation Tabs matching Screenshot 2 */}
-      <div className="border-b border-gray-200 dark:border-slate-800">
-        <nav className="flex space-x-6 overflow-x-auto pb-px" aria-label="Tabs">
+      {/* Top Apple Inset Segmented Tabs */}
+      <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/40">
+        <nav className="flex space-x-1 overflow-x-auto no-scrollbar" aria-label="Tabs">
           {/* Tab 1 */}
           <button
             type="button"
             onClick={() => setActiveTab("heads")}
-            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+            className={`whitespace-nowrap py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all min-h-[44px] cursor-pointer ${
               activeTab === "heads"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-card text-[#248A3D] dark:text-[#30D158] shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <ListOrdered className="w-4 h-4" />
@@ -94,10 +94,10 @@ export function FeeSetupWorkspace({
           <button
             type="button"
             onClick={() => setActiveTab("matrix")}
-            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+            className={`whitespace-nowrap py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all min-h-[44px] cursor-pointer ${
               activeTab === "matrix"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-card text-[#248A3D] dark:text-[#30D158] shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <Table className="w-4 h-4" />
@@ -108,10 +108,10 @@ export function FeeSetupWorkspace({
           <button
             type="button"
             onClick={() => setActiveTab("lateFine")}
-            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+            className={`whitespace-nowrap py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all min-h-[44px] cursor-pointer ${
               activeTab === "lateFine"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-card text-[#248A3D] dark:text-[#30D158] shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -122,10 +122,10 @@ export function FeeSetupWorkspace({
           <button
             type="button"
             onClick={() => setActiveTab("concessions")}
-            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+            className={`whitespace-nowrap py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all min-h-[44px] cursor-pointer ${
               activeTab === "concessions"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-card text-[#248A3D] dark:text-[#30D158] shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <Percent className="w-4 h-4" />
@@ -136,10 +136,10 @@ export function FeeSetupWorkspace({
           <button
             type="button"
             onClick={() => setActiveTab("tax")}
-            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+            className={`whitespace-nowrap py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all min-h-[44px] cursor-pointer ${
               activeTab === "tax"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-card text-[#248A3D] dark:text-[#30D158] shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <Receipt className="w-4 h-4" />
@@ -162,7 +162,7 @@ export function FeeSetupWorkspace({
       )}
 
       {activeTab === "lateFine" && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-8 text-center space-y-4">
+        <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/40 p-8 text-center space-y-4">
           <Clock className="w-12 h-12 text-amber-500 mx-auto" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
             Late Fine Compounding Engine
@@ -182,7 +182,7 @@ export function FeeSetupWorkspace({
       )}
 
       {activeTab === "concessions" && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-8 text-center space-y-4">
+        <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/40 p-8 text-center space-y-4">
           <Percent className="w-12 h-12 text-purple-500 mx-auto" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
             Student Concessions & Scholarships
@@ -202,7 +202,7 @@ export function FeeSetupWorkspace({
       )}
 
       {activeTab === "tax" && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-8 text-center space-y-4">
+        <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/40 p-8 text-center space-y-4">
           <Receipt className="w-12 h-12 text-emerald-500 mx-auto" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
             Tax Statutory & GST Claims

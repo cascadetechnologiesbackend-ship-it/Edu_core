@@ -99,7 +99,7 @@ export default async function SubjectMappingPage() {
   return (
     <div className="space-y-6 max-w-[1280px] mx-auto px-4 md:px-6">
       {/* Breadcrumb Header */}
-      <div className="border-b border-gray-100 dark:border-slate-800 pb-4">
+      <div className="border-b border-gray-100 dark:border-border/40 pb-4">
         <nav className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-1">
           <Link href="/dashboard" className="hover:text-primary transition">
             Home

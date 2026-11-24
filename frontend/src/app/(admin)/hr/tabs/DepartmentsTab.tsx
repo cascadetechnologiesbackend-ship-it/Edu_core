@@ -108,7 +108,7 @@ export function DepartmentsTab({
             placeholder="Search departments..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-slate-800 rounded-xl text-xs md:text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-hidden focus:border-primary"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-border/40 rounded-xl text-xs md:text-sm bg-white dark:bg-card text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-hidden focus:border-primary"
           />
         </div>
 
@@ -128,8 +128,8 @@ export function DepartmentsTab({
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 overflow-hidden shadow-xs">
-        <div className="p-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40">
+      <div className="bg-white dark:bg-card rounded-2xl border border-gray-200 dark:border-border/40 overflow-hidden shadow-xs">
+        <div className="p-4 border-b border-gray-100 dark:border-border/40 bg-gray-50/70 dark:bg-muted/30">
           <h3 className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300">
             School Departments ({filteredDepartments.length})
           </h3>
@@ -144,18 +144,18 @@ export function DepartmentsTab({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/10 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/60/10 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
                   <th className="p-4">Department Name</th>
                   <th className="p-4">Assigned Staff</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                 {filteredDepartments.map((d) => {
                   const staffCount = d.staff?.length ?? 0;
                   return (
-                    <tr key={d.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={d.id} className="hover:bg-gray-50/60 dark:hover:bg-muted/20 transition-colors">
                       <td className="p-4 font-bold text-gray-900 dark:text-white">
                         {d.name}
                       </td>
@@ -176,7 +176,7 @@ export function DepartmentsTab({
                             Active
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-400 border border-gray-200 dark:border-slate-700">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-muted/60 dark:text-gray-400 border border-gray-200 dark:border-border/40">
                             Archived
                           </span>
                         )}
@@ -190,7 +190,7 @@ export function DepartmentsTab({
                                 setDeptForm({ id: d.id, name: d.name });
                                 setModalType("edit");
                               }}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-300 dark:border-border/40 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-muted/60"
                             >
                               Rename
                             </button>
@@ -245,10 +245,10 @@ export function DepartmentsTab({
               value={deptForm.name}
               onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
               placeholder="e.g. Science & STEM"
-              className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 outline-hidden"
+              className="w-full h-10 px-3 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-card text-gray-900 dark:text-gray-100 outline-hidden"
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-border/40">
             <button
               type="button"
               onClick={() => setModalType(null)}

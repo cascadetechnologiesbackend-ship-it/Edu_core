@@ -136,20 +136,20 @@ export function ConcessionSummaryClient({
       case "MERIT":
         return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800";
       case "SIBLING":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40";
       case "STAFF_WARD":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800";
+        return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/40";
       case "EWS":
-        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-300 border-gray-200 dark:border-slate-700";
+        return "bg-gray-100 text-gray-800 dark:bg-muted/60 dark:text-gray-300 border-gray-200 dark:border-border/40";
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Top Filter & Action Bar */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-500" />
@@ -160,7 +160,7 @@ export function ConcessionSummaryClient({
               aria-label="Select Academic Session"
               value={selectedYearId}
               onChange={(e) => handleYearChange(e.target.value)}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {academicYears.map((ay) => (
                 <option key={ay.id} value={ay.id}>
@@ -177,7 +177,7 @@ export function ConcessionSummaryClient({
               placeholder="Search policy, class, term..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="text-xs pl-8 pr-3 py-1.5 w-48 md:w-56 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="text-xs pl-8 pr-3 py-1.5 w-48 md:w-56 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -186,7 +186,7 @@ export function ConcessionSummaryClient({
               aria-label="Filter by Academic Term"
               value={selectedTerm}
               onChange={(e) => setSelectedTerm(e.target.value)}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 focus:outline-none"
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-700 dark:text-muted-foreground focus:outline-none"
             >
               <option value="ALL">All Terms</option>
               {availableTerms.map((t) => (
@@ -202,7 +202,7 @@ export function ConcessionSummaryClient({
               aria-label="Filter by Concession Type"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 focus:outline-none"
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-700 dark:text-muted-foreground focus:outline-none"
             >
               <option value="ALL">All Policy Types</option>
               {availableTypes.map((type) => (
@@ -218,7 +218,7 @@ export function ConcessionSummaryClient({
           <button
             onClick={() => handleYearChange(selectedYearId)}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-muted/60 text-gray-700 dark:text-muted-foreground transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -226,7 +226,7 @@ export function ConcessionSummaryClient({
 
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-muted/60 text-gray-700 dark:text-muted-foreground transition-colors"
           >
             <Printer className="w-3.5 h-3.5" />
             Print
@@ -242,7 +242,7 @@ export function ConcessionSummaryClient({
               {exporting ? "Exporting..." : "Export Excel (.xlsx)"}
             </button>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 cursor-not-allowed">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-muted/60 text-gray-400 dark:text-gray-500 cursor-not-allowed">
               <Lock className="w-3.5 h-3.5" />
               Export (Admin Only)
             </div>
@@ -253,7 +253,7 @@ export function ConcessionSummaryClient({
       {/* High-Level Financial Impact Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Concessions / Revenue Foregone */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">
               Revenue Foregone
@@ -265,31 +265,31 @@ export function ConcessionSummaryClient({
           <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             ₹{report.totalConcessions.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
             Total concessions & waivers granted
           </p>
         </div>
 
         {/* Gross Tuition Billed */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-muted-foreground">
               Gross Tuition Billed
             </span>
-            <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-muted/60 text-gray-600 dark:text-gray-400 flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             ₹{report.totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
             Pre-discount tuition commitment
           </p>
         </div>
 
         {/* Net Realized Revenue */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Net Realized
@@ -301,43 +301,43 @@ export function ConcessionSummaryClient({
           <div className="mt-2 text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
             ₹{report.totalNetRealized.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
             Post-concession collectable fees
           </p>
         </div>
 
         {/* Beneficiary Students */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               Beneficiaries
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {report.totalBeneficiaries} <span className="text-sm font-normal text-gray-500">students</span>
           </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
             Students receiving financial aid
           </p>
         </div>
 
         {/* Realization Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
               Realization Rate
             </span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <TrendingDown className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {report.overallRealizationRate.toFixed(1)}%
           </div>
-          <div className="mt-1.5 w-full bg-gray-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+          <div className="mt-1.5 w-full bg-gray-100 dark:bg-muted/60 h-1.5 rounded-full overflow-hidden">
             <div
               className="bg-indigo-600 h-full rounded-full transition-all"
               style={{ width: `${Math.min(100, Math.max(0, report.overallRealizationRate))}%` }}
@@ -348,15 +348,15 @@ export function ConcessionSummaryClient({
 
       {/* Policy Breakdown Chips */}
       {report.policyBreakdown.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-3">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-muted-foreground mb-3">
             Policy-Wise Revenue Foregone Distribution
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {report.policyBreakdown.map((pb) => (
               <div
                 key={pb.policyName}
-                className="p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col justify-between"
+                className="p-3 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">
@@ -385,8 +385,8 @@ export function ConcessionSummaryClient({
       )}
 
       {/* Authoritative Detailed Concession Matrix */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-indigo-600" />
             <h2 className="text-sm font-bold text-gray-900 dark:text-white">
@@ -399,8 +399,8 @@ export function ConcessionSummaryClient({
         </div>
 
         {filteredRows.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-slate-400 space-y-2">
-            <Percent className="w-10 h-10 mx-auto text-gray-300 dark:text-slate-600" />
+          <div className="p-12 text-center text-gray-500 dark:text-muted-foreground space-y-2">
+            <Percent className="w-10 h-10 mx-auto text-gray-300 dark:text-muted-foreground" />
             <div className="font-medium text-sm text-gray-900 dark:text-white">
               No concessions or waivers found
             </div>
@@ -412,7 +412,7 @@ export function ConcessionSummaryClient({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-slate-300 border-b border-gray-200 dark:border-slate-800 font-semibold uppercase tracking-wider">
+              <thead className="bg-gray-50 dark:bg-muted/40 text-gray-600 dark:text-muted-foreground border-b border-gray-200 dark:border-border/40 font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Policy / Scheme Name</th>
                   <th className="px-3 py-3">Type</th>
@@ -425,11 +425,11 @@ export function ConcessionSummaryClient({
                   <th className="px-4 py-3 text-right">Realization %</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                 {filteredRows.map((row, idx) => (
                   <tr
                     key={`${row.policyName}-${row.term}-${row.className}-${idx}`}
-                    className="hover:bg-gray-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                    className="hover:bg-gray-50/80 dark:hover:bg-muted/30 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                       {row.policyName}
@@ -443,16 +443,16 @@ export function ConcessionSummaryClient({
                         {row.concessionType}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-gray-600 dark:text-slate-300 font-mono">
+                    <td className="px-3 py-3 text-gray-600 dark:text-muted-foreground font-mono">
                       {row.term}
                     </td>
-                    <td className="px-3 py-3 text-gray-700 dark:text-slate-300">
+                    <td className="px-3 py-3 text-gray-700 dark:text-muted-foreground">
                       {row.className}
                     </td>
                     <td className="px-3 py-3 text-right font-medium text-gray-900 dark:text-white">
                       {row.studentCount}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-700 dark:text-slate-300">
+                    <td className="px-4 py-3 text-right font-mono text-gray-700 dark:text-muted-foreground">
                       ₹{row.grossAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
@@ -469,7 +469,7 @@ export function ConcessionSummaryClient({
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-gray-50 dark:bg-slate-800/80 border-t-2 border-gray-200 dark:border-slate-700 font-bold">
+              <tfoot className="bg-gray-50 dark:bg-muted/40 border-t-2 border-gray-200 dark:border-border/40 font-bold">
                 <tr>
                   <td className="px-4 py-3 text-gray-900 dark:text-white" colSpan={4}>
                     TOTAL (ALL FILTERED ROWS)

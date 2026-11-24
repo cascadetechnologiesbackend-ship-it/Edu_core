@@ -49,13 +49,13 @@ export function CollectForm({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
       {/* Student & Invoice Selection */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 space-y-6">
+      <div className="bg-white dark:bg-card p-6 rounded-xl shadow border border-gray-200 dark:border-border/40 space-y-6">
         <div>
           <label className="block text-sm font-medium mb-1">
             Search Student (with pending dues)
           </label>
           <select
-            className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2"
+            className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2"
             value={selectedStudent}
             onChange={(e) => {
               setSelectedStudent(e.target.value);
@@ -77,7 +77,7 @@ export function CollectForm({
               Pending Invoices
             </h3>
             {studentInvoices.length === 0 ? (
-              <div className="text-sm text-gray-500 bg-gray-50 dark:bg-slate-800 p-4 rounded-md border border-gray-100 dark:border-slate-700">
+              <div className="text-sm text-gray-500 bg-gray-50 dark:bg-muted/60 p-4 rounded-md border border-gray-100 dark:border-border/40">
                 <p>No pending invoices found for this student.</p>
                 <p className="mt-1 text-xs">
                   If you expected an invoice, please generate missing invoices
@@ -89,7 +89,7 @@ export function CollectForm({
                 {studentInvoices.map((inv) => (
                   <label
                     key={inv.id}
-                    className={`block cursor-pointer p-4 border rounded-lg transition-colors ${selectedInvoice === inv.id ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"}`}
+                    className={`block cursor-pointer p-4 border rounded-lg transition-colors ${selectedInvoice === inv.id ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-muted/60"}`}
                   >
                     <div className="flex items-center space-x-3">
                       <input
@@ -129,11 +129,11 @@ export function CollectForm({
       </div>
 
       {/* Payment Processing Form */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow border border-gray-200 dark:border-slate-800 h-fit">
+      <div className="bg-white dark:bg-card p-6 rounded-xl shadow border border-gray-200 dark:border-border/40 h-fit">
         <h2 className="text-lg font-semibold mb-4">Record Payment</h2>
 
         {!currentInvoice ? (
-          <div className="text-center py-10 text-gray-500 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-gray-300 dark:border-slate-700">
+          <div className="text-center py-10 text-gray-500 bg-gray-50 dark:bg-muted/30 rounded-lg border border-dashed border-gray-300 dark:border-border/40">
             Select an invoice from the left to record payment.
           </div>
         ) : (
@@ -161,7 +161,7 @@ export function CollectForm({
                   defaultValue={currentInvoice.balanceAmount}
                   max={currentInvoice.balanceAmount}
                   required
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 font-bold text-blue-600 dark:text-blue-400"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 font-bold text-blue-600 dark:text-blue-400"
                 />
               </div>
               <div>
@@ -171,7 +171,7 @@ export function CollectForm({
                 <select
                   name="paymentMethod"
                   required
-                  className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2"
+                  className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2"
                 >
                   <option value="CASH">Cash</option>
                   <option value="CHEQUE">Cheque</option>
@@ -188,7 +188,7 @@ export function CollectForm({
               <input
                 type="text"
                 name="transactionReference"
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2"
               />
             </div>
 
@@ -199,7 +199,7 @@ export function CollectForm({
               <textarea
                 name="remarks"
                 rows={2}
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2"
               ></textarea>
             </div>
 

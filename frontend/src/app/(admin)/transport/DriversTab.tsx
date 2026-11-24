@@ -156,13 +156,13 @@ export default function DriversTab({
   return (
     <div className="space-y-6">
       {/* Top Banner & Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 text-white shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-amber-500/25 shadow-xs text-foreground">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <User className="w-5 h-5 text-indigo-400" />
+            <User className="w-5 h-5 text-[#D97706] dark:text-[#FF9F0A]" />
             School Bus Drivers & Login Accounts
           </h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
+          <p className="text-xs text-muted-foreground mt-1 max-w-xl">
             Register bus drivers with authorized DRIVER role accounts. Drivers receive their login credentials via SMS with a link to the mobile PWA driver app.
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function DriversTab({
               setCreatedInfo(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition shadow-md shadow-indigo-600/20 whitespace-nowrap self-start sm:self-auto"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#D97706] dark:bg-[#FF9F0A] text-white dark:text-black font-semibold text-sm transition hover:opacity-90 min-h-[44px] whitespace-nowrap self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
             Add New Driver
@@ -183,10 +183,10 @@ export default function DriversTab({
       </div>
 
       {/* Drivers Table / Cards */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-card rounded-2xl border border-gray-200 dark:border-border/40 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-slate-800/60 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider border-b border-gray-200 dark:border-slate-800">
+            <thead className="bg-gray-50 dark:bg-muted/40 text-xs font-semibold text-gray-500 dark:text-muted-foreground uppercase tracking-wider border-b border-gray-200 dark:border-border/40">
               <tr>
                 <th className="py-3.5 px-4">Driver Name</th>
                 <th className="py-3.5 px-4">Contact & Licence</th>
@@ -196,12 +196,12 @@ export default function DriversTab({
                 {isAdmin && <th className="py-3.5 px-4 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60 text-gray-800 dark:text-slate-200 font-medium">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40 text-gray-800 dark:text-foreground font-medium">
               {drivers.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-12 text-center text-gray-400 dark:text-slate-500 text-sm"
+                    className="py-12 text-center text-gray-400 dark:text-muted-foreground text-sm"
                   >
                     No drivers registered yet. Click &quot;Add New Driver&quot; to create a driver account.
                   </td>
@@ -210,18 +210,18 @@ export default function DriversTab({
                 drivers.map((driver) => (
                   <tr
                     key={driver.id}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                    className="hover:bg-gray-50/50 dark:hover:bg-muted/20 transition"
                   >
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold">
                           {driver.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900 dark:text-white">
                             {driver.name}
                           </div>
-                          <div className="text-xs text-gray-400 dark:text-slate-500">
+                          <div className="text-xs text-gray-400 dark:text-muted-foreground">
                             Registered on{" "}
                             {new Date(driver.createdAt).toLocaleDateString()}
                           </div>
@@ -231,11 +231,11 @@ export default function DriversTab({
 
                     <td className="py-3.5 px-4">
                       <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-slate-300">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-muted-foreground">
                           <Phone className="w-3.5 h-3.5 text-gray-400" />
                           <span>{driver.mobile}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-muted-foreground">
                           <FileText className="w-3.5 h-3.5 text-gray-400" />
                           <span>Licence: {driver.licenceNumber}</span>
                         </div>
@@ -244,17 +244,17 @@ export default function DriversTab({
 
                     <td className="py-3.5 px-4">
                       {driver.vehicleBusNumber ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-700 dark:text-amber-300">
                           <Bus className="w-3.5 h-3.5" />
                           {driver.vehicleBusNumber}
                           {driver.vehicleRegNumber && (
-                            <span className="text-gray-400 dark:text-slate-500 font-normal">
+                            <span className="text-gray-400 dark:text-muted-foreground font-normal">
                               ({driver.vehicleRegNumber})
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400 dark:text-slate-500 italic">
+                        <span className="text-xs text-gray-400 dark:text-muted-foreground italic">
                           Unassigned
                         </span>
                       )}
@@ -262,7 +262,7 @@ export default function DriversTab({
 
                     <td className="py-3.5 px-4">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-muted-foreground">
                           <Mail className="w-3.5 h-3.5 text-gray-400" />
                           {driver.loginEmail}
                         </div>
@@ -297,7 +297,7 @@ export default function DriversTab({
                             onClick={() =>
                               handleToggleStatus(driver.id, driver.isActive)
                             }
-                            className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300 transition"
+                            className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-muted/60 text-gray-700 dark:text-muted-foreground transition"
                           >
                             {driver.isActive ? "Deactivate" : "Activate"}
                           </button>
@@ -322,19 +322,19 @@ export default function DriversTab({
       {/* Add Driver Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
+          <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/40 pb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                   Add New Bus Driver
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-muted-foreground mt-0.5">
                   Creates an authorized driver account with mobile PWA access.
                 </p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-1"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-foreground p-1"
               >
                 ✕
               </button>
@@ -346,23 +346,23 @@ export default function DriversTab({
                   <div className="flex items-center gap-2 font-bold text-emerald-400">
                     <CheckCircle className="w-5 h-5" /> Driver Account Created!
                   </div>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-muted-foreground">
                     Credentials have been sent to the driver via SMS. Please share these details with the driver:
                   </p>
-                  <div className="bg-slate-900/90 p-3 rounded-lg font-mono text-xs text-slate-200 space-y-1 border border-slate-800">
+                  <div className="bg-card p-3 rounded-lg font-mono text-xs text-foreground space-y-1 border border-border/40">
                     <div>
-                      <span className="text-slate-400">Driver:</span> {createdInfo.name}
+                      <span className="text-muted-foreground">Driver:</span> {createdInfo.name}
                     </div>
                     <div>
-                      <span className="text-slate-400">Login Username:</span>{" "}
+                      <span className="text-muted-foreground">Login Username:</span>{" "}
                       <span className="text-indigo-400">{createdInfo.email}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400">Default Password:</span>{" "}
+                      <span className="text-muted-foreground">Default Password:</span>{" "}
                       <span className="text-emerald-400">{createdInfo.password}</span>
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-muted-foreground">
                     The driver will be prompted to change their password when they first log in.
                   </p>
                 </div>
@@ -388,7 +388,7 @@ export default function DriversTab({
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground mb-1">
                     Driver Full Name *
                   </label>
                   <input
@@ -397,13 +397,13 @@ export default function DriversTab({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ramesh Kumar"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground mb-1">
                       10-Digit Mobile *
                     </label>
                     <input
@@ -412,15 +412,15 @@ export default function DriversTab({
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="e.g. 9876543210"
-                      className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
-                    <span className="text-[10px] text-gray-400 dark:text-slate-500">
+                    <span className="text-[10px] text-gray-400 dark:text-muted-foreground">
                       Used for default password `Driver@last4`
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground mb-1">
                       Driving Licence No. *
                     </label>
                     <input
@@ -429,19 +429,19 @@ export default function DriversTab({
                       value={licenceNumber}
                       onChange={(e) => setLicenceNumber(e.target.value)}
                       placeholder="e.g. MH122020000456"
-                      className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground mb-1">
                     Assigned Vehicle
                   </label>
                   <select
                     value={vehicleId}
                     onChange={(e) => setVehicleId(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">-- No vehicle assigned initially --</option>
                     {vehiclesList.map((v) => (
@@ -453,7 +453,7 @@ export default function DriversTab({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-muted-foreground mb-1">
                     Custom Login Email (Optional)
                   </label>
                   <input
@@ -461,7 +461,7 @@ export default function DriversTab({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Auto-generated if left blank"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -469,7 +469,7 @@ export default function DriversTab({
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium text-sm transition"
+                    className="px-4 py-2 rounded-xl border border-gray-300 dark:border-border/40 text-gray-700 dark:text-muted-foreground hover:bg-gray-100 dark:hover:bg-muted/60 font-medium text-sm transition"
                   >
                     Cancel
                   </button>

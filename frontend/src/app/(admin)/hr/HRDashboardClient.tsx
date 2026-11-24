@@ -205,7 +205,7 @@ export default function HRDashboardClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/12 text-[#B45309] dark:text-[#FFD60A] flex items-center justify-center shadow-xs">
               <Users className="w-5 h-5" />
             </div>
             <div>
@@ -235,7 +235,7 @@ export default function HRDashboardClient({
                 onClick={() => handleTabChange(tab.id)}
                 className={`flex items-center gap-2 py-2 px-3.5 sm:px-4 text-xs font-semibold whitespace-nowrap transition-all outline-none rounded-xl min-h-[44px] ${
                   isActive
-                    ? "bg-card text-foreground shadow-level-1 font-semibold"
+                    ? "bg-card text-[#B45309] dark:text-[#FFD60A] shadow-xs border border-border/60 font-semibold"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-medium"
                 }`}
                 aria-current={isActive ? "page" : undefined}

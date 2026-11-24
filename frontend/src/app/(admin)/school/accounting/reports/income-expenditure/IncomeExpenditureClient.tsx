@@ -104,7 +104,7 @@ export function IncomeExpenditureClient({
   return (
     <div className="space-y-6">
       {/* Action Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm print:hidden">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mr-2">
             <Calendar className="w-4 h-4 text-gray-400" />
@@ -114,14 +114,14 @@ export function IncomeExpenditureClient({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
           />
           <span className="text-xs text-gray-400">to</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
           />
           <button
             onClick={handleApplyFilter}
@@ -132,23 +132,23 @@ export function IncomeExpenditureClient({
             Apply Filter
           </button>
 
-          <div className="h-4 w-px bg-gray-200 dark:bg-slate-800 mx-1" />
+          <div className="h-4 w-px bg-gray-200 dark:bg-muted/60 mx-1" />
 
           <button
             onClick={() => handlePreset("ALL")}
-            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
+            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted text-gray-700 dark:text-foreground"
           >
             All History
           </button>
           <button
             onClick={() => handlePreset("FY")}
-            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
+            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted text-gray-700 dark:text-foreground"
           >
             Current FY
           </button>
           <button
             onClick={() => handlePreset("MONTH")}
-            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
+            className="px-2.5 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted text-gray-700 dark:text-foreground"
           >
             This Month
           </button>
@@ -157,7 +157,7 @@ export function IncomeExpenditureClient({
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-slate-200 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-foreground bg-gray-100 hover:bg-gray-200 dark:bg-muted/60 dark:hover:bg-muted rounded-xl transition inline-flex items-center gap-1.5"
           >
             <Printer className="w-3.5 h-3.5" />
             Print / PDF
@@ -221,7 +221,7 @@ export function IncomeExpenditureClient({
       {/* Two Column Layout: Income vs Expenditure */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Income / Revenue Side */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/20 border-b border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ArrowDownRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -236,13 +236,13 @@ export function IncomeExpenditureClient({
 
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-gray-50/50 dark:bg-slate-800/40 text-gray-500 border-b border-gray-100 dark:border-slate-800">
+              <tr className="bg-gray-50/50 dark:bg-muted/30 text-gray-500 border-b border-gray-100 dark:border-border/40">
                 <th className="py-2.5 px-4 w-24">Code</th>
                 <th className="py-2.5 px-4">Account / Head</th>
                 <th className="py-2.5 px-4 text-right w-32">Amount (₹)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800/50">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40/50">
               {report.incomeRows.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="py-6 text-center text-gray-400 italic">
@@ -251,7 +251,7 @@ export function IncomeExpenditureClient({
                 </tr>
               ) : (
                 report.incomeRows.map((row) => (
-                  <tr key={row.accountId} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30">
+                  <tr key={row.accountId} className="hover:bg-gray-50/60 dark:hover:bg-muted/20">
                     <td className="py-2 px-4 font-mono text-gray-500">{row.code}</td>
                     <td className="py-2 px-4 font-medium text-gray-900 dark:text-white">{row.name}</td>
                     <td className="py-2 px-4 text-right font-mono font-medium text-emerald-600 dark:text-emerald-400">
@@ -265,7 +265,7 @@ export function IncomeExpenditureClient({
               )}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 font-bold border-t border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white">
+              <tr className="bg-gray-50 dark:bg-muted/40 font-bold border-t border-gray-200 dark:border-border/40 text-gray-900 dark:text-white">
                 <td colSpan={2} className="py-2.5 px-4 text-right uppercase">
                   Total Income (A):
                 </td>
@@ -278,7 +278,7 @@ export function IncomeExpenditureClient({
         </div>
 
         {/* Expenditure Side */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 bg-rose-50/60 dark:bg-rose-950/20 border-b border-rose-100 dark:border-rose-900/40 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
@@ -293,13 +293,13 @@ export function IncomeExpenditureClient({
 
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-gray-50/50 dark:bg-slate-800/40 text-gray-500 border-b border-gray-100 dark:border-slate-800">
+              <tr className="bg-gray-50/50 dark:bg-muted/30 text-gray-500 border-b border-gray-100 dark:border-border/40">
                 <th className="py-2.5 px-4 w-24">Code</th>
                 <th className="py-2.5 px-4">Account / Head</th>
                 <th className="py-2.5 px-4 text-right w-32">Amount (₹)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800/50">
+            <tbody className="divide-y divide-gray-100 dark:divide-border/40/50">
               {report.expenditureRows.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="py-6 text-center text-gray-400 italic">
@@ -308,7 +308,7 @@ export function IncomeExpenditureClient({
                 </tr>
               ) : (
                 report.expenditureRows.map((row) => (
-                  <tr key={row.accountId} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30">
+                  <tr key={row.accountId} className="hover:bg-gray-50/60 dark:hover:bg-muted/20">
                     <td className="py-2 px-4 font-mono text-gray-500">{row.code}</td>
                     <td className="py-2 px-4 font-medium text-gray-900 dark:text-white">{row.name}</td>
                     <td className="py-2 px-4 text-right font-mono font-medium text-rose-600 dark:text-rose-400">
@@ -322,7 +322,7 @@ export function IncomeExpenditureClient({
               )}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 font-bold border-t border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white">
+              <tr className="bg-gray-50 dark:bg-muted/40 font-bold border-t border-gray-200 dark:border-border/40 text-gray-900 dark:text-white">
                 <td colSpan={2} className="py-2.5 px-4 text-right uppercase">
                   Total Expenditure (B):
                 </td>

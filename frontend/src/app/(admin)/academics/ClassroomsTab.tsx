@@ -112,7 +112,7 @@ export default function ClassroomsTab({
             <button
               type="button"
               onClick={() => setShowClassForm(false)}
-              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              className="bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -147,10 +147,10 @@ export default function ClassroomsTab({
                   displayName: opt ? opt.label : classData.displayName,
                 });
               }}
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
             >
               {ALL_GRADE_LEVELS.map((g) => (
-                <option key={g.value} value={g.value} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                <option key={g.value} value={g.value} className="text-gray-900 dark:text-white bg-card">
                   {g.label} ({g.value})
                 </option>
               ))}
@@ -167,7 +167,7 @@ export default function ClassroomsTab({
               onChange={(e) =>
                 setClassData({ ...classData, displayName: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -184,7 +184,7 @@ export default function ClassroomsTab({
                   sortOrder: parseInt(e.target.value),
                 })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </form>
@@ -206,7 +206,7 @@ export default function ClassroomsTab({
                 setShowSectionForm(false);
                 setEditingSectionId(null);
               }}
-              className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              className="bg-gray-100 hover:bg-gray-200 bg-muted/60 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -238,7 +238,7 @@ export default function ClassroomsTab({
               onChange={(e) =>
                 setSectionData({ ...sectionData, name: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -255,7 +255,7 @@ export default function ClassroomsTab({
                   capacity: parseInt(e.target.value),
                 })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div>
@@ -287,11 +287,11 @@ export default function ClassroomsTab({
                     classTeacherId: e.target.value,
                   })
                 }
-                className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
+                className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
               >
-                <option value="" className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">Select Class Teacher (Unassigned)</option>
+                <option value="" className="text-gray-900 dark:text-white bg-card">Select Class Teacher (Unassigned)</option>
                 {teachers.map((t) => (
-                  <option key={t.id} value={t.id} className="text-gray-900 dark:text-white bg-white dark:bg-slate-900">
+                  <option key={t.id} value={t.id} className="text-gray-900 dark:text-white bg-card">
                     {t.displayName || (t.name ? `${t.name} (${t.employeeCode || t.email})` : t.email)}
                   </option>
                 ))}
@@ -308,7 +308,7 @@ export default function ClassroomsTab({
               onChange={(e) =>
                 setSectionData({ ...sectionData, roomNumber: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-md border border-gray-300 dark:border-border/40 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </form>
@@ -319,7 +319,7 @@ export default function ClassroomsTab({
         {classrooms.map((cls) => (
           <div
             key={cls.id}
-            className="bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 p-6 space-y-4"
+            className="bg-card rounded-xl shadow border border-gray-200 dark:border-border/40 p-6 space-y-4"
           >
             <div className="flex justify-between items-start">
               <div>
@@ -372,7 +372,7 @@ export default function ClassroomsTab({
                     return (
                       <div
                         key={sec.id}
-                        className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-sm p-3.5 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 transition"
+                        className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-sm p-3.5 bg-gray-50 dark:bg-muted/30 rounded-xl border border-gray-100 dark:border-border/40 hover:border-gray-200 dark:hover:border-border transition"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function ClassroomsTab({
                               Section {sec.name}
                             </p>
                             {sec.roomNumber && (
-                              <span className="text-[11px] font-medium bg-gray-200/60 dark:bg-slate-700/60 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md">
+                              <span className="text-[11px] font-medium bg-gray-200/60 bg-muted/60 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md">
                                 Room {sec.roomNumber}
                               </span>
                             )}
@@ -420,7 +420,7 @@ export default function ClassroomsTab({
                                 });
                                 setShowSectionForm(true);
                               }}
-                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 font-bold transition shadow-2xs cursor-pointer min-h-[32px]"
+                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border/40 bg-card text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-muted/60 font-bold transition shadow-2xs cursor-pointer min-h-[32px]"
                             >
                               <Edit2 className="w-3.5 h-3.5 text-primary" /> Edit Section
                             </button>

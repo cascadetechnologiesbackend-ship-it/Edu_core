@@ -1004,7 +1004,7 @@ export default function ClassHubClient({
                     <th className="p-3.5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                   {filteredRosterStudents.map((student) => {
                     const sec = cls.sections.find(
                       (s) => s.id === student.sectionId,
@@ -1015,7 +1015,7 @@ export default function ClassHubClient({
                     return (
                       <tr
                         key={student.id}
-                        className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition group"
+                        className="hover:bg-gray-50/50 dark:hover:bg-muted/30 transition group"
                       >
                         {/* Student avatar & name (Law L12) */}
                         <td className="p-3.5">
@@ -1042,7 +1042,7 @@ export default function ClassHubClient({
 
                         {/* Section */}
                         <td className="p-3.5">
-                          <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 bg-muted/60 text-gray-700 dark:text-gray-300">
                             Sec {sec?.name || "—"}
                           </span>
                         </td>
@@ -1139,7 +1139,7 @@ export default function ClassHubClient({
                 </button>
                 <Link
                   href="/academics/mapping"
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 min-h-[38px] inline-flex items-center"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-border/40 bg-card text-gray-700 dark:text-gray-200 hover:bg-gray-50 min-h-[38px] inline-flex items-center"
                 >
                   Open Mapping Matrix
                 </Link>
@@ -1156,7 +1156,7 @@ export default function ClassHubClient({
               onCta={() => setShowSubjectModal(true)}
             />
           ) : (
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden divide-y divide-gray-100 dark:divide-slate-800">
+            <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs overflow-hidden divide-y divide-gray-100 dark:divide-border/40">
               {cls.classSubjects.map((cs) => {
                 const prog = overview.subjectProgress.find(
                   (sp) => sp.classSubjectId === cs.id,
@@ -1165,14 +1165,14 @@ export default function ClassHubClient({
                 return (
                   <div
                     key={cs.id}
-                    className="p-4 flex items-center justify-between hover:bg-gray-50/60 dark:hover:bg-slate-800/40 transition"
+                    className="p-4 flex items-center justify-between hover:bg-gray-50/60 dark:hover:bg-muted/30 transition"
                   >
                     <div className="flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-bold text-sm text-gray-900 dark:text-white truncate">
                           {cs.subject.name}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-gray-100 dark:bg-slate-800 text-gray-500">
+                        <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-gray-100 bg-muted/60 text-gray-500">
                           {cs.subject.code}
                         </span>
                         {cs.isElective && (
@@ -1203,7 +1203,7 @@ export default function ClassHubClient({
                         <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block mb-1">
                           {pct}%
                         </span>
-                        <div className="w-full bg-gray-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="w-full bg-gray-100 bg-muted/60 h-1.5 rounded-full overflow-hidden">
                           <div
                             className="bg-primary h-full rounded-full"
                             style={{ width: `${pct}%` }}
@@ -1215,7 +1215,7 @@ export default function ClassHubClient({
                         <button
                           type="button"
                           onClick={() => handleOpenChangeLead(cs)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition shrink-0 min-h-[36px] flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 bg-muted/60 hover:bg-gray-200 dark:hover:bg-muted/60 text-gray-700 dark:text-gray-300 transition shrink-0 min-h-[36px] flex items-center gap-1"
                         >
                           <Edit2 className="w-3 h-3" />
                           <span>Change Lead</span>
@@ -1261,7 +1261,7 @@ export default function ClassHubClient({
                 </button>
                 <Link
                   href="/academics/setup/bell-schedule"
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 min-h-[38px] inline-flex items-center"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-card border border-gray-200 dark:border-border/40 text-gray-700 dark:text-gray-200 min-h-[38px] inline-flex items-center"
                 >
                   Configure Bell Schedule
                 </Link>
@@ -1316,10 +1316,10 @@ export default function ClassHubClient({
               onCta={() => router.push("/examinations")}
             />
           ) : (
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-x-auto">
+            <div className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/75 dark:bg-slate-800/40 border-b border-gray-200 dark:border-slate-800 text-[11px] font-bold uppercase text-gray-500">
+                  <tr className="bg-gray-50/75 dark:bg-muted/30 border-b border-gray-200 dark:border-border/40 text-[11px] font-bold uppercase text-gray-500">
                     <th className="p-3.5">Exam Name</th>
                     <th className="p-3.5">Subject</th>
                     <th className="p-3.5">Date & Time</th>
@@ -1328,11 +1328,11 @@ export default function ClassHubClient({
                     <th className="p-3.5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-gray-100 dark:divide-border/40">
                   {classExams.map((exam) => (
                     <tr
                       key={exam.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                      className="hover:bg-gray-50/50 dark:hover:bg-muted/30 transition"
                     >
                       <td className="p-3.5 font-bold text-gray-900 dark:text-white">
                         {exam.examName}
@@ -1398,7 +1398,7 @@ export default function ClassHubClient({
             {overview.subjectProgress.map((sp) => (
               <div
                 key={sp.classSubjectId}
-                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between"
+                className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-xs flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1409,7 +1409,7 @@ export default function ClassHubClient({
                       {sp.percentage}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mb-3">
+                  <div className="w-full bg-gray-100 bg-muted/60 h-2 rounded-full overflow-hidden mb-3">
                     <div
                       className="bg-primary h-full rounded-full"
                       style={{ width: `${sp.percentage}%` }}
@@ -1420,7 +1420,7 @@ export default function ClassHubClient({
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 dark:border-slate-800 mt-3">
+                <div className="pt-4 border-t border-gray-100 dark:border-border/40 mt-3">
                   <Link
                     href={`/academics/classes/${cls.id}/subjects/${sp.classSubjectId}`}
                     className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
@@ -1456,13 +1456,13 @@ export default function ClassHubClient({
               {initialAssignments.map((a: any) => (
                 <div
                   key={a.id}
-                  className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs"
+                  className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-primary">
                       {a.classSubject?.subject?.name || "Subject"}
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-gray-100 dark:bg-slate-800 text-gray-500">
+                    <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-gray-100 bg-muted/60 text-gray-500">
                       Due {a.dueDate ? format(new Date(a.dueDate), "MMM d") : "No due date"}
                     </span>
                   </div>
@@ -1472,7 +1472,7 @@ export default function ClassHubClient({
                   <p className="text-xs text-gray-500 line-clamp-2 mb-3">
                     {a.description || "No description provided."}
                   </p>
-                  <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-xs text-gray-400">
+                  <div className="pt-2 border-t border-gray-100 dark:border-border/40 flex items-center justify-between text-xs text-gray-400">
                     <span>Sec {a.section?.name || "All"}</span>
                     <span>Max: {a.maxMarks || 100} pts</span>
                   </div>
@@ -1505,7 +1505,7 @@ export default function ClassHubClient({
               {initialLessonPlans.map((lp: any) => (
                 <div
                   key={lp.id}
-                  className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs"
+                  className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs"
                 >
                   <span className="text-xs font-bold text-primary block mb-1">
                     {lp.classSubject?.subject?.name || "Subject"}
@@ -1551,7 +1551,7 @@ export default function ClassHubClient({
               {initialAssessments.map((ass: any) => (
                 <div
                   key={ass.id}
-                  className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs"
+                  className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-xs"
                 >
                   <span className="text-xs font-bold text-primary block mb-1">
                     {ass.classSubject?.subject?.name || "Subject"}
@@ -1559,7 +1559,7 @@ export default function ClassHubClient({
                   <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-2 line-clamp-1">
                     {ass.title}
                   </h4>
-                  <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-border/40">
                     <span>Sec {ass.section?.name || "All"}</span>
                     <span>Max Marks: {ass.maxMarks}</span>
                   </div>
@@ -1622,7 +1622,7 @@ export default function ClassHubClient({
               {cls.sections.map((sec) => (
                 <div
                   key={sec.id}
-                  className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between"
+                  className="bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-xs flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -1637,7 +1637,7 @@ export default function ClassHubClient({
                           <button
                             type="button"
                             onClick={() => handleOpenEditSection(sec)}
-                            className="p-1 text-gray-400 hover:text-primary transition rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
+                            className="p-1 text-gray-400 hover:text-primary transition rounded-lg hover:bg-gray-100 dark:hover:bg-muted/40"
                             title="Edit Section & Class Teacher"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -1678,7 +1678,7 @@ export default function ClassHubClient({
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 mt-4 flex items-center justify-between">
+                  <div className="pt-4 border-t border-gray-100 dark:border-border/40 mt-4 flex items-center justify-between">
                     <button
                       type="button"
                       onClick={() => {
@@ -1709,7 +1709,7 @@ export default function ClassHubClient({
             <button
               type="button"
               onClick={() => setShowSectionModal(false)}
-              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[40px]"
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[40px]"
             >
               Cancel
             </button>
@@ -1736,7 +1736,7 @@ export default function ClassHubClient({
               value={sectionName}
               onChange={(e) => setSectionName(e.target.value)}
               placeholder="e.g. A"
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
             />
           </div>
 
@@ -1750,7 +1750,7 @@ export default function ClassHubClient({
               onChange={(e) =>
                 setSectionCapacity(parseInt(e.target.value) || 40)
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
             />
           </div>
 
@@ -1776,7 +1776,7 @@ export default function ClassHubClient({
               <select
                 value={sectionTeacherId}
                 onChange={(e) => setSectionTeacherId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               >
                 <option value="">None / Assign Later</option>
                 {allTeachers.map((t) => (
@@ -1797,7 +1797,7 @@ export default function ClassHubClient({
               value={sectionRoom}
               onChange={(e) => setSectionRoom(e.target.value)}
               placeholder="e.g. 101"
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
             />
           </div>
         </form>
@@ -1820,7 +1820,7 @@ export default function ClassHubClient({
                 setShowEditSectionModal(false);
                 setEditingSection(null);
               }}
-              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[40px]"
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[40px]"
             >
               Cancel
             </button>
@@ -1860,7 +1860,7 @@ export default function ClassHubClient({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleSaveEditSection(true)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition"
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-black hover:bg-amber-400 transition"
                   >
                     Transfer to Section {editingSection.name}
                   </button>
@@ -1879,7 +1879,7 @@ export default function ClassHubClient({
                 onChange={(e) =>
                   setEditingSection({ ...editingSection, name: e.target.value })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               />
             </div>
 
@@ -1896,7 +1896,7 @@ export default function ClassHubClient({
                     capacity: parseInt(e.target.value) || 40,
                   })
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               />
             </div>
 
@@ -1930,7 +1930,7 @@ export default function ClassHubClient({
                       classTeacherId: e.target.value,
                     })
                   }
-                  className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                  className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
                 >
                   <option value="">None / Unassigned</option>
                   {allTeachers.map((t) => (
@@ -1956,7 +1956,7 @@ export default function ClassHubClient({
                   })
                 }
                 placeholder="e.g. 101"
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               />
             </div>
           </form>
@@ -1975,7 +1975,7 @@ export default function ClassHubClient({
             <button
               type="button"
               onClick={() => setShowChangeLeadModal(false)}
-              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[38px]"
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[38px]"
             >
               Cancel
             </button>
@@ -2019,7 +2019,7 @@ export default function ClassHubClient({
               <select
                 value={leadTeacherId}
                 onChange={(e) => setLeadTeacherId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               >
                 <option value="">None / Unassigned</option>
                 {allTeachers.map((t) => (
@@ -2051,7 +2051,7 @@ export default function ClassHubClient({
               <button
                 type="button"
                 onClick={() => setShowSubjectModal(false)}
-                className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[40px]"
+                className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[40px]"
               >
                 {justAttachedSubjectId ? "Done" : "Cancel"}
               </button>
@@ -2107,7 +2107,7 @@ export default function ClassHubClient({
             <select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
             >
               <option value="">Select subject from catalog...</option>
               {allSubjects.map((s) => {
@@ -2129,7 +2129,7 @@ export default function ClassHubClient({
 
             {/* Inline Quick-Create Form */}
             {showInlineSubject && (
-              <div className="mt-2 p-3 bg-gray-50 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-700 space-y-2 animate-fade-in">
+              <div className="mt-2 p-3 bg-gray-50 dark:bg-muted/40 rounded-xl border border-gray-200 dark:border-border/40 space-y-2 animate-fade-in">
                 <span className="text-[11px] font-bold uppercase text-gray-400 block">
                   Quick Add to Catalog
                 </span>
@@ -2138,7 +2138,7 @@ export default function ClassHubClient({
                   placeholder="Subject Name (e.g. Psychology)"
                   value={inlineSubName}
                   onChange={(e) => setInlineSubName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs min-h-[34px]"
+                  className="w-full rounded-lg border border-gray-300 dark:border-border/40 bg-card px-2.5 py-1.5 text-xs min-h-[34px]"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -2146,12 +2146,12 @@ export default function ClassHubClient({
                     placeholder="Code (e.g. PSY01)"
                     value={inlineSubCode}
                     onChange={(e) => setInlineSubCode(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs uppercase min-h-[34px]"
+                    className="w-full rounded-lg border border-gray-300 dark:border-border/40 bg-card px-2.5 py-1.5 text-xs uppercase min-h-[34px]"
                   />
                   <select
                     value={inlineSubType}
                     onChange={(e) => setInlineSubType(e.target.value as any)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs min-h-[34px]"
+                    className="w-full rounded-lg border border-gray-300 dark:border-border/40 bg-card px-2 py-1.5 text-xs min-h-[34px]"
                   >
                     <option value="THEORY">Theory</option>
                     <option value="PRACTICAL">Practical</option>
@@ -2192,7 +2192,7 @@ export default function ClassHubClient({
               <select
                 value={assignedTeacherId}
                 onChange={(e) => setAssignedTeacherId(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               >
                 <option value="">None / Unassigned</option>
                 {allTeachers.map((t) => (
@@ -2215,7 +2215,7 @@ export default function ClassHubClient({
                 onChange={(e) =>
                   setPeriodsPerWeek(parseInt(e.target.value) || 5)
                 }
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               />
             </div>
 
@@ -2226,7 +2226,7 @@ export default function ClassHubClient({
               <select
                 value={isElective ? "elective" : "core"}
                 onChange={(e) => setIsElective(e.target.value === "elective")}
-                className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-primary min-h-[38px]"
               >
                 <option value="core">Core Mandatory</option>
                 <option value="elective">Elective Option</option>
@@ -2247,7 +2247,7 @@ export default function ClassHubClient({
             <button
               type="button"
               onClick={() => setShowSubModal(false)}
-              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition min-h-[40px]"
+              className="px-3.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-muted/40 rounded-xl transition min-h-[40px]"
             >
               Cancel
             </button>
@@ -2275,7 +2275,7 @@ export default function ClassHubClient({
               onChange={(e) =>
                 setSubFormData({ ...subFormData, date: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs min-h-[38px]"
             />
           </div>
 
@@ -2296,7 +2296,7 @@ export default function ClassHubClient({
                   subjectId: foundP?.subjectId || subFormData.subjectId,
                 });
               }}
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs min-h-[38px]"
             >
               <option value="">Select period to substitute</option>
               {initialTimetable
@@ -2322,7 +2322,7 @@ export default function ClassHubClient({
                   originalTeacherId: e.target.value,
                 })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs min-h-[38px]"
             >
               <option value="">Select absent teacher</option>
               {allTeachers.map((t) => (
@@ -2346,7 +2346,7 @@ export default function ClassHubClient({
                   substituteTeacherId: e.target.value,
                 })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs min-h-[38px]"
             >
               <option value="">Select substitute teacher</option>
               {allTeachers.map((t) => (
@@ -2368,7 +2368,7 @@ export default function ClassHubClient({
               onChange={(e) =>
                 setSubFormData({ ...subFormData, reason: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[38px]"
+              className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs min-h-[38px]"
             />
           </div>
         </form>
