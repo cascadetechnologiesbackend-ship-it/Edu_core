@@ -226,14 +226,14 @@ export default function AttendanceManager({
           <button
             onClick={() => handleMarkAll("PRESENT")}
             disabled={students.length === 0 || loadingStudents}
-            className="flex-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 font-semibold py-2.5 rounded-xl hover:bg-emerald-500/20 active:scale-[0.98] transition text-xs sm:text-sm min-h-[44px] disabled:opacity-50"
+            className="flex-1 bg-semantic-money-in/12 text-semantic-money-in border border-semantic-money-in/25 font-semibold py-2.5 rounded-xl hover:bg-semantic-money-in/20 active:scale-[0.98] transition text-xs sm:text-sm min-h-[44px] disabled:opacity-50"
           >
             Mark All Present
           </button>
           <button
             onClick={() => handleMarkAll("ABSENT")}
             disabled={students.length === 0 || loadingStudents}
-            className="flex-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25 font-semibold py-2.5 rounded-xl hover:bg-rose-500/20 active:scale-[0.98] transition text-xs sm:text-sm min-h-[44px] disabled:opacity-50"
+            className="flex-1 bg-semantic-money-owed/12 text-semantic-money-owed border border-semantic-money-owed/25 font-semibold py-2.5 rounded-xl hover:bg-semantic-money-owed/20 active:scale-[0.98] transition text-xs sm:text-sm min-h-[44px] disabled:opacity-50"
           >
             Mark All Absent
           </button>
@@ -243,10 +243,10 @@ export default function AttendanceManager({
       {/* Messages */}
       {message && (
         <div
-          className={`flex items-start gap-3 p-4 rounded-lg border ${
+          className={`flex items-start gap-3 p-4 rounded-xl border ${
             message.type === "success"
-              ? "bg-green-50 text-green-800 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800"
-              : "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-800"
+              ? "bg-semantic-money-in/12 text-semantic-money-in border-semantic-money-in/25"
+              : "bg-semantic-money-owed/12 text-semantic-money-owed border-semantic-money-owed/25"
           }`}
         >
           {message.type === "success" ? (
@@ -308,25 +308,25 @@ export default function AttendanceManager({
                               value: "PRESENT",
                               label: "Present",
                               color:
-                                "peer-checked:bg-green-600 peer-checked:text-white",
+                                "peer-checked:bg-semantic-money-in peer-checked:text-white",
                             },
                             {
                               value: "ABSENT",
                               label: "Absent",
                               color:
-                                "peer-checked:bg-red-600 peer-checked:text-white",
+                                "peer-checked:bg-semantic-money-owed peer-checked:text-white",
                             },
                             {
                               value: "LATE",
                               label: "Late",
                               color:
-                                "peer-checked:bg-yellow-600 peer-checked:text-white",
+                                "peer-checked:bg-semantic-attention peer-checked:text-white",
                             },
                             {
                               value: "HALF_DAY",
                               label: "Half Day",
                               color:
-                                "peer-checked:bg-orange-600 peer-checked:text-white",
+                                "peer-checked:bg-semantic-attention peer-checked:text-white",
                             },
                             {
                               value: "LEAVE",
@@ -412,27 +412,27 @@ export default function AttendanceManager({
                       {
                         value: "PRESENT",
                         label: "Present",
-                        activeClass: "bg-green-600 text-white border-green-600 font-bold shadow-sm",
+                        activeClass: "bg-semantic-money-in text-white border-semantic-money-in font-bold shadow-xs",
                       },
                       {
                         value: "ABSENT",
                         label: "Absent",
-                        activeClass: "bg-red-600 text-white border-red-600 font-bold shadow-sm",
+                        activeClass: "bg-semantic-money-owed text-white border-semantic-money-owed font-bold shadow-xs",
                       },
                       {
                         value: "LATE",
                         label: "Late",
-                        activeClass: "bg-yellow-600 text-white border-yellow-600 font-bold shadow-sm",
+                        activeClass: "bg-semantic-attention text-white border-semantic-attention font-bold shadow-xs",
                       },
                       {
                         value: "HALF_DAY",
                         label: "Half Day",
-                        activeClass: "bg-orange-600 text-white border-orange-600 font-bold shadow-sm",
+                        activeClass: "bg-semantic-attention text-white border-semantic-attention font-bold shadow-xs",
                       },
                       {
                         value: "LEAVE",
                         label: "Leave",
-                        activeClass: "bg-blue-600 text-white border-blue-600 font-bold shadow-sm",
+                        activeClass: "bg-semantic-interactive text-white border-semantic-interactive font-bold shadow-xs",
                       },
                       {
                         value: "HOLIDAY",

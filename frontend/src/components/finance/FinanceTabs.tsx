@@ -129,7 +129,7 @@ export function FinanceTabs({
   );
 
   return (
-    <div className={cn("border-b border-gray-200 dark:border-slate-800 pb-2", className)}>
+    <div className={cn("border-b border-border/40 pb-2", className)}>
       <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" aria-label="Finance Navigation Tabs">
         {effectivePrimary.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
@@ -138,10 +138,10 @@ export function FinanceTabs({
               key={tab.id}
               href={tab.href as any}
               className={cn(
-                "relative inline-flex items-center gap-2 px-3.5 py-2 min-h-[44px] shrink-0 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150",
+                "relative inline-flex items-center gap-2 px-3.5 py-2 min-h-[44px] shrink-0 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40",
                 isActive
-                  ? "bg-indigo-600 text-white shadow-sm font-semibold dark:bg-indigo-500"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80"
+                  ? "bg-card text-foreground shadow-sm font-semibold border border-border/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
               aria-current={isActive ? "page" : undefined}
             >
@@ -151,12 +151,12 @@ export function FinanceTabs({
                   className={cn(
                     "px-1.5 py-0.5 text-[11px] font-bold rounded-full",
                     isActive
-                      ? "bg-white/20 text-white"
+                      ? "bg-muted text-foreground"
                       : tab.badgeVariant === "destructive"
-                      ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
+                      ? "bg-semantic-money-owed/15 text-semantic-money-owed"
                       : tab.badgeVariant === "warning"
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
-                      : "bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-slate-200"
+                      ? "bg-semantic-attention/15 text-semantic-attention"
+                      : "bg-muted text-muted-foreground"
                   )}
                 >
                   {tab.badge}
@@ -172,10 +172,10 @@ export function FinanceTabs({
               type="button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40",
                 isOverflowActive
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80"
+                  ? "bg-card text-foreground font-semibold border border-border/50 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
@@ -191,8 +191,8 @@ export function FinanceTabs({
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-3 py-1.5 text-[11px] font-semibold tracking-wider text-gray-400 uppercase">
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-border/40 shadow-level-3 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-card-foreground">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                     Setup & Operations
                   </div>
                   {effectiveOverflow.map((tab) => {
@@ -203,15 +203,15 @@ export function FinanceTabs({
                         href={tab.href as any}
                         onClick={() => setDropdownOpen(false)}
                         className={cn(
-                          "flex items-center justify-between px-3 py-2 text-sm transition-colors",
+                          "flex items-center justify-between px-3 py-2 text-sm transition-colors rounded-xl mx-1",
                           isActive
-                            ? "bg-indigo-50 text-indigo-600 font-semibold dark:bg-indigo-950/50 dark:text-indigo-400"
-                            : "text-gray-700 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                            ? "bg-muted text-foreground font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                         )}
                       >
                         <span>{tab.label}</span>
                         {tab.badge !== undefined && (
-                          <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
+                          <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground">
                             {tab.badge}
                           </span>
                         )}

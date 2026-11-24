@@ -219,13 +219,13 @@ export function FeesDashboardClient({
           {selectedAy?.isLocked ? (
             <span
               title={`Locked on ${selectedAy.label}. Ledger mutations are strictly immutable.`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-semantic-money-owed/12 text-semantic-money-owed border border-semantic-money-owed/25"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
               <Lock className="w-3 h-3" /> Fiscal Locked
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-semantic-money-in/12 text-semantic-money-in border border-semantic-money-in/25">
               <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
               <Unlock className="w-3 h-3" /> Fiscal Open
             </span>
@@ -242,8 +242,8 @@ export function FeesDashboardClient({
               }
               className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1 ${
                 selectedAy.isLocked
-                  ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                  : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                  ? "bg-semantic-attention/12 text-semantic-attention border-semantic-attention/25 hover:bg-semantic-attention/20"
+                  : "bg-semantic-money-owed/12 text-semantic-money-owed border-semantic-money-owed/25 hover:bg-semantic-money-owed/20"
               }`}
             >
               {selectedAy.isLocked ? (
@@ -259,17 +259,17 @@ export function FeesDashboardClient({
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-semantic-money-in animate-pulse" />
           Real-Time SQL Aggregated Telemetry
         </div>
       </div>
 
       {/* ACC-06: Dashboard Nudge for Expired Academic Year */}
       {daysSinceEnd > 0 && selectedAy && (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs">
+        <div className="p-4 rounded-2xl bg-semantic-attention/10 border border-semantic-attention/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-foreground text-xs">
           <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-semantic-attention shrink-0" />
             <span>
               <strong>Fiscal Governance Nudge:</strong> Academic Year <strong>{selectedAy.label}</strong> ended <strong>{daysSinceEnd} days ago</strong>. Consider locking this period to ensure balance sheet and ledger immutability against backdated mutations.
             </span>
@@ -282,7 +282,7 @@ export function FeesDashboardClient({
                   isLocked: false,
                 })
               }
-              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 shrink-0 shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-semantic-attention text-white font-semibold hover:bg-semantic-attention/90 shrink-0 shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Lock className="w-3 h-3" /> Lock Academic Year
             </button>
@@ -330,7 +330,7 @@ export function FeesDashboardClient({
             subtitle={`${kpis.todayPaymentsCount} receipts cleared today`}
             delta={{ value: "Live", label: "Cash & Bank", isPositive: true }}
             href="/school/transactions"
-            variant="emerald"
+            variant="money_in"
           />
 
           <MoneyKpi
@@ -339,7 +339,7 @@ export function FeesDashboardClient({
             subtitle={`Uncollected fees in this session`}
             delta={{ value: `${kpis.recoveryRate}%`, label: "Recovery Rate", isPositive: false }}
             href="/school/due-fees"
-            variant="rose"
+            variant="money_owed"
           />
 
           <MoneyKpi
@@ -348,7 +348,7 @@ export function FeesDashboardClient({
             subtitle="Immediate follow-up required"
             delta={{ value: "Risk", label: "Default Warning", isPositive: false }}
             href="/school/due-fees?bracket=60%2B"
-            variant="primary"
+            variant="attention"
           />
 
           <MoneyKpi
@@ -357,16 +357,17 @@ export function FeesDashboardClient({
             subtitle={`₹${kpis.totalCollected.toLocaleString("en-IN")} collected`}
             delta={{ value: "Target", label: "Billed Total", isNeutral: true }}
             href="/school/fees-dashboard"
+            variant="neutral"
           />
 
           {/* Slot 5: Collect Fee CTA Card (Spec 4.1.0 SCR-HUB) */}
           <Link
             href="/school/collect-fees"
-            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] transition-all duration-200 border border-indigo-500/30 min-h-[140px]"
+            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-semantic-interactive text-white shadow-level-1 hover:shadow-level-2 hover:scale-[1.01] transition-all duration-200 border border-semantic-interactive/40 min-h-[140px]"
           >
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">
+                <span className="text-xs font-bold uppercase tracking-wider text-white/80">
                   Quick Action
                 </span>
                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-white/20 text-[11px] font-mono font-bold text-white shadow-inner">
@@ -374,14 +375,14 @@ export function FeesDashboardClient({
                 </span>
               </div>
               <h3 className="text-lg font-bold text-white mt-2 flex items-center gap-1.5">
-                <CreditCard className="w-5 h-5 text-indigo-200" />
+                <CreditCard className="w-5 h-5 text-white/90" />
                 Collect Fee
               </h3>
-              <p className="text-xs text-indigo-100/80 mt-1">
+              <p className="text-xs text-white/80 mt-1">
                 Open Counter POS terminal
               </p>
             </div>
-            <div className="pt-2 flex items-center justify-between text-xs font-semibold text-indigo-200 group-hover:text-white">
+            <div className="pt-2 flex items-center justify-between text-xs font-semibold text-white/90 group-hover:text-white">
               <span>Launch Terminal</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -392,16 +393,16 @@ export function FeesDashboardClient({
       {/* Band 2: Priority Work Lists & Aging Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Aging Distribution Cards */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-card p-6 rounded-3xl border border-border/40 shadow-xs flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Clock className="w-5 h-5 text-amber-500" />
+            <div className="flex items-center justify-between pb-3 border-b border-border/30">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Clock className="w-5 h-5 text-semantic-attention" />
                 Receivables Aging Buckets
               </h3>
-              <span className="text-xs text-gray-400 font-mono">FIFO Dues</span>
+              <span className="text-xs text-muted-foreground font-mono">FIFO Dues</span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Breakdown of pending balances categorized by due date elapsed.
             </p>
           </div>
@@ -409,16 +410,16 @@ export function FeesDashboardClient({
           <div className="space-y-3.5 my-2">
             <Link
               href="/school/due-fees"
-              className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 hover:scale-[1.01] transition"
+              className="flex items-center justify-between p-3 rounded-2xl bg-semantic-money-in/8 border border-semantic-money-in/20 hover:scale-[1.01] transition"
             >
               <div>
-                <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-400">
+                <p className="text-xs font-semibold text-semantic-money-in">
                   Current (Not Due)
                 </p>
-                <p className="text-xs text-gray-500">Grace / Early Window</p>
+                <p className="text-xs text-muted-foreground">Grace / Early Window</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-300">
+                <p className="text-sm font-bold font-mono tabular-nums text-semantic-money-in">
                   ₹{aging.current.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -426,16 +427,16 @@ export function FeesDashboardClient({
 
             <Link
               href="/school/due-fees?bracket=0-30"
-              className="flex items-center justify-between p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 hover:scale-[1.01] transition"
+              className="flex items-center justify-between p-3 rounded-2xl bg-semantic-attention/8 border border-semantic-attention/20 hover:scale-[1.01] transition"
             >
               <div>
-                <p className="text-xs font-semibold text-amber-800 dark:text-amber-400">
+                <p className="text-xs font-semibold text-semantic-attention">
                   1 - 30 Days Overdue
                 </p>
-                <p className="text-xs text-gray-500">First Warning Bracket</p>
+                <p className="text-xs text-muted-foreground">First Warning Bracket</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold font-mono text-amber-700 dark:text-amber-300">
+                <p className="text-sm font-bold font-mono tabular-nums text-semantic-attention">
                   ₹{aging.days0to30.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -443,16 +444,16 @@ export function FeesDashboardClient({
 
             <Link
               href="/school/due-fees?bracket=31-60"
-              className="flex items-center justify-between p-3 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 hover:scale-[1.01] transition"
+              className="flex items-center justify-between p-3 rounded-2xl bg-semantic-attention/12 border border-semantic-attention/25 hover:scale-[1.01] transition"
             >
               <div>
-                <p className="text-xs font-semibold text-orange-800 dark:text-orange-400">
+                <p className="text-xs font-semibold text-semantic-attention">
                   31 - 60 Days Overdue
                 </p>
-                <p className="text-xs text-gray-500">Escalated Reminders</p>
+                <p className="text-xs text-muted-foreground">Escalated Reminders</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold font-mono text-orange-700 dark:text-orange-300">
+                <p className="text-sm font-bold font-mono tabular-nums text-semantic-attention">
                   ₹{aging.days31to60.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -460,16 +461,16 @@ export function FeesDashboardClient({
 
             <Link
               href="/school/due-fees?bracket=60%2B"
-              className="flex items-center justify-between p-3 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 hover:scale-[1.01] transition"
+              className="flex items-center justify-between p-3 rounded-2xl bg-semantic-money-owed/10 border border-semantic-money-owed/25 hover:scale-[1.01] transition"
             >
               <div>
-                <p className="text-xs font-bold text-rose-800 dark:text-rose-400">
+                <p className="text-xs font-bold text-semantic-money-owed">
                   60+ Days Overdue (Critical)
                 </p>
-                <p className="text-xs text-gray-500">Formal Challan & Hold</p>
+                <p className="text-xs text-muted-foreground">Formal Challan & Hold</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold font-mono text-rose-700 dark:text-rose-300">
+                <p className="text-sm font-bold font-mono tabular-nums text-semantic-money-owed">
                   ₹{aging.days60plus.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -478,27 +479,27 @@ export function FeesDashboardClient({
 
           <Link
             href="/school/due-fees"
-            className="inline-flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-800 dark:text-slate-200 transition"
+            className="inline-flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold rounded-xl bg-muted hover:bg-muted/80 text-foreground transition"
           >
             Open Complete Due Ledger <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
 
         {/* Top-10 Defaulters Work List */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="lg:col-span-2 bg-card rounded-3xl border border-border/40 shadow-xs overflow-hidden flex flex-col justify-between">
+          <div className="p-6 border-b border-border/30 flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-semantic-money-owed" />
                 Top Priority Defaulter Work List
               </h3>
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Highest balance receivables requiring urgent follow-up or cashier collection.
               </p>
             </div>
             <Link
               href="/school/due-fees"
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-semantic-interactive hover:underline flex items-center gap-1"
             >
               View All <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
@@ -508,7 +509,7 @@ export function FeesDashboardClient({
           <div className="hidden md:block overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                   <th className="py-3 px-4">Student</th>
                   <th className="py-3 px-4">Class</th>
                   <th className="py-3 px-4 text-center">Aging</th>
@@ -516,10 +517,10 @@ export function FeesDashboardClient({
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/30">
                 {topDefaulters.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       No overdue balances recorded for this academic year!
                     </td>
                   </tr>
@@ -527,7 +528,7 @@ export function FeesDashboardClient({
                   topDefaulters.map((item) => (
                     <tr
                       key={item.studentId}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition"
+                      className="hover:bg-muted/30 transition"
                     >
                       <td className="py-3 px-4">
                         <button
@@ -540,27 +541,27 @@ export function FeesDashboardClient({
                               className: item.className,
                             })
                           }
-                          className="font-bold text-gray-900 dark:text-white hover:text-indigo-600 text-left transition"
+                          className="font-bold text-foreground hover:text-semantic-interactive text-left transition"
                         >
                           {item.studentName}
                         </button>
-                        <p className="text-[11px] text-gray-400 font-mono">
+                        <p className="text-[11px] text-muted-foreground font-mono">
                           Adm #{item.admissionNumber}
                         </p>
                       </td>
-                      <td className="py-3 px-4 font-medium text-gray-700 dark:text-slate-300">
+                      <td className="py-3 px-4 font-medium text-foreground/80">
                         {item.className}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <AgingBadge daysOverdue={item.daysOverdue} />
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                      <td className="py-3 px-4 text-right font-mono tabular-nums font-bold text-semantic-money-owed">
                         ₹{item.dueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <Link
                           href={`/school/collect-fees` as any}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-[11px] shadow-sm transition active:scale-95"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-semantic-interactive hover:bg-semantic-interactive/90 text-white font-semibold text-[11px] shadow-xs transition active:scale-95"
                         >
                           <CreditCard className="w-3.5 h-3.5" /> Collect
                         </Link>
@@ -573,16 +574,16 @@ export function FeesDashboardClient({
           </div>
 
           {/* Mobile Card View (UX-R47) */}
-          <div className="block md:hidden divide-y divide-gray-100 dark:divide-slate-800 p-3 space-y-3">
+          <div className="block md:hidden divide-y divide-border/30 p-3 space-y-3">
             {topDefaulters.length === 0 ? (
-              <p className="py-6 text-center text-xs text-gray-500">
+              <p className="py-6 text-center text-xs text-muted-foreground">
                 No overdue balances recorded for this academic year!
               </p>
             ) : (
               topDefaulters.map((item) => (
                 <div
                   key={item.studentId}
-                  className="pt-3 first:pt-0 flex flex-col gap-2.5 bg-gray-50/60 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800"
+                  className="pt-3 first:pt-0 flex flex-col gap-2.5 bg-muted/30 p-3.5 rounded-2xl border border-border/40"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <button
@@ -595,29 +596,29 @@ export function FeesDashboardClient({
                           className: item.className,
                         })
                       }
-                      className="text-left font-bold text-sm text-gray-900 dark:text-white hover:text-indigo-600 transition"
+                      className="text-left font-bold text-sm text-foreground hover:text-semantic-interactive transition"
                     >
                       {item.studentName}
-                      <span className="block text-[11px] font-normal text-gray-400 font-mono mt-0.5">
+                      <span className="block text-[11px] font-normal text-muted-foreground font-mono mt-0.5">
                         Adm #{item.admissionNumber} • {item.className}
                       </span>
                     </button>
                     <AgingBadge daysOverdue={item.daysOverdue} />
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-gray-200/50 dark:border-slate-700/50">
+                  <div className="flex items-center justify-between pt-1 border-t border-border/30">
                     <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
                         Outstanding
                       </span>
-                      <span className="font-mono font-bold text-base text-rose-600 dark:text-rose-400">
+                      <span className="font-mono tabular-nums font-bold text-base text-semantic-money-owed">
                         ₹{item.dueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
 
                     <Link
                       href={`/school/collect-fees` as any}
-                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition active:scale-95"
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[44px] rounded-xl bg-semantic-interactive hover:bg-semantic-interactive/90 text-white font-bold text-xs shadow-xs transition active:scale-95"
                     >
                       <CreditCard className="w-4 h-4" /> Collect Fee
                     </Link>
@@ -632,38 +633,29 @@ export function FeesDashboardClient({
       {/* Band 3: Recent Activity Stream & Payment Mode Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Payment Mode Volume Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <PieChart className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        <div className="bg-card p-6 rounded-3xl border border-border/40 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-border/30">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <PieChart className="w-5 h-5 text-semantic-interactive" />
               Tender Mode Volume
             </h3>
-            <span className="text-xs text-gray-400 font-mono">Collections</span>
+            <span className="text-xs text-muted-foreground font-mono">Collections</span>
           </div>
 
           <div className="space-y-4">
             {modeBreakdown.map((item) => (
               <div key={item.mode} className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-gray-700 dark:text-slate-300">
+                  <span className="font-semibold text-foreground/80">
                     {item.mode}
                   </span>
-                  <span className="font-mono text-gray-900 dark:text-white font-bold">
+                  <span className="font-mono tabular-nums text-foreground font-bold">
                     ₹{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })} ({item.percentage}%)
                   </span>
                 </div>
-                <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
                   <div
-                    className={cn(
-                      "h-2.5 rounded-full transition-all duration-500",
-                      item.mode === "CASH"
-                        ? "bg-emerald-500"
-                        : item.mode === "UPI"
-                        ? "bg-indigo-600"
-                        : item.mode === "ONLINE"
-                        ? "bg-blue-500"
-                        : "bg-purple-500"
-                    )}
+                    className="h-2.5 rounded-full transition-all duration-500 bg-semantic-interactive"
                     style={{ width: `${Math.max(2, item.percentage)}%` }}
                   />
                 </div>
@@ -673,20 +665,20 @@ export function FeesDashboardClient({
         </div>
 
         {/* Live Collections Stream */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="lg:col-span-2 bg-card rounded-3xl border border-border/40 shadow-xs overflow-hidden flex flex-col justify-between">
+          <div className="p-6 border-b border-border/30 flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-semantic-money-in" />
                 Live Fee Collections Activity Stream
               </h3>
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Last 10 fee collection payments recorded across counter, UPI, and bank transfers.
               </p>
             </div>
             <Link
               href="/school/transactions"
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-semantic-interactive hover:underline flex items-center gap-1"
             >
               Open Day Book <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
@@ -696,7 +688,7 @@ export function FeesDashboardClient({
           <div className="hidden md:block overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                   <th className="py-3 px-4">Receipt #</th>
                   <th className="py-3 px-4">Student</th>
                   <th className="py-3 px-4">Mode</th>
@@ -704,10 +696,10 @@ export function FeesDashboardClient({
                   <th className="py-3 px-4 text-right">Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/30">
                 {recentPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       No payments processed yet for this academic year.
                     </td>
                   </tr>
@@ -715,24 +707,24 @@ export function FeesDashboardClient({
                   recentPayments.map((p) => (
                     <tr
                       key={p.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition"
+                      className="hover:bg-muted/30 transition"
                     >
-                      <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      <td className="py-3 px-4 font-mono tabular-nums font-bold text-semantic-interactive">
                         #{p.receiptNumber}
                       </td>
-                      <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-medium text-foreground">
                         {p.studentName}
-                        <span className="block text-[11px] text-gray-400 font-mono">
+                        <span className="block text-[11px] text-muted-foreground font-mono">
                           Adm #{p.admissionNumber}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <StatusBadge status={p.paymentMethod} />
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <td className="py-3 px-4 text-right font-mono tabular-nums font-bold text-semantic-money-in">
                         ₹{p.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-3 px-4 text-right text-gray-500 dark:text-slate-400">
+                      <td className="py-3 px-4 text-right text-muted-foreground">
                         {new Date(p.paymentDate).toLocaleDateString("en-IN", {
                           month: "short",
                           day: "numeric",
@@ -748,37 +740,37 @@ export function FeesDashboardClient({
           </div>
 
           {/* Mobile Card View (UX-R47) */}
-          <div className="block md:hidden divide-y divide-gray-100 dark:divide-slate-800 p-3 space-y-2.5">
+          <div className="block md:hidden divide-y divide-border/30 p-3 space-y-2.5">
             {recentPayments.length === 0 ? (
-              <p className="py-6 text-center text-xs text-gray-500">
+              <p className="py-6 text-center text-xs text-muted-foreground">
                 No payments processed yet for this academic year.
               </p>
             ) : (
               recentPayments.map((p) => (
                 <div
                   key={p.id}
-                  className="pt-2.5 first:pt-0 flex flex-col gap-2 bg-gray-50/60 dark:bg-slate-800/40 p-3 rounded-2xl border border-gray-100 dark:border-slate-800"
+                  className="pt-2.5 first:pt-0 flex flex-col gap-2 bg-muted/30 p-3 rounded-2xl border border-border/40"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">
+                    <span className="font-mono tabular-nums font-bold text-xs text-semantic-interactive">
                       #{p.receiptNumber}
                     </span>
                     <StatusBadge status={p.paymentMethod} />
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="font-bold text-xs text-gray-900 dark:text-white">
+                      <p className="font-bold text-xs text-foreground">
                         {p.studentName}
                       </p>
-                      <p className="text-[11px] text-gray-400 font-mono">
+                      <p className="text-[11px] text-muted-foreground font-mono">
                         Adm #{p.admissionNumber}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400 block">
+                      <span className="font-mono tabular-nums font-bold text-sm text-semantic-money-in block">
                         ₹{p.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-muted-foreground">
                         {new Date(p.paymentDate).toLocaleDateString("en-IN", {
                           month: "short",
                           day: "numeric",
@@ -796,13 +788,13 @@ export function FeesDashboardClient({
       </div>
 
       {/* Class-wise Recovery Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-slate-800">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+      <div className="bg-card rounded-3xl border border-border/40 shadow-xs overflow-hidden">
+        <div className="p-6 border-b border-border/30">
+          <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+            <Users className="w-5 h-5 text-semantic-interactive" />
             Division Collection Velocity
           </h3>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Aggregated class-wise billed demand versus actual collections received.
           </p>
         </div>
@@ -811,7 +803,7 @@ export function FeesDashboardClient({
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+              <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                 <th className="py-3 px-4">Class</th>
                 <th className="py-3 px-4 text-right">Invoiced (₹)</th>
                 <th className="py-3 px-4 text-right">Collected (₹)</th>
@@ -819,37 +811,37 @@ export function FeesDashboardClient({
                 <th className="py-3 px-4 text-center">Recovery %</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border/30">
               {classStats.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-500">
+                  <td colSpan={5} className="py-8 text-center text-muted-foreground">
                     No class invoice structures assigned for this session.
                   </td>
                 </tr>
               ) : (
                 classStats.map((stat, i) => (
-                  <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
+                  <tr key={i} className="hover:bg-muted/30">
+                    <td className="py-3 px-4 font-bold text-foreground">
                       {stat.className}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono">
+                    <td className="py-3 px-4 text-right font-mono tabular-nums text-muted-foreground">
                       ₹{stat.billed.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <td className="py-3 px-4 text-right font-mono tabular-nums text-semantic-money-in font-semibold">
                       ₹{stat.collected.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">
+                    <td className="py-3 px-4 text-right font-mono tabular-nums text-semantic-money-owed font-semibold">
                       ₹{stat.due.toLocaleString("en-IN")}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span
                         className={cn(
-                          "inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold",
+                          "inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold border",
                           stat.rate >= 80
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            ? "bg-semantic-money-in/12 text-semantic-money-in border-semantic-money-in/25"
                             : stat.rate >= 50
-                            ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                            ? "bg-semantic-attention/12 text-semantic-attention border-semantic-attention/25"
+                            : "bg-semantic-money-owed/12 text-semantic-money-owed border-semantic-money-owed/25"
                         )}
                       >
                         {stat.rate}%
@@ -863,57 +855,57 @@ export function FeesDashboardClient({
         </div>
 
         {/* Mobile Card View (UX-R47) */}
-        <div className="block md:hidden divide-y divide-gray-100 dark:divide-slate-800 p-3 space-y-2.5">
+        <div className="block md:hidden divide-y divide-border/30 p-3 space-y-2.5">
           {classStats.length === 0 ? (
-            <p className="py-6 text-center text-xs text-gray-500">
+            <p className="py-6 text-center text-xs text-muted-foreground">
               No class invoice structures assigned for this session.
             </p>
           ) : (
             classStats.map((stat, i) => (
               <div
                 key={i}
-                className="pt-2.5 first:pt-0 bg-gray-50/60 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-2"
+                className="pt-2.5 first:pt-0 bg-muted/30 p-3.5 rounded-2xl border border-border/40 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-gray-900 dark:text-white">
+                  <span className="font-bold text-sm text-foreground">
                     {stat.className}
                   </span>
                   <span
                     className={cn(
-                      "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold",
+                      "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border",
                       stat.rate >= 80
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        ? "bg-semantic-money-in/12 text-semantic-money-in border-semantic-money-in/25"
                         : stat.rate >= 50
-                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                        : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                        ? "bg-semantic-attention/12 text-semantic-attention border-semantic-attention/25"
+                        : "bg-semantic-money-owed/12 text-semantic-money-owed border-semantic-money-owed/25"
                     )}
                   >
                     {stat.rate}% Recovery
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-200/50 dark:border-slate-700/50 text-center">
-                  <div className="bg-white dark:bg-slate-900/60 p-2 rounded-xl border border-gray-100 dark:border-slate-800">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/30 text-center">
+                  <div className="bg-card p-2 rounded-xl border border-border/40">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
                       Invoiced
                     </span>
-                    <span className="font-mono font-bold text-xs text-gray-900 dark:text-white">
+                    <span className="font-mono tabular-nums font-bold text-xs text-foreground">
                       ₹{stat.billed.toLocaleString("en-IN")}
                     </span>
                   </div>
-                  <div className="bg-white dark:bg-slate-900/60 p-2 rounded-xl border border-gray-100 dark:border-slate-800">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                  <div className="bg-card p-2 rounded-xl border border-border/40">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-semantic-money-in block">
                       Collected
                     </span>
-                    <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                    <span className="font-mono tabular-nums font-bold text-xs text-semantic-money-in">
                       ₹{stat.collected.toLocaleString("en-IN")}
                     </span>
                   </div>
-                  <div className="bg-white dark:bg-slate-900/60 p-2 rounded-xl border border-gray-100 dark:border-slate-800">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400 block">
+                  <div className="bg-card p-2 rounded-xl border border-border/40">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-semantic-money-owed block">
                       Due
                     </span>
-                    <span className="font-mono font-bold text-xs text-rose-600 dark:text-rose-400">
+                    <span className="font-mono tabular-nums font-bold text-xs text-semantic-money-owed">
                       ₹{stat.due.toLocaleString("en-IN")}
                     </span>
                   </div>

@@ -25,19 +25,19 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center p-8 md:p-12 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/30",
+        "flex flex-col items-center justify-center text-center p-8 md:p-12 rounded-2xl border border-dashed border-border/60 bg-card/40",
         className
       )}
     >
-      <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 shadow-sm">
+      <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center mb-4 shadow-xs">
         <Icon className="w-6 h-6" />
       </div>
 
-      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+      <h3 className="text-base font-bold text-foreground mb-1">
         {title}
       </h3>
 
-      <p className="text-sm text-gray-500 dark:text-slate-400 max-w-sm mb-6">
+      <p className="text-sm text-muted-foreground max-w-sm mb-6">
         {description}
       </p>
 
@@ -46,7 +46,7 @@ export function EmptyState({
           {actionHref ? (
             <Link
               href={actionHref as any}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-semantic-interactive hover:bg-semantic-interactive/90 text-white shadow-xs transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>{actionLabel}</span>
@@ -55,7 +55,7 @@ export function EmptyState({
             <button
               type="button"
               onClick={onAction}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-semantic-interactive hover:bg-semantic-interactive/90 text-white shadow-xs transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>{actionLabel}</span>

@@ -467,18 +467,18 @@ export function MarksEntryClient({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
           <div className="flex items-center gap-2.5">
             {isLocked ? (
-              <span className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center gap-1.5 text-xs font-bold">
+              <span className="p-1.5 rounded-lg bg-semantic-money-owed/12 border border-semantic-money-owed/25 text-semantic-money-owed flex items-center gap-1.5 text-xs font-bold">
                 <Lock className="w-4 h-4" />
                 LOCKED
               </span>
             ) : (
-              <span className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1.5 text-xs font-bold">
+              <span className="p-1.5 rounded-lg bg-semantic-money-in/12 border border-semantic-money-in/25 text-semantic-money-in flex items-center gap-1.5 text-xs font-bold">
                 <Unlock className="w-4 h-4" />
                 OPEN FOR GRADING
               </span>
             )}
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               {isLocked
                 ? `Marks finalized${lockInfo.lockedByName ? ` by ${lockInfo.lockedByName}` : ""}${lockInfo.lockedAt ? ` on ${new Date(lockInfo.lockedAt).toLocaleDateString()}` : ""}. Edits are restricted.`
                 : "Marks entries can be recorded and updated. Remember to lock when evaluation completes."}
@@ -495,8 +495,8 @@ export function MarksEntryClient({
               onClick={handleLockToggle}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                 isLocked
-                  ? "bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 cursor-pointer"
-                  : "bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 cursor-pointer"
+                  ? "bg-semantic-attention/12 hover:bg-semantic-attention/20 text-semantic-attention border border-semantic-attention/25 cursor-pointer"
+                  : "bg-semantic-money-owed/12 hover:bg-semantic-money-owed/20 text-semantic-money-owed border border-semantic-money-owed/25 cursor-pointer"
               }`}
             >
               {isLocked ? (
@@ -520,35 +520,35 @@ export function MarksEntryClient({
         <div
           className={`p-4 rounded-xl text-xs font-medium flex items-center gap-2.5 ${
             feedback.type === "success"
-              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-              : "bg-rose-500/10 border border-rose-500/20 text-rose-400"
+              ? "bg-semantic-money-in/12 border border-semantic-money-in/25 text-semantic-money-in"
+              : "bg-semantic-money-owed/12 border border-semantic-money-owed/25 text-semantic-money-owed"
           }`}
         >
           {feedback.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-semantic-money-in" />
           ) : (
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-semantic-money-owed" />
           )}
           <span>{feedback.text}</span>
         </div>
       )}
 
       {/* ─── 2. Search & Toolbar ──────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border/40">
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search student or roll number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-muted/40 border border-border/40 rounded-xl pl-9 pr-3 py-2 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-semantic-interactive"
           />
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          <div className="text-xs text-slate-400">
-            Total Max Marks: <span className="font-bold text-white">{totalMaxMarks}</span> | Passing: <span className="font-bold text-emerald-400">{totalPassingMarks}</span>
+          <div className="text-xs text-muted-foreground">
+            Total Max Marks: <span className="font-bold text-foreground font-mono tabular-nums">{totalMaxMarks}</span> | Passing: <span className="font-bold text-semantic-money-in font-mono tabular-nums">{totalPassingMarks}</span>
           </div>
 
           <button
@@ -558,10 +558,10 @@ export function MarksEntryClient({
             data-ux-action="click"
             disabled={isPending || isLocked || filteredStudents.length === 0}
             onClick={handleSaveMarks}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md transition ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition ${
               isLocked
-                ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/40"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 cursor-pointer"
+                ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/40"
+                : "bg-semantic-interactive hover:bg-semantic-interactive/90 text-white cursor-pointer"
             }`}
           >
             <Save className="w-4 h-4" />
@@ -571,7 +571,7 @@ export function MarksEntryClient({
       </div>
 
       {/* ─── 3. Marks Matrix Table ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 overflow-hidden shadow-xl">
+      <div className="rounded-2xl border border-border/40 bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>

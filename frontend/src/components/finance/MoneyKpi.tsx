@@ -16,7 +16,7 @@ export interface MoneyKpiProps {
     isNeutral?: boolean | undefined;
   } | undefined;
   subtitle?: string | undefined;
-  variant?: "primary" | "emerald" | "amber" | "rose" | "slate" | "danger" | "warning" | undefined;
+  variant?: "primary" | "emerald" | "amber" | "rose" | "slate" | "danger" | "warning" | "money_in" | "money_owed" | "attention" | "neutral" | undefined;
   className?: string | undefined;
 }
 
@@ -43,24 +43,40 @@ export function MoneyKpi({
   className,
 }: MoneyKpiProps) {
   const displayLabel = title || label || "KPI";
-  const effectiveVariant =
-    variant === "danger" ? "rose" : variant === "warning" ? "amber" : variant;
+
+  // Map legacy color variant names to strict semantic intentions
+  const resolveSemantic = (v?: string) => {
+    switch (v) {
+      case "emerald":
+      case "money_in":
+        return "money_in";
+      case "rose":
+      case "danger":
+      case "money_owed":
+        return "money_owed";
+      case "amber":
+      case "warning":
+      case "attention":
+        return "attention";
+      case "primary":
+        return "interactive";
+      default:
+        return "neutral";
+    }
+  };
+
+  const semantic = resolveSemantic(variant);
 
   const content = (
     <div
       className={cn(
         "group relative p-5 rounded-2xl bg-card border border-border/40 transition-all duration-200 shadow-level-1",
         href && "hover:shadow-level-2 hover:-translate-y-0.5 cursor-pointer",
-        effectiveVariant === "primary" &&
-        "hover:border-blue-500/40",
-        effectiveVariant === "emerald" &&
-        "hover:border-emerald-500/40",
-        effectiveVariant === "amber" &&
-        "hover:border-amber-500/40",
-        effectiveVariant === "rose" &&
-        "hover:border-rose-500/40",
-        effectiveVariant === "slate" &&
-        "hover:border-border",
+        semantic === "interactive" && "hover:border-semantic-interactive/40",
+        semantic === "money_in" && "hover:border-semantic-money-in/40",
+        semantic === "attention" && "hover:border-semantic-attention/40",
+        semantic === "money_owed" && "hover:border-semantic-money-owed/40",
+        semantic === "neutral" && "hover:border-border",
         className
       )}
     >
@@ -72,11 +88,11 @@ export function MoneyKpi({
           <div
             className={cn(
               "w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-xs",
-              effectiveVariant === "primary" && "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-              effectiveVariant === "emerald" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-              effectiveVariant === "amber" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-              effectiveVariant === "rose" && "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-              effectiveVariant === "slate" && "bg-muted text-muted-foreground"
+              semantic === "interactive" && "bg-semantic-interactive/12 text-semantic-interactive",
+              semantic === "money_in" && "bg-semantic-money-in/12 text-semantic-money-in",
+              semantic === "attention" && "bg-semantic-attention/12 text-semantic-attention",
+              semantic === "money_owed" && "bg-semantic-money-owed/12 text-semantic-money-owed",
+              semantic === "neutral" && "bg-muted/60 text-muted-foreground"
             )}
           >
             <Icon className="w-4 h-4" />
@@ -84,45 +100,49 @@ export function MoneyKpi({
         )}
       </div>
 
-      <div className="font-mono text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+      <div className="font-mono text-2xl md:text-3xl font-bold tracking-tight text-foreground tabular-nums">
         {formatINR(amount)}
       </div>
 
-      <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground">
-        {delta && (
-          <div className="flex items-center gap-1 font-medium">
-            {delta.isNeutral ? (
-              <span className="inline-flex items-center text-muted-foreground bg-muted px-2 py-0.5 rounded-full text-xs font-semibold">
-                <Minus className="w-3.5 h-3.5 mr-0.5" />
-                {delta.value}
-              </span>
-            ) : delta.isPositive ? (
-              <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-xs font-semibold">
-                <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                {delta.value}
-              </span>
-            ) : (
-              <span className="inline-flex items-center text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full text-xs font-semibold">
-                <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-                {delta.value}
-              </span>
+      {delta && (
+        <div className="flex items-center gap-1.5 mt-2.5">
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 text-xs font-semibold font-mono tabular-nums px-1.5 py-0.5 rounded-full border",
+              delta.isNeutral
+                ? "bg-muted text-muted-foreground border-border/40"
+                : delta.isPositive
+                ? "bg-semantic-money-in/12 text-semantic-money-in border-semantic-money-in/20"
+                : "bg-semantic-money-owed/12 text-semantic-money-owed border-semantic-money-owed/20"
             )}
-            {delta.label && <span className="text-gray-400 ml-1">{delta.label}</span>}
-          </div>
-        )}
-
-        {subtitle && <span className="truncate">{subtitle}</span>}
-        {href && (
-          <span className="inline-flex items-center text-[11px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline ml-auto">
-            View List →
+          >
+            {delta.isNeutral ? (
+              <Minus className="w-3 h-3" />
+            ) : delta.isPositive ? (
+              <ArrowUpRight className="w-3 h-3" />
+            ) : (
+              <ArrowDownRight className="w-3 h-3" />
+            )}
+            {delta.value}
           </span>
-        )}
-      </div>
+          {delta.label && (
+            <span className="text-xs text-muted-foreground">{delta.label}</span>
+          )}
+        </div>
+      )}
+
+      {subtitle && (
+        <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{subtitle}</p>
+      )}
     </div>
   );
 
   if (href) {
-    return <Link href={href as any} className="block">{content}</Link>;
+    return (
+      <Link href={href as any} className="block outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40 rounded-2xl">
+        {content}
+      </Link>
+    );
   }
 
   return content;

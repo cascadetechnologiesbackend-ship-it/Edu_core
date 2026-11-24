@@ -207,22 +207,22 @@ export default function TeacherAttendanceClient({
         </div>
 
         {/* Attendance Summary Counter Bar */}
-        <div className="grid grid-cols-4 gap-2 pt-1 border-t border-slate-800/80">
-          <div className="bg-slate-950/80 border border-slate-800/60 rounded-xl p-2 text-center">
-            <div className="text-[10px] text-slate-400 font-medium">Enrolled</div>
-            <div className="text-sm font-bold text-white">{total}</div>
+        <div className="grid grid-cols-4 gap-2 pt-1 border-t border-border/30">
+          <div className="bg-card border border-border/40 rounded-xl p-2 text-center">
+            <div className="text-[10px] text-muted-foreground font-medium">Enrolled</div>
+            <div className="text-sm font-bold text-foreground tabular-nums font-mono">{total}</div>
           </div>
-          <div className="bg-emerald-950/40 border border-emerald-900/40 rounded-xl p-2 text-center">
-            <div className="text-[10px] text-emerald-400 font-medium">Present</div>
-            <div className="text-sm font-bold text-emerald-300">{presentCount}</div>
+          <div className="bg-semantic-money-in/10 border border-semantic-money-in/20 rounded-xl p-2 text-center">
+            <div className="text-[10px] text-semantic-money-in font-medium">Present</div>
+            <div className="text-sm font-bold text-semantic-money-in tabular-nums font-mono">{presentCount}</div>
           </div>
-          <div className="bg-rose-950/40 border border-rose-900/40 rounded-xl p-2 text-center">
-            <div className="text-[10px] text-rose-400 font-medium">Absent</div>
-            <div className="text-sm font-bold text-rose-300">{absentCount}</div>
+          <div className="bg-semantic-money-owed/10 border border-semantic-money-owed/20 rounded-xl p-2 text-center">
+            <div className="text-[10px] text-semantic-money-owed font-medium">Absent</div>
+            <div className="text-sm font-bold text-semantic-money-owed tabular-nums font-mono">{absentCount}</div>
           </div>
-          <div className="bg-amber-950/40 border border-amber-900/40 rounded-xl p-2 text-center">
-            <div className="text-[10px] text-amber-400 font-medium">Late</div>
-            <div className="text-sm font-bold text-amber-300">{lateCount}</div>
+          <div className="bg-semantic-attention/10 border border-semantic-attention/20 rounded-xl p-2 text-center">
+            <div className="text-[10px] text-semantic-attention font-medium">Late</div>
+            <div className="text-sm font-bold text-semantic-attention tabular-nums font-mono">{lateCount}</div>
           </div>
         </div>
 
@@ -231,17 +231,17 @@ export default function TeacherAttendanceClient({
           <button
             type="button"
             onClick={() => markAll("PRESENT")}
-            className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition active:scale-95 flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 px-3 rounded-xl bg-semantic-money-in/12 hover:bg-semantic-money-in/20 text-semantic-money-in border border-semantic-money-in/25 text-xs font-semibold transition active:scale-95 flex items-center justify-center gap-1.5"
           >
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-semantic-money-in" />
             Mark All Present
           </button>
           <button
             type="button"
             onClick={() => markAll("ABSENT")}
-            className="flex-1 py-2 px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition active:scale-95 flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 px-3 rounded-xl bg-semantic-money-owed/12 hover:bg-semantic-money-owed/20 text-semantic-money-owed border border-semantic-money-owed/25 text-xs font-semibold transition active:scale-95 flex items-center justify-center gap-1.5"
           >
-            <XCircle className="w-3.5 h-3.5 text-rose-400" />
+            <XCircle className="w-3.5 h-3.5 text-semantic-money-owed" />
             Mark All Absent
           </button>
         </div>
@@ -252,14 +252,14 @@ export default function TeacherAttendanceClient({
         <div
           className={`p-3.5 rounded-xl border text-xs flex items-center gap-2.5 ${
             feedback.type === "success"
-              ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
-              : "bg-rose-950/60 border-rose-800 text-rose-300"
+              ? "bg-semantic-money-in/12 border-semantic-money-in/25 text-semantic-money-in"
+              : "bg-semantic-money-owed/12 border-semantic-money-owed/25 text-semantic-money-owed"
           }`}
         >
           {feedback.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-semantic-money-in" />
           ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-semantic-money-owed" />
           )}
           <span>{feedback.text}</span>
         </div>
@@ -313,8 +313,8 @@ export default function TeacherAttendanceClient({
                     onClick={() => updateStatus(student.studentId, "PRESENT")}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
                       status === "PRESENT"
-                        ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                        ? "bg-semantic-money-in text-white shadow-xs"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     P
@@ -324,8 +324,8 @@ export default function TeacherAttendanceClient({
                     onClick={() => updateStatus(student.studentId, "ABSENT")}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
                       status === "ABSENT"
-                        ? "bg-rose-600 text-white shadow-sm shadow-rose-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                        ? "bg-semantic-money-owed text-white shadow-xs"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     A
@@ -335,8 +335,8 @@ export default function TeacherAttendanceClient({
                     onClick={() => updateStatus(student.studentId, "LATE")}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
                       status === "LATE"
-                        ? "bg-amber-600 text-white shadow-sm shadow-amber-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                        ? "bg-semantic-attention text-white shadow-xs"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     L
@@ -346,8 +346,8 @@ export default function TeacherAttendanceClient({
                     onClick={() => updateStatus(student.studentId, "LEAVE")}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
                       status === "LEAVE"
-                        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/40"
-                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                        ? "bg-semantic-interactive text-white shadow-xs"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     LV
@@ -366,7 +366,7 @@ export default function TeacherAttendanceClient({
             type="button"
             onClick={handleSubmit}
             disabled={isPending}
-            className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-sm transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3.5 px-4 rounded-2xl bg-semantic-interactive hover:bg-semantic-interactive/90 active:scale-[0.98] text-white font-bold text-sm transition shadow-level-1 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {isPending ? "Submitting Roll Call..." : "Submit Attendance Register"}
