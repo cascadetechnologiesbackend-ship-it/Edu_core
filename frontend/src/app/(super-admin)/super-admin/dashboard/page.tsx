@@ -65,11 +65,11 @@ export default async function SuperAdminDashboardPage() {
   return (
     <div className="space-y-8">
       {dbError && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-amber-300 text-sm flex items-center gap-3">
-          <Activity className="w-5 h-5 flex-shrink-0 text-amber-400" />
+        <div className="rounded-xl border border-semantic-attention/30 bg-semantic-attention/10 p-4 text-semantic-attention text-sm flex items-center gap-3">
+          <Activity className="w-5 h-5 flex-shrink-0 text-semantic-attention" />
           <div>
             <p className="font-semibold">Database Connection Issue</p>
-            <p className="text-xs text-amber-400/80 mt-0.5">{dbError}</p>
+            <p className="text-xs text-semantic-attention/80 mt-0.5">{dbError}</p>
           </div>
         </div>
       )}

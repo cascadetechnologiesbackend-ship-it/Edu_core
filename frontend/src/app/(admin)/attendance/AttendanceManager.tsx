@@ -189,7 +189,7 @@ export default function AttendanceManager({
             Classroom / Section
           </label>
           {sectionsList.length === 0 ? (
-            <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
+            <p className="text-sm text-semantic-attention bg-semantic-attention/10 p-2.5 rounded-xl border border-semantic-attention/20">
               No classrooms assigned.
             </p>
           ) : (
@@ -290,15 +290,15 @@ export default function AttendanceManager({
                   {students.map((student) => (
                     <tr
                       key={student.studentId}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition"
+                      className="hover:bg-muted/30 transition"
                     >
-                      <td className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">
+                      <td className="px-6 py-4 font-semibold text-foreground">
                         {student.rollNumber || "—"}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 font-medium text-foreground">
                         {student.firstName} {student.lastName}
                       </td>
-                      <td className="px-6 py-4 text-gray-500">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {student.admissionNumber}
                       </td>
                       <td className="px-6 py-4">
@@ -332,13 +332,13 @@ export default function AttendanceManager({
                               value: "LEAVE",
                               label: "Leave",
                               color:
-                                "peer-checked:bg-blue-600 peer-checked:text-white",
+                                "peer-checked:bg-semantic-interactive peer-checked:text-white",
                             },
                             {
                               value: "HOLIDAY",
                               label: "Holiday",
                               color:
-                                "peer-checked:bg-gray-600 peer-checked:text-white",
+                                "peer-checked:bg-muted-foreground peer-checked:text-white",
                             },
                           ].map((opt) => (
                             <label
@@ -359,7 +359,7 @@ export default function AttendanceManager({
                                 className="peer sr-only"
                               />
                               <span
-                                className={`block px-2.5 py-1 text-xs font-semibold rounded-md border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-slate-800 transition ${opt.color}`}
+                                className={`block px-2.5 py-1 text-xs font-semibold rounded-md border border-border/40 text-muted-foreground bg-transparent hover:bg-muted/40 transition ${opt.color}`}
                               >
                                 {opt.label}
                               </span>
@@ -375,7 +375,7 @@ export default function AttendanceManager({
                             handleRemarksChange(student.studentId, e.target.value)
                           }
                           placeholder="Optional remarks"
-                          className="w-full text-xs rounded border border-gray-200 dark:border-slate-700 bg-transparent px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full text-xs rounded-lg border border-border/40 bg-muted/30 px-2.5 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-semantic-interactive"
                         />
                       </td>
                     </tr>
@@ -385,16 +385,16 @@ export default function AttendanceManager({
             </div>
 
             {/* Mobile Card View (< 768px per UX-R47: Card Morphology & UX-R21: 44px tap targets) */}
-            <div className="block md:hidden divide-y divide-gray-100 dark:divide-slate-800 p-2 sm:p-3 space-y-3">
+            <div className="block md:hidden divide-y divide-border/40 p-2 sm:p-3 space-y-3">
               {students.map((student) => (
                 <div
                   key={student.studentId}
-                  className="p-3.5 bg-gray-50/70 dark:bg-slate-800/40 rounded-xl border border-gray-200/80 dark:border-slate-800 space-y-3"
+                  className="p-3.5 bg-card rounded-xl border border-border/40 space-y-3 shadow-xs"
                 >
                   {/* Student Card Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="flex-shrink-0 px-2 py-0.5 text-xs font-bold rounded-md bg-primary/10 text-primary border border-primary/20">
+                      <span className="flex-shrink-0 px-2 py-0.5 text-xs font-bold rounded-md bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20">
                         #{student.rollNumber || "—"}
                       </span>
                       <h4 className="font-semibold text-sm text-foreground truncate">
@@ -437,7 +437,7 @@ export default function AttendanceManager({
                       {
                         value: "HOLIDAY",
                         label: "Holiday",
-                        activeClass: "bg-gray-600 text-white border-gray-600 font-bold shadow-sm",
+                        activeClass: "bg-muted-foreground text-white border-muted-foreground font-bold shadow-xs",
                       },
                     ].map((opt) => {
                       const isSelected = student.attendanceStatus === opt.value;
@@ -454,7 +454,7 @@ export default function AttendanceManager({
                           className={`min-h-[44px] flex items-center justify-center text-xs rounded-xl border transition-all active:scale-95 ${
                             isSelected
                               ? opt.activeClass
-                              : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                              : "border-border/40 bg-card text-muted-foreground hover:bg-muted/40"
                           }`}
                         >
                           {opt.label}
@@ -472,7 +472,7 @@ export default function AttendanceManager({
                         handleRemarksChange(student.studentId, e.target.value)
                       }
                       placeholder="Optional remarks…"
-                      className="w-full text-sm rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="w-full text-sm rounded-lg border border-border/40 bg-muted/40 px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-semantic-interactive/40"
                     />
                   </div>
                 </div>
@@ -487,7 +487,7 @@ export default function AttendanceManager({
             <button
               onClick={handleSave}
               disabled={isPending}
-              className="bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-semibold py-2.5 px-6 rounded-xl shadow-sm min-h-[44px] transition-all disabled:opacity-60 flex items-center gap-2 text-sm"
+              className="bg-semantic-interactive hover:bg-semantic-interactive/90 active:scale-[0.98] text-white font-semibold py-2.5 px-6 rounded-xl shadow-xs min-h-[44px] transition-all disabled:opacity-60 flex items-center gap-2 text-sm"
             >
               {isPending ? (
                 <>
@@ -504,7 +504,7 @@ export default function AttendanceManager({
 
       {/* Mobile Sticky Action Bar (UX-R20: Bottom Thumb Zone) */}
       {students.length > 0 && !loadingStudents && (
-        <div className="md:hidden sticky bottom-16 left-0 right-0 p-3.5 bg-card/85 dark:bg-slate-900/85 backdrop-blur-xl border border-border/40 rounded-2xl shadow-level-3 flex items-center justify-between gap-3 z-30">
+        <div className="md:hidden sticky bottom-16 left-0 right-0 p-3.5 bg-card/85 backdrop-blur-xl border border-border/40 rounded-2xl shadow-level-3 flex items-center justify-between gap-3 z-30">
           <div className="text-xs">
             <p className="font-semibold text-foreground">
               {students.filter((s) => s.attendanceStatus === "PRESENT").length} Present /{" "}

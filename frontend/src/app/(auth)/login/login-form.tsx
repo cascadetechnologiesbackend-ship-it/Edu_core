@@ -108,10 +108,10 @@ const DEMO_ROLE_CARDS: DemoRoleCard[] = [
     emailPrefix: "admin",
     icon: Building2,
     accentColor: {
-      bg: "bg-blue-500/15",
-      text: "text-blue-400",
-      border: "border-blue-500/30",
-      ring: "group-hover:border-blue-400/60",
+      bg: "bg-muted",
+      text: "text-foreground",
+      border: "border-border/40",
+      ring: "group-hover:border-semantic-interactive/40",
     },
     destination: "/dashboard",
   },
@@ -122,10 +122,10 @@ const DEMO_ROLE_CARDS: DemoRoleCard[] = [
     emailPrefix: "principal",
     icon: GraduationCap,
     accentColor: {
-      bg: "bg-purple-500/15",
-      text: "text-purple-400",
-      border: "border-purple-500/30",
-      ring: "group-hover:border-purple-400/60",
+      bg: "bg-muted",
+      text: "text-foreground",
+      border: "border-border/40",
+      ring: "group-hover:border-semantic-interactive/40",
     },
     destination: "/principal/dashboard",
   },
@@ -136,10 +136,10 @@ const DEMO_ROLE_CARDS: DemoRoleCard[] = [
     emailPrefix: "teacher",
     icon: BookOpen,
     accentColor: {
-      bg: "bg-emerald-500/15",
-      text: "text-emerald-400",
-      border: "border-emerald-500/30",
-      ring: "group-hover:border-emerald-400/60",
+      bg: "bg-muted",
+      text: "text-foreground",
+      border: "border-border/40",
+      ring: "group-hover:border-semantic-interactive/40",
     },
     destination: "/teacher/dashboard",
   },
@@ -150,10 +150,10 @@ const DEMO_ROLE_CARDS: DemoRoleCard[] = [
     emailPrefix: "finance",
     icon: IndianRupee,
     accentColor: {
-      bg: "bg-amber-500/15",
-      text: "text-amber-400",
-      border: "border-amber-500/30",
-      ring: "group-hover:border-amber-400/60",
+      bg: "bg-muted",
+      text: "text-foreground",
+      border: "border-border/40",
+      ring: "group-hover:border-semantic-interactive/40",
     },
     destination: "/school/fees-dashboard",
   },
@@ -164,10 +164,10 @@ const DEMO_ROLE_CARDS: DemoRoleCard[] = [
     emailPrefix: "parent",
     icon: Users,
     accentColor: {
-      bg: "bg-rose-500/15",
-      text: "text-rose-400",
-      border: "border-rose-500/30",
-      ring: "group-hover:border-rose-400/60",
+      bg: "bg-muted",
+      text: "text-foreground",
+      border: "border-border/40",
+      ring: "group-hover:border-semantic-interactive/40",
     },
     destination: "/parent/dashboard",
   },
@@ -178,10 +178,10 @@ const DEMO_ROLE_CARDS: DemoRoleCard[] = [
     emailPrefix: "student",
     icon: Compass,
     accentColor: {
-      bg: "bg-cyan-500/15",
-      text: "text-cyan-400",
-      border: "border-cyan-500/30",
-      ring: "group-hover:border-cyan-400/60",
+      bg: "bg-muted",
+      text: "text-foreground",
+      border: "border-border/40",
+      ring: "group-hover:border-semantic-interactive/40",
     },
     destination: "/student/dashboard",
   },
@@ -412,10 +412,10 @@ export default function LoginForm() {
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Board Selector Tabs */}
           <div>
-            <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 mb-1.5">
+            <div className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-1.5">
               Select School Curriculum
             </div>
-            <div className="grid grid-cols-4 gap-1 p-1 bg-white/[0.03] border border-white/10 rounded-xl">
+            <div className="grid grid-cols-4 gap-1 p-1 bg-muted/40 border border-border/40 rounded-xl">
               {DEMO_BOARDS.map((b) => (
                 <button
                   key={b.code}
@@ -423,8 +423,8 @@ export default function LoginForm() {
                   onClick={() => setSelectedBoard(b)}
                   className={`py-1.5 px-1 text-[11px] font-medium rounded-lg transition text-center truncate ${
                     selectedBoard.code === b.code
-                      ? "bg-white/[0.12] text-white font-semibold shadow-sm border border-white/15"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+                      ? "bg-card text-foreground font-semibold shadow-xs border border-border/40"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                   }`}
                   title={b.label}
                 >
@@ -435,17 +435,17 @@ export default function LoginForm() {
           </div>
 
           {/* Active School Snapshot Card */}
-          <div className="rounded-2xl p-3 bg-white/[0.03] border border-white/10 flex items-center justify-between">
+          <div className="rounded-2xl p-3 bg-card border border-border/40 flex items-center justify-between shadow-xs">
             <div className="space-y-0.5">
-              <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <span>{selectedBoard.schoolName}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-semantic-money-in" />
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-muted-foreground">
                 {selectedBoard.curriculum} · 200 Students
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-medium">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-semantic-interactive/10 border border-semantic-interactive/20 text-semantic-interactive font-medium">
               Demo Tenant
             </span>
           </div>
@@ -460,23 +460,21 @@ export default function LoginForm() {
               return (
                 <div
                   key={card.role}
-                  className={`group relative rounded-2xl p-3.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 ${card.accentColor.ring} transition-all duration-200 flex flex-col justify-between`}
+                  className="group relative rounded-2xl p-3.5 bg-card hover:bg-muted/30 border border-border/40 hover:border-semantic-interactive/40 transition-all duration-200 flex flex-col justify-between shadow-xs"
                 >
                   <div>
                     {/* Header: Icon + Title */}
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div
-                        className={`w-7 h-7 rounded-xl ${card.accentColor.bg} ${card.accentColor.border} border ${card.accentColor.text} flex items-center justify-center shrink-0`}
-                      >
+                      <div className="w-7 h-7 rounded-xl bg-muted border border-border/40 text-foreground flex items-center justify-center shrink-0">
                         <Icon className="w-4 h-4" />
                       </div>
-                      <h4 className="text-xs font-semibold text-white tracking-tight">
+                      <h4 className="text-xs font-semibold text-foreground tracking-tight">
                         {card.title}
                       </h4>
                     </div>
 
                     {/* Capability Tagline */}
-                    <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mb-3">
+                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2 mb-3">
                       {card.description}
                     </p>
                   </div>
@@ -486,7 +484,7 @@ export default function LoginForm() {
                     type="button"
                     disabled={isAnyLaunching}
                     onClick={() => handleLaunchDemoRole(card)}
-                    className="w-full h-8 rounded-xl bg-white/[0.06] hover:bg-blue-600 hover:text-white border border-white/10 hover:border-blue-500 text-[11px] font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50"
+                    className="w-full h-8 rounded-xl bg-muted/60 hover:bg-semantic-interactive hover:text-white border border-border/40 hover:border-semantic-interactive text-[11px] font-semibold text-foreground flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50"
                   >
                     {isCardLaunching ? (
                       <>
@@ -496,7 +494,7 @@ export default function LoginForm() {
                     ) : (
                       <>
                         <span>Launch Role</span>
-                        <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
+                        <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
                       </>
                     )}
                   </button>
@@ -506,12 +504,12 @@ export default function LoginForm() {
           </div>
 
           {/* Quick Notice */}
-          <div className="pt-2 text-center text-[11px] text-slate-400">
+          <div className="pt-2 text-center text-[11px] text-muted-foreground">
             <span>Universal Demo Sandbox · </span>
             <button
               type="button"
               onClick={() => setActiveTab("credentials")}
-              className="text-blue-400 hover:text-blue-300 underline font-medium focus:outline-none"
+              className="text-semantic-interactive hover:underline font-medium focus:outline-none"
             >
               Sign in with custom credentials →
             </button>

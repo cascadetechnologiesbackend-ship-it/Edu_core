@@ -66,15 +66,15 @@ export default function TeacherAttendanceClient({
   // If no sections assigned to teacher
   if (sections.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-3">
-        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+      <div className="rounded-2xl border border-border/40 bg-card p-8 text-center space-y-3 shadow-xs">
+        <div className="w-12 h-12 rounded-2xl bg-semantic-attention/10 border border-semantic-attention/20 text-semantic-attention flex items-center justify-center mx-auto">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-lg font-bold text-white">No Classrooms Allocated</h2>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+        <h2 className="text-lg font-bold text-foreground">No Classrooms Allocated</h2>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
           You are not currently assigned as a <strong>Class Teacher</strong> or allocated to any active classroom sections. Roll call can only be submitted for assigned classes.
         </p>
-        <p className="text-xs text-amber-400/80 font-medium">
+        <p className="text-xs text-semantic-attention font-medium">
           Please contact your Academic Administrator to assign your section.
         </p>
       </div>
@@ -167,32 +167,32 @@ export default function TeacherAttendanceClient({
   return (
     <div className="space-y-4">
       {/* ─── Top Filter & Controls Card ────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 space-y-3 shadow-md">
+      <div className="rounded-2xl border border-border/40 bg-card p-4 space-y-3 shadow-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Section Selector */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Class &amp; Section
             </label>
             <div className="relative">
               <select
                 value={selectedSectionId}
                 onChange={(e) => handleSectionChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-emerald-500 appearance-none pr-8"
+                className="w-full bg-muted/40 border border-border/40 text-foreground rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-semantic-interactive appearance-none pr-8"
               >
                 {sections.map((sec) => (
-                  <option key={sec.id} value={sec.id} className="bg-slate-900 text-white">
+                  <option key={sec.id} value={sec.id} className="bg-card text-foreground">
                     {sec.class?.displayName || "Class"} — Section {sec.name}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-3 pointer-events-none" />
             </div>
           </div>
 
           {/* Date Picker */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Attendance Date
             </label>
             <div className="relative">
@@ -200,7 +200,7 @@ export default function TeacherAttendanceClient({
                 type="date"
                 value={selectedDate}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+                className="w-full bg-muted/40 border border-border/40 text-foreground rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-semantic-interactive"
               />
             </div>
           </div>
@@ -267,14 +267,14 @@ export default function TeacherAttendanceClient({
 
       {/* ─── Student Roster Attendance Sheet ─────────────────────────────────── */}
       {loadingStudents ? (
-        <div className="p-8 text-center text-slate-400 text-xs">
+        <div className="p-8 text-center text-muted-foreground text-xs">
           Loading student roll roster...
         </div>
       ) : students.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center text-slate-400 space-y-2">
-          <Users className="w-8 h-8 text-slate-500 mx-auto" />
-          <div className="text-sm font-semibold text-white">No Students Found</div>
-          <p className="text-xs text-slate-400">
+        <div className="rounded-2xl border border-border/40 bg-card p-8 text-center text-muted-foreground space-y-2 shadow-xs">
+          <Users className="w-8 h-8 text-muted-foreground mx-auto" />
+          <div className="text-sm font-semibold text-foreground">No Students Found</div>
+          <p className="text-xs text-muted-foreground">
             No active student enrollments exist in this section.
           </p>
         </div>
@@ -286,21 +286,21 @@ export default function TeacherAttendanceClient({
             return (
               <div
                 key={student.studentId}
-                className="rounded-2xl border border-slate-800/90 bg-slate-900/70 backdrop-blur-sm p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:border-slate-700"
+                className="rounded-2xl border border-border/40 bg-card p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:border-border/70 shadow-xs"
               >
                 {/* Student Info */}
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-muted border border-border/40 text-foreground font-bold text-xs flex items-center justify-center shrink-0">
                     {student.rollNumber || idx + 1}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
                       {student.firstName} {student.lastName}
-                      <span className="text-[10px] text-slate-400 font-normal">
+                      <span className="text-[10px] text-muted-foreground font-normal">
                         ({student.admissionNumber})
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[11px] text-muted-foreground">
                       Roll #{student.rollNumber || idx + 1}
                     </div>
                   </div>

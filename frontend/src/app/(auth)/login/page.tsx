@@ -70,50 +70,50 @@ export default async function LoginPage() {
                   <span className="font-semibold text-lg tracking-tight text-white block">
                     SchoolMitra
                   </span>
-                  <span className="text-[11px] font-medium tracking-wider text-blue-300/80 uppercase block">
+                  <span className="text-[11px] font-medium tracking-wider text-semantic-interactive uppercase block">
                     School Operating System
                   </span>
                 </div>
               </div>
 
               {/* Status Pill */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/10 text-xs text-slate-300 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/10 text-xs text-white/80 font-medium">
+                <span className="w-2 h-2 rounded-full bg-semantic-money-in animate-pulse" />
                 <span>Academic Session 2025–26</span>
               </div>
             </div>
 
             {/* Center Editorial Quote & Vision - Normative Server LCP Element (PF-R50) */}
             <div className="relative z-10 my-auto py-12 max-w-xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-medium mb-6">
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-semantic-interactive/15 border border-semantic-interactive/30 text-white text-xs font-medium mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-semantic-interactive" />
                 <span>Everything your school needs, thoughtfully unified</span>
               </div>
 
               <h1 className="text-3xl xl:text-4xl 2xl:text-[42px] font-light tracking-tight text-white leading-[1.25] mb-5">
                 Better schools begin with{" "}
-                <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-indigo-100 to-amber-200">
+                <span className="font-medium text-white">
                   calm, dependable organization.
                 </span>
               </h1>
 
-              <p className="text-slate-300/85 text-base xl:text-lg font-normal leading-relaxed">
+              <p className="text-white/85 text-base xl:text-lg font-normal leading-relaxed">
                 From daily attendance and lesson plans to examinations and fee management — designed with care for teachers, administrators, and families.
               </p>
             </div>
 
             {/* Bottom Educational Modules Bar */}
-            <div className="relative z-10 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-300/80">
+            <div className="relative z-10 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-white/80">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-semantic-money-in" />
                 <span>Comprehensive K–10 ERP</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-semantic-money-in" />
                 <span>DPDP Act 2023 Compliant</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-semantic-money-in" />
                 <span>Multi-role Secure Access</span>
               </div>
             </div>
@@ -137,23 +137,23 @@ export default async function LoginPage() {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <h2 className="text-xl font-semibold text-white tracking-tight">
+              <h2 className="text-xl font-semibold text-foreground tracking-tight">
                 SchoolMitra ERP
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Your school, beautifully organized.
               </p>
             </div>
 
             {/* ── Refined Apple-Quality Floating Glass Card ── */}
-            <div className="w-full max-w-[480px] sm:max-w-[540px] rounded-3xl bg-slate-900/60 backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.12)_inset] p-6 sm:p-8 xl:p-9 transition-all duration-300">
+            <div className="w-full max-w-[480px] sm:max-w-[540px] rounded-3xl bg-card border border-border/40 shadow-2xl p-6 sm:p-8 xl:p-9 transition-all duration-300">
               
               {/* Header inside card */}
               <div className="mb-5">
-                <h2 className="text-2xl sm:text-[26px] font-semibold tracking-tight text-white">
+                <h2 className="text-2xl sm:text-[26px] font-semibold tracking-tight text-foreground">
                   Welcome to SchoolMitra
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
                   Explore interactive live demo or sign in to your school account.
                 </p>
               </div>
@@ -163,8 +163,8 @@ export default async function LoginPage() {
             </div>
 
             {/* Reassurance Footer */}
-            <div className="mt-6 flex items-center justify-center gap-2 text-slate-500 text-xs text-center px-4">
-              <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+            <div className="mt-6 flex items-center justify-center gap-2 text-muted-foreground text-xs text-center px-4">
+              <Shield className="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
               <span>DPDP Act 2023 Compliant · Data encrypted at rest</span>
             </div>
           </section>
@@ -173,7 +173,7 @@ export default async function LoginPage() {
       </main>
 
       {/* ── Minimal Bottom Legal / Accessibility Bar ── */}
-      <footer className="relative z-10 py-4 px-6 text-center text-xs text-slate-600 border-t border-white/[0.04]">
+      <footer className="relative z-10 py-4 px-6 text-center text-xs text-muted-foreground border-t border-border/40">
         <p>© {new Date().getFullYear()} SchoolMitra ERP. Built for Indian Schools.</p>
       </footer>
     </div>

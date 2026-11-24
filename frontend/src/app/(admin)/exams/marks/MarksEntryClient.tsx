@@ -397,11 +397,11 @@ export function MarksEntryClient({
   return (
     <div className="space-y-6">
       {/* ─── 1. Filter Bar ──────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm p-4 md:p-5 shadow-lg space-y-4">
+      <div className="rounded-2xl border border-border/40 bg-card p-4 md:p-5 shadow-xs space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Exam Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Examination
             </label>
             <select
@@ -410,10 +410,10 @@ export function MarksEntryClient({
               data-ux-action="filter_change"
               value={selectedExamId}
               onChange={(e) => handleExamChange(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-muted/40 border border-border/40 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-semantic-interactive font-medium"
             >
               {exams.map((ex) => (
-                <option key={ex.id} value={ex.id}>
+                <option key={ex.id} value={ex.id} className="bg-card text-foreground">
                   {ex.name}
                 </option>
               ))}
@@ -422,7 +422,7 @@ export function MarksEntryClient({
 
           {/* Class Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Class / Standard
             </label>
             <select
@@ -431,10 +431,10 @@ export function MarksEntryClient({
               data-ux-action="filter_change"
               value={selectedClassId}
               onChange={(e) => handleClassChange(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-muted/40 border border-border/40 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-semantic-interactive font-medium"
             >
               {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
+                <option key={cls.id} value={cls.id} className="bg-card text-foreground">
                   {cls.displayName}
                 </option>
               ))}
@@ -443,7 +443,7 @@ export function MarksEntryClient({
 
           {/* Subject Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Subject
             </label>
             <select
@@ -452,10 +452,10 @@ export function MarksEntryClient({
               data-ux-action="filter_change"
               value={selectedSubjectId}
               onChange={(e) => handleSubjectChange(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-muted/40 border border-border/40 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-semantic-interactive font-medium"
             >
               {subjects.map((sub) => (
-                <option key={sub.id} value={sub.id}>
+                <option key={sub.id} value={sub.id} className="bg-card text-foreground">
                   {sub.name} ({sub.code})
                 </option>
               ))}
@@ -464,7 +464,7 @@ export function MarksEntryClient({
         </div>
 
         {/* Lock status banner & control */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
           <div className="flex items-center gap-2.5">
             {isLocked ? (
               <span className="p-1.5 rounded-lg bg-semantic-money-owed/12 border border-semantic-money-owed/25 text-semantic-money-owed flex items-center gap-1.5 text-xs font-bold">
@@ -575,7 +575,7 @@ export function MarksEntryClient({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[10px] tracking-wider">
+              <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider">
                 <th className="py-3 px-4 w-16">Roll</th>
                 <th className="py-3 px-4 w-28">Admission No</th>
                 <th className="py-3 px-4 min-w-[180px]">Student Name</th>
@@ -584,7 +584,7 @@ export function MarksEntryClient({
                   components.map((c) => (
                     <th key={c.id} className="py-3 px-4 text-center min-w-[110px]">
                       <div>{c.name}</div>
-                      <div className="text-[9px] text-slate-500 font-normal">
+                      <div className="text-[9px] text-muted-foreground/75 font-normal">
                         Max {c.maxMarks} (Pass {c.passingMarks})
                       </div>
                     </th>
@@ -592,7 +592,7 @@ export function MarksEntryClient({
                 ) : (
                   <th className="py-3 px-4 text-center min-w-[120px]">
                     <div>Marks</div>
-                    <div className="text-[9px] text-slate-500 font-normal">
+                    <div className="text-[9px] text-muted-foreground/75 font-normal">
                       Max {defaultMaxMarks} (Pass {defaultPassingMarks})
                     </div>
                   </th>
@@ -603,12 +603,12 @@ export function MarksEntryClient({
                 <th className="py-3 px-4 text-center w-24">Absent</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-border/30">
               {filteredStudents.length === 0 ? (
                 <tr>
                   <td
                     colSpan={hasComponents ? 6 + components.length : 7}
-                    className="py-8 text-center text-slate-500"
+                    className="py-8 text-center text-muted-foreground"
                   >
                     No students found matching your criteria.
                   </td>
@@ -622,21 +622,21 @@ export function MarksEntryClient({
                   return (
                     <tr
                       key={st.id}
-                      className={`hover:bg-slate-800/30 transition ${
+                      className={`hover:bg-muted/30 transition ${
                         st.isAbsent
-                          ? "bg-rose-950/10 text-slate-500"
+                          ? "bg-semantic-money-owed/5 text-muted-foreground"
                           : st.isMedicalExempt
-                          ? "bg-amber-950/10 text-slate-500"
+                          ? "bg-semantic-attention/5 text-muted-foreground"
                           : ""
                       }`}
                     >
-                      <td className="py-2.5 px-4 font-mono font-bold text-slate-300">
+                      <td className="py-2.5 px-4 font-mono font-bold text-foreground">
                         {st.rollNumber || "—"}
                       </td>
-                      <td className="py-2.5 px-4 font-mono text-slate-400">
+                      <td className="py-2.5 px-4 font-mono text-muted-foreground">
                         {st.admissionNumber}
                       </td>
-                      <td className="py-2.5 px-4 font-medium text-white">
+                      <td className="py-2.5 px-4 font-medium text-foreground">
                         {st.name}
                       </td>
 
@@ -659,8 +659,8 @@ export function MarksEntryClient({
                                 placeholder="—"
                                 className={`w-20 text-center rounded-lg px-2 py-1.5 text-xs font-semibold focus:outline-none transition ${
                                   st.isAbsent || st.isMedicalExempt || isLocked
-                                    ? "bg-slate-950/40 text-slate-600 border border-slate-800/50 cursor-not-allowed"
-                                    : "bg-slate-950 text-white border border-slate-800 focus:border-indigo-500"
+                                    ? "bg-muted/30 text-muted-foreground border border-border/40 cursor-not-allowed"
+                                    : "bg-muted/40 text-foreground border border-border/40 focus:border-semantic-interactive"
                                 }`}
                               />
                             </td>
@@ -681,8 +681,8 @@ export function MarksEntryClient({
                             placeholder="—"
                             className={`w-24 text-center rounded-lg px-2 py-1.5 text-xs font-semibold focus:outline-none transition ${
                               st.isAbsent || st.isMedicalExempt || isLocked
-                                ? "bg-slate-950/40 text-slate-600 border border-slate-800/50 cursor-not-allowed"
-                                : "bg-slate-950 text-white border border-slate-800 focus:border-indigo-500"
+                                ? "bg-muted/30 text-muted-foreground border border-border/40 cursor-not-allowed"
+                                : "bg-muted/40 text-foreground border border-border/40 focus:border-semantic-interactive"
                             }`}
                           />
                         </td>
@@ -691,17 +691,17 @@ export function MarksEntryClient({
                       {/* Total */}
                       <td className="py-2.5 px-4 text-center font-bold">
                         {st.isAbsent ? (
-                          <span className="text-rose-400 text-[11px] font-black">
+                          <span className="text-semantic-money-owed text-[11px] font-black">
                             ABSENT
                           </span>
                         ) : st.isMedicalExempt ? (
-                          <span className="text-amber-400 text-[11px] font-black">
+                          <span className="text-semantic-attention text-[11px] font-black">
                             EXEMPT
                           </span>
                         ) : (
                           <span
                             className={
-                              isPass ? "text-emerald-400" : isNumTotal ? "text-rose-400" : "text-slate-500"
+                              isPass ? "text-semantic-money-in" : isNumTotal ? "text-semantic-money-owed" : "text-muted-foreground"
                             }
                           >
                             {total}
@@ -717,12 +717,12 @@ export function MarksEntryClient({
                           onClick={() => toggleMedicalExempt(st.id)}
                           className={`p-1 rounded transition ${
                             isLocked
-                              ? "cursor-not-allowed text-slate-600"
-                              : "cursor-pointer text-slate-400 hover:text-amber-400"
+                              ? "cursor-not-allowed text-muted-foreground/40"
+                              : "cursor-pointer text-muted-foreground hover:text-semantic-attention"
                           }`}
                         >
                           {st.isMedicalExempt ? (
-                            <CheckSquare className="w-4 h-4 text-amber-400" />
+                            <CheckSquare className="w-4 h-4 text-semantic-attention" />
                           ) : (
                             <Square className="w-4 h-4" />
                           )}
@@ -737,12 +737,12 @@ export function MarksEntryClient({
                           onClick={() => toggleAbsent(st.id)}
                           className={`p-1 rounded transition ${
                             isLocked
-                              ? "cursor-not-allowed text-slate-600"
-                              : "cursor-pointer text-slate-400 hover:text-rose-400"
+                              ? "cursor-not-allowed text-muted-foreground/40"
+                              : "cursor-pointer text-muted-foreground hover:text-semantic-money-owed"
                           }`}
                         >
                           {st.isAbsent ? (
-                            <CheckSquare className="w-4 h-4 text-rose-400" />
+                            <CheckSquare className="w-4 h-4 text-semantic-money-owed" />
                           ) : (
                             <Square className="w-4 h-4" />
                           )}
@@ -758,24 +758,24 @@ export function MarksEntryClient({
       </div>
 
       {/* ─── 4. Adaptive Sticky Action Dock (UX-R20 Thumb Zone & Scroll Persistence) ─── */}
-      <div className="sticky bottom-4 z-30 rounded-2xl border border-slate-700/80 bg-slate-950/95 backdrop-blur-md p-3.5 shadow-2xl shadow-black/60 flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky bottom-4 z-30 rounded-2xl border border-border/40 bg-card/95 backdrop-blur-md p-3.5 shadow-2xl flex flex-wrap items-center justify-between gap-3">
         {/* Left: Status & Row counts */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
-                isDirty ? "bg-amber-400 animate-pulse" : "bg-emerald-400"
+                isDirty ? "bg-semantic-attention animate-pulse" : "bg-semantic-money-in"
               }`}
             />
-            <span className="text-xs font-semibold text-white">
+            <span className="text-xs font-semibold text-foreground">
               {isDirty ? "Unsaved Edits Pending" : "All Entries Saved"}
             </span>
           </div>
 
-          <span className="hidden sm:inline text-xs text-slate-500">•</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground/60">•</span>
 
-          <span className="text-xs text-slate-400">
-            <strong className="text-slate-200">{filteredStudents.length}</strong> students in sheet
+          <span className="text-xs text-muted-foreground">
+            <strong className="text-foreground">{filteredStudents.length}</strong> students in sheet
           </span>
         </div>
 
@@ -786,7 +786,7 @@ export function MarksEntryClient({
             <button
               type="button"
               onClick={() => setShowSecondaryMenu(!showSecondaryMenu)}
-              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+              className="p-2.5 rounded-xl bg-muted border border-border/40 text-foreground hover:bg-muted/80 transition text-xs font-medium flex items-center gap-1.5 cursor-pointer"
               title="Secondary Actions & Export"
             >
               <MoreVertical className="w-4 h-4" />
@@ -794,7 +794,7 @@ export function MarksEntryClient({
             </button>
 
             {showSecondaryMenu && (
-              <div className="absolute right-0 bottom-full mb-2 w-56 rounded-2xl border border-slate-800 bg-slate-900/95 backdrop-blur-md shadow-2xl p-2 z-40 space-y-1">
+              <div className="absolute right-0 bottom-full mb-2 w-56 rounded-2xl border border-border/40 bg-card/95 backdrop-blur-md shadow-2xl p-2 z-40 space-y-1">
                 <button
                   type="button"
                   data-ux-id="btn_export_marks_csv"
@@ -804,9 +804,9 @@ export function MarksEntryClient({
                     handleExportCsv();
                     setShowSecondaryMenu(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted flex items-center gap-2 cursor-pointer transition"
                 >
-                  <Download className="w-4 h-4 text-indigo-400" />
+                  <Download className="w-4 h-4 text-semantic-interactive" />
                   <span>Export Marks to CSV</span>
                 </button>
 
@@ -814,9 +814,9 @@ export function MarksEntryClient({
                   <button
                     type="button"
                     onClick={handleResetChanges}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-950/40 flex items-center gap-2 cursor-pointer transition"
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-semantic-attention hover:bg-semantic-attention/10 flex items-center gap-2 cursor-pointer transition"
                   >
-                    <RotateCcw className="w-4 h-4 text-amber-400" />
+                    <RotateCcw className="w-4 h-4 text-semantic-attention" />
                     <span>Discard Unsaved Edits</span>
                   </button>
                 )}
@@ -834,18 +834,18 @@ export function MarksEntryClient({
                     }}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 cursor-pointer transition ${
                       isLocked
-                        ? "text-amber-300 hover:bg-amber-950/40"
-                        : "text-rose-300 hover:bg-rose-950/40"
+                        ? "text-semantic-attention hover:bg-semantic-attention/10"
+                        : "text-semantic-money-owed hover:bg-semantic-money-owed/10"
                     }`}
                   >
                     {isLocked ? (
                       <>
-                        <Unlock className="w-4 h-4 text-amber-400" />
+                        <Unlock className="w-4 h-4 text-semantic-attention" />
                         <span>Unlock Marks Entry</span>
                       </>
                     ) : (
                       <>
-                        <Lock className="w-4 h-4 text-rose-400" />
+                        <Lock className="w-4 h-4 text-semantic-money-owed" />
                         <span>Lock & Finalize Subject</span>
                       </>
                     )}
@@ -863,12 +863,12 @@ export function MarksEntryClient({
             data-ux-action="click"
             disabled={isPending || isLocked || filteredStudents.length === 0}
             onClick={handleSaveMarks}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition min-h-[42px] cursor-pointer ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition min-h-[42px] cursor-pointer ${
               isLocked
-                ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/40 shadow-none"
+                ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/40 shadow-none"
                 : isDirty
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 active:scale-95 animate-pulse"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-95"
+                ? "bg-semantic-interactive hover:bg-semantic-interactive/90 text-white active:scale-95 animate-pulse"
+                : "bg-semantic-interactive hover:bg-semantic-interactive/90 text-white active:scale-95"
             }`}
           >
             <Save className="w-4 h-4" />
@@ -879,24 +879,24 @@ export function MarksEntryClient({
 
       {/* ─── 5. Unlock Modal ──────────────────────────────────────────────────── */}
       {showUnlockModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="w-full max-w-md bg-card border border-border/40 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <span className="p-2 rounded-xl bg-semantic-attention/10 border border-semantic-attention/20 text-semantic-attention">
                 <Unlock className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="font-bold text-white text-base">
+                <h3 className="font-bold text-foreground text-base">
                   Unlock Marks Entry
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   State a mandatory reason for reopening grade submissions.
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
                 Revision / Reopening Reason *
               </label>
               <textarea
@@ -905,7 +905,7 @@ export function MarksEntryClient({
                 placeholder="e.g. Recalculation request approved by Principal for Term exam."
                 value={unlockReason}
                 onChange={(e) => setUnlockReason(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                className="w-full bg-muted/40 border border-border/40 rounded-xl p-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-semantic-attention"
               />
             </div>
 
@@ -913,7 +913,7 @@ export function MarksEntryClient({
               <button
                 type="button"
                 onClick={() => setShowUnlockModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-border/40 text-muted-foreground hover:text-foreground text-xs font-medium transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -921,7 +921,7 @@ export function MarksEntryClient({
                 type="button"
                 disabled={!unlockReason.trim() || isPending}
                 onClick={handleConfirmUnlock}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition shadow-md shadow-amber-600/30 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-semantic-attention hover:bg-semantic-attention/90 text-white text-xs font-semibold transition shadow-xs cursor-pointer disabled:opacity-50"
               >
                 Confirm Unlock
               </button>
