@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { getStaff360, getDepartments, getDesignations } from "../../actions";
 import { Staff360Client } from "./Staff360Client";
+import { getSignedDownloadUrl } from "@/lib/s3";
 
 export const metadata: Metadata = {
   title: "Staff 360 | SchoolMitra ERP",
@@ -32,9 +33,13 @@ export default async function Staff360Page({
     getDesignations(),
   ]);
 
+  const photoUrl = res.profile.photoS3Key
+    ? await getSignedDownloadUrl(res.profile.photoS3Key).catch(() => null)
+    : null;
+
   return (
     <Staff360Client
-      profile={res.profile}
+      profile={{ ...res.profile, photoUrl }}
       departments={deptRes.departments || []}
       designations={desigRes.designations || []}
       userRole={ctx.role}

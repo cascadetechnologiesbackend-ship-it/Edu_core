@@ -21,7 +21,7 @@ import {
   resultSnapshots,
   assignmentSubmissions,
 } from "@/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { getSignedDownloadUrl } from "@/lib/s3";
 import { notFound, redirect } from "next/navigation";
@@ -48,7 +48,7 @@ export default async function StudentProfilePage({
     ? and(eq(students.id, studentId), eq(students.schoolId, school.id))
     : and(eq(students.admissionNumber, studentId), eq(students.schoolId, school.id));
 
-  const result = await withTenant(school.id, async (tx) => {
+  const result: any = await withTenant(school.id, async (tx): Promise<any> => {
     // 1. Fetch Student Record scoped strictly to school
     const student = await tx.query.students.findFirst({
       where: studentWhere,
@@ -131,6 +131,7 @@ export default async function StudentProfilePage({
       studentMarkEntriesList,
       studentResultSnapshotsList,
       studentSubmissionsList,
+      termAttendanceAgg,
     ] = await Promise.all([
       // Current Class
       student.currentClassId
@@ -309,6 +310,24 @@ export default async function StudentProfilePage({
         },
         orderBy: [desc(assignmentSubmissions.submittedAt)],
       }),
+
+      // Term Attendance Aggregation (Truth Fix)
+      tx
+        .select({
+          status: studentAttendance.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(studentAttendance)
+        .where(
+          and(
+            eq(studentAttendance.studentId, student.id),
+            eq(studentAttendance.schoolId, school.id),
+            student.academicYearId
+              ? eq(studentAttendance.academicYearId, student.academicYearId)
+              : undefined,
+          ),
+        )
+        .groupBy(studentAttendance.status),
     ]);
 
     // 4. Resolve Subject Teachers & Staff Profiles
@@ -364,17 +383,27 @@ export default async function StudentProfilePage({
       };
     });
 
-    // 5. Compute Attendance Percentages
-    const totalAtt = attendanceEntries.length;
-    const presentCount = attendanceEntries.filter(
-      (a) => a.status === "PRESENT",
-    ).length;
-    const absentCount = attendanceEntries.filter(
-      (a) => a.status === "ABSENT",
-    ).length;
-    const lateCount = attendanceEntries.filter((a) => a.status === "LATE").length;
+    // 5. Compute Attendance Percentages (Term-Scope Truth)
+    let termTotal = 0;
+    let termPresent = 0;
+    let termAbsent = 0;
+    let termLate = 0;
+    if (termAttendanceAgg && termAttendanceAgg.length > 0) {
+      for (const row of termAttendanceAgg) {
+        const c = Number(row.count || 0);
+        termTotal += c;
+        if (row.status === "PRESENT") termPresent += c;
+        else if (row.status === "ABSENT") termAbsent += c;
+        else if (row.status === "LATE") termLate += c;
+      }
+    } else {
+      termTotal = attendanceEntries.length;
+      termPresent = attendanceEntries.filter((a) => a.status === "PRESENT").length;
+      termAbsent = attendanceEntries.filter((a) => a.status === "ABSENT").length;
+      termLate = attendanceEntries.filter((a) => a.status === "LATE").length;
+    }
     const attendancePercentage =
-      totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
+      termTotal > 0 ? Math.round((termPresent / termTotal) * 100) : null;
 
     const applicableFeeStructures = feeStructuresList;
     const studentInvoices = studentInvoicesList;
@@ -609,12 +638,15 @@ export default async function StudentProfilePage({
       )
     : null;
 
-  const firstName = decryptData(student.firstNameEncrypted) || "Unknown";
-  const lastName = decryptData(student.lastNameEncrypted) || "";
-  const fullName = `${firstName} ${lastName}`.trim();
+  const firstNameDecrypted = decryptData(student.firstNameEncrypted);
+  const lastNameDecrypted = decryptData(student.lastNameEncrypted);
+  const isNameRecorded = Boolean(firstNameDecrypted && firstNameDecrypted.trim());
+  const fullName = isNameRecorded
+    ? `${firstNameDecrypted} ${lastNameDecrypted || ""}`.trim()
+    : "Name not recorded";
 
   // Map exam marks
-  const examMarks = studentMarkEntriesList.map((entry) => {
+  const examMarks = studentMarkEntriesList.map((entry: any) => {
     const obtained = entry.marksObtained !== null ? parseFloat(entry.marksObtained) : null;
     const max = parseFloat(entry.maxMarks || "100");
     const pct = obtained !== null && max > 0 ? Math.round((obtained / max) * 100) : null;
@@ -637,7 +669,7 @@ export default async function StudentProfilePage({
   });
 
   // Map report cards
-  const reportCards = studentResultSnapshotsList.map((snap) => {
+  const reportCards = studentResultSnapshotsList.map((snap: any) => {
     const p = (snap.payload as any) || {};
     return {
       id: snap.id,
@@ -654,7 +686,7 @@ export default async function StudentProfilePage({
   });
 
   // Map homework submissions
-  const homeworkSubmissions = studentSubmissionsList.map((sub) => {
+  const homeworkSubmissions = studentSubmissionsList.map((sub: any) => {
     const asgn = sub.assignment;
     return {
       id: sub.id,
@@ -675,6 +707,7 @@ export default async function StudentProfilePage({
     id: student.id,
     admissionNumber: student.admissionNumber,
     fullName,
+    isNameRecorded,
     dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString() : null,
     gender: student.gender,
     category: student.category,
@@ -682,6 +715,7 @@ export default async function StudentProfilePage({
     aadhaarLast4: student.aadhaarLast4,
     apaarId: student.apaarId,
     photoUrl,
+    photoS3Key: student.photoS3Key,
     isActive: student.isActive,
     admissionDate: student.admissionDate ? new Date(student.admissionDate).toISOString() : new Date().toISOString(),
     leavingDate: student.leavingDate ? new Date(student.leavingDate).toISOString() : null,
@@ -694,7 +728,7 @@ export default async function StudentProfilePage({
       (classTeacherUser?.id && staffNameMap.get(classTeacherUser.id)) ||
       classTeacherUser?.email?.split("@")[0] ||
       null,
-    familyMembers: familyMembers.map((fm) => ({
+    familyMembers: familyMembers.map((fm: any) => ({
       id: fm.id,
       relation: fm.relation,
       name: decryptData(fm.nameEncrypted) || "Guardian",
@@ -711,8 +745,9 @@ export default async function StudentProfilePage({
       absent: absentCount,
       late: lateCount,
       percentage: attendancePercentage,
+      scopeLabel: "this term",
     },
-    attendanceLogs: attendanceEntries.map((log) => ({
+    attendanceLogs: attendanceEntries.map((log: any) => ({
       id: log.id,
       date: log.attendanceDate ? new Date(log.attendanceDate).toISOString() : new Date().toISOString(),
       status: log.status,
@@ -720,7 +755,7 @@ export default async function StudentProfilePage({
     })),
     canViewFees,
     canMutateFees,
-    feeStructures: applicableFeeStructures.map((fs) => ({
+    feeStructures: applicableFeeStructures.map((fs: any) => ({
       id: fs.id,
       name: fs.feeHead?.name || "Fee",
       term: fs.term,
@@ -738,14 +773,14 @@ export default async function StudentProfilePage({
       dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : new Date().toISOString(),
       term: inv.term,
     })),
-    concessions: studentConcessions.map((c) => ({
+    concessions: studentConcessions.map((c: any) => ({
       id: c.id,
       concessionName: c.concessionName,
       concessionType: c.concessionType,
       discountPercentage: c.discountPercentage,
       discountAmount: c.discountAmount,
     })),
-    documents: documents.map((doc) => ({
+    documents: documents.map((doc: any) => ({
       id: doc.id,
       documentType: doc.documentType,
       originalFileName: doc.originalFileName,
@@ -765,12 +800,13 @@ export default async function StudentProfilePage({
       <Student360Client
         data={student360Data}
         schoolId={school.id}
-        availableClasses={availableClasses.map((c) => ({
+        userRole={ctx.role}
+        availableClasses={availableClasses.map((c: any) => ({
           id: c.id,
           name: c.displayName,
-          sections: c.sections?.map((s) => ({ id: s.id, name: s.name })),
+          sections: c.sections?.map((s: any) => ({ id: s.id, name: s.name })),
         }))}
-        availableYears={availableYears.map((y) => ({
+        availableYears={availableYears.map((y: any) => ({
           id: y.id,
           label: y.label,
         }))}

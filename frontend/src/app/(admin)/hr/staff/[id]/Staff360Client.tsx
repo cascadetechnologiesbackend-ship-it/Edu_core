@@ -1,23 +1,79 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import {
+  GraduationCap,
+  Calendar,
+  AlertTriangle,
+  FileText,
+  BookOpen,
+  Award,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  Users,
+  Lock,
+  Unlock,
+  Briefcase,
+  CreditCard,
+  FileSpreadsheet,
+  Eye,
+  RefreshCw,
+  DollarSign,
+  AlertCircle,
+} from "lucide-react";
 import { AppModal } from "@/components/ui/AppModal";
+import { Avatar } from "@/components/ui/Avatar";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { MetricCard } from "@/components/ui/MetricCard";
 import {
   AddressAutofill,
   type AddressValue,
   formatAddressForStorage,
 } from "@/components/forms/AddressAutofill";
-import { getAvatarColor, getInitials } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   updateStaff,
+  updateStaffPhotoAction,
   confirmStaffProbation,
   offboardStaff,
   reactivateStaff,
   toggleStaffLegalHold,
   revealStaffPii,
 } from "../../actions";
+
+function formatDisplayDate(val: string | Date | null | undefined): string {
+  if (!val) return "N/A";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "N/A";
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = months[d.getUTCMonth()];
+    const year = d.getUTCFullYear();
+    return `${day} ${month} ${year}`;
+  } catch {
+    return "N/A";
+  }
+}
 
 interface Staff360Props {
   profile: any;
@@ -26,6 +82,13 @@ interface Staff360Props {
   userRole: string;
   schoolName: string;
 }
+
+export type StaffTabKey =
+  | "academics"
+  | "leaves"
+  | "employment"
+  | "compensation"
+  | "records";
 
 export function Staff360Client({
   profile,
@@ -38,24 +101,95 @@ export function Staff360Client({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const tabParam = searchParams.get("tab") as any;
-  const validTabs = ["overview", "employment", "academics", "compensation", "leaves"];
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "employment" | "academics" | "compensation" | "leaves"
-  >(validTabs.includes(tabParam) ? tabParam : "overview");
+  // Tab navigation
+  const tabParam = searchParams.get("tab")?.toLowerCase();
+  const validTabs: StaffTabKey[] = [
+    "academics",
+    "leaves",
+    "employment",
+    "compensation",
+    "records",
+  ];
+  const initialTab: StaffTabKey =
+    validTabs.includes(tabParam as StaffTabKey)
+      ? (tabParam as StaffTabKey)
+      : profile.isTeaching
+        ? "academics"
+        : "employment";
+
+  const [activeTab, setActiveTab] = useState<StaffTabKey>(initialTab);
 
   useEffect(() => {
-    const currentTab = searchParams.get("tab") as any;
+    const currentTab = searchParams.get("tab")?.toLowerCase() as StaffTabKey;
     if (currentTab && validTabs.includes(currentTab) && currentTab !== activeTab) {
       setActiveTab(currentTab);
     }
   }, [searchParams]);
 
-  const handleTabChange = (tab: "overview" | "employment" | "academics" | "compensation" | "leaves") => {
-    setActiveTab(tab);
+  const handleTabChange = (tab: string) => {
+    const key = tab as StaffTabKey;
+    setActiveTab(key);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", tab);
+    params.set("tab", key);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Avatar Upload State
+  const [photoUrl, setPhotoUrl] = useState<string | null>(profile.photoUrl || null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (file: File) => {
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "staff-photos");
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload photo to storage");
+      }
+
+      const uploadData = await uploadRes.json();
+      const s3Key = uploadData.key || uploadData.s3Key || uploadData.path;
+      if (!s3Key) {
+        throw new Error("Invalid response from upload service");
+      }
+
+      const res = await updateStaffPhotoAction(profile.id, s3Key);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to link photo to staff profile");
+      }
+
+      setPhotoUrl(URL.createObjectURL(file));
+      toast.success("Staff profile photo updated");
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile photo");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    setIsUploadingPhoto(true);
+    try {
+      const res = await updateStaffPhotoAction(profile.id, null);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to remove staff photo");
+      }
+      setPhotoUrl(null);
+      toast.success("Staff profile photo removed");
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove photo");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   // Edit Modal State
@@ -109,12 +243,15 @@ export function Staff360Client({
   const [offboardLoading, setOffboardLoading] = useState(false);
   const [offboardError, setOffboardError] = useState<string | null>(null);
 
-  // Confirm Probation State
+  // Governed Confirmation Dialog States (Replacing window.confirm)
+  const [showConfirmProbationDialog, setShowConfirmProbationDialog] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
 
-  // Legal Hold State
+  const [showLegalHoldDialog, setShowLegalHoldDialog] = useState(false);
   const [legalHoldLoading, setLegalHoldLoading] = useState(false);
+
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [reactivateLoading, setReactivateLoading] = useState(false);
 
   // PII Reveal State
   const [piiData, setPiiData] = useState<any>(null);
@@ -148,6 +285,7 @@ export function Staff360Client({
         setEditError(res.message || "Failed to update staff profile");
       } else {
         setShowEditModal(false);
+        toast.success("Staff profile updated");
         router.refresh();
       }
     } catch (err: any) {
@@ -157,21 +295,19 @@ export function Staff360Client({
     }
   };
 
-  const handleConfirmProbation = async () => {
-    if (!window.confirm("Confirm permanent employment for this staff member?"))
-      return;
+  const handleConfirmProbationAction = async () => {
     setConfirmLoading(true);
-    setConfirmMsg(null);
     try {
       const res = await confirmStaffProbation(profile.id);
       if (!res.success) {
-        alert(res.message || "Failed to confirm probation");
+        toast.error(res.message || "Failed to confirm probation");
       } else {
-        setConfirmMsg("Probation confirmed successfully.");
+        setShowConfirmProbationDialog(false);
+        toast.success("Probation confirmed successfully. Permanent status granted.");
         router.refresh();
       }
     } catch (err: any) {
-      alert(err.message || "Error confirming probation");
+      toast.error(err.message || "Error confirming probation");
     } finally {
       setConfirmLoading(false);
     }
@@ -192,6 +328,7 @@ export function Staff360Client({
       } else {
         setShowOffboardModal(false);
         setOffboardWarning(null);
+        toast.success("Staff offboarding completed");
         router.refresh();
       }
     } catch (err: any) {
@@ -201,44 +338,44 @@ export function Staff360Client({
     }
   };
 
-  const handleToggleLegalHold = async () => {
+  const handleToggleLegalHoldAction = async () => {
     const nextState = !profile.legalHold;
-    const confirmText = nextState
-      ? "Apply LEGAL HOLD on this staff profile? This prevents separation or destructive actions."
-      : "Remove LEGAL HOLD from this staff profile?";
-    if (!window.confirm(confirmText)) return;
-
     setLegalHoldLoading(true);
     try {
       const res = await toggleStaffLegalHold(profile.id, nextState);
       if (!res.success) {
-        alert(res.message || "Failed to update legal hold status");
+        toast.error(res.message || "Failed to update legal hold status");
       } else {
+        setShowLegalHoldDialog(false);
+        toast.success(
+          nextState
+            ? "Legal hold applied. Profile locked against mutation/separation."
+            : "Legal hold removed.",
+        );
         router.refresh();
       }
     } catch (err: any) {
-      alert(err.message || "Error toggling legal hold");
+      toast.error(err.message || "Error toggling legal hold");
     } finally {
       setLegalHoldLoading(false);
     }
   };
 
-  const handleReactivate = async () => {
-    if (
-      !window.confirm(
-        "Reactivate this staff member and restore login account access?",
-      )
-    )
-      return;
+  const handleReactivateAction = async () => {
+    setReactivateLoading(true);
     try {
       const res = await reactivateStaff(profile.id);
       if (!res.success) {
-        alert(res.message || "Failed to reactivate staff");
+        toast.error(res.message || "Failed to reactivate staff");
       } else {
+        setShowReactivateDialog(false);
+        toast.success("Staff member reactivated and login credentials restored");
         router.refresh();
       }
     } catch (err: any) {
-      alert(err.message || "Error reactivating staff");
+      toast.error(err.message || "Error reactivating staff");
+    } finally {
+      setReactivateLoading(false);
     }
   };
 
@@ -251,6 +388,7 @@ export function Staff360Client({
         setPiiError(res.message || "Unauthorized to view sensitive PII");
       } else {
         setPiiData(res.data);
+        toast.success("Statutory PII revealed under audit log");
       }
     } catch (err: any) {
       setPiiError(err.message || "Error revealing PII");
@@ -259,477 +397,367 @@ export function Staff360Client({
     }
   };
 
+  const totalLeaveBalance =
+    profile.leaveBalances?.reduce(
+      (sum: number, lb: any) => sum + (lb.remainingDays || 0),
+      0,
+    ) ?? 0;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6 space-y-6">
-      {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-            <Link
-              href="/hr"
-              className="hover:text-indigo-600 transition-colors flex items-center gap-1"
-            >
-              ← Staff Directory
-            </Link>
-            <span>/</span>
-            <span>{schoolName}</span>
-            <span>/</span>
-            <span className="text-gray-900 dark:text-gray-100 font-semibold">
-              {profile.employeeCode}
-            </span>
-          </div>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* ─── STICKY IDENTITY HEADER (Apple Large Title & One-Tint Law) ─────────────── */}
+      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-md border-b border-border/40 py-3.5 px-4 sm:px-6 -mx-4 sm:-mx-6 mb-5 transition-all">
+        {/* Breadcrumb */}
+        <div className="mb-2 text-xs text-muted-foreground flex items-center gap-1.5">
+          <Link href="/hr" className="hover:text-foreground transition-colors">
+            Staff Directory
+          </Link>
+          <span>/</span>
+          <span>{schoolName}</span>
+          <span>/</span>
+          <span className="text-foreground font-medium truncate">
+            {profile.employeeCode}
+          </span>
+        </div>
 
-          <div className="flex items-center gap-3.5 pt-1">
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0 ${getAvatarColor(
-                profile.fullName,
-              )}`}
-            >
-              {getInitials(profile.fullName)}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                  {profile.fullName}
+        {/* Identity & Actions Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3.5 min-w-0">
+            {/* Shared Avatar with Identity Upload/Replace */}
+            <Avatar
+              src={photoUrl}
+              name={profile.fullName}
+              size="xl"
+              shape="squircle"
+              canEdit={canMutate}
+              isLoading={isUploadingPhoto}
+              onPhotoSelected={handlePhotoUpload}
+              onPhotoRemoved={handlePhotoRemove}
+              className="shadow-xs shrink-0"
+            />
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight truncate leading-tight">
+                  {profile.fullName || "Name not recorded"}
                 </h1>
-
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                  Code: {profile.employeeCode}
+                <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+                  {profile.employeeCode}
                 </span>
 
                 {profile.isTeaching ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-[11px] font-semibold text-semantic-interactive bg-semantic-interactive/10 border border-semantic-interactive/20 px-2 py-0.5 rounded-full">
                     Teaching Faculty
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted/50 dark:bg-muted/60 text-muted-foreground dark:text-muted-foreground border border-border/40 dark:border-border/40">
+                  <span className="text-[11px] font-semibold text-muted-foreground bg-muted/40 border border-border/40 px-2 py-0.5 rounded-full">
                     Non-Teaching
                   </span>
                 )}
 
                 {profile.legalHold && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 flex items-center gap-1">
-                    🔒 Legal Hold Active
+                  <span className="text-[11px] font-semibold text-semantic-attention bg-semantic-attention/10 border border-semantic-attention/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    Legal Hold Active
                   </span>
                 )}
 
                 {profile.isActive ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
-                    Active
-                  </span>
+                  <StatusBadge status="success" label="Active" />
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300">
-                    Separated ({profile.separationType || "Inactive"})
-                  </span>
+                  <StatusBadge
+                    status="destructive"
+                    label={`Separated (${profile.separationType || "Inactive"})`}
+                  />
                 )}
 
                 {profile.contractType === "PROBATION" && profile.isActive && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300">
-                    On Probation
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {canMutate && (
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              Edit Profile
-            </button>
-          )}
-
-          {canMutate && profile.contractType === "PROBATION" && profile.isActive && (
-            <button
-              onClick={handleConfirmProbation}
-              disabled={confirmLoading}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition disabled:opacity-50"
-            >
-              {confirmLoading ? "Confirming..." : "Confirm Probation"}
-            </button>
-          )}
-
-          {canAdminister && profile.isActive && (
-            <button
-              onClick={() => {
-                setOffboardWarning(null);
-                setShowOffboardModal(true);
-              }}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition"
-            >
-              Offboard Staff
-            </button>
-          )}
-
-          {canAdminister && !profile.isActive && (
-            <button
-              onClick={handleReactivate}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition"
-            >
-              Reactivate Staff
-            </button>
-          )}
-
-          {["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(userRole) && (
-            <button
-              onClick={handleToggleLegalHold}
-              disabled={legalHoldLoading}
-              className={`px-4 py-2 text-sm font-medium rounded-lg border transition disabled:opacity-50 ${
-                profile.legalHold
-                  ? "bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800 hover:bg-purple-100"
-                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              {profile.legalHold ? "Remove Legal Hold" : "Apply Legal Hold"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {confirmMsg && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-800 dark:text-emerald-300 text-sm">
-          {confirmMsg}
-        </div>
-      )}
-
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800 space-x-4">
-        {[
-          { key: "overview", label: "Overview & Identity" },
-          { key: "employment", label: "Employment & Lifecycle" },
-          { key: "academics", label: "Academic Allocations" },
-          { key: "compensation", label: "Compensation & Loans" },
-          { key: "leaves", label: "Leave Summary" },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => handleTabChange(tab.key as any)}
-            className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* TAB CONTENT */}
-
-      {/* 1. OVERVIEW & IDENTITY */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Personal Information
-            </h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500 block text-xs">First Name</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.firstName}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Last Name</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.lastName}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Gender</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.gender || "—"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Date of Birth</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.dateOfBirth || "—"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Aadhaar Last 4</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.aadhaarLast4 ? `•••• •••• ${profile.aadhaarLast4}` : "—"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Contract Type</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.contractType}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-              <span className="text-gray-500 block text-xs mb-1">Residential Address</span>
-              <p className="text-sm text-gray-800 dark:text-gray-200">
-                {profile.address || "No address provided."}
-              </p>
-              {(profile.pincode || profile.district || profile.state) && (
-                <div className="flex flex-wrap gap-2 pt-2 text-xs text-gray-500 dark:text-gray-400">
-                  {profile.pincode && (
-                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-mono">
-                      PIN: {profile.pincode}
-                    </span>
-                  )}
-                  {profile.district && (
-                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800">
-                      {profile.district}
-                    </span>
-                  )}
-                  {profile.state && (
-                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800">
-                      {profile.state}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Contact & Emergency
-            </h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500 block text-xs">Official Email</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
-                  {profile.email}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Mobile Number</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.mobile}
-                </span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-gray-500 block text-xs">Emergency Contact</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.emergencyContact || "—"}
-                </span>
-              </div>
-            </div>
-
-            {/* DPDP Sensitive Data Card */}
-            <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    Statutory & Financial PII (DPDP Protected)
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Encrypted with AES-256. Access is logged.
-                  </p>
-                </div>
-                {!piiData && (
-                  <button
-                    onClick={handleRevealPii}
-                    disabled={revealingPii}
-                    className="px-3.5 py-2 text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 rounded-xl hover:bg-amber-500/15 transition disabled:opacity-50 min-h-[44px]"
-                  >
-                    {revealingPii ? "Decrypting..." : "Reveal PII"}
-                  </button>
+                  <StatusBadge status="warning" label="On Probation" />
                 )}
               </div>
 
-              {piiError && (
-                <p className="text-xs text-rose-600 dark:text-rose-400">
-                  {piiError}
-                </p>
-              )}
-
-              {piiData && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg text-xs">
-                  <div>
-                    <span className="text-gray-500 block">PAN</span>
-                    <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
-                      {piiData.pan || "Not Provided"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Bank Name</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {piiData.bankName || "Not Provided"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Account Number</span>
-                    <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
-                      {piiData.bankAccount || "Not Provided"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">IFSC Code</span>
-                    <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
-                      {piiData.bankIfsc || "Not Provided"}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. EMPLOYMENT & LIFECYCLE */}
-      {activeTab === "employment" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Organizational Role
-            </h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500 block text-xs">Department</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {profile.departmentName}
+              {/* Sub-identity row */}
+              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                <span>{profile.designationName || "—"}</span>
+                <span>•</span>
+                <span>{profile.departmentName || "—"}</span>
+                <span>•</span>
+                <span>
+                  Joined:{" "}
+                  <strong className="text-foreground">
+                    {profile.joiningDate ? formatDisplayDate(profile.joiningDate) : "—"}
+                  </strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Payroll:{" "}
+                  <strong className="text-foreground">
+                    {profile.salaryConfigured ? "Configured" : "Unset"}
+                  </strong>
                 </span>
               </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Designation</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {profile.designationName}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Classification</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.isTeaching ? "Teaching Faculty" : "Administrative / Non-Teaching"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Current State</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.isActive ? "Active Duty" : "Separated"}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-              <span className="text-gray-500 block text-xs mb-1">Qualifications</span>
-              <p className="text-sm text-gray-800 dark:text-gray-200">
-                {profile.qualification || "None recorded."}
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-500 block text-xs mb-1">Experience</span>
-              <p className="text-sm text-gray-800 dark:text-gray-200">
-                {profile.experience || "None recorded."}
-              </p>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Lifecycle Milestones
-            </h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500 block text-xs">Joining Date</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.joiningDate
-                    ? new Date(profile.joiningDate).toLocaleDateString()
-                    : "—"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Confirmation Date</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.confirmationDate
-                    ? new Date(profile.confirmationDate).toLocaleDateString()
-                    : "Pending Probation"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Relieving Date</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.relievingDate
-                    ? new Date(profile.relievingDate).toLocaleDateString()
-                    : "N/A (Active)"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Separation Type</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {profile.separationType || "N/A"}
-                </span>
-              </div>
-            </div>
-
-            {profile.separationReason && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-lg text-xs space-y-1">
-                <span className="font-semibold text-rose-800 dark:text-rose-300">
-                  Separation Remarks / Reason:
-                </span>
-                <p className="text-rose-700 dark:text-rose-400">
-                  {profile.separationReason}
-                </p>
-              </div>
+          {/* Action Row — Law: Sole primary filled button per action zone */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {canMutate && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition shadow-xs"
+              >
+                Edit Profile
+              </button>
             )}
 
-            <div className="pt-2 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500">
-              Staff record created on{" "}
-              {profile.createdAt
-                ? new Date(profile.createdAt).toLocaleDateString()
-                : "—"}
-            </div>
+            {canMutate && profile.contractType === "PROBATION" && profile.isActive && (
+              <button
+                onClick={() => setShowConfirmProbationDialog(true)}
+                disabled={confirmLoading}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-card text-foreground border border-border/40 hover:bg-muted transition"
+              >
+                Confirm Probation
+              </button>
+            )}
+
+            {canAdminister && profile.isActive && (
+              <button
+                onClick={() => {
+                  setOffboardWarning(null);
+                  setOffboardError(null);
+                  setShowOffboardModal(true);
+                }}
+                disabled={profile.legalHold}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-card text-semantic-money-owed border border-border/40 hover:bg-semantic-money-owed/10 transition disabled:opacity-40"
+              >
+                Offboard Staff
+              </button>
+            )}
+
+            {canAdminister && !profile.isActive && (
+              <button
+                onClick={() => setShowReactivateDialog(true)}
+                disabled={reactivateLoading}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-card text-foreground border border-border/40 hover:bg-muted transition"
+              >
+                Reactivate Staff
+              </button>
+            )}
+
+            {canAdminister && (
+              <button
+                onClick={() => setShowLegalHoldDialog(true)}
+                disabled={legalHoldLoading}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-card text-muted-foreground border border-border/40 hover:bg-muted hover:text-foreground transition flex items-center gap-1.5"
+              >
+                {profile.legalHold ? (
+                  <>
+                    <Unlock className="w-3.5 h-3.5" />
+                    <span>Remove Hold</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Legal Hold</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 3. ACADEMIC ALLOCATIONS */}
+      {/* ─── 4-TILE INSTANT GLANCE STRIP ────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Tile 1: Teaching Footprint */}
+        <MetricCard
+          title="Teaching Footprint"
+          value={
+            profile.isTeaching
+              ? `${profile.academicAllocations?.weeklyPeriodsCount ?? 0} periods/wk`
+              : "Non-Teaching"
+          }
+          subtext={
+            profile.isTeaching
+              ? `${profile.academicAllocations?.classSubjects?.length ?? 0} class subjects • ${profile.academicAllocations?.classTeacherOf?.length ?? 0} class teacher`
+              : "Administrative staff"
+          }
+          icon={<GraduationCap className="w-4 h-4" />}
+        />
+
+        {/* Tile 2: Employment Standing */}
+        <MetricCard
+          title="Employment"
+          value={profile.contractType || "PERMANENT"}
+          subtext={`Joined ${profile.joiningDate ? formatDisplayDate(profile.joiningDate) : "—"}`}
+          icon={<Briefcase className="w-4 h-4" />}
+          className={
+            profile.contractType === "PROBATION" && profile.isActive
+              ? "border-semantic-attention/40 bg-semantic-attention/5"
+              : ""
+          }
+        />
+
+        {/* Tile 3: Leaves Balance */}
+        <MetricCard
+          title="Leaves Balance"
+          value={`${totalLeaveBalance} days`}
+          subtext={`${profile.leaveBalances?.length ?? 0} active leave policies`}
+          icon={<Calendar className="w-4 h-4" />}
+        />
+
+        {/* Tile 4: Payroll Standing */}
+        <MetricCard
+          title="Payroll Standing"
+          value={
+            profile.legalHold
+              ? "LEGAL HOLD"
+              : profile.salaryConfigured
+                ? profile.salaryBreakdown
+                  ? `₹${Math.round(profile.salaryBreakdown.netMonthlyPay).toLocaleString()}`
+                  : "PROVISIONAL"
+                : "UNSET"
+          }
+          subtext={
+            profile.legalHold
+              ? "Separation blocked"
+              : profile.salaryConfigured
+                ? profile.salaryBreakdown
+                  ? "Net take-home verified"
+                  : "Components on record"
+                : "No wage template set"
+          }
+          icon={<CreditCard className="w-4 h-4" />}
+          className={
+            !profile.salaryConfigured
+              ? "border-semantic-attention/40 bg-semantic-attention/5"
+              : ""
+          }
+        />
+      </div>
+
+      {/* ─── NEXT BEST ACTION / GAPS BANNER ──────────────────────────────────────── */}
+      {!profile.salaryConfigured ? (
+        <div className="p-3.5 bg-semantic-attention/10 border border-semantic-attention/20 rounded-xl flex items-center justify-between gap-3 text-xs text-foreground">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-semantic-attention shrink-0" />
+            <div>
+              <strong className="font-semibold text-semantic-attention">
+                Wage Structure Unset:
+              </strong>{" "}
+              This staff member has no salary template or components configured.
+            </div>
+          </div>
+          <Link
+            href="/hr?tab=payroll"
+            className="text-xs font-semibold text-semantic-interactive hover:underline shrink-0"
+          >
+            Configure Salary Structure →
+          </Link>
+        </div>
+      ) : profile.contractType === "PROBATION" && profile.isActive ? (
+        <div className="p-3.5 bg-semantic-attention/10 border border-semantic-attention/20 rounded-xl flex items-center justify-between gap-3 text-xs text-foreground">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-semantic-attention shrink-0" />
+            <div>
+              <strong className="font-semibold text-semantic-attention">
+                Probation Review Eligible:
+              </strong>{" "}
+              Staff member is currently on probation. Confirm permanent status when milestones are satisfied.
+            </div>
+          </div>
+          <button
+            onClick={() => setShowConfirmProbationDialog(true)}
+            className="text-xs font-semibold text-semantic-interactive hover:underline shrink-0"
+          >
+            Confirm Status →
+          </button>
+        </div>
+      ) : null}
+
+      {/* ─── FREQUENCY-ALLOCATED TABS (Apple SegmentedControl Grammar) ──────────── */}
+      <div className="pt-1">
+        <SegmentedControl
+          value={activeTab}
+          onChange={handleTabChange}
+          options={[
+            ...(profile.isTeaching
+              ? [
+                  {
+                    value: "academics",
+                    label: `Academics (${profile.academicAllocations?.weeklyPeriodsCount ?? 0}p)`,
+                  },
+                ]
+              : []),
+            {
+              value: "leaves",
+              label: `Leaves (${totalLeaveBalance}d)`,
+            },
+            {
+              value: "employment",
+              label: "Employment",
+            },
+            {
+              value: "compensation",
+              label: "Compensation & Loans",
+            },
+            {
+              value: "records",
+              label: "Records & PII",
+            },
+          ]}
+        />
+      </div>
+
+      {/* ─── TAB 1: ACADEMICS ───────────────────────────────────────────────────── */}
       {activeTab === "academics" && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
+        <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-6 shadow-xs">
           {!profile.isTeaching ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">
                 This staff member is classified as Non-Teaching faculty and has no academic allocations.
               </p>
             </div>
           ) : !profile.academicAllocations ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No academic allocations assigned yet.</p>
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <span className="text-xs text-gray-500">Class Teacher Sections</span>
-                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-4 bg-muted/40 border border-border/40 rounded-xl space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Class Teacher Sections
+                  </span>
+                  <div className="text-xl font-bold text-foreground">
                     {profile.academicAllocations.classTeacherOf.length}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <div className="text-xs text-muted-foreground">
                     {profile.academicAllocations.classTeacherOf.join(", ") || "None"}
                   </div>
                 </div>
 
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <span className="text-xs text-gray-500">Class Subjects</span>
-                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                <div className="p-4 bg-muted/40 border border-border/40 rounded-xl space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Class Subjects Assigned
+                  </span>
+                  <div className="text-xl font-bold text-foreground">
                     {profile.academicAllocations.classSubjects.length}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    Primary subject faculty
+                  <div className="text-xs text-muted-foreground">
+                    Primary curriculum mapping
                   </div>
                 </div>
 
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <span className="text-xs text-gray-500">Weekly Timetable Periods</span>
-                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                <div className="p-4 bg-muted/40 border border-border/40 rounded-xl space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Weekly Timetable Periods
+                  </span>
+                  <div className="text-xl font-bold text-foreground">
                     {profile.academicAllocations.weeklyPeriodsCount}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    Active periods scheduled
+                  <div className="text-xs text-muted-foreground">
+                    Scheduled periods per week
                   </div>
                 </div>
               </div>
@@ -737,19 +765,19 @@ export function Staff360Client({
               {/* Subject Allocations List */}
               {profile.academicAllocations.classSubjects.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    Class Subjects Assigned
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Class Subjects Roster
                   </h3>
-                  <div className="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                  <div className="divide-y divide-border/40 border border-border/40 rounded-xl overflow-hidden bg-card">
                     {profile.academicAllocations.classSubjects.map((cs: any) => (
                       <div
                         key={cs.id}
-                        className="p-3 flex items-center justify-between text-sm bg-white dark:bg-gray-900"
+                        className="p-3.5 flex items-center justify-between text-sm"
                       >
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                        <span className="font-semibold text-foreground">
                           {cs.className}
                         </span>
-                        <span className="text-gray-600 dark:text-gray-400">
+                        <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-0.5 rounded-md border border-border/40">
                           {cs.subjectName}
                         </span>
                       </div>
@@ -762,74 +790,225 @@ export function Staff360Client({
         </div>
       )}
 
-      {/* 4. COMPENSATION & LOANS */}
-      {activeTab === "compensation" && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
+      {/* ─── TAB 2: LEAVES ──────────────────────────────────────────────────────── */}
+      {activeTab === "leaves" && (
+        <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Salary Structure &amp; Compensation
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                Leave Allocations & Balances
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Session entitlements and recorded leave usage.
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20">
+              {totalLeaveBalance} Days Available
+            </span>
+          </div>
+
+          {profile.leaveBalances && profile.leaveBalances.length > 0 ? (
+            <div className="divide-y divide-border/40 border border-border/40 rounded-xl overflow-hidden bg-card">
+              {profile.leaveBalances.map((lb: any) => (
+                <div
+                  key={lb.id}
+                  className="p-3.5 flex items-center justify-between text-sm"
+                >
+                  <div className="space-y-0.5">
+                    <span className="font-semibold text-foreground block">
+                      {lb.leaveType || "Annual Leave"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Allocated: {lb.allocatedDays} days
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-semantic-money-in text-sm block">
+                      {lb.remainingDays} days left
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Used: {lb.usedDays} days
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border/40 rounded-xl">
+              No leave balances registered for the current academic session.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 3: EMPLOYMENT & LIFECYCLE ───────────────────────────────────────── */}
+      {activeTab === "employment" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Organizational Role */}
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4 shadow-xs">
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider text-muted-foreground">
+              Organizational Role
             </h2>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Department</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.departmentName}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Designation</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.designationName}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Classification</span>
+                <span className="font-semibold text-foreground">
+                  {profile.isTeaching ? "Teaching Faculty" : "Administrative"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Current State</span>
+                <span className="font-semibold text-foreground">
+                  {profile.isActive ? "Active Duty" : "Separated"}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border/40 space-y-2">
+              <div>
+                <span className="text-xs text-muted-foreground block mb-0.5">
+                  Academic Qualifications
+                </span>
+                <p className="text-xs text-foreground font-medium">
+                  {profile.qualification || "None recorded on file."}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground block mb-0.5">
+                  Prior Experience
+                </span>
+                <p className="text-xs text-foreground font-medium">
+                  {profile.experience || "None recorded on file."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Lifecycle Milestones */}
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4 shadow-xs">
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider text-muted-foreground">
+              Lifecycle Milestones
+            </h2>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Joining Date</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.joiningDate ? formatDisplayDate(profile.joiningDate) : "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Confirmation Date</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.confirmationDate
+                    ? formatDisplayDate(profile.confirmationDate)
+                    : "Pending Probation"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Relieving Date</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.relievingDate
+                    ? formatDisplayDate(profile.relievingDate)
+                    : "N/A (Active)"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Separation Type</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.separationType || "N/A"}
+                </span>
+              </div>
+            </div>
+
+            {profile.separationReason && (
+              <div className="p-3 bg-semantic-money-owed/10 border border-semantic-money-owed/20 rounded-xl text-xs space-y-1">
+                <span className="font-semibold text-semantic-money-owed">
+                  Separation Remarks / Reason:
+                </span>
+                <p className="text-foreground">{profile.separationReason}</p>
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+              Staff record registered on{" "}
+              {profile.createdAt ? formatDisplayDate(profile.createdAt) : "—"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: COMPENSATION & LOANS (TRUTH FIX: NO FABRICATED MATH) ───────────── */}
+      {activeTab === "compensation" && (
+        <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-6 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                Salary Structure &amp; Compensation
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Authoritative breakdown from payroll engine; zero client-side estimates.
+              </p>
+            </div>
             {profile.salaryConfigured && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20">
                 Active Structure Allocated
               </span>
             )}
           </div>
 
-          {profile.salaryConfigured && (profile.salaryBreakdown || profile.salaryComponents) ? (
+          {/* Condition A: Authoritative Salary Breakdown from Backend */}
+          {profile.salaryBreakdown ? (
             (() => {
-              const b = profile.salaryBreakdown || {
-                basicSalary: parseFloat(profile.salaryComponents?.basicSalary || "0"),
-                daAmount: parseFloat(profile.salaryComponents?.basicSalary || "0") * (parseFloat(profile.salaryComponents?.daPercent || "0") / 100),
-                daPercent: parseFloat(profile.salaryComponents?.daPercent || "0"),
-                hraAmount: parseFloat(profile.salaryComponents?.basicSalary || "0") * (parseFloat(profile.salaryComponents?.hraPercent || "0") / 100),
-                hraPercent: parseFloat(profile.salaryComponents?.hraPercent || "0"),
-                otherAllowancesTotal: 0,
-                grossEarnings: parseFloat(profile.salaryComponents?.basicSalary || "0") * 1.35,
-                pfEmployeeAmount: parseFloat(profile.salaryComponents?.basicSalary || "0") * 0.12,
-                pfEmployeePercent: 12,
-                ptAmount: 200,
-                tdsAmount: parseFloat(profile.salaryComponents?.monthlyTdsAmount || "0"),
-                deductionsTotal: (parseFloat(profile.salaryComponents?.basicSalary || "0") * 0.12) + 200 + parseFloat(profile.salaryComponents?.monthlyTdsAmount || "0"),
-                netMonthlyPay: (parseFloat(profile.salaryComponents?.basicSalary || "0") * 1.35) - ((parseFloat(profile.salaryComponents?.basicSalary || "0") * 0.12) + 200 + parseFloat(profile.salaryComponents?.monthlyTdsAmount || "0")),
-              };
-
-              const allowancesSum = b.daAmount + b.hraAmount + b.otherAllowancesTotal;
+              const b = profile.salaryBreakdown;
+              const allowancesSum =
+                (b.daAmount || 0) + (b.hraAmount || 0) + (b.otherAllowancesTotal || 0);
 
               return (
                 <div className="space-y-6">
                   {/* Summary Metric Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-muted/40 border border-border/40 rounded-xl text-xs">
                     <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                      <span className="text-muted-foreground block font-medium">
                         Base Pay (Basic)
                       </span>
-                      <span className="font-bold text-base text-gray-900 dark:text-gray-100">
-                        ₹{Math.round(b.basicSalary).toLocaleString()}
+                      <span className="font-bold text-base text-foreground">
+                        ₹{Math.round(b.basicSalary || 0).toLocaleString()}
                       </span>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                      <span className="text-muted-foreground block font-medium">
                         Allowances
                       </span>
-                      <span className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                      <span className="font-bold text-base text-semantic-money-in">
                         +₹{Math.round(allowancesSum).toLocaleString()}
                       </span>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                      <span className="text-muted-foreground block font-medium">
                         Deductions
                       </span>
-                      <span className="font-bold text-base text-rose-600 dark:text-rose-400">
-                        -₹{Math.round(b.deductionsTotal).toLocaleString()}
+                      <span className="font-bold text-base text-semantic-money-owed">
+                        -₹{Math.round(b.deductionsTotal || 0).toLocaleString()}
                       </span>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+                      <span className="text-muted-foreground block font-medium">
                         Net Monthly Take-Home
                       </span>
-                      <span className="font-extrabold text-base text-indigo-600 dark:text-indigo-400">
-                        ₹{Math.round(b.netMonthlyPay).toLocaleString()}
+                      <span className="font-bold text-base text-primary">
+                        ₹{Math.round(b.netMonthlyPay || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -837,84 +1016,84 @@ export function Staff360Client({
                   {/* Detailed Itemized Earnings vs Deductions Table */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Earnings Column */}
-                    <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-gray-950/40 space-y-3">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                    <div className="border border-border/40 rounded-xl p-4 bg-card space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                         <span>Earnings &amp; Allowances</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                          ₹{Math.round(b.grossEarnings).toLocaleString()}
+                        <span className="text-semantic-money-in font-bold">
+                          ₹{Math.round(b.grossEarnings || 0).toLocaleString()}
                         </span>
                       </h3>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
+                      <div className="divide-y divide-border/40 text-xs">
                         <div className="py-2 flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">Basic Pay</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">
-                            ₹{Math.round(b.basicSalary).toLocaleString()}
+                          <span className="text-muted-foreground">Basic Pay</span>
+                          <span className="font-semibold text-foreground">
+                            ₹{Math.round(b.basicSalary || 0).toLocaleString()}
                           </span>
                         </div>
                         <div className="py-2 flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">
-                            Dearness Allowance (DA {b.daPercent}%)
+                          <span className="text-muted-foreground">
+                            Dearness Allowance (DA {b.daPercent || 0}%)
                           </span>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            +₹{Math.round(b.daAmount).toLocaleString()}
+                          <span className="font-semibold text-semantic-money-in">
+                            +₹{Math.round(b.daAmount || 0).toLocaleString()}
                           </span>
                         </div>
                         <div className="py-2 flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">
-                            House Rent Allowance (HRA {b.hraPercent}%)
+                          <span className="text-muted-foreground">
+                            House Rent Allowance (HRA {b.hraPercent || 0}%)
                           </span>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            +₹{Math.round(b.hraAmount).toLocaleString()}
+                          <span className="font-semibold text-semantic-money-in">
+                            +₹{Math.round(b.hraAmount || 0).toLocaleString()}
                           </span>
                         </div>
-                        {b.otherAllowancesTotal > 0 && (
+                        {(b.otherAllowancesTotal || 0) > 0 && (
                           <div className="py-2 flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-300">Other Allowances</span>
-                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="text-muted-foreground">Other Allowances</span>
+                            <span className="font-semibold text-semantic-money-in">
                               +₹{Math.round(b.otherAllowancesTotal).toLocaleString()}
                             </span>
                           </div>
                         )}
-                        <div className="pt-2.5 flex justify-between font-bold text-sm text-gray-900 dark:text-gray-100">
+                        <div className="pt-2.5 flex justify-between font-bold text-sm text-foreground">
                           <span>Gross Monthly Pay</span>
-                          <span>₹{Math.round(b.grossEarnings).toLocaleString()}</span>
+                          <span>₹{Math.round(b.grossEarnings || 0).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Deductions Column */}
-                    <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-gray-950/40 space-y-3">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                    <div className="border border-border/40 rounded-xl p-4 bg-card space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                         <span>Statutory Deductions</span>
-                        <span className="text-rose-600 dark:text-rose-400 font-bold">
-                          -₹{Math.round(b.deductionsTotal).toLocaleString()}
+                        <span className="text-semantic-money-owed font-bold">
+                          -₹{Math.round(b.deductionsTotal || 0).toLocaleString()}
                         </span>
                       </h3>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
+                      <div className="divide-y divide-border/40 text-xs">
                         <div className="py-2 flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">
-                            Provident Fund (PF Employee {b.pfEmployeePercent}%)
+                          <span className="text-muted-foreground">
+                            Provident Fund (PF Employee {b.pfEmployeePercent || 0}%)
                           </span>
-                          <span className="font-semibold text-rose-600 dark:text-rose-400">
-                            -₹{Math.round(b.pfEmployeeAmount).toLocaleString()}
+                          <span className="font-semibold text-semantic-money-owed">
+                            -₹{Math.round(b.pfEmployeeAmount || 0).toLocaleString()}
                           </span>
                         </div>
                         <div className="py-2 flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">Professional Tax (PT)</span>
-                          <span className="font-semibold text-rose-600 dark:text-rose-400">
-                            -₹{b.ptAmount.toLocaleString()}
+                          <span className="text-muted-foreground">Professional Tax (PT)</span>
+                          <span className="font-semibold text-semantic-money-owed">
+                            -₹{(b.ptAmount || 0).toLocaleString()}
                           </span>
                         </div>
                         <div className="py-2 flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">Income Tax / TDS</span>
-                          <span className="font-semibold text-rose-600 dark:text-rose-400">
-                            -₹{Math.round(b.tdsAmount).toLocaleString()}
+                          <span className="text-muted-foreground">Income Tax / TDS</span>
+                          <span className="font-semibold text-semantic-money-owed">
+                            -₹{Math.round(b.tdsAmount || 0).toLocaleString()}
                           </span>
                         </div>
-                        <div className="pt-2.5 flex justify-between font-bold text-sm text-gray-900 dark:text-gray-100">
+                        <div className="pt-2.5 flex justify-between font-bold text-sm text-foreground">
                           <span>Total Deductions</span>
-                          <span className="text-rose-600 dark:text-rose-400">
-                            -₹{Math.round(b.deductionsTotal).toLocaleString()}
+                          <span className="text-semantic-money-owed">
+                            -₹{Math.round(b.deductionsTotal || 0).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -923,53 +1102,234 @@ export function Staff360Client({
                 </div>
               );
             })()
+          ) : profile.salaryComponents ? (
+            /* Condition B: Provisional Components on Record, Zero Fabricated Math */
+            <div className="space-y-4">
+              <div className="p-3.5 bg-semantic-attention/10 border border-semantic-attention/20 rounded-xl flex items-center gap-2.5 text-xs text-foreground">
+                <AlertCircle className="w-4 h-4 text-semantic-attention shrink-0" />
+                <div>
+                  <strong className="font-semibold text-semantic-attention">
+                    Provisional components on record:
+                  </strong>{" "}
+                  No computed take-home exists. Below are the registered base parameters; configure wage template for full projection.
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-muted/40 border border-border/40 rounded-xl text-xs">
+                <div>
+                  <span className="text-muted-foreground block font-medium">Base Pay (Basic)</span>
+                  <span className="font-bold text-base text-foreground">
+                    ₹{parseFloat(profile.salaryComponents.basicSalary || "0").toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-medium">DA Rate</span>
+                  <span className="font-bold text-base text-foreground">
+                    {profile.salaryComponents.daPercent || "0"}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-medium">HRA Rate</span>
+                  <span className="font-bold text-base text-foreground">
+                    {profile.salaryComponents.hraPercent || "0"}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-medium">Net Take-Home</span>
+                  <span className="font-bold text-base text-muted-foreground">
+                    — (Uncomputed)
+                  </span>
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-800 rounded-xl space-y-2">
-              <p>No salary components configured yet for this staff member.</p>
-              <p className="text-xs text-gray-400">
-                Configure salary components via the HR dashboard to establish wage templates.
+            /* Condition C: Honest Unset State */
+            <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border/40 rounded-xl space-y-2">
+              <p className="font-medium text-foreground">
+                No salary components configured yet for this staff member.
               </p>
+              <p className="text-xs text-muted-foreground">
+                Allocate a wage template via the HR dashboard to establish salary structures.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/hr?tab=payroll"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition"
+                >
+                  Configure Salary Structure →
+                </Link>
+              </div>
             </div>
           )}
 
-          <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">
-              Active Staff Loans:
-            </span>
-            <span className="font-semibold text-gray-900 dark:text-gray-100">
+          {/* Active Loans Row */}
+          <div className="pt-4 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Active Staff Loans:</span>
+            <span className="font-semibold text-foreground text-sm">
               {profile.activeLoansCount}
             </span>
           </div>
         </div>
       )}
 
-      {/* 5. LEAVES */}
-      {activeTab === "leaves" && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Leave Allocations & Balances
-          </h2>
-          {profile.leaveBalances && profile.leaveBalances.length > 0 ? (
-            <div className="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-              {profile.leaveBalances.map((lb: any) => (
-                <div
-                  key={lb.id}
-                  className="p-3 flex items-center justify-between text-sm bg-white dark:bg-gray-900"
-                >
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    Allocated: {lb.allocatedDays} days
-                  </span>
-                  <span className="text-gray-500 text-xs">
-                    Used: {lb.usedDays} | Remaining: {lb.remainingDays}
-                  </span>
+      {/* ─── TAB 5: RECORDS & PII ───────────────────────────────────────────────── */}
+      {activeTab === "records" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Personal Identity Details */}
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4 shadow-xs">
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider text-muted-foreground">
+              Personal Information
+            </h2>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">First Name</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.firstName || "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Last Name</span>
+                <span className="font-semibold text-foreground text-sm">
+                  {profile.lastName || "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Gender</span>
+                <span className="font-semibold text-foreground">
+                  {profile.gender || "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Date of Birth</span>
+                <span className="font-semibold text-foreground">
+                  {profile.dateOfBirth || "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Aadhaar Last 4</span>
+                <span className="font-semibold text-foreground font-mono">
+                  {profile.aadhaarLast4 ? `•••• •••• ${profile.aadhaarLast4}` : "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Contract Type</span>
+                <span className="font-semibold text-foreground">
+                  {profile.contractType}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border/40 space-y-1">
+              <span className="text-xs text-muted-foreground block">Residential Address</span>
+              <p className="text-xs text-foreground font-medium">
+                {profile.address || "No address provided."}
+              </p>
+              {(profile.pincode || profile.district || profile.state) && (
+                <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
+                  {profile.pincode && (
+                    <span className="px-2 py-0.5 rounded bg-muted/60 font-mono border border-border/40">
+                      PIN: {profile.pincode}
+                    </span>
+                  )}
+                  {profile.district && (
+                    <span className="px-2 py-0.5 rounded bg-muted/60 border border-border/40">
+                      {profile.district}
+                    </span>
+                  )}
+                  {profile.state && (
+                    <span className="px-2 py-0.5 rounded bg-muted/60 border border-border/40">
+                      {profile.state}
+                    </span>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div className="py-6 text-center text-sm text-gray-500">
-              No leave balances registered for current academic session.
+          </div>
+
+          {/* Contact & DPDP Sensitive PII */}
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4 shadow-xs">
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider text-muted-foreground">
+              Contact & Statutory PII
+            </h2>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5 col-span-2">
+                <span className="text-muted-foreground block text-[11px]">Official Email</span>
+                <span className="font-semibold text-foreground break-all">
+                  {profile.email || "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Mobile Number</span>
+                <span className="font-semibold text-foreground">
+                  {profile.mobile || "—"}
+                </span>
+              </div>
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 space-y-0.5">
+                <span className="text-muted-foreground block text-[11px]">Emergency Contact</span>
+                <span className="font-semibold text-foreground">
+                  {profile.emergencyContact || "—"}
+                </span>
+              </div>
             </div>
-          )}
+
+            {/* DPDP Sensitive Data Card */}
+            <div className="pt-3 border-t border-border/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-semantic-money-in" />
+                    Statutory & Financial PII (DPDP Protected)
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    AES-256 encrypted at rest. Unmasking is audit-logged.
+                  </p>
+                </div>
+                {!piiData && (
+                  <button
+                    onClick={handleRevealPii}
+                    disabled={revealingPii}
+                    className="px-3 py-1.5 text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-xl transition disabled:opacity-50 min-h-[36px]"
+                  >
+                    {revealingPii ? "Decrypting..." : "Reveal PII"}
+                  </button>
+                )}
+              </div>
+
+              {piiError && (
+                <p className="text-xs text-semantic-money-owed font-medium">
+                  {piiError}
+                </p>
+              )}
+
+              {piiData && (
+                <div className="grid grid-cols-2 gap-2.5 p-3.5 bg-muted/40 border border-border/40 rounded-xl text-xs">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">PAN</span>
+                    <span className="font-mono font-semibold text-foreground">
+                      {piiData.pan || "Not Provided"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Bank Name</span>
+                    <span className="font-semibold text-foreground">
+                      {piiData.bankName || "Not Provided"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Account Number</span>
+                    <span className="font-mono font-semibold text-foreground">
+                      {piiData.bankAccount || "Not Provided"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">IFSC Code</span>
+                    <span className="font-mono font-semibold text-foreground">
+                      {piiData.bankIfsc || "Not Provided"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -982,15 +1342,15 @@ export function Staff360Client({
       >
         <div className="space-y-4">
           {editError && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
+            <div className="p-3 bg-semantic-money-owed/10 border border-semantic-money-owed/20 rounded-xl text-semantic-money-owed text-xs font-medium">
               {editError}
             </div>
           )}
 
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   First Name *
                 </label>
                 <input
@@ -1000,11 +1360,11 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, firstName: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Last Name *
                 </label>
                 <input
@@ -1014,14 +1374,14 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, lastName: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Official Email *
                 </label>
                 <input
@@ -1031,11 +1391,11 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, email: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Mobile Number *
                 </label>
                 <input
@@ -1045,14 +1405,14 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, mobile: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Department *
                 </label>
                 <select
@@ -1060,17 +1420,17 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, departmentId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 >
                   {departments.map((d) => (
-                    <option key={d.id} value={d.id} className="dark:bg-gray-800">
+                    <option key={d.id} value={d.id} className="bg-card">
                       {d.name}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Designation *
                 </label>
                 <select
@@ -1078,10 +1438,10 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, designationId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 >
                   {designations.map((d) => (
-                    <option key={d.id} value={d.id} className="dark:bg-gray-800">
+                    <option key={d.id} value={d.id} className="bg-card">
                       {d.name} {d.isTeaching ? "(Teaching)" : "(Non-Teaching)"}
                     </option>
                   ))}
@@ -1089,27 +1449,30 @@ export function Staff360Client({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Contract Type
                 </label>
                 <select
                   value={editFormData.contractType}
                   onChange={(e) =>
-                    setEditFormData({ ...editFormData, contractType: e.target.value as any })
+                    setEditFormData({
+                      ...editFormData,
+                      contractType: e.target.value as any,
+                    })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 >
-                  <option value="PERMANENT" className="dark:bg-gray-800">Permanent</option>
-                  <option value="PROBATION" className="dark:bg-gray-800">Probation</option>
-                  <option value="CONTRACTUAL" className="dark:bg-gray-800">Contractual</option>
-                  <option value="PART_TIME" className="dark:bg-gray-800">Part Time</option>
-                  <option value="GUEST_FACULTY" className="dark:bg-gray-800">Guest Faculty</option>
+                  <option value="PERMANENT" className="bg-card">Permanent</option>
+                  <option value="PROBATION" className="bg-card">Probation</option>
+                  <option value="CONTRACTUAL" className="bg-card">Contractual</option>
+                  <option value="PART_TIME" className="bg-card">Part Time</option>
+                  <option value="GUEST_FACULTY" className="bg-card">Guest Faculty</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Joining Date
                 </label>
                 <input
@@ -1118,14 +1481,14 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, joiningDate: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Emergency Contact
                 </label>
                 <input
@@ -1134,11 +1497,11 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, emergencyContact: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Qualifications
                 </label>
                 <input
@@ -1147,13 +1510,13 @@ export function Staff360Client({
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, qualification: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block text-xs font-semibold text-foreground">
                 Residential Address & Location (DPDP / Tax Compliant)
               </label>
               <AddressAutofill
@@ -1163,18 +1526,18 @@ export function Staff360Client({
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border/40">
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="px-4 py-2 text-xs rounded-xl border border-border/40 text-foreground hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={editLoading}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
               >
                 {editLoading ? "Saving Changes..." : "Save Profile"}
               </button>
@@ -1195,16 +1558,17 @@ export function Staff360Client({
       >
         <div className="space-y-4">
           {offboardError && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
+            <div className="p-3 bg-semantic-money-owed/10 border border-semantic-money-owed/20 rounded-xl text-semantic-money-owed text-xs font-medium">
               {offboardError}
             </div>
           )}
 
           {/* Academic Reassignment Warning */}
           {offboardWarning && (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2 text-xs text-amber-900 dark:text-amber-200">
-              <div className="font-semibold text-sm flex items-center gap-1">
-                ⚠️ Active Academic Assignments Detected
+            <div className="p-4 bg-semantic-attention/10 border border-semantic-attention/20 rounded-xl space-y-2 text-xs text-foreground">
+              <div className="font-semibold text-sm flex items-center gap-1.5 text-semantic-attention">
+                <AlertTriangle className="w-4 h-4" />
+                Active Academic Assignments Detected
               </div>
               <p>{offboardWarning.message}</p>
               <div className="pt-2">
@@ -1218,7 +1582,7 @@ export function Staff360Client({
                         forceReassign: e.target.checked,
                       })
                     }
-                    className="rounded text-amber-600 focus:ring-amber-500"
+                    className="rounded text-primary focus:ring-primary"
                   />
                   <span>
                     I understand. Safely unassign active classes and timetable periods. Historical attendance & assessments will remain intact.
@@ -1230,7 +1594,7 @@ export function Staff360Client({
 
           <form onSubmit={handleOffboardSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Separation Type *
               </label>
               <select
@@ -1241,17 +1605,17 @@ export function Staff360Client({
                     separationType: e.target.value as any,
                   })
                 }
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground"
               >
-                <option value="RESIGNATION" className="dark:bg-gray-800">Resignation</option>
-                <option value="TERMINATION" className="dark:bg-gray-800">Termination</option>
-                <option value="RETIREMENT" className="dark:bg-gray-800">Retirement</option>
-                <option value="OTHER" className="dark:bg-gray-800">Other Separation</option>
+                <option value="RESIGNATION" className="bg-card">Resignation</option>
+                <option value="TERMINATION" className="bg-card">Termination</option>
+                <option value="RETIREMENT" className="bg-card">Retirement</option>
+                <option value="OTHER" className="bg-card">Other Separation</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Relieving / Separation Date *
               </label>
               <input
@@ -1264,12 +1628,12 @@ export function Staff360Client({
                     relievingDate: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Reason / Remarks
               </label>
               <textarea
@@ -1282,25 +1646,25 @@ export function Staff360Client({
                     separationReason: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-transparent border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border rounded-xl text-xs bg-muted/40 border-border/40 text-foreground"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border/40">
               <button
                 type="button"
                 onClick={() => {
                   setShowOffboardModal(false);
                   setOffboardWarning(null);
                 }}
-                className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="px-4 py-2 text-xs rounded-xl border border-border/40 text-foreground hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={offboardLoading}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 transition disabled:opacity-50"
               >
                 {offboardLoading ? "Processing..." : "Complete Offboarding"}
               </button>
@@ -1308,6 +1672,109 @@ export function Staff360Client({
           </form>
         </div>
       </AppModal>
+
+      {/* ─── GOVERNED MODAL: CONFIRM PROBATION ──────────────────────────────────── */}
+      <AppModal
+        open={showConfirmProbationDialog}
+        onClose={() => setShowConfirmProbationDialog(false)}
+        title="Confirm Permanent Employment"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Are you sure you want to confirm permanent employment for{" "}
+            <strong className="text-foreground">{profile.fullName}</strong>?
+            This will transition their contract status from Probation to Permanent and record the confirmation milestone on their permanent personnel file.
+          </p>
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => setShowConfirmProbationDialog(false)}
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 text-foreground hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmProbationAction}
+              disabled={confirmLoading}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              {confirmLoading ? "Confirming..." : "Confirm Permanent Status"}
+            </button>
+          </div>
+        </div>
+      </AppModal>
+
+      {/* ─── GOVERNED MODAL: LEGAL HOLD ────────────────────────────────────────── */}
+      <AppModal
+        open={showLegalHoldDialog}
+        onClose={() => setShowLegalHoldDialog(false)}
+        title={profile.legalHold ? "Remove Legal Hold" : "Apply Legal Hold"}
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {profile.legalHold
+              ? `Remove LEGAL HOLD from ${profile.fullName}? This will restore normal separation and lifecycle modification workflows.`
+              : `Apply LEGAL HOLD on ${profile.fullName}? This locks the staff profile, preventing separation, record archiving, or destructive modifications for regulatory compliance.`}
+          </p>
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => setShowLegalHoldDialog(false)}
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 text-foreground hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleLegalHoldAction}
+              disabled={legalHoldLoading}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              {legalHoldLoading
+                ? "Updating..."
+                : profile.legalHold
+                  ? "Remove Hold"
+                  : "Apply Legal Hold"}
+            </button>
+          </div>
+        </div>
+      </AppModal>
+
+      {/* ─── GOVERNED MODAL: REACTIVATE STAFF ──────────────────────────────────── */}
+      <AppModal
+        open={showReactivateDialog}
+        onClose={() => setShowReactivateDialog(false)}
+        title="Reactivate Staff Member"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Reactivate <strong className="text-foreground">{profile.fullName}</strong> and restore their active duty standing and login account access?
+          </p>
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => setShowReactivateDialog(false)}
+              className="px-4 py-2 text-xs rounded-xl border border-border/40 text-foreground hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleReactivateAction}
+              disabled={reactivateLoading}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              {reactivateLoading ? "Reactivating..." : "Reactivate Staff"}
+            </button>
+          </div>
+        </div>
+      </AppModal>
     </div>
   );
 }
+
+export default Staff360Client;

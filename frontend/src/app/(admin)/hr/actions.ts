@@ -977,6 +977,7 @@ export async function updateStaff(
     bankAccount?: string | undefined;
     bankIfsc?: string | undefined;
     pan?: string | undefined;
+    photoS3Key?: string | null | undefined;
   },
 ) {
   try {
@@ -1010,6 +1011,7 @@ export async function updateStaff(
     }
     if (input.qualification !== undefined) updates.qualification = input.qualification;
     if (input.experience !== undefined) updates.experience = input.experience;
+    if (input.photoS3Key !== undefined) updates.photoS3Key = input.photoS3Key;
     if (input.contractType) updates.contractType = input.contractType;
     if (input.joiningDate) updates.joiningDate = new Date(input.joiningDate);
 
@@ -1143,6 +1145,39 @@ export async function updateStaff(
 
     await invalidateTeachingStaffCache(school.id);
     safeRevalidate("/hr");
+    safeRevalidate(`/hr/staff/${staffId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function updateStaffPhotoAction(
+  staffId: string,
+  photoS3Key: string | null,
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
+    const school = await requireSchool(ctx);
+
+    const staffRecord = await db.query.staff.findFirst({
+      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+    });
+
+    if (!staffRecord) {
+      return { success: false, message: "Staff record not found or unauthorized." };
+    }
+
+    await db
+      .update(staff)
+      .set({ photoS3Key, updatedAt: new Date() })
+      .where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
+
+    await logHrAudit(ctx, "WRITE", "staff", staffId, {
+      action: "UPDATE_STAFF_PHOTO",
+      photoS3Key,
+    });
+
     safeRevalidate(`/hr/staff/${staffId}`);
     return { success: true };
   } catch (error: any) {
@@ -1507,6 +1542,7 @@ export async function getStaff360(staffId: string) {
       profile: {
         id: s.id,
         employeeCode: s.employeeCode,
+        photoS3Key: s.photoS3Key,
         firstName,
         lastName,
         fullName: `${firstName} ${lastName}`.trim(),

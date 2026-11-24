@@ -603,4 +603,26 @@ export async function fetchClassClaimSheetAction(classId?: string) {
   }
 }
 
+export async function updateStudentPhotoAction(studentId: string, photoS3Key: string | null) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
+    const school = await requireSchool(ctx);
+
+    const s = await db.query.students.findFirst({
+      where: and(eq(students.id, studentId), eq(students.schoolId, school.id)),
+    });
+    if (!s) return { success: false, message: "Student not found or unauthorized." };
+
+    await db.update(students)
+      .set({ photoS3Key, updatedAt: new Date() })
+      .where(and(eq(students.id, studentId), eq(students.schoolId, school.id)));
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Failed to update student photo:", err);
+    return { success: false, message: err?.message || "Failed to update student photo" };
+  }
+}
+
+
 

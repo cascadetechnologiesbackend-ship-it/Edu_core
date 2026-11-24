@@ -33,6 +33,11 @@ import { IdentityHeader } from "@/components/ui/IdentityHeader";
 import { ActivityFeed, ActivityEvent } from "@/components/ui/ActivityFeed";
 import { NeedsAttentionCard } from "@/components/ui/NeedsAttentionCard";
 import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
+import { Avatar } from "@/components/ui/Avatar";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { updateStudentPhotoAction } from "../actions";
 
 function formatDisplayDate(val: string | Date | null | undefined): string {
   if (!val) return "N/A";
@@ -96,6 +101,8 @@ export interface Student360Data {
   id: string;
   admissionNumber: string;
   fullName: string;
+  isNameRecorded?: boolean;
+  photoS3Key?: string | null;
   dateOfBirth: string | null;
   gender: string;
   category: string;
@@ -137,7 +144,8 @@ export interface Student360Data {
     present: number;
     absent: number;
     late: number;
-    percentage: number;
+    percentage: number | null;
+    scopeLabel?: string;
   };
   attendanceLogs: Array<{
     id: string;
@@ -220,11 +228,13 @@ export type StudentTabKey =
 export function Student360Client({
   data,
   schoolId,
+  userRole,
   availableClasses,
   availableYears,
 }: {
   data: Student360Data;
   schoolId: string;
+  userRole?: string;
   availableClasses: ClassOption[];
   availableYears: YearOption[];
 }) {
@@ -252,6 +262,49 @@ export function Student360Client({
       : "OVERVIEW";
 
   const [activeTab, setActiveTab] = useState<StudentTabKey>(initialTab);
+  const canMutate = ["SUPER_ADMIN", "SCHOOL_ADMIN"].includes(userRole || "");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (file: File) => {
+    try {
+      setIsUploadingPhoto(true);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          prefix: "student-photos",
+        }),
+      });
+      const uploadData = await res.json();
+      if (!uploadData.success || !uploadData.url || !uploadData.key) {
+        alert("Upload initiation failed: " + (uploadData.message || "Unknown error"));
+        return;
+      }
+
+      const putRes = await fetch(uploadData.url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putRes.ok) {
+        alert("Failed to upload image to storage.");
+        return;
+      }
+
+      const updateRes = await updateStudentPhotoAction(data.id, uploadData.key);
+      if (updateRes.success) {
+        router.refresh();
+      } else {
+        alert("Failed to save student photo: " + updateRes.message);
+      }
+    } catch (err: any) {
+      alert("Error uploading photo: " + (err?.message || "Unknown error"));
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
   const [examSearch, setExamSearch] = useState("");
   const [homeworkSearch, setHomeworkSearch] = useState("");
   const [generatingInvoices, setGeneratingInvoices] = useState(false);
@@ -355,18 +408,24 @@ export function Student360Client({
     year: "numeric",
   }).format(new Date());
 
+  const hasAttendanceRecords = data.attendanceSummary.total > 0;
+  const isAttendanceLow = data.attendanceSummary.percentage !== null && data.attendanceSummary.percentage < 75;
+
   const attentionItemsCount =
-    (data.attendanceSummary.percentage < 75 ? 1 : 0) +
+    (isAttendanceLow ? 1 : 0) +
     (totalOutstanding > 0 && data.canViewFees ? 1 : 0) +
     (unverifiedDocs.length > 0 ? 1 : 0) +
-    (lateHomework.length > 0 ? 1 : 0);
+    (lateHomework.length > 0 ? 1 : 0) +
+    (!data.isNameRecorded ? 1 : 0);
 
   const humanStorySentence =
-    attentionItemsCount === 0
-      ? "All attendance, fees, and academic milestones are in excellent standing."
-      : attentionItemsCount === 1
-        ? "1 item requires administrative or academic attention today."
-        : `${attentionItemsCount} items require review and attention today.`;
+    !hasAttendanceRecords && data.homeworkSubmissions.length === 0 && data.examMarks.length === 0
+      ? "New enrollment: term attendance and evaluation records will appear once logged."
+      : attentionItemsCount === 0
+        ? "All attendance, fees, and academic milestones are in excellent standing."
+        : attentionItemsCount === 1
+          ? "1 item requires administrative or academic attention today."
+          : `${attentionItemsCount} items require review and attention today.`;
 
   // Activity Feed for Story Tab
   const overviewActivityEvents: ActivityEvent[] = data.timelineEvents
@@ -424,202 +483,250 @@ export function Student360Client({
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* ─── Sticky Identity Header (Law F10, L12) ───────────────────────── */}
-      <IdentityHeader
-        name={data.fullName}
-        avatarUrl={data.photoUrl}
-        identifier={data.admissionNumber}
-        subtitle={
-          <div className="flex flex-wrap items-center gap-2">
-            <span>
-              {data.className
-                ? `${data.className} • Section ${data.sectionName}`
-                : "Unassigned Class"}
-            </span>
-            <span className="text-gray-300 dark:text-slate-700">•</span>
-            <span>Attendance {data.attendanceSummary.percentage}%</span>
-            {data.canViewFees && (
-              <>
-                <span className="text-gray-300 dark:text-slate-700">•</span>
-                <span
-                  className={
-                    totalOutstanding > 0 ? "text-amber-600 font-semibold" : ""
-                  }
-                >
-                  Fee Due ₹{totalOutstanding.toFixed(0)}
+      {/* ─── Sticky Identity Header (Apple HIG Grammar) ─────────────────── */}
+      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-md border-b border-border/40 py-3.5 px-4 sm:px-6 -mx-4 sm:-mx-6 mb-5 transition-all">
+        <div className="mb-2 text-xs text-muted-foreground flex items-center gap-1.5">
+          <Link href="/students" className="hover:text-foreground transition-colors">
+            Students
+          </Link>
+          <span>/</span>
+          <span className="text-foreground font-medium truncate">
+            {data.isNameRecorded === false ? "Name not recorded" : data.fullName}
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <Avatar
+              src={data.photoUrl}
+              name={data.fullName}
+              size="md"
+              canMutate={canMutate}
+              isUploading={isUploadingPhoto}
+              onUpload={handlePhotoUpload}
+            />
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight truncate leading-tight">
+                  {data.isNameRecorded === false ? "Name not recorded" : data.fullName}
+                </h1>
+
+                <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+                  {data.admissionNumber}
                 </span>
-              </>
-            )}
+
+                <StatusBadge
+                  status={data.isActive ? "active" : "neutral"}
+                  label={data.isActive ? "Active Student" : "Inactive"}
+                  size="sm"
+                />
+
+                {data.academicYearLabel && (
+                  <span className="text-[11px] font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full border border-border/40">
+                    {data.academicYearLabel}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                <span>
+                  {data.className
+                    ? `${data.className} • Section ${data.sectionName}`
+                    : "Unassigned Class"}
+                </span>
+                <span>•</span>
+                <span>
+                  Attendance:{" "}
+                  <strong className="text-foreground">
+                    {data.attendanceSummary.percentage !== null
+                      ? `${data.attendanceSummary.percentage}%`
+                      : "UNKNOWN"}
+                  </strong>
+                </span>
+                {data.canViewFees && (
+                  <>
+                    <span>•</span>
+                    <span>
+                      Fee Due:{" "}
+                      <strong className={totalOutstanding > 0 ? "text-semantic-money-owed font-semibold" : "text-foreground"}>
+                        ₹{Math.round(totalOutstanding).toLocaleString()}
+                      </strong>
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        }
-        breadcrumbs={
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <Link href="/students" className="hover:underline">
-              Students
-            </Link>
-            <span>/</span>
-            <span className="text-gray-900 dark:text-white font-medium">
-              {data.fullName}
-            </span>
+
+          {/* Action Row obeying Apple One-Tint Law */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <PromoteStudentModal
+              studentId={data.id}
+              schoolId={schoolId}
+              availableClasses={availableClasses}
+              availableYears={availableYears}
+            />
           </div>
-        }
-        badges={[
-          data.isActive
-            ? { label: "Active Student", variant: "success" }
-            : { label: "Inactive", variant: "danger" },
-          data.academicYearLabel
-            ? { label: data.academicYearLabel, variant: "neutral" }
-            : { label: "Session", variant: "neutral" },
-        ]}
-        actions={
-          <PromoteStudentModal
-            studentId={data.id}
-            schoolId={schoolId}
-            availableClasses={availableClasses}
-            availableYears={availableYears}
-          />
-        }
-      />
+        </div>
+      </div>
 
       {/* ─── Glanceable Metric Cards (Click to Jump Tabs) ────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Attendance */}
         <div
           onClick={() => switchTab("ATTENDANCE")}
-          className={`bg-white dark:bg-slate-900 p-4 rounded-2xl border transition-all cursor-pointer shadow-xs hover:shadow-md ${
-            data.attendanceSummary.percentage < 75
-              ? "border-amber-300 dark:border-amber-900/60 bg-amber-50/20"
-              : "border-gray-200 dark:border-slate-800 hover:border-primary/50"
-          }`}
+          className="cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">
-              Attendance
-            </span>
-            <Calendar className="w-3.5 h-3.5 text-gray-400" />
-          </div>
-          <div className="text-2xl font-extrabold mt-1.5 text-gray-900 dark:text-white tabular-nums">
-            {data.attendanceSummary.percentage}%
-          </div>
-          <div className="text-xs text-gray-500 mt-0.5 truncate">
-            {data.attendanceSummary.present} / {data.attendanceSummary.total} days present
-          </div>
+          <MetricCard
+            title="Attendance"
+            value={data.attendanceSummary.percentage !== null ? `${data.attendanceSummary.percentage}%` : "UNKNOWN"}
+            subtext={
+              data.attendanceSummary.total > 0
+                ? `${data.attendanceSummary.present} / ${data.attendanceSummary.total} days (${data.attendanceSummary.scopeLabel || "term"})`
+                : "No attendance recorded this term"
+            }
+            icon={<Calendar className="w-4 h-4" />}
+            className={
+              data.attendanceSummary.percentage !== null && data.attendanceSummary.percentage < 75
+                ? "border-semantic-attention/40 bg-semantic-attention/5"
+                : ""
+            }
+          />
         </div>
 
         {/* Fees */}
         <div
           onClick={() => switchTab("FEES")}
-          className={`bg-white dark:bg-slate-900 p-4 rounded-2xl border transition-all cursor-pointer shadow-xs hover:shadow-md ${
-            data.canViewFees && totalOutstanding > 0
-              ? "border-amber-300 dark:border-amber-900/60 bg-amber-50/20"
-              : "border-gray-200 dark:border-slate-800 hover:border-primary/50"
-          }`}
+          className="cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">
-              Fee Balance
-            </span>
-            <DollarSign className="w-3.5 h-3.5 text-gray-400" />
-          </div>
-          <div className="text-2xl font-extrabold mt-1.5 text-gray-900 dark:text-white truncate tabular-nums">
-            {data.canViewFees ? `₹${totalOutstanding.toFixed(0)}` : "Restricted"}
-          </div>
-          <div className="text-xs text-gray-500 mt-0.5 truncate">
-            {data.canViewFees
-              ? `${pendingInvoices.length} pending bill${pendingInvoices.length === 1 ? "" : "s"}`
-              : "Financial role required"}
-          </div>
+          <MetricCard
+            title="Fee Balance"
+            value={
+              !data.canViewFees
+                ? "Restricted"
+                : totalOutstanding > 0
+                  ? `₹${Math.round(totalOutstanding).toLocaleString()}`
+                  : "₹0"
+            }
+            subtext={
+              !data.canViewFees
+                ? "Financial role required"
+                : totalOutstanding > 0
+                  ? `${pendingInvoices.length} pending bill${pendingInvoices.length === 1 ? "" : "s"}`
+                  : "All dues settled"
+            }
+            icon={<DollarSign className="w-4 h-4" />}
+            className={
+              data.canViewFees && totalOutstanding > 0
+                ? "border-semantic-money-owed/40 bg-semantic-money-owed/5"
+                : ""
+            }
+          />
         </div>
 
-        {/* Academics / Subjects */}
+        {/* Curriculum */}
         <div
           onClick={() => switchTab("ACADEMICS")}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 hover:border-primary/50 transition-all cursor-pointer shadow-xs hover:shadow-md"
+          className="cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">
-              Curriculum
-            </span>
-            <BookOpen className="w-3.5 h-3.5 text-gray-400" />
-          </div>
-          <div className="text-2xl font-extrabold mt-1.5 text-gray-900 dark:text-white tabular-nums">
-            {data.subjects.length} Subjects
-          </div>
-          <div className="text-xs text-gray-500 mt-0.5 truncate">
-            Class Teacher: {data.classTeacherName || "Not assigned"}
-          </div>
+          <MetricCard
+            title="Curriculum"
+            value={`${data.subjects.length} Subjects`}
+            subtext={data.classTeacherName ? `Class Teacher: ${data.classTeacherName}` : "Class Teacher unassigned"}
+            icon={<BookOpen className="w-4 h-4" />}
+          />
         </div>
 
-        {/* Exams Performance */}
+        {/* Exams */}
         <div
           onClick={() => switchTab("EXAMS")}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 hover:border-primary/50 transition-all cursor-pointer shadow-xs hover:shadow-md"
+          className="cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">
-              Exam Performance
-            </span>
-            <Award className="w-3.5 h-3.5 text-gray-400" />
-          </div>
-          <div className="text-2xl font-extrabold mt-1.5 text-gray-900 dark:text-white tabular-nums">
-            {averageExamScore !== null ? `${averageExamScore}%` : "No Marks"}
-          </div>
-          <div className="text-xs text-gray-500 mt-0.5 truncate">
-            {bestSubject ? `Top: ${bestSubject.name}` : `${data.examMarks.length} exams recorded`}
-          </div>
+          <MetricCard
+            title="Exam Performance"
+            value={averageExamScore !== null ? `${averageExamScore}%` : "No Marks"}
+            subtext={
+              bestSubject
+                ? `Top: ${bestSubject.name}`
+                : data.examMarks.length > 0
+                  ? `${data.examMarks.length} exams recorded`
+                  : "No exams recorded yet"
+            }
+            icon={<Award className="w-4 h-4" />}
+          />
         </div>
       </div>
 
-      {/* ─── 10-Tab Navigation Bar (Synced to URL ?tab= per Law L2) ──────── */}
-      <div className="border-b border-gray-200 dark:border-slate-800 flex overflow-x-auto no-scrollbar gap-1 text-xs font-bold -mx-4 sm:mx-0 px-4 sm:px-0">
-        {[
-          { key: "OVERVIEW", label: "Overview" },
-          { key: "ACADEMICS", label: "Academics" },
-          { key: "ATTENDANCE", label: "Attendance" },
-          { key: "FEES", label: "Fees" },
-          { key: "EXAMS", label: `Exams (${data.examMarks.length})` },
-          { key: "HOMEWORK", label: `Homework (${data.homeworkSubmissions.length})` },
-          { key: "FAMILY", label: "Family & Guardians" },
-          { key: "DOCUMENTS", label: `Documents (${data.documents.length})` },
-          { key: "HISTORY", label: "Class History" },
-          { key: "TIMELINE", label: "Timeline" },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => switchTab(tab.key as StudentTabKey)}
-            className={`min-h-[42px] py-2 px-3.5 rounded-t-xl transition-all border-b-2 whitespace-nowrap select-none ${
-              activeTab === tab.key
-                ? "border-primary text-primary bg-primary/5 font-extrabold"
-                : "border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* ─── Apple Inset Segmented Tabs ─────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="overflow-x-auto no-scrollbar py-1">
+          <SegmentedControl<string>
+            options={[
+              { value: "OVERVIEW", label: "Overview" },
+              { value: "ATTENDANCE", label: "Attendance" },
+              ...(data.canViewFees ? [{ value: "FEES", label: "Fees" }] : []),
+              { value: "HOMEWORK", label: "Homework" },
+              { value: "ACADEMICS", label: "Academics" },
+              { value: "RECORDS", label: "Records" },
+            ]}
+            value={
+              ["EXAMS", "FAMILY", "DOCUMENTS", "HISTORY", "TIMELINE"].includes(activeTab)
+                ? "RECORDS"
+                : activeTab
+            }
+            onChange={(tab) => {
+              if (tab === "RECORDS") {
+                switchTab(data.canViewExams ? "EXAMS" : "FAMILY");
+              } else {
+                switchTab(tab as StudentTabKey);
+              }
+            }}
+            size="default"
+          />
+        </div>
+
+        {/* Sub-navigation for Records Group */}
+        {["EXAMS", "FAMILY", "DOCUMENTS", "HISTORY", "TIMELINE"].includes(activeTab) && (
+          <div className="p-2 rounded-2xl bg-muted/40 border border-border/40 inline-flex flex-wrap gap-1">
+            <SegmentedControl<string>
+              options={[
+                ...(data.canViewExams ? [{ value: "EXAMS", label: "Exams & Results" }] : []),
+                { value: "FAMILY", label: "Family & Guardians" },
+                { value: "DOCUMENTS", label: "Documents" },
+                { value: "HISTORY", label: "Class History" },
+                { value: "TIMELINE", label: "Timeline" },
+              ]}
+              value={activeTab}
+              onChange={(subTab) => switchTab(subTab as StudentTabKey)}
+              size="sm"
+            />
+          </div>
+        )}
       </div>
 
       {/* ─── TAB 1: OVERVIEW (The Story - Law L11, F1-F10) ────────────────── */}
       {activeTab === "OVERVIEW" && (
         <div className="space-y-6">
           {/* Today Strip */}
-          <div className="bg-gradient-to-r from-blue-50/80 via-white to-indigo-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40 p-4 sm:p-5 rounded-2xl border border-blue-100 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
                 <span>Today • {todayDateString}</span>
               </div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-1">
+              <p className="text-sm font-semibold text-foreground mt-1">
                 {humanStorySentence}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300">
+              <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-white dark:bg-muted/60 border border-gray-200 dark:border-border/40 text-muted-foreground">
                 Roll #{data.admissionNumber}
               </span>
               {data.classId && (
                 <Link
                   href={`/academics/classes/${data.classId}?tab=roster`}
-                  className="bg-primary hover:bg-primary/95 text-white px-3 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="bg-muted/60 hover:bg-muted text-foreground border border-border/40 font-semibold px-3 py-1.5 rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors"
                 >
                   <span>Class Hub Roster</span>
                   <ArrowRight className="w-3 h-3" />
@@ -635,7 +742,7 @@ export function Student360Client({
                 Needs Attention
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {data.attendanceSummary.percentage < 75 && (
+                {data.attendanceSummary.percentage !== null && data.attendanceSummary.percentage < 75 && (
                   <NeedsAttentionCard
                     severity="rose"
                     title="Low Attendance Warning"
@@ -682,9 +789,9 @@ export function Student360Client({
           {/* Identity & Placement Information Cards */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Identity & Demographics */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-200 dark:border-slate-800 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
-                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm">
+            <div className="bg-card rounded-2xl p-5 border border-border/40 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                <h3 className="font-extrabold text-foreground text-sm">
                   Personal Identity & Demographics
                 </h3>
                 <span className="text-[11px] font-bold text-gray-400">
@@ -694,37 +801,37 @@ export function Student360Client({
               <div className="grid grid-cols-2 gap-y-3.5 text-xs">
                 <div>
                   <span className="text-gray-400 block mb-0.5">Date of Birth</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {formatDisplayDate(data.dateOfBirth)}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Gender</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {data.gender}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Category</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {data.category}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Blood Group</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {data.bloodGroup || "Not Provided"}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Aadhaar Last-4</span>
-                  <span className="font-mono font-semibold text-gray-900 dark:text-white">
+                  <span className="font-mono font-semibold text-foreground">
                     {data.aadhaarLast4 ? `•••• •••• ${data.aadhaarLast4}` : "Masked"}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Admission Date</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {formatDisplayDate(data.admissionDate)}
                   </span>
                 </div>
@@ -732,9 +839,9 @@ export function Student360Client({
             </div>
 
             {/* Academic Placement */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-200 dark:border-slate-800 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
-                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm">
+            <div className="bg-card rounded-2xl p-5 border border-border/40 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                <h3 className="font-extrabold text-foreground text-sm">
                   Current Academic Placement
                 </h3>
                 {data.classId && (
@@ -750,7 +857,7 @@ export function Student360Client({
               <div className="grid grid-cols-2 gap-y-3.5 text-xs">
                 <div>
                   <span className="text-gray-400 block mb-0.5">Class & Section</span>
-                  <span className="font-bold text-gray-900 dark:text-white text-sm">
+                  <span className="font-bold text-foreground text-sm">
                     {data.className
                       ? `${data.className} • ${data.sectionName}`
                       : "Unassigned"}
@@ -758,25 +865,25 @@ export function Student360Client({
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Academic Session</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {data.academicYearLabel || "Active Session"}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Class Teacher</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {data.classTeacherName || "Not Assigned"}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Enrolled Subjects</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {data.subjects.length} Subjects
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Primary Contact</span>
-                  <span className="font-semibold text-gray-900 dark:text-white truncate block">
+                  <span className="font-semibold text-foreground truncate block">
                     {primaryParent
                       ? `${primaryParent.name} (${primaryParent.relation})`
                       : "None recorded"}
@@ -784,7 +891,7 @@ export function Student360Client({
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5">Contact Phone</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {primaryParent?.mobile || "Not provided"}
                   </span>
                 </div>
@@ -793,10 +900,10 @@ export function Student360Client({
           </div>
 
           {/* Chronological Activity Feed (Law L11, F2) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-200 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="bg-card rounded-2xl p-5 border border-border/40 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3">
               <div>
-                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm">
+                <h3 className="font-extrabold text-foreground text-sm">
                   Recent Activity & Milestones
                 </h3>
                 <p className="text-xs text-gray-500">
@@ -821,10 +928,10 @@ export function Student360Client({
 
       {/* ─── TAB 2: ACADEMICS ────────────────────────────────────────────── */}
       {activeTab === "ACADEMICS" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-800 pb-4">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4">
             <div>
-              <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+              <h3 className="font-extrabold text-base text-foreground">
                 Class Curriculum & Assigned Teachers
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -861,13 +968,13 @@ export function Student360Client({
               data.subjects.map((sub) => (
                 <div
                   key={sub.id}
-                  className="p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 space-y-2 transition-colors hover:border-primary/40"
+                  className="p-4 rounded-xl border border-border/40 bg-gray-50/50 dark:bg-muted/60/40 space-y-2 transition-colors hover:border-primary/40"
                 >
                   <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                    <h4 className="font-bold text-foreground text-sm">
                       {sub.name}
                     </h4>
-                    <span className="text-[11px] font-mono font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                    <span className="text-[11px] font-mono font-bold bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20 px-2 py-0.5 rounded">
                       {sub.code || "SUB"}
                     </span>
                   </div>
@@ -886,10 +993,10 @@ export function Student360Client({
 
       {/* ─── TAB 3: ATTENDANCE (Scanning Tab) ─────────────────────────────── */}
       {activeTab === "ATTENDANCE" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
             <div>
-              <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+              <h3 className="font-extrabold text-base text-foreground">
                 Attendance Record
               </h3>
               <p className="text-xs text-gray-500">
@@ -905,24 +1012,24 @@ export function Student360Client({
                   Overall Present
                 </span>
               </div>
-              <div className="text-xs text-gray-500 border-l border-gray-200 dark:border-slate-800 pl-4 space-y-0.5">
-                <div>Present: <strong className="text-emerald-600">{data.attendanceSummary.present}</strong></div>
-                <div>Absent: <strong className="text-rose-600">{data.attendanceSummary.absent}</strong></div>
-                <div>Late: <strong className="text-amber-600">{data.attendanceSummary.late}</strong></div>
+              <div className="text-xs text-gray-500 border-l border-border/40 pl-4 space-y-0.5">
+                <div>Present: <strong className="text-semantic-money-in">{data.attendanceSummary.present}</strong></div>
+                <div>Absent: <strong className="text-semantic-money-owed">{data.attendanceSummary.absent}</strong></div>
+                <div>Late: <strong className="text-semantic-attention">{data.attendanceSummary.late}</strong></div>
               </div>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 uppercase font-bold text-[11px]">
+              <thead className="bg-gray-50 dark:bg-muted/60 text-muted-foreground uppercase font-bold text-[11px]">
                 <tr>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3">Remarks</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40">
                 {data.attendanceLogs.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-4 py-10 text-center">
@@ -943,19 +1050,19 @@ export function Student360Client({
                   data.attendanceLogs.map((log) => (
                     <tr
                       key={log.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-muted/40 transition-colors"
                     >
-                      <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 font-semibold text-foreground">
                         {formatDisplayDate(log.date)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                             log.status === "PRESENT"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              ? "bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20"
                               : log.status === "ABSENT"
-                                ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
-                                : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                ? "bg-semantic-money-owed/10 text-semantic-money-owed border border-semantic-money-owed/20"
+                                : "bg-semantic-attention/10 text-semantic-attention border border-semantic-attention/20"
                           }`}
                         >
                           {log.status}
@@ -975,16 +1082,16 @@ export function Student360Client({
 
       {/* ─── TAB 4: FEES (Scanning Tab) ─────────────────────────────────── */}
       {activeTab === "FEES" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
           {!data.canViewFees ? (
             <div className="p-12 text-center text-gray-500">
               🔒 Financial details and fee structures are restricted to Accountants and School Administrators.
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap justify-between items-center gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+              <div className="flex flex-wrap justify-between items-center gap-4 border-b border-border/40 pb-4">
                 <div>
-                  <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+                  <h3 className="font-extrabold text-base text-foreground">
                     Fee Structures & Invoices
                   </h3>
                   <p className="text-xs text-gray-500">
@@ -1013,7 +1120,7 @@ export function Student360Client({
               </div>
 
               {invoiceMessage && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-xl font-medium border border-blue-200 dark:border-blue-800">
+                <div className="p-3 bg-muted/40 text-foreground text-xs rounded-xl font-medium border border-border/40">
                   {invoiceMessage}
                 </div>
               )}
@@ -1028,12 +1135,12 @@ export function Student360Client({
                     {data.concessions.map((c) => (
                       <div
                         key={c.id}
-                        className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 flex justify-between items-center"
+                        className="p-3 rounded-xl bg-semantic-money-in/10 border border-semantic-money-in/20 flex justify-between items-center"
                       >
-                        <span className="font-bold text-xs text-emerald-900 dark:text-emerald-300">
+                        <span className="font-bold text-xs text-semantic-money-in dark:text-semantic-money-in">
                           {c.concessionName} ({c.concessionType})
                         </span>
-                        <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                        <span className="text-xs font-extrabold text-semantic-money-in dark:text-semantic-money-in">
                           {c.discountPercentage
                             ? `${c.discountPercentage}% OFF`
                             : `₹${c.discountAmount} OFF`}
@@ -1051,7 +1158,7 @@ export function Student360Client({
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
-                    <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 uppercase font-bold text-[11px]">
+                    <thead className="bg-gray-50 dark:bg-muted/60 text-muted-foreground uppercase font-bold text-[11px]">
                       <tr>
                         <th className="px-4 py-3">Fee Type</th>
                         <th className="px-4 py-3">Term</th>
@@ -1061,7 +1168,7 @@ export function Student360Client({
                         <th className="px-4 py-3 text-center">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-border/40">
                       {data.invoices.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
@@ -1072,10 +1179,10 @@ export function Student360Client({
                         data.invoices.map((inv) => (
                           <tr
                             key={inv.id}
-                            className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                            className="hover:bg-muted/40 transition-colors"
                           >
                             <td className="px-4 py-3">
-                              <div className="font-bold text-gray-900 dark:text-white">
+                              <div className="font-bold text-foreground">
                                 {inv.feeTypeName || "Tuition / General Fee"}
                               </div>
                               <div className="font-mono text-[11px] text-gray-400">
@@ -1088,7 +1195,7 @@ export function Student360Client({
                             <td className="px-4 py-3 text-right font-semibold tabular-nums">
                               ₹{inv.netAmount}
                             </td>
-                            <td className="px-4 py-3 text-right font-extrabold text-rose-600 tabular-nums">
+                            <td className="px-4 py-3 text-right font-extrabold text-semantic-money-owed tabular-nums">
                               ₹{inv.balanceAmount}
                             </td>
                             <td className="px-4 py-3 text-gray-500">
@@ -1098,8 +1205,8 @@ export function Student360Client({
                               <span
                                 className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                                   inv.status === "PAID"
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                    : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                    ? "bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20"
+                                    : "bg-semantic-attention/10 text-semantic-attention border border-semantic-attention/20"
                                 }`}
                               >
                                 {inv.status}
@@ -1119,7 +1226,7 @@ export function Student360Client({
 
       {/* ─── TAB 5: EXAMS (NEW Scanning Tab) ─────────────────────────────── */}
       {activeTab === "EXAMS" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
           {!data.canViewExams ? (
             <div className="p-12 text-center text-gray-500">
               🔒 Examination records are restricted. You are not assigned to this student&apos;s class or subjects.
@@ -1127,7 +1234,7 @@ export function Student360Client({
           ) : (
             <>
               {/* Header KPI Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/50 dark:bg-slate-800/40 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/50 dark:bg-muted/60/40 p-4 rounded-xl border border-border/40">
                 <div>
                   <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                     Average Score
@@ -1140,7 +1247,7 @@ export function Student360Client({
                   <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                     Best Subject
                   </span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate block">
+                  <span className="text-xs font-bold text-semantic-money-in truncate block">
                     {bestSubject ? `${bestSubject.name} (${bestSubject.avg}%)` : "—"}
                   </span>
                 </div>
@@ -1148,7 +1255,7 @@ export function Student360Client({
                   <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                     Weakest Subject
                   </span>
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 truncate block">
+                  <span className="text-xs font-bold text-semantic-attention truncate block">
                     {weakestSubject
                       ? `${weakestSubject.name} (${weakestSubject.avg}%)`
                       : "—"}
@@ -1158,7 +1265,7 @@ export function Student360Client({
                   <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                     Exams Recorded
                   </span>
-                  <span className="text-xl font-extrabold text-gray-900 dark:text-white tabular-nums">
+                  <span className="text-xl font-extrabold text-foreground tabular-nums">
                     {data.examMarks.length}
                   </span>
                 </div>
@@ -1174,14 +1281,14 @@ export function Student360Client({
                     {data.reportCards.map((rc) => (
                       <div
                         key={rc.id}
-                        className="p-4 rounded-xl border border-blue-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/50 space-y-2 shadow-xs"
+                        className="p-4 rounded-xl border border-border/40 bg-card space-y-2 shadow-xs"
                       >
                         <div className="flex justify-between items-start">
-                          <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">
+                          <h5 className="font-extrabold text-xs text-foreground">
                             {rc.setupName}
                           </h5>
                           {rc.rank && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20">
                               Rank #{rc.rank}
                             </span>
                           )}
@@ -1195,12 +1302,12 @@ export function Student360Client({
                         {rc.grade && (
                           <div className="flex justify-between items-center text-xs">
                             <span className="text-gray-500">Term Grade</span>
-                            <span className="font-bold text-emerald-600">
+                            <span className="font-bold text-semantic-money-in">
                               {rc.grade}
                             </span>
                           </div>
                         )}
-                        <div className="text-[11px] text-gray-400 pt-1 border-t border-blue-100/60 dark:border-slate-700/60">
+                        <div className="text-[11px] text-gray-400 pt-1 border-t border-border/40">
                           Released: {formatDisplayDate(rc.publishedAt || rc.frozenAt)}
                         </div>
                       </div>
@@ -1223,7 +1330,7 @@ export function Student360Client({
                         value={examSearch}
                         onChange={(e) => setExamSearch(e.target.value)}
                         placeholder="Search exam or subject..."
-                        className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary min-h-[38px]"
+                        className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-border/40 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-h-[38px]"
                       />
                     </div>
                   )}
@@ -1231,7 +1338,7 @@ export function Student360Client({
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
-                    <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 uppercase font-bold text-[11px]">
+                    <thead className="bg-gray-50 dark:bg-muted/60 text-muted-foreground uppercase font-bold text-[11px]">
                       <tr>
                         <th className="px-4 py-3">Examination</th>
                         <th className="px-4 py-3">Subject</th>
@@ -1242,7 +1349,7 @@ export function Student360Client({
                         <th className="px-4 py-3">Date Logged</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-border/40">
                       {filteredExamMarks.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="px-4 py-10 text-center">
@@ -1259,9 +1366,9 @@ export function Student360Client({
                         filteredExamMarks.map((entry) => (
                           <tr
                             key={entry.id}
-                            className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                            className="hover:bg-muted/40 transition-colors"
                           >
-                            <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
+                            <td className="px-4 py-3 font-bold text-foreground">
                               {entry.examName}
                               {entry.componentName && (
                                 <span className="block text-[11px] text-gray-400 font-normal">
@@ -1274,16 +1381,16 @@ export function Student360Client({
                                 {entry.subjectName}
                               </span>
                               {entry.subjectCode && (
-                                <span className="ml-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400">
+                                <span className="ml-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-muted/60 text-muted-foreground">
                                   {entry.subjectCode}
                                 </span>
                               )}
                             </td>
                             <td className="px-4 py-3 text-right font-extrabold tabular-nums">
                               {entry.isAbsent ? (
-                                <span className="text-rose-600">ABSENT</span>
+                                <span className="text-semantic-money-owed">ABSENT</span>
                               ) : entry.isMedicalExempt ? (
-                                <span className="text-amber-600">EXEMPT</span>
+                                <span className="text-semantic-attention">EXEMPT</span>
                               ) : (
                                 `${entry.marksObtained ?? "—"} / ${entry.maxMarks}`
                               )}
@@ -1293,10 +1400,10 @@ export function Student360Client({
                                 <span
                                   className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${
                                     entry.percentage >= 75
-                                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                      ? "bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20"
                                       : entry.percentage >= 40
-                                        ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
-                                        : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                        ? "bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20"
+                                        : "bg-semantic-money-owed/10 text-semantic-money-owed border border-semantic-money-owed/20"
                                   }`}
                                 >
                                   {entry.percentage}%
@@ -1312,10 +1419,10 @@ export function Student360Client({
                               <span
                                 className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                                   entry.isAbsent
-                                    ? "bg-rose-100 text-rose-800"
+                                    ? "bg-semantic-money-owed/10 text-semantic-money-owed border border-semantic-money-owed/20"
                                     : entry.isMedicalExempt
-                                      ? "bg-amber-100 text-amber-800"
-                                      : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                      ? "bg-semantic-attention/10 text-semantic-attention border border-semantic-attention/20"
+                                      : "bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20"
                                 }`}
                               >
                                 {entry.isAbsent
@@ -1342,10 +1449,10 @@ export function Student360Client({
 
       {/* ─── TAB 6: HOMEWORK (NEW Scanning Tab) ──────────────────────────── */}
       {activeTab === "HOMEWORK" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
             <div>
-              <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+              <h3 className="font-extrabold text-base text-foreground">
                 Homework & Assignment Submissions
               </h3>
               <p className="text-xs text-gray-500">
@@ -1360,14 +1467,14 @@ export function Student360Client({
                   value={homeworkSearch}
                   onChange={(e) => setHomeworkSearch(e.target.value)}
                   placeholder="Search homework or subject..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary min-h-[38px]"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-border/40 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-h-[38px]"
                 />
               </div>
             )}
           </div>
 
           {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/50 dark:bg-slate-800/40 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/50 dark:bg-muted/60/40 p-4 rounded-xl border border-border/40">
             <div>
               <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                 Total Submissions
@@ -1380,7 +1487,7 @@ export function Student360Client({
               <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                 On-Time Rate
               </span>
-              <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              <span className="text-xl font-extrabold text-semantic-money-in tabular-nums">
                 {data.homeworkSubmissions.length > 0
                   ? `${Math.round(
                       ((data.homeworkSubmissions.length - lateHomework.length) /
@@ -1394,7 +1501,7 @@ export function Student360Client({
               <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                 Late Submissions
               </span>
-              <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
+              <span className="text-xl font-extrabold text-semantic-attention tabular-nums">
                 {lateHomework.length}
               </span>
             </div>
@@ -1402,7 +1509,7 @@ export function Student360Client({
               <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
                 Plagiarism Alerts
               </span>
-              <span className="text-xl font-extrabold text-rose-600 tabular-nums">
+              <span className="text-xl font-extrabold text-semantic-money-owed tabular-nums">
                 {plagiarismHomework.length}
               </span>
             </div>
@@ -1410,7 +1517,7 @@ export function Student360Client({
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 uppercase font-bold text-[11px]">
+              <thead className="bg-gray-50 dark:bg-muted/60 text-muted-foreground uppercase font-bold text-[11px]">
                 <tr>
                   <th className="px-4 py-3">Assignment Title</th>
                   <th className="px-4 py-3">Subject</th>
@@ -1421,7 +1528,7 @@ export function Student360Client({
                   <th className="px-4 py-3 text-center">Plagiarism</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40">
                 {filteredHomework.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-10 text-center">
@@ -1444,10 +1551,10 @@ export function Student360Client({
                   filteredHomework.map((sub) => (
                     <tr
                       key={sub.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-muted/40 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <span className="font-bold text-gray-900 dark:text-white">
+                        <span className="font-bold text-foreground">
                           {sub.assignmentTitle}
                         </span>
                         {sub.remarks && (
@@ -1461,7 +1568,7 @@ export function Student360Client({
                           {sub.subjectName}
                         </span>
                         {sub.subjectCode && (
-                          <span className="ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400">
+                          <span className="ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-muted/60 text-muted-foreground">
                             {sub.subjectCode}
                           </span>
                         )}
@@ -1476,8 +1583,8 @@ export function Student360Client({
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                             sub.isLate
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              ? "bg-semantic-attention/10 text-semantic-attention border border-semantic-attention/20"
+                              : "bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20"
                           }`}
                         >
                           {sub.isLate ? "Late Submission" : "On Time"}
@@ -1490,7 +1597,7 @@ export function Student360Client({
                       </td>
                       <td className="px-4 py-3 text-center">
                         {sub.plagiarismFlagged ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-semantic-money-owed/10 text-semantic-money-owed border border-semantic-money-owed/20">
                             Flagged
                           </span>
                         ) : (
@@ -1508,9 +1615,9 @@ export function Student360Client({
 
       {/* ─── TAB 7: FAMILY & GUARDIANS ───────────────────────────────────── */}
       {activeTab === "FAMILY" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="border-b border-gray-100 dark:border-slate-800 pb-3">
-            <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="border-b border-border/40 pb-3">
+            <h3 className="font-extrabold text-base text-foreground">
               Family & Guardians Dossier
             </h3>
             <p className="text-xs text-gray-500">
@@ -1525,11 +1632,11 @@ export function Student360Client({
               data.familyMembers.map((fm) => (
                 <div
                   key={fm.id}
-                  className="p-5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 space-y-3"
+                  className="p-5 rounded-xl border border-border/40 bg-gray-50/50 dark:bg-muted/60/30 space-y-3"
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-extrabold text-gray-900 dark:text-white text-sm">
+                      <h4 className="font-extrabold text-foreground text-sm">
                         {fm.name}
                       </h4>
                       <span className="text-[11px] text-gray-400 uppercase tracking-wider font-bold">
@@ -1539,12 +1646,12 @@ export function Student360Client({
 
                     <div className="flex flex-wrap gap-1">
                       {fm.isPrimaryContact && (
-                        <span className="text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-semantic-attention/10 text-semantic-attention border border-semantic-attention/20 px-2 py-0.5 rounded-full">
                           Primary Contact
                         </span>
                       )}
                       {fm.hasConsentAuthority && (
-                        <span className="text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20 px-2 py-0.5 rounded-full">
                           DPDP Consent Authority
                         </span>
                       )}
@@ -1564,9 +1671,9 @@ export function Student360Client({
 
       {/* ─── TAB 8: DOCUMENTS (Scanning Tab) ─────────────────────────────── */}
       {activeTab === "DOCUMENTS" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="border-b border-gray-100 dark:border-slate-800 pb-3">
-            <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="border-b border-border/40 pb-3">
+            <h3 className="font-extrabold text-base text-foreground">
               Permanent Student Documents
             </h3>
             <p className="text-xs text-gray-500">
@@ -1576,7 +1683,7 @@ export function Student360Client({
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 uppercase font-bold text-[11px]">
+              <thead className="bg-gray-50 dark:bg-muted/60 text-muted-foreground uppercase font-bold text-[11px]">
                 <tr>
                   <th className="px-4 py-3">Document Type</th>
                   <th className="px-4 py-3">File Name</th>
@@ -1585,7 +1692,7 @@ export function Student360Client({
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40">
                 {data.documents.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
@@ -1596,9 +1703,9 @@ export function Student360Client({
                   data.documents.map((doc) => (
                     <tr
                       key={doc.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-muted/40 transition-colors"
                     >
-                      <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 font-semibold text-foreground">
                         {doc.documentType.replace(/_/g, " ")}
                       </td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
@@ -1608,8 +1715,8 @@ export function Student360Client({
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                             doc.isVerified
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                              : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                              ? "bg-semantic-money-in/10 text-semantic-money-in border border-semantic-money-in/20"
+                              : "bg-semantic-attention/10 text-semantic-attention border border-semantic-attention/20"
                           }`}
                         >
                           {doc.isVerified ? "✓ Verified" : "Pending Review"}
@@ -1625,7 +1732,7 @@ export function Student360Client({
                               type="button"
                               disabled={verifyingDocId === doc.id}
                               onClick={() => handleVerifyStudentDoc(doc.id)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded bg-semantic-money-in text-white hover:opacity-90 disabled:opacity-50 transition"
                             >
                               {verifyingDocId === doc.id ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -1639,7 +1746,7 @@ export function Student360Client({
                             type="button"
                             disabled={verifyingDocId === doc.id}
                             onClick={() => handleRejectStudentDoc(doc.id)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 transition"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded border border-border/40 text-muted-foreground hover:bg-muted/40 disabled:opacity-50 transition"
                           >
                             {verifyingDocId === doc.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -1661,10 +1768,10 @@ export function Student360Client({
 
       {/* ─── TAB 9: CLASS HISTORY ────────────────────────────────────────── */}
       {activeTab === "HISTORY" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-800 pb-3">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-3">
             <div>
-              <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+              <h3 className="font-extrabold text-base text-foreground">
                 Academic Progression History
               </h3>
               <p className="text-xs text-gray-500">
@@ -1686,14 +1793,14 @@ export function Student360Client({
               data.classHistory.map((h, idx) => (
                 <div
                   key={h.id}
-                  className="flex items-center p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 justify-between"
+                  className="flex items-center p-4 rounded-xl border border-border/40 bg-gray-50/50 dark:bg-muted/60/30 justify-between"
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-extrabold text-xs">
                       #{idx + 1}
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white text-xs">
+                      <h4 className="font-bold text-foreground text-xs">
                         {h.className} • Section {h.sectionName}
                       </h4>
                       <p className="text-[11px] text-gray-500">
@@ -1703,7 +1810,7 @@ export function Student360Client({
                   </div>
 
                   <div className="text-right">
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20">
                       {h.promotionStatus || "ACTIVE"}
                     </span>
                     <span className="block text-[11px] text-gray-400 mt-1">
@@ -1719,9 +1826,9 @@ export function Student360Client({
 
       {/* ─── TAB 10: TIMELINE ────────────────────────────────────────────── */}
       {activeTab === "TIMELINE" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="border-b border-gray-100 dark:border-slate-800 pb-3">
-            <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+        <div className="bg-card rounded-2xl p-6 border border-border/40 shadow-xs space-y-6">
+          <div className="border-b border-border/40 pb-3">
+            <h3 className="font-extrabold text-base text-foreground">
               Student Trajectory Timeline
             </h3>
             <p className="text-xs text-gray-500">
@@ -1732,11 +1839,11 @@ export function Student360Client({
           <div className="relative border-l-2 border-primary/20 ml-4 space-y-6 py-2">
             {data.timelineEvents.map((evt) => (
               <div key={evt.id} className="relative pl-6">
-                <div className="absolute -left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-white dark:border-slate-900 ring-2 ring-primary/20" />
+                <div className="absolute -left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card ring-2 ring-primary/20" />
                 <div className="text-[11px] text-gray-400 font-semibold">
                   {formatDisplayDate(evt.date)}
                 </div>
-                <div className="font-bold text-xs text-gray-900 dark:text-white mt-0.5">
+                <div className="font-bold text-xs text-foreground mt-0.5">
                   {evt.title}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
@@ -1750,3 +1857,5 @@ export function Student360Client({
     </div>
   );
 }
+
+export default Student360Client;

@@ -1,0 +1,283 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "teacher_360_redesign",
+  "version": "1.0.0",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "ui_spec",
+  "governing_charter": "docs/product-destination-charter.json",
+  "spec_role": "Brings the Staff 360 surface (frontend/src/app/(admin)/hr/staff/[id]) under the ratified Apple design language and repairs its data truth, mirroring the Student 360 treatment for the teacher-first use case. Three deliverables: Apple HIG redesign of the entire staff profile; a real identity avatar (photo with monogram fallback and an upload path) replacing the monogram-only header; and a view-frequency tab architecture with an instant glance strip for admin, HR, and principal. Includes closing the design-guard hole that let this surface escape the AD-L5 sweep and the AD-L6 CI guards.",
+  "predecessor_specs": [
+    {
+      "spec_id": "apple_hig_design_system_v2",
+      "version": "2.0.0",
+      "status": "landed v11.55.0-v11.58.0; docs/design/design-language.md and CI color guards are binding law"
+    },
+    {
+      "spec_id": "student_360_redesign",
+      "version": "1.0.0",
+      "status": "the structural template for this spec: forensic baseline, truth fixes, shared Avatar, glance strip, frequency-allocated tabs, grammar sweep, mechanical verification"
+    },
+    {
+      "spec_id": "S24 teacher identity truth, HR engine, payroll",
+      "status": "landed; their data contracts, leave engine, payroll engines, and workflows are frozen inputs"
+    }
+  ],
+  "north_star": {
+    "destination_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "charter_phases": "Cross-cutting; serves D2 persona journey loops and the operating-year employment lifecycle",
+    "journeys_advanced": [
+      "J4_weekly_review",
+      "J7_admission_season (staff side of provisioning and roster readiness)"
+    ],
+    "target_metrics_moved": [
+      {
+        "metric": "journey_completion_rate",
+        "definition_source": "docs/product/metrics.md",
+        "target": "95%+; staff lifecycle decisions (probation, leave, payroll questions, offboarding) complete from one surface without side calls",
+        "expected_delta": "Teacher 360 becomes the instant-answer surface for staff questions: glance data at the top, frequency-allocated tabs below, zero fabricated payroll numbers to poison HR decisions"
+      }
+    ],
+    "metric_rule": "No new metric events beyond plain usage verification where the existing pipeline supports it; the six north-star definitions in docs/product/metrics.md are untouched."
+  },
+  "intent": "Staff 360 is the surface a school opens to answer staff questions: payroll, leaves, probation, allocations, and the offboarding decision that must never be taken on invented numbers. The codebase analysis shows the surface never received the Apple migration and carries three defect classes. First, fabricated truth, the series' defining defect, now on payroll: when salaryBreakdown is absent the client constructs a salary structure in the browser, computing gross as basic multiplied by 1.35, PF at a hardcoded 12 percent, and professional tax hardcoded at ₹200, then renders these estimates as 'Gross Monthly Pay' and 'Net Monthly Take-Home' with no estimate label; an HR decision taken on that screen is taken on fiction. Second, the surface is the last pre-Apple island: gray-50/gray-900 chrome, indigo as the interactive tint against the ratified apple.blue law, emerald/rose/amber/purple badges from banned palettes, underline tabs against the segmented-control grammar, and an action row with three filled colored buttons at once; it demonstrably escaped both the AD-L5 sweep and the AD-L6 guards, which means the guards have a hole that must be found and closed. Third, the experience gaps the user named: monogram-only identity with no photo system, no upload path, no glance layer for instant view, and no allocation of its five flat tabs by how often anyone actually opens them. The spec applies the same treatment Student 360 received: truth first, the shared Avatar, the glance strip, frequency-allocated tabs in the segmented grammar, the whole file on the ratified design language, and mechanical tests that make the regressions impossible.",
+  "grounding_audit": {
+    "verified_at_head": "2631fca9, release v11.58.0, verified 2026-11-24",
+    "verified_facts": [
+      "Surface location: frontend/src/app/(admin)/hr/staff/[id]/ with page.tsx (1,131 bytes, server component) and Staff360Client.tsx (58,929 bytes, single client component rendering the entire experience).",
+      "ACCESS MODEL VERIFIED: requireAuth([SUPER_ADMIN, SCHOOL_ADMIN, HR_MANAGER, PRINCIPAL]); other roles get no route at all. Client-side authority: canAdminister includes PRINCIPAL (can open the offboard modal and reactivate), canMutate = SUPER_ADMIN, SCHOOL_ADMIN, HR_MANAGER (edit profile, probation), Legal Hold buttons restricted to SUPER_ADMIN and SCHOOL_ADMIN. Any redesign must preserve exactly this matrix.",
+      "FABRICATED PAYROLL VERIFIED IN CODE: the compensation tab, when profile.salaryConfigured is false but salaryComponents exist, constructs b = { grossEarnings: basic * 1.35, pfEmployeeAmount: basic * 0.12, pfEmployeePercent: 12, ptAmount: 200, netMonthlyPay: basic * 1.35 - (basic * 0.12 + 200 + tds) } and renders it as 'Gross Monthly Pay', 'Statutory Deductions', and 'Net Monthly Take-Home'. Professional tax hardcoded at ₹200 for every employee in India regardless of state slab; PF universalized at 12 percent; DA and HRA derived by ad-hoc percentages. None of it is labeled an estimate. Payroll engines exist in the repo (hr/payroll, EPFO payroll ECR exports landed earlier); this client-side fiction bypasses them.",
+      "DESIGN-LANGUAGE ESCAPE VERIFIED: the file uses bg-gray-50/dark:bg-gray-950 surfaces, white cards, border-gray chrome, indigo-600 as interactive tint (active tab underline, links, focus rings, Save Profile button), and emerald/rose/amber/purple badge palettes, every one banned by the AD color law (BR-AD-2, BR-AD-3, BR-AD-4 and the CI guards from AD-L6). This surface shipped after AD-L7, so the guard has a coverage hole: L0 must determine why (scan scope, allowlist, or filename pattern) and close it mechanically.",
+      "ONE-TINT LAW VIOLATION VERIFIED: the action bar renders Edit Profile (white bordered), Confirm Probation (amber-600 filled), Offboard Staff (rose-600 filled), Reactivate Staff (emerald-600 filled), and Legal Hold toggle, conditionally up to three filled colored buttons in one row.",
+      "GOVERNANCE STYLE VERIFIED: lifecycle actions (probation confirm, offboard, legal hold, reactivate) run on window.confirm and alert(); the shared ConfirmDialog and AppModal components exist in components/ui and are the ratified pattern.",
+      "IDENTITY VERIFIED: identity renders getAvatarColor(profile.fullName) plus getInitials at 48px; no photo support for staff, no upload or replace path on the surface; employeeCode, Teaching/Non-Teaching, Legal Hold, Active/Separated, Probation badges are hand-styled spans, not the StatusBadge vocabulary.",
+      "TAB STRUCTURE VERIFIED: five flat tabs (overview: Overview & Identity, employment: Employment & Lifecycle, academics: Academic Allocations, compensation: Compensation & Loans, leaves: Leave Summary) with border-b underline style and ?tab= deep linking already implemented. Employment history, PII reveal (revealStaffPii with audit reason HR_AUDIT_360_VIEW), loans count, leave balances data all present.",
+      "ACADEMICS DATA VERIFIED: academicAllocations carries classTeacherOf list, classSubjects list, weeklyPeriodsCount; the tab handles non-teaching staff and empty allocations honestly already; this data becomes the glance strip's core for teaching staff.",
+      "STUDENT 360 PRECEDENT LANDED: the S360 spec pattern (L0 forensic baseline, truth fixes, shared Avatar component in components/ui, glance strip with NextBestAction, frequency-allocated tabs in the segmented grammar, mechanical truth and permission tests, CI guard closure) is the template; the Avatar component it created is the reuse path for staff photos."
+    ],
+    "honest_caveats": [
+      "Staff360Client.tsx was read in full and its defects are code-verified, but getStaff360 in actions.ts (87,477 bytes) was not line-audited; what profile fields exist beyond those the client consumes is UNKNOWN until L0.",
+      "Whether a staff photo field exists in the schema at all (staff.photoS3Key or equivalent) is UNKNOWN at spec time; students have photoS3Key. L0 must check the schema; if no staff photo capability exists, this spec adds the field via one minimal migration (explicitly authorized) or defers photo upload to one layer if the migration proves larger than forecast, with the monogram as the honest interim identity. Photo display composes the existing signed-URL flow either way.",
+      "Whether the AD-L6 guard scanned class names or only hex values, and what its allowlist contains, is not verified; L0 reads the guard and closes the hole either way. Closing the hole may tighten the guard for other files that escaped; any such tightening is tagged in the commit body.",
+      "The teacher's own self-view lives in the teacher PWA (profile route) and is out of scope; this spec is the admin-side Teacher 360."
+    ]
+  },
+  "view_frequency_allocation": {
+    "rule": "Sub-modules are positioned by how often their viewer actually opens them, per the user's requirement for instant view at a glance. Staff 360's audiences are SCHOOL_ADMIN, HR_MANAGER, and PRINCIPAL. The allocation below is the proposal; the L0 matrix with the operator's approval is the record. The teacher themself is not an audience here (their self-view is the teacher PWA profile).",
+    "instant_view_glance": [
+      "Identity with avatar, employee code, designation, department, status badges (StatusBadge vocabulary)",
+      "For teaching staff: class-teacher sections, subject count, weekly periods (from academicAllocations, these three numbers are the teacher's shape in the school)",
+      "Employment standing: active, probation, separated (semantic, never fabricated)",
+      "Leave balance summary for the session (used / remaining headline numbers)",
+      "Attention items: probation pending confirmation, legal hold active, active loans count, unconfirmed allocations",
+      "Next best action (compose the existing NextBestAction component): confirm probation, complete missing qualification data, pending payroll configuration"
+    ],
+    "often_viewed_tier_tabs": [
+      "Academic Allocations (teaching staff's most-visited view; class subjects list, class-teacher sections, timetable counts)",
+      "Leave Summary (balances and running consumption)",
+      "Employment & Lifecycle (org role, milestones, separation record)"
+    ],
+    "rarely_viewed_tier_tabs": [
+      "Compensation & Loans (sensitive; moves under a Money group with the PII discipline: figures behind the viewer's existing authority, estimate states labeled, no client-side fabrication possible)",
+      "Records group: Identity & PII (with the reveal pattern), personal information, contact and emergency data"
+    ],
+    "display_law": "Zero-data renders UNKNOWN with the reason and the one-tap remediation where this surface holds the power. Salary figures that are not computed by the payroll engine render as UNKNOWN ('No salary structure configured yet') or as explicitly labeled provisional component data, never as a computed take-home. Counts render as semantic dots or numbers only when nonzero."
+  },
+  "persona_jobs": [
+    {
+      "persona_id": "office_admin",
+      "charter_persona_note": "The admin runs the office; staff payroll and document questions land on this desk daily.",
+      "job_name": "Answer any staff question in under a minute without opening the payroll register",
+      "trigger": "A teacher asks about leave balance, salary, or allocations; audit season",
+      "steps": "Open the teacher from the staff directory -> glance strip shows employment standing, allocations, leave summary → jump to the exact tab for detail -> answer with real numbers",
+      "finished_state_message": "Answered from the profile in under a minute, every figure real or honestly unknown.",
+      "walkthrough_verification": "Scripted Q&A walkthrough on the demo tenant: three staff questions (leave balance, weekly periods, probation status) answered from the glance strip and tabs, each under a minute"
+    },
+    {
+      "persona_id": "principal",
+      "job_name": "Audit any teacher's school footprint before decisions",
+      "trigger": "Weekly review, appraisal, or a staff escalation",
+      "steps": "Open the teacher -> glance shows allocations and standing → Academics tab shows the exact teaching footprint → lifecycle record reviewed → decisions taken only on engine-computed or honestly-UNKNOWN data",
+      "finished_state_message": "The teacher's footprint read at a glance, nothing invented on the screen.",
+      "walkthrough_verification": "Principal walkthrough on demo tenant in both themes: glance strip complete, no mutate buttons rendered per the access matrix, zero fabricated states"
+    },
+    {
+      "persona_id": "hr_manager",
+      "charter_persona_note": "Secondary actor defined by the HR app's existence and the canMutate matrix; the charter's six-persona list does not include this role, so its job is defined here.",
+      "job_name": "Run the staff lifecycle from one surface: probation, payroll truth, offboarding",
+      "trigger": "Probation windows, payroll configuration gaps, separation events",
+      "steps": "Open the teacher -> probation state drives the next action -> compensation tab shows engine truth or an explicit gap with the configure action -> offboarding runs through the governed modal, never a browser confirm",
+      "finished_state_message": "Lifecycle completed on the surface: confirmations real, payroll truth-labeled, separation governed.",
+      "walkthrough_verification": "HR walkthrough on demo tenant: probation confirm, salary gap state, and offboard flow with reassignment warning all exercised; every payroll figure proven engine-computed or UNKNOWN"
+    }
+  ],
+  "scope_boundaries": {
+    "non_goals_confirmed": [
+      "No hardware, no edtech content, no LLMs in workflows, no new role apps, no price tiers, no WhatsApp"
+    ],
+    "in_scope": [
+      "frontend/src/app/(admin)/hr/staff/[id]/page.tsx and Staff360Client.tsx, in full",
+      "The AD-L6 CI guard hole that let this surface escape, insofar as the guard's scan scope and allowlist need tightening",
+      "Shared component additions only where the design language needs them (staff Avatar reuse, any missing confirmed-dialog pattern)"
+    ],
+    "out_of_scope_for_this_spec": [
+      "Payroll engine logic, EPFO ECR, loan engines, leave engine rules; the compensation tab consumes engine truth or renders honest gaps, it never computes pay",
+      "actions.ts lifecycle logic (updateStaff, offboardStaff, confirmStaffProbation, toggleStaffLegalHold, reactivateStaff, revealStaffPii): behavior frozen, only their affordances restyle",
+      "The teacher PWA self-profile surface",
+      "HR dashboard tabs (StaffTab, PayrollTab, LeavesTab, etc.) beyond the directory row card's visual alignment with the new Avatar",
+      "New permissions, routeGuards changes, or role additions beyond the verified matrix"
+    ],
+    "authorized_logic_changes": [
+      "One minimal schema migration for a staff photo field if none exists (explicitly authorized; deferred with recorded gap if it proves larger than forecast)",
+      "The compensation tab stops constructing payroll client-side and renders UNKNOWN or labeled provisional states (a truth-display change, not a payroll logic change)"
+    ]
+  },
+  "phases": [
+    {
+      "phase_id": "T360-L0",
+      "title": "Forensic baseline: client inventory, guard-hole audit, allocation matrix",
+      "tasks": [
+        "Read Staff360Client.tsx and getStaff360 in actions.ts; inventory every tab, sub-block, button, badge, state, and every profile field the surface consumes; record in docs/design/teacher-360-baseline.md.",
+        "Audit the fabricated payroll block with exact code references (basic*1.35, pf 12 percent, pt ₹200, universalized DA/HRA) and every other claimed summary on the surface.",
+        "Audit the guard hole: read the AD-L6 guard implementation, determine why this file escaped (class-name coverage, allowlist, scan scope), and record the fix proposal; quantify what else escaped with it.",
+        "Audit the schema for a staff photo field and the signed-URL flow's applicability; record the migration decision point.",
+        "Verify the access matrix end to end and inventory every action row's button tier violations.",
+        "Produce the view_frequency_allocation matrix per role for operator approval. No code changes in this layer."
+      ],
+      "walkthrough_verification": "The baseline document states every defect with code references, the guard-hole verdict, and the allocation matrix; it is the review artifact the operator approves"
+    },
+    {
+      "phase_id": "T360-L1",
+      "title": "Payroll truth: kill the client-side salary fiction",
+      "tasks": [
+        "Remove the client-side breakdown construction entirely. The compensation tab renders engine-computed salaryBreakdown when it exists; otherwise it renders UNKNOWN ('No salary structure configured yet') with the configure action, or the raw salaryComponents explicitly labeled 'Provisional components on record, no computed take-home exists'.",
+        "Professional tax, PF, DA, HRA never get hardcoded values or universal percentages in this client; nothing labeled a take-home may exist without the payroll engine behind it.",
+        "Estimated values that legitimately appear are labeled 'Estimated' at the value, in the attention color, never confused with computed figures.",
+        "Leave balances, loans count, and lifecycle milestones render truth states: zero vs unknown distinguished, with reasons.",
+        "Automated truth tests: fixtures for configured-structure, components-only, and nothing-configured staff assert no fabricated take-home, no hardcoded statutory values, UNKNOWN states with reasons."
+      ],
+      "walkthrough_verification": "Zero-structure and components-only demo staff render honest gaps; a fully configured staff renders engine figures; truth tests green including a fixture asserting the old 1.35x math cannot resurface"
+    },
+    {
+      "phase_id": "T360-L2",
+      "title": "Identity header: avatar, hero, governed action bar",
+      "tasks": [
+        "Consume the shared Avatar component (photo where the schema supports it, monogram fallback on neutral deterministic tints; identity is not status). Add the staff photo path per the L0 decision: signed-URL display plus upload/replace/remove where canMutate holds, composing existing upload and S3 scoping patterns; record an honest gap if the migration was deferred.",
+        "Hero per the design language: Large Title full name, employee code in secondary text, badges solely via StatusBadge (Teaching/Non-Teaching, Active/Separated, Probation, Legal Hold per the color_intention_map; Legal Hold is attention-orange, Separation is red, Probation is attention, Active is green).",
+        "Governed action bar: exactly one filled tinted button per row state (Edit Profile as primary), lifecycle actions as tinted or plain (Confirm Probation tinted-attention, Reactivate tinted), destructive Offboard plain-red per the AD button-tier law; all lifecycle confirmations move from window.confirm/alert to ConfirmDialog/AppModal with the existing warning text preserved.",
+        "Legal Hold rendering keeps its gravity: applied state visible in hero and guarded behind the SUPER_ADMIN/SCHOOL_ADMIN check, confirmation through the modal grammar.",
+        "Breadcrumb and header Move to the PageHeader pattern; ?tab= deep linking preserved.",
+        "Both themes verified."
+      ],
+      "walkthrough_verification": "Identity walkthrough: teaching staff with and without photo, non-teaching staff, separated staff, legal-hold staff; action bar shows exactly one filled button per state; modals replace browser dialogs in both themes"
+    },
+    {
+      "phase_id": "T360-L3",
+      "title": "The glance strip: instant view for admin, HR, principal",
+      "tasks": [
+        "Build the glance strip above the tabs per view_frequency_allocation: employment standing, the three allocation numbers for teaching staff, leave summary, attention items, each a neutral MetricCard tile with tabular numerals and semantic color only per the color_intention_map.",
+        "Role-composed strip via the access matrix: principal and admin see the full strip with no mutate affordances; HR sees mutate affordances where canMutate holds; the matrix is the source of truth.",
+        "Compose NextBestAction: pending probation confirmation, missing qualification data, unconfigured payroll, active allocation gaps.",
+        "Every glance element deep-links to its tab; strip answers in one viewport on mobile and desktop.",
+        "For non-teaching staff the allocation tiles render their honest absence (non-teaching is a real state, not a gap to hide)."
+      ],
+      "walkthrough_verification": "Glance walkthrough per persona on the demo tenant: office_admin answers the three scripted staff questions from the strip alone; principal sees zero mutate affordances; both themes and breakpoints verified"
+    },
+    {
+      "phase_id": "T360-L4",
+      "title": "Tab architecture: frequency-allocated sub-modules",
+      "tasks": [
+        "Rebuild tab navigation per the approved matrix with the segmented control grammar (retained thumb animation): Often Viewed tier as segments (Academics, Leaves, Employment), Compensation moved under a Money segment grouped with sensitive records, personal Identity & PII consolidated as the Records endpoint per the matrix.",
+        "Preserve and extend ?tab= deep linking to any Records sub-section; back navigation preserves the tab; directory deep-links land per the matrix.",
+        "Counts render as semantic dots or numbers only when meaningful; no decorative counts.",
+        "Refactor the 58,929-byte client into per-tab subcomponents for maintainability without behavior change; modals (edit, offboard) move to their own files per repo structure.",
+        "PII reveal keeps its audit-reason compose (revealStaffPii with HR_AUDIT_360_VIEW) moved to the Records group's grouped-list row with the modal grammar and explicit log notice.",
+        "Mobile: tabs collapse per the design-language mobile grammar."
+      ],
+      "walkthrough_verification": "Tab walkthrough for admin, HR, principal: tab sets and affordances differ exactly by the access matrix, deep links work, segmented grammar renders, both themes"
+    },
+    {
+      "phase_id": "T360-L5",
+      "title": "Surface-wide Apple grammar: every tab restyled",
+      "tasks": [
+        "Apply the design language to every tab and sub-block: InsetGroupedList for personal information and records, StatusBadge as the only badge implementation, money semantics per color_intention_map in the compensation and loans rows (earnings green, deductions red, take-home neutral headline weight, indigo banned from money and interaction both), allocation lists as grouped rows.",
+        "Academics tab: the three allocation tiles per data_showcase rules, class subjects as grouped rows, non-teaching and empty states per the grammar.",
+        "Leave tab: balances as inset grouped rows with used/remaining in tabular numerals, negative or exhausted balances in red.",
+        "Edit and offboard modals: form fields per FormField grammar, AddressAutofill preserved intact, offboard warning per the attention color law.",
+        "Empty, loading, and error states: neutral skeletons, neutral empties with one tinted action, red only for real errors.",
+        "The AD CI guards re-run green across the whole surface after the L0 hole closure: zero hardcoded colors, banned palettes dead."
+      ],
+      "walkthrough_verification": "Surface walkthrough tab by tab on the demo tenant in both themes: every component on the ratified grammar, every status and money color from the map, CI guards green"
+    },
+    {
+      "phase_id": "T360-L6",
+      "title": "Mechanical verification: truth, permissions, guard closure",
+      "tasks": [
+        "Truth tests from L1 kept in CI: configured, components-only, and nothing-configured fixtures; assert no fabricated take-home, no hardcoded statutory values, UNKNOWN states with reasons.",
+        "Permission matrix test: render for SUPER_ADMIN, SCHOOL_ADMIN, HR_MANAGER, PRINCIPAL and assert affordances match canAdminister/canMutate/legal-hold checks exactly; assert all other roles cannot reach the route.",
+        "Theme and contrast verification: both appearances and forced-colors per the AD contrast law on the new components.",
+        "Guard closure test: the AD-L6 scan demonstrably covers this file's patterns now; a scratch commit reintroducing an indigo button or an emerald badge fails the build, then reverts; the guard's tightened scope recorded.",
+        "Performance guard: parallel server-fetch shape preserved; no added waterfalls; the (potential) photo migration measured; mobile render check with the landed FPS rules."
+      ],
+      "walkthrough_verification": "CI green including the new truth, permission, and guard-closure tests; the deliberately broken samples proven to fail, then reverted"
+    },
+    {
+      "phase_id": "T360-L7",
+      "title": "Ratification: persona proofs and journey-map evidence",
+      "tasks": [
+        "Run the persona walkthroughs per persona_jobs on the demo tenant in both themes: office_admin's three-question script, principal's audit script, HR's lifecycle script.",
+        "Record which numbers the glance strip showed and confirm each was engine-computed, honestly provisional-labeled, or UNKNOWN, per the truth law.",
+        "Update docs/design/design-language.md with the guard-hole closure note and any documented exceptions; update docs/product/journey-map.md with Teacher 360's role in J4 and J7; record honest gaps including any deferred photo migration.",
+        "Typecheck, build, smoke render green in both theme classes; release evidence per repo convention."
+      ],
+      "walkthrough_verification": "Final commit body carries the three persona proofs, the truth table (every money figure and its source: engine, labeled-provisional, or UNKNOWN), the guard-closure note, both-theme evidence, and the gap list; journey-map.md cites it"
+    }
+  ],
+  "business_logic_rules": [
+    "BR-T360-1: Payroll truth law: nothing on this surface may compute, hardcode, or universalize a salary figure. Take-home exists only when the payroll engine computed it; components render labeled-provisional or the gap renders UNKNOWN with the configure action; the vehicle for the fiction (client-side breakdown construction) is deleted, not disabled.",
+    "BR-T360-2: Statutory law: PF, DA, HRA, professional tax, and TDS render only from engine-provided values; any percentage or amount visible on the surface is traceable to its record, never to a constant in the client.",
+    "BR-T360-3: Access law: the verified matrix (requireAuth roles, canAdminister, canMutate, legal-hold restriction to SUPER_ADMIN/SCHOOL_ADMIN, teacher-assignment rules in the student domain untouched) is the only authority for tab existence and affordance visibility; the teacher themself is not an audience of this admin-side surface.",
+    "BR-T360-4: Allocation law: sub-modules live where their view frequency puts them per the approved matrix (InstantView glance, OftenViewed tabs, rarely-viewed Money/Records groups); the matrix is the record and any reallocation changes it, not the layout by feel.",
+    "BR-T360-5: One-tint law: exactly one filled tinted button per action-row state; lifecycle actions tinted or plain; offboarding plain-red; counts render as semantics only when meaningful (AD BR-AD-2 continued).",
+    "BR-T360-6: Grammar law: every component consumes the ratified design language (InsetGroupedList, StatusBadge, segmented controls, FormField, ConfirmDialog/AppModal over window.confirm/alert, materials, tabular numerals); hardcoded colors and banned palettes are CI-blocked (AD BR-AD-4 continued).",
+    "BR-T360-7: Behavior law: updateStaff, offboardStaff, confirmStaffProbation, toggleStaffLegalHold, reactivateStaff, revealStaffPii, and the PII audit-reason compose are behaviorally frozen; presentation and truth-display work only beyond the two authorized changes (photo field migration if needed, client-side payroll construction deletion).",
+    "BR-T360-8: Privacy law: AES-256 PII, the reveal-with-audit-reason pattern, S3 scoping, and DPDP consent are unchanged; staff photos ride the existing consent and scoping machinery with no new exposure.",
+    "BR-T360-9: Both-theme law: every element verified in light and dark and forced-colors at 4.5:1 (3:1 large text); a state that works in one theme only does not merge."
+  ],
+  "acceptance_criteria": [
+    "AC-T360-1: docs/design/teacher-360-baseline.md exists with the full client inventory, the fabricated-payroll list with code references, the guard-hole verdict, the schema photo audit, and the operator-approved allocation matrix.",
+    "AC-T360-2: The client-side salary construction is deleted: no take-home, gross, or statutory figure renders except from engine data; components-only staff render labeled-provisional figures; unconfigured staff render UNKNOWN with the configure action; truth tests cover all three fixtures and prove the 1.35x and ₹200 paths cannot resurface.",
+    "AC-T360-3: The AD-L6 guard hole is closed and proven: the guard's scan now covers this surface's patterns, demonstrated by a failing scratch commit and its revert; the tightened scope is recorded in design-language.md.",
+    "AC-T360-4: The shared Avatar is consumed for staff identity with photo display (and upload/replace/remove under canMutate where the schema path landed, or the recorded gap), and deterministic monogram fallback on neutral tints.",
+    "AC-T360-5: The hero carries Large Title identity, StatusBadge vocabulary only, and governed action rows: exactly one filled button per state, lifecycle confirmation through ConfirmDialog/AppModal, offboarding plain-red with the reassignment warning preserved.",
+    "AC-T360-6: The glance strip exists with employment standing, allocation tiles for teaching staff, leave summary, and attention items plus NextBestAction, deep-links each element, composes by role per the access matrix, and office_admin's scripted three questions answer from it in under a minute.",
+    "AC-T360-7: Tabs are frequency-allocated per the approved matrix with the segmented grammar; sensitive compensation sits in the Money/Records grouping; every tab and Records sub-section is URL-addressable with back navigation preserving state.",
+    "AC-T360-8: Tab and affordance existence matches the access matrix for every role; the permission test covers all roles and the excluded-role route denial.",
+    "AC-T360-9: Every tab renders on the design-language grammar; money, status, and attention colors follow color_intention_map; the CI guards pass across the surface; the window.confirm/alert pattern is gone.",
+    "AC-T360-10: Both themes and forced-colors verified at contrast; the 58,929-byte client refactor is structural only with behavior preserved and measured (parallel fetch, no new waterfalls, mobile breakpoints clean).",
+    "AC-T360-11: The non-teaching staff state renders as a real, dignified state across glance strip and Academics tab, never as a hidden gap.",
+    "AC-T360-12: journey-map.md and design-language.md carry the ratification evidence: persona proofs, the payroll truth table, guard closure, honest gaps including any deferred migration; typecheck, build, smoke green in both themes; zero new npm dependencies beyond the authorized schema work."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. The Avatar, segmented control, InsetGroupedList, ConfirmDialog, and metric tile patterns already exist and are consumed, not rebuilt.",
+    "Phases land in strict order T360-L0 through T360-L7, one commit series per layer. Commit prefixes: docs(design) for L0, feat(design) for L1 through L7.",
+    "The L0 baseline and allocation matrix are a review gate: the operator approves the matrix, the photo-migration decision, and the primary-action choice per action row before implementation.",
+    "Exactly the authorized logic changes: the staff photo field migration if required, and the deletion of client-side payroll construction. Any other behavioral need stops and records a gap entry.",
+    "Every phase lands with typecheck, build, and smoke render green in both theme classes. The S7 gate is permanent series law.",
+    "Do not touch payroll engines, leave engines, actions.ts lifecycle logic, routeGuards, the student PWA, or the teacher PWA self-profile; visual and truth-display work only beyond the named exceptions.",
+    "Where this spec conflicts with in-repo security or accessibility constraints, security and accessibility win; log the conflict in the commit body."
+  ],
+  "definition_of_done": "Teacher 360 is done when an office admin, an HR manager, and a principal each open any staff member on the demo tenant and, in one glance, see the person's real employment standing, real teaching footprint, real leave summary, and the one action that matters, in both themes, with a real photo or an honest monogram, and tabs allocated by how people actually view them. Every salary figure on the surface comes from the payroll engine or is explicitly labeled provisional; no take-home is ever computed in a browser; professional tax is never ₹200 by constant; unconfigured payroll renders as a gap with a fix action instead of fiction. Lifecycle decisions run through governed modals, the access matrix decides what exists, the Apple grammar spans every tab with the strengthened CI guards failing any hardcoded color or banned palette, and the three persona proofs stand committed as evidence. When a staff member asks about their pay or leave, the answer comes from this surface in under a minute, and every word of it is true.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/teacher-360-redesign-spec.json. It derives from docs/product-destination-charter.json, executes the ratified docs/design/design-language.md on the Staff 360 surface, and mirrors the landed student-360-redesign-spec.json structure.",
+      "Execute layers T360-L0 through T360-L7 in strict order. L0 produces the baseline, the guard-hole verdict, and the allocation matrix, and is a review gate; no implementation before operator approval.",
+      "Read page.tsx, Staff360Client.tsx, getStaff360 in actions.ts, the AD-L6 guard implementation, and the Avatar and component library from the codebase at implementation time. The grounding facts here were verified at head 2631fca9 (v11.58.0) and may have moved. Real tab structure, actions, and schema come from the code, not from this spec.",
+      "Follow the business rules as binding; the truth tests and permission tests from T360-L1 and T360-L6 are the enforcement mechanisms and are designed for from the start.",
+      "Every layer's commit body records the walkthrough: which persona, which surface, which theme, which finished state was seen, with evidence including the payroll truth table.",
+      "Gaps larger than a layer's scope go to docs/design/design-language.md and docs/product/journey-map.md as gap entries, never silent expansion.",
+      "The client refactor is structural only; behavior and data contracts are frozen outside the two authorized changes.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}

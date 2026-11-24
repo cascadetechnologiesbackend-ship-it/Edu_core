@@ -1,0 +1,273 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "student_360_redesign",
+  "version": "1.0.0",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "ui_spec",
+  "governing_charter": "docs/product-destination-charter.json",
+  "spec_role": "Brings Student 360, the product's highest-stakes data surface, under the ratified Apple design language (docs/design/design-language.md) and repairs its data truth. Three deliverables: Apple HIG redesign of the entire profile; a real identity avatar system (photo with monogram fallback and an upload path) replacing the missing avatar; and a view-frequency tab architecture that positions every sub-module where its actual usage sits, from instant glance to rarely viewed, per role.",
+  "predecessor_specs": [
+    {
+      "spec_id": "apple_hig_design_system_v2",
+      "version": "2.0.0",
+      "status": "landed in v11.55.0-v11.58.0 (AD-L0..L7 plus module-scoped passes for core, DPDP, Settings, Fee modules); docs/design/design-language.md and the CI color guards are binding law"
+    },
+    {
+      "spec_id": "uiux (AMS UI/UX v1.2), academic_feed, student_pwa, S24 teacher identity truth",
+      "status": "landed; their data contracts and behaviors are frozen inputs to this spec"
+    }
+  ],
+  "north_star": {
+    "destination_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "charter_phases": "Cross-cutting; serves D2 persona journey loops, especially office_admin's charter job 'Answer any parent question in under a minute'",
+    "journeys_advanced": [
+      "J4_weekly_review",
+      "J10_school_onboarding"
+    ],
+    "target_metrics_moved": [
+      {
+        "metric": "journey_completion_rate",
+        "definition_source": "docs/product/metrics.md",
+        "target": "95%+; a staff member answers any student question from one surface without a phone call",
+        "expected_delta": "Student 360 becomes the instant-answer surface: glance data at the top, frequency-allocated tabs below, zero fabricated numbers to mislead the reader"
+      }
+    ],
+    "metric_rule": "No new metric events beyond plain usage verification where the existing pipeline supports it; the six north-star definitions in docs/product/metrics.md are untouched."
+  },
+  "intent": "Student 360 is the surface a school staff member opens when a parent calls, when a PTM begins, and when a principal audits a child's standing. Three defects make it untrustworthy today, all verified in code at head 2631fca9. First, fabricated truth: the attendance percentage computes as 100 when zero records exist, the status banner declares 'all attendance, fees, and academic milestones are in excellent standing' over empty data, and unrecorded names render as 'Unknown' with a 'UN' monogram; this is the series' defining defect class on its most sensitive surface. Second, the missing avatar: photos flow only when photoS3Key exists, there is no monogram identity system, no upload or capture path from the profile, and no honest no-photo state. Third,tab chaos: ten flat tabs with raw '(0)' suffixes, no allocation by how often anyone actually views them, and two filled blue buttons in the hero action row violating the one-tint law ratified two days ago. The user's requirement is explicit: instant view at a glance for admin, teacher, and principal, with sub-modules positioned in tabs according to how rarely or instantly they are viewed. The redesign applies the Apple grammar already ratified, the data truth comes first, and the whole surface obeys the documented design language instead of its own styling.",
+  "grounding_audit": {
+    "verified_at_head": "2631fca9, release v11.58.0, verified 2026-11-24",
+    "verified_facts": [
+      "Surface location: frontend/src/app/(admin)/students/[id]/ with page.tsx (25,341 bytes, server component) and Student360Client.tsx (78,416 bytes, one client component rendering the whole experience), plus fees/ and class-history/ subroutes.",
+      "FABRICATED TRUTH VERIFIED IN CODE: attendancePercentage = totalAtt > 0 ? Math.round(...) : 100, so a student with zero attendance records renders 'Attendance 100%' with '0 / 0 days present' (captured in the user's screenshot). Attendance summary is computed from findMany with limit: 50, so percentages are silently computed over the most recent 50 records and mislabeled as a term percentage.",
+      "FABRICATED BANNER VERIFIED: the client renders 'All attendance, fees, and academic milestones are in excellent standing' over the zero-data state (screenshot: demo student with no records), a claimed summary with no computation behind it.",
+      "NAME FALLBACK VERIFIED: fullName = decryptData(firstNameEncrypted) || 'Unknown'; the hero then shows 'Unknown' with a 'UN' initials circle; there is no name-not-recorded state or remediation action.",
+      "AVATAR GAP VERIFIED: photoUrl exists only when student.photoS3Key is set (signed S3 URL); the client otherwise renders an initials circle; no photo upload, capture, or replace affordance exists on the profile surface.",
+      "TAB ARCHITECTURE VERIFIED FROM SCREENSHOT AND CLIENT: ten flat tabs, Overview, Academics, Attendance, Fees, Exams (0), Homework (0), Family & Guardians, Documents (0), Class History, Timeline, with raw count suffixes firing on all states, no grouping by view frequency, no deep-link contract beyond the flat route.",
+      "ONE-TINT LAW VIOLATION VERIFIED IN SCREENSHOT: 'Promote / Reassign Student' and 'Class Hub Roster' render as two filled blue buttons in one hero action row; the AD spec's BR-AD-2 (one filled tinted button per action row) is violated on this surface.",
+      "ROLE ACCESS MODEL VERIFIED: TEACHER requires class-teacher, subject-teacher, or class-subject assignment (three checks) or the page returns access denied; canViewFees = SUPER_ADMIN, SCHOOL_ADMIN, PRINCIPAL, ACCOUNTANT, PARENT; canMutateFees = SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT; canViewExams gates teachers by assignment. Any tab redesign must respect exactly these gates; the Fees tab must not exist for an unassigned teacher.",
+      "DATA CONTRACT VERIFIED: page.tsx runs a single Promise.all of 16 parallel queries (student, class, section, subjects with teacher resolution via sectionSubjectTeachers overrides, attendance 50, fee structures, invoices, concessions, family, documents, class history, marks, result snapshots, homework submissions) plus promotion modal inputs; timeline is compiled server-side from admission workflow, enrollment, promotions, fee payments, exam scores, report cards, homework submissions. A profile redesign must keep this contract and the parallel-fetch performance shape.",
+      "DESIGN LAW VERIFIED LANDED: docs/design/design-language.md, neutral dark mode, semantic token layer, button tiers, segmented controls, InsetGroupedList, StatusBadge vocabulary, tabular numerals, and CI color guards (AD-L6) are live; this surface simply never consumed them."
+    ],
+    "honest_caveats": [
+      "Student360Client.tsx at 78,416 bytes was read for its data contract and visible structure, not line by line. L0 must produce a full client inventory (every tab, every sub-block, every button) before restyling.",
+      "Whether a student photo upload flow exists elsewhere (provisioning, import center) is UNKNOWN at spec time; L0 audits it. If none exists, the upload action composes the existing /api/upload patterns with S3 scoping; if one exists, the profile links to it.",
+      "The attendance summary fix changes one query's aggregation (count over the term plus recent logs for display). This is a data-truth fix, explicitly authorized; no other data logic may change."
+    ]
+  },
+  "view_frequency_allocation": {
+    "rule": "Sub-modules are positioned by how often their viewer actually opens them, not by how they were built. Three tiers per the user's requirement: InstantView (glance, always visible without a click), OftenViewed (first tab row), RarelyViewed (grouped under Records). Allocation is per audience role, governed by the access model, and recorded in the L0 matrix.",
+    "instant_view_glance": [
+      "Identity with avatar, class, section, academic year, status badges",
+      "Attendance standing (real number or UNKNOWN, with term scope label)",
+      "Fee standing: due now or clear-board (permission-gated)",
+      "Attention items: outstanding documents, unverified records, pending Family linkage",
+      "Next best action (compose the existing NextBestAction component)"
+    ],
+    "often_viewed_tier_tabs": [
+      "Attendance (log with green/red/orange dots, term summary)",
+      "Fees & Billing (invoices grouped per Apple money semantics; hidden where canViewFees is false)",
+      "Homework & Submissions",
+      "Academics (subjects, teachers, timetable placement)"
+    ],
+    "rarely_viewed_tier_tabs": [
+      "Records group: Exams & Results (gated), Family & Guardians, Documents, Class History, Full Timeline",
+      "Records group renders as one tab with inset grouped sub-sections, per the design-language component grammar"
+    ],
+    "display_law": "Zero-data renders UNKNOWN with the reason and, where a fix exists in this surface's power, the one-tap remediation. Counts render as semantic dots or numbers only when nonzero; the raw '(0)' suffix dies. Never a superlative banner without computation, never a percentage without a denominator."
+  },
+  "persona_jobs": [
+    {
+      "persona_id": "office_admin",
+      "charter_persona_note": "Charter job: answer any parent question in under a minute. Student 360 is the surface that does it or fails it.",
+      "job_name": "Answer any parent question about my child in under a minute",
+      "trigger": "A parent calls or walks in: fees, attendance, documents, class placement",
+      "steps": "Search or open the student -> glance strip answers the top four questions instantly -> jump to the exact tab for the detail -> quote real numbers, not 'let me check'",
+      "finished_state_message": "Answered from the profile in under a minute: attendance real, dues real, documents real.",
+      "walkthrough_verification": "Scripted Q&A walkthrough on the demo tenant: three parent questions answered from the glance strip and tabs, each under a minute, each number computed"
+    },
+    {
+      "persona_id": "teacher",
+      "charter_persona_note": "Assigned teachers only; the access model gates their view.",
+      "job_name": "Know my student's full picture before the PTM",
+      "trigger": "PTM season or an at-risk student check",
+      "steps": "Open the student from the class roster -> glance shows attendance and homework standing -> Academics tab shows subject performance -> Records holds family contacts for the meeting",
+      "finished_state_message": "Walked into the PTM with the child's real picture, no surprises.",
+      "walkthrough_verification": "Teacher walkthrough on demo tenant: access gating holds (no Fees tab for unassigned-fee teachers), PTM-relevant data reachable in two clicks"
+    },
+    {
+      "persona_id": "principal",
+      "job_name": "Audit any student's standing at a glance",
+      "trigger": "Weekly review or a parent escalation",
+      "steps": "Open the student -> glance strip shows the four standings with semantic colors -> Records group holds the full timeline and history -> every number says where it came from",
+      "finished_state_message": "The child's standing read in one glance, every figure trustworthy.",
+      "walkthrough_verification": "Principal walkthrough on demo tenant: glance strip complete, Records sub-sections reachable, zero fabricated states in both themes"
+    }
+  ],
+  "scope_boundaries": {
+    "non_goals_confirmed": [
+      "No hardware, no edtech content, no LLMs in workflows, no new role apps, no price tiers, no WhatsApp"
+    ],
+    "in_scope": [
+      "frontend/src/app/(admin)/students/[id]/page.tsx and Student360Client.tsx, in full",
+      "The students/[id]/fees/ and class-history/ subroutes' visual alignment with the new design",
+      "The student directory's row card and the identity header composition where it feeds Student 360 (visual only)",
+      "One attendance aggregation query change for term-truth (explicitly authorized data-truth fix)"
+    ],
+    "out_of_scope_for_this_spec": [
+      "The ParentLinkageClient and linkage/ flows' logic (visual alignment only)",
+      "actions.ts fee mutation logic; canMutateFees behavior frozen",
+      "The student PWA profile surface (separate persona journey)",
+      " promoting/reassigning flow behavior beyond its button-tier restyle",
+      "New role apps, new permissions, any routeGuards change"
+    ]
+  },
+  "phases": [
+    {
+      "phase_id": "S360-L0",
+      "title": "Forensic baseline: client inventory and truth audit",
+      "tasks": [
+        "Read Student360Client.tsx in full; inventory every tab, sub-block, button, badge, and state; record the component tree in docs/design/student-360-baseline.md.",
+        "Audit the fabricated-truth list with exact line references: percentage fallback 100, the excellent-standing banner, the 'Unknown' name spill, '(0)' tab suffixes, any other claimed summary.",
+        "Audit the photo/avatar situation across the product: where photoS3Key is written, whether any upload flow exists (provisioning, import, profile), and what the honest fallback is today.",
+        "Audit the per-role view frequency: instrument-free judgment from the personas plus the access model; record the proposed view_frequency_allocation per role in the baseline doc for operator approval.",
+        "Verify the two-filled-buttons violation and inventory every action row on the surface.",
+        "No code changes in this layer."
+      ],
+      "walkthrough_verification": "The baseline document states every defect with code references and the tab allocation matrix; it is the review artifact the operator approves"
+    },
+    {
+      "phase_id": "S360-L1",
+      "title": "Data truth: zero fabricated states",
+      "tasks": [
+        "Replace the attendance percentage fallback: zero records renders UNKNOWN ('No attendance recorded yet'), never 100. The percentage is computed from a term-scope aggregation query (authorized change: count over the full term for the summary, keep the recent-logs fetch for display, label each number with its scope: 'this term' or 'last N records').",
+        "Kill the excellent-standing banner: status copy is computed from real records only; with no data it renders a neutral empty state; a standing statement exists only when it can cite its inputs.",
+        "Name truth: unrecorded names render 'Name not recorded' with the admission number as identity and a one-tap remediation action (compose the existing profile editing action) instead of 'Unknown' and a 'UN' monogram.",
+        "Apply the same law to every summary on the surface: fee balance UNKNOWN vs zero distinguished, exam standing UNKNOWN vs 'no exams yet' distinguished, document verification states honest.",
+        "Automated truth tests: zero-data fixture renders zero superlatives, zero fabricated percentages, UNKNOWN states with reasons; term-scope aggregation verified against fixture data."
+      ],
+      "walkthrough_verification": "Zero-data demo student renders a profile of honest UNKNOWNs; a seeded student with real data renders real numbers with scope labels; truth tests green"
+    },
+    {
+      "phase_id": "S360-L2",
+      "title": "Identity header: the avatar system",
+      "tasks": [
+        "Build Avatar as a shared component (frontend/src/components/ui/Avatar.tsx per repo conventions): photo via existing signed-URL flow, monogram fallback from the real name's initials with a deterministic neutral-system tint (never semantic colors; identity is not status), sizes for directory rows, hero, and lists.",
+        "Hero identity per the design language: Large Title name, admission number in secondary text, class-section-year line, verified badges in StatusBadge vocabulary only.",
+        "Photo lifecycle on the profile: where the viewer holds canMutate rights, expose upload/replace and remove actions composing the existing upload endpoint with S3 scoping and DPDP consent unchanged; where the photo exists, display it; where absent and not editable, render the monogram with no fake affordance.",
+        "Action rows obey the one-tint law: exactly one filled tinted primary per row (Promote/Reassign or Class Hub Roster, one is filled, the other tinted or plain; the L0 matrix records which), destructive actions plain-red.",
+        "Both themes verified: monogram legibility, photo display, hairline-separated hero per the materials spec."
+      ],
+      "walkthrough_verification": "Avatar walkthrough: student with photo, student without, unrecorded-name student; upload/replace/remove exercised on the demo tenant; one filled button per action row in both themes"
+    },
+    {
+      "phase_id": "S360-L3",
+      "title": "The glance strip: instant view",
+      "tasks": [
+        "Build the glance strip above the tabs: attendance standing, fee standing, academic standing, attention count, each a neutral MetricCard tile with tabular numerals, semantic color only by the color_intention_map, UNKNOWN states per L1.",
+        "Per-role glance configuration driven by the access model: teacher sees attendance, homework, academics and never fee tiles their role cannot view; principal and admin see the full strip; accountant's glance leads with money; the access gates are the source of truth, not display flags.",
+        "Compose NextBestAction into the strip so the surface offers the one action that matters (outstanding document upload, pending fee, verification).",
+        "The strip answers in one viewport on mobile and desktop: verified at both breakpoints with no horizontal scroll.",
+        "Every glance element deep-links to its tab."
+      ],
+      "walkthrough_verification": "Glance walkthrough per persona on the demo tenant: office_admin answers the three scripted parent questions from the strip alone; teacher's strip respects access gating; both themes and breakpoints verified"
+    },
+    {
+      "phase_id": "S360-L4",
+      "title": "Tab architecture: frequency-allocated sub-modules",
+      "tasks": [
+        "Rebuild tab navigation per view_frequency_allocation and the approved L0 matrix: top-level segmented control (iOS grammar, retained thumb animation) with the Often Viewed tier as its own segments and the Rarely Viewed tier consolidated under a Records segment with inset grouped sub-sections.",
+        "Respect the access model in tab existence: a hidden-by-permission tab does not render at all (no disabled ghost), verified per role.",
+        "Count semantics: replace raw '(0)' suffixes with semantic dots or numbers only when they mean attention; a clean surface shows no count noise.",
+        "Deep-link contract: every tab and Records sub-section is URL-addressable; back navigation preserves the tab; directory rows deep-link straight into the most-used tab per role where the matrix says so.",
+        "Preserve state across tab switches (no refetch flicker beyond the existing contract); the client's 78KB payload structure is refactored into per-tab subcomponents for maintainability without behavior change.",
+        "Mobile: tabs collapse to the design-language mobile grammar; Records sub-sections render as grouped list rows."
+      ],
+      "walkthrough_verification": "Tab walkthrough for admin, assigned teacher, unassigned-fee teacher, principal, accountant: tab sets differ exactly by permission, deep links work, zero '(0)' noise, both themes"
+    },
+    {
+      "phase_id": "S360-L5",
+      "title": "Surface-wide Apple grammar: every tab restyled",
+      "tasks": [
+        "Apply the design language to every tab and sub-block: InsetGroupedList for forms and records, data tables per the grammar (hairlines, no zebra, right-aligned tabular numerics), StatusBadge as the only status color source, money semantics per color_intention_map (paid green, due red, upcoming orange).",
+        "Attendance tab: dot-coded month view (green present, red absent, orange late) with the term summary; fee tab: invoice rows with running balance in headline-weight tabular numerals; academics: subjects and teachers as grouped rows; exams: marks by subject with grade badges; family and documents: verification states honest; timeline: neutral chronological list with type-colored markers only where the map defines a meaning.",
+        "Empty, loading, and error states per the grammar: neutral skeletons, neutral empty states with one tinted action, red only for real errors.",
+        "Subroutes fees/ and class-history/ aligned to the same grammar; directory row cards aligned to the new Avatar.",
+        "The AD-L6 CI guards re-run green across the whole surface: zero hardcoded colors, banned palettes dead."
+      ],
+      "walkthrough_verification": "Surface walkthrough tab by tab on the demo tenant in both themes: every component on the ratified grammar, every status color from the map, CI guards green"
+    },
+    {
+      "phase_id": "S360-L6",
+      "title": "Mechanical verification: truth and theme tests",
+      "tasks": [
+        "Truth tests from L1 kept in CI: zero-data fixture, partial-data fixture, full-data fixture; assert no superlatives without inputs, no fabricated percentages, UNKNOWN states with reasons, scope labels on aggregates.",
+        "Permission matrix test: render the surface for every role against the demo tenant; assert tab existence matches canViewFees/canViewExams/teacher-assignment exactly, including the unassigned-teacher denied path.",
+        "Theme and contrast verification: both appearances, forced-colors, per the AD contrast law on the new components.",
+        "Performance guard: the Promise.all parallel-fetch shape preserved; no added waterfalls; the one authorized aggregation change measured; mobile viewport render check with the landed FPS rules.",
+        "Deep-link test: every tab and Records sub-section URL-addressable and back-navigation preserving."
+      ],
+      "walkthrough_verification": "CI green including the new truth, permission, theme, and deep-link tests; a scratch commit reintroducing the 100-fallback fails the truth test, then reverts"
+    },
+    {
+      "phase_id": "S360-L7",
+      "title": "Ratification: persona proofs and journey-map evidence",
+      "tasks": [
+        "Run the persona walkthroughs per persona_jobs on the demo tenant in both themes: office_admin's three-question script, teacher's PTM script including gated views, principal's audit script.",
+        "Record which numbers the glance strip showed and confirm each was computed, with scope labels, per the truth law.",
+        "Update docs/design/design-language.md's exception log if any styling exception was granted; update docs/product/journey-map.md with Student 360's new role in J4 and the office_admin one-minute job; record honest gaps.",
+        "Typecheck, build, smoke render green in both theme classes; release evidence per repo convention."
+      ],
+      "walkthrough_verification": "Final commit body carries the three persona proofs, the truth table (every number and its input), both-theme evidence, and the gap list; journey-map.md cites it"
+    }
+  ],
+  "business_logic_rules": [
+    "BR-S360-1: Truth law: every number, badge, and summary on Student 360 is computed from records this surface can cite. Zero data renders UNKNOWN with a reason and, where possible, the fix action. A percentage without a scope label does not ship. The 100-percent fallback is dead forever (truth test enforced).",
+    "BR-S360-2: Identity law: a student's identity is photo-or-monogram, real name or 'Name not recorded' with remediation; 'Unknown' as displayed identity is dead; monograms never wear semantic colors.",
+    "BR-S360-3: Access law: the existing role model (teacher assignment checks, canViewFees, canMutateFees, canViewExams) is the only authority for tab existence and data visibility; no tab renders disabled for a forbidden role; no redesign weakens a gate; security wins any conflict.",
+    "BR-S360-4: Allocation law: sub-modules live where their view frequency puts them per the approved matrix (InstantView glance, OftenViewed tabs, RarelyViewed Records group); the matrix is the record and any reallocation changes it, not the layout by feel.",
+    "BR-S360-5: One-tint law: exactly one filled tinted button per action row; destructive plain-red; counts render as semantic only when they mean attention; '(0)'-style noise is dead (AD BR-AD-2 continued).",
+    "BR-S360-6: Grammar law: every component on this surface consumes the ratified design language (InsetGroupedList, StatusBadge, segmented controls, materials, tabular numerals); hardcoded colors and banned palettes are CI-blocked (AD BR-AD-4 continued).",
+    "BR-S360-7: Behavior law: fee mutation, promotion, and linkage behaviors are frozen; the one authorized logic change is the term-scope attendance aggregation; everything else is presentation and truth display.",
+    "BR-S360-8: Consent and privacy law: encrypted fields stay decrypted only in the existing server boundary; photo upload composes existing S3 scoping and DPDP consent; the redesign adds no new data exposure.",
+    "BR-S360-9: Both-theme law: every element verified in light and dark and forced-colors at 4.5:1 (3:1 large text); a state that works in one theme only does not merge."
+  ],
+  "acceptance_criteria": [
+    "AC-S360-1: docs/design/student-360-baseline.md exists with the full client inventory, the fabricated-truth list with code references, the avatar audit, and the operator-approved view-frequency allocation matrix.",
+    "AC-S360-2: The zero-data student renders zero fabricated numbers: attendance UNKNOWN, no excellent-standing banner, fee and exam standing distinguished between UNKNOWN and genuinely-zero, every aggregate scope-labeled.",
+    "AC-S360-3: The attendance summary is computed at term scope via the authorized aggregation change, with the recent-logs display labeled by its actual scope; truth tests cover zero, partial, and full fixtures.",
+    "AC-S360-4: The shared Avatar component exists with photo via signed URL, deterministic monogram fallback on neutral tints, and upload/replace/remove actions where canMutate rights exist, composing existing upload and S3 scoping patterns.",
+    "AC-S360-5: The hero action rows carry exactly one filled tinted button; the Promote/Reassign vs Class Hub Roster violation is fixed per the matrix; destructive actions are plain-red.",
+    "AC-S360-6: The glance strip exists with attendance, fee, academic, and attention standings plus NextBestAction, deep-links each element, and per-role composition follows the access model exactly; office_admin's scripted three questions answer from it in under a minute.",
+    "AC-S360-7: Tabs are frequency-allocated per the approved matrix with the Records group consolidating rarely-viewed sub-modules as inset grouped sections; counts render only as meaningful semantics; '(0)' suffixes are gone.",
+    "AC-S360-8: Tab existence matches the permission matrix for every role, including teacher gating and the unassigned-teacher denied path; the permission test covers all roles.",
+    "AC-S360-9: Every tab renders on the design-language grammar with money, attendance, and verification semantics per color_intention_map; the CI color guards pass across the whole surface.",
+    "AC-S360-10: Every tab and Records sub-section is URL-addressable with back navigation preserving state; directory deep-links land per the matrix.",
+    "AC-S360-11: Both themes and forced-colors verified at contrast; performance shape preserved (parallel fetch, no new waterfalls, mobile breakpoints clean).",
+    "AC-S360-12: The fees/ and class-history/ subroutes and the directory row cards align visually with the redesigned surface.",
+    "AC-S360-13: journey-map.md and design-language.md carry the ratification evidence: persona proofs, truth table, honest gaps; typecheck, build, smoke green in both themes; zero new npm dependencies."
+  ],
+  "constraints": [
+    "Zero new npm dependencies; the Avatar component composes existing patterns.",
+    "Phases land in strict order S360-L0 through S360-L7, one commit series per layer. Commit prefixes: docs(design) for L0, feat(design) for L1 through L7.",
+    "The L0 allocation matrix is a review gate: the operator approves tab allocation and the primary-action choice per action row before implementation.",
+    "Exactly one authorized logic change (term-scope attendance aggregation); any other behavioral need stops and records a gap entry.",
+    "Every phase lands with typecheck, build, and smoke render green in both theme classes. The S7 gate is permanent series law.",
+    "Do not touch the north-star metric definitions, routeGuards, actions.ts fee logic, or the student PWA; visual and truth-display work only beyond the named exception.",
+    "Where this spec conflicts with in-repo security or accessibility constraints, security and accessibility win; log the conflict in the commit body."
+  ],
+  "definition_of_done": "Student 360 is done when an office admin, an assigned teacher, and a principal each open any student on the demo tenant and, in one glance, see the child's real attendance, real money standing, real academic standing, and the one action that matters, in both themes, with a real photo or an honest monogram, real name or a remediation path, and tabs allocated by how people actually view them: instant items in the glance strip, daily items as first tabs, rarely-viewed records grouped cleanly. Every number on the surface is computed and scope-labeled; zero data renders as honest UNKNOWN states, never a fabricated 100 percent or a superlative banner; permissions decide what exists; the Apple grammar spans every tab with CI guards failing any hardcoded color; and the three persona proofs stand committed as evidence. When a parent calls, the answer comes from this surface in under a minute, and every word of it is true.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/student-360-redesign-spec.json. It derives from docs/product-destination-charter.json and executes the ratified docs/design/design-language.md on the Student 360 surface.",
+      "Execute layers S360-L0 through S360-L7 in strict order. L0 produces the baseline and allocation matrix and is a review gate; no implementation before operator approval.",
+      "Read page.tsx and Student360Client.tsx from the codebase at implementation time. The grounding facts here were verified at head 2631fca9 (v11.58.0) and may have moved. Real tab structure, state handling, and action rows come from the code, not from this spec.",
+      "Follow the business rules as binding; the truth tests and permission tests from S360-L1 and S360-L6 are the enforcement mechanisms and are designed for from the start.",
+      "Every layer's commit body records the walkthrough: which persona, which surface, which theme, which finished state was seen, with evidence.",
+      "Gaps larger than a layer's scope go to docs/design/design-language.md and docs/product/journey-map.md as gap entries, never silent expansion.",
+      "The refactor of the 78KB client component is structural only; behavior and data contracts are frozen outside the named truth exception.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
