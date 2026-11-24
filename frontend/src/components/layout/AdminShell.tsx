@@ -42,14 +42,14 @@ export function AdminShell({
       {/* Main content column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {isDemoSchool && (
-          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-xs text-amber-200 flex items-center justify-between font-medium shrink-0">
+          <div className="bg-semantic-attention/10 border-b border-semantic-attention/20 px-4 py-1.5 text-xs text-semantic-attention flex items-center justify-between font-medium shrink-0">
             <span className="flex items-center gap-2">
-              <span className="bg-amber-500 text-black font-extrabold px-1.5 py-0.5 rounded text-[10px] tracking-wide">
+              <span className="bg-semantic-attention text-black font-bold px-1.5 py-0.5 rounded-md text-[10px] tracking-wide">
                 [DEMO DATA]
               </span>
               <span>This school tenant is running on synthetic demonstration data. All student, staff, and financial records are simulated.</span>
             </span>
-            <span className="text-[10px] text-amber-300/70 hidden md:inline font-mono">DPA-DEMO</span>
+            <span className="text-[10px] text-semantic-attention/80 hidden md:inline font-mono">DPA-DEMO</span>
           </div>
         )}
 

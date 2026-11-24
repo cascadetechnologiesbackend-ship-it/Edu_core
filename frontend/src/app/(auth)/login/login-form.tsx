@@ -207,9 +207,9 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const handleQuickFill = (email: string) => {
+  const handleQuickFill = (email: string, password = "SchoolMitra@123") => {
     setValue("email", email, { shouldValidate: true });
-    setValue("password", "SchoolMitra@123", { shouldValidate: true });
+    setValue("password", password, { shouldValidate: true });
   };
 
   // ─── 1-Tap Demo Role Launch ─────────────────────────────────────────────────
@@ -359,20 +359,20 @@ export default function LoginForm() {
   return (
     <>
       {/* ── Mode Switcher Tab (Apple HIG Segmented Control) ── */}
-      <div className="flex p-1 bg-white/[0.04] border border-white/10 rounded-2xl mb-6">
+      <div className="flex p-1 bg-muted/60 border border-border/40 rounded-xl mb-6 select-none">
         <button
           type="button"
           onClick={() => {
             setActiveTab("demo");
             setServerError(null);
           }}
-          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40 ${
             activeTab === "demo"
-              ? "bg-blue-600 text-white shadow-level-1"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-card text-foreground font-semibold shadow-sm"
+              : "text-muted-foreground hover:text-foreground active:scale-[0.98]"
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <Sparkles className="w-3.5 h-3.5 text-semantic-attention" />
           <span>Explore Live Demo</span>
         </button>
 
@@ -382,10 +382,10 @@ export default function LoginForm() {
             setActiveTab("credentials");
             setServerError(null);
           }}
-          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40 ${
             activeTab === "credentials"
-              ? "bg-blue-600 text-white shadow-level-1"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-card text-foreground font-semibold shadow-sm"
+              : "text-muted-foreground hover:text-foreground active:scale-[0.98]"
           }`}
         >
           <Lock className="w-3.5 h-3.5" />
@@ -396,11 +396,11 @@ export default function LoginForm() {
       {/* Server Error Alert Banner */}
       {serverError && (
         <div
-          className="mb-5 rounded-2xl bg-rose-500/[0.08] border border-rose-500/25 p-3.5 text-sm text-rose-200 flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-200"
+          className="mb-5 rounded-2xl bg-semantic-money-owed/10 border border-semantic-money-owed/25 p-3.5 text-sm text-semantic-money-owed flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-200"
           role="alert"
           aria-live="assertive"
         >
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <AlertCircle className="w-4 h-4 text-semantic-money-owed shrink-0 mt-0.5" aria-hidden="true" />
           <div className="text-xs font-medium leading-relaxed">{serverError}</div>
         </div>
       )}
@@ -536,12 +536,12 @@ export default function LoginForm() {
           <div className="space-y-1.5">
             <label
               htmlFor="login-email"
-              className="block text-xs font-medium uppercase tracking-wider text-slate-300"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
               Email Address
             </label>
             <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-semantic-interactive transition-colors">
                 <Mail className="w-4 h-4" aria-hidden="true" />
               </div>
               <input
@@ -553,13 +553,13 @@ export default function LoginForm() {
                 placeholder="admin@school.edu.in"
                 aria-describedby={errors.email ? "email-error" : undefined}
                 aria-invalid={errors.email ? "true" : "false"}
-                className="w-full h-11 pl-10 pr-4 bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/10 focus:border-blue-500/70 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition-all duration-200"
+                className="w-full h-11 pl-10 pr-4 bg-muted/40 hover:bg-muted/60 focus:bg-background border border-border/50 focus:border-semantic-interactive rounded-xl text-foreground placeholder:text-muted-foreground text-xs focus:outline-none focus:ring-4 focus:ring-semantic-interactive/15 transition-all duration-200"
               />
             </div>
             {errors.email && (
               <p
                 id="email-error"
-                className="text-xs text-rose-400 flex items-center gap-1.5 pt-0.5"
+                className="text-xs text-semantic-money-owed flex items-center gap-1.5 pt-0.5"
                 role="alert"
               >
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -573,19 +573,19 @@ export default function LoginForm() {
             <div className="flex items-center justify-between">
               <label
                 htmlFor="login-password"
-                className="block text-xs font-medium uppercase tracking-wider text-slate-300"
+                className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
                 Password
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-blue-400/90 hover:text-blue-300 transition-colors font-medium focus:outline-none focus:underline"
+                className="text-xs text-semantic-interactive hover:underline transition-colors font-medium focus:outline-none"
               >
                 Forgot password?
               </Link>
             </div>
             <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-400 transition-colors">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-semantic-interactive transition-colors">
                 <Lock className="w-4 h-4" aria-hidden="true" />
               </div>
               <input
@@ -596,12 +596,12 @@ export default function LoginForm() {
                 placeholder="Enter your password"
                 aria-describedby={errors.password ? "password-error" : undefined}
                 aria-invalid={errors.password ? "true" : "false"}
-                className="w-full h-11 pl-10 pr-11 bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/10 focus:border-blue-500/70 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition-all duration-200"
+                className="w-full h-11 pl-10 pr-11 bg-muted/40 hover:bg-muted/60 focus:bg-background border border-border/50 focus:border-semantic-interactive rounded-xl text-foreground placeholder:text-muted-foreground text-xs focus:outline-none focus:ring-4 focus:ring-semantic-interactive/15 transition-all duration-200"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:text-white transition-colors p-2 focus:outline-none"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors p-2 focus:outline-none"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
@@ -614,7 +614,7 @@ export default function LoginForm() {
             {errors.password && (
               <p
                 id="password-error"
-                className="text-xs text-rose-400 flex items-center gap-1.5 pt-0.5"
+                className="text-xs text-semantic-money-owed flex items-center gap-1.5 pt-0.5"
                 role="alert"
               >
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -625,12 +625,12 @@ export default function LoginForm() {
 
           {/* 2FA Prompt if required */}
           {requiresTOTP && (
-            <div className="rounded-2xl p-3.5 bg-amber-500/[0.08] border border-amber-500/30 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="rounded-2xl p-3.5 bg-semantic-attention/10 border border-semantic-attention/30 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
               <label
                 htmlFor="login-totp"
-                className="block text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-2"
+                className="block text-xs font-semibold uppercase tracking-wider text-semantic-attention flex items-center gap-2"
               >
-                <KeyRound className="w-4 h-4 text-amber-400" />
+                <KeyRound className="w-4 h-4 text-semantic-attention" />
                 Authenticator Code (TOTP)
               </label>
               <input
@@ -643,46 +643,46 @@ export default function LoginForm() {
                 {...register("totpCode")}
                 placeholder="000000"
                 autoFocus
-                className="w-full h-11 text-center text-lg font-mono tracking-[0.35em] text-white bg-slate-950/60 border border-amber-400/40 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-400 transition-all"
+                className="w-full h-11 text-center text-lg font-mono tracking-[0.35em] text-foreground bg-background border border-semantic-attention/40 rounded-xl focus:outline-none focus:ring-4 focus:ring-semantic-attention/20 focus:border-semantic-attention transition-all"
               />
-              <p className="text-[11px] text-amber-200/80 leading-relaxed text-center">
+              <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
                 Enter 6-digit code from your authenticator app
               </p>
             </div>
           )}
 
-          {/* Development Quick-Fill Shortcuts */}
+          {/* Quick-Fill Shortcuts */}
           <div className="pt-1">
-            <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 mb-1.5 flex items-center justify-between">
+            <div className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-1.5 flex items-center justify-between">
               <span>Quick Personas</span>
-              <span className="text-[10px] text-blue-400 font-mono">1-Tap Fill</span>
+              <span className="text-[10px] text-semantic-interactive font-mono">1-Tap Fill</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               <button
                 type="button"
                 onClick={() => handleQuickFill("admin@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
               >
                 School Admin
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill("teacher@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
               >
                 Teacher
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill("finance@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
               >
                 Accountant
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill("superadmin@schoolos.com")}
-                className="px-2 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-semibold text-slate-300 hover:text-white transition active:scale-95 text-center truncate"
+                onClick={() => handleQuickFill("cascadetechnologiessolutions@gmail.com", "P4jkbnixj4@")}
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
               >
                 Super Admin
               </button>
@@ -694,7 +694,7 @@ export default function LoginForm() {
             type="submit"
             id="login-submit"
             disabled={isLoading}
-            className="w-full h-11 rounded-xl font-semibold text-sm text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-level-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-2"
+            className="w-full h-11 rounded-xl font-semibold text-sm text-white bg-semantic-interactive hover:bg-semantic-interactive/90 active:scale-[0.98] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 transition-all duration-150 mt-2"
           >
             {isLoading ? (
               <>
@@ -704,7 +704,7 @@ export default function LoginForm() {
             ) : (
               <>
                 <span>Sign In</span>
-                <ArrowRight className="w-4 h-4 text-blue-100 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-0.5 transition-transform" />
               </>
             )}
           </button>
@@ -713,10 +713,10 @@ export default function LoginForm() {
           <div className="pt-1 text-center">
             <Link
               href="/portal"
-              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors group focus:outline-none focus:underline"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors group focus:outline-none focus:underline"
             >
               <span>Are you a parent or student?</span>
-              <span className="text-blue-400 group-hover:text-blue-300">
+              <span className="text-semantic-interactive group-hover:underline">
                 Access Parent Portal →
               </span>
             </Link>

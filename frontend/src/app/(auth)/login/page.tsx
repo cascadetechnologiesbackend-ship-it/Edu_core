@@ -12,20 +12,20 @@ export const metadata: Metadata = {
 export default async function LoginPage() {
   await getActiveTenant();
   return (
-    <div className="relative min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-blue-600/30 selection:text-blue-200 overflow-x-hidden">
+    <div className="relative min-h-screen w-full bg-background text-foreground flex flex-col justify-between selection:bg-semantic-interactive/30 selection:text-semantic-interactive overflow-x-hidden">
       {/* ── Subtle Ambient Background Lighting ── */}
       <div
         className="pointer-events-none fixed inset-0 overflow-hidden z-0"
         aria-hidden="true"
       >
-        {/* Soft Indigo Bloom in Top-Left */}
-        <div className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-br from-blue-700/15 via-indigo-600/10 to-transparent blur-[120px] will-change-transform" />
+        {/* Soft Neutral Bloom in Top-Left */}
+        <div className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-br from-semantic-interactive/10 via-muted/10 to-transparent blur-[120px] will-change-transform" />
         
-        {/* Gentle Amber Dawn Bloom in Bottom-Right */}
-        <div className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full bg-gradient-to-tl from-amber-600/10 via-blue-600/5 to-transparent blur-[140px] will-change-transform" />
+        {/* Gentle Neutral Bloom in Bottom-Right */}
+        <div className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full bg-gradient-to-tl from-muted/20 via-transparent to-transparent blur-[140px] will-change-transform" />
 
         {/* Micro-dot grid texture for architectural tactility */}
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(0,122,255,0.75)_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-[0.06]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(120,120,128,0.2)_0.75px,transparent_0.75px)] [background-size:24px_24px] opacity-20" />
       </div>
 
       {/* ── Main Split-Screen Container ── */}
@@ -37,7 +37,7 @@ export default async function LoginPage() {
           {/* ═════════════════════════════════════════════════════════════════ */}
           <section
             aria-label="About SchoolMitra"
-            className="hidden lg:flex lg:col-span-6 xl:col-span-7 flex-col justify-between relative rounded-[28px] overflow-hidden border border-white/10 bg-slate-900/40 backdrop-blur-md shadow-2xl p-8 xl:p-12 min-h-[640px] xl:min-h-[700px] group"
+            className="hidden lg:flex lg:col-span-6 xl:col-span-7 flex-col justify-between relative rounded-[28px] overflow-hidden border border-border/40 bg-card/60 backdrop-blur-md shadow-2xl p-8 xl:p-12 min-h-[640px] xl:min-h-[700px] group text-card-foreground"
           >
             {/* Background Campus Image with Soft Editorial Overlay */}
             <div className="absolute inset-0 z-0">
@@ -50,14 +50,14 @@ export default async function LoginPage() {
                 className="object-cover object-center scale-[1.02] transition-transform duration-1000 ease-out group-hover:scale-[1.04]"
               />
               {/* Multi-layered dark and warm gradient overlays */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/30" />
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-blue-950/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30 dark:opacity-90 opacity-60" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
             </div>
 
             {/* Top Brand Header */}
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-2 flex items-center justify-center shadow-lg shadow-black/20">
+                <div className="w-11 h-11 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/40 p-2 flex items-center justify-center shadow-lg">
                   <Image
                     src="/icon.svg"
                     alt="SchoolMitra Logo"

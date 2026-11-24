@@ -185,22 +185,22 @@ export function Sidebar({
     return (
       <aside
         className={cn(
-          "flex flex-col h-full bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300",
+          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-border/40 text-foreground transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
         )}
         aria-label="Navigation loading"
       >
-        <div className="flex items-center h-14 px-4 border-b border-white/10 animate-pulse">
-          <div className="w-8 h-8 bg-white/10 rounded-xl shrink-0" />
-          <div className={cn("ml-3 h-4 w-28 bg-white/10 rounded", collapsed && "md:hidden")} />
+        <div className="flex items-center h-14 px-4 border-b border-border/40 animate-pulse">
+          <div className="w-8 h-8 bg-muted rounded-xl shrink-0" />
+          <div className={cn("ml-3 h-4 w-28 bg-muted rounded", collapsed && "md:hidden")} />
         </div>
         <div className="flex-1 p-3 space-y-4 animate-pulse">
-          <div className="h-3 w-16 bg-white/10 rounded" />
+          <div className="h-3 w-16 bg-muted rounded" />
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-8 bg-white/10 rounded-xl" />
+              <div key={i} className="h-8 bg-muted rounded-xl" />
             ))}
           </div>
         </div>
@@ -213,29 +213,29 @@ export function Sidebar({
     return (
       <aside
         className={cn(
-          "flex flex-col h-full bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300",
+          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-border/40 text-foreground transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
         )}
         aria-label="Authentication required"
       >
-        <div className="flex items-center h-14 px-4 border-b border-white/10">
-          <div className="w-8 h-8 bg-rose-500/20 text-rose-400 rounded-xl flex items-center justify-center shrink-0">
+        <div className="flex items-center h-14 px-4 border-b border-border/40">
+          <div className="w-8 h-8 bg-semantic-money-owed/20 text-semantic-money-owed rounded-xl flex items-center justify-center shrink-0">
             <AlertOctagon className="w-5 h-5" />
           </div>
           <div className={cn("ml-3 min-w-0", collapsed && "md:hidden")}>
-            <p className="text-xs font-bold text-rose-400 truncate">Session Error</p>
-            <p className="text-[10px] text-sidebar-text/70">Role unverified</p>
+            <p className="text-xs font-bold text-semantic-money-owed truncate">Session Error</p>
+            <p className="text-[10px] text-muted-foreground">Role unverified</p>
           </div>
         </div>
         <div className="p-4 space-y-3 text-center">
-          <p className={cn("text-xs text-sidebar-text/70", collapsed && "md:hidden")}>
+          <p className={cn("text-xs text-muted-foreground", collapsed && "md:hidden")}>
             Your security role could not be resolved. Please re-authenticate.
           </p>
           <button
             onClick={() => secureSignOut({ callbackUrl: "/login" })}
-            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm"
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-semantic-money-owed hover:bg-semantic-money-owed/90 text-white transition shadow-sm"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className={cn(collapsed && "md:hidden")}>Relogin</span>
@@ -276,7 +276,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "flex flex-col h-full bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300",
+          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-border/40 text-foreground transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
@@ -284,24 +284,24 @@ export function Sidebar({
         aria-label="Main navigation"
       >
         {/* Workspace Identity (Spec 4.1.0) */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 flex-shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-border/40 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-level-1">
+            <div className="flex-shrink-0 w-8 h-8 bg-semantic-interactive rounded-xl flex items-center justify-center text-white shadow-level-1">
               <GraduationCap className="w-4 h-4 text-white" />
             </div>
             <div className={cn("min-w-0", collapsed && "md:hidden")}>
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-white font-semibold text-sm truncate leading-tight tracking-tight">
+                <p className="text-foreground font-semibold text-sm truncate leading-tight tracking-tight">
                   {schoolName}
                 </p>
                 {schoolName?.includes("DEMO") && (
-                  <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                  <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-semantic-attention/15 text-semantic-attention border border-semantic-attention/30 shrink-0">
                     [DEMO]
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-white/10 text-slate-300 border border-white/10">
+                <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-muted/60 text-muted-foreground border border-border/40">
                   {roleConfig.displayName}
                 </span>
               </div>
@@ -313,7 +313,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="md:hidden flex items-center justify-center w-11 h-11 -mr-2 rounded-xl text-sidebar-text/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+              className="md:hidden flex items-center justify-center w-11 h-11 -mr-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95 transition-all"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -327,7 +327,7 @@ export function Sidebar({
             const items = groupsRecord[groupName] || [];
             return (
               <div key={groupName} className="space-y-1">
-                <p className={cn("text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2.5 mb-1", collapsed && "md:hidden")}>
+                <p className={cn("text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2.5 mb-1", collapsed && "md:hidden")}>
                   {groupName}
                 </p>
                 <ul className="space-y-0.5" role="list">
@@ -355,9 +355,9 @@ export function Sidebar({
                           className={cn(
                             "transition-all relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium min-h-[38px] sm:min-h-[40px]",
                             isActive
-                              ? "bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20 shadow-level-0"
-                              : "text-slate-300 hover:bg-white/[0.06] hover:text-white",
-                            isPending && "opacity-80 animate-pulse bg-blue-500/10",
+                              ? "bg-semantic-interactive/12 text-semantic-interactive font-semibold border border-semantic-interactive/20 shadow-xs"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                            isPending && "opacity-80 animate-pulse bg-semantic-interactive/10",
                             collapsed ? "md:justify-center md:px-2" : ""
                           )}
                           aria-current={isActive ? "page" : undefined}
@@ -367,8 +367,8 @@ export function Sidebar({
                             name={item.icon}
                             className={cn(
                               "w-4 h-4 flex-shrink-0 transition-transform",
-                              isActive ? "text-blue-400" : "text-slate-400",
-                              isPending && "scale-110 text-blue-400"
+                              isActive ? "text-semantic-interactive" : "text-muted-foreground",
+                              isPending && "scale-110 text-semantic-interactive"
                             )}
                             aria-hidden="true"
                           />
@@ -453,22 +453,22 @@ export function Sidebar({
                     </div>
                   )}
                   <span
-                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900"
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-semantic-money-in border-2 border-background"
                     title="Online"
                   />
                 </div>
 
                 {/* User Name & Role Chip */}
                 <div className={cn("min-w-0 flex-1", collapsed && "md:hidden")}>
-                  <p className="text-white font-medium text-xs truncate leading-tight">
+                  <p className="text-foreground font-medium text-xs truncate leading-tight">
                     {userName}
                   </p>
-                  <p className="text-[10px] text-sidebar-text/70 truncate mt-0.5">
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                     {roleConfig.displayName}
                   </p>
                 </div>
 
-                <div className={cn("text-sidebar-text/60 flex-shrink-0", collapsed && "md:hidden")}>
+                <div className={cn("text-muted-foreground flex-shrink-0", collapsed && "md:hidden")}>
                   {accountMenuOpen ? (
                     <ChevronDown className="w-3.5 h-3.5" />
                   ) : (
@@ -481,14 +481,14 @@ export function Sidebar({
               {accountMenuOpen && (
                 <div
                   className={cn(
-                    "absolute bottom-full mb-2 z-50 rounded-2xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-level-3 p-2 w-56 text-xs divide-y divide-white/10 animate-fade-scale-in",
+                    "absolute bottom-full mb-2 z-50 rounded-2xl bg-card border border-border/40 shadow-level-3 p-2 w-56 text-xs divide-y divide-border/30 animate-fade-scale-in text-card-foreground",
                     collapsed ? "left-2 md:left-14" : "left-2"
                   )}
                   role="menu"
                 >
                   <div className="px-3 py-2">
-                    <p className="font-semibold text-white truncate">{userName}</p>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    <p className="font-semibold text-foreground truncate">{userName}</p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                       {sessionUser?.email || ""}
                     </p>
                   </div>
@@ -501,13 +501,13 @@ export function Sidebar({
                         setAccountMenuOpen(false);
                         onCloseMobile?.();
                       }}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 transition font-medium"
+                      className="flex items-center justify-between px-3 py-2 rounded-xl text-foreground hover:bg-muted/60 transition font-medium"
                       role="menuitem"
                     >
                       <span className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-blue-400" /> My Profile
+                        <User className="w-3.5 h-3.5 text-semantic-interactive" /> My Profile
                       </span>
-                      <kbd className="px-1 py-0.5 text-[9px] font-mono text-slate-400 bg-white/5 rounded border border-white/10">
+                      <kbd className="px-1 py-0.5 text-[9px] font-mono text-muted-foreground bg-muted/60 rounded border border-border/40">
                         ⌘,
                       </kbd>
                     </Link>
@@ -517,7 +517,7 @@ export function Sidebar({
                     <button
                       type="button"
                       onClick={() => secureSignOut({ callbackUrl: "/login" })}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition font-medium text-left"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-semantic-money-owed hover:bg-semantic-money-owed/10 transition font-medium text-left"
                       role="menuitem"
                     >
                       <LogOut className="w-3.5 h-3.5" /> Sign Out
@@ -530,10 +530,10 @@ export function Sidebar({
         })()}
 
         {/* Collapse Toggle - Desktop Only */}
-        <div className="hidden md:block flex-shrink-0 p-2 border-t border-white/10">
+        <div className="hidden md:block flex-shrink-0 p-2 border-t border-border/40">
           <button
             onClick={handleToggleCollapse}
-            className="flex items-center gap-2 w-full justify-center px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all"
+            className="flex items-center gap-2 w-full justify-center px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 text-sm font-medium transition-all"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
           >
