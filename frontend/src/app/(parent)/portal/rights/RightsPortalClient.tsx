@@ -213,7 +213,7 @@ export default function RightsPortalClient({
 
       {/* Student Selector */}
       {students.length > 1 && (
-        <div className="flex border border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-slate-50 dark:bg-slate-900 max-w-md">
+        <div className="flex border border-border/40 dark:border-border/40 rounded-xl p-1 bg-muted/30 dark:bg-card max-w-md">
           {students.map((s) => {
             const name = s.displayName || "Student";
             return (
@@ -225,8 +225,8 @@ export default function RightsPortalClient({
                 }}
                 className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all ${
                   activeStudentId === s.id
-                    ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-white dark:bg-muted/60 text-[#008299] dark:text-[#30B0C7] shadow-sm"
+                    : "text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
                 {name}
@@ -239,12 +239,12 @@ export default function RightsPortalClient({
       {/* exercise sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* View Data Right */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+        <div className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-[#008299] dark:text-[#30B0C7]">
             <Shield className="w-5 h-5" />
             <h3 className="font-bold text-base">Right to Access Data</h3>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             You have the legal right under Section 11 of the DPDP Act to obtain
             a summary of {activeStudentName}&apos;s personal data processed by
             the school.
@@ -252,7 +252,7 @@ export default function RightsPortalClient({
           <button
             onClick={handleFetchData}
             disabled={loading === "FETCH_DATA"}
-            className="w-full bg-indigo-650 hover:bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider"
+            className="w-full bg-[#008299] dark:bg-[#30B0C7] hover:bg-[#008299] dark:bg-[#30B0C7] text-white text-xs font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider"
           >
             {loading === "FETCH_DATA"
               ? "Retrieving Ledger..."
@@ -263,13 +263,13 @@ export default function RightsPortalClient({
         {/* Correction Right */}
         <form
           onSubmit={handleSubmitCorrection}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4"
+          className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm space-y-4"
         >
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
             <FileText className="w-5 h-5" />
             <h3 className="font-bold text-base">Right to Correction</h3>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Request correction of inaccurate or incomplete personal information
             for {activeStudentName} (e.g. spelling corrections, updated family
             contact details).
@@ -278,7 +278,7 @@ export default function RightsPortalClient({
             value={correctionDesc}
             onChange={(e) => setCorrectionDesc(e.target.value)}
             placeholder="Describe the inaccurate field and what the correct value should be..."
-            className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none focus:border-indigo-500"
+            className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
             rows={2}
             required
           />
@@ -296,13 +296,13 @@ export default function RightsPortalClient({
         {/* Erasure Right */}
         <form
           onSubmit={handleSubmitErasure}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4"
+          className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm space-y-4"
         >
           <div className="flex items-center gap-2 text-red-655 dark:text-red-400">
             <Shield className="w-5 h-5" />
             <h3 className="font-bold text-base">Right to Erasure</h3>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Request erasure of personal data that is no longer necessary for{" "}
             {activeStudentName}&apos;s school admission purpose. Initiates a
             mandatory 30-day workflow.
@@ -311,7 +311,7 @@ export default function RightsPortalClient({
             value={erasureDesc}
             onChange={(e) => setErasureDesc(e.target.value)}
             placeholder="Describe which data should be erased and reason..."
-            className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none focus:border-indigo-500"
+            className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
             rows={2}
             required
           />
@@ -327,31 +327,31 @@ export default function RightsPortalClient({
 
       {/* JSON Viewer */}
       {jsonData && (
-        <div className="bg-slate-950 text-slate-100 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div className="bg-card text-foreground p-6 rounded-2xl border border-border/40 space-y-4">
           <div className="flex justify-between items-center">
-            <span className="font-mono text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <span className="font-mono text-xs text-muted-foreground font-bold uppercase tracking-wider">
               Student Personal Data Summary Ledger (SAR Export)
             </span>
             <button
               onClick={handleCopyJson}
-              className="bg-slate-900 hover:bg-slate-850 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-800 flex items-center gap-1.5 transition-all"
+              className="bg-card hover:bg-muted/60 text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg border border-border/40 flex items-center gap-1.5 transition-all"
             >
               <Copy className="w-3.5 h-3.5" />
               {copied ? "Copied!" : "Copy JSON"}
             </button>
           </div>
-          <div className="overflow-auto max-h-96 font-mono text-xs p-3 bg-slate-900/60 rounded-xl border border-slate-850 text-emerald-400">
+          <div className="overflow-auto max-h-96 font-mono text-xs p-3 bg-muted/40 rounded-xl border border-border/40 text-emerald-400">
             <pre>{JSON.stringify(jsonData, null, 2)}</pre>
           </div>
         </div>
       )}
 
       {/* Raise Grievance */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
-        <h3 className="font-bold text-base text-slate-800 dark:text-white mb-4">
+      <div className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm">
+        <h3 className="font-bold text-base text-foreground dark:text-white mb-4">
           Grievance Redressal (Section 13)
         </h3>
-        <p className="text-xs text-slate-500 mb-4">
+        <p className="text-xs text-muted-foreground mb-4">
           If you have a query, issue, or complaint regarding how your minor
           child&apos;s data is handled, raise a grievance ticket directly to the
           Data Protection Officer (DPO). The school resolves grievances within a
@@ -364,7 +364,7 @@ export default function RightsPortalClient({
         >
           <div className="space-y-3 md:col-span-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase">
+              <label className="text-xs font-bold text-muted-foreground uppercase">
                 Subject
               </label>
               <input
@@ -372,19 +372,19 @@ export default function RightsPortalClient({
                 value={grievanceSubject}
                 onChange={(e) => setGrievanceSubject(e.target.value)}
                 placeholder="e.g. Consent withdrawal delay, mismatch in health records"
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
                 required
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase">
+              <label className="text-xs font-bold text-muted-foreground uppercase">
                 Detailed Description
               </label>
               <textarea
                 value={grievanceDesc}
                 onChange={(e) => setGrievanceDesc(e.target.value)}
                 placeholder="Provide detailed description of your grievance..."
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
                 rows={3}
                 required
               />
@@ -394,7 +394,7 @@ export default function RightsPortalClient({
             <button
               type="submit"
               disabled={loading === "GRIEVANCE"}
-              className="bg-indigo-650 hover:bg-indigo-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md"
+              className="bg-[#008299] dark:bg-[#30B0C7] hover:bg-[#008299] dark:bg-[#30B0C7] text-white text-xs font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md"
             >
               {loading === "GRIEVANCE"
                 ? "Raising Ticket..."
@@ -407,9 +407,9 @@ export default function RightsPortalClient({
       {/* Ticket Logs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Rights Requests Table */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-850 dark:text-white">
+        <div className="bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-border/40 dark:border-border/40 bg-muted/30 dark:bg-muted/30">
+            <h4 className="font-bold text-sm text-foreground dark:text-white">
               Rights Requests Log
             </h4>
           </div>
@@ -417,23 +417,23 @@ export default function RightsPortalClient({
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
+                <tr className="border-b border-border/40 dark:border-border/40 text-muted-foreground font-bold">
                   <th className="p-3">Ticket</th>
                   <th className="p-3">Type</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">SLA Due</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40 dark:divide-border/40">
                 {requests.map((r) => (
                   <tr
                     key={r.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                    className="hover:bg-muted/30 dark:hover:bg-muted/40"
                   >
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-350">
+                    <td className="p-3 font-mono font-bold text-muted-foreground dark:text-muted-foreground">
                       {r.ticketNumber}
                     </td>
-                    <td className="p-3 font-semibold text-slate-650 dark:text-slate-400">
+                    <td className="p-3 font-semibold text-muted-foreground dark:text-muted-foreground">
                       {r.requestType}
                     </td>
                     <td className="p-3">
@@ -447,14 +447,14 @@ export default function RightsPortalClient({
                         {r.status}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-500 font-medium">
+                    <td className="p-3 text-muted-foreground font-medium">
                       {new Date(r.dueAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
                 {requests.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-500">
+                    <td colSpan={4} className="p-8 text-center text-muted-foreground">
                       No requests raised yet.
                     </td>
                   </tr>
@@ -464,16 +464,16 @@ export default function RightsPortalClient({
           </div>
 
           {/* Mobile Card View (<640px, zero horizontal overflow at 390px) */}
-          <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="block sm:hidden divide-y divide-border/40 dark:divide-border/40">
             {requests.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">
+              <div className="p-6 text-center text-xs text-muted-foreground">
                 No requests raised yet.
               </div>
             ) : (
               requests.map((r) => (
                 <div key={r.id} className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-xs text-slate-700 dark:text-slate-350">
+                    <span className="font-mono font-bold text-xs text-muted-foreground dark:text-muted-foreground">
                       {r.ticketNumber}
                     </span>
                     <span
@@ -486,8 +486,8 @@ export default function RightsPortalClient({
                       {r.status}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-medium text-slate-650 dark:text-slate-300">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-muted-foreground dark:text-muted-foreground">
                       {r.requestType}
                     </span>
                     <span>Due: {new Date(r.dueAt).toLocaleDateString()}</span>
@@ -499,9 +499,9 @@ export default function RightsPortalClient({
         </div>
 
         {/* Grievances Table */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-850 dark:text-white">
+        <div className="bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-border/40 dark:border-border/40 bg-muted/30 dark:bg-muted/30">
+            <h4 className="font-bold text-sm text-foreground dark:text-white">
               Grievances Tickets Log
             </h4>
           </div>
@@ -509,23 +509,23 @@ export default function RightsPortalClient({
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
+                <tr className="border-b border-border/40 dark:border-border/40 text-muted-foreground font-bold">
                   <th className="p-3">Ticket</th>
                   <th className="p-3">Subject</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">SLA Due</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40 dark:divide-border/40">
                 {grievances.map((g) => (
                   <tr
                     key={g.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                    className="hover:bg-muted/30 dark:hover:bg-muted/40"
                   >
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-350">
+                    <td className="p-3 font-mono font-bold text-muted-foreground dark:text-muted-foreground">
                       {g.ticketNumber}
                     </td>
-                    <td className="p-3 font-semibold text-slate-650 dark:text-slate-400 truncate max-w-[150px]">
+                    <td className="p-3 font-semibold text-muted-foreground dark:text-muted-foreground truncate max-w-[150px]">
                       {g.subject}
                     </td>
                     <td className="p-3">
@@ -539,14 +539,14 @@ export default function RightsPortalClient({
                         {g.status}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-500 font-medium">
+                    <td className="p-3 text-muted-foreground font-medium">
                       {new Date(g.dueAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
                 {grievances.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-500">
+                    <td colSpan={4} className="p-8 text-center text-muted-foreground">
                       No grievances raised yet.
                     </td>
                   </tr>
@@ -556,16 +556,16 @@ export default function RightsPortalClient({
           </div>
 
           {/* Mobile Card View (<640px, zero horizontal overflow at 390px) */}
-          <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="block sm:hidden divide-y divide-border/40 dark:divide-border/40">
             {grievances.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">
+              <div className="p-6 text-center text-xs text-muted-foreground">
                 No grievances raised yet.
               </div>
             ) : (
               grievances.map((g) => (
                 <div key={g.id} className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-xs text-slate-700 dark:text-slate-350">
+                    <span className="font-mono font-bold text-xs text-muted-foreground dark:text-muted-foreground">
                       {g.ticketNumber}
                     </span>
                     <span
@@ -578,8 +578,8 @@ export default function RightsPortalClient({
                       {g.status}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-medium text-slate-650 dark:text-slate-300 truncate max-w-[200px]">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-muted-foreground dark:text-muted-foreground truncate max-w-[200px]">
                       {g.subject}
                     </span>
                     <span>Due: {new Date(g.dueAt).toLocaleDateString()}</span>

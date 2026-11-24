@@ -100,6 +100,14 @@
     --module-hr-primary: 38 92% 38%;                       /* #B45309 - Apple Warm Amber/Gold */
     --module-hr-secondary: 48 100% 94%;                    /* rgba(180, 83, 9, 0.08) */
     --module-hr-border: 45 80% 84%;                        /* rgba(180, 83, 9, 0.20) */
+
+    --module-dpdp-primary: 187 100% 30%;                   /* #008299 - Apple Teal */
+    --module-dpdp-secondary: 187 80% 95%;                  /* rgba(0, 130, 153, 0.08) */
+    --module-dpdp-border: 187 70% 86%;                     /* rgba(0, 130, 153, 0.20) */
+
+    --module-settings-primary: 210 100% 50%;               /* #007AFF - Apple Blue / System */
+    --module-settings-secondary: 210 100% 96%;             /* rgba(0, 122, 255, 0.08) */
+    --module-settings-border: 210 100% 88%;                /* rgba(0, 122, 255, 0.20) */
   }
 
   .dark {
@@ -195,6 +203,14 @@
     --module-hr-primary: 50 100% 52%;                      /* #FFD60A - Apple Warm Amber/Gold Dark */
     --module-hr-secondary: 50 100% 20%;                    /* rgba(255, 214, 10, 0.15) */
     --module-hr-border: 50 100% 30%;                       /* rgba(255, 214, 10, 0.28) */
+
+    --module-dpdp-primary: 188 62% 48%;                    /* #30B0C7 - Apple Teal Dark */
+    --module-dpdp-secondary: 188 62% 20%;                  /* rgba(48, 176, 199, 0.15) */
+    --module-dpdp-border: 188 62% 30%;                     /* rgba(48, 176, 199, 0.28) */
+
+    --module-settings-primary: 210 100% 52%;               /* #0A84FF - Apple Blue Dark / System */
+    --module-settings-secondary: 210 100% 20%;             /* rgba(10, 132, 255, 0.15) */
+    --module-settings-border: 210 100% 30%;                /* rgba(10, 132, 255, 0.28) */
   }
 
   * {

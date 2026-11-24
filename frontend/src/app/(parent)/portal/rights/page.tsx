@@ -25,7 +25,7 @@ export default async function RightsPage() {
     return (
       <div className="p-6">
         <h2 className="text-xl font-bold text-red-650">Access Restricted</h2>
-        <p className="text-slate-500 mt-2">
+        <p className="text-muted-foreground mt-2">
           No students linked to your account.
         </p>
       </div>
@@ -65,38 +65,38 @@ export default async function RightsPage() {
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
             Data Subject Rights Portal
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             DPDP Act 2023 Sections 11–14 — Exercise your rights to access, correction, erasure, or grievances.
           </p>
         </div>
 
         {/* Dedicated Horizontal Pill Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-2xl bg-muted/40 border border-border/40 no-scrollbar text-xs w-fit">
           <Link
             href="/portal"
-            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+            className="px-3.5 py-2 min-h-[40px] flex items-center rounded-xl font-semibold text-muted-foreground hover:text-foreground whitespace-nowrap transition"
           >
             Fees &amp; Dues
           </Link>
           <Link
             href="/portal/report-cards"
-            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+            className="px-3.5 py-2 min-h-[40px] flex items-center rounded-xl font-semibold text-muted-foreground hover:text-foreground whitespace-nowrap transition"
           >
             Report Cards
           </Link>
           <Link
             href="/portal/consent"
-            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+            className="px-3.5 py-2 min-h-[40px] flex items-center rounded-xl font-semibold text-muted-foreground hover:text-foreground whitespace-nowrap transition"
           >
             Consent Center
           </Link>
           <Link
             href="/parent/documents"
-            className="px-3.5 py-2 rounded-xl font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white whitespace-nowrap transition"
+            className="px-3.5 py-2 min-h-[40px] flex items-center rounded-xl font-semibold text-muted-foreground hover:text-foreground whitespace-nowrap transition"
           >
             Documents
           </Link>
-          <span className="px-3.5 py-2 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/30 whitespace-nowrap">
+          <span className="px-3.5 py-2 min-h-[40px] flex items-center rounded-xl font-bold bg-card text-[#008299] dark:text-[#30B0C7] shadow-sm whitespace-nowrap">
             Subject Rights
           </span>
         </div>

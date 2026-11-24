@@ -118,26 +118,26 @@ export default async function SuperAdminDpdpPage() {
   return (
     <div className="space-y-8">
       {/* ─── Hero Platform Header ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-blue-950/60 p-5 sm:p-8 border border-white/[0.12] shadow-level-2">
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl bg-card border border-teal-500/25 p-5 sm:p-8 shadow-xs">
+        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
               <Scale className="w-3.5 h-3.5 text-emerald-400" />
               <span>DPDP Act 2023 Statutory Compliance Plane</span>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight mt-3 flex items-center gap-3">
-              <ShieldCheck className="w-8 h-8 text-indigo-400" />
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight mt-3 flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-[#008299] dark:text-[#30B0C7]" />
               Platform DPDP Privacy Vault
             </h1>
-            <p className="text-slate-400 text-sm mt-1.5 max-w-2xl leading-relaxed">
+            <p className="text-muted-foreground text-sm mt-1.5 max-w-2xl leading-relaxed">
               Centralized oversight of parental consent coverage, Principal Rights requests, immutable audit trails, and statutory CERT-In breach response controls across all school tenants.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-slate-700/80 text-xs text-slate-300 font-mono">
-              <Lock className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/40 text-xs text-muted-foreground font-mono">
+              <Lock className="w-3.5 h-3.5 text-[#008299] dark:text-[#30B0C7]" />
               AES-256-GCM At Rest
             </span>
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 font-medium">
@@ -151,10 +151,10 @@ export default async function SuperAdminDpdpPage() {
       {/* ─── 4 Privacy KPI Metrics ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Consent Purposes */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm hover:border-indigo-500/30 transition-all">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="rounded-xl border border-border/40 bg-muted/40 p-5 shadow-sm hover:border-teal-500/30 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold uppercase tracking-wider">Registered Purposes</span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
               <FileCheck2 className="w-4 h-4" />
             </div>
           </div>
@@ -167,8 +167,8 @@ export default async function SuperAdminDpdpPage() {
         </div>
 
         {/* Metric 2: Total Recorded Consents */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm hover:border-emerald-500/30 transition-all">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="rounded-xl border border-border/40 bg-muted/40 p-5 shadow-sm hover:border-emerald-500/30 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold uppercase tracking-wider">Recorded Consents</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
               <UserCheck className="w-4 h-4" />
@@ -177,14 +177,14 @@ export default async function SuperAdminDpdpPage() {
           <div className="text-3xl font-extrabold text-white mt-3 font-mono">
             {totalConsentsCount?.count ?? 0}
           </div>
-          <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <span>Verifiable parental consents</span>
           </div>
         </div>
 
         {/* Metric 3: Pending Rights Requests */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm hover:border-amber-500/30 transition-all">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="rounded-xl border border-border/40 bg-muted/40 p-5 shadow-sm hover:border-amber-500/30 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold uppercase tracking-wider">Pending Rights Requests</span>
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
               <Clock className="w-4 h-4" />
@@ -193,14 +193,14 @@ export default async function SuperAdminDpdpPage() {
           <div className="text-3xl font-extrabold text-white mt-3 font-mono">
             {pendingRightsCount?.count ?? 0}
           </div>
-          <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <span>Access / Erasure / Correction</span>
           </div>
         </div>
 
         {/* Metric 4: Grievances & Breach Alerts */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm hover:border-purple-500/30 transition-all">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="rounded-xl border border-border/40 bg-muted/40 p-5 shadow-sm hover:border-purple-500/30 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold uppercase tracking-wider">Breaches / Grievances</span>
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
               <AlertTriangle className="w-4 h-4" />
@@ -217,32 +217,32 @@ export default async function SuperAdminDpdpPage() {
 
       {/* ─── Statutory Directives Banner ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-2">
-          <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs">
+        <div className="p-4 rounded-xl bg-muted/20 border border-border/40 space-y-2">
+          <div className="flex items-center gap-2 text-teal-400 font-semibold text-xs">
             <Scale className="w-4 h-4" />
             <span>DPDP Section 9 (Minors Under 18)</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Data collection from students is prohibited without affirmative, verifiable consent from an authorized parent or legal guardian.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-2">
+        <div className="p-4 rounded-xl bg-muted/20 border border-border/40 space-y-2">
           <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
             <Database className="w-4 h-4" />
             <span>DPDP Section 8(7) (Auto-Purge)</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Personal data must be erased when the purpose for collection is no longer served or when statutory retention periods expire.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-2">
+        <div className="p-4 rounded-xl bg-muted/20 border border-border/40 space-y-2">
           <div className="flex items-center gap-2 text-purple-400 font-semibold text-xs">
             <KeyRound className="w-4 h-4" />
             <span>DPDP Section 8(5) (Forensic Security)</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Reasonable security safeguards enforced: AES-256-GCM encryption, granular tenant RLS isolation, and immutable audit logs.
           </p>
         </div>
@@ -250,19 +250,19 @@ export default async function SuperAdminDpdpPage() {
 
       {/* ─── Multi-Tenant Schools Compliance Matrix ──────────────────────── */}
       <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-level-1">
-        <div className="p-4 sm:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="p-4 sm:p-6 border-b border-border/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-indigo-400" />
+              <Building2 className="w-5 h-5 text-teal-400" />
               School Tenants DPDP Compliance Matrix
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Active consent coverage and statutory rights metrics across each school tenant.
             </p>
           </div>
           <Link
             href="/super-admin/schools"
-            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition py-1"
+            className="inline-flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 font-medium transition py-1"
           >
             <span>Manage Tenants Directory</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -271,8 +271,8 @@ export default async function SuperAdminDpdpPage() {
 
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-800">
+          <table className="w-full text-left text-xs text-muted-foreground">
+            <thead className="bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-border/40">
               <tr>
                 <th className="py-3.5 px-6">School Tenant</th>
                 <th className="py-3.5 px-6">Enrolled Students</th>
@@ -282,7 +282,7 @@ export default async function SuperAdminDpdpPage() {
                 <th className="py-3.5 px-6 text-right">Privacy Audit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-border/40">
               {allSchools.map((s) => {
                 const studentCount = studentCountMap.get(s.id) ?? 0;
                 const consentCount = consentCountMap.get(s.id) ?? 0;
@@ -290,22 +290,22 @@ export default async function SuperAdminDpdpPage() {
                   studentCount > 0 ? Math.min(100, Math.round((consentCount / studentCount) * 100)) : 100;
 
                 return (
-                  <tr key={s.id} className="hover:bg-slate-900/40 transition">
+                  <tr key={s.id} className="hover:bg-muted/20 transition">
                     <td className="py-4 px-6">
                       <div className="font-semibold text-white">{s.name}</div>
-                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
                         UDISE: {s.udiseCode || "UNSET"} · {s.city || "India"}
                       </div>
                     </td>
-                    <td className="py-4 px-6 font-mono text-slate-300">
+                    <td className="py-4 px-6 font-mono text-muted-foreground">
                       {studentCount}
                     </td>
-                    <td className="py-4 px-6 font-mono text-slate-300">
+                    <td className="py-4 px-6 font-mono text-muted-foreground">
                       {consentCount}
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
-                        <div className="w-24 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div className="w-24 bg-muted/60 rounded-full h-1.5 overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
                               coverage >= 80
@@ -317,7 +317,7 @@ export default async function SuperAdminDpdpPage() {
                             style={{ width: `${coverage}%` }}
                           />
                         </div>
-                        <span className="font-mono text-[11px] text-slate-400">{coverage}%</span>
+                        <span className="font-mono text-[11px] text-muted-foreground">{coverage}%</span>
                       </div>
                     </td>
                     <td className="py-4 px-6">
@@ -336,7 +336,7 @@ export default async function SuperAdminDpdpPage() {
                     <td className="py-4 px-6 text-right">
                       <Link
                         href={`/super-admin/schools`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition active:scale-95"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 font-medium text-xs transition active:scale-95"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Inspect Tenant</span>
@@ -347,7 +347,7 @@ export default async function SuperAdminDpdpPage() {
               })}
               {allSchools.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-500">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
                     No school tenants found.
                   </td>
                 </tr>
@@ -359,7 +359,7 @@ export default async function SuperAdminDpdpPage() {
         {/* Mobile Card View (UX-R47) */}
         <div className="block md:hidden p-3.5 space-y-3">
           {allSchools.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 text-xs">
+            <div className="text-center py-8 text-muted-foreground text-xs">
               No school tenants found.
             </div>
           ) : (
@@ -372,12 +372,12 @@ export default async function SuperAdminDpdpPage() {
               return (
                 <div
                   key={s.id}
-                  className="p-4 bg-slate-950/70 rounded-xl border border-slate-800/80 space-y-3"
+                  className="p-4 bg-card rounded-xl border border-border/40 space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-semibold text-white text-sm">{s.name}</div>
-                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
                         UDISE: {s.udiseCode || "UNSET"} · {s.city || "India"}
                       </div>
                     </div>
@@ -397,10 +397,10 @@ export default async function SuperAdminDpdpPage() {
                   {/* Coverage Progress Bar */}
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 text-[11px]">Parental Consent Coverage:</span>
+                      <span className="text-muted-foreground text-[11px]">Parental Consent Coverage:</span>
                       <span className="font-mono text-white font-bold">{coverage}%</span>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-muted/60 rounded-full h-2 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           coverage >= 80
@@ -415,13 +415,13 @@ export default async function SuperAdminDpdpPage() {
                   </div>
 
                   {/* Enrolled Students vs Recorded Consents */}
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800/80">
-                    <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-850">
-                      <div className="text-[10px] text-slate-400 uppercase">Students</div>
-                      <div className="font-mono text-sm font-bold text-slate-200 mt-0.5">{studentCount}</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/40">
+                    <div className="bg-muted/40 p-2 rounded-lg border border-border/40">
+                      <div className="text-[10px] text-muted-foreground uppercase">Students</div>
+                      <div className="font-mono text-sm font-bold text-foreground mt-0.5">{studentCount}</div>
                     </div>
-                    <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-850">
-                      <div className="text-[10px] text-slate-400 uppercase">Consents</div>
+                    <div className="bg-muted/40 p-2 rounded-lg border border-border/40">
+                      <div className="text-[10px] text-muted-foreground uppercase">Consents</div>
                       <div className="font-mono text-sm font-bold text-emerald-400 mt-0.5">{consentCount}</div>
                     </div>
                   </div>
@@ -429,9 +429,9 @@ export default async function SuperAdminDpdpPage() {
                   <div className="pt-1">
                     <Link
                       href={`/super-admin/schools`}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition active:scale-95"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 font-medium text-xs transition active:scale-95"
                     >
-                      <Eye className="w-4 h-4 text-indigo-400" />
+                      <Eye className="w-4 h-4 text-teal-400" />
                       <span>Inspect Tenant In School Directory</span>
                     </Link>
                   </div>
@@ -444,17 +444,17 @@ export default async function SuperAdminDpdpPage() {
 
       {/* ─── Statutory Consent Purposes Registry ─────────────────────────── */}
       <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-level-1 space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border/40">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <FileCheck2 className="w-5 h-5 text-emerald-400" />
               Statutory Consent Purposes Registry
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Purpose limitations registered under DPDP Act 2023 for student data processing.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 border border-slate-700 text-slate-300 font-mono">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-card border border-border/40 text-muted-foreground font-mono">
             {purposesList.length} Active Purposes
           </span>
         </div>
@@ -463,11 +463,11 @@ export default async function SuperAdminDpdpPage() {
           {purposesList.map((p) => (
             <div
               key={p.id}
-              className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition space-y-2.5"
+              className="p-4 rounded-xl bg-muted/40 border border-border/40 hover:border-border/40 transition space-y-2.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-mono text-teal-400 uppercase tracking-wider block">
                     {p.purposeId}
                   </span>
                   <div className="font-semibold text-white text-sm mt-0.5">{p.labelEn}</div>
@@ -477,24 +477,24 @@ export default async function SuperAdminDpdpPage() {
                     Mandatory
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-muted/60 text-muted-foreground border border-border/40">
                     Optional
                   </span>
                 )}
               </div>
 
-              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                 {p.descriptionEn}
               </p>
 
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+              <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                 <span>Legal Basis: {p.legalBasis}</span>
                 <span>{p.retentionDays}d Retention</span>
               </div>
             </div>
           ))}
           {purposesList.length === 0 && (
-            <div className="col-span-full text-center py-6 text-slate-500 text-xs">
+            <div className="col-span-full text-center py-6 text-muted-foreground text-xs">
               No custom purposes configured. Default DPDP statutory catalog active.
             </div>
           )}
@@ -503,19 +503,19 @@ export default async function SuperAdminDpdpPage() {
 
       {/* ─── Recent DPDP Audit Logs ───────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-level-1 space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border/40">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              <History className="w-5 h-5 text-indigo-400" />
+              <History className="w-5 h-5 text-teal-400" />
               Recent DPDP Forensic Audit Stream
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Append-only audit events recording privacy consent updates, tenant impersonation, and data requests.
             </p>
           </div>
           <Link
             href="/super-admin/audit"
-            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition"
+            className="inline-flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 font-medium transition"
           >
             <span>Full Audit Trail</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -526,23 +526,23 @@ export default async function SuperAdminDpdpPage() {
           {recentPrivacyAudits.map((a) => (
             <div
               key={a.id}
-              className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/60 flex items-center justify-between text-xs gap-4"
+              className="p-3 rounded-xl bg-muted/20 border border-border/40 flex items-center justify-between text-xs gap-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400 shrink-0">
                   <FileText className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <div className="font-semibold text-slate-200">{a.action}</div>
-                  <div className="text-[11px] text-slate-500">
-                    Table: <span className="font-mono text-slate-400">{a.tableName || "GLOBAL"}</span> ·
-                    Operator: <span className="text-slate-400">{a.userId || "SYSTEM"}</span>
+                  <div className="font-semibold text-foreground">{a.action}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Table: <span className="font-mono text-muted-foreground">{a.tableName || "GLOBAL"}</span> ·
+                    Operator: <span className="text-muted-foreground">{a.userId || "SYSTEM"}</span>
                   </div>
                 </div>
               </div>
 
               <div className="text-right shrink-0">
-                <span className="font-mono text-[10px] text-slate-500 block">
+                <span className="font-mono text-[10px] text-muted-foreground block">
                   {a.createdAt ? new Date(a.createdAt).toLocaleString("en-IN") : "Recent"}
                 </span>
                 <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -552,7 +552,7 @@ export default async function SuperAdminDpdpPage() {
             </div>
           ))}
           {recentPrivacyAudits.length === 0 && (
-            <div className="text-center py-6 text-slate-500 text-xs">
+            <div className="text-center py-6 text-muted-foreground text-xs">
               No recent DPDP audit events recorded. Forensic logger active.
             </div>
           )}

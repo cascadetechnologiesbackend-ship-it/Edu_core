@@ -121,15 +121,15 @@ export function GradeRulesManager({
   return (
     <div className="space-y-6">
       {/* Group Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-slate-700">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-muted/40 border border-border/40 overflow-x-auto no-scrollbar w-fit">
         {classGroups.map((g) => (
           <button
             key={g.value}
             onClick={() => setActiveGroup(g.value)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 whitespace-nowrap ${
               activeGroup === g.value
-                ? "border-indigo-600 text-indigo-700 dark:text-indigo-400"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "bg-card text-[#007AFF] dark:text-[#0A84FF] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {g.label}
@@ -145,20 +145,20 @@ export function GradeRulesManager({
           <button
             onClick={handleSeedCBSE}
             disabled={isPending}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 min-h-[40px] text-xs font-semibold border border-border/40 bg-card hover:bg-muted/40 text-foreground rounded-xl transition-all"
           >
             Seed CBSE Scale
           </button>
           <button
             onClick={addRule}
-            className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            className="px-4 py-2 min-h-[40px] text-xs font-semibold border border-border/40 bg-muted/40 hover:bg-muted/60 text-foreground rounded-xl transition-all"
           >
             + Add Row
           </button>
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors disabled:opacity-50"
+            className="px-5 py-2 min-h-[40px] text-xs font-bold bg-[#007AFF] hover:bg-[#0062cc] dark:bg-[#0A84FF] dark:hover:bg-[#0071e3] text-white dark:text-black rounded-xl transition-all disabled:opacity-50 shadow-sm"
           >
             {isPending ? "Saving..." : "Save Rules"}
           </button>
@@ -178,9 +178,9 @@ export function GradeRulesManager({
       )}
 
       {/* Rules Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border/40 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-slate-800 text-xs text-gray-500 uppercase tracking-wider">
+          <thead className="bg-muted/40 text-xs text-gray-500 uppercase tracking-wider">
             <tr>
               <th className="px-4 py-3 text-left">Min %</th>
               <th className="px-4 py-3 text-left">Max %</th>
@@ -190,7 +190,7 @@ export function GradeRulesManager({
               <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-border/40">
             {groupRules.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
@@ -202,7 +202,7 @@ export function GradeRulesManager({
             {groupRules.map((rule, idx) => (
               <tr
                 key={idx}
-                className="hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                className="hover:bg-muted/40"
               >
                 {(["minPercent", "maxPercent", "gradePoint"] as const).map(
                   (field) => (
@@ -217,7 +217,7 @@ export function GradeRulesManager({
                             parseFloat(e.target.value) || 0,
                           )
                         }
-                        className="w-20 rounded border border-gray-300 dark:border-slate-600 px-2 py-1 text-xs"
+                        className="w-20 rounded border border-border/60 px-2 py-1 text-xs"
                         step={field === "gradePoint" ? 0.5 : 1}
                       />
                     </td>
@@ -229,7 +229,7 @@ export function GradeRulesManager({
                     value={rule.grade}
                     onChange={(e) => updateRule(idx, "grade", e.target.value)}
                     placeholder="A1"
-                    className="w-16 rounded border border-gray-300 dark:border-slate-600 px-2 py-1 text-xs uppercase"
+                    className="w-16 rounded border border-border/60 px-2 py-1 text-xs uppercase"
                   />
                 </td>
                 <td className="px-4 py-2">
@@ -240,7 +240,7 @@ export function GradeRulesManager({
                       updateRule(idx, "description", e.target.value)
                     }
                     placeholder="Outstanding"
-                    className="w-32 rounded border border-gray-300 dark:border-slate-600 px-2 py-1 text-xs"
+                    className="w-32 rounded border border-border/60 px-2 py-1 text-xs"
                   />
                 </td>
                 <td className="px-4 py-2">

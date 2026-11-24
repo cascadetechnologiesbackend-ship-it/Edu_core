@@ -379,8 +379,8 @@ export default function DpdpDashboardClient({
         </div>
       )}
 
-      {/* Tabs - Horizontally scrollable on mobile */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1.5 sm:gap-6 overflow-x-auto no-scrollbar -mx-3 sm:mx-0 px-3 sm:px-0 pb-1">
+      {/* Apple Inset Segmented Control */}
+      <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/40 inline-flex flex-wrap gap-1.5 overflow-x-auto no-scrollbar">
         {[
           { id: "overview", label: "Consent & Purges", icon: Shield },
           { id: "requests", label: "Rights Queue", icon: FileText },
@@ -391,14 +391,15 @@ export default function DpdpDashboardClient({
           { id: "explorer", label: "Audit Log Explorer", icon: Search },
         ].map((t) => {
           const Icon = t.icon;
+          const isActive = activeTab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`min-h-[44px] px-3 py-2.5 sm:px-1 sm:pb-3 font-semibold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 shrink-0 select-none ${
-                activeTab === t.id
-                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shrink-0 select-none ${
+                isActive
+                  ? "bg-card text-[#008299] dark:text-[#30B0C7] shadow-xs border border-border/60 font-bold"
+                  : "text-muted-foreground hover:text-foreground border border-transparent font-medium"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -415,11 +416,11 @@ export default function DpdpDashboardClient({
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Consent coverage */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
+            <div className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm space-y-4">
+              <h3 className="font-bold text-sm text-foreground dark:text-white uppercase tracking-wider">
                 Real-Time Consent Coverage
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Percentage of active students with granted consent flags (Total
                 Active: <strong>{totalStudentsCount}</strong>).
               </p>
@@ -427,16 +428,16 @@ export default function DpdpDashboardClient({
                 {consentMetrics.map((m) => (
                   <div key={m.purposeId} className="space-y-1">
                     <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-700 dark:text-slate-350">
+                      <span className="text-muted-foreground dark:text-muted-foreground">
                         {m.labelEn}
                       </span>
-                      <span className="text-indigo-600">
+                      <span className="text-[#008299] dark:text-[#30B0C7] font-mono tabular-nums">
                         {m.percentage}% ({m.grantedCount} students)
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-muted/50 dark:bg-muted/60 h-2 rounded-full overflow-hidden">
                       <div
-                        className="bg-indigo-650 h-2 rounded-full transition-all duration-500"
+                        className="bg-[#008299] dark:bg-[#30B0C7] h-2 rounded-full transition-all duration-500"
                         style={{ width: `${m.percentage}%` }}
                       />
                     </div>
@@ -446,26 +447,26 @@ export default function DpdpDashboardClient({
             </div>
 
             {/* Retention and Purge scheduling */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
+            <div className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
+                <h3 className="font-bold text-sm text-foreground dark:text-white uppercase tracking-wider">
                   Retention & Purge Center
                 </h3>
                 <button
                   onClick={handleManualRetentionRun}
                   disabled={loading === "RETENTION"}
-                  className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                  className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl uppercase tracking-wider min-h-[44px] shadow-xs transition disabled:opacity-50"
                 >
                   {loading === "RETENTION"
                     ? "Running Purge..."
                     : "Run Retention Purge"}
                 </button>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Active students/staff currently soft-deleted and scheduled for
                 permanent hard purge (after 30-day grace period):
               </p>
-              <div className="space-y-3 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="space-y-3 max-h-60 overflow-y-auto divide-y divide-border/40 dark:divide-border/40">
                 {softDeletedStudents.map((s) => {
                   const pName = (s as any).displayName || "Student";
                   const purgeDate = new Date(
@@ -479,10 +480,10 @@ export default function DpdpDashboardClient({
                       className="pt-3 flex justify-between items-center"
                     >
                       <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <p className="text-xs font-bold text-muted-foreground dark:text-muted-foreground">
                           {pName} (Student)
                         </p>
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-[10px] text-muted-foreground">
                           Purge due: {purgeDate.toLocaleDateString()}
                         </p>
                       </div>
@@ -494,7 +495,7 @@ export default function DpdpDashboardClient({
                         className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg uppercase tracking-wider ${
                           isHold
                             ? "bg-red-100 text-red-800"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                            : "bg-muted/50 hover:bg-muted text-muted-foreground"
                         }`}
                       >
                         {isHold ? "Legal Hold Active" : "Place Legal Hold"}
@@ -516,10 +517,10 @@ export default function DpdpDashboardClient({
                       className="pt-3 flex justify-between items-center"
                     >
                       <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <p className="text-xs font-bold text-muted-foreground dark:text-muted-foreground">
                           {pName} (Staff)
                         </p>
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-[10px] text-muted-foreground">
                           Purge due: {purgeDate.toLocaleDateString()}
                         </p>
                       </div>
@@ -529,7 +530,7 @@ export default function DpdpDashboardClient({
                         className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg uppercase tracking-wider ${
                           isHold
                             ? "bg-red-100 text-red-800"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                            : "bg-muted/50 hover:bg-muted text-muted-foreground"
                         }`}
                       >
                         {isHold ? "Legal Hold Active" : "Place Legal Hold"}
@@ -540,7 +541,7 @@ export default function DpdpDashboardClient({
 
                 {softDeletedStudents.length === 0 &&
                   softDeletedStaff.length === 0 && (
-                    <p className="text-xs text-slate-500 py-4 text-center">
+                    <p className="text-xs text-muted-foreground py-4 text-center">
                       No records scheduled for deletion.
                     </p>
                   )}
@@ -552,16 +553,16 @@ export default function DpdpDashboardClient({
 
       {/* Rights Requests SLA Queue */}
       {activeTab === "requests" && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-800 dark:text-white">
+        <div className="bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-border/40 dark:border-border/40 bg-muted/30 dark:bg-muted/30">
+            <h4 className="font-bold text-sm text-foreground dark:text-white">
               Active SLA Rights Requests Queue
             </h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold">
+                <tr className="border-b border-border/40 dark:border-border/40 text-muted-foreground font-bold">
                   <th className="p-3">Ticket</th>
                   <th className="p-3">Type</th>
                   <th className="p-3">Description</th>
@@ -571,7 +572,7 @@ export default function DpdpDashboardClient({
                   <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40 dark:divide-border/40">
                 {requests.map((r) => {
                   const hoursLeft = getSlaHoursLeft(r.dueAt);
                   const isOverdue = hoursLeft <= 0;
@@ -579,20 +580,20 @@ export default function DpdpDashboardClient({
                   return (
                     <tr
                       key={r.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                      className="hover:bg-muted/30 dark:hover:bg-muted/40"
                     >
                       <td className="p-3 font-mono font-bold">
                         {r.ticketNumber}
                       </td>
-                      <td className="p-3 font-bold text-slate-655">
+                      <td className="p-3 font-bold text-foreground">
                         {r.requestType}
                       </td>
-                      <td className="p-3 text-slate-500 max-w-[200px] truncate">
+                      <td className="p-3 text-muted-foreground max-w-[200px] truncate">
                         {r.description}
                       </td>
                       <td className="p-3">
                         {r.status === "COMPLETED" || r.status === "REJECTED" ? (
-                          <span className="text-slate-400">Resolved</span>
+                          <span className="text-muted-foreground">Resolved</span>
                         ) : isOverdue ? (
                           <span className="text-red-655 font-extrabold flex items-center gap-1">
                             <AlertTriangle className="w-3.5 h-3.5" /> OVERDUE
@@ -617,7 +618,7 @@ export default function DpdpDashboardClient({
                           {r.status}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-500 italic max-w-[150px] truncate">
+                      <td className="p-3 text-muted-foreground italic max-w-[150px] truncate">
                         {r.responseDetails || "-"}
                       </td>
                       <td className="p-3 text-right">
@@ -626,7 +627,7 @@ export default function DpdpDashboardClient({
                             onClick={() =>
                               setResolvingTicket({ id: r.id, type: "REQUEST" })
                             }
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                            className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider min-h-[36px] shadow-xs transition"
                           >
                             Resolve
                           </button>
@@ -643,16 +644,16 @@ export default function DpdpDashboardClient({
 
       {/* Grievance Tickets */}
       {activeTab === "grievances" && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-            <h4 className="font-bold text-sm text-slate-800 dark:text-white">
+        <div className="bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-border/40 dark:border-border/40 bg-muted/30 dark:bg-muted/30">
+            <h4 className="font-bold text-sm text-foreground dark:text-white">
               Parent Grievance SLA Queue
             </h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold">
+                <tr className="border-b border-border/40 dark:border-border/40 text-muted-foreground font-bold">
                   <th className="p-3">Ticket</th>
                   <th className="p-3">Subject</th>
                   <th className="p-3">Description</th>
@@ -662,7 +663,7 @@ export default function DpdpDashboardClient({
                   <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border/40 dark:divide-border/40">
                 {grievances.map((g) => {
                   const hoursLeft = getSlaHoursLeft(g.dueAt);
                   const isOverdue = hoursLeft <= 0;
@@ -670,20 +671,20 @@ export default function DpdpDashboardClient({
                   return (
                     <tr
                       key={g.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                      className="hover:bg-muted/30 dark:hover:bg-muted/40"
                     >
                       <td className="p-3 font-mono font-bold">
                         {g.ticketNumber}
                       </td>
-                      <td className="p-3 font-bold text-slate-655">
+                      <td className="p-3 font-bold text-foreground">
                         {g.subject}
                       </td>
-                      <td className="p-3 text-slate-500 max-w-[200px] truncate">
+                      <td className="p-3 text-muted-foreground max-w-[200px] truncate">
                         {g.description}
                       </td>
                       <td className="p-3">
                         {g.status === "COMPLETED" ? (
-                          <span className="text-slate-400">Resolved</span>
+                          <span className="text-muted-foreground">Resolved</span>
                         ) : isOverdue ? (
                           <span className="text-red-655 font-extrabold flex items-center gap-1">
                             <AlertTriangle className="w-3.5 h-3.5" /> OVERDUE
@@ -706,7 +707,7 @@ export default function DpdpDashboardClient({
                           {g.status}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-500 italic max-w-[150px] truncate">
+                      <td className="p-3 text-muted-foreground italic max-w-[150px] truncate">
                         {g.resolutionDetails || "-"}
                       </td>
                       <td className="p-3 text-right">
@@ -718,7 +719,7 @@ export default function DpdpDashboardClient({
                                 type: "GRIEVANCE",
                               })
                             }
-                            className="bg-indigo-650 hover:bg-indigo-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                            className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider min-h-[36px] shadow-xs transition"
                           >
                             Resolve
                           </button>
@@ -737,22 +738,22 @@ export default function DpdpDashboardClient({
       {activeTab === "vendors" && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
+            <h3 className="font-bold text-sm text-foreground dark:text-white uppercase tracking-wider">
               Vendor Register (Third-Party Data Processors)
             </h3>
             <button
               onClick={() => setShowVendorModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl"
+              className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-xl min-h-[44px] shadow-xs transition"
             >
               Add Processor
             </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold">
+                  <tr className="border-b border-border/40 dark:border-border/40 text-muted-foreground font-bold">
                     <th className="p-3">Vendor Name</th>
                     <th className="p-3">Type</th>
                     <th className="p-3">Purpose</th>
@@ -761,19 +762,19 @@ export default function DpdpDashboardClient({
                     <th className="p-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/40 dark:divide-border/40">
                   {vendorList.map((v) => (
                     <tr
                       key={v.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                      className="hover:bg-muted/30 dark:hover:bg-muted/40"
                     >
-                      <td className="p-3 font-bold text-slate-700 dark:text-slate-350">
+                      <td className="p-3 font-bold text-muted-foreground dark:text-muted-foreground">
                         {v.vendorName}
                       </td>
-                      <td className="p-3 font-medium text-slate-500">
+                      <td className="p-3 font-medium text-muted-foreground">
                         {v.vendorType}
                       </td>
-                      <td className="p-3 text-slate-550 max-w-[200px] truncate">
+                      <td className="p-3 text-muted-foreground max-w-[200px] truncate">
                         {v.purposeOfSharing}
                       </td>
                       <td className="p-3">
@@ -787,7 +788,7 @@ export default function DpdpDashboardClient({
                           {v.dpaStatus}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-500">
+                      <td className="p-3 text-muted-foreground">
                         {Array.isArray(v.dataShared)
                           ? v.dataShared.join(", ")
                           : String(v.dataShared)}
@@ -813,7 +814,7 @@ export default function DpdpDashboardClient({
                                 setSuccessMsg("Vendor DPA updated to SIGNED!");
                               }
                             }}
-                            className="bg-indigo-650 hover:bg-indigo-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                            className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider min-h-[36px] shadow-xs transition"
                           >
                             Mark Signed
                           </button>
@@ -832,7 +833,7 @@ export default function DpdpDashboardClient({
       {activeTab === "breaches" && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
+            <h3 className="font-bold text-sm text-foreground dark:text-white uppercase tracking-wider">
               Data Breach & Incident Management (72-hour board SLA)
             </h3>
             <button
@@ -854,12 +855,12 @@ export default function DpdpDashboardClient({
               return (
                 <div
                   key={b.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 p-6 rounded-2xl shadow-sm space-y-4"
+                  className="bg-card border border-border/40 dark:border-border/40 p-6 rounded-2xl shadow-sm space-y-4"
                 >
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-350">
+                        <span className="font-mono font-bold text-sm text-muted-foreground dark:text-muted-foreground">
                           {b.incidentReference}
                         </span>
                         <span
@@ -871,11 +872,11 @@ export default function DpdpDashboardClient({
                         >
                           {b.severity}
                         </span>
-                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[9px] rounded-full uppercase font-bold text-slate-500">
+                        <span className="px-2 py-0.5 bg-muted/50 dark:bg-muted/60 text-[9px] rounded-full uppercase font-bold text-muted-foreground">
                           {b.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Detected: {new Date(b.detectedAt).toLocaleString()}
                       </p>
                     </div>
@@ -902,10 +903,10 @@ export default function DpdpDashboardClient({
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground font-medium">
                       <strong>Incident Details:</strong> {b.description}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       <strong>Affected Records:</strong>{" "}
                       {b.affectedRecordsCount} |{" "}
                       <strong>Affected Categories:</strong>{" "}
@@ -916,7 +917,7 @@ export default function DpdpDashboardClient({
                   </div>
 
                   {/* Actions to log board & parent notifications */}
-                  <div className="flex gap-2 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex gap-2 justify-end pt-2 border-t border-border/40 dark:border-border/40">
                     {!b.boardNotifiedAt && (
                       <button
                         onClick={async () => {
@@ -940,7 +941,7 @@ export default function DpdpDashboardClient({
                             );
                           }
                         }}
-                        className="bg-indigo-650 hover:bg-indigo-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                        className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider min-h-[36px] shadow-xs transition"
                       >
                         Notify Board
                       </button>
@@ -968,7 +969,7 @@ export default function DpdpDashboardClient({
                             );
                           }
                         }}
-                        className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider border border-slate-200 dark:border-slate-700"
+                        className="bg-muted/50 hover:bg-muted dark:bg-muted/60 dark:hover:bg-muted/40 text-muted-foreground dark:text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider border border-border/40 dark:border-border/40"
                       >
                         Notify Parents
                       </button>
@@ -979,7 +980,7 @@ export default function DpdpDashboardClient({
             })}
 
             {breachList.length === 0 && (
-              <div className="p-12 text-center text-slate-500 bg-white dark:bg-slate-900 border rounded-2xl">
+              <div className="p-12 text-center text-muted-foreground bg-card border rounded-2xl">
                 No data breach incidents detected or logged. (Compliant State)
               </div>
             )}
@@ -991,9 +992,9 @@ export default function DpdpDashboardClient({
       {activeTab === "explorer" && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-card p-4 border border-border/40 dark:border-border/40 rounded-2xl">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Parent/User Email
               </label>
               <input
@@ -1001,11 +1002,11 @@ export default function DpdpDashboardClient({
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
                 placeholder="Filter by email..."
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Table Name
               </label>
               <input
@@ -1013,17 +1014,17 @@ export default function DpdpDashboardClient({
                 value={searchTable}
                 onChange={(e) => setSearchTable(e.target.value)}
                 placeholder="Filter by table (e.g. students)..."
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Audit Action
               </label>
               <select
                 value={searchAction}
                 onChange={(e) => setSearchAction(e.target.value)}
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
               >
                 <option value="">All Actions</option>
                 <option value="READ">READ (View PII)</option>
@@ -1034,11 +1035,11 @@ export default function DpdpDashboardClient({
           </div>
 
           {/* Table */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card border border-border/40 dark:border-border/40 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold">
+                  <tr className="border-b border-border/40 dark:border-border/40 text-muted-foreground font-bold">
                     <th className="p-3">Timestamp</th>
                     <th className="p-3">User Email</th>
                     <th className="p-3">Role</th>
@@ -1048,19 +1049,19 @@ export default function DpdpDashboardClient({
                     <th className="p-3">IP Address</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/40 dark:divide-border/40">
                   {filteredLogs.map((l) => (
                     <tr
                       key={l.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-850"
+                      className="hover:bg-muted/30 dark:hover:bg-muted/40"
                     >
-                      <td className="p-3 font-mono text-[10px] text-slate-500">
+                      <td className="p-3 font-mono text-[10px] text-muted-foreground">
                         {new Date(l.createdAt).toLocaleString()}
                       </td>
-                      <td className="p-3 font-bold text-slate-700 dark:text-slate-350">
+                      <td className="p-3 font-bold text-muted-foreground dark:text-muted-foreground">
                         {l.userEmail}
                       </td>
-                      <td className="p-3 font-semibold text-slate-500">
+                      <td className="p-3 font-semibold text-muted-foreground">
                         {l.userRole}
                       </td>
                       <td className="p-3">
@@ -1076,13 +1077,13 @@ export default function DpdpDashboardClient({
                           {l.action}
                         </span>
                       </td>
-                      <td className="p-3 font-semibold text-slate-655 font-mono">
+                      <td className="p-3 font-semibold text-foreground font-mono">
                         {l.tableName}
                       </td>
-                      <td className="p-3 font-mono text-[10px] text-slate-450">
+                      <td className="p-3 font-mono text-[10px] text-muted-foreground">
                         {l.recordId || "-"}
                       </td>
-                      <td className="p-3 font-mono text-[10px] text-slate-500">
+                      <td className="p-3 font-mono text-[10px] text-muted-foreground">
                         {l.ipAddress}
                       </td>
                     </tr>
@@ -1091,7 +1092,7 @@ export default function DpdpDashboardClient({
                     <tr>
                       <td
                         colSpan={7}
-                        className="p-8 text-center text-slate-500"
+                        className="p-8 text-center text-muted-foreground"
                       >
                         No logs match search filters.
                       </td>
@@ -1111,9 +1112,9 @@ export default function DpdpDashboardClient({
 
       {/* Resolution Modal */}
       {resolvingTicket && (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+        <div className="fixed inset-0 bg-muted/40 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-card border border-border/40 dark:border-border/40 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-foreground dark:text-white uppercase tracking-wider">
               Resolve{" "}
               {resolvingTicket.type === "REQUEST"
                 ? "Rights Request"
@@ -1122,7 +1123,7 @@ export default function DpdpDashboardClient({
 
             {resolvingTicket.type === "REQUEST" && (
               <div className="flex gap-4">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-muted-foreground">
                   <input
                     type="radio"
                     checked={resApprove}
@@ -1130,7 +1131,7 @@ export default function DpdpDashboardClient({
                   />
                   Approve / Complete
                 </label>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-muted-foreground">
                   <input
                     type="radio"
                     checked={!resApprove}
@@ -1142,14 +1143,14 @@ export default function DpdpDashboardClient({
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase">
+              <label className="text-xs font-bold text-muted-foreground uppercase">
                 Resolution Notes / Action Taken
               </label>
               <textarea
                 value={resDetails}
                 onChange={(e) => setResDetails(e.target.value)}
                 placeholder="Provide resolution details for this audit log..."
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-855 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
                 rows={3}
                 required
               />
@@ -1159,7 +1160,7 @@ export default function DpdpDashboardClient({
               <button
                 type="button"
                 onClick={() => setResolvingTicket(null)}
-                className="bg-white hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 text-slate-500 dark:text-slate-350 text-xs font-bold px-4 py-2.5 rounded-xl"
+                className="bg-white hover:bg-muted/30 dark:bg-card border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground text-xs font-bold px-4 py-2.5 rounded-xl"
               >
                 Cancel
               </button>
@@ -1167,7 +1168,7 @@ export default function DpdpDashboardClient({
                 type="button"
                 onClick={handleResolveTicket}
                 disabled={loading === "RESOLVE"}
-                className="bg-indigo-650 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl"
+                className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-4 py-2.5 rounded-xl min-h-[44px] shadow-xs transition"
               >
                 Confirm Resolution
               </button>
@@ -1178,24 +1179,24 @@ export default function DpdpDashboardClient({
 
       {/* Breach Modal */}
       {showBreachModal && (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-muted/40 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <form
             onSubmit={handleReportBreach}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4"
+            className="bg-card border border-border/40 dark:border-border/40 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4"
           >
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+            <h3 className="text-lg font-bold text-foreground dark:text-white uppercase tracking-wider flex items-center gap-1.5">
               <AlertOctagon className="w-5 h-5 text-red-600" /> Log Data Breach
               Incident
             </h3>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Severity
               </label>
               <select
                 value={breachSeverity}
                 onChange={(e: any) => setBreachSeverity(e.target.value)}
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
               >
                 <option value="LOW">LOW</option>
                 <option value="MEDIUM">MEDIUM</option>
@@ -1205,14 +1206,14 @@ export default function DpdpDashboardClient({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Incident Description
               </label>
               <textarea
                 value={breachDesc}
                 onChange={(e) => setBreachDesc(e.target.value)}
                 placeholder="What occurred, what system was breached..."
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                 rows={2}
                 required
               />
@@ -1220,7 +1221,7 @@ export default function DpdpDashboardClient({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">
                   Affected Records Count
                 </label>
                 <input
@@ -1229,12 +1230,12 @@ export default function DpdpDashboardClient({
                   onChange={(e) =>
                     setBreachCount(parseInt(e.target.value) || 0)
                   }
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                   required
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">
                   Data Categories (comma sep)
                 </label>
                 <input
@@ -1242,21 +1243,21 @@ export default function DpdpDashboardClient({
                   value={breachCategories}
                   onChange={(e) => setBreachCategories(e.target.value)}
                   placeholder="e.g. marks, addresses"
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Immediate Containment Actions Taken
               </label>
               <textarea
                 value={breachActions}
                 onChange={(e) => setBreachActions(e.target.value)}
                 placeholder="e.g. Disabled compromised API endpoint, revoked DB credentials"
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                 rows={2}
               />
             </div>
@@ -1265,7 +1266,7 @@ export default function DpdpDashboardClient({
               <button
                 type="button"
                 onClick={() => setShowBreachModal(false)}
-                className="bg-white hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 text-slate-500 dark:text-slate-350 text-xs font-bold px-4 py-2.5 rounded-xl"
+                className="bg-white hover:bg-muted/30 dark:bg-card border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground text-xs font-bold px-4 py-2.5 rounded-xl"
               >
                 Cancel
               </button>
@@ -1283,18 +1284,18 @@ export default function DpdpDashboardClient({
 
       {/* Vendor Modal */}
       {showVendorModal && (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-muted/40 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <form
             onSubmit={handleAddVendor}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4"
+            className="bg-card border border-border/40 dark:border-border/40 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4"
           >
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+            <h3 className="text-lg font-bold text-foreground dark:text-white uppercase tracking-wider">
               Add Third-Party Data Processor
             </h3>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">
                   Vendor Name
                 </label>
                 <input
@@ -1302,12 +1303,12 @@ export default function DpdpDashboardClient({
                   value={vName}
                   onChange={(e) => setVName(e.target.value)}
                   placeholder="e.g. Razorpay"
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                   required
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">
                   Processor Type
                 </label>
                 <input
@@ -1315,14 +1316,14 @@ export default function DpdpDashboardClient({
                   value={vType}
                   onChange={(e) => setVType(e.target.value)}
                   placeholder="e.g. PAYMENT_GATEWAY"
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Data Categories Shared (comma sep)
               </label>
               <input
@@ -1330,13 +1331,13 @@ export default function DpdpDashboardClient({
                 value={vDataShared}
                 onChange={(e) => setVDataShared(e.target.value)}
                 placeholder="e.g. parent_name, fee_amount"
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                 required
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
                 Purpose of Data Transfer
               </label>
               <input
@@ -1344,34 +1345,34 @@ export default function DpdpDashboardClient({
                 value={vPurpose}
                 onChange={(e) => setVPurpose(e.target.value)}
                 placeholder="e.g. Payment processing for school tuition fees"
-                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">
                   DPA Status
                 </label>
                 <select
                   value={vDpaStatus}
                   onChange={(e: any) => setVDpaStatus(e.target.value)}
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                 >
                   <option value="SIGNED">SIGNED</option>
                   <option value="PENDING">PENDING</option>
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">
                   Contract Expiry Date
                 </label>
                 <input
                   type="date"
                   value={vDpaExpiry}
                   onChange={(e) => setVDpaExpiry(e.target.value)}
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none"
                 />
               </div>
             </div>
@@ -1380,14 +1381,14 @@ export default function DpdpDashboardClient({
               <button
                 type="button"
                 onClick={() => setShowVendorModal(false)}
-                className="bg-white hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 text-slate-500 dark:text-slate-350 text-xs font-bold px-4 py-2.5 rounded-xl"
+                className="bg-white hover:bg-muted/30 dark:bg-card border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground text-xs font-bold px-4 py-2.5 rounded-xl"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading === "VENDOR"}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl"
+                className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white dark:text-black text-xs font-bold px-4 py-2.5 rounded-xl min-h-[44px] shadow-xs transition"
               >
                 Add Processor
               </button>

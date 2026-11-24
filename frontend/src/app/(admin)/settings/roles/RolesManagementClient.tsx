@@ -353,32 +353,32 @@ export function RolesManagementClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/40 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            <span className="p-2 rounded-lg bg-[#007AFF]/10 dark:bg-[#0A84FF]/10 text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF]">
               <ShieldCheck className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-xl font-bold text-foreground">
               Role & Access Management
             </h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-muted/50 text-muted-foreground dark:bg-muted/60 dark:text-muted-foreground">
               {currentUserRole}
             </span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Authoritative RBAC governance, staff role allocations, and security credentials management.
           </p>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800/80 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-muted/60/80 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab("users")}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
               activeTab === "users"
-                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                : "text-gray-600 dark:text-slate-400 hover:text-gray-900"
+                ? "bg-card text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] shadow-sm"
+                : "text-muted-foreground hover:text-gray-900"
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -388,8 +388,8 @@ export function RolesManagementClient({
             onClick={() => setActiveTab("roles")}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
               activeTab === "roles"
-                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                : "text-gray-600 dark:text-slate-400 hover:text-gray-900"
+                ? "bg-card text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] shadow-sm"
+                : "text-muted-foreground hover:text-gray-900"
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
@@ -399,8 +399,8 @@ export function RolesManagementClient({
             onClick={() => setActiveTab("matrix")}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
               activeTab === "matrix"
-                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                : "text-gray-600 dark:text-slate-400 hover:text-gray-900"
+                ? "bg-card text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] shadow-sm"
+                : "text-muted-foreground hover:text-gray-900"
             }`}
           >
             <Table className="w-3.5 h-3.5" />
@@ -420,12 +420,12 @@ export function RolesManagementClient({
                 placeholder="Search staff by name, email, employee ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-80 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full sm:w-80 px-3 py-2 text-sm rounded-lg border border-border/60 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
               />
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                className="px-3 py-2 text-sm rounded-lg border border-border/60 bg-card text-foreground"
               >
                 <option value="ALL">All Roles</option>
                 {rolesList.map((r) => (
@@ -435,17 +435,17 @@ export function RolesManagementClient({
                 ))}
               </select>
             </div>
-            <div className="text-xs text-gray-500 dark:text-slate-400 self-end sm:self-auto">
+            <div className="text-xs text-muted-foreground self-end sm:self-auto">
               Showing {filteredUsers.length} of {usersList.length} users
             </div>
           </div>
 
           {/* Table */}
-          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+          <div className="border border-border/40 rounded-xl overflow-hidden bg-card shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/80 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                  <tr className="bg-muted/40 border-b border-border/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     <th className="py-3 px-4">User / Staff Member</th>
                     <th className="py-3 px-4">Designation & Department</th>
                     <th className="py-3 px-4">Assigned Roles</th>
@@ -453,10 +453,10 @@ export function RolesManagementClient({
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+                <tbody className="divide-y divide-border/40 text-sm">
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-slate-400">
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
                         No users matching filter criteria.
                       </td>
                     </tr>
@@ -470,26 +470,26 @@ export function RolesManagementClient({
                       return (
                         <tr
                           key={user.id}
-                          className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                          className="hover:bg-muted/40 transition-colors"
                         >
                           <td className="py-3.5 px-4">
-                            <div className="font-semibold text-gray-900 dark:text-white">
+                            <div className="font-semibold text-foreground">
                               {fullName}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-slate-400">
+                            <div className="text-xs text-muted-foreground">
                               {user.email}
                               {user.staffEmployeeId && (
-                                <span className="ml-1.5 px-1.5 py-0.2 text-[10px] bg-slate-100 dark:bg-slate-800 rounded font-mono">
+                                <span className="ml-1.5 px-1.5 py-0.2 text-[10px] bg-muted/50 dark:bg-muted/60 rounded font-mono">
                                   {user.staffEmployeeId}
                                 </span>
                               )}
                             </div>
                           </td>
                           <td className="py-3.5 px-4 text-xs">
-                            <div className="font-medium text-gray-800 dark:text-slate-200">
+                            <div className="font-medium text-foreground">
                               {user.designationName || "—"}
                             </div>
-                            <div className="text-gray-500 dark:text-slate-400">
+                            <div className="text-muted-foreground">
                               {user.departmentName || "General"}
                             </div>
                           </td>
@@ -503,7 +503,7 @@ export function RolesManagementClient({
                                 user.assignedRoles.map((r) => (
                                   <span
                                     key={r.id}
-                                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#007AFF]/10 dark:bg-[#0A84FF]/10 text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] border border-[#007AFF]/20 dark:border-[#007AFF]/30"
                                   >
                                     {r.displayName}
                                     <button
@@ -538,7 +538,7 @@ export function RolesManagementClient({
                                     selectedRoleId: "",
                                   })
                                 }
-                                className="inline-flex items-center gap-0.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium px-1.5 py-0.5 rounded border border-dashed border-indigo-300 dark:border-indigo-700 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/40 transition-colors"
+                                className="inline-flex items-center gap-0.5 text-xs text-[#007AFF] dark:text-[#0A84FF] hover:text-[#007AFF] dark:text-[#0A84FF] font-medium px-1.5 py-0.5 rounded border border-dashed border-[#007AFF]/30 dark:border-[#007AFF]/40 hover:bg-muted/20 dark:hover:bg-[#0A84FF]/20 transition-colors"
                               >
                                 <Plus className="w-3 h-3" />
                                 Add
@@ -592,7 +592,7 @@ export function RolesManagementClient({
                                     confirmLabel: "Reset Password & Send SMS",
                                   })
                                 }
-                                className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/10 dark:text-muted-foreground dark:hover:bg-muted/60 transition-colors"
                               >
                                 <KeyRound className="w-4 h-4" />
                               </button>
@@ -615,7 +615,7 @@ export function RolesManagementClient({
                                 }
                                 className={`p-1.5 rounded-lg transition-colors ${
                                   user.isActive
-                                    ? "text-slate-600 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:bg-rose-950/40"
+                                    ? "text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:text-muted-foreground dark:hover:bg-rose-950/40"
                                     : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                                 }`}
                               >
@@ -638,7 +638,7 @@ export function RolesManagementClient({
       {activeTab === "roles" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               System and custom roles registered for this tenant. System roles are pre-seeded with authoritative guards.
             </p>
             {isSuperAdmin && (
@@ -652,7 +652,7 @@ export function RolesManagementClient({
                     description: "",
                   })
                 }
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#007AFF] dark:bg-[#0A84FF] text-white hover:opacity-90 transition-colors flex items-center gap-1.5 shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 New Role
@@ -667,19 +667,19 @@ export function RolesManagementClient({
               return (
                 <div
                   key={r.id}
-                  className="p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col justify-between"
+                  className="p-4 rounded-xl border border-border/40 bg-card shadow-sm flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <h3 className="font-semibold text-foreground flex items-center gap-1.5">
                           {r.displayName}
                         </h3>
                         <span className="text-xs font-mono text-gray-400">{r.name}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         {r.isSystemRole ? (
-                          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-muted/50 text-muted-foreground dark:bg-muted/60 dark:text-muted-foreground">
                             System
                           </span>
                         ) : (
@@ -689,14 +689,14 @@ export function RolesManagementClient({
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
                       {r.description || `Default permissions and landing dashboard for ${r.displayName}.`}
                     </p>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-slate-400">
-                      <strong className="text-gray-900 dark:text-white font-semibold">
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      <strong className="text-foreground font-semibold">
                         {r.userCount}
                       </strong>{" "}
                       users assigned
@@ -715,7 +715,7 @@ export function RolesManagementClient({
                               description: r.description || "",
                             })
                           }
-                          className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-1 rounded text-muted-foreground hover:text-[#007AFF] dark:text-[#0A84FF] hover:bg-muted/50 dark:hover:bg-muted/60"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -742,27 +742,27 @@ export function RolesManagementClient({
             </div>
           </div>
 
-          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+          <div className="border border-border/40 rounded-xl overflow-hidden bg-card shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gray-50/80 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                  <tr className="bg-muted/40 border-b border-border/40 font-semibold text-muted-foreground uppercase tracking-wider">
                     <th className="py-3 px-4">Domain / Module</th>
                     <th className="py-3 px-4">Protected Action</th>
                     <th className="py-3 px-4">Description</th>
                     <th className="py-3 px-4">Authorized Roles</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/40">
                   {BASELINE_PERMISSION_MATRIX.map((row: PermissionMatrixRow, idx: number) => (
-                    <tr key={idx} className="hover:bg-gray-50/40 dark:hover:bg-slate-800/30">
-                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+                    <tr key={idx} className="hover:bg-muted/30">
+                      <td className="py-3 px-4 font-semibold text-foreground whitespace-nowrap">
                         {row.module}
                       </td>
-                      <td className="py-3 px-4 font-medium text-gray-800 dark:text-slate-200">
+                      <td className="py-3 px-4 font-medium text-foreground">
                         {row.action}
                       </td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-slate-400">
+                      <td className="py-3 px-4 text-muted-foreground">
                         {row.description}
                       </td>
                       <td className="py-3 px-4">
@@ -777,7 +777,7 @@ export function RolesManagementClient({
                                   ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
                                   : role === "ACCOUNTANT"
                                   ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                  : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                                  : "bg-muted/50 text-foreground dark:bg-muted/60 dark:text-muted-foreground"
                               }`}
                             >
                               {role}
@@ -810,16 +810,16 @@ export function RolesManagementClient({
       {/* ASSIGN ROLE MODAL */}
       {assignRoleModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl p-5 space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+          <div className="w-full max-w-sm bg-card border border-border/40 rounded-2xl shadow-2xl p-5 space-y-4">
+            <h3 className="text-base font-bold text-foreground">
               Assign Role to User
             </h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
-              Grant an additional ERP role to <strong className="text-gray-900 dark:text-white">{assignRoleModal.userEmail}</strong>.
+            <p className="text-xs text-muted-foreground">
+              Grant an additional ERP role to <strong className="text-foreground">{assignRoleModal.userEmail}</strong>.
             </p>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Select Role:
               </label>
               <select
@@ -827,7 +827,7 @@ export function RolesManagementClient({
                 onChange={(e) =>
                   setAssignRoleModal((prev) => ({ ...prev, selectedRoleId: e.target.value }))
                 }
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border/60 bg-card text-foreground"
               >
                 <option value="">-- Choose a Role --</option>
                 {rolesList.map((r) => (
@@ -844,7 +844,7 @@ export function RolesManagementClient({
                 onClick={() =>
                   setAssignRoleModal({ isOpen: false, userId: "", userEmail: "", selectedRoleId: "" })
                 }
-                className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:bg-gray-100 dark:hover:bg-muted/60"
               >
                 Cancel
               </button>
@@ -852,7 +852,7 @@ export function RolesManagementClient({
                 type="button"
                 disabled={isPending || !assignRoleModal.selectedRoleId}
                 onClick={handleAssignRole}
-                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#007AFF] dark:bg-[#0A84FF] text-white hover:opacity-90 disabled:opacity-50 transition-colors shadow-sm"
               >
                 {isPending ? "Assigning..." : "Assign Role"}
               </button>
@@ -864,10 +864,10 @@ export function RolesManagementClient({
       {/* MANUAL CREDENTIALS MODAL (SMS FALLBACK) */}
       {credentialModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-card border border-border/40 rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertCircle className="w-5 h-5" />
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+              <h3 className="text-base font-bold text-foreground">
                 Credentials Generated (Manual Copy)
               </h3>
             </div>
@@ -877,28 +877,28 @@ export function RolesManagementClient({
               </p>
             )}
 
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-xs space-y-2">
+            <div className="p-3.5 rounded-xl bg-muted/30 dark:bg-muted/40 border border-border/40 dark:border-border/40 font-mono text-xs space-y-2">
               <div>
                 <span className="text-gray-400">Login Email:</span>{" "}
-                <strong className="text-gray-900 dark:text-white select-all">
+                <strong className="text-foreground select-all">
                   {credentialModal.email}
                 </strong>
               </div>
               <div>
                 <span className="text-gray-400">Temp Password:</span>{" "}
-                <strong className="text-indigo-600 dark:text-indigo-400 font-bold text-sm select-all">
+                <strong className="text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] font-bold text-sm select-all">
                   {credentialModal.tempPassword}
                 </strong>
               </div>
               <div>
                 <span className="text-gray-400">Role:</span>{" "}
-                <span className="text-gray-900 dark:text-white">
+                <span className="text-foreground">
                   {credentialModal.roleDisplayName}
                 </span>
               </div>
               <div>
                 <span className="text-gray-400">Dashboard Landing:</span>{" "}
-                <span className="text-gray-700 dark:text-slate-300">
+                <span className="text-foreground">
                   {credentialModal.dashboardUrl}
                 </span>
               </div>
@@ -914,7 +914,7 @@ export function RolesManagementClient({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#007AFF]/20 dark:border-[#007AFF]/30 text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/10 dark:hover:bg-[#0A84FF]/20 flex items-center gap-1.5 transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? "Copied!" : "Copy Credentials"}
@@ -923,7 +923,7 @@ export function RolesManagementClient({
               <button
                 type="button"
                 onClick={() => setCredentialModal(null)}
-                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#007AFF] dark:bg-[#0A84FF] text-white hover:opacity-90 shadow-sm"
               >
                 Done
               </button>
@@ -937,15 +937,15 @@ export function RolesManagementClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
           <form
             onSubmit={handleSaveRole}
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl p-5 space-y-4"
+            className="w-full max-w-md bg-card border border-border/40 rounded-2xl shadow-2xl p-5 space-y-4"
           >
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base font-bold text-foreground">
               {roleModal.mode === "CREATE" ? "Create New Tenant Role" : "Edit Role"}
             </h3>
 
             {roleModal.mode === "CREATE" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Role Schema Enum:
                 </label>
                 <select
@@ -953,7 +953,7 @@ export function RolesManagementClient({
                   onChange={(e) =>
                     setRoleModal((prev) => ({ ...prev, name: e.target.value as UserRole }))
                   }
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border/60 bg-card text-foreground"
                 >
                   {Object.keys(ROLE_CONFIGS).map((key) => (
                     <option key={key} value={key}>
@@ -965,7 +965,7 @@ export function RolesManagementClient({
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Display Name:
               </label>
               <input
@@ -976,12 +976,12 @@ export function RolesManagementClient({
                   setRoleModal((prev) => ({ ...prev, displayName: e.target.value }))
                 }
                 placeholder="e.g. Senior Bursar / Accounts Head"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border/60 bg-card text-foreground"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Description:
               </label>
               <textarea
@@ -991,7 +991,7 @@ export function RolesManagementClient({
                   setRoleModal((prev) => ({ ...prev, description: e.target.value }))
                 }
                 placeholder="Operational purpose and scope of this role..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border/60 bg-card text-foreground"
               />
             </div>
 
@@ -999,14 +999,14 @@ export function RolesManagementClient({
               <button
                 type="button"
                 onClick={() => setRoleModal((prev) => ({ ...prev, isOpen: false }))}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:bg-gray-100 dark:hover:bg-muted/60"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#007AFF] dark:bg-[#0A84FF] text-white hover:opacity-90 disabled:opacity-50 transition-colors shadow-sm"
               >
                 {isPending ? "Saving..." : "Save Role"}
               </button>

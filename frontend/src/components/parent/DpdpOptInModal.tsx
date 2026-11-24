@@ -120,22 +120,22 @@ export default function DpdpOptInModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-card border border-border/40 rounded-3xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         {/* Top Gradient Accent */}
-        <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-500" />
+        <div className="h-2 w-full bg-gradient-to-r from-teal-500 via-cyan-500 to-emerald-500" />
 
         {/* Modal Header */}
-        <div className="p-6 border-b border-slate-800/80 bg-slate-900/60 flex items-start justify-between gap-4">
+        <div className="p-6 border-b border-border/40 bg-muted/40 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
               <Shield className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                 {isHindi ? "डिजिटल व्यक्तिगत डेटा संरक्षण (DPDP) सहमति" : "Parental Consent & DPDP Compliance"}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {isHindi
                   ? "डीपीडीपी अधिनियम 2023 के तहत आपके वार्ड के डेटा प्रसंस्करण के लिए अनिवार्य सहमति"
                   : "Explicit consent notice required under DPDP Act 2023 for your child's schooling records"}
@@ -147,22 +147,22 @@ export default function DpdpOptInModal() {
           <button
             type="button"
             onClick={() => setIsHindi(!isHindi)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-muted/60 hover:bg-muted text-muted-foreground border border-border/40 transition"
           >
             {isHindi ? "English" : "हिंदी"}
           </button>
         </div>
 
         {/* Student Banner */}
-        <div className="px-6 py-3 bg-slate-950/50 border-b border-slate-800/60 flex items-center gap-2 text-xs text-slate-300">
-          <span className="font-semibold text-slate-400">
+        <div className="px-6 py-3 bg-muted/30 border-b border-border/40 flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-semibold text-muted-foreground">
             {isHindi ? "विद्यार्थी:" : "Enrolled Ward(s):"}
           </span>
           <div className="flex flex-wrap gap-2">
             {students.map((st) => (
               <span
                 key={st.id}
-                className="px-2.5 py-0.5 rounded-lg bg-indigo-950/60 border border-indigo-800/40 text-indigo-300 font-medium"
+                className="px-2.5 py-0.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-700 dark:text-teal-300 font-medium"
               >
                 {st.displayName} ({st.admissionNumber})
               </span>
@@ -189,7 +189,7 @@ export default function DpdpOptInModal() {
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {isHindi ? "सहमति के उद्देश्य और श्रेणियां" : "Consent Categories & Data Purposes"}
             </h3>
 
@@ -201,8 +201,8 @@ export default function DpdpOptInModal() {
                   onClick={() => handleToggle(p.purposeId, p.mandatory)}
                   className={`p-4 rounded-2xl border transition flex items-start justify-between gap-3 ${
                     p.mandatory
-                      ? "bg-slate-950/40 border-slate-800"
-                      : "bg-slate-900/80 border-slate-800 hover:border-slate-700 cursor-pointer"
+                      ? "bg-muted/20 border-border/40"
+                      : "bg-card border-border/40 hover:border-border/40 cursor-pointer"
                   }`}
                 >
                   <div className="space-y-1 pr-2">
@@ -215,12 +215,12 @@ export default function DpdpOptInModal() {
                           {isHindi ? "अनिवार्य" : "Core Educational"}
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-slate-800 text-slate-400">
+                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-muted/60 text-muted-foreground">
                           {isHindi ? "वैकल्पिक" : "Optional"}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 leading-relaxed">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       {isHindi ? p.descriptionHi || p.descriptionEn : p.descriptionEn}
                     </p>
                   </div>
@@ -235,7 +235,7 @@ export default function DpdpOptInModal() {
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => handleToggle(p.purposeId, p.mandatory)}
-                        className="w-5 h-5 rounded-md bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="w-5 h-5 rounded-md bg-muted/60 border-border/40 text-[#008299] dark:text-[#30B0C7] focus:ring-[#008299] cursor-pointer"
                       />
                     )}
                   </div>
@@ -246,17 +246,17 @@ export default function DpdpOptInModal() {
         </div>
 
         {/* Modal Footer (Sticky with Legal Affirmation & Action) */}
-        <div className="p-5 sm:p-6 border-t border-slate-800/80 bg-slate-900/95 space-y-4">
+        <div className="p-5 sm:p-6 border-t border-border/40 bg-card space-y-4">
           {/* Legal Affirmation Checkbox - always visible directly above action */}
-          <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-800/50">
+          <div className="p-3.5 rounded-2xl bg-teal-500/5 dark:bg-teal-950/20 border border-teal-500/20">
             <label className="flex items-start gap-3 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded bg-slate-800 border-indigo-500 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                className="mt-0.5 w-4 h-4 rounded bg-muted/60 border-teal-500 text-[#008299] dark:text-[#30B0C7] focus:ring-[#008299] cursor-pointer shrink-0"
               />
-              <span className="text-xs text-slate-200 leading-relaxed font-medium">
+              <span className="text-xs text-foreground leading-relaxed font-medium">
                 {isHindi
                   ? "मैं पुष्टि करता/करती हूँ कि मैं ऊपर उल्लिखित छात्र(ों) का कानूनी माता-पिता/अभिभावक हूँ और डिजिटल व्यक्तिगत डेटा संरक्षण (DPDP) अधिनियम 2023 के तहत डेटा प्रसंस्करण के लिए स्पष्ट सहमति देता/देती हूँ।"
                   : "I confirm that I am the parent/legal guardian of the enrolled student(s) and hereby provide explicit, informed consent for the processing of personal data in accordance with the DPDP Act 2023."}
@@ -265,7 +265,7 @@ export default function DpdpOptInModal() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-slate-500 text-center sm:text-left">
+            <p className="text-[11px] text-muted-foreground text-center sm:text-left">
               {isHindi
                 ? "आप बाद में 'Consent Center' टैब से कभी भी वैकल्पिक सहमति बदल सकते हैं।"
                 : "You can modify optional consents anytime from the Consent Center."}
@@ -275,7 +275,7 @@ export default function DpdpOptInModal() {
               type="button"
               disabled={!agreedToTerms || submitting}
               onClick={handleSubmit}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 shrink-0"
+              className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl font-bold text-xs bg-[#008299] hover:bg-[#006e82] dark:bg-[#30B0C7] dark:hover:bg-[#2899ad] disabled:opacity-40 disabled:cursor-not-allowed text-white dark:text-black shadow-md transition flex items-center justify-center gap-2 shrink-0"
             >
               {submitting ? (
                 <span>{isHindi ? "सहेज रहा है..." : "Saving..."}</span>

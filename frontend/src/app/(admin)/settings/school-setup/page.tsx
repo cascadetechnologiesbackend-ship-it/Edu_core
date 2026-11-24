@@ -200,7 +200,7 @@ export default function SchoolSetupPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#007AFF] dark:text-[#0A84FF]" />
         <p className="text-sm text-gray-500">Loading school profile details...</p>
       </div>
     );
@@ -344,13 +344,13 @@ export default function SchoolSetupPage() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] dark:bg-[#0A84FF]/10 dark:text-[#007AFF] dark:text-[#0A84FF] border border-[#007AFF]/20 dark:border-[#0A84FF]/20">
             <Building2 className="w-3.5 h-3.5" /> Institution Identity & Branding
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground mt-2">
             School Profile Manager
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Maintain your official institutional data, accreditation, digital identity, and brand styling.
           </p>
         </div>
@@ -364,7 +364,7 @@ export default function SchoolSetupPage() {
             Tier: {schoolData?.subscriptionTier || "STANDARD"}
           </span>
           {schoolData?.slug && (
-            <span className="px-3 py-1 text-xs font-mono font-medium rounded-lg bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300">
+            <span className="px-3 py-1 text-xs font-mono font-medium rounded-lg bg-gray-100 text-gray-700 dark:bg-muted/60 dark:text-muted-foreground">
               /{schoolData.slug}
             </span>
           )}
@@ -372,14 +372,14 @@ export default function SchoolSetupPage() {
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-slate-800 gap-6 sm:gap-8 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-muted/40 border border-border/40 w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("hub")}
-          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
+          className={`px-5 py-2 min-h-[44px] text-xs font-semibold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === "hub"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              ? "bg-card text-[#007AFF] dark:text-[#0A84FF] shadow-sm font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Layers className="w-4 h-4" /> Setup Hub & Digital Twin
@@ -387,10 +387,10 @@ export default function SchoolSetupPage() {
         <button
           type="button"
           onClick={() => setActiveTab("profile")}
-          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
+          className={`px-5 py-2 min-h-[44px] text-xs font-semibold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === "profile"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              ? "bg-card text-[#007AFF] dark:text-[#0A84FF] shadow-sm font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Building2 className="w-4 h-4" /> Institution Identity & Branding
@@ -401,14 +401,14 @@ export default function SchoolSetupPage() {
         /* Digital Twin Configuration Hub */
         <div className="space-y-6 animate-in fade-in-50 duration-200">
           {/* Provenance & Status Banner */}
-          <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/50 via-purple-50/30 to-white dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-slate-900 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20">
+              <div className="w-10 h-10 rounded-xl bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] border border-[#007AFF]/20 flex items-center justify-center shrink-0">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-base font-bold text-foreground">
                     {healthStats?.isProvisioned
                       ? "School Digital Twin Active"
                       : "Standard Configuration Workspace"}
@@ -419,7 +419,7 @@ export default function SchoolSetupPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 max-w-xl leading-relaxed">
+                <p className="text-xs text-muted-foreground mt-1 max-w-xl leading-relaxed">
                   {healthStats?.isProvisioned
                     ? `Configured from canonical blueprint with ${classesCount} classes, ${subjectsCount} curriculum subjects, and ${feeHeadsCount} fee heads.`
                     : "Configure common academic, fee, and HR templates. Coordinate with platform super-admin to apply a certified board blueprint."}
@@ -431,7 +431,7 @@ export default function SchoolSetupPage() {
               <button
                 type="button"
                 onClick={() => setIsImportOpen(true)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-[40px] rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs shadow-sm transition"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-[40px] rounded-xl bg-[#007AFF] dark:bg-[#0A84FF] hover:bg-[#007AFF]/100 active:scale-95 text-white font-semibold text-xs shadow-sm transition"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" /> Universal Data Import
               </button>
@@ -441,7 +441,7 @@ export default function SchoolSetupPage() {
           {/* Dual-Score Display: Configuration Completeness vs Operational Readiness (F14) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Score Card 1: Configuration Completeness */}
-            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
+            <div className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -450,38 +450,38 @@ export default function SchoolSetupPage() {
                         configurationScore >= 80
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
                           : configurationScore >= 50
-                          ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400"
+                          ? "bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] dark:bg-[#0A84FF]/10 dark:text-[#007AFF] dark:text-[#0A84FF]"
                           : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
                       }`}
                     >
                       {configurationScore}%
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF]">
                         Blueprint Foundations
                       </span>
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
+                      <h3 className="text-base font-bold text-foreground truncate">
                         Configuration Completeness
                       </h3>
                     </div>
                   </div>
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 shrink-0">
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted/60 text-muted-foreground shrink-0">
                     {Math.round((configurationScore / 100) * 6)}/6 Defined
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Core structural entities provisioned: Academic Year, Classes, Subjects, Fee Heads, Salary Grades, and Calendar Holidays.
                 </p>
 
                 {/* Configuration Progress Bar */}
-                <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 rounded-full ${
                       configurationScore >= 80
                         ? "bg-emerald-500"
                         : configurationScore >= 50
-                        ? "bg-indigo-600"
+                        ? "bg-[#007AFF] dark:bg-[#0A84FF]"
                         : "bg-amber-500"
                     }`}
                     style={{ width: `${configurationScore}%` }}
@@ -489,16 +489,16 @@ export default function SchoolSetupPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
+              <div className="pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Digital Twin Schema Health</span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">
+                <span className="font-medium text-muted-foreground">
                   {configurationScore === 100 ? "All Foundations Set" : "Foundations In Progress"}
                 </span>
               </div>
             </div>
 
             {/* Score Card 2: Operational Readiness */}
-            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
+            <div className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -507,7 +507,7 @@ export default function SchoolSetupPage() {
                         operationalScore === 100
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
                           : operationalScore >= 60
-                          ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400"
+                          ? "bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] dark:bg-[#0A84FF]/10 dark:text-[#007AFF] dark:text-[#0A84FF]"
                           : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
                       }`}
                     >
@@ -517,7 +517,7 @@ export default function SchoolSetupPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
                         Day-One Execution
                       </span>
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
+                      <h3 className="text-base font-bold text-foreground truncate">
                         Operational Readiness
                       </h3>
                     </div>
@@ -533,18 +533,18 @@ export default function SchoolSetupPage() {
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Day-One execution gates: Bell schedule active, 100% timetable coverage, fee heads priced, teachers assigned, and students enrolled.
                 </p>
 
                 {/* Operational Progress Bar */}
-                <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 rounded-full ${
                       operationalScore === 100
                         ? "bg-emerald-500"
                         : operationalScore >= 60
-                        ? "bg-indigo-600"
+                        ? "bg-[#007AFF] dark:bg-[#0A84FF]"
                         : "bg-amber-500"
                     }`}
                     style={{ width: `${operationalScore}%` }}
@@ -552,11 +552,11 @@ export default function SchoolSetupPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
+              <div className="pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" /> Honest Setup Law
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#007AFF] dark:text-[#0A84FF]" /> Honest Setup Law
                 </span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">
+                <span className="font-medium text-muted-foreground">
                   {isOperationallyReady ? "100% Operational" : "Action Required Before Opening"}
                 </span>
               </div>
@@ -564,17 +564,17 @@ export default function SchoolSetupPage() {
           </div>
 
           {/* 5 Day-One Operational Readiness Gates (Live Checklist Strip) */}
-          <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-3">
+          <div className="rounded-2xl border border-border/40 bg-card p-5 shadow-sm space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Day-One Operational Readiness Gates (5 Strict Milestones)
                 </h4>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Every milestone must be verified green before first-period attendance and student Day Engine can resolve.
                 </p>
               </div>
-              <span className="text-[11px] font-mono font-medium text-gray-500 dark:text-slate-400 self-start sm:self-auto">
+              <span className="text-[11px] font-mono font-medium text-muted-foreground self-start sm:self-auto">
                 {isOperationallyReady
                   ? "All 5 Gates Cleared"
                   : `${5 - Math.round((operationalScore / 100) * 5)} Gates Incomplete`}
@@ -587,7 +587,7 @@ export default function SchoolSetupPage() {
                 className={`p-3 rounded-xl border flex flex-col justify-between gap-1 text-xs ${
                   isBellScheduleComplete
                     ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300"
-                    : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-400"
+                    : "bg-muted/40 border-border/40 text-muted-foreground"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -600,7 +600,7 @@ export default function SchoolSetupPage() {
                     <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                   )}
                 </div>
-                <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                <span className="text-[11px] font-mono text-muted-foreground">
                   {bellPeriodsCount > 0 ? `${bellPeriodsCount} Periods Set` : "No Bell Schedule"}
                 </span>
               </div>
@@ -610,7 +610,7 @@ export default function SchoolSetupPage() {
                 className={`p-3 rounded-xl border flex flex-col justify-between gap-1 text-xs ${
                   isTimetableComplete
                     ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300"
-                    : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-400"
+                    : "bg-muted/40 border-border/40 text-muted-foreground"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -623,7 +623,7 @@ export default function SchoolSetupPage() {
                     <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                   )}
                 </div>
-                <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                <span className="text-[11px] font-mono text-muted-foreground">
                   {sectionsCount > 0
                     ? `${sectionsWithTimetableCount}/${sectionsCount} Sections`
                     : "0 Sections"}
@@ -635,7 +635,7 @@ export default function SchoolSetupPage() {
                 className={`p-3 rounded-xl border flex flex-col justify-between gap-1 text-xs ${
                   isFeePricingComplete
                     ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300"
-                    : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-400"
+                    : "bg-muted/40 border-border/40 text-muted-foreground"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -648,7 +648,7 @@ export default function SchoolSetupPage() {
                     <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                   )}
                 </div>
-                <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                <span className="text-[11px] font-mono text-muted-foreground">
                   {feeHeadsCount > 0
                     ? `${pricedFeeHeadsCount}/${feeHeadsCount} Priced`
                     : "0 Fee Heads"}
@@ -660,7 +660,7 @@ export default function SchoolSetupPage() {
                 className={`p-3 rounded-xl border flex flex-col justify-between gap-1 text-xs ${
                   isTeacherAllocationsComplete
                     ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300"
-                    : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-400"
+                    : "bg-muted/40 border-border/40 text-muted-foreground"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -673,7 +673,7 @@ export default function SchoolSetupPage() {
                     <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                   )}
                 </div>
-                <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                <span className="text-[11px] font-mono text-muted-foreground">
                   {activeTeacherAllocationsCount > 0
                     ? `${activeTeacherAllocationsCount} Active`
                     : "None Assigned"}
@@ -685,7 +685,7 @@ export default function SchoolSetupPage() {
                 className={`p-3 rounded-xl border flex flex-col justify-between gap-1 text-xs ${
                   isEnrollmentComplete
                     ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300"
-                    : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-400"
+                    : "bg-muted/40 border-border/40 text-muted-foreground"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -698,7 +698,7 @@ export default function SchoolSetupPage() {
                     <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                   )}
                 </div>
-                <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400">
+                <span className="text-[11px] font-mono text-muted-foreground">
                   {enrolledStudentsCount > 0 ? `${enrolledStudentsCount} Enrolled` : "0 Students"}
                 </span>
               </div>
@@ -717,7 +717,7 @@ export default function SchoolSetupPage() {
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
                       Next Best Action
                     </span>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                    <h4 className="text-sm font-bold text-foreground truncate">
                       Configure Fee Structure Pricing
                     </h4>
                   </div>
@@ -743,7 +743,7 @@ export default function SchoolSetupPage() {
             {categories.map((cat: any) => (
               <div
                 key={cat.key}
-                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 hover:border-indigo-500/50 hover:shadow-md transition-all flex flex-col justify-between"
+                className="bg-card border border-border/40 rounded-2xl p-5 hover:border-[#007AFF]/50 hover:shadow-md transition-all flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
@@ -753,7 +753,7 @@ export default function SchoolSetupPage() {
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                           : cat.status === "PARTIAL"
                           ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                          : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20"
+                          : "bg-slate-500/10 text-slate-600 dark:text-muted-foreground border border-border/40"
                       }`}
                     >
                       {cat.status === "COMPLETE"
@@ -762,36 +762,36 @@ export default function SchoolSetupPage() {
                         ? "IN PROGRESS"
                         : "NOT STARTED"}
                     </span>
-                    <span className="text-[11px] font-mono text-gray-500 dark:text-slate-400 truncate">
+                    <span className="text-[11px] font-mono text-muted-foreground truncate">
                       {cat.metric}
                     </span>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    <h4 className="text-sm font-bold text-foreground">
                       {cat.title}
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                       {cat.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800/80 flex flex-col gap-2">
+                <div className="pt-4 mt-4 border-t border-border/40 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-gray-400">Operational Module</span>
                     <div className="flex items-center gap-2">
                       {cat.secondaryHref && (
                         <Link
                           href={cat.secondaryHref as any}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-slate-300 hover:text-indigo-500 min-h-[38px] transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-muted-foreground hover:text-[#007AFF] dark:text-[#0A84FF] min-h-[38px] transition-colors"
                         >
                           {cat.secondaryLabel || "Workspace"} <ArrowUpRight className="w-3.5 h-3.5" />
                         </Link>
                       )}
                       <Link
                         href={cat.href as any}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 min-h-[38px] transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] hover:text-[#007AFF] dark:text-[#0A84FF] min-h-[38px] transition-colors"
                       >
                         Open Workspace <ArrowUpRight className="w-3.5 h-3.5" />
                       </Link>
@@ -817,7 +817,7 @@ export default function SchoolSetupPage() {
         /* Institution Profile & Branding Form */
         <>
           {/* Completeness Card */}
-          <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-border/40 bg-card p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div
@@ -825,36 +825,36 @@ export default function SchoolSetupPage() {
                     percent >= 90
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
                       : percent >= 70
-                      ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400"
+                      ? "bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] dark:bg-[#0A84FF]/10 dark:text-[#007AFF] dark:text-[#0A84FF]"
                       : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
                   }`}
                 >
                   {percent}%
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-base font-bold text-foreground">
                     School Profile Completeness
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {percent >= 90
                       ? "Great job! Your institution profile has comprehensive institutional and digital presence details."
                       : "Complete all sections to unlock customized receipts, parent portal branding, and website badges."}
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 self-start sm:self-auto">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-muted/60 text-muted-foreground self-start sm:self-auto">
                 {completeness?.completedWeight ?? 0} / {completeness?.totalWeight ?? 100} Points
               </span>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+            <div className="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-500 rounded-full ${
                   percent >= 90
                     ? "bg-emerald-500"
                     : percent >= 70
-                    ? "bg-indigo-600"
+                    ? "bg-[#007AFF] dark:bg-[#0A84FF]"
                     : "bg-amber-500"
                 }`}
                 style={{ width: `${percent}%` }}
@@ -864,7 +864,7 @@ export default function SchoolSetupPage() {
             {/* Missing Items Chips */}
             {completeness?.missing && completeness.missing.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   Missing fields:
                 </span>
                 {completeness.missing.map((item, idx) => (
@@ -882,17 +882,17 @@ export default function SchoolSetupPage() {
           {/* Main Profile Form */}
           <form onSubmit={handleSaveProfile} className="space-y-8">
             {/* Section 1: Basic Information */}
-            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800">
-                <Building2 className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            <div className="rounded-2xl border border-border/40 bg-card p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-border/40">
+                <Building2 className="w-5 h-5 text-[#007AFF] dark:text-[#0A84FF]" />
+                <h2 className="text-lg font-bold text-foreground">
                   1. Basic Institutional Details
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Official School Name *
                   </label>
                   <input
@@ -901,12 +901,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Postal Address *
                   </label>
                   <input
@@ -915,12 +915,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     City *
                   </label>
                   <input
@@ -929,12 +929,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.city}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     State *
                   </label>
                   <input
@@ -943,12 +943,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Pincode *
                   </label>
                   <input
@@ -957,12 +957,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.pincode}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Official Contact Phone *
                   </label>
                   <input
@@ -971,12 +971,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Official Email Address *
                   </label>
                   <input
@@ -985,12 +985,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Principal / Head of Institution *
                   </label>
                   <input
@@ -999,12 +999,12 @@ export default function SchoolSetupPage() {
                     required
                     value={formData.principalName}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Established Year *
                   </label>
                   <input
@@ -1015,31 +1015,31 @@ export default function SchoolSetupPage() {
                     max={new Date().getFullYear()}
                     value={formData.establishedYear}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
               </div>
             </div>
 
             {/* Section 2: Affiliation & Board */}
-            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800">
+            <div className="rounded-2xl border border-border/40 bg-card p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-border/40">
                 <BookOpen className="w-5 h-5 text-purple-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg font-bold text-foreground">
                   2. Board Affiliation & Accreditation
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Education Board *
                   </label>
                   <select
                     name="board"
                     value={formData.board}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   >
                     <option value="CBSE">Central Board of Secondary Education (CBSE)</option>
                     <option value="ICSE">Council for the Indian School Certificate Examinations (ICSE)</option>
@@ -1050,7 +1050,7 @@ export default function SchoolSetupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     UDISE+ Code *
                   </label>
                   <input
@@ -1061,25 +1061,25 @@ export default function SchoolSetupPage() {
                     value={formData.udiseCode}
                     onChange={handleInputChange}
                     placeholder="11-digit national UDISE code"
-                    className="w-full px-3.5 py-2 text-sm font-mono rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm font-mono rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
               </div>
             </div>
 
             {/* Section 3: Branding & Theme */}
-            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800">
+            <div className="rounded-2xl border border-border/40 bg-card p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-border/40">
                 <Palette className="w-5 h-5 text-pink-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg font-bold text-foreground">
                   3. Visual Identity & Brand Styling
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Logo Upload Card */}
-                <div className="p-5 rounded-2xl bg-gray-50 dark:bg-slate-950/60 border border-dashed border-gray-300 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-5">
-                  <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+                <div className="p-5 rounded-2xl bg-muted/30 border border-dashed border-border/60 flex flex-col sm:flex-row items-center gap-5">
+                  <div className="w-24 h-24 rounded-2xl bg-white dark:bg-muted/60 border border-border/40 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
                     {schoolData?.logoUrl ? (
                       <img
                         src={schoolData.logoUrl}
@@ -1092,16 +1092,16 @@ export default function SchoolSetupPage() {
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left flex-1">
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                    <h3 className="text-sm font-bold text-foreground">
                       Institutional Emblem / Logo
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       PNG, JPEG, WebP or SVG under 2MB. Appears on fee receipts, student IDs, and portal headers.
                     </p>
                     <div>
                       <label
                         htmlFor="logo-upload"
-                        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer shadow-sm transition"
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-muted/60 text-[#007AFF] dark:text-[#0A84FF] dark:text-[#007AFF] dark:text-[#0A84FF] border border-border/40 hover:bg-gray-50 dark:hover:bg-muted/60 cursor-pointer shadow-sm transition"
                       >
                         {logoUploading ? (
                           <>
@@ -1128,13 +1128,13 @@ export default function SchoolSetupPage() {
                 </div>
 
                 {/* Brand Colors */}
-                <div className="p-5 rounded-2xl bg-gray-50 dark:bg-slate-950/60 border border-gray-200 dark:border-slate-800 space-y-4">
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                <div className="p-5 rounded-2xl bg-muted/30 border border-border/40 space-y-4">
+                  <h3 className="text-sm font-bold text-foreground">
                     Theme Colors (Hex Codes)
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">
                         Light Theme Primary
                       </label>
                       <div className="flex items-center gap-2">
@@ -1150,13 +1150,13 @@ export default function SchoolSetupPage() {
                           name="themeLight"
                           value={formData.themeLight}
                           onChange={handleInputChange}
-                          className="w-full px-2.5 py-1.5 text-xs font-mono uppercase rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                          className="w-full px-2.5 py-1.5 text-xs font-mono uppercase rounded-lg border border-border/40 bg-white dark:bg-muted/60"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">
                         Dark Theme Primary
                       </label>
                       <div className="flex items-center gap-2">
@@ -1172,7 +1172,7 @@ export default function SchoolSetupPage() {
                           name="themeDark"
                           value={formData.themeDark}
                           onChange={handleInputChange}
-                          className="w-full px-2.5 py-1.5 text-xs font-mono uppercase rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                          className="w-full px-2.5 py-1.5 text-xs font-mono uppercase rounded-lg border border-border/40 bg-white dark:bg-muted/60"
                         />
                       </div>
                     </div>
@@ -1182,17 +1182,17 @@ export default function SchoolSetupPage() {
             </div>
 
             {/* Section 4: Digital Presence & Motto */}
-            <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100 dark:border-slate-800">
+            <div className="rounded-2xl border border-border/40 bg-card p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-border/40">
                 <Globe className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg font-bold text-foreground">
                   4. Digital Presence & Mission Statement
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Official Website URL
                   </label>
                   <div className="relative">
@@ -1202,14 +1202,14 @@ export default function SchoolSetupPage() {
                       value={formData.website}
                       onChange={handleInputChange}
                       placeholder="https://www.example.edu"
-                      className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 pr-10"
+                      className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF] pr-10"
                     />
                     {formData.website && (
                       <a
                         href={formData.website}
                         target="_blank"
                         rel="noreferrer"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#007AFF] dark:text-[#0A84FF]"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
@@ -1218,7 +1218,7 @@ export default function SchoolSetupPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     School Motto / Tagline
                   </label>
                   <input
@@ -1228,12 +1228,12 @@ export default function SchoolSetupPage() {
                     value={formData.motto}
                     onChange={handleInputChange}
                     placeholder="e.g., Knowledge is Power • Tamaso Ma Jyotirgamaya"
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     About the Institution
                   </label>
                   <textarea
@@ -1243,12 +1243,12 @@ export default function SchoolSetupPage() {
                     value={formData.about}
                     onChange={handleInputChange}
                     placeholder="Brief narrative about the institution's history, vision, and pedagogy..."
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Twitter / X Handle
                   </label>
                   <input
@@ -1257,12 +1257,12 @@ export default function SchoolSetupPage() {
                     value={formData.socialTwitter}
                     onChange={handleInputChange}
                     placeholder="@SchoolHandle"
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Instagram Handle
                   </label>
                   <input
@@ -1271,12 +1271,12 @@ export default function SchoolSetupPage() {
                     value={formData.socialInstagram}
                     onChange={handleInputChange}
                     placeholder="@school_official"
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     Facebook Page URL
                   </label>
                   <input
@@ -1285,12 +1285,12 @@ export default function SchoolSetupPage() {
                     value={formData.socialFacebook}
                     onChange={handleInputChange}
                     placeholder="facebook.com/SchoolOfficial"
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                     LinkedIn Page URL
                   </label>
                   <input
@@ -1299,7 +1299,7 @@ export default function SchoolSetupPage() {
                     value={formData.socialLinkedin}
                     onChange={handleInputChange}
                     placeholder="linkedin.com/school/example"
-                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-border/40 bg-white dark:bg-muted/60 text-foreground focus:ring-2 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
                   />
                 </div>
               </div>
@@ -1310,7 +1310,7 @@ export default function SchoolSetupPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-sm shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-xl bg-[#007AFF] dark:bg-[#0A84FF] hover:bg-[#007AFF]/100 active:scale-95 text-white font-bold text-sm shadow-md shadow-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 {isPending ? (
                   <>

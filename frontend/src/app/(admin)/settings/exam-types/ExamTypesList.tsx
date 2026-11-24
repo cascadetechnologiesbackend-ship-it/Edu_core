@@ -58,7 +58,7 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Creation Form */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6 h-fit space-y-6">
+      <div className="bg-card rounded-xl border border-border/40 p-6 h-fit space-y-6">
         <div>
           <h2 className="font-semibold text-lg">Add Exam Type</h2>
           <p className="text-sm text-gray-500">
@@ -73,7 +73,7 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
               name="name"
               required
               placeholder="e.g., Unit Test 1"
-              className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-sm focus:ring-1 focus:ring-[#007AFF] dark:focus:ring-[#0A84FF]"
             />
           </div>
 
@@ -83,7 +83,7 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
               name="code"
               required
               placeholder="e.g., UT-1"
-              className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm uppercase"
+              className="w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-sm uppercase"
             />
           </div>
 
@@ -94,7 +94,7 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
             <select
               name="examType"
               required
-              className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm"
+              className="w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-sm"
             >
               <option value="UNIT_TEST">Unit Test</option>
               <option value="HALF_YEARLY">Half Yearly</option>
@@ -115,14 +115,14 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
               max={100}
               step={0.5}
               placeholder="e.g., 10"
-              className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm"
+              className="w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-sm"
             />
           </div>
 
           <button
             type="submit"
             disabled={isPending}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50"
+            className="w-full min-h-[44px] bg-[#007AFF] hover:bg-[#0062cc] dark:bg-[#0A84FF] dark:hover:bg-[#0071e3] text-white dark:text-black py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 shadow-sm"
           >
             {isPending ? "Creating..." : "Create Exam Type"}
           </button>
@@ -142,9 +142,9 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
       </div>
 
       {/* List */}
-      <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-          <h2 className="font-semibold text-gray-900 dark:text-white">
+      <div className="lg:col-span-2 bg-card rounded-xl border border-border/40 overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-border/40 bg-muted/40">
+          <h2 className="font-semibold text-foreground">
             Configured Exam Types
           </h2>
         </div>
@@ -154,18 +154,18 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
             No exam types configured yet. Use the form on the left to add one.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-slate-800">
+          <div className="divide-y divide-border/40">
             {examTypesList.map((item) => (
               <div
                 key={item.id}
-                className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-800/40"
+                className="p-4 flex justify-between items-center hover:bg-muted/40"
               >
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="font-semibold text-foreground">
                       {item.name}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-muted/60 text-muted-foreground">
                       {item.code}
                     </span>
                   </div>
@@ -176,7 +176,7 @@ export function ExamTypesList({ initialExamTypes }: ExamTypesListProps) {
                 <button
                   onClick={() => handleDelete(item.id)}
                   disabled={isPending}
-                  className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1.5 rounded transition-colors"
+                  className="text-xs min-h-[36px] bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20 px-3 py-1.5 rounded-xl font-medium transition-colors"
                 >
                   Delete
                 </button>

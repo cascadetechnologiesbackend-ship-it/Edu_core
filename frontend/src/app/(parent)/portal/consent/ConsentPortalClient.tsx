@@ -146,7 +146,7 @@ export default function ConsentPortalClient({
     <div className="space-y-6">
       {/* Student Selector */}
       {students.length > 1 && (
-        <div className="flex border border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-slate-50 dark:bg-slate-900 max-w-md">
+        <div className="flex border border-border/40 dark:border-border/40 rounded-xl p-1 bg-muted/30 dark:bg-card max-w-md">
           {students.map((s) => {
             const name = s.displayName || "Student";
             return (
@@ -155,8 +155,8 @@ export default function ConsentPortalClient({
                 onClick={() => setActiveStudentId(s.id)}
                 className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all ${
                   activeStudentId === s.id
-                    ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-white dark:bg-muted/60 text-[#008299] dark:text-[#30B0C7] shadow-sm"
+                    : "text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
                 {name}
@@ -167,13 +167,13 @@ export default function ConsentPortalClient({
       )}
 
       {/* DPDP Legal compliance notice */}
-      <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900 rounded-2xl flex items-start gap-3">
-        <Shield className="w-5 h-5 text-indigo-650 dark:text-indigo-400 shrink-0 mt-0.5" />
+      <div className="p-4 bg-teal-500/5 dark:bg-teal-950/20 border border-teal-500/20 rounded-2xl flex items-start gap-3">
+        <Shield className="w-5 h-5 text-[#008299] dark:text-[#30B0C7] shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <h4 className="text-sm font-bold text-indigo-900 dark:text-indigo-300">
+          <h4 className="text-sm font-bold text-foreground">
             DPDP Compliance Consent Agreement
           </h4>
-          <p className="text-xs text-indigo-700 dark:text-indigo-400">
+          <p className="text-xs text-muted-foreground">
             In accordance with the Digital Personal Data Protection (DPDP) Act
             2023, the school requires your explicit parental consent to process
             your minor child&apos;s personal data. You have the legal right to
@@ -198,29 +198,29 @@ export default function ConsentPortalClient({
               key={p.id}
               className={`p-6 rounded-2xl border transition-all ${
                 granted
-                  ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                  : "bg-slate-50/50 dark:bg-slate-900/30 border-dashed border-slate-200 dark:border-slate-800"
+                  ? "bg-card border-border/40 dark:border-border/40"
+                  : "bg-muted/20 dark:bg-muted/20 border-dashed border-border/40 dark:border-border/40"
               }`}
             >
               <div className="flex justify-between items-start gap-4">
                 <div className="space-y-3 flex-1">
                   <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-md">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 bg-muted/50 dark:bg-muted/60 text-muted-foreground rounded-md">
                       Legal Basis: {p.legalBasis}
                     </span>
-                    <h3 className="text-base font-bold mt-2 text-slate-800 dark:text-white">
+                    <h3 className="text-base font-bold mt-2 text-foreground dark:text-white">
                       {p.labelEn}{" "}
-                      <span className="text-xs text-slate-400 font-normal">
+                      <span className="text-xs text-muted-foreground font-normal">
                         / {p.labelHi}
                       </span>
                     </h3>
                   </div>
 
                   <div className="space-y-1.5">
-                    <p className="text-xs text-slate-650 dark:text-slate-400 font-medium">
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground font-medium">
                       {p.descriptionEn}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 italic">
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground italic">
                       {p.descriptionHi}
                     </p>
                   </div>
@@ -243,7 +243,7 @@ export default function ConsentPortalClient({
 
                 <div className="flex flex-col items-end gap-2">
                   {p.mandatory ? (
-                    <span className="text-[10px] font-extrabold text-indigo-650 bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 rounded-xl uppercase tracking-wider">
+                    <span className="text-[10px] font-extrabold text-[#008299] dark:text-[#30B0C7] bg-teal-500/10 dark:bg-teal-950/20 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                       Mandatory
                     </span>
                   ) : (
@@ -251,8 +251,8 @@ export default function ConsentPortalClient({
                       onClick={() => handleToggleClick(p.purposeId, granted)}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         granted
-                          ? "bg-indigo-650"
-                          : "bg-slate-205 dark:bg-slate-800"
+                          ? "bg-[#008299] dark:bg-[#30B0C7]"
+                          : "bg-muted dark:bg-muted/60"
                       }`}
                     >
                       <span
@@ -271,14 +271,14 @@ export default function ConsentPortalClient({
 
       {/* OTP Verification Modal */}
       {showOtpModal && otpTarget && (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-              <Shield className="w-5 h-5 text-indigo-600" />
+        <div className="fixed inset-0 bg-muted/40 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-card border border-border/40 dark:border-border/40 w-full max-w-md p-6 rounded-2xl shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-foreground dark:text-white flex items-center gap-1.5">
+              <Shield className="w-5 h-5 text-[#008299] dark:text-[#30B0C7]" />
               Verify Parental OTP
             </h3>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               You are updating consent choices for{" "}
               <strong>{activeStudentName}</strong>. This requires a 6-digit OTP
               verification.
@@ -298,14 +298,14 @@ export default function ConsentPortalClient({
 
             {!otpTarget.nextVal && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase">
+                <label className="text-xs font-bold text-muted-foreground uppercase">
                   Reason for Withdrawal (Optional)
                 </label>
                 <textarea
                   value={withdrawalReason}
                   onChange={(e) => setWithdrawalReason(e.target.value)}
                   placeholder="e.g. Transferring school, privacy concerns"
-                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-250 dark:border-slate-700 p-2.5 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full text-xs bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
                   rows={2}
                 />
               </div>
@@ -319,13 +319,13 @@ export default function ConsentPortalClient({
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
                   placeholder="Enter 6-digit OTP"
-                  className="flex-1 text-center font-mono font-bold tracking-widest text-lg bg-slate-50 dark:bg-slate-800 border border-slate-250 dark:border-slate-700 p-2.5 rounded-xl text-slate-850 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="flex-1 text-center font-mono font-bold tracking-widest text-lg bg-muted/30 dark:bg-muted/60 border border-border/40 dark:border-border/40 p-2.5 rounded-xl text-foreground dark:text-white focus:outline-none focus:border-[#008299] dark:focus:border-[#30B0C7]"
                 />
                 <button
                   type="button"
                   onClick={triggerOtpSend}
                   disabled={loading === "SEND_OTP"}
-                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-white text-xs font-bold px-4 rounded-xl border border-slate-200 dark:border-slate-700"
+                  className="bg-muted/50 hover:bg-muted dark:bg-muted/60 dark:hover:bg-muted/80 text-muted-foreground dark:text-white text-xs font-bold px-4 rounded-xl border border-border/40 dark:border-border/40"
                 >
                   {loading === "SEND_OTP" ? "Sending..." : "Request OTP"}
                 </button>
@@ -336,7 +336,7 @@ export default function ConsentPortalClient({
               <button
                 type="button"
                 onClick={() => setShowOtpModal(false)}
-                className="bg-white hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 text-slate-500 dark:text-slate-300 text-xs font-bold px-4 py-2.5 rounded-xl"
+                className="bg-card hover:bg-muted/30 dark:bg-card border border-border/40 dark:border-border/40 text-muted-foreground dark:text-muted-foreground text-xs font-bold px-4 py-2.5 rounded-xl"
               >
                 Cancel
               </button>
@@ -344,7 +344,7 @@ export default function ConsentPortalClient({
                 type="button"
                 onClick={handleOtpVerify}
                 disabled={loading === "VERIFY_OTP"}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5"
+                className="bg-[#008299] dark:bg-[#30B0C7] hover:opacity-90 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5"
               >
                 {loading === "VERIFY_OTP" ? "Verifying..." : "Verify & Confirm"}
               </button>

@@ -134,6 +134,16 @@ const config: Config = {
             secondary: "hsl(var(--module-hr-secondary))",
             border: "hsl(var(--module-hr-border))",
           },
+          dpdp: {
+            primary: "hsl(var(--module-dpdp-primary))",
+            secondary: "hsl(var(--module-dpdp-secondary))",
+            border: "hsl(var(--module-dpdp-border))",
+          },
+          settings: {
+            primary: "hsl(var(--module-settings-primary))",
+            secondary: "hsl(var(--module-settings-secondary))",
+            border: "hsl(var(--module-settings-border))",
+          },
         },
 
         // ── Transitional Backward Compatibility Tokens (Phase AD-L1 to AD-L5) ──

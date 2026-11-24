@@ -197,10 +197,10 @@ export default async function DpdpPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-white">
           DPDP Compliance Centre
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           Admin Console — Audit trails, consent coverage levels, SLA queues, and
           data retention schedules.
         </p>

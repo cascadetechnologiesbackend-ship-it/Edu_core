@@ -495,17 +495,9 @@ export function ClassFeePricingMatrix({
             {isPending ? "Saving Matrix..." : "Save Pricing Matrix"}
           </button>
         </div>
-        onClick={handleSaveMatrix}
-        disabled={isPending}
-        className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
-          >
-        <Save className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
-        {isPending ? "Saving Matrix..." : "Save Pricing Matrix"}
-      </button>
-    </div>
-      </div >
+      </div>
 
-    {/* Clone to Other Cohorts Modal */ }
+      {/* Clone to Other Cohorts Modal */}
   {
     isCloneModalOpen && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">

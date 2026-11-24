@@ -122,7 +122,7 @@ export function ResultSettingsClient({
             <select
               value={setupId}
               onChange={(e) => handleSetupChange(e.target.value)}
-              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#5856D6] dark:focus:border-[#BF5AF2] font-medium"
             >
               {setups.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -177,7 +177,7 @@ export function ResultSettingsClient({
         {/* Card A: Release Timing & Emergency Withhold */}
         <div className="rounded-3xl border border-border/40 bg-card p-5 md:p-6 shadow-xl space-y-5">
           <div className="flex items-center gap-2.5 border-b border-border/40 pb-3">
-            <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <span className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
               <Calendar className="w-4 h-4" />
             </span>
             <div>
@@ -227,7 +227,7 @@ export function ResultSettingsClient({
                 value={releaseAt}
                 onChange={(e) => setReleaseAt(e.target.value)}
                 disabled={withholdAll}
-                className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+                className="w-full bg-card border border-border/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#5856D6] dark:focus:border-[#BF5AF2] disabled:opacity-50"
               />
               {releaseAt && (
                 <button
@@ -326,7 +326,7 @@ export function ResultSettingsClient({
                   step="50"
                   value={thresholdAmount}
                   onChange={(e) => setThresholdAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-card border border-border/40 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-card border border-border/40 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#5856D6] dark:focus:border-[#BF5AF2]"
                 />
               </div>
               <p className="text-[11px] text-muted-foreground">
@@ -388,7 +388,7 @@ export function ResultSettingsClient({
                 onChange={(e) => setPublicToppersEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-muted/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-muted/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5856D6] dark:peer-checked:bg-[#BF5AF2]"></div>
             </label>
           </div>
         </div>
@@ -469,7 +469,7 @@ export function ResultSettingsClient({
           type="button"
           disabled={isPending || !setupId}
           onClick={handleSave}
-          className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
+          className="px-6 py-2.5 rounded-xl bg-[#5856D6] hover:bg-[#4744ab] dark:bg-[#BF5AF2] dark:hover:bg-[#aa44dc] text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
         >
           <CheckCircle2 className="w-4 h-4" />
           <span>{isPending ? "Saving Policies..." : "Save Visibility Policies"}</span>

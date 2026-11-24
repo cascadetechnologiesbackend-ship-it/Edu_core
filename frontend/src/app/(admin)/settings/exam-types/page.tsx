@@ -18,12 +18,12 @@ export default async function ExamTypesSettingsPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/settings"
-            className="text-sm text-indigo-600 hover:underline"
+            className="text-sm text-[#007AFF] dark:text-[#0A84FF] hover:underline"
           >
             ← Settings
           </Link>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
           Exam Types Settings
         </h1>
         <p className="text-sm text-gray-500">
