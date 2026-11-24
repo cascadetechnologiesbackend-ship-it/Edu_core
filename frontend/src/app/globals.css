@@ -6,28 +6,58 @@
 @layer base {
   :root {
     --font-inter: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Devanagari', sans-serif;
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --muted: 214 32% 95%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 214 32% 95%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 211 100% 50%;
+
+    /* ── Apple HIG Neutral Surface System (Light) ────────────────────────── */
+    --background: 240 5% 96%;            /* #F2F2F7 - systemGroupedBackground canvas */
+    --foreground: 0 0% 0%;               /* #000000 - label primary text */
+    --card: 0 0% 100%;                   /* #FFFFFF - pure white grouped card */
+    --card-foreground: 0 0% 0%;          /* #000000 - card label text */
+    --card-elevated: 0 0% 100%;          /* #FFFFFF - elevated surface */
+    --popover: 0 0% 100%;                /* #FFFFFF - sheet/popover surface */
+    --popover-foreground: 0 0% 0%;       /* #000000 - popover text */
+    --muted: 240 11% 91%;                /* #E5E5EA - systemGray-5 neutral fill */
+    --muted-foreground: 240 2% 45%;      /* #737378 - secondaryLabel (passes 4.5:1 on white) */
+    --accent: 240 11% 91%;               /* #E5E5EA - neutral hover fill */
+    --accent-foreground: 0 0% 0%;        /* #000000 - accent hover text */
+    --border: 240 2% 78%;                /* #C6C6C8 - separator hairline */
+    --input: 240 11% 91%;                /* #E5E5EA - form control border */
+    --ring: 210 100% 50%;                /* #007AFF - Apple System Blue focus ring */
+    --separator: 240 2% 78%;             /* #C6C6C8 - hairline divider */
     --radius: 0.75rem;
+
+    /* ── Single-Intention Semantic Layer (Light Mode) ─────────────────────── */
+    --semantic-interactive: 210 100% 50%;              /* #007AFF - apple.blue */
+    --semantic-interactive-foreground: 0 0% 100%;       /* #FFFFFF - white text */
+    --semantic-money-in: 135 59% 49%;                  /* #34C759 - apple.green */
+    --semantic-money-in-foreground: 135 59% 26%;       /* #1B6A2E - 6.67:1 accessible text */
+    --semantic-money-owed: 3 100% 59%;                 /* #FF3B30 - apple.red */
+    --semantic-money-owed-foreground: 354 100% 42%;    /* #D70015 - 5.38:1 accessible text */
+    --semantic-attention: 35 100% 50%;                 /* #FF9500 - apple.orange */
+    --semantic-attention-foreground: 26 100% 31%;      /* #9E4400 - 6.40:1 accessible text */
+    --semantic-provisional: 48 100% 50%;               /* #FFCC00 - apple.yellow */
+    --semantic-provisional-foreground: 45 100% 24%;    /* #785A00 - 6.44:1 accessible text */
+    --semantic-exam: 241 61% 59%;                      /* #5856D6 - apple.indigo */
+    --semantic-exam-foreground: 241 61% 40%;           /* #3634A3 - 5.65:1 accessible text */
+    --semantic-neutral: 240 2% 57%;                    /* #8E8E93 - apple.systemGray */
+    --semantic-neutral-foreground: 240 1% 39%;         /* #636366 - 5.99:1 accessible text */
+
+    /* ── Apple Translucent Sidebar Materials (Light) ──────────────────────── */
+    --sidebar-bg: #F2F2F7;
+    --sidebar-hover: rgba(0, 0, 0, 0.04);
+    --sidebar-active: rgba(0, 122, 255, 0.10);
+    --sidebar-text: #3C3C43;
+    --sidebar-text-active: #007AFF;
+    --sidebar-border: #E5E5EA;
+
+    /* ── Transitional Backward Compatibility Tokens (Light) ───────────────── */
+    --destructive: 3 100% 59%;           /* #FF3B30 - Apple Red */
+    --destructive-foreground: 0 0% 100%;
+    --success: 135 59% 49%;               /* #34C759 - Apple Green */
+    --success-foreground: 0 0% 100%;
+    --warning: 35 100% 50%;               /* #FF9500 - Apple Orange */
+    --warning-foreground: 0 0% 100%;
+    --info: 240 2% 57%;                   /* #8E8E93 - Apple Neutral Gray */
+    --info-foreground: 0 0% 100%;
 
     /* ── Apple HIG Elevation & Materials (Light) ────────────────────────── */
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -44,27 +74,56 @@
   }
 
   .dark {
-    --background: 222 47% 7%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 10%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 10%;
-    --popover-foreground: 213 31% 91%;
-    --muted: 223 47% 15%;
-    --muted-foreground: 215 16% 57%;
-    --accent: 223 47% 15%;
-    --accent-foreground: 213 31% 91%;
-    --destructive: 356 100% 61%;
+    /* ── Apple HIG Neutral Surface System (Dark — Zero Navy Slate) ──────── */
+    --background: 0 0% 0%;               /* #000000 - True Black OLED Canvas */
+    --foreground: 0 0% 100%;             /* #FFFFFF - Label Primary Text */
+    --card: 240 3% 11%;                  /* #1C1C1E - Primary Card Surface */
+    --card-foreground: 0 0% 100%;        /* #FFFFFF - Card Label Text */
+    --card-elevated: 240 2% 17%;         /* #2C2C2E - Elevated Surface / Modal / Sheet */
+    --popover: 240 2% 17%;               /* #2C2C2E - Elevated Popover Surface */
+    --popover-foreground: 0 0% 100%;     /* #FFFFFF - Popover Text */
+    --muted: 240 2% 17%;                 /* #2C2C2E - Neutral Dark Fill */
+    --muted-foreground: 240 2% 57%;      /* #8E8E93 - SecondaryLabel / SystemGray */
+    --accent: 240 2% 17%;                /* #2C2C2E - Neutral Dark Hover Fill */
+    --accent-foreground: 0 0% 100%;      /* #FFFFFF - Accent Hover Text */
+    --border: 240 2% 22%;                /* #38383A - Neutral Dark Border */
+    --input: 240 2% 22%;                 /* #38383A - Neutral Dark Input Border */
+    --ring: 210 100% 52%;                /* #0A84FF - Apple System Blue Dark */
+    --separator: 240 2% 34%;             /* #545458 - rgba(84, 84, 88, 0.65) Hairline */
+
+    /* ── Single-Intention Semantic Layer (Dark Mode) ──────────────────────── */
+    --semantic-interactive: 210 100% 52%;              /* #0A84FF - apple.blue-dark */
+    --semantic-interactive-foreground: 0 0% 100%;       /* #FFFFFF */
+    --semantic-money-in: 135 64% 50%;                  /* #30D158 - apple.green-dark */
+    --semantic-money-in-foreground: 135 64% 50%;       /* #30D158 - 8.42:1 on card */
+    --semantic-money-owed: 3 100% 61%;                 /* #FF453A - apple.red-dark */
+    --semantic-money-owed-foreground: 3 100% 61%;      /* #FF453A - 4.99:1 on card */
+    --semantic-attention: 36 100% 52%;                 /* #FF9F0A - apple.orange-dark */
+    --semantic-attention-foreground: 36 100% 52%;      /* #FF9F0A - 8.28:1 on card */
+    --semantic-provisional: 50 100% 52%;               /* #FFD60A - apple.yellow-dark */
+    --semantic-provisional-foreground: 50 100% 52%;    /* #FFD60A - 12.05:1 on card */
+    --semantic-exam: 241 73% 63%;                      /* #5E5CE6 - apple.indigo-dark */
+    --semantic-exam-foreground: 241 73% 63%;           /* #5E5CE6 */
+    --semantic-neutral: 240 2% 57%;                    /* #8E8E93 - apple.systemGray */
+    --semantic-neutral-foreground: 240 2% 57%;         /* #8E8E93 - 5.22:1 on card */
+
+    /* ── Apple Translucent Sidebar Materials (Dark — Zero Navy) ──────────── */
+    --sidebar-bg: #161616;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: rgba(10, 132, 255, 0.15);
+    --sidebar-text: #EBEBF5;
+    --sidebar-text-active: #0A84FF;
+    --sidebar-border: #2C2C2E;
+
+    /* ── Transitional Backward Compatibility Tokens (Dark) ────────────────── */
+    --destructive: 3 100% 61%;           /* #FF453A */
     --destructive-foreground: 0 0% 100%;
-    --success: 142 70% 45%;
+    --success: 135 64% 50%;               /* #30D158 */
     --success-foreground: 0 0% 100%;
-    --warning: 38 90% 55%;
-    --warning-foreground: 222 47% 11%;
-    --info: 199 85% 55%;
+    --warning: 36 100% 52%;               /* #FF9F0A */
+    --warning-foreground: 0 0% 0%;
+    --info: 240 2% 57%;                   /* #8E8E93 */
     --info-foreground: 0 0% 100%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 211 100% 52%;
 
     /* ── Apple HIG Elevation & Materials (Dark) ─────────────────────────── */
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -183,25 +242,39 @@
            animate-shimmer;
   }
 
-  /* ── Status Badges ────────────────────────────────────────────────────────── */
+  /* ── Status Badges (Phase AD-L1: Single-Intention Semantic Tokens) ────────── */
   .badge-success {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-secondary/10 text-secondary;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+           bg-semantic-money-in/10 text-semantic-money-in-foreground border border-semantic-money-in/20
+           dark:bg-semantic-money-in/15 dark:text-semantic-money-in dark:border-semantic-money-in/25;
   }
 
   .badge-warning {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-warning/10 text-warning;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+           bg-semantic-attention/10 text-semantic-attention-foreground border border-semantic-attention/20
+           dark:bg-semantic-attention/15 dark:text-semantic-attention dark:border-semantic-attention/25;
   }
 
   .badge-danger {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-danger/10 text-danger;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+           bg-semantic-money-owed/10 text-semantic-money-owed-foreground border border-semantic-money-owed/20
+           dark:bg-semantic-money-owed/15 dark:text-semantic-money-owed dark:border-semantic-money-owed/25;
   }
 
   .badge-info {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-primary/10 text-primary;
+           bg-muted/60 text-muted-foreground border border-border/60;
+  }
+
+  .badge-provisional {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+           bg-semantic-provisional/15 text-semantic-provisional-foreground border border-semantic-provisional/25
+           dark:bg-semantic-provisional/20 dark:text-semantic-provisional dark:border-semantic-provisional/30;
+  }
+
+  .badge-neutral {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+           bg-muted/60 text-muted-foreground border border-border/60;
   }
 
   /* ── Print Styles ─────────────────────────────────────────────────────────── */

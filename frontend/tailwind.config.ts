@@ -20,7 +20,7 @@ const config: Config = {
     extend: {
       colors: {
         // ── SchoolMitra Design System ──────────────────────────────────────
-        // Primary: Apple System Blue — trust, focus, primary action
+        // Primary: Apple System Blue (Re-derived, Zero Navy)
         primary: {
           DEFAULT: "#007AFF",
           50: "#eff6ff",
@@ -28,47 +28,111 @@ const config: Config = {
           200: "#bfdbfe",
           300: "#93c5fd",
           400: "#60a5fa",
-          500: "#0A84FF",
-          600: "#007AFF",
-          700: "#0068DB",
-          800: "#0056B3",
-          900: "#1e3a8a",
-          950: "#172554",
+          500: "#0A84FF", // Apple dark mode blue
+          600: "#007AFF", // Apple light mode blue
+          700: "#0068DB", // Apple hover/active blue
+          800: "#0056B3", // Re-derived Apple pure blue
+          900: "#003E80", // Re-derived Apple pure blue (replaces legacy navy)
+          950: "#002752", // Re-derived Apple deep blue (replaces legacy deep navy)
           foreground: "#ffffff",
         },
-        // Secondary: Emerald — growth, success, progress
+
+        // ── Single-Intention Semantic Layer (Phase AD-L1) ─────────────────
+        semantic: {
+          interactive: {
+            DEFAULT: "hsl(var(--semantic-interactive))",
+            foreground: "hsl(var(--semantic-interactive-foreground))",
+          },
+          "money-in": {
+            DEFAULT: "hsl(var(--semantic-money-in))",
+            foreground: "hsl(var(--semantic-money-in-foreground))",
+            text: "hsl(var(--semantic-money-in-foreground))",
+          },
+          "money-owed": {
+            DEFAULT: "hsl(var(--semantic-money-owed))",
+            foreground: "hsl(var(--semantic-money-owed-foreground))",
+            text: "hsl(var(--semantic-money-owed-foreground))",
+          },
+          attention: {
+            DEFAULT: "hsl(var(--semantic-attention))",
+            foreground: "hsl(var(--semantic-attention-foreground))",
+            text: "hsl(var(--semantic-attention-foreground))",
+          },
+          provisional: {
+            DEFAULT: "hsl(var(--semantic-provisional))",
+            foreground: "hsl(var(--semantic-provisional-foreground))",
+            text: "hsl(var(--semantic-provisional-foreground))",
+          },
+          exam: {
+            DEFAULT: "hsl(var(--semantic-exam))",
+            foreground: "hsl(var(--semantic-exam-foreground))",
+            text: "hsl(var(--semantic-exam-foreground))",
+          },
+          "exam-domain": {
+            DEFAULT: "hsl(var(--semantic-exam))",
+            foreground: "hsl(var(--semantic-exam-foreground))",
+            text: "hsl(var(--semantic-exam-foreground))",
+          },
+          neutral: {
+            DEFAULT: "hsl(var(--semantic-neutral))",
+            foreground: "hsl(var(--semantic-neutral-foreground))",
+            text: "hsl(var(--semantic-neutral-foreground))",
+          },
+        },
+        // Flat aliases for direct utility access
+        "semantic-interactive": "hsl(var(--semantic-interactive))",
+        "semantic-interactive-foreground": "hsl(var(--semantic-interactive-foreground))",
+        "semantic-money-in": "hsl(var(--semantic-money-in))",
+        "semantic-money-in-foreground": "hsl(var(--semantic-money-in-foreground))",
+        "semantic-money-owed": "hsl(var(--semantic-money-owed))",
+        "semantic-money-owed-foreground": "hsl(var(--semantic-money-owed-foreground))",
+        "semantic-attention": "hsl(var(--semantic-attention))",
+        "semantic-attention-foreground": "hsl(var(--semantic-attention-foreground))",
+        "semantic-provisional": "hsl(var(--semantic-provisional))",
+        "semantic-provisional-foreground": "hsl(var(--semantic-provisional-foreground))",
+        "semantic-exam": "hsl(var(--semantic-exam))",
+        "semantic-exam-foreground": "hsl(var(--semantic-exam-foreground))",
+        "semantic-exam-domain": "hsl(var(--semantic-exam))",
+        "semantic-exam-domain-foreground": "hsl(var(--semantic-exam-foreground))",
+        "semantic-neutral": "hsl(var(--semantic-neutral))",
+        "semantic-neutral-foreground": "hsl(var(--semantic-neutral-foreground))",
+
+        // ── Transitional Backward Compatibility Tokens (Phase AD-L1 to AD-L5) ──
+        /** @deprecated Phase AD-L1: Re-mapped to Apple Semantic Tokens. Will be retired in Phase AD-L6. */
         secondary: {
-          DEFAULT: "#059669",
+          DEFAULT: "hsl(var(--semantic-money-in))",
           50: "#ecfdf5",
           100: "#d1fae5",
           200: "#a7f3d0",
           300: "#6ee7b7",
           400: "#34d399",
-          500: "#10b981",
-          600: "#059669",
+          500: "hsl(var(--semantic-money-in))",
+          600: "hsl(var(--semantic-money-in))",
           700: "#047857",
           800: "#065f46",
           900: "#064e3b",
-          foreground: "#ffffff",
+          foreground: "hsl(var(--semantic-money-in-foreground))",
         },
-        // Warning: Amber — attention, pending states
+        /** @deprecated Phase AD-L1: Re-mapped to Apple Semantic Tokens. Will be retired in Phase AD-L6. */
         warning: {
-          DEFAULT: "#d97706",
-          light: "#fef3c7",
-          foreground: "#92400e",
+          DEFAULT: "hsl(var(--semantic-attention))",
+          light: "rgba(255, 149, 0, 0.12)",
+          foreground: "hsl(var(--semantic-attention-foreground))",
         },
-        // Danger: Rose — errors, critical alerts
+        /** @deprecated Phase AD-L1: Re-mapped to Apple Semantic Tokens. Will be retired in Phase AD-L6. */
         danger: {
-          DEFAULT: "#e11d48",
-          light: "#fff1f2",
-          foreground: "#9f1239",
+          DEFAULT: "hsl(var(--semantic-money-owed))",
+          light: "rgba(255, 59, 48, 0.12)",
+          foreground: "hsl(var(--semantic-money-owed-foreground))",
         },
-        // Neutral palette
+
+        // ── Neutral Palette & Surfaces ─────────────────────────────────────
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        separator: "hsl(var(--separator))",
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -85,17 +149,23 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "card-elevated": {
+          DEFAULT: "hsl(var(--card-elevated))",
+          foreground: "hsl(var(--card-foreground))",
+        },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        // Sidebar
+
+        // ── Apple Translucent Sidebar Materials (Zero Navy) ───────────────
         sidebar: {
-          DEFAULT: "#0f172a",
-          hover: "#1e293b",
-          active: "#1e40af",
-          text: "#cbd5e1",
-          "text-active": "#ffffff",
+          DEFAULT: "var(--sidebar-bg, #F2F2F7)",
+          hover: "var(--sidebar-hover, rgba(0, 0, 0, 0.04))",
+          active: "var(--sidebar-active, rgba(0, 122, 255, 0.10))",
+          text: "var(--sidebar-text, #3C3C43)",
+          "text-active": "var(--sidebar-text-active, #007AFF)",
+          border: "var(--sidebar-border, #E5E5EA)",
         },
         // ── Apple HIG Palette & Semantic Accents ───────────────────────────
         apple: {
@@ -209,8 +279,8 @@ const config: Config = {
         "tab-pill": "tab-pill 0.3s cubic-bezier(0.34, 1.56, 0.64, 1.0) forwards",
       },
       boxShadow: {
-        "card-hover": "0 8px 30px rgba(30, 64, 175, 0.12)",
-        "sidebar-item": "inset 3px 0 0 #1e40af",
+        "card-hover": "0 8px 30px rgba(0, 0, 0, 0.08)",
+        "sidebar-item": "none",
         glass: "0 4px 24px rgba(0,0,0,0.08)",
         "level-0": "none",
         "level-1": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
@@ -222,7 +292,6 @@ const config: Config = {
         dropdown: "var(--shadow-dropdown)",
       },
       backgroundImage: {
-        "gradient-primary": "linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)",
         "gradient-card": "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
         "shimmer-skeleton":
           "linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)",
