@@ -1,0 +1,344 @@
+{
+  "prompt_version": "1.0",
+  "spec_id": "apple_hig_design_system_v2",
+  "version": "2.0.0",
+  "spec_series": "edu_core_spec_series",
+  "spec_type": "ui_spec",
+  "governing_charter": "docs/product-destination-charter.json",
+  "spec_role": "Completes the Apple design-language migration that v11.50-v11.52 started. Part one: remove every trace of the navy blue theme and replace it with Apple's neutral gray surface system in both light and dark appearances. Part two: rebuild color coding on intention, so the color a user sees on any data element is the meaning of that data in the school's operations, identical across all 11 role apps, both themes, and every component. Part three: standardize buttons, tabs, sections, navigation, and data showcase on Apple's component grammar: inset grouped lists, segmented controls, one interactive tint, large-title hierarchy.",
+  "predecessor_specs": [
+    {
+      "spec_id": "uiux (AMS UI/UX v1.2)",
+      "status": "landed; governs functionality and layout. This spec supersedes styling only, never behavior or information architecture."
+    },
+    {
+      "spec_id": "Apple HIG pass of v11.50-v11.52",
+      "status": "landed commits 70e8317a, 5cd7a4d0, bb88b013, 10155b51, 126d3779, 4d42939b, 4f4ced96, 4744e8cd; component library, role screens, semantic token system. This spec carries it to completion."
+    }
+  ],
+  "design_philosophy": {
+    "source": "Apple Human Interface Guidelines: Color and Dark Mode (developer.apple.com/design/human-interface-guidelines).",
+    "principles": [
+      "Clarity: text legible at every size, icons precise, adornments subtle; function drives visual weight.",
+      "Deference: the UI helps people understand and interact with content, never competes with it. Chrome recedes; the data is the hero.",
+      "Depth: visual layers and realistic motion convey hierarchy; the platform feels spatial, not flat-decorated.",
+      "Color with intent: color communicates status, feedback, and interactivity. The same color must never mean two things. Color is a minority of the pixels, not a decoration.",
+      "One interactive tint: a single accent indicates interactivity. Noninteractive elements never wear the accent.",
+      "Neutral surfaces in dark mode: Dark Mode uses desaturated neutral grays on black, with brighter foregrounds and elevated surfaces that lighten progressively. Dark mode is not a blue-tinted theme.",
+      "Semantic adaptation: every color exists in light and dark variants that adapt, and the pair must hold a minimum 4.5:1 contrast against its surface in both appearances.",
+      "Visual weight budget across a screen: roughly 60 percent neutral surface, 30 percent structural grays (text, separators, chrome), at most 10 percent expressive color. If a dashboard screams, it fails deference."
+    ],
+    "attention_hierarchy": "A screen answers three questions in one glance, in this order: what is my next action (one accent element), what needs attention (semantic color only where status exists), what is the state of my data (neutral typography, tabular numbers). Everything else is gray. This is the practical use of eye-tracking heatmap logic: the eye lands on the top-left primary heading, sweeps the primary action zone, then chases color; a screen with ten colored elements has no hierarchy and no heatmap logic."
+  },
+  "north_star": {
+    "destination_sentence": "One real school, 500-2000 students, one board, one state, runs one full academic term entirely on SchoolMitra: zero Excel registers, zero untracked phone calls, fee cycle closed monthly, attendance under four minutes per section, exams conducted end to end with published results — and the school renews and refers another school.",
+    "charter_phases": "Cross-cutting enforcement for D1-D4 journeys; visual trust is part of the product thesis (the ledger must look auditable legal-grade, not dashboard-toy)",
+    "journeys_advanced": [
+      "J1_fee_day",
+      "J3_the_40_minute_period",
+      "J4_weekly_review",
+      "J10_school_onboarding"
+    ],
+    "target_metrics_moved": [
+      {
+        "metric": "journey_completion_rate",
+        "definition_source": "docs/product/metrics.md",
+        "target": "95%+; primary action and status colors are consistent on every surface",
+        "expected_delta": "Users find the actionable element on every screen without reading, because interactivity wears exactly one color and status wears semantic colors, everywhere"
+      }
+    ],
+    "metric_rule": "This spec adds no metrics and emits no events in its own name; it may add UI audit tests only. The six north-star definitions in docs/product/metrics.md are untouched."
+  },
+  "intent": "The user's verdict on v11.50-v11.52: right direction, incomplete execution, and the dark theme is still navy blue. The audit shows exactly where it stopped. Dark surfaces carry hue-222 blue tints; the sidebar is slate-navy #0f172a with a blue-800 active state; primary gradients are blue-800 pairs; card hover shadows carry blue casts; and the semantic components contradict the Apple palette that already exists as tokens: success badges use emerald, danger uses rose, warning uses amber, destructive uses a red that matches neither. Meanwhile three different filled-button colors appear in one dashboard header, so interactivity no longer has a color. This spec finishes the job with three deliverables: a neutral Apple-gray theme in both appearances, an intention-based color code where every data type in the school OS owns one meaning across all roles and themes, and Apple's component grammar (inset grouped lists, segmented controls, button tiers, large-title hierarchy) applied to the shared library and swept through every role app with a CI rule that makes hardcoded colors and navy regressions impossible.",
+  "grounding_audit": {
+    "verified_at_head": "802d931b, release v11.54.1, verified 2026-11-24",
+    "verified_facts": [
+      "The Apple HIG pass landed across Nov 21: shared UI component library redesign (components/ui now has 23 shared components: ActionMenu, ActivityFeed, AppModal, BulkActionBar, CommandPalette, ConfirmDialog, ConfirmationDialog, DataTable, Drawer, EmptyStateCTA, FormField, IdentityHeader, ImportExportModal, MetricCard, NeedsAttentionCard, NextBestAction, PageHeader, RoleCommandPalette, SectionShell, SetupProgressBar, SkeletonLoader, StatusBadge, Stepper), auth pages polish, admin role screens overhaul, PWA role screens overhaul, remaining role screens, Apple HIG color psychology and semantic token system (4f4ced96), landing-page and navigation journeys (4744e8cd), touch-target compliance (4d42939b).",
+      "frontend/tailwind.config.ts already contains a complete apple palette token block: blue #007AFF / dark #0A84FF, green #34C759 / #30D158, orange #FF9500 / #FF9F0A, red #FF3B30 / #FF453A, indigo #5856D6 / #5E5CE6, teal #5AC8FA, yellow #FFCC00, and gray-1 through gray-6 in both light (#8E8E93 ... #F2F2F7) and dark (#8E8E93 down to #1C1C1E) variants. The palette is right; the application of it is the unfinished work.",
+      "NAVY RESIDUE, exact values: dark theme uses hue-222 blue-tinted neutrals (--background: 222 47% 7%, --card: 222 47% 10%, --muted: 223 47% 15%) where Apple dark mode is neutral (black base, #1C1C1E, #2C2C2E, systemGray steps). Sidebar tokens are navy: sidebar DEFAULT #0f172a, hover #1e293b, active #1e40af, text #cbd5e1. gradient-primary is a blue-800 pair #1e40af to #1d4ed8. boxShadow card-hover carries a blue cast rgba(30,64,175,0.12). The primary color scale's dark steps (800 #0056B3, 900 #1e3a8a, 950 #172554) are navy. boxShadow sidebar-item uses an inset #1e40af bar.",
+      "SEMANTIC DRIFT, exact values: badge-success uses bg-secondary/10 with secondary #059669 (emerald), not apple green; badge-danger uses danger #e11d48 (rose), not apple red #FF3B30; badge-warning uses warning #d97706 (amber), not apple orange #FF9500; --destructive in light is 0 84% 60%, a different red again. At least four different red-oranges and three different greens can render for the same meanings in the same app.",
+      "INTERACTIVE-TINT VIOLATION, observed in the product screenshot of the admin dashboard header: '+ Add Student' renders as a blue filled button, 'Collect Fee' as a green filled button, 'Mark Attendance' as a dark navy filled button. Three filled buttons with three colors in one row means no color signals interactivity, and green on a button meaning 'this opens fee collection' collides with green meaning 'success' elsewhere (HIG: never one color, two meanings).",
+      "globals.css already implements correct Apple materials primitives: glass-frosted with saturate(180%) blur(20px) and dark variant saturate(190%) blur(24px), three-level shadow tokens, apple-card, apple easing curves (apple-enter, apple-exit, apple-spring), tab-pill keyframes, safe-area utilities, reduced-motion guard. These stay; the surfaces they sit on must go neutral.",
+      "Per-role appearances run on one Tailwind darkMode class strategy with 11 role apps sharing the same token set, so token fixes propagate everywhere; the sweep (L5) exists to catch hardcoded escapes.",
+      "The onboarding clock, north-star telemetry badge, demo mode conversion header (v11.54.0), tour system, and Day One Cockpit are live product surfaces that must survive the redesign with zero functional change."
+    ],
+    "honest_caveats": [
+      "Role screen files were not audited page by page for hardcoded hex or slate/blue classes at spec time. L0 runs that audit mechanically (grep inventory) and quantifies it; the count becomes the release criterion, not an assumption.",
+      "Some screens may use blue deliberately for domain branding (fee engine, demo mode). The one-tint rule still applies: those elements become tinted or neutral, and domain identity lives in icons and labels, not button colors. Where a genuine exception is argued, it is recorded in the design-language doc, not improvised.",
+      "Inter font stays. Apple's SF Pro is not licenseable for web redistribution; Inter with a tuned Apple-like type scale is the honest substitute. No claims of 'SF Pro' in docs."
+    ]
+  },
+  "color_intention_map": {
+    "rule": "One meaning, one color, everywhere: every entry below renders identically on every role, every screen, both appearances, via semantic tokens only. Anything not listed here is neutral gray. When in doubt, gray.",
+    "interactive_tint": {
+      "color": "apple.blue light #007AFF / dark #0A84FF",
+      "owns": "Every interactive element: filled primary buttons, text buttons, links, selected states, focus rings, active segmented segment, progress of ongoing work",
+      "never": "Never on noninteractive text, never as a section decoration, never on a second filled button next to another filled button in the same action row"
+    },
+    "money_in": {
+      "color": "apple.green light #34C759 / dark #30D158",
+      "owns": "Fee collected, payment received, reconciliation done, verified documents, results published, attendance present, leaves approved, everything finished-and-healthy"
+    },
+    "money_owed": {
+      "color": "apple.red light #FF3B30 / dark #FF453A",
+      "owns": "Overdue dues, failed transactions, absent students, rejected leaves, destructive actions, errors, exam results below pass where surfaced"
+    },
+    "attention": {
+      "color": "apple.orange light #FF9500 / dark #FF9F0A",
+      "owns": "Upcoming deadlines, pending approvals, unpaid-but-not-overdue fees, marks awaiting lock, weak attendance trends, everything pending-a-human-decision"
+    },
+    "provisional": {
+      "color": "apple.yellow #FFCC00, used only as dot/badge tint, never large fills",
+      "owns": "Draft states, provisional data not yet authenticated, in-progress bulk operations"
+    },
+    "exam_domain": {
+      "color": "apple.indigo light #5856D6 / dark #5E5CE6",
+      "owns": "Exam lifecycle and evaluation surfaces as a fixed sidebar-icon and module-identity color (HIG permits fixed sidebar icon colors); never on buttons or status badges"
+    },
+    "neutral": {
+      "color": "systemGray steps",
+      "owns": "All structure: surfaces, separators, secondary text, icons, disabled states, informational badges"
+    },
+    "forbidden": [
+      "Emerald, rose, amber, slate, zinc, navy hex values anywhere in frontend/src after this spec lands",
+      "Filled buttons in green, red, orange, or navy; status color on filled buttons is the L2 button-tier rule's job",
+      "Gradients as decoration; the only permitted gradients are none until a documented exception exists in the design-language doc",
+      "Blue text that is not a link or control"
+    ]
+  },
+  "persona_jobs": [
+    {
+      "persona_id": "office_admin",
+      "job_name": "Read my day's money truth in one glance, in any theme",
+      "trigger": "Every fee day and month close",
+      "steps": "Open the Finance surfaces -> collected is green, pending is orange, overdue is red, the one blue element is the action I take next -> totals in tabular numerals, no decorative color anywhere",
+      "finished_state_message": "The fee day screen reads like an audited ledger: three colors, three meanings, one action.",
+      "walkthrough_verification": "Side-by-side light/dark screenshot check of Finance Hub on demo tenant: identical semantics in both themes, one interactive tint per action row, contrast verified"
+    },
+    {
+      "persona_id": "teacher",
+      "job_name": "Take attendance in the 40-minute period without decoding colors",
+      "trigger": "Every period",
+      "steps": "Open the attendance matrix -> present is a green dot, absent red, late orange, UI chrome invisible -> the single blue element is the submit control",
+      "finished_state_message": "Finished in under four minutes; the colors told me nothing except truth.",
+      "walkthrough_verification": "Attendance surface checked in both themes for color-code consistency and 4.5:1 contrast; no noninteractive element wears the tint"
+    },
+    {
+      "persona_id": "parent",
+      "job_name": "Trust what I see: paid means green, due means red, no decoration",
+      "trigger": "Every payment and document check",
+      "steps": "Open fees -> paid receipts green, outstanding red, due-soon orange -> tap the one blue control to pay -> done in under ninety seconds",
+      "finished_state_message": "I understood my dues without calling the office.",
+      "walkthrough_verification": "Parent PWA surfaces on demo tenant in both themes: semantic colors match the office_admin meanings exactly; payment CTA is the only tinted control"
+    }
+  ],
+  "scope_boundaries": {
+    "non_goals_confirmed": [
+      "No hardware, no edtech content, no LLMs in workflows, no new role apps, no price tiers, no WhatsApp"
+    ],
+    "out_of_scope_for_this_spec": [
+      "Functional or layout rework governed by the landed uiux spec; a component's behavior, props, and routes are frozen, only its styling tokens change",
+      "New features, new pages, information-architecture changes, and the six north-star metric definitions",
+      "Multi-language or localization work; typography rules cover Latin and Devanagari rendering only",
+      "Third-party design libraries; the system token architecture continues hand-built",
+      "Replacing Inter with a licensed Apple font"
+    ],
+    "in_scope": [
+      "frontend/tailwind.config.ts, frontend/src/app/globals.css, every file under frontend/src containing hardcoded colors that bypass tokens",
+      "The 23 shared components in frontend/src/components/ui and layout shells (AdminShell, role shells, sidebars, tab bars)",
+      "All 11 role apps' screens insofar as they consume tokens or carry hardcoded navy/blue/emerald/rose/amber/slate values",
+      "Charts, tables, badges, empty states, skeletons, focus states, print styles, and both theme appearances everywhere"
+    ]
+  },
+  "theme_specification": {
+    "light": {
+      "base": "systemGroupedBackground #F2F2F7 for page background, pure white cards, separators #C6C6C8 at hairline weight",
+      "text": "label #000000 primary, secondaryLabel rgba(60,60,67,0.6), tertiary rgba(60,60,67,0.3)",
+      "type_scale": "Large Title 34/700, Title 28/700, Title2 22/700, Title3 20/600, Headline 17/600, Body 17/400, Callout 16/400, Subhead 15/400, Footnote 13/400, Caption 12/400; page headers use Large Title; tracking tightened on large sizes; tabular numerals for all figures"
+    },
+    "dark": {
+      "base": "true black #000000 page background, cards #1C1C1E, elevated surfaces #2C2C2E, separators rgba(84,84,88,0.65), NO hue-222 anywhere; existing glass-frosted materials remain with neutral dark glass",
+      "text": "label #FFFFFF primary, secondaryLabel rgba(235,235,245,0.6), tertiary rgba(235,235,245,0.3)",
+      "elevation_rule": "Apple dark mode elevates by lightening the surface, not by shadow; shadows are reduced in dark, materials and hairlines carry the hierarchy"
+    },
+    "sidebar": {
+      "light": "Apple macOS sidebar pattern: systemGray-6 translucent material #F2F2F7 family, active row receives the interactive tint at low opacity with tinted label, fixed-color section icons permitted",
+      "dark": "neutral translucent dark material #161616 to #1C1C1E family with vibrancy, active row tinted by the interactive tint, no navy",
+      "icon_colors": "Module identity colors follow the fixed sidebar-icon convention (HIG): transport teal, finance green, exams indigo, attendance blue, library yellow, HR gray, settings gray; icons only, never row backgrounds"
+    },
+    "contrast_law": "Every text, icon, and badge pair passes 4.5:1 (large text 3:1) against its actual surface in light AND dark AND forced-colors mode; verified mechanically in L6"
+  },
+  "component_grammar": {
+    "buttons": {
+      "tiers": "Filled (interactive tint, white label, one per action row), Tinted (tint at 12 percent fill, tinted label, for secondary actions), Plain (tinted text only), Gray filled (neutral material for cancel/negative-space actions), Destructive (apple.red filled or plain per Apple alert convention)",
+      "law": "One filled tinted button per action row. A destructive action in a row with a primary action is plain-red, never filled-red next to filled-blue",
+      "dimensions": "Height 44pt minimum touch, 36pt compact density for data tables, radius 12px, Apple easing on press (scale 0.97 micro-interaction)"
+    },
+    "tabs_and_navigation": {
+      "segmented": "Sibling views within a page use iOS-style segmented controls (neutral track, white/thumb indicator in light, #636366 track with lighter thumb in dark); the landed tab-pill animation is retained for the thumb",
+      "top_tabs": "Cross-section navigation inside a module uses underline-free pill tabs with tinted active label on neutral fill",
+      "sidebar_active": "Active row: tinted low-opacity fill plus tinted label; visited state does not exist; badge counts render in semantic colors only when they mean status",
+      "page_header": "Large Title pattern: 34/700 page title, subtitle in secondary text, one primary action right-aligned, breadcrumb only where hierarchy is deeper than two levels"
+    },
+    "sections_and_lists": {
+      "inset_grouped": "Forms and row-data collections render as iOS inset grouped lists: card container, full-width rows, hairline separators inset from the text edge (aligned to label, not screen edge), chevron affordance for navigable rows, 12px section headers in secondary text uppercase",
+      "data_tables": "Desktop data tables keep hairline row separators, zero zebra striping, tabular numerals, right-aligned numerics, status via StatusBadge semantic tokens only; mobile collapses to grouped list rows"
+    },
+    "data_showcase": {
+      "metric_tiles": "MetricCard: value in tabular numerals at Title2, label in Footnote secondary, trend arrow in semantic color only when trend exists, icon in neutral or fixed section color, no colored card backgrounds",
+      "status_badges": "StatusBadge is the single source of status color, consuming color_intention_map tokens only; one badge vocabulary for all roles",
+      "charts": "Monochrome primary series in interactive tint, comparisons in systemGray, semantic red/green only for loss/gain meanings; no rainbow palettes",
+      "money": "Indian rupee formatting with tabular numerals everywhere, totals in Headline weight, never colored except by money_in/money_owed semantics"
+    }
+  },
+  "phases": [
+    {
+      "phase_id": "AD-L0",
+      "title": "Color crime-scene audit and design-language document",
+      "tasks": [
+        "Mechanical audit: grep frontend/src for hardcoded hex colors, tailwind slate/zinc/blue-*/emerald/rose/amber classes, and rgba triples outside tokens; produce docs/design/color-audit.md with per-file counts and the total escape count.",
+        "Inventory every status color usage across the 11 role apps and map each to the color_intention_map; record collisions (one color, two meanings) found in the wild.",
+        "Verify the interactive-tint violations: capture the multi-filled-button action rows (admin dashboard header is the known instance) and list every action row with more than one filled colored button.",
+        "Write docs/design/design-language.md: this spec's philosophy, color_intention_map, theme_specification, and component_grammar as the binding reference for every future spec; the charter's design law going forward.",
+        "No styling changes in this layer."
+      ],
+      "walkthrough_verification": "The audit document states the exact escape count and the collision list; the design-language document is the review artifact the operator approves"
+    },
+    {
+      "phase_id": "AD-L1",
+      "title": "Token truth: neutral themes and the semantic layer",
+      "tasks": [
+        "Rewrite the dark theme in globals.css to the theme_specification.dark values: black base, #1C1C1E cards, #2C2C2E elevated, neutral separators; delete every hue-222 value.",
+        "De-navy the tokens in tailwind.config.ts: sidebar becomes the neutral translucent material spec, gradient-primary is deleted and its consumers moved to neutral or tinted treatments (per-component decisions in the audit), card-hover shadow loses its blue cast, primary scale dark steps re-derived from #0A84FF.",
+        "Build the semantic token layer that maps color_intention_map onto components: semantic classes/tokens for money_in, money_owed, attention, provisional, interactive_tint, neutral, each with light and dark values from the apple palette block, and a contrast-verified pairing table.",
+        "Retire the emerald secondary, rose danger, and amber warning tokens as component-facing colors; StatusBadge and all badge classes consume only semantic tokens; the old tokens may remain defined for one transition cycle with a deprecation comment, then die in L6.",
+        "Unit tests: token existence, light/dark pairing completeness, and that the semantic layer resolves to the apple palette values."
+      ],
+      "walkthrough_verification": "Both themes render neutral: the same screen side by side shows black/gray dark surfaces with zero navy, and identical semantic mappings in light; verified on the admin dashboard, Finance Hub, and attendance matrix"
+    },
+    {
+      "phase_id": "AD-L2",
+      "title": "Component grammar: buttons, tabs, grouped lists, badges",
+      "tasks": [
+        "Rebuild button tiers in the shared library per component_grammar.buttons: filled, tinted, plain, gray, destructive; enforce one-filled-per-action-row in code review checklist and add an eslint rule or test flagging filled-button siblings with different non-neutral colors.",
+        "Fix the known violation: the admin dashboard header's three filled buttons become one filled primary, the rest tinted or plain; every other action row in the product follows the same law.",
+        "Implement the segmented control as a shared component (replacing ad-hoc tab implementations) with the retained tab-pill thumb animation; sweep in-page sibling-view tabs to it.",
+        "Build the InsetGroupedList shared component (rows, inset separators, chevrons, section headers) and apply it to the highest-traffic forms and settings surfaces; full-page sweep happens in L5.",
+        "StatusBadge: single badge vocabulary consuming semantic tokens only; audit its consumers in Phase L0's collision list and fix each.",
+        "MetricCard and DataTable restyle per data_showcase rules: tabular numerals, neutral tiles, zero zebra, right-aligned numerics.",
+        "Component-story verification: render each shared component in both appearances on the demo tenant and record the side-by-side states."
+      ],
+      "walkthrough_verification": "Shared component walkthrough in light and dark: button tiers on a real action row, segmented control behavior, grouped list anatomy, badge vocabulary, one interactive tint everywhere"
+    },
+    {
+      "phase_id": "AD-L3",
+      "title": "Navigation and shells: sidebar, headers, tab bars",
+      "tasks": [
+        "Apply the sidebar specification to AdminShell and every role shell: neutral translucent materials both themes, tinted active rows, fixed-color section icons per the icon-color table, hairline separators; navy #0f172a and #1e40af are dead.",
+        "Apply the page_header Large Title pattern via PageHeader everywhere it is consumed; do not restyle pages that predate the shared component in this layer, the L5 sweep catches them.",
+        "Mobile tab bars and PWA shells: iOS-style bottom tab bars with tinted active state and SF-Symbols-weight lucide icons; safe-area utilities preserved.",
+        "Command palettes and modals: elevate with the material and shadow tokens, neutral scrims, Apple easing; verify against the four-level shadow scale."
+      ],
+      "walkthrough_verification": "Navigation walkthrough per persona across admin, teacher, parent, student shells in both themes: active states indistinguishable in meaning across roles, zero navy, tab bars and palettes on the material tokens"
+    },
+    {
+      "phase_id": "AD-L4",
+      "title": "Data showcase: the school OS reads like an audited ledger",
+      "tasks": [
+        "Sweep data-featuring surfaces on the demo tenant through the color_intention_map: Finance Hub and Fee Collection (money_in green, money_owed red, attention orange), attendance surfaces (green/red/orange dots), exam lifecycle (indigo identity, green published, red failed, orange pending lock), HR and transport statuses, library and document verification states.",
+        "Where a screen hardcodes a status color, refactoring to StatusBadge or semantic tokens is the fix; where the screen's meaning is not in the map, it goes neutral and the gap is recorded in the design-language doc.",
+        "Verify the money rendering law across Finance surfaces: tabular numerals, headline-weight totals, color only by semantics.",
+        "Charts and trends: apply the charts color rules to every chart component and dashboard trend block.",
+        "Empty, loading, and error states: neutral skeletons, neutral empty states with one tinted action, destructive red only for real errors."
+      ],
+      "walkthrough_verification": "Data walkthrough on the demo tenant as office_admin, accountant, principal: every fee, attendance, exam, and approval state shows the map's color and no other; a printed screenshot of Finance Hub reads like a ledger"
+    },
+    {
+      "phase_id": "AD-L5",
+      "title": "The sweep: all 11 role apps, hardcoded colors die",
+      "tasks": [
+        "Run the codemod sweep across every role app screen replacing hardcoded hex, slate/zinc/navy, emerald/rose/amber, and stray blue classes with semantic tokens, using the L0 audit inventory as the checklist.",
+        "Apply InsetGroupedList to remaining forms and settings surfaces; apply page_header pattern to remaining pages.",
+        "Preserve functionality: this sweep changes class names and token consumption only; any file where the sweep would change behavior or props is stopped and recorded as a gap entry.",
+        "The interactive-tint audit from L0 re-runs green: zero action rows with multiple filled colored buttons product-wide.",
+        "Print styles, forced-colors mode, and high-contrast rendering verified on the swept surfaces."
+      ],
+      "walkthrough_verification": "The L0 audit list is worked to zero escapes: re-running the audit grep returns no hardcoded color violations outside the token files; walkthrough in both themes on each role's home surface"
+    },
+    {
+      "phase_id": "AD-L6",
+      "title": "Mechanical enforcement: make the regression impossible",
+      "tasks": [
+        "CI guard: a test or lint rule scans frontend/src for hardcoded hex colors and banned palette classes (slate, zinc, emerald, rose, amber, navy hex, blue-800/900 scale) outside the token definition files; it fails the build on any hit and carries an explicit allowlist pinned to the design-language doc.",
+        "Contrast audit: automated contrast checking of the semantic token pairs against their real surfaces in both appearances and forced-colors; every pair 4.5:1 (large text 3:1); failures block release.",
+        "Visual regression harness on the shared component library and the demo tenant's key surfaces in both appearances: baseline screenshots, per-phase diffs, human-approved baselines recorded as release evidence.",
+        "Verify deprecated tokens are gone: the emerald/rose/amber component-facing definitions deleted in this layer, not just deprecated.",
+        "Performance guard: the landed 120 FPS rules, reduced-motion support, and material blur budgets are re-verified; a redesign that drops scroll performance fails the gate."
+      ],
+      "walkthrough_verification": "CI green with the new guards; a scratch commit reintroducing a navy hex and an emerald badge each fail the build, then are reverted; contrast report attached as release evidence"
+    },
+    {
+      "phase_id": "AD-L7",
+      "title": "Ratification: both themes, all roles, honest evidence",
+      "tasks": [
+        "Full persona walkthrough of the demo tenant in BOTH appearances across the ten charter journeys' surfaces: fee day, month close, the 40-minute period, weekly review, parent loop, homework cycle, admission, exam season, onboarding, super-admin.",
+        "Color-intention verification: for each journey, the walkthrough records which colors carried meaning and confirms the map held (one meaning, one color).",
+        "Update docs/design/design-language.md with any documented exceptions granted during the work and the final audit numbers; update docs/product/journey-map.md entries where a journey's surface truth changed visually.",
+        "Record the honest gaps: any screen kept on old styling, any exception, any behavior-preserving sweep refusal, as gap entries, not silent debt.",
+        "Typecheck, build, smoke render green in both theme classes; release evidence per repo convention."
+      ],
+      "walkthrough_verification": "Final commit body carries the per-journey color-intention record, both-theme evidence, audit numbers before and after, and the gap list; journey-map.md cites it"
+    }
+  ],
+  "business_logic_rules": [
+    "BR-AD-1: One meaning, one color. The color_intention_map is exhaustive; a color not in the map is neutral gray. Collisions found in the wild are resolved map-first, screen-second (HIG law).",
+    "BR-AD-2: One interactive tint. Every interactive element wears apple.blue; no noninteractive element wears it; one filled tinted button per action row; destructive actions plain-red when sharing a row (HIG law).",
+    "BR-AD-3: Dark mode is neutral. Black base, #1C1C1E, #2C2C2E, neutral separators, zero hue-222 navy anywhere; elevation by surface lightening and materials, not colored shadows.",
+    "BR-AD-4: No hardcoded colors in frontend/src outside token files; the CI guard enforces this permanently; the allowlist lives in the design-language doc and changes only via spec.",
+    "BR-AD-5: Contrast 4.5:1 minimum (3:1 large text) in light, dark, and forced-colors; automated and release-blocking.",
+    "BR-AD-6: A page answers three questions in one glance (next action, attention, data state) under the 60/30/10 visual weight budget; a dashboard with more than one filled tinted button or more than one semantic color without a status fails deference and does not merge.",
+    "BR-AD-7: Styling-only law: no behavior, props, routes, or data logic change under this spec; a sweep that would alter behavior stops and records a gap.",
+    "BR-AD-8: Charter law interaction: a screen's H1 still names a job, workflows still end in finished states; styling never removes a finished state, a status badge, or a metric readout. If a color removal would hide a status, the status is re-expressed neutrally, not deleted.",
+    "BR-AD-9: The map applies to every role identically: a parent's due-red is the accountant's due-red. Family surfaces may simplify vocabulary but never contradict it."
+  ],
+  "acceptance_criteria": [
+    "AC-AD-1: docs/design/color-audit.md states the exact hardcoded-color escape count per file at head, and docs/design/design-language.md exists as the binding design law and operator-approved reference.",
+    "AC-AD-2: Dark theme renders neutral black/gray surfaces with zero hue-222 values in tokens; sidebar, gradients, shadows, and primary dark steps carry no navy; verified by grep and visual evidence.",
+    "AC-AD-3: The semantic token layer implements color_intention_map with verified light and dark pairs from the apple palette; emerald/rose/amber component-facing tokens are deleted by L6.",
+    "AC-AD-4: The admin dashboard header fix is done: one filled tinted button per action row, and this law holds product-wide per the re-run audit.",
+    "AC-AD-5: Segmented control exists as a shared component and all in-page sibling tabs use it; the tab-pill thumb animation is retained.",
+    "AC-AD-6: InsetGroupedList exists and is applied to high-traffic forms and settings; the full sweep applies it product-wide or records honest gaps.",
+    "AC-AD-7: StatusBadge is the single status-color source across all 11 roles; the L0 collision list is resolved to zero collisions.",
+    "AC-AD-8: Metric tiles, tables, and charts follow the data_showcase rules: tabular numerals, neutral tiles, semantic-only color, no zebra, right-aligned numerics; Finance Hub reads like an audited ledger in both themes.",
+    "AC-AD-9: All 11 role apps are swept: the audit grep returns zero hardcoded violations outside token files; behavior preserved with zero functional diffs in the sweep commits.",
+    "AC-AD-10: CI guards exist and demonstrably fail on a navy hex and on a banned palette class, with the allowlist pinned to the design-language doc.",
+    "AC-AD-11: Automated contrast audit passes 4.5:1 (3:1 large text) for every semantic pair in light, dark, and forced-colors; report attached as release evidence.",
+    "AC-AD-12: Both-theme visual baselines exist for the shared library and demo tenant key surfaces; reduced-motion, 120 FPS rules, and material blur budgets re-verified.",
+    "AC-AD-13: The L7 walkthrough records, per journey and per theme, the colors that carried meaning; design-language.md holds final audit numbers and the honest gap list; journey-map.md cites the evidence.",
+    "AC-AD-14: Typecheck, build, and smoke render green in both theme classes; zero new npm dependencies; the tour, demo mode, onboarding clock, and Day One Cockpit surfaces survive the redesign with zero functional change."
+  ],
+  "constraints": [
+    "Zero new npm dependencies. No third-party design systems, no CSS-in-JS migrations, no Tailwind version change in this spec.",
+    "Phases land in strict order AD-L0 through AD-L7, one commit series per layer. Commit prefixes: docs(design) for L0, feat(design) for L1 through L7.",
+    "The L0 design-language document is a review gate: the operator approves the final color_intention_map and component grammar before token rewrites begin.",
+    "Inter font stays; the type scale approximates Apple's without claiming SF Pro.",
+    "Every phase lands with typecheck, build, and smoke render green in both theme classes. The S7 gate is permanent series law.",
+    "Styling-only law is absolute: any commit that changes behavior alongside styling is split or rejected.",
+    "Do not touch north-star metric definitions, the tour system's behavior, demo mode's conversion header logic, or onboarding wizard steps; restyle their containers only.",
+    "Where this spec conflicts with in-repo security or accessibility constraints, security and accessibility win; log the conflict in the commit body."
+  ],
+  "definition_of_done": "The design system is done when the product looks like Apple thought about it and cannot regress: navy blue no longer exists anywhere in the product; dark mode is neutral black and gray with Apple's materials; every data type in the school OS wears one meaning in one color, identically for an office admin, an accountant, a teacher, and a parent, in both themes; every action row carries exactly one filled tinted button; tabs are segmented controls; forms and settings are inset grouped lists; page headers are large titles; figures are tabular numerals; contrast passes mechanically in light, dark, and forced-colors; a CI guard fails any commit that reintroduces a hardcoded color; and the honest evidence (audit numbers before and after, per-journey color records, both-theme screenshots) is committed with the release. A school principal opening the demo in either theme should sense one thing: this ledger can be trusted.",
+  "target_agent": {
+    "ide": "Antigravity",
+    "usage": [
+      "Save this JSON as docs/apple-design-system-spec.json. It derives from docs/product-destination-charter.json, supersedes the styling decisions of the landed uiux spec and of the v11.50-v11.52 Apple pass, and leaves their functionality untouched.",
+      "Execute layers AD-L0 through AD-L7 in strict order. L0 quantifies the crime scene and produces the operator-approved design-language document; no token rewrites before that approval.",
+      "Read frontend/tailwind.config.ts, frontend/src/app/globals.css, frontend/src/components/ui/*, and every shell from the codebase at implementation time. The grounding facts here were verified at head 802d931b (v11.54.1) and may have moved. Real class inventory comes from the L0 audit, not from this spec.",
+      "Follow design_philosophy, the color_intention_map, theme_specification, and component_grammar as binding law; the design-language document in L0 is their ratified form and the reference for every future spec.",
+      "Every layer's commit body records the walkthrough: which surfaces, which theme, which finished state, with before/after evidence for styling changes.",
+      "Gaps larger than a layer's scope go to docs/design/design-language.md and docs/product/journey-map.md as gap entries, never silent expansion.",
+      "The CI guards in AD-L6 are the point of no return for regressions; do not ship them with an allowlist larger than the documented exceptions.",
+      "Spell the IDE name 'Antigravity' in any generated docs."
+    ]
+  }
+}
