@@ -40,7 +40,7 @@ export default function CancelReceiptButton({
       type="button"
       onClick={handleCancel}
       disabled={isPending}
-      className="p-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-red-50 text-gray-400 hover:text-red-600 transition disabled:opacity-50"
+      className="p-1.5 rounded-lg bg-muted/60 hover:bg-red-50 text-gray-400 hover:text-red-600 transition disabled:opacity-50"
       title="Cancel & Reverse Receipt"
     >
       {isPending ? (

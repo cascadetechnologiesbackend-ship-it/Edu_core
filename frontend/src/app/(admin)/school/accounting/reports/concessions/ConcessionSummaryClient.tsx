@@ -153,14 +153,14 @@ export function ConcessionSummaryClient({
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-500" />
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Academic Session:
             </span>
             <select
               aria-label="Select Academic Session"
               value={selectedYearId}
               onChange={(e) => handleYearChange(e.target.value)}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-foreground focus:outline-none focus:ring-2 focus:ring-[#00875A] dark:focus:ring-[#63E6BE]"
             >
               {academicYears.map((ay) => (
                 <option key={ay.id} value={ay.id}>
@@ -177,7 +177,7 @@ export function ConcessionSummaryClient({
               placeholder="Search policy, class, term..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="text-xs pl-8 pr-3 py-1.5 w-48 md:w-56 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="text-xs pl-8 pr-3 py-1.5 w-48 md:w-56 rounded-lg border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-foreground focus:outline-none focus:ring-2 focus:ring-[#00875A] dark:focus:ring-[#63E6BE]"
             />
           </div>
 
@@ -236,7 +236,7 @@ export function ConcessionSummaryClient({
             <button
               onClick={handleExportExcel}
               disabled={exporting}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#00875A] hover:bg-[#006e49] dark:bg-[#63E6BE] dark:hover:bg-[#4ed4ab] text-white dark:text-black shadow-sm disabled:opacity-50 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               {exporting ? "Exporting..." : "Export Excel (.xlsx)"}
@@ -262,7 +262,7 @@ export function ConcessionSummaryClient({
               <Percent className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">
             ₹{report.totalConcessions.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
@@ -276,11 +276,11 @@ export function ConcessionSummaryClient({
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-muted-foreground">
               Gross Tuition Billed
             </span>
-            <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-muted/60 text-gray-600 dark:text-gray-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-muted/60 text-muted-foreground flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">
             ₹{report.totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
@@ -316,7 +316,7 @@ export function ConcessionSummaryClient({
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">
             {report.totalBeneficiaries} <span className="text-sm font-normal text-gray-500">students</span>
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-muted-foreground">
@@ -327,19 +327,19 @@ export function ConcessionSummaryClient({
         {/* Realization Rate */}
         <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#00875A] dark:text-[#63E6BE]">
               Realization Rate
             </span>
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <TrendingDown className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">
             {report.overallRealizationRate.toFixed(1)}%
           </div>
           <div className="mt-1.5 w-full bg-gray-100 dark:bg-muted/60 h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-indigo-600 h-full rounded-full transition-all"
+              className="bg-[#00875A] dark:bg-[#63E6BE] h-full rounded-full transition-all"
               style={{ width: `${Math.min(100, Math.max(0, report.overallRealizationRate))}%` }}
             />
           </div>
@@ -359,7 +359,7 @@ export function ConcessionSummaryClient({
                 className="p-3 rounded-xl border border-gray-100 dark:border-border/40 bg-gray-50/50 dark:bg-muted/30 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                  <span className="text-xs font-semibold text-foreground truncate">
                     {pb.policyName}
                   </span>
                   <span
@@ -388,8 +388,8 @@ export function ConcessionSummaryClient({
       <div className="bg-white dark:bg-card border border-gray-200 dark:border-border/40 rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-indigo-600" />
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+            <FileText className="w-4 h-4 text-[#00875A] dark:text-[#63E6BE]" />
+            <h2 className="text-sm font-bold text-foreground">
               Revenue Foregone Matrix (Policy × Term × Class)
             </h2>
           </div>
@@ -401,7 +401,7 @@ export function ConcessionSummaryClient({
         {filteredRows.length === 0 ? (
           <div className="p-12 text-center text-gray-500 dark:text-muted-foreground space-y-2">
             <Percent className="w-10 h-10 mx-auto text-gray-300 dark:text-muted-foreground" />
-            <div className="font-medium text-sm text-gray-900 dark:text-white">
+            <div className="font-medium text-sm text-foreground">
               No concessions or waivers found
             </div>
             <p className="text-xs max-w-sm mx-auto">
@@ -431,7 +431,7 @@ export function ConcessionSummaryClient({
                     key={`${row.policyName}-${row.term}-${row.className}-${idx}`}
                     className="hover:bg-gray-50/80 dark:hover:bg-muted/30 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {row.policyName}
                     </td>
                     <td className="px-3 py-3">
@@ -449,7 +449,7 @@ export function ConcessionSummaryClient({
                     <td className="px-3 py-3 text-gray-700 dark:text-muted-foreground">
                       {row.className}
                     </td>
-                    <td className="px-3 py-3 text-right font-medium text-gray-900 dark:text-white">
+                    <td className="px-3 py-3 text-right font-medium text-foreground">
                       {row.studentCount}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-gray-700 dark:text-muted-foreground">
@@ -462,7 +462,7 @@ export function ConcessionSummaryClient({
                       ₹{row.netRealized.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="font-mono font-semibold text-gray-900 dark:text-white">
+                      <span className="font-mono font-semibold text-foreground">
                         {row.realizationRate.toFixed(1)}%
                       </span>
                     </td>
@@ -471,13 +471,13 @@ export function ConcessionSummaryClient({
               </tbody>
               <tfoot className="bg-gray-50 dark:bg-muted/40 border-t-2 border-gray-200 dark:border-border/40 font-bold">
                 <tr>
-                  <td className="px-4 py-3 text-gray-900 dark:text-white" colSpan={4}>
+                  <td className="px-4 py-3 text-foreground" colSpan={4}>
                     TOTAL (ALL FILTERED ROWS)
                   </td>
-                  <td className="px-3 py-3 text-right text-gray-900 dark:text-white">
+                  <td className="px-3 py-3 text-right text-foreground">
                     {filteredRows.reduce((sum, r) => sum + r.studentCount, 0)}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-gray-900 dark:text-white">
+                  <td className="px-4 py-3 text-right font-mono text-foreground">
                     ₹
                     {filteredRows
                       .reduce((sum, r) => sum + r.grossAmount, 0)
@@ -495,7 +495,7 @@ export function ConcessionSummaryClient({
                       .reduce((sum, r) => sum + r.netRealized, 0)
                       .toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-gray-900 dark:text-white">
+                  <td className="px-4 py-3 text-right font-mono text-foreground">
                     {report.overallRealizationRate.toFixed(1)}%
                   </td>
                 </tr>

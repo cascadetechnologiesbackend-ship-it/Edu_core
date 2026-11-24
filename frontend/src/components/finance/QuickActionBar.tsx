@@ -193,15 +193,15 @@ export function QuickActionBar({
               className={cn(
                 "inline-flex items-center gap-2 px-3.5 py-2 min-h-[44px] rounded-xl text-xs md:text-sm font-semibold transition-all duration-150 active:scale-95 shadow-sm",
                 item.variant === "primary" &&
-                  "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20",
+                  "bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm",
                 item.variant === "success" &&
                   "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20",
                 item.variant === "secondary" &&
-                  "bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600",
+                  "bg-muted/60 hover:bg-card text-foreground dark:bg-muted dark:hover:bg-muted/80",
                 item.variant === "danger" &&
                   "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20",
                 (!item.variant || item.variant === "outline") &&
-                  "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800"
+                  "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 dark:bg-card dark:hover:bg-muted/60 dark:text-foreground dark:border-border/40"
               )}
             >
               <Icon className="w-4 h-4" />
@@ -219,12 +219,12 @@ export function QuickActionBar({
           <button
             type="button"
             onClick={onOpenCommandPalette}
-            className="inline-flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-xl text-xs md:text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-300 transition-all border border-transparent dark:border-slate-700/50"
+            className="inline-flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-xl text-xs md:text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-muted/40 dark:hover:bg-muted dark:text-muted-foreground transition-all border border-transparent dark:border-border/40/50"
             title="Open Command Palette (Cmd+K)"
           >
             <Command className="w-3.5 h-3.5" />
             <span className="hidden lg:inline">Quick Jump</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-900 text-gray-500 rounded border border-gray-200 dark:border-slate-800">
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-card text-gray-500 rounded border border-border/40">
               ⌘K
             </kbd>
           </button>

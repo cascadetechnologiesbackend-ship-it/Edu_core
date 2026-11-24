@@ -147,19 +147,19 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-foreground"
           />
           <span className="text-xs text-gray-400">to</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-foreground"
           />
           <button
             onClick={() => handleApplyFilter()}
             disabled={loading}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-[#00875A] dark:bg-[#63E6BE] dark:text-black hover:opacity-90 rounded-xl transition shadow-sm inline-flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Apply Filter
@@ -265,7 +265,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
               placeholder="Search by code, account, or type..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-gray-900 dark:text-white"
+              className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-muted/60 text-foreground"
             />
           </div>
           <span className="text-xs text-gray-400">
@@ -297,10 +297,10 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
                     key={row.accountId}
                     className="hover:bg-gray-50/80 dark:hover:bg-muted/30 transition-colors"
                   >
-                    <td className="py-2.5 px-4 font-mono font-medium text-gray-900 dark:text-white">
+                    <td className="py-2.5 px-4 font-mono font-medium text-foreground">
                       {row.code}
                     </td>
-                    <td className="py-2.5 px-4 font-medium text-gray-900 dark:text-white">
+                    <td className="py-2.5 px-4 font-medium text-foreground">
                       {row.name}
                     </td>
                     <td className="py-2.5 px-4">
@@ -320,10 +320,10 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
                         {row.type}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 text-right font-mono font-medium text-gray-900 dark:text-white">
+                    <td className="py-2.5 px-4 text-right font-mono font-medium text-foreground">
                       {row.netDebit > 0 ? `₹${row.netDebit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-mono font-medium text-gray-900 dark:text-white">
+                    <td className="py-2.5 px-4 text-right font-mono font-medium text-foreground">
                       {row.netCredit > 0 ? `₹${row.netCredit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </td>
                   </tr>
@@ -354,7 +354,7 @@ export function TrialBalanceClient({ initialReport, userRole }: TrialBalanceClie
               )}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-100/80 dark:bg-muted/60 border-t-2 border-gray-300 dark:border-border/40 font-bold text-gray-900 dark:text-white">
+              <tr className="bg-gray-100/80 dark:bg-muted/60 border-t-2 border-gray-300 dark:border-border/40 font-bold text-foreground">
                 <td colSpan={3} className="py-3.5 px-4 text-right uppercase tracking-wider text-xs">
                   Grand Total Debits & Credits:
                 </td>

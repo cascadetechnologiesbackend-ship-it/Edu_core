@@ -102,7 +102,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
       sortable: true,
       cell: (row) => (
         <div>
-          <span className="font-bold text-indigo-600 dark:text-indigo-400">{row.gateway}</span>
+          <span className="font-bold text-[#248A3D] dark:text-[#30D158]">{row.gateway}</span>
           <p className="text-[11px] text-gray-400 font-mono">Order: {row.gatewayOrderId || "N/A"}</p>
         </div>
       ),
@@ -113,7 +113,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
       accessorKey: "gatewayPaymentId",
       sortable: true,
       cell: (row) => (
-        <span className="font-mono text-xs font-semibold text-gray-800 dark:text-slate-200">
+        <span className="font-mono text-xs font-semibold text-foreground">
           {row.gatewayPaymentId || "—"}
         </span>
       ),
@@ -124,7 +124,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
       accessorKey: "invoiceNumber",
       sortable: true,
       cell: (row) => (
-        <span className="font-mono text-xs text-gray-600 dark:text-slate-300">
+        <span className="font-mono text-xs text-muted-foreground">
           {row.invoiceNumber ? `#${row.invoiceNumber}` : "Unlinked"}
         </span>
       ),
@@ -135,7 +135,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
       accessorKey: "amount",
       sortable: true,
       cell: (row) => (
-        <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
+        <span className="font-mono font-bold text-sm text-foreground">
           ₹{row.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
         </span>
       ),
@@ -182,7 +182,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
   return (
     <div className="space-y-6">
       {/* Tab Navigation & Search Filter */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-border/40">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -190,8 +190,8 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition",
               activeTab === "QUEUE"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200"
+                ? "bg-[#248A3D] dark:bg-[#30D158] text-white dark:text-black shadow-sm"
+                : "bg-muted/60 text-foreground hover:bg-gray-200"
             )}
           >
             Needs Settlement ({logs.filter((l) => l.status === "PAID" && !l.isReconciled).length})
@@ -202,8 +202,8 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition",
               activeTab === "ALL"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200"
+                ? "bg-[#248A3D] dark:bg-[#30D158] text-white dark:text-black shadow-sm"
+                : "bg-muted/60 text-foreground hover:bg-gray-200"
             )}
           >
             All Logs ({logs.length})
@@ -214,8 +214,8 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition",
               activeTab === "DISCREPANCY"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200"
+                ? "bg-[#248A3D] dark:bg-[#30D158] text-white dark:text-black shadow-sm"
+                : "bg-muted/60 text-foreground hover:bg-gray-200"
             )}
           >
             Failed / Discrepancies
@@ -228,7 +228,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search order ID, payment ID..."
-            className="w-full px-3.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="w-full px-3.5 py-1.5 text-xs rounded-xl border border-border/40 bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-[#248A3D]/20 dark:focus:ring-[#30D158]/20"
           />
         </div>
       </div>
@@ -244,7 +244,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
               <button
                 type="button"
                 onClick={() => setInspectLog(row)}
-                className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-gray-500 hover:text-[#248A3D] dark:text-[#30D158] hover:bg-muted/60 transition"
                 title="Inspect Webhook Payload"
               >
                 <Code2 className="w-4 h-4" />
@@ -280,11 +280,11 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
             onClick={() => setInspectLog(null)}
           />
 
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-800">
+          <div className="w-full max-w-2xl bg-card border border-border/40 rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-4 border-b border-border/40">
               <div className="flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                <Code2 className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
+                <h3 className="text-base font-bold text-foreground">
                   Webhook Payload Inspector: #{inspectLog.gatewayPaymentId || inspectLog.gatewayOrderId}
                 </h3>
               </div>
@@ -313,7 +313,7 @@ export function ReconciliationClient({ logs, userRole }: ReconciliationClientPro
               <button
                 type="button"
                 onClick={() => setInspectLog(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200"
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-muted/60 text-foreground hover:bg-gray-200"
               >
                 Close Inspector
               </button>

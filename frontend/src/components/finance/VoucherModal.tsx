@@ -168,11 +168,11 @@ export function VoucherModal({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-gray-200 dark:border-slate-800 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg rounded-3xl bg-card p-6 shadow-2xl border border-border/40 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-border/40">
             <div className="flex items-center gap-2.5">
               <span
                 className={cn(
@@ -185,17 +185,17 @@ export function VoucherModal({
                 {isIncome ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
               </span>
               <div>
-                <DialogPrimitive.Title className="text-base font-bold text-gray-900 dark:text-white">
+                <DialogPrimitive.Title className="text-base font-bold text-foreground">
                   {isIncome ? "Record Direct Income" : "Record Expense Voucher"}
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="text-xs text-gray-500 dark:text-slate-400">
+                <DialogPrimitive.Description className="text-xs text-muted-foreground">
                   {isIncome
                     ? "Non-fee incoming revenue, donations, or bank interest"
                     : "Operating expenses, vendor payments, or maintenance bills"}
                 </DialogPrimitive.Description>
               </div>
             </div>
-            <DialogPrimitive.Close className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+            <DialogPrimitive.Close className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-foreground hover:bg-muted/60 transition">
               <X className="w-4 h-4" />
             </DialogPrimitive.Close>
           </div>
@@ -204,7 +204,7 @@ export function VoucherModal({
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
             {/* Field 1: Transaction Date (Defaults to today) */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-bold text-foreground uppercase mb-1">
                 1. Transaction Date *
               </label>
               <input
@@ -212,20 +212,20 @@ export function VoucherModal({
                 required
                 value={entryDate}
                 onChange={(e) => setEntryDate(e.target.value)}
-                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-2 focus:ring-[#248A3D]/20 focus:border-[#248A3D] dark:focus:ring-[#30D158]/20 dark:focus:border-[#30D158] font-mono"
               />
             </div>
 
             {/* Field 2: Account Head (Select) */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-bold text-foreground uppercase mb-1">
                 2. Account Head *
               </label>
               <select
                 required
                 value={headId}
                 onChange={(e) => setHeadId(e.target.value)}
-                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-2 focus:ring-[#248A3D]/20 focus:border-[#248A3D] dark:focus:ring-[#30D158]/20 dark:focus:border-[#30D158]"
               >
                 <option value="">Select Fee / Miscellaneous Income Head</option>
                 {heads.map((h) => (
@@ -238,7 +238,7 @@ export function VoucherModal({
 
             {/* Field 3: Amount (font-mono INR) */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-bold text-foreground uppercase mb-1">
                 3. Amount (₹) *
               </label>
               <div className="relative">
@@ -253,14 +253,14 @@ export function VoucherModal({
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full min-h-[44px] pl-7 pr-3 py-2 text-sm font-bold font-mono text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="w-full min-h-[44px] pl-7 pr-3 py-2 text-sm font-bold font-mono text-foreground rounded-xl border border-border/40 bg-card focus:ring-2 focus:ring-2 focus:ring-[#248A3D]/20 focus:border-[#248A3D] dark:focus:ring-[#30D158]/20 dark:focus:border-[#30D158]"
                 />
               </div>
             </div>
 
             {/* Field 4: Payer / Description */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-bold text-foreground uppercase mb-1">
                 4. Payer / Description *
               </label>
               <input
@@ -269,13 +269,13 @@ export function VoucherModal({
                 placeholder="e.g. Canteen Operator, Alumni Donation, Library Fine"
                 value={partyName}
                 onChange={(e) => setPartyName(e.target.value)}
-                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-2 focus:ring-[#248A3D]/20 focus:border-[#248A3D] dark:focus:ring-[#30D158]/20 dark:focus:border-[#30D158]"
               />
             </div>
 
             {/* Field 5: Narration */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-bold text-foreground uppercase mb-1">
                 5. Narration / Particulars
               </label>
               <input
@@ -283,12 +283,12 @@ export function VoucherModal({
                 placeholder="Voucher narrative and settlement particulars"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full min-h-[44px] px-3 py-2 text-sm rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-2 focus:ring-[#248A3D]/20 focus:border-[#248A3D] dark:focus:ring-[#30D158]/20 dark:focus:border-[#30D158]"
               />
             </div>
 
             {/* Live Double-Entry Preview Line */}
-            <div className="p-3 rounded-2xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700/60 text-xs font-mono space-y-1">
+            <div className="p-3 rounded-2xl bg-muted/40 border border-border/40/60 text-xs font-mono space-y-1">
               <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">
                 Live Double-Entry Preview (AM-03)
               </span>
@@ -306,7 +306,7 @@ export function VoucherModal({
                   "w-full min-h-[44px] py-3 px-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2",
                   isIncome
                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
-                    : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20"
+                    : "bg-[#248A3D] dark:bg-[#30D158] hover:opacity-90 shadow-sm"
                 )}
               >
                 {isIncome ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}

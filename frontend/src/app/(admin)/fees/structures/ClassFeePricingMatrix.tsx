@@ -501,16 +501,16 @@ export function ClassFeePricingMatrix({
   {
     isCloneModalOpen && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-xl w-full max-w-md overflow-hidden">
-          <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Copy className="w-5 h-5 text-blue-500" />
+        <div className="bg-card rounded-2xl border border-border/40 shadow-xl w-full max-w-md overflow-hidden">
+          <div className="p-6 border-b border-border/40 flex items-center justify-between">
+            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Copy className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
               Clone to Other Cohort
             </h3>
             <button
               type="button"
               onClick={() => setIsCloneModalOpen(false)}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="text-muted-foreground hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </button>
@@ -518,25 +518,25 @@ export function ClassFeePricingMatrix({
 
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Source Cohort (Current)
               </label>
               <input
                 type="text"
                 disabled
                 value={activeYear.label}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-500"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-muted/40 text-muted-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Target Academic Year *
               </label>
               <select
                 value={targetYearId}
                 onChange={(e) => setTargetYearId(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-[#248A3D]/20 focus:border-[#248A3D] dark:focus:ring-[#30D158]/20 dark:focus:border-[#30D158]"
               >
                 <option value="">Select target academic year...</option>
                 {allAcademicYears
@@ -550,9 +550,9 @@ export function ClassFeePricingMatrix({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+              <label className="block text-xs font-semibold text-foreground mb-1 flex items-center justify-between">
                 <span>Annual Fee Hike / Percentage Uplift (%)</span>
-                <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">
+                <span className="text-[#248A3D] dark:text-[#30D158] font-mono font-bold">
                   +{percentageUplift}%
                 </span>
               </label>
@@ -564,7 +564,7 @@ export function ClassFeePricingMatrix({
                   step={1}
                   value={percentageUplift}
                   onChange={(e) => setPercentageUplift(parseInt(e.target.value) || 0)}
-                  className="w-full accent-blue-600"
+                  className="w-full accent-[#248A3D] dark:accent-[#30D158]"
                 />
                 <input
                   type="number"
@@ -572,21 +572,21 @@ export function ClassFeePricingMatrix({
                   max={50}
                   value={percentageUplift}
                   onChange={(e) => setPercentageUplift(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 text-sm font-mono text-center rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                  className="w-16 px-2 py-1 text-sm font-mono text-center rounded border border-border/40 bg-card text-foreground"
                 />
               </div>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
                 E.g. A ₹20,000 tuition fee will clone as ₹
                 {(20000 * (1 + percentageUplift / 100)).toFixed(0)} to the new cohort.
               </p>
             </div>
 
-            <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-slate-800">
+            <div className="pt-4 flex items-center justify-end gap-3 border-t border-border/40">
               <button
                 type="button"
                 onClick={() => setIsCloneModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/40 rounded-lg transition-colors"
               >
                 Cancel
               </button>

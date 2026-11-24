@@ -114,19 +114,19 @@ export function IncomeExpenditureClient({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-foreground"
           />
           <span className="text-xs text-gray-400">to</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-gray-900 dark:text-white"
+            className="px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-muted/60 text-foreground"
           />
           <button
             onClick={handleApplyFilter}
             disabled={loading}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-[#00875A] dark:bg-[#63E6BE] dark:text-black hover:opacity-90 rounded-xl transition shadow-sm inline-flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Apply Filter
@@ -184,7 +184,7 @@ export function IncomeExpenditureClient({
         } flex flex-wrap items-center justify-between gap-4`}
       >
         <div>
-          <span className="text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">
+          <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
             Institutional Operational Bottom-Line
           </span>
           <h2
@@ -197,7 +197,7 @@ export function IncomeExpenditureClient({
             {report.isSurplus ? "NET SURPLUS: " : "NET DEFICIT: "}₹
             {Math.abs(report.netSurplus).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </h2>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Total Revenues (₹{report.totalIncome.toLocaleString("en-IN")}) minus Total Expenditures (₹
             {report.totalExpenditure.toLocaleString("en-IN")})
           </p>
@@ -253,7 +253,7 @@ export function IncomeExpenditureClient({
                 report.incomeRows.map((row) => (
                   <tr key={row.accountId} className="hover:bg-gray-50/60 dark:hover:bg-muted/20">
                     <td className="py-2 px-4 font-mono text-gray-500">{row.code}</td>
-                    <td className="py-2 px-4 font-medium text-gray-900 dark:text-white">{row.name}</td>
+                    <td className="py-2 px-4 font-medium text-foreground">{row.name}</td>
                     <td className="py-2 px-4 text-right font-mono font-medium text-emerald-600 dark:text-emerald-400">
                       ₹
                       {(row.netCredit > 0 ? row.netCredit : -row.netDebit).toLocaleString("en-IN", {
@@ -265,7 +265,7 @@ export function IncomeExpenditureClient({
               )}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-50 dark:bg-muted/40 font-bold border-t border-gray-200 dark:border-border/40 text-gray-900 dark:text-white">
+              <tr className="bg-gray-50 dark:bg-muted/40 font-bold border-t border-gray-200 dark:border-border/40 text-foreground">
                 <td colSpan={2} className="py-2.5 px-4 text-right uppercase">
                   Total Income (A):
                 </td>
@@ -310,7 +310,7 @@ export function IncomeExpenditureClient({
                 report.expenditureRows.map((row) => (
                   <tr key={row.accountId} className="hover:bg-gray-50/60 dark:hover:bg-muted/20">
                     <td className="py-2 px-4 font-mono text-gray-500">{row.code}</td>
-                    <td className="py-2 px-4 font-medium text-gray-900 dark:text-white">{row.name}</td>
+                    <td className="py-2 px-4 font-medium text-foreground">{row.name}</td>
                     <td className="py-2 px-4 text-right font-mono font-medium text-rose-600 dark:text-rose-400">
                       ₹
                       {(row.netDebit > 0 ? row.netDebit : -row.netCredit).toLocaleString("en-IN", {
@@ -322,7 +322,7 @@ export function IncomeExpenditureClient({
               )}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-50 dark:bg-muted/40 font-bold border-t border-gray-200 dark:border-border/40 text-gray-900 dark:text-white">
+              <tr className="bg-gray-50 dark:bg-muted/40 font-bold border-t border-gray-200 dark:border-border/40 text-foreground">
                 <td colSpan={2} className="py-2.5 px-4 text-right uppercase">
                   Total Expenditure (B):
                 </td>

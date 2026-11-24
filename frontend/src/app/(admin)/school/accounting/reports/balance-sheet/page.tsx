@@ -27,16 +27,16 @@ export default async function BalanceSheetPage({ searchParams }: BalanceSheetPag
           <div className="flex items-center gap-2 mb-1">
             <Link
               href="/school/accounting/reports"
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"
+              className="text-xs text-[#00875A] dark:text-[#63E6BE] hover:underline inline-flex items-center gap-1"
             >
               <ArrowLeft className="w-3 h-3" />
               Financial Reports Hub
             </Link>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Balance Sheet Statement
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Statement of institutional financial position and equity reserves for {school.name}
           </p>
         </div>

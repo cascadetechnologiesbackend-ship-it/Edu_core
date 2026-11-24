@@ -120,7 +120,7 @@ export default async function FeeReportsPage() {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-card p-6 rounded-3xl border border-gray-200 dark:border-border/40 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Fee Reports & Analytics
           </h1>
           <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1">
@@ -181,7 +181,7 @@ export default async function FeeReportsPage() {
           </h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 border rounded-lg">
-              <span className="font-medium text-gray-700 dark:text-gray-300">
+              <span className="font-medium text-muted-foreground">
                 0 - 30 Days Overdue
               </span>
               <span className="text-lg font-bold text-red-500">
@@ -189,7 +189,7 @@ export default async function FeeReportsPage() {
               </span>
             </div>
             <div className="flex justify-between items-center p-3 border rounded-lg">
-              <span className="font-medium text-gray-700 dark:text-gray-300">
+              <span className="font-medium text-muted-foreground">
                 31 - 60 Days Overdue
               </span>
               <span className="text-lg font-bold text-red-600">
@@ -197,7 +197,7 @@ export default async function FeeReportsPage() {
               </span>
             </div>
             <div className="flex justify-between items-center p-3 border rounded-lg">
-              <span className="font-medium text-gray-700 dark:text-gray-300">
+              <span className="font-medium text-muted-foreground">
                 61 - 90 Days Overdue
               </span>
               <span className="text-lg font-bold text-red-700">
@@ -205,7 +205,7 @@ export default async function FeeReportsPage() {
               </span>
             </div>
             <div className="flex justify-between items-center p-3 border rounded-lg">
-              <span className="font-medium text-gray-700 dark:text-gray-300">
+              <span className="font-medium text-muted-foreground">
                 90+ Days Overdue
               </span>
               <span className="text-lg font-bold text-red-800 dark:text-red-900">

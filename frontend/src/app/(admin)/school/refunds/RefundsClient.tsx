@@ -258,7 +258,7 @@ export function RefundsClient({
       header: "Refund ID / Date",
       cell: (row) => (
         <div className="space-y-0.5">
-          <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">
+          <span className="font-mono text-xs font-bold text-foreground">
             {row.id.slice(0, 8).toUpperCase()}
           </span>
           <p className="text-[11px] text-gray-500">
@@ -278,7 +278,7 @@ export function RefundsClient({
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
             <Receipt className="w-3.5 h-3.5 text-gray-400" />
-            <span className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+            <span className="font-mono text-xs font-semibold text-[#248A3D] dark:text-[#30D158]">
               #{row.receiptNumber}
             </span>
           </div>
@@ -291,7 +291,7 @@ export function RefundsClient({
       header: "Student & Class",
       cell: (row) => (
         <div className="space-y-0.5">
-          <p className="text-xs font-semibold text-gray-900 dark:text-white">
+          <p className="text-xs font-semibold text-foreground">
             {row.studentName}
           </p>
           <p className="text-[11px] text-gray-500">
@@ -319,7 +319,7 @@ export function RefundsClient({
       header: "Reason & Notes",
       cell: (row) => (
         <div className="max-w-xs">
-          <p className="text-xs text-gray-700 dark:text-slate-300 truncate" title={row.reason}>
+          <p className="text-xs text-foreground truncate" title={row.reason}>
             {row.reason}
           </p>
           {row.approvedByName && (
@@ -375,7 +375,7 @@ export function RefundsClient({
                 setProcessTarget(row);
                 setSelectedBankId(bankAccounts[0]?.id || "");
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#248A3D] dark:bg-[#30D158] text-white dark:text-black hover:opacity-90 transition shadow-sm"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Process Payout
@@ -422,7 +422,7 @@ export function RefundsClient({
       </div>
 
       {/* Action Bar & Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-2xl border border-border/40 shadow-sm">
         {/* Status Filter Tabs */}
         <div className="flex flex-wrap items-center gap-1.5">
           {["ALL", "PENDING", "APPROVED", "PROCESSED", "REJECTED"].map((st) => (
@@ -432,8 +432,8 @@ export function RefundsClient({
               className={cn(
                 "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all",
                 activeStatus === st
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-200"
+                  ? "bg-[#248A3D] dark:bg-[#30D158] text-white dark:text-black shadow-sm"
+                  : "bg-muted/60 text-muted-foreground hover:bg-gray-200"
               )}
             >
               {st}
@@ -450,14 +450,14 @@ export function RefundsClient({
               placeholder="Search receipt, student, reason..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-border/40 bg-muted/30 text-foreground outline-none focus:border-[#248A3D] dark:focus:border-[#30D158]"
             />
           </div>
 
           <button
             type="button"
             onClick={openNewRequestModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm transition whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             New Refund Request
@@ -466,7 +466,7 @@ export function RefundsClient({
       </div>
 
       {/* Refunds DataTable */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-4">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden p-4">
         <DataTable
           columns={columns}
           data={filteredRefunds}
@@ -480,21 +480,21 @@ export function RefundsClient({
       {requestModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="fixed inset-0 -z-10" onClick={() => !submittingRequest && setRequestModalOpen(false)} />
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-150 space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
+          <div className="w-full max-w-2xl bg-card border border-border/40 rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-150 space-y-5">
+            <div className="flex items-center justify-between border-b border-border/40 pb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <RotateCcw className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <RotateCcw className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
                   Initiate Fee Refund Request
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Search paid receipt, select invoice line item, and submit for admin approval.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setRequestModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 text-xl font-bold"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-muted-foreground text-xl font-bold"
               >
                 &times;
               </button>
@@ -503,7 +503,7 @@ export function RefundsClient({
             {/* Step 1: Select Payment */}
             {!selectedPayment ? (
               <div className="space-y-3">
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase">
+                <label className="block text-xs font-semibold text-foreground uppercase">
                   1. Search Paid Receipt (by Receipt #, Student Name, or Admission #)
                 </label>
                 <div className="relative">
@@ -513,7 +513,7 @@ export function RefundsClient({
                     value={searchReceiptQuery}
                     onChange={(e) => handleSearchReceipts(e.target.value)}
                     placeholder="Type receipt #, student name, or admission #..."
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-border/40 bg-muted/30 text-foreground outline-none focus:border-[#248A3D] dark:focus:border-[#30D158]"
                     autoFocus
                   />
                 </div>
@@ -521,7 +521,7 @@ export function RefundsClient({
                 <div className="max-h-64 overflow-y-auto space-y-2 pt-1">
                   {searchingReceipts ? (
                     <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                      <Loader2 className="w-4 h-4 animate-spin text-[#248A3D] dark:text-[#30D158]" />
                       Searching paid receipts...
                     </div>
                   ) : paymentSearchResults.length === 0 ? (
@@ -536,14 +536,14 @@ export function RefundsClient({
                           setSelectedPayment(p);
                           setRequestRefundAmount(p.maxRefundable);
                         }}
-                        className="p-3 rounded-xl border border-gray-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 bg-white dark:bg-slate-900/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 cursor-pointer transition flex items-center justify-between"
+                        className="p-3 rounded-xl border border-border/40 hover:border-[#248A3D]/50 bg-card/50 hover:bg-muted/40 cursor-pointer transition flex items-center justify-between"
                       >
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                            <span className="font-mono text-xs font-bold text-[#248A3D] dark:text-[#30D158]">
                               #{p.receiptNumber}
                             </span>
-                            <span className="text-xs font-medium text-gray-900 dark:text-white">
+                            <span className="text-xs font-medium text-foreground">
                               {p.studentName} ({p.className})
                             </span>
                           </div>
@@ -565,12 +565,12 @@ export function RefundsClient({
             ) : (
               <div className="space-y-4">
                 {/* Selected Payment Summary */}
-                <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between">
+                <div className="p-3.5 rounded-2xl bg-[#248A3D]/10 dark:bg-[#30D158]/10 border border-[#248A3D]/20 dark:border-[#30D158]/20 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-[#248A3D] dark:text-[#30D158] uppercase tracking-wider">
                       Selected Receipt
                     </span>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    <h4 className="text-sm font-bold text-foreground">
                       #{selectedPayment.receiptNumber} • {selectedPayment.studentName}
                     </h4>
                     <p className="text-xs text-gray-500">
@@ -581,7 +581,7 @@ export function RefundsClient({
                     <button
                       type="button"
                       onClick={() => setSelectedPayment(null)}
-                      className="text-xs font-semibold text-indigo-600 hover:underline"
+                      className="text-xs font-semibold text-[#248A3D] dark:text-[#30D158] hover:underline"
                     >
                       Change
                     </button>
@@ -593,7 +593,7 @@ export function RefundsClient({
 
                 {/* Refund Amount Input */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                     Refund Amount (₹) *
                   </label>
                   <div className="relative">
@@ -605,7 +605,7 @@ export function RefundsClient({
                       max={selectedPayment.maxRefundable}
                       value={requestRefundAmount || ""}
                       onChange={(e) => setRequestRefundAmount(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-9 pr-3 py-2 text-sm font-mono font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+                      className="w-full pl-9 pr-3 py-2 text-sm font-mono font-bold rounded-xl border border-border/40 bg-muted/30 text-foreground outline-none focus:border-[#248A3D] dark:focus:border-[#30D158]"
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">
@@ -615,7 +615,7 @@ export function RefundsClient({
 
                 {/* Reason Input */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                     Reason for Refund * (Minimum 5 characters)
                   </label>
                   <textarea
@@ -623,16 +623,16 @@ export function RefundsClient({
                     value={requestReason}
                     onChange={(e) => setRequestReason(e.target.value)}
                     placeholder="e.g. Accidental double payment via counter, student transferred, fee concession retroactively applied..."
-                    className="w-full p-3 text-sm rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+                    className="w-full p-3 text-sm rounded-xl border border-border/40 bg-muted/30 text-foreground outline-none focus:border-[#248A3D] dark:focus:border-[#30D158]"
                   />
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/40">
                   <button
                     type="button"
                     onClick={() => setRequestModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/60"
                   >
                     Cancel
                   </button>
@@ -640,7 +640,7 @@ export function RefundsClient({
                     type="button"
                     onClick={handleSubmitRequest}
                     disabled={submittingRequest}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm disabled:opacity-50"
                   >
                     {submittingRequest && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     Submit for Approval
@@ -669,16 +669,16 @@ export function RefundsClient({
       {processTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="fixed inset-0 -z-10" onClick={() => !processing && setProcessTarget(null)} />
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-150 space-y-5">
+          <div className="w-full max-w-lg bg-card border border-border/40 rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-150 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-[#248A3D]/10 text-[#248A3D] dark:text-[#30D158] flex items-center justify-center shrink-0">
                 <RotateCcw className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-bold text-foreground">
                   Process Payout & Reverse Ledger
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Receipt #{processTarget.receiptNumber} • ₹{processTarget.refundAmount.toLocaleString("en-IN")}
                 </p>
               </div>
@@ -695,13 +695,13 @@ export function RefundsClient({
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase">
+              <label className="block text-xs font-semibold text-foreground uppercase">
                 Select Disbursing Bank Vault
               </label>
               <select
                 value={selectedBankId}
                 onChange={(e) => setSelectedBankId(e.target.value)}
-                className="w-full p-2.5 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+                className="w-full p-2.5 text-xs rounded-xl border border-border/40 bg-muted/30 text-foreground outline-none focus:border-[#248A3D] dark:focus:border-[#30D158]"
               >
                 {bankAccounts.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -711,11 +711,11 @@ export function RefundsClient({
               </select>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/40">
               <button
                 type="button"
                 onClick={() => setProcessTarget(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/60"
               >
                 Cancel
               </button>
@@ -723,7 +723,7 @@ export function RefundsClient({
                 type="button"
                 onClick={handleProcessSubmit}
                 disabled={processing}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm disabled:opacity-50"
               >
                 {processing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Confirm & Disburse Refund

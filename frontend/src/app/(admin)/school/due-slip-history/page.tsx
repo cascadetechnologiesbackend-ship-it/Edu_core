@@ -30,15 +30,15 @@ export default async function DueSlipHistoryPage() {
       <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-3xl border border-border/40 shadow-sm">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
             <History className="w-3.5 h-3.5" /> Operations & Due Slips
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Due Slip Batch History
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Archive of previously generated demand note batches, delivery records, and printable batch demand slips.
           </p>
         </div>
@@ -46,7 +46,7 @@ export default async function DueSlipHistoryPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/school/generate-due-slip"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black text-xs font-semibold shadow-sm transition"
           >
             <FileText className="w-4 h-4" /> Generate Batch &rarr;
           </Link>
@@ -55,16 +55,16 @@ export default async function DueSlipHistoryPage() {
       </div>
 
       {/* Slips History Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
-          <h3 className="font-bold text-gray-900 dark:text-white text-base">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-border/40 flex justify-between items-center">
+          <h3 className="font-bold text-foreground text-base">
             Generated Demand Batches ({slips.length})
           </h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50/75 dark:bg-slate-800/50 text-gray-500 uppercase border-b border-gray-200 dark:border-slate-800 font-semibold">
+            <thead className="bg-gray-50/75 dark:bg-muted/30 text-gray-500 uppercase border-b border-border/40 font-semibold">
               <tr>
                 <th className="p-4">Batch Number</th>
                 <th className="p-4">Class Target</th>
@@ -75,7 +75,7 @@ export default async function DueSlipHistoryPage() {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-700 dark:text-slate-300">
+            <tbody className="divide-y divide-border/40 text-foreground">
               {slips.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-400">
@@ -84,8 +84,8 @@ export default async function DueSlipHistoryPage() {
                 </tr>
               ) : (
                 slips.map((batch) => (
-                  <tr key={batch.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition">
-                    <td className="p-4 font-mono font-bold text-gray-900 dark:text-white">
+                  <tr key={batch.id} className="hover:bg-muted/40 transition">
+                    <td className="p-4 font-mono font-bold text-foreground">
                       {batch.batchNumber}
                     </td>
                     <td className="p-4 font-medium">

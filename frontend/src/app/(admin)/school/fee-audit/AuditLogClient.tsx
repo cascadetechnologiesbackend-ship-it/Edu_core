@@ -104,7 +104,7 @@ export function AuditLogClient({
       accessorKey: "createdAt",
       sortable: true,
       cell: (log) => (
-        <div className="flex items-center gap-1.5 font-mono text-gray-500 dark:text-slate-400 whitespace-nowrap">
+        <div className="flex items-center gap-1.5 font-mono text-muted-foreground whitespace-nowrap">
           <Clock className="w-3.5 h-3.5 text-gray-400" />
           {new Date(log.createdAt).toLocaleString("en-IN", {
             dateStyle: "medium",
@@ -126,7 +126,7 @@ export function AuditLogClient({
         const colorClass = isCancelled
           ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800"
           : isCarried
-          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
+          ? "bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158] border-[#248A3D]/20 dark:border-[#30D158]/20"
           : isRecon
           ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
           : isConcession
@@ -145,7 +145,7 @@ export function AuditLogClient({
       accessorKey: "entityType",
       sortable: true,
       cell: (log) => (
-        <span className="font-mono text-gray-600 dark:text-slate-400 text-xs">
+        <span className="font-mono text-muted-foreground text-xs">
           {log.entityType}
         </span>
       ),
@@ -155,11 +155,11 @@ export function AuditLogClient({
       accessorKey: "reason",
       cell: (log) => (
         <div className="max-w-md">
-          <p className="text-gray-900 dark:text-white font-medium text-xs">
+          <p className="text-foreground font-medium text-xs">
             {log.reason || "Administrative operation"}
           </p>
           {log.previousData && (
-            <p className="text-[11px] text-gray-500 dark:text-slate-400 font-mono mt-0.5 truncate">
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
               Prev: {log.previousData}
             </p>
           )}
@@ -171,7 +171,7 @@ export function AuditLogClient({
       accessorKey: "performerEmail",
       sortable: true,
       cell: (log) => (
-        <div className="flex items-center gap-1.5 text-gray-700 dark:text-slate-300 text-xs whitespace-nowrap">
+        <div className="flex items-center gap-1.5 text-foreground text-xs whitespace-nowrap">
           <User className="w-3.5 h-3.5 text-gray-400" />
           {log.performerEmail}
         </div>
@@ -217,7 +217,7 @@ export function AuditLogClient({
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             onClick={() => handleExport("xlsx")}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 shadow-sm transition"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-card border border-border/40 text-foreground hover:bg-muted/40 shadow-sm transition"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
             Export Excel

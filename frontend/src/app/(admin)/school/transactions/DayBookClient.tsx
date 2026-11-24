@@ -199,7 +199,7 @@ export function DayBookClient({
           <button
             type="button"
             onClick={() => handleReprintReceipt(row)}
-            className="font-mono font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 text-left transition"
+            className="font-mono font-bold text-foreground hover:text-[#248A3D] dark:text-[#30D158] dark:hover:text-[#30D158] text-left transition"
           >
             {row.receiptNumber}
           </button>
@@ -214,7 +214,7 @@ export function DayBookClient({
       sortable: true,
       cell: (row) => (
         <div>
-          <p className="font-bold text-gray-900 dark:text-white text-xs">{row.studentName}</p>
+          <p className="font-bold text-foreground text-xs">{row.studentName}</p>
           <p className="text-[11px] text-gray-400 font-mono">Adm #{row.admissionNumber}</p>
         </div>
       ),
@@ -227,7 +227,7 @@ export function DayBookClient({
       cell: (row) => (
         <div>
           <span className="font-medium text-xs">{row.feeHeadName}</span>
-          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-500 font-mono">
+          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-gray-500 font-mono">
             {row.term}
           </span>
         </div>
@@ -246,7 +246,7 @@ export function DayBookClient({
               row.paymentMethod === "CASH"
                 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
                 : row.paymentMethod === "UPI"
-                ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400"
+                ? "bg-[#248A3D]/10 text-[#248A3D] dark:text-[#30D158] dark:bg-[#30D158]/10 dark:text-[#30D158]"
                 : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
             )}
           >
@@ -266,7 +266,7 @@ export function DayBookClient({
       accessorKey: "paymentDate",
       sortable: true,
       cell: (row) => (
-        <div className="text-xs font-mono text-gray-600 dark:text-slate-300">
+        <div className="text-xs font-mono text-muted-foreground">
           <p>{new Date(row.paymentDate).toLocaleDateString("en-IN")}</p>
           <p className="text-[10px] text-gray-400">
             {new Date(row.paymentDate).toLocaleTimeString("en-IN", {
@@ -295,18 +295,18 @@ export function DayBookClient({
   return (
     <div className="space-y-6">
       {/* Central Day Book Table Card */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-card p-5 rounded-3xl border border-border/40 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center">
+            <h2 className="text-base font-bold text-foreground flex items-center">
               Fee Collections Day Book ({filteredTransactions.length})
               {asOf && (
-                <span className="text-[11px] font-mono text-gray-400 font-normal ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800">
+                <span className="text-[11px] font-mono text-gray-400 font-normal ml-2 px-2 py-0.5 rounded bg-muted/60">
                   as of {asOf}
                 </span>
               )}
             </h2>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Audited transaction receipts with instant thermal reprint and reversal guard.
             </p>
           </div>
@@ -315,7 +315,7 @@ export function DayBookClient({
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-muted/60 dark:hover:bg-muted dark:text-foreground transition"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Excel</span>
@@ -355,7 +355,7 @@ export function DayBookClient({
               <button
                 type="button"
                 onClick={() => handleReprintReceipt(row)}
-                className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-gray-500 hover:text-[#248A3D] dark:text-[#30D158] hover:bg-[#248A3D]/10 dark:hover:bg-muted/60 transition"
                 title="Reprint 80mm Thermal Receipt"
               >
                 <Printer className="w-4 h-4" />
@@ -365,7 +365,7 @@ export function DayBookClient({
                 href={`/api/receipt/${row.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-muted/60 transition"
                 title="Download PDF Receipt"
               >
                 <FileDown className="w-4 h-4" />

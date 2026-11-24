@@ -81,16 +81,16 @@ export default async function ConcessionSummaryReportPage({
           <div className="flex items-center gap-2 mb-1">
             <Link
               href="/school/accounting/reports"
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 font-medium"
+              className="text-xs text-[#00875A] dark:text-[#63E6BE] hover:underline inline-flex items-center gap-1 font-medium"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Financial Reports Hub
             </Link>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Concession & Waiver Summary Report
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Revenue foregone analysis aggregated by Policy × Term × Class for {school.name}
           </p>
         </div>

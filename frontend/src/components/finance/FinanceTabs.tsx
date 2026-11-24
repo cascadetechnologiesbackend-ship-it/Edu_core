@@ -129,8 +129,8 @@ export function FinanceTabs({
   );
 
   return (
-    <div className={cn("border-b border-border/40 pb-2", className)}>
-      <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" aria-label="Finance Navigation Tabs">
+    <div className={cn("w-fit max-w-full p-1.5 rounded-2xl bg-muted/40 border border-border/40 overflow-x-auto no-scrollbar", className)}>
+      <nav className="flex items-center gap-1 shrink-0" aria-label="Finance Navigation Tabs">
         {effectivePrimary.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
           return (
@@ -138,9 +138,9 @@ export function FinanceTabs({
               key={tab.id}
               href={tab.href as any}
               className={cn(
-                "relative inline-flex items-center gap-2 px-3.5 py-2 min-h-[44px] shrink-0 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40",
+                "relative inline-flex items-center gap-2 px-4 py-2 min-h-[40px] shrink-0 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 outline-none",
                 isActive
-                  ? "bg-card text-foreground shadow-sm font-semibold border border-border/50"
+                  ? "bg-card text-[#248A3D] dark:text-[#30D158] shadow-sm font-bold border border-border/40"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
               aria-current={isActive ? "page" : undefined}
@@ -151,7 +151,7 @@ export function FinanceTabs({
                   className={cn(
                     "px-1.5 py-0.5 text-[11px] font-bold rounded-full",
                     isActive
-                      ? "bg-muted text-foreground"
+                      ? "bg-[#248A3D]/10 text-[#248A3D] dark:bg-[#30D158]/10 dark:text-[#30D158]"
                       : tab.badgeVariant === "destructive"
                       ? "bg-semantic-money-owed/15 text-semantic-money-owed"
                       : tab.badgeVariant === "warning"
@@ -172,9 +172,9 @@ export function FinanceTabs({
               type="button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-semantic-interactive/40",
+                "inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 outline-none",
                 isOverflowActive
-                  ? "bg-card text-foreground font-semibold border border-border/50 shadow-sm"
+                  ? "bg-card text-[#248A3D] dark:text-[#30D158] font-bold border border-border/40 shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
               aria-expanded={dropdownOpen}

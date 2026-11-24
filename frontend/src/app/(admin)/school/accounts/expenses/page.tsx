@@ -58,15 +58,15 @@ export default async function ExpensesPage() {
       <FinanceTabs activeSection="accounts" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
             <ArrowDownRight className="w-3.5 h-3.5" /> Core Accounting
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Operational Expenses & Disbursements
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Record supplier bills, vendor payments, salary disbursements, and institutional overhead with multi-level approval.
           </p>
         </div>
@@ -88,10 +88,10 @@ export default async function ExpensesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* New Expense Voucher Form */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+        <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 border-b border-border/40 pb-3">
             <Plus className="w-5 h-5 text-rose-600" />
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">
+            <h2 className="text-base font-bold text-foreground">
               Create Expense Voucher
             </h2>
           </div>
@@ -104,13 +104,13 @@ export default async function ExpensesPage() {
             className="space-y-4"
           >
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Expense Head *
               </label>
               <select
                 name="expenseHeadId"
                 required
-                className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
               >
                 <option value="">Select Expense Category...</option>
                 {activeHeads
@@ -124,7 +124,7 @@ export default async function ExpensesPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Vendor / Payee Name *
               </label>
               <input
@@ -132,13 +132,13 @@ export default async function ExpensesPage() {
                 name="vendorName"
                 placeholder="e.g. Metro Electricals, Staff Payroll"
                 required
-                className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Amount (₹) *
                 </label>
                 <input
@@ -147,31 +147,31 @@ export default async function ExpensesPage() {
                   name="amount"
                   placeholder="0.00"
                   required
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Voucher Date
                 </label>
                 <input
                   type="date"
                   name="entryDate"
                   defaultValue={new Date().toISOString().split("T")[0]}
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Payment Mode
                 </label>
                 <select
                   name="paymentMode"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
                 >
                   <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
                   <option value="CHEQUE">Cheque</option>
@@ -181,12 +181,12 @@ export default async function ExpensesPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Disbursing Bank
                 </label>
                 <select
                   name="bankAccountId"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
                 >
                   <option value="">Petty Cash / Not Selected</option>
                   {activeBanks
@@ -202,12 +202,12 @@ export default async function ExpensesPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Approval Status
                 </label>
                 <select
                   name="status"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
                 >
                   <option value="APPROVED">Auto-Approve & Debit</option>
                   <option value="PENDING">Submit for Approval</option>
@@ -215,27 +215,27 @@ export default async function ExpensesPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                <label className="text-xs font-semibold text-foreground">
                   Invoice / Bill #
                 </label>
                 <input
                   type="text"
                   name="transactionReference"
                   placeholder="e.g. INV-98124"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-xs rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Remarks / Purpose
               </label>
               <textarea
                 name="remarks"
                 rows={2}
                 placeholder="e.g. Monthly maintenance & campus cleanliness vendor invoice"
-                className="w-full text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full text-xs rounded-xl border border-border/40 bg-card p-3 text-foreground focus:outline-none focus:ring-2 focus:ring-rose-500"
               />
             </div>
 
@@ -249,13 +249,13 @@ export default async function ExpensesPage() {
         </div>
 
         {/* Existing Expense Vouchers Table */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
+        <div className="lg:col-span-2 bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-border/40 flex justify-between items-center">
             <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+              <h3 className="text-base font-bold text-foreground">
                 Expense Voucher Ledger ({vouchers.length})
               </h3>
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Disbursements history with vendor tracking and bank debit status.
               </p>
             </div>
@@ -269,7 +269,7 @@ export default async function ExpensesPage() {
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                   <th className="py-3 px-4">Voucher #</th>
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Category & Payee</th>
@@ -279,35 +279,35 @@ export default async function ExpensesPage() {
                   <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
+              <tbody className="divide-y divide-border/40 text-foreground">
                 {vouchers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-gray-500 dark:text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
                       No expense vouchers recorded yet. Record institutional disbursements using the form.
                     </td>
                   </tr>
                 ) : (
                   vouchers.map((v) => (
-                    <tr key={v.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                      <td className="py-3 px-4 font-mono font-bold text-gray-900 dark:text-white">
+                    <tr key={v.id} className="hover:bg-muted/40">
+                      <td className="py-3 px-4 font-mono font-bold text-foreground">
                         {v.voucherNumber}
                       </td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-slate-400 font-mono whitespace-nowrap">
+                      <td className="py-3 px-4 text-muted-foreground font-mono whitespace-nowrap">
                         {new Date(v.entryDate).toLocaleDateString("en-IN")}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-gray-900 dark:text-white">
+                        <div className="font-semibold text-foreground">
                           {v.expenseHead?.name}
                         </div>
-                        <div className="text-[11px] text-gray-500 dark:text-slate-400">
+                        <div className="text-[11px] text-muted-foreground">
                           {v.vendorName || "General Vendor"}
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-gray-800 dark:text-slate-200">
+                        <div className="font-semibold text-foreground">
                           {v.paymentMode}
                         </div>
-                        <div className="text-[11px] text-gray-500 dark:text-slate-400 font-mono">
+                        <div className="text-[11px] text-muted-foreground font-mono">
                           {v.bankAccount ? v.bankAccount.bankName : "Petty Cash"}
                         </div>
                       </td>

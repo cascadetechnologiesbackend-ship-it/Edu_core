@@ -118,15 +118,15 @@ export default async function FeeAuditPage({
       <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
             <Activity className="w-3.5 h-3.5" /> Immutable Audit Trail & Health Monitor
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Fee Data Audit & Compliance Log
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Real-time automated reconciliation checker, orphan transaction detection, and immutable administrative audit trail.
           </p>
         </div>
@@ -134,9 +134,9 @@ export default async function FeeAuditPage({
 
       {/* System Health Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-card p-5 rounded-2xl border border-border/40 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+            <span className="text-xs font-medium text-muted-foreground">
               Integrity Score
             </span>
             <div
@@ -154,18 +154,18 @@ export default async function FeeAuditPage({
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-foreground">
               {integrityScore}%
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Across {totalInvoicesAudited} invoices
             </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-card p-5 rounded-2xl border border-border/40 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+            <span className="text-xs font-medium text-muted-foreground">
               Arithmetic Discrepancies
             </span>
             <div className="p-2 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
@@ -173,18 +173,18 @@ export default async function FeeAuditPage({
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-foreground">
               {arithmeticMismatchCount}
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Net vs. Head Sum deviations
             </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-card p-5 rounded-2xl border border-border/40 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+            <span className="text-xs font-medium text-muted-foreground">
               Balance Variance Issues
             </span>
             <div className="p-2 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
@@ -192,18 +192,18 @@ export default async function FeeAuditPage({
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-foreground">
               {balanceMismatchCount}
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               (Paid + Due) ≠ Net discrepancies
             </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-card p-5 rounded-2xl border border-border/40 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+            <span className="text-xs font-medium text-muted-foreground">
               Audit Events Captured
             </span>
             <div className="p-2 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
@@ -211,10 +211,10 @@ export default async function FeeAuditPage({
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-foreground">
               {auditLogs.length}
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Administrative adjustments logged
             </p>
           </div>
@@ -222,7 +222,7 @@ export default async function FeeAuditPage({
       </div>
 
       {/* Client Audit Log Table with FilterBar & Export */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
         <AuditLogClient logs={mappedAuditLogs} schoolName={activeSchool?.name || "School"} />
       </div>
     </div>

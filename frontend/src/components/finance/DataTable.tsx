@@ -93,18 +93,18 @@ export function DataTable<TData>({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-border/40 bg-card shadow-sm">
         <table className="w-full text-left border-collapse">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr
                 key={headerGroup.id}
-                className="border-b border-gray-200 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/50"
+                className="border-b border-border/40 bg-muted/40"
               >
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="p-3.5 text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider select-none whitespace-nowrap"
+                    className="p-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none whitespace-nowrap"
                   >
                     {header.isPlaceholder
                       ? null
@@ -112,7 +112,7 @@ export function DataTable<TData>({
                   </th>
                 ))}
                 {actions && (
-                  <th className="p-3.5 text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider text-right whitespace-nowrap">
+                  <th className="p-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right whitespace-nowrap">
                     Actions
                   </th>
                 )}
@@ -120,14 +120,14 @@ export function DataTable<TData>({
             ))}
           </thead>
 
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+          <tbody className="divide-y divide-border/40 text-sm">
             {isLoading ? (
               // Skeleton rows
               Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={`skel-${idx}`} className="animate-pulse">
                   {columns.map((_, colIdx) => (
                     <td key={`skel-td-${colIdx}`} className="p-4">
-                      <div className="h-4 bg-gray-200 dark:bg-slate-800 rounded-md w-3/4" />
+                      <div className="h-4 bg-gray-200 dark:bg-muted/60 rounded-md w-3/4" />
                     </td>
                   ))}
                   {actions && <td className="p-4" />}
@@ -140,11 +140,11 @@ export function DataTable<TData>({
                   onClick={() => onRowClick && onRowClick(row.original)}
                   className={cn(
                     "transition-colors",
-                    onRowClick && "cursor-pointer hover:bg-indigo-50/40 dark:hover:bg-slate-800/60"
+                    onRowClick && "cursor-pointer hover:bg-[#248A3D]/10/40 dark:hover:bg-muted/40"
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="p-3.5 whitespace-nowrap text-gray-700 dark:text-slate-300">
+                    <td key={cell.id} className="p-3.5 whitespace-nowrap text-foreground">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -176,7 +176,7 @@ export function DataTable<TData>({
 
       {/* Pagination Controls */}
       {totalPages > 1 && onPageChange && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 text-xs text-gray-500 dark:text-slate-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 text-xs text-muted-foreground">
           <div>
             Showing {(pageIndex - 1) * pageSize + 1} to{" "}
             {Math.min(pageIndex * pageSize, totalRows)} of {totalRows} entries
@@ -187,7 +187,7 @@ export function DataTable<TData>({
               type="button"
               onClick={() => onPageChange(1)}
               disabled={pageIndex <= 1}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition"
+              className="p-1.5 rounded-lg border border-border/40 hover:bg-muted/60 disabled:opacity-30 disabled:pointer-events-none transition"
               title="First Page"
             >
               <ChevronsLeft className="w-4 h-4" />
@@ -196,13 +196,13 @@ export function DataTable<TData>({
               type="button"
               onClick={() => onPageChange(pageIndex - 1)}
               disabled={pageIndex <= 1}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition"
+              className="p-1.5 rounded-lg border border-border/40 hover:bg-muted/60 disabled:opacity-30 disabled:pointer-events-none transition"
               title="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <span className="px-3 py-1 font-semibold text-gray-800 dark:text-slate-200">
+            <span className="px-3 py-1 font-semibold text-foreground">
               Page {pageIndex} of {totalPages}
             </span>
 
@@ -210,7 +210,7 @@ export function DataTable<TData>({
               type="button"
               onClick={() => onPageChange(pageIndex + 1)}
               disabled={pageIndex >= totalPages}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition"
+              className="p-1.5 rounded-lg border border-border/40 hover:bg-muted/60 disabled:opacity-30 disabled:pointer-events-none transition"
               title="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
@@ -219,7 +219,7 @@ export function DataTable<TData>({
               type="button"
               onClick={() => onPageChange(totalPages)}
               disabled={pageIndex >= totalPages}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition"
+              className="p-1.5 rounded-lg border border-border/40 hover:bg-muted/60 disabled:opacity-30 disabled:pointer-events-none transition"
               title="Last Page"
             >
               <ChevronsRight className="w-4 h-4" />

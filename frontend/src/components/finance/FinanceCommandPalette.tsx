@@ -133,13 +133,13 @@ export function FinanceCommandPalette({
         onClick={() => onOpenChange(false)}
       />
 
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+      <div className="w-full max-w-2xl bg-card border border-border/40 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
         <Command label="Finance Quick Jump & Actions" className="w-full">
-          <div className="flex items-center px-4 border-b border-gray-200 dark:border-slate-800">
+          <div className="flex items-center px-4 border-b border-border/40">
             <Search className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
             <Command.Input
               placeholder="Type a screen, command, or student... (e.g. collect, dues, day book)"
-              className="w-full py-4 text-base bg-transparent border-0 outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
+              className="w-full py-4 text-base bg-transparent border-0 outline-none text-foreground placeholder:text-gray-400"
               autoFocus
             />
           </div>
@@ -158,9 +158,9 @@ export function FinanceCommandPalette({
                     else router.push("/school/collect-fees");
                   })
                 }
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-[#248A3D] dark:hover:text-[#30D158] cursor-pointer"
               >
-                <CreditCard className="w-4 h-4 text-indigo-600" />
+                <CreditCard className="w-4 h-4 text-[#248A3D] dark:text-[#30D158]" />
                 <span>Collect fee for a student (Collect Terminal)</span>
               </Command.Item>
 
@@ -171,7 +171,7 @@ export function FinanceCommandPalette({
                     else router.push("/school/fees-dashboard");
                   })
                 }
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 cursor-pointer"
               >
                 <ArrowDownRight className="w-4 h-4 text-emerald-600" />
                 <span>Record miscellaneous income voucher</span>
@@ -183,7 +183,7 @@ export function FinanceCommandPalette({
                     router.push("/school/due-fees");
                   })
                 }
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600 cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600 cursor-pointer"
               >
                 <AlertCircle className="w-4 h-4 text-amber-600" />
                 <span>Lookup student fee ledger & dues</span>
@@ -195,7 +195,7 @@ export function FinanceCommandPalette({
                     router.push("/school/accounting/dashboard");
                   })
                 }
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 cursor-pointer"
               >
                 <Landmark className="w-4 h-4 text-blue-600" />
                 <span>Record contra transfer view (Read-only register)</span>
@@ -215,12 +215,12 @@ export function FinanceCommandPalette({
                     <Command.Item
                       key={navItem.href}
                       onSelect={() => runCommand(() => router.push(navItem.href as any))}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/40 cursor-pointer"
                     >
                       <ItemIcon className="w-4 h-4 text-gray-500" />
                       <span>{navItem.label}</span>
                       {navItem.access === "read-only" && (
-                        <span className="ml-auto text-[10px] text-gray-400 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800">
+                        <span className="ml-auto text-[10px] text-gray-400 px-1.5 py-0.5 rounded bg-muted/60">
                           Read-only
                         </span>
                       )}
@@ -245,10 +245,10 @@ export function FinanceCommandPalette({
                         }
                       })
                     }
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/40 cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                      <div className="w-6 h-6 rounded-lg bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158] flex items-center justify-center text-xs font-bold">
                         {st.name.charAt(0)}
                       </div>
                       <span>{st.name}</span>
@@ -261,7 +261,7 @@ export function FinanceCommandPalette({
             )}
           </Command.List>
 
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-800 text-[11px] text-gray-400">
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/40 border-t border-border/40 text-[11px] text-gray-400">
             <span>Navigation: Use ↑ ↓ and ↵ to select</span>
             <span>ESC to close</span>
           </div>

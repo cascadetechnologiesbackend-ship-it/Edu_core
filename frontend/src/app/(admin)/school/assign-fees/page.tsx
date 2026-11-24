@@ -46,7 +46,7 @@ export default async function AssignFeesPage() {
     return (
       <div className="space-y-6">
         <FinanceTabs activeSection="finance" />
-        <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800">
+        <div className="p-8 text-center bg-card rounded-xl border border-border/40">
           <p className="text-gray-500">No active academic session found. Please activate an academic year first.</p>
         </div>
       </div>
@@ -58,15 +58,15 @@ export default async function AssignFeesPage() {
       <FinanceTabs activeSection="finance" />
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
             <UserCheck className="w-3.5 h-3.5" /> Structure Configuration
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Assign Fees Matrix
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Map Fee Heads to classes, configure term amounts and due dates, and auto-provision student fee invoices.
           </p>
         </div>
@@ -74,8 +74,8 @@ export default async function AssignFeesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Assignment Form */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm h-fit">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+        <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm h-fit">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2 mb-4">
             <Plus className="w-5 h-5 text-emerald-600" /> Assign Fee to Class
           </h2>
           <form
@@ -88,13 +88,13 @@ export default async function AssignFeesPage() {
             <input type="hidden" name="academicYearId" value={activeYear.id} />
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                 Target Class (Grade) *
               </label>
               <select
                 name="classId"
                 required
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-border/60 bg-card text-sm text-foreground"
               >
                 {allClasses.map((cls) => (
                   <option key={cls.id} value={cls.id}>
@@ -105,13 +105,13 @@ export default async function AssignFeesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                 Fee Head *
               </label>
               <select
                 name="feeHeadId"
                 required
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-border/60 bg-card text-sm text-foreground"
               >
                 {allHeads.map((head) => (
                   <option key={head.id} value={head.id}>
@@ -123,12 +123,12 @@ export default async function AssignFeesPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Term Schedule *
                 </label>
                 <select
                   name="term"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-border/60 bg-card text-sm text-foreground"
                 >
                   <option value="ANNUAL">Annual</option>
                   <option value="MONTHLY">Monthly</option>
@@ -139,7 +139,7 @@ export default async function AssignFeesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Amount (₹) *
                 </label>
                 <input
@@ -148,39 +148,39 @@ export default async function AssignFeesPage() {
                   step="0.01"
                   required
                   placeholder="e.g. 25000"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-border/60 bg-card text-sm text-foreground"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Due Date *
                 </label>
                 <input
                   type="date"
                   name="dueDate"
                   required
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-border/60 bg-card text-sm text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Late Fine (₹)
                 </label>
                 <input
                   type="number"
                   name="lateFeeAmount"
                   defaultValue="0"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-border/60 bg-card text-sm text-foreground"
                 />
               </div>
             </div>
 
-            <div className="pt-2 border-t border-gray-100 dark:border-slate-800">
-              <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
+            <div className="pt-2 border-t border-border/40">
+              <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
                 <input type="checkbox" name="autoGenerateInvoices" defaultChecked className="rounded text-emerald-600" />
                 Auto-generate invoices for enrolled students
               </label>
@@ -197,31 +197,31 @@ export default async function AssignFeesPage() {
 
         {/* Existing Matrix List */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900 dark:text-white text-base">
+          <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-border/40 flex justify-between items-center">
+              <h3 className="font-bold text-foreground text-base">
                 Configured Class Fee Pricing Matrix ({structures.length})
               </h3>
             </div>
 
-            <div className="divide-y divide-gray-100 dark:divide-slate-800">
+            <div className="divide-y divide-border/40">
               {structures.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 text-sm">
                   No fees assigned yet. Use the form on the left to assign fee heads to classes.
                 </div>
               ) : (
                 structures.map((st) => (
-                  <div key={st.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition">
+                  <div key={st.id} className="p-4 flex items-center justify-between hover:bg-muted/40 transition">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900 dark:text-white text-sm">
+                        <span className="font-bold text-foreground text-sm">
                           {st.class.displayName}
                         </span>
                         <span className="text-gray-400">&rarr;</span>
                         <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm">
                           {st.feeHead.name}
                         </span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
                           {st.term}
                         </span>
                       </div>

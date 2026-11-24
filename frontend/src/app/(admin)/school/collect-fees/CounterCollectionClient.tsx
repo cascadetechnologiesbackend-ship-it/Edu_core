@@ -478,9 +478,9 @@ export function CounterCollectionClient({
         <div className="lg:col-span-7 space-y-5">
           {/* Recent Students Quick Strip */}
           {recentStudents.length > 0 && !selectedStudent && (
-            <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm flex items-center gap-3 overflow-x-auto text-xs">
+            <div className="bg-card p-3.5 rounded-2xl border border-border/40 shadow-sm flex items-center gap-3 overflow-x-auto text-xs">
               <span className="flex items-center gap-1 font-semibold text-gray-500 whitespace-nowrap">
-                <History className="w-3.5 h-3.5 text-indigo-500" /> Recent:
+                <History className="w-3.5 h-3.5 text-[#248A3D] dark:text-[#30D158]" /> Recent:
               </span>
               <div className="flex items-center gap-2">
                 {recentStudents.map((stu) => (
@@ -488,7 +488,7 @@ export function CounterCollectionClient({
                     key={stu.id}
                     type="button"
                     onClick={() => handleSelectStudent(stu)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 transition"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-muted/40 hover:bg-muted/40 dark:hover:bg-muted/40 text-foreground border border-border/40 hover:border-[#248A3D]/30 transition"
                   >
                     <span className="font-medium">{stu.name}</span>
                     <span className="text-[10px] text-gray-400">#{stu.admissionNumber}</span>
@@ -499,14 +499,14 @@ export function CounterCollectionClient({
           )}
 
           {/* Student Search Box */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="bg-card p-5 rounded-2xl border border-border/40 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5 text-indigo-500" />
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-[#248A3D] dark:text-[#30D158]" />
                 Find Student (Admission No, Name, Grade)
               </label>
               {searching && (
-                <span className="text-[11px] text-indigo-600 dark:text-indigo-400 animate-pulse">
+                <span className="text-[11px] text-[#248A3D] dark:text-[#30D158] animate-pulse">
                   Searching roster...
                 </span>
               )}
@@ -520,13 +520,13 @@ export function CounterCollectionClient({
                 placeholder="Search by student name or admission number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-sm"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border/40 bg-card text-sm font-medium text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#248A3D] dark:focus:ring-[#30D158]/20 focus:border-[#248A3D] dark:focus:border-[#30D158] transition shadow-sm"
               />
             </div>
 
             {/* Matching Students List */}
             {!selectedStudent && (
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800/80 border border-gray-100 dark:border-slate-800 rounded-xl">
+              <div className="max-h-64 overflow-y-auto divide-y divide-border/40 border border-border/40 rounded-xl">
                 {searchResults.length === 0 ? (
                   <EmptyState
                     icon={Search}
@@ -544,17 +544,17 @@ export function CounterCollectionClient({
                       type="button"
                       key={stu.id}
                       onClick={() => handleSelectStudent(stu)}
-                      className="w-full p-3 text-left flex items-center justify-between hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30 transition group"
+                      className="w-full p-3 text-left flex items-center justify-between hover:bg-muted/40 transition group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shadow-sm">
+                        <div className="w-9 h-9 rounded-xl bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158] flex items-center justify-center font-bold text-xs shadow-sm">
                           {stu.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                          <p className="text-sm font-bold text-foreground group-hover:text-[#248A3D] dark:text-[#30D158] dark:group-hover:text-[#30D158] transition">
                             {stu.name}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-slate-400 font-mono">
+                          <p className="text-xs text-muted-foreground font-mono">
                             Adm: #{stu.admissionNumber} • {stu.className}
                           </p>
                         </div>
@@ -579,28 +579,28 @@ export function CounterCollectionClient({
 
           {/* Selected Student Invoices Card */}
           {selectedStudent && (
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-card p-5 rounded-2xl border border-border/40 shadow-sm space-y-4">
               {/* Student Header & Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/40">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  <div className="w-10 h-10 rounded-2xl bg-[#248A3D] text-white dark:bg-[#30D158] dark:text-black flex items-center justify-center font-bold text-sm shadow-sm">
                     {selectedStudent.name.charAt(0)}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                      <h3 className="font-bold text-base text-foreground">
                         {selectedStudent.name}
                       </h3>
                       <button
                         type="button"
                         onClick={handleNextStudent}
-                        className="text-[11px] text-indigo-600 hover:underline"
+                        className="text-[11px] text-[#248A3D] dark:text-[#30D158] hover:underline"
                         title="Change student"
                       >
                         (Change)
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 font-mono">
+                    <p className="text-xs text-muted-foreground font-mono">
                       Admission: #{selectedStudent.admissionNumber} • Grade: {selectedStudent.className}
                     </p>
                   </div>
@@ -611,7 +611,7 @@ export function CounterCollectionClient({
                     <button
                       type="button"
                       onClick={toggleSettleAll}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition"
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158] hover:opacity-90 transition"
                     >
                       {Object.keys(selectedItems).length === studentInvoices.length
                         ? "Deselect All"
@@ -663,8 +663,8 @@ export function CounterCollectionClient({
                         className={cn(
                           "p-4 rounded-2xl border transition-all space-y-3",
                           isSelected
-                            ? "border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20 shadow-sm"
-                            : "border-gray-200 dark:border-slate-800 hover:border-gray-300"
+                            ? "border-[#248A3D] dark:border-[#30D158] bg-[#248A3D]/5 dark:bg-[#30D158]/5 shadow-sm"
+                            : "border-border/40 hover:border-gray-300"
                         )}
                       >
                         {/* Top row: Checkbox, Head, Invoice Number, Balance */}
@@ -674,18 +674,18 @@ export function CounterCollectionClient({
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleInvoice(inv)}
-                              className="mt-1 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+                              className="mt-1 h-4 w-4 rounded text-[#248A3D] dark:text-[#30D158] focus:ring-[#248A3D] dark:focus:ring-[#30D158]"
                             />
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm text-gray-900 dark:text-white">
+                                <span className="font-bold text-sm text-foreground">
                                   {inv.feeHeadName}
                                 </span>
-                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted/40 text-muted-foreground">
                                   {inv.term}
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-500 dark:text-slate-400 font-mono mt-0.5">
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">
                                 Inv: #{inv.invoiceNumber} • Due:{" "}
                                 {new Date(inv.dueDate).toLocaleDateString("en-IN")}
                               </p>
@@ -702,7 +702,7 @@ export function CounterCollectionClient({
 
                         {/* If selected: show payment inputs & presets */}
                         {isSelected && selectedItem && (
-                          <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs items-center">
+                          <div className="pt-2 border-t border-border/40 grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs items-center">
                             {/* Preset Buttons */}
                             <div className="sm:col-span-5 flex items-center gap-1.5">
                               <span className="text-[10px] text-gray-400 uppercase font-semibold">
@@ -716,8 +716,8 @@ export function CounterCollectionClient({
                                 className={cn(
                                   "px-2 py-1 rounded-lg text-[11px] font-semibold border transition",
                                   selectedItem.amountToPay === inv.balanceAmount
-                                    ? "bg-indigo-600 text-white border-indigo-600"
-                                    : "bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700"
+                                    ? "bg-[#248A3D] dark:bg-[#30D158] text-white border-[#248A3D] dark:border-[#30D158]"
+                                    : "bg-card text-muted-foreground border-border/40"
                                 )}
                               >
                                 Full
@@ -732,8 +732,8 @@ export function CounterCollectionClient({
                                 className={cn(
                                   "px-2 py-1 rounded-lg text-[11px] font-semibold border transition",
                                   selectedItem.amountToPay === Math.round(inv.balanceAmount / 2)
-                                    ? "bg-indigo-600 text-white border-indigo-600"
-                                    : "bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700"
+                                    ? "bg-[#248A3D] dark:bg-[#30D158] text-white border-[#248A3D] dark:border-[#30D158]"
+                                    : "bg-card text-muted-foreground border-border/40"
                                 )}
                               >
                                 50%
@@ -742,7 +742,7 @@ export function CounterCollectionClient({
 
                             {/* Paying Amount Input */}
                             <div className="sm:col-span-7 flex items-center justify-end gap-2">
-                              <label className="text-[11px] font-semibold text-gray-600 dark:text-slate-300">
+                              <label className="text-[11px] font-semibold text-muted-foreground">
                                 Amount (₹):
                               </label>
                               <input
@@ -756,7 +756,7 @@ export function CounterCollectionClient({
                                     amountToPay: parseFloat(e.target.value) || 0,
                                   })
                                 }
-                                className="w-28 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold font-mono text-emerald-600 text-right focus:ring-1 focus:ring-indigo-500"
+                                className="w-28 px-2.5 py-1.5 rounded-lg border border-border/40 bg-card text-sm font-bold font-mono text-emerald-600 text-right focus:ring-1 focus:ring-[#248A3D] dark:focus:ring-[#30D158]"
                               />
                             </div>
 
@@ -775,7 +775,7 @@ export function CounterCollectionClient({
                                       discountAdjustment: parseFloat(e.target.value) || 0,
                                     })
                                   }
-                                  className="w-16 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-right font-mono"
+                                  className="w-16 px-1.5 py-0.5 rounded border border-border/40 bg-card text-xs text-right font-mono"
                                 />
                               </div>
 
@@ -792,7 +792,7 @@ export function CounterCollectionClient({
                                       lateFeeAdjustment: parseFloat(e.target.value) || 0,
                                     })
                                   }
-                                  className="w-16 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-right font-mono"
+                                  className="w-16 px-1.5 py-0.5 rounded border border-border/40 bg-card text-xs text-right font-mono"
                                 />
                               </div>
                             </div>
@@ -809,22 +809,22 @@ export function CounterCollectionClient({
 
         {/* Right Column: POS Collection Terminal (5 cols) */}
         <div className="lg:col-span-5">
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm sticky top-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+          <div className="bg-card p-5 rounded-3xl border border-border/40 shadow-sm sticky top-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3">
               <div className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                <CreditCard className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
+                <h2 className="text-base font-bold text-foreground">
                   Payment Terminal
                 </h2>
               </div>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158] font-semibold">
                 POS Ready
               </span>
             </div>
 
             {!selectedStudent ? (
-              <div className="p-8 text-center text-gray-400 text-xs border border-dashed border-gray-200 dark:border-slate-800 rounded-2xl space-y-2">
-                <User className="w-8 h-8 mx-auto text-gray-300 dark:text-slate-600" />
+              <div className="p-8 text-center text-gray-400 text-xs border border-dashed border-border/40 rounded-2xl space-y-2">
+                <User className="w-8 h-8 mx-auto text-gray-300 dark:text-muted-foreground" />
                 <p>Select or search a student on the left to begin collection.</p>
               </div>
             ) : Object.keys(selectedItems).length === 0 ? (
@@ -838,8 +838,8 @@ export function CounterCollectionClient({
             ) : (
               <form onSubmit={handleSubmitCollection} className="space-y-4">
                 {/* Live Totals Band */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950/50 border border-gray-100 dark:border-slate-800/80 space-y-2 text-xs">
-                  <div className="flex justify-between text-gray-500 dark:text-slate-400">
+                <div className="p-4 rounded-2xl bg-muted/20 border border-border/40/80 space-y-2 text-xs">
+                  <div className="flex justify-between text-muted-foreground">
                     <span>Selected Invoices Subtotal</span>
                     <span className="font-mono">₹{totalInvoicedSelected.toLocaleString("en-IN")}</span>
                   </div>
@@ -855,7 +855,7 @@ export function CounterCollectionClient({
                       <span className="font-mono">+₹{totalLateFeeAdjustments.toLocaleString("en-IN")}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-base font-bold text-gray-900 dark:text-white border-t border-gray-200 dark:border-slate-800 pt-2">
+                  <div className="flex justify-between text-base font-bold text-foreground border-t border-border/40 pt-2">
                     <span>Payable Total:</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-mono text-lg">
                       ₹{grandTotalPayable.toLocaleString("en-IN")}
@@ -865,7 +865,7 @@ export function CounterCollectionClient({
 
                 {/* Payment Method Segmented Control */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-2">
+                  <label className="block text-xs font-bold text-foreground uppercase mb-2">
                     Payment Mode
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -887,8 +887,8 @@ export function CounterCollectionClient({
                           className={cn(
                             "flex flex-col items-center justify-center py-2 px-2 rounded-xl text-xs font-semibold border transition-all",
                             isModeActive
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                              : "bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700"
+                              ? "bg-[#248A3D] dark:bg-[#30D158] text-white border-[#248A3D] dark:border-[#30D158] shadow-sm"
+                              : "bg-card text-muted-foreground border-border/40 hover:bg-muted/40"
                           )}
                         >
                           <Icon className="w-3.5 h-3.5 mb-1" />
@@ -911,7 +911,7 @@ export function CounterCollectionClient({
                         placeholder={grandTotalPayable.toString()}
                         value={cashTendered}
                         onChange={(e) => setCashTendered(e.target.value)}
-                        className="w-32 px-2.5 py-1 text-sm font-mono font-bold text-right rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-32 px-2.5 py-1 text-sm font-mono font-bold text-right rounded-lg border border-emerald-300 dark:border-emerald-700 bg-card focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
                     </div>
                     {tenderedNum > 0 && (
@@ -933,8 +933,8 @@ export function CounterCollectionClient({
                 )}
 
                 {paymentMethod === "UPI" && upiQrUrl && (
-                  <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/50 text-center space-y-2">
-                    <p className="text-xs font-semibold text-indigo-900 dark:text-indigo-300">
+                  <div className="p-4 rounded-2xl bg-muted/20 border border-border/40 text-center space-y-2">
+                    <p className="text-xs font-semibold text-foreground">
                       Scan QR Code to Pay ₹{grandTotalPayable.toLocaleString("en-IN")}
                     </p>
                     <div className="inline-block p-2 bg-white rounded-xl shadow-sm">
@@ -948,23 +948,23 @@ export function CounterCollectionClient({
 
                 {/* Razorpay Online Counter Modal Trigger */}
                 {paymentMethod === "ONLINE" && (
-                  <div className="p-3.5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 space-y-2.5">
+                  <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/40 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                         <CreditCard className="w-3.5 h-3.5" /> Razorpay Gateway Integration
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158] border border-[#248A3D]/20 dark:border-[#30D158]/20">
                         Test Mode Ready
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
                       Launch Razorpay Checkout to let parent or student pay via Credit/Debit Card, NetBanking, or Wallet directly at the counter.
                     </p>
                     <button
                       type="button"
                       disabled={grandTotalPayable <= 0 || isOpeningRzp}
                       onClick={handleLaunchRazorpayCounter}
-                      className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#248A3D] dark:bg-[#30D158] hover:bg-muted/400 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
                     >
                       <CreditCard className="w-3.5 h-3.5" />
                       <span>
@@ -979,13 +979,13 @@ export function CounterCollectionClient({
                 {/* Bank Account Selection (for Non-Cash) */}
                 {paymentMethod !== "CASH" && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-foreground uppercase mb-1">
                       Deposit Bank Account
                     </label>
                     <select
                       value={bankAccountId}
                       onChange={(e) => setBankAccountId(e.target.value)}
-                      className="w-full px-3 py-2 text-xs md:text-sm font-medium rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full px-3 py-2 text-xs md:text-sm font-medium rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-[#248A3D] dark:focus:ring-[#30D158]/20 focus:border-[#248A3D] dark:focus:border-[#30D158]"
                     >
                       <option value="CASH">School Cash In Hand</option>
                       {bankAccounts.map((b) => (
@@ -1000,7 +1000,7 @@ export function CounterCollectionClient({
                 {/* Reference / UTR Number for Digital / Cheque */}
                 {paymentMethod !== "CASH" && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-foreground uppercase mb-1">
                       {paymentMethod === "CHEQUE"
                         ? "Cheque Number *"
                         : paymentMethod === "DD"
@@ -1013,14 +1013,14 @@ export function CounterCollectionClient({
                       placeholder="e.g. UTR9827364512 or Cheque 001928"
                       value={transactionReference}
                       onChange={(e) => setTransactionReference(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full px-3 py-2 text-sm rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-[#248A3D] dark:focus:ring-[#30D158]/20 focus:border-[#248A3D] dark:focus:border-[#30D158]"
                     />
                   </div>
                 )}
 
                 {/* Remarks Input */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                  <label className="block text-xs font-bold text-foreground uppercase mb-1">
                     Receipt Remarks (Optional)
                   </label>
                   <input
@@ -1028,7 +1028,7 @@ export function CounterCollectionClient({
                     placeholder="e.g. Paid in full for Term 1 & 2"
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-border/40 bg-card text-foreground focus:ring-2 focus:ring-[#248A3D] dark:focus:ring-[#30D158]/20 focus:border-[#248A3D] dark:focus:border-[#30D158]"
                   />
                 </div>
 
@@ -1036,7 +1036,7 @@ export function CounterCollectionClient({
                 <button
                   type="submit"
                   disabled={submitting || grandTotalPayable <= 0}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-2xl bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] disabled:opacity-50 text-white dark:text-black font-bold text-sm transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Receipt className="w-4 h-4" />
                   <span>

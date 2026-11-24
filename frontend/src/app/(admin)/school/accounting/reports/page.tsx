@@ -37,10 +37,10 @@ export default async function FinancialReportsHubPage() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Financial Statements & Accounting Reports
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Standard GAAP compliant double-entry statements per ACC-02 for {school.name}
           </p>
         </div>
@@ -70,15 +70,15 @@ export default async function FinancialReportsHubPage() {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trial Balance</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <h3 className="text-lg font-semibold text-foreground">Trial Balance</h3>
+                  <p className="text-xs text-muted-foreground">
                     Summary of all ledger debits and credits verifying general ledger equilibrium.
                   </p>
                 </div>
                 <div className="pt-2 border-t border-gray-100 dark:border-border/40 space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Total Volume:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="font-semibold text-foreground">
                       ₹{tb?.totalDebits.toLocaleString("en-IN") || "0.00"}
                     </span>
                   </div>
@@ -93,7 +93,7 @@ export default async function FinancialReportsHubPage() {
               <div className="pt-4 mt-4 border-t border-gray-100 dark:border-border/40">
                 <Link
                   href="/school/accounting/reports/trial-balance"
-                  className="inline-flex items-center justify-between w-full text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                  className="inline-flex items-center justify-between w-full text-sm font-medium text-[#00875A] dark:text-[#63E6BE] hover:text-[#00875A] dark:text-[#63E6BE]"
                 >
                   <span>View Statement</span>
                   <ArrowRight className="w-4 h-4" />
@@ -108,8 +108,8 @@ export default async function FinancialReportsHubPage() {
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Income & Expenditure</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <h3 className="text-lg font-semibold text-foreground">Income & Expenditure</h3>
+                  <p className="text-xs text-muted-foreground">
                     Operational surplus or deficit comparing fee collections and miscellaneous revenue against expenses.
                   </p>
                 </div>
@@ -122,7 +122,7 @@ export default async function FinancialReportsHubPage() {
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Total Revenue:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="font-semibold text-foreground">
                       ₹{ie?.totalIncome.toLocaleString("en-IN") || "0.00"}
                     </span>
                   </div>
@@ -146,15 +146,15 @@ export default async function FinancialReportsHubPage() {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Balance Sheet</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <h3 className="text-lg font-semibold text-foreground">Balance Sheet</h3>
+                  <p className="text-xs text-muted-foreground">
                     Institutional financial position: total assets versus liabilities and accumulated reserves.
                   </p>
                 </div>
                 <div className="pt-2 border-t border-gray-100 dark:border-border/40 space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Total Assets:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="font-semibold text-foreground">
                       ₹{bs?.totalAssets.toLocaleString("en-IN") || "0.00"}
                     </span>
                   </div>
@@ -186,8 +186,8 @@ export default async function FinancialReportsHubPage() {
               <Percent className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Concessions & Waivers</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <h3 className="text-lg font-semibold text-foreground">Concessions & Waivers</h3>
+              <p className="text-xs text-muted-foreground">
                 Revenue foregone matrix by policy, term, and standard with realization rates.
               </p>
             </div>
@@ -200,7 +200,7 @@ export default async function FinancialReportsHubPage() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Realization Rate:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
+                <span className="font-semibold text-foreground">
                   {cs?.overallRealizationRate !== undefined ? `${cs.overallRealizationRate.toFixed(1)}%` : "100.0%"}
                 </span>
               </div>

@@ -99,32 +99,32 @@ export function StudentLedgerDrawer({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl border-l border-gray-200 dark:border-slate-800 flex flex-col focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-250"
+            "fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-card shadow-2xl border-l border-border/40 flex flex-col focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-250"
           )}
         >
           {/* Header */}
-          <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between">
+          <div className="p-6 border-b border-border/40 flex items-start justify-between">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-[#248A3D] dark:bg-[#30D158] text-white dark:text-black flex items-center justify-center font-bold text-lg shadow-sm">
                 {studentName.charAt(0)}
               </div>
               <div>
-                <DialogPrimitive.Title className="text-lg font-bold text-gray-900 dark:text-white">
+                <DialogPrimitive.Title className="text-lg font-bold text-foreground">
                   {studentName}
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="text-xs text-gray-500 dark:text-slate-400 font-mono mt-0.5">
+                <DialogPrimitive.Description className="text-xs text-muted-foreground font-mono mt-0.5">
                   Admission: #{admissionNumber} • {studentClass}
                 </DialogPrimitive.Description>
               </div>
             </div>
-            <DialogPrimitive.Close className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+            <DialogPrimitive.Close className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-foreground hover:bg-muted/60 transition">
               <X className="w-5 h-5" />
               <span className="sr-only">Close drawer</span>
             </DialogPrimitive.Close>
           </div>
 
           {/* Dues KPI Ribbon */}
-          <div className="px-6 py-4 bg-gray-50 dark:bg-slate-950/60 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="px-6 py-4 bg-muted/30 border-b border-border/40 flex items-center justify-between">
             <div>
               <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                 Total Outstanding
@@ -137,22 +137,22 @@ export function StudentLedgerDrawer({
               <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                 Pending Invoices
               </span>
-              <p className="text-base font-bold text-gray-900 dark:text-white">
+              <p className="text-base font-bold text-foreground">
                 {invoices.length} Bills
               </p>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 dark:border-slate-800 px-6">
+          <div className="flex border-b border-border/40 px-6">
             <button
               type="button"
               onClick={() => setActiveTab("invoices")}
               className={cn(
                 "py-3 text-xs font-bold border-b-2 mr-6 transition-all flex items-center gap-1.5",
                 activeTab === "invoices"
-                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-                  : "border-transparent text-gray-500 hover:text-gray-800 dark:text-slate-400"
+                  ? "border-[#248A3D] dark:border-[#30D158] text-[#248A3D] dark:text-[#30D158]"
+                  : "border-transparent text-gray-500 hover:text-gray-800 dark:text-muted-foreground"
               )}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -164,8 +164,8 @@ export function StudentLedgerDrawer({
               className={cn(
                 "py-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5",
                 activeTab === "reminders"
-                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-                  : "border-transparent text-gray-500 hover:text-gray-800 dark:text-slate-400"
+                  ? "border-[#248A3D] dark:border-[#30D158] text-[#248A3D] dark:text-[#30D158]"
+                  : "border-transparent text-gray-500 hover:text-gray-800 dark:text-muted-foreground"
               )}
             >
               <Send className="w-3.5 h-3.5" />
@@ -194,15 +194,15 @@ export function StudentLedgerDrawer({
                 invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="p-4 rounded-2xl border border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900 shadow-sm space-y-3"
+                    className="p-4 rounded-2xl border border-border/40 hover:border-gray-300 dark:hover:border-border/40 bg-card shadow-sm space-y-3"
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                          <h4 className="text-sm font-bold text-foreground">
                             {inv.feeHeadName}
                           </h4>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
                             {inv.term}
                           </span>
                         </div>
@@ -219,10 +219,10 @@ export function StudentLedgerDrawer({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-slate-800 text-[11px] text-gray-500">
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-[11px] text-gray-500">
                       <div>
                         <span>Gross: </span>
-                        <span className="font-semibold text-gray-700 dark:text-slate-300">
+                        <span className="font-semibold text-foreground">
                           ₹{inv.grossAmount.toLocaleString("en-IN")}
                         </span>
                       </div>
@@ -265,8 +265,8 @@ export function StudentLedgerDrawer({
               )
             ) : (
               <div className="space-y-3">
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950/60 border border-gray-200 dark:border-slate-800 space-y-2">
-                  <h4 className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase">
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
+                  <h4 className="text-xs font-bold text-foreground uppercase">
                     Automated Reminder Ladder (AUTO-03)
                   </h4>
                   <p className="text-xs text-gray-500">
@@ -277,9 +277,9 @@ export function StudentLedgerDrawer({
                 {invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="p-3.5 rounded-xl border border-gray-100 dark:border-slate-800 text-xs space-y-1"
+                    className="p-3.5 rounded-xl border border-border/40 text-xs space-y-1"
                   >
-                    <div className="flex justify-between font-semibold text-gray-800 dark:text-slate-200">
+                    <div className="flex justify-between font-semibold text-foreground">
                       <span>{inv.feeHeadName} ({inv.invoiceNumber})</span>
                       <span className="text-gray-400 font-normal">
                         Due: {new Date(inv.dueDate).toLocaleDateString("en-IN")}
@@ -298,10 +298,10 @@ export function StudentLedgerDrawer({
           </div>
 
           {/* Footer Action */}
-          <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950/50 flex items-center justify-between gap-3">
+          <div className="p-4 border-t border-border/40 bg-muted/20 flex items-center justify-between gap-3">
             <Link
               href="/school/collect-fees"
-              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition active:scale-95"
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm transition active:scale-95"
             >
               <CreditCard className="w-4 h-4" />
               <span>Open Collect Terminal</span>

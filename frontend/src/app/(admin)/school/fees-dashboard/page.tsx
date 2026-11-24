@@ -420,15 +420,15 @@ export default async function FeesDashboardPage({
       <FinanceTabs activeSection="finance" />
 
       {/* Header Banner & Quick Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-3xl border border-border/40 shadow-sm">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#248A3D]/100/10 text-[#248A3D] dark:text-[#30D158] border border-[#248A3D]/20">
             <BarChart3 className="w-3.5 h-3.5" /> Finance Hub & Telemetry
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
             Central Finance & Fees Analytics Hub
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Real-time collection velocity, overdue aging buckets, and quick cashier actions for {activeSchool.name}.
           </p>
         </div>

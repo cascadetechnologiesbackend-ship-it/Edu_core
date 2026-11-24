@@ -73,7 +73,7 @@ export function CollectForm({
 
         {selectedStudent && (
           <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            <h3 className="font-semibold text-muted-foreground mb-3">
               Pending Invoices
             </h3>
             {studentInvoices.length === 0 ? (

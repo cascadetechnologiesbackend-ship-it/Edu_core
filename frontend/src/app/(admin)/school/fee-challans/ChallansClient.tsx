@@ -118,7 +118,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
       sortable: true,
       cell: (row) => (
         <div>
-          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+          <span className="font-mono font-bold text-[#248A3D] dark:text-[#30D158]">
             {row.challanNumber}
           </span>
           <p className="text-[11px] text-gray-400 font-mono">Inv #{row.invoiceNumber}</p>
@@ -132,7 +132,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
       sortable: true,
       cell: (row) => (
         <div>
-          <p className="font-bold text-gray-900 dark:text-white">{row.studentName}</p>
+          <p className="font-bold text-foreground">{row.studentName}</p>
           <p className="text-[11px] text-gray-400 font-mono">Adm #{row.admissionNumber}</p>
         </div>
       ),
@@ -150,7 +150,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
       accessorKey: "dueDate",
       sortable: true,
       cell: (row) => (
-        <span className="font-mono text-xs text-gray-600 dark:text-slate-300">
+        <span className="font-mono text-xs text-muted-foreground">
           {new Date(row.dueDate).toLocaleDateString("en-IN")}
         </span>
       ),
@@ -161,7 +161,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
       accessorKey: "amount",
       sortable: true,
       cell: (row) => (
-        <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
+        <span className="font-mono font-bold text-sm text-foreground">
           ₹{row.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
         </span>
       ),
@@ -179,13 +179,13 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
     <div className="space-y-6">
       {/* Top Action Bar */}
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-bold text-gray-900 dark:text-white">
+        <h3 className="text-base font-bold text-foreground">
           Bank Challans Registry ({challans.length})
         </h3>
         <button
           type="button"
           onClick={() => setShowGenerateModal(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition active:scale-95"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black font-semibold text-xs shadow-sm transition active:scale-95"
         >
           <Plus className="w-4 h-4" /> Issue Bank Challan
         </button>
@@ -201,7 +201,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
             <button
               type="button"
               onClick={() => setPrintChallan(row)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-xs font-semibold transition"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-foreground bg-muted/60 hover:bg-gray-200 text-xs font-semibold transition"
               title="Print 3-Part Bank Challan"
             >
               <Printer className="w-3.5 h-3.5" /> 3-Part
@@ -225,24 +225,24 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="fixed inset-0 -z-10" onClick={() => setPrintChallan(null)} />
 
-          <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-slate-800 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 print:hidden">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Printer className="w-5 h-5 text-indigo-600" />
+          <div className="w-full max-w-4xl bg-card rounded-3xl p-6 shadow-2xl border border-border/40 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border/40 print:hidden">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Printer className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
                 3-Part Bank Deposit Slip Preview
               </h3>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition"
+                  className="px-4 py-2 rounded-xl bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black font-semibold text-xs shadow-sm transition"
                 >
                   Print Challan
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrintChallan(null)}
-                  className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400"
+                  className="p-2 rounded-xl hover:bg-muted/60 text-gray-400"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -254,13 +254,13 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
               {(["STUDENT COPY", "SCHOOL COPY", "BANK COPY"] as const).map((copyName) => (
                 <div
                   key={copyName}
-                  className="p-4 rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 space-y-3 bg-gray-50/50 dark:bg-slate-800/20"
+                  className="p-4 rounded-2xl border border-dashed border-border/60 space-y-3 bg-gray-50/50 dark:bg-muted/20"
                 >
-                  <div className="text-center pb-2 border-b border-gray-200 dark:border-slate-700">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  <div className="text-center pb-2 border-b border-border/40">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#248A3D] dark:text-[#30D158]">
                       {copyName}
                     </p>
-                    <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                    <h4 className="font-bold text-sm text-foreground truncate">
                       {schoolName}
                     </h4>
                     <p className="text-[10px] text-gray-500 font-sans">Bank Fee Deposit Challan</p>
@@ -289,12 +289,12 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-200 dark:border-slate-700 flex justify-between font-bold text-sm text-gray-900 dark:text-white">
+                  <div className="pt-2 border-t border-border/40 flex justify-between font-bold text-sm text-foreground">
                     <span>Payable:</span>
                     <span>₹{printChallan.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                   </div>
 
-                  <div className="pt-6 border-t border-gray-200 dark:border-slate-700 flex justify-between text-[10px] text-gray-400">
+                  <div className="pt-6 border-t border-border/40 flex justify-between text-[10px] text-gray-400">
                     <span>Depositor Signature</span>
                     <span>Bank Seal</span>
                   </div>
@@ -310,8 +310,8 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="fixed inset-0 -z-10" onClick={() => setClearingChallan(null)} />
 
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="w-full max-w-md bg-card rounded-3xl p-6 shadow-2xl border border-border/40 space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               Clear Bank Challan #{clearingChallan.challanNumber}
             </h3>
@@ -321,7 +321,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
 
             <form onSubmit={handleClearSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Bank Scroll / UTR Reference # (Optional)
                 </label>
                 <input
@@ -329,7 +329,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
                   placeholder="e.g. UTR92837482 or Branch Scroll #12"
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-border/40 bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -338,7 +338,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
                   type="button"
                   onClick={() => setClearingChallan(null)}
                   disabled={isClearing}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 hover:bg-muted/60"
                 >
                   Cancel
                 </button>
@@ -361,22 +361,22 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="fixed inset-0 -z-10" onClick={() => setShowGenerateModal(false)} />
 
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-indigo-600" />
+          <div className="w-full max-w-md bg-card rounded-3xl p-6 shadow-2xl border border-border/40 space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Plus className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
               Issue New Bank Deposit Challan
             </h3>
 
             <form onSubmit={handleGenerateSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Select Unpaid Invoice *
                 </label>
                 <select
                   value={selectedInvoiceId}
                   onChange={(e) => setSelectedInvoiceId(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-border/40 bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-[#248A3D]/20 dark:focus:ring-[#30D158]/20"
                 >
                   <option value="">Select Invoice...</option>
                   {unpaidInvoices.map((inv) => (
@@ -388,7 +388,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase mb-1">
                   Challan Valid Until (Due Date) *
                 </label>
                 <input
@@ -396,7 +396,7 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
                   value={challanDueDate}
                   onChange={(e) => setChallanDueDate(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-border/40 bg-muted/30 text-foreground focus:outline-none focus:ring-2 focus:ring-[#248A3D]/20 dark:focus:ring-[#30D158]/20"
                 />
               </div>
 
@@ -405,14 +405,14 @@ export function ChallansClient({ challans, schoolName, unpaidInvoices }: Challan
                   type="button"
                   onClick={() => setShowGenerateModal(false)}
                   disabled={isGenerating}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 hover:bg-muted/60"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isGenerating}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm transition disabled:opacity-50"
                 >
                   {isGenerating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Generate Challan

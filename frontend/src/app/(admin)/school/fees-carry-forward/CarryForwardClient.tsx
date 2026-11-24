@@ -107,13 +107,13 @@ export function CarryForwardClient({
   return (
     <div className="space-y-8">
       {/* Session Mapping Setup Card */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-6">
-        <div className="border-b border-gray-100 dark:border-slate-800 pb-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+      <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-6">
+        <div className="border-b border-border/40 pb-4">
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
             Session Dues Migration Configuration
           </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Choose the closing academic session and the destination upcoming academic session for outstanding balance roll-forward.
           </p>
         </div>
@@ -137,13 +137,13 @@ export function CarryForwardClient({
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
           <div className="md:col-span-2 space-y-1.5">
-            <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+            <label className="text-xs font-semibold text-foreground">
               Source Academic Year (With Unpaid Dues)
             </label>
             <select
               value={fromYearId}
               onChange={(e) => setFromYearId(e.target.value)}
-              className="w-full text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-sm rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#248A3D] dark:focus:ring-[#30D158]"
             >
               {academicYears.map((ay) => (
                 <option key={ay.id} value={ay.id}>
@@ -154,19 +154,19 @@ export function CarryForwardClient({
           </div>
 
           <div className="flex justify-center items-center py-2 md:py-0">
-            <div className="p-2.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2.5 rounded-full bg-[#248A3D]/10 dark:bg-[#30D158]/10 text-[#248A3D] dark:text-[#30D158]">
               <ArrowRight className="w-5 h-5" />
             </div>
           </div>
 
           <div className="md:col-span-2 space-y-1.5">
-            <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+            <label className="text-xs font-semibold text-foreground">
               Target Academic Year (Receiving Session)
             </label>
             <select
               value={toYearId}
               onChange={(e) => setToYearId(e.target.value)}
-              className="w-full text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-sm rounded-xl border border-border/40 bg-card px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#248A3D] dark:focus:ring-[#30D158]"
             >
               {academicYears.map((ay) => (
                 <option key={ay.id} value={ay.id}>
@@ -179,23 +179,23 @@ export function CarryForwardClient({
       </div>
 
       {/* Eligible Students Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <User className="w-5 h-5 text-[#248A3D] dark:text-[#30D158]" />
               Outstanding Balance Review Ledger ({studentsWithDues.length} Students)
             </h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Selected: {selectedStudentIds.length} students | Total to roll forward:{" "}
-              <strong className="text-gray-900 dark:text-white">₹{selectedTotal.toLocaleString("en-IN")}</strong>
+              <strong className="text-foreground">₹{selectedTotal.toLocaleString("en-IN")}</strong>
             </p>
           </div>
 
           <button
             onClick={handleCarryForward}
             disabled={isSubmitting || selectedStudentIds.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {isSubmitting ? (
               <>
@@ -212,7 +212,7 @@ export function CarryForwardClient({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+              <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                 <th className="py-3 px-4 w-12 text-center">
                   <input
                     type="checkbox"
@@ -221,7 +221,7 @@ export function CarryForwardClient({
                       selectedStudentIds.length === studentsWithDues.length
                     }
                     onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-[#248A3D] dark:text-[#30D158] focus:ring-[#248A3D] dark:focus:ring-[#30D158]"
                   />
                 </th>
                 <th className="py-3 px-4">Student Name</th>
@@ -231,10 +231,10 @@ export function CarryForwardClient({
                 <th className="py-3 px-4 text-center">Action Preview</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
+            <tbody className="divide-y divide-border/40 text-foreground">
               {studentsWithDues.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-500 dark:text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     No students found with pending balance in the selected session. All dues are cleared!
                   </td>
                 </tr>
@@ -244,8 +244,8 @@ export function CarryForwardClient({
                   return (
                     <tr
                       key={s.studentId}
-                      className={`hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition ${
-                        isChecked ? "bg-indigo-50/30 dark:bg-indigo-950/20" : ""
+                      className={`hover:bg-muted/40 transition ${
+                        isChecked ? "bg-[#248A3D]/10/30 dark:bg-card" : ""
                       }`}
                     >
                       <td className="py-3 px-4 text-center">
@@ -253,13 +253,13 @@ export function CarryForwardClient({
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleStudent(s.studentId)}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          className="rounded border-gray-300 text-[#248A3D] dark:text-[#30D158] focus:ring-[#248A3D] dark:focus:ring-[#30D158]"
                         />
                       </td>
-                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-semibold text-foreground">
                         {s.name}
                       </td>
-                      <td className="py-3 px-4 font-mono text-gray-600 dark:text-slate-400">
+                      <td className="py-3 px-4 font-mono text-muted-foreground">
                         {s.admissionNumber}
                       </td>
                       <td className="py-3 px-4">
@@ -268,8 +268,8 @@ export function CarryForwardClient({
                       <td className="py-3 px-4 text-right font-bold text-rose-600 dark:text-rose-400 font-mono">
                         ₹{s.pendingDue.toLocaleString("en-IN")}
                       </td>
-                      <td className="py-3 px-4 text-center text-gray-500 dark:text-slate-400">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300">
+                      <td className="py-3 px-4 text-center text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-muted/60 text-foreground">
                           Create Opening Invoice <ChevronRight className="w-3 h-3" />
                         </span>
                       </td>
@@ -283,12 +283,12 @@ export function CarryForwardClient({
       </div>
 
       {/* Historical Carry Forward Logs */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-slate-800">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+      <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border/40">
+          <h3 className="text-base font-bold text-foreground">
             Carry Forward Migration Audit Log
           </h3>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Historical records of fee dues migrated across academic sessions.
           </p>
         </div>
@@ -296,7 +296,7 @@ export function CarryForwardClient({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 uppercase tracking-wider font-semibold">
+              <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
                 <th className="py-3 px-4">Student</th>
                 <th className="py-3 px-4">From Session</th>
                 <th className="py-3 px-4">To Session</th>
@@ -305,24 +305,24 @@ export function CarryForwardClient({
                 <th className="py-3 px-4 text-right">Applied Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
+            <tbody className="divide-y divide-border/40 text-foreground">
               {previousMigrations.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-slate-400">
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
                     No migration records recorded yet.
                   </td>
                 </tr>
               ) : (
                 previousMigrations.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                    <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">
+                  <tr key={m.id} className="hover:bg-muted/40">
+                    <td className="py-3 px-4 font-semibold text-foreground">
                       {m.studentName}
                     </td>
                     <td className="py-3 px-4">{m.fromYear}</td>
-                    <td className="py-3 px-4 font-semibold text-indigo-600 dark:text-indigo-400">
+                    <td className="py-3 px-4 font-semibold text-[#248A3D] dark:text-[#30D158]">
                       {m.toYear}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-gray-900 dark:text-white">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-foreground">
                       ₹{parseFloat(m.carriedAmount).toLocaleString("en-IN")}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -330,7 +330,7 @@ export function CarryForwardClient({
                         {m.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right text-gray-500 dark:text-slate-400 font-mono">
+                    <td className="py-3 px-4 text-right text-muted-foreground font-mono">
                       {new Date(m.appliedAt).toLocaleDateString("en-IN")}
                     </td>
                   </tr>

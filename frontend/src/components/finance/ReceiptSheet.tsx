@@ -77,25 +77,25 @@ export function ReceiptSheet({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-md max-h-[92vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-gray-200 dark:border-slate-800 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-md max-h-[92vh] overflow-y-auto rounded-3xl bg-card p-6 shadow-2xl border border-border/40 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
           )}
         >
           {/* Header Bar */}
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-border/40">
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <CheckCircle2 className="w-4 h-4" />
               </span>
               <div>
-                <DialogPrimitive.Title className="text-sm font-bold text-gray-900 dark:text-white">
+                <DialogPrimitive.Title className="text-sm font-bold text-foreground">
                   Payment Successful
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="text-xs text-gray-500 dark:text-slate-400 font-mono">
+                <DialogPrimitive.Description className="text-xs text-muted-foreground font-mono">
                   Receipt #{data.receiptNumber}
                 </DialogPrimitive.Description>
               </div>
             </div>
-            <DialogPrimitive.Close className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+            <DialogPrimitive.Close className="rounded-xl p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-foreground hover:bg-muted/60 transition">
               <X className="w-4 h-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
@@ -104,15 +104,15 @@ export function ReceiptSheet({
           {/* Thermal Receipt Body (Printed Area) */}
           <div
             id="thermal-receipt"
-            className="my-4 p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-dashed border-gray-200 dark:border-slate-800 font-mono text-xs text-gray-800 dark:text-slate-200 space-y-3 print:bg-white print:text-black print:border-none print:p-0"
+            className="my-4 p-4 rounded-2xl bg-muted/30 border border-dashed border-border/40 font-mono text-xs text-foreground space-y-3 print:bg-white print:text-black print:border-none print:p-0"
           >
             {/* School Branding */}
-            <div className="text-center pb-2 border-b border-gray-200 dark:border-slate-800 print:border-black">
-              <h3 className="font-bold text-sm tracking-wide uppercase text-gray-900 dark:text-white print:text-black">
+            <div className="text-center pb-2 border-b border-border/40 print:border-black">
+              <h3 className="font-bold text-sm tracking-wide uppercase text-foreground print:text-black">
                 {data.schoolName}
               </h3>
               {data.schoolAddress && (
-                <p className="text-[10px] text-gray-500 dark:text-slate-400 print:text-black">
+                <p className="text-[10px] text-muted-foreground print:text-black">
                   {data.schoolAddress}
                 </p>
               )}
@@ -145,7 +145,7 @@ export function ReceiptSheet({
               </div>
               <div className="text-right">
                 <span className="text-gray-400">Mode: </span>
-                <span className="font-bold text-indigo-600 dark:text-indigo-400 print:text-black">
+                <span className="font-bold text-[#248A3D] dark:text-[#30D158] print:text-black">
                   {data.paymentMethod}
                 </span>
               </div>
@@ -163,7 +163,7 @@ export function ReceiptSheet({
             </div>
 
             {/* Fee Items Table */}
-            <div className="border-t border-b border-gray-200 dark:border-slate-800 print:border-black py-2 my-2 space-y-1.5">
+            <div className="border-t border-b border-border/40 print:border-black py-2 my-2 space-y-1.5">
               <div className="flex justify-between font-bold text-[10px] text-gray-400 uppercase tracking-wider">
                 <span>Fee Particulars</span>
                 <span>Paid (₹)</span>
@@ -193,7 +193,7 @@ export function ReceiptSheet({
             </div>
 
             {/* Total Paid */}
-            <div className="flex justify-between items-center text-sm font-bold text-gray-900 dark:text-white print:text-black pt-1">
+            <div className="flex justify-between items-center text-sm font-bold text-foreground print:text-black pt-1">
               <span>Total Received:</span>
               <span className="text-base text-emerald-600 dark:text-emerald-400 print:text-black font-mono">
                 ₹{data.totalAmountPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -207,7 +207,7 @@ export function ReceiptSheet({
             )}
 
             {/* Footer */}
-            <div className="pt-3 text-center text-[10px] text-gray-400 print:text-black border-t border-dotted border-gray-200 dark:border-slate-800">
+            <div className="pt-3 text-center text-[10px] text-gray-400 print:text-black border-t border-dotted border-border/40">
               <p>Thank you for your payment!</p>
               <p className="mt-0.5">Computer generated receipt • No signature required</p>
             </div>
@@ -219,7 +219,7 @@ export function ReceiptSheet({
               ref={printButtonRef}
               type="button"
               onClick={handlePrint}
-              className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-900 hover:bg-black text-white dark:bg-white dark:text-slate-900 dark:hover:bg-gray-100 shadow-sm transition active:scale-95"
+              className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-900 hover:bg-black text-white dark:bg-white dark:text-foreground dark:hover:bg-gray-100 shadow-sm transition active:scale-95"
             >
               <Printer className="w-4 h-4" />
               <span>Print (Thermal 80mm)</span>
@@ -230,7 +230,7 @@ export function ReceiptSheet({
                 href={`/api/receipt/${data.paymentId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 transition"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-border/40 hover:bg-muted/40 text-muted-foreground transition"
               >
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">PDF</span>
@@ -240,7 +240,7 @@ export function ReceiptSheet({
             <button
               type="button"
               onClick={handleCollectNext}
-              className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition active:scale-95"
+              className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm transition active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
               <span>Next Student</span>

@@ -318,7 +318,7 @@ export function FeesDashboardClient({
       {/* Band 1: Money KPIs (Every KPI is a Clickable Link to prefiltered worklists) */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
             Band 1: Core Financial Metrics & Quick Drills
           </h2>
           <span className="text-xs text-gray-400">Click any card to inspect underlying ledger</span>

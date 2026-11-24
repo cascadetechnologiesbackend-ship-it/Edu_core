@@ -430,13 +430,13 @@ ADM-2026-003,3250,2026-12-01`;
   return (
     <div className="space-y-8">
       {/* Tab Switcher */}
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-slate-800 pb-1">
+      <div className="flex items-center gap-2 border-b border-border/40 pb-1">
         <button
           onClick={() => switchTab("STUDENTS")}
           className={`flex items-center gap-2 px-5 py-3 rounded-t-xl text-sm font-semibold transition border-b-2 -mb-1 ${
             activeTab === "STUDENTS"
               ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20"
-              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white"
+              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white"
           }`}
         >
           <GraduationCap className="w-4 h-4" />
@@ -448,7 +448,7 @@ ADM-2026-003,3250,2026-12-01`;
           className={`flex items-center gap-2 px-5 py-3 rounded-t-xl text-sm font-semibold transition border-b-2 -mb-1 ${
             activeTab === "STAFF"
               ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20"
-              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white"
+              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white"
           }`}
         >
           <Users className="w-4 h-4" />
@@ -460,7 +460,7 @@ ADM-2026-003,3250,2026-12-01`;
           className={`flex items-center gap-2 px-5 py-3 rounded-t-xl text-sm font-semibold transition border-b-2 -mb-1 ${
             activeTab === "FEES"
               ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20"
-              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white"
+              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white"
           }`}
         >
           <Coins className="w-4 h-4" />
@@ -518,7 +518,7 @@ ADM-2026-003,3250,2026-12-01`;
               {commitResult.rejectedRowsCsv && (
                 <button
                   onClick={downloadRejectedCsv}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white font-semibold text-xs transition shadow-sm hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border/60 bg-card text-gray-800 dark:text-white font-semibold text-xs transition shadow-sm hover:bg-gray-50"
                 >
                   <Download className="w-4 h-4 text-rose-600" /> Download Rejected Rows CSV
                 </button>
@@ -556,18 +556,18 @@ ADM-2026-003,3250,2026-12-01`;
 
       {/* Instructions & Template Helper Card */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="md:col-span-2 bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-white">
+              <h2 className="text-base font-bold text-foreground">
                 {activeTab === "STUDENTS" && "Bulk Students Onboarding & Class Enrollment"}
                 {activeTab === "STAFF" && "Bulk Staff Onboarding & Credentials Provisioning"}
                 {activeTab === "FEES" && "Historical Fee Balances & External Invoices"}
               </h2>
-              <p className="text-xs text-gray-500 dark:text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 {activeTab === "STUDENTS" && "Accepts messy school files: phone prefixes (+91/91), dates (DD/MM/YYYY), and section variants ('10-A', 'X A', 'Class 10 - A')."}
                 {activeTab === "STAFF" && "Provisions staff records, temporary passwords, departments, and designations. Role clamped to TEACHER, STAFF, ACCOUNTANT."}
                 {activeTab === "FEES" && "Imports opening balances and prior year dues into fee invoices with automatic audit trails."}
@@ -575,8 +575,8 @@ ADM-2026-003,3250,2026-12-01`;
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-100 dark:border-slate-800 space-y-2 text-xs text-gray-600 dark:text-slate-300">
-            <p className="font-semibold text-gray-900 dark:text-white">Resilient Parser Guarantees (Charter BR4):</p>
+          <div className="bg-muted/40 p-4 rounded-xl border border-border/40 space-y-2 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground">Resilient Parser Guarantees (Charter BR4):</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
                 <strong>Messy Phone Normalization:</strong> <code>+91 98765-43210</code>, <code>919876543210</code>, <code>(987) 654-3210</code> are all cleaned to 10 digits.
@@ -597,22 +597,22 @@ ADM-2026-003,3250,2026-12-01`;
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Template Helper
             </span>
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mt-1">
+            <h3 className="text-sm font-bold text-foreground mt-1">
               Download Standard CSV Template
             </h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Pre-formatted template with standard column headers for {activeTab.toLowerCase()}.
             </p>
           </div>
 
           <button
             onClick={() => downloadSampleTemplate(activeTab)}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-xs font-semibold text-gray-800 dark:text-slate-200 transition"
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border/40 hover:bg-muted/40 text-xs font-semibold text-foreground transition"
           >
             <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             Download Sample CSV
@@ -621,22 +621,22 @@ ADM-2026-003,3250,2026-12-01`;
       </div>
 
       {/* Main Upload / Input Card */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-6">
+      <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h3 className="text-base font-bold text-foreground flex items-center gap-2">
             <UploadCloud className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             Batch Data Importer: {activeTab === "STUDENTS" ? "Students" : activeTab === "STAFF" ? "Staff" : "Opening Balances"}
           </h3>
 
           {activeTab === "FEES" && (
             <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+              <label className="text-xs font-semibold text-foreground">
                 Academic Year:
               </label>
               <select
                 value={academicYearId}
                 onChange={(e) => setAcademicYearId(e.target.value)}
-                className="text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-xs rounded-xl border border-border/40 bg-card px-3 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {academicYears.map((ay) => (
                   <option key={ay.id} value={ay.id}>
@@ -651,8 +651,8 @@ ADM-2026-003,3250,2026-12-01`;
         {/* 3 Input Methods Grid: CSV Upload, Excel .XLSX Binary Upload, Paste Textarea */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Method 1: CSV Upload */}
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 space-y-2">
-            <label className="text-xs font-bold text-gray-800 dark:text-slate-200 flex items-center gap-1.5">
+          <div className="p-4 rounded-xl border border-border/40 bg-gray-50/50 dark:bg-muted/20 space-y-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-blue-600" />
               1. Upload CSV File (.csv)
             </label>
@@ -660,14 +660,14 @@ ADM-2026-003,3250,2026-12-01`;
               type="file"
               accept=".csv"
               onChange={handleCsvUpload}
-              className="w-full text-xs text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-slate-200"
+              className="w-full text-xs text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-muted/60 dark:file:text-foreground"
             />
             <p className="text-[11px] text-gray-400">Standard comma-separated file exported from any software.</p>
           </div>
 
           {/* Method 2: .XLSX Binary Upload using ExcelJS */}
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 space-y-2">
-            <label className="text-xs font-bold text-gray-800 dark:text-slate-200 flex items-center gap-1.5">
+          <div className="p-4 rounded-xl border border-border/40 bg-gray-50/50 dark:bg-muted/20 space-y-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
               2. Upload Excel Workbook (.xlsx)
             </label>
@@ -676,7 +676,7 @@ ADM-2026-003,3250,2026-12-01`;
               accept=".xlsx,.xls"
               onChange={handleXlsxUpload}
               disabled={isParsingFile}
-              className="w-full text-xs text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-slate-800 dark:file:text-slate-200 disabled:opacity-50"
+              className="w-full text-xs text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-muted/60 dark:file:text-foreground disabled:opacity-50"
             />
             <p className="text-[11px] text-gray-400">
               {isParsingFile ? "Reading Excel sheet in browser..." : "Native Microsoft Excel spreadsheet (.xlsx) parsed via exceljs."}
@@ -686,8 +686,8 @@ ADM-2026-003,3250,2026-12-01`;
 
         {/* Method 3: Paste-from-Excel Textarea */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-800 dark:text-slate-200 flex items-center gap-1.5">
-            <ClipboardPaste className="w-4 h-4 text-indigo-600" />
+          <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <ClipboardPaste className="w-4 h-4 text-[#248A3D] dark:text-[#30D158]" />
             3. Or Paste Raw Content (Copy & Paste directly from Excel or CSV):
           </label>
           <textarea
@@ -701,7 +701,7 @@ ADM-2026-003,3250,2026-12-01`;
                 ? `Employee Code\tFirst Name\tLast Name\tOfficial Email\tContact Phone\tSystem Role\nEMP-101\tVikram\tMalhotra\tvikram@school.in\t9876543210\tTEACHER`
                 : `admissionNumber,grossAmount,dueDate\nADM-001,5000,2026-11-30`
             }
-            className="w-full font-mono text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full font-mono text-xs rounded-xl border border-border/40 bg-card p-3 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-[11px] text-gray-400">
             {fileName ? `Loaded file: ${fileName}` : "Tip: You can select cells in Excel, press Ctrl+C, and paste directly here."}
@@ -710,14 +710,14 @@ ADM-2026-003,3250,2026-12-01`;
 
         {/* Dry-Run Validation Preview Section */}
         {dryRunSummary && (
-          <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+          <div className="space-y-4 pt-4 border-t border-border/40">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-[#248A3D] dark:text-[#30D158]" />
                   Dry-Run Preview: Clerk Validation Report
                 </h4>
-                <p className="text-xs text-gray-500 dark:text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Pre-flight inspection for {dryRunSummary.totalRows} row(s) before committing to institutional database.
                 </p>
               </div>
@@ -739,9 +739,9 @@ ADM-2026-003,3250,2026-12-01`;
               </div>
             </div>
 
-            <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 dark:border-slate-800">
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-border/40">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 text-gray-600 dark:text-slate-400 font-semibold border-b border-gray-200 dark:border-slate-700">
+                <thead className="bg-muted/40/80 sticky top-0 text-muted-foreground font-semibold border-b border-border/40">
                   <tr>
                     <th className="py-2.5 px-3">Line #</th>
                     <th className="py-2.5 px-3">Identifier</th>
@@ -750,22 +750,22 @@ ADM-2026-003,3250,2026-12-01`;
                     <th className="py-2.5 px-3">Status / Actionable Fix</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-border/40">
                   {dryRunSummary.rows.map((row) => (
                     <tr
                       key={row.rowNumber}
-                      className={`hover:bg-gray-50/50 dark:hover:bg-slate-800/40 ${
+                      className={`hover:bg-muted/40 ${
                         row.isValid ? "" : "bg-rose-50/30 dark:bg-rose-950/20"
                       }`}
                     >
                       <td className="py-2.5 px-3 font-mono text-gray-400">#{row.rowNumber}</td>
-                      <td className="py-2.5 px-3 font-mono font-bold text-gray-900 dark:text-white">
+                      <td className="py-2.5 px-3 font-mono font-bold text-foreground">
                         {row.identifier || "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-gray-800 dark:text-slate-200 font-medium">
+                      <td className="py-2.5 px-3 text-foreground font-medium">
                         {row.displayName || "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-gray-600 dark:text-slate-300">
+                      <td className="py-2.5 px-3 text-muted-foreground">
                         {row.classSection || "—"}
                       </td>
                       <td className="py-2.5 px-3">
@@ -785,7 +785,7 @@ ADM-2026-003,3250,2026-12-01`;
                               <XCircle className="w-3.5 h-3.5 shrink-0" /> {row.error}
                             </span>
                             {row.actionableFix && (
-                              <p className="text-[11px] text-gray-500 dark:text-slate-400 pl-4">
+                              <p className="text-[11px] text-muted-foreground pl-4">
                                 Fix: {row.actionableFix}
                               </p>
                             )}
@@ -801,19 +801,19 @@ ADM-2026-003,3250,2026-12-01`;
         )}
 
         {/* Action Controls */}
-        <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+        <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-border/40">
           <button
             onClick={handleDryRun}
             disabled={isValidating || !rawTextContent.trim()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border/40 hover:bg-muted/40 text-muted-foreground font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {isValidating ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" /> Validating Preview...
+                <RefreshCw className="w-4 h-4 animate-spin text-[#248A3D] dark:text-[#30D158]" /> Validating Preview...
               </>
             ) : (
               <>
-                <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Preview & Validate (Dry Run)
+                <Eye className="w-4 h-4 text-[#248A3D] dark:text-[#30D158]" /> Preview & Validate (Dry Run)
               </>
             )}
           </button>

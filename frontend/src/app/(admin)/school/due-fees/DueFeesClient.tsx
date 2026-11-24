@@ -109,7 +109,7 @@ export function DueFeesClient({
                 className: row.className,
               })
             }
-            className="font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 text-left transition"
+            className="font-bold text-foreground hover:text-[#248A3D] dark:text-[#30D158] dark:hover:text-[#30D158] text-left transition"
           >
             {row.studentName}
           </button>
@@ -131,7 +131,7 @@ export function DueFeesClient({
       sortable: true,
       cell: (row) => (
         <div>
-          <span className="font-semibold text-xs text-gray-900 dark:text-white">{row.feeHeadName}</span>
+          <span className="font-semibold text-xs text-foreground">{row.feeHeadName}</span>
           <p className="text-[11px] text-gray-400 font-mono">#{row.invoiceNumber}</p>
         </div>
       ),
@@ -142,7 +142,7 @@ export function DueFeesClient({
       accessorKey: "dueDate",
       sortable: true,
       cell: (row) => (
-        <span className="text-xs font-mono text-gray-600 dark:text-slate-300">
+        <span className="text-xs font-mono text-muted-foreground">
           {new Date(row.dueDate).toLocaleDateString("en-IN")}
         </span>
       ),
@@ -216,9 +216,9 @@ export function DueFeesClient({
       </div>
 
       {/* Band 2: Priority Work List with URL-persistent Filters & DataTable */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-card p-5 rounded-3xl border border-border/40 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">
+          <h2 className="text-base font-bold text-foreground">
             Outstanding Fee Dues Ledger ({filteredItems.length})
           </h2>
         </div>
@@ -271,7 +271,7 @@ export function DueFeesClient({
                     className: row.className,
                   })
                 }
-                className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-gray-500 hover:text-[#248A3D] dark:text-[#30D158] hover:bg-[#248A3D]/10 dark:hover:bg-muted/60 transition"
                 title="View Full Student Ledger Drawer"
               >
                 <Eye className="w-4 h-4" />
@@ -280,7 +280,7 @@ export function DueFeesClient({
               <button
                 type="button"
                 onClick={() => handleReminderClick(row.id)}
-                className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-muted/60 transition"
                 title="Dispatch Payment Reminder"
               >
                 <Send className="w-4 h-4" />
