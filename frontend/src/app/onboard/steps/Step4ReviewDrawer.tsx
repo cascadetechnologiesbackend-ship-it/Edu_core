@@ -75,13 +75,13 @@ export function Step4ReviewDrawer() {
   return (
     <div className="space-y-6">
       <div>
-        <span className="text-xs font-bold uppercase tracking-wider text-primary">
+        <span className="text-xs font-bold uppercase tracking-wider text-semantic-interactive">
           Step 4: Blueprint Review Drawer
         </span>
-        <h2 className="text-2xl font-black text-white mt-1">
+        <h2 className="text-2xl font-black text-foreground mt-1">
           Curriculum & Examination Blueprint Review
         </h2>
-        <p className="text-xs text-slate-400 mt-1 max-w-3xl leading-relaxed">
+        <p className="text-xs text-muted-foreground mt-1 max-w-3xl leading-relaxed">
           Pre-seeded according to the official {board} academic blueprint. Each chip indicates that the subject
           is offered for that academic wing. Tap any chip to toggle. Zero clicks needed if defaults match your school.
         </p>
@@ -90,12 +90,12 @@ export function Step4ReviewDrawer() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left / Main Column: Class-Group Rows x Subject Chips Matrix (8 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wider">
-              <BookOpen className="w-3.5 h-3.5 text-primary" />
+          <div className="flex items-center justify-between pb-2 border-b border-border/40">
+            <div className="flex items-center gap-2 text-foreground font-bold text-xs uppercase tracking-wider">
+              <BookOpen className="w-3.5 h-3.5 text-semantic-interactive" />
               <span>Wing-Wise Subject Curriculum</span>
             </div>
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-muted-foreground">
               {subjectMatrix.length} subjects in catalog
             </span>
           </div>
@@ -113,18 +113,18 @@ export function Step4ReviewDrawer() {
               return (
                 <div
                   key={grp}
-                  className={`rounded-2xl border p-4 bg-slate-900/60 ${info.borderClass}`}
+                  className="rounded-2xl border border-border/40 p-4 bg-card shadow-xs"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-black uppercase tracking-wider ${info.colorClass}`}>
+                      <span className="text-xs font-black uppercase tracking-wider text-foreground">
                         {info.label}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-medium">
+                      <span className="text-[11px] text-muted-foreground font-medium">
                         ({info.gradeRange})
                       </span>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-400">
+                    <span className="text-[11px] font-bold text-muted-foreground">
                       {offeredCount} offered
                     </span>
                   </div>
@@ -140,13 +140,13 @@ export function Step4ReviewDrawer() {
                           onClick={() => toggleMatrixCell(sub.code, grp)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 select-none ${
                             isOffered
-                              ? "bg-primary text-white shadow-xs"
-                              : "bg-slate-950 border border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                              ? "bg-semantic-interactive text-white shadow-xs"
+                              : "bg-muted/40 border border-border/40 text-muted-foreground hover:text-foreground hover:border-border"
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              isOffered ? "bg-white" : "bg-slate-600"
+                              isOffered ? "bg-white" : "bg-muted-foreground"
                             }`}
                           />
                           <span>{sub.name}</span>
@@ -165,9 +165,9 @@ export function Step4ReviewDrawer() {
           {/* Quick Add Custom Subject */}
           <form
             onSubmit={handleAddCustom}
-            className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 space-y-3"
+            className="bg-card border border-border/40 rounded-2xl p-4 space-y-3 shadow-xs"
           >
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
               Add Custom Subject to Blueprint
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -176,19 +176,19 @@ export function Step4ReviewDrawer() {
                 value={customSubjectName}
                 onChange={(e) => setCustomSubjectName(e.target.value)}
                 placeholder="Subject name (e.g. French)"
-                className="px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="px-3 py-2 text-xs rounded-xl bg-muted/40 border border-border/40 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-semantic-interactive min-h-[38px]"
               />
               <input
                 type="text"
                 value={customSubjectCode}
                 onChange={(e) => setCustomSubjectCode(e.target.value.toUpperCase())}
                 placeholder="Code (e.g. FRN)"
-                className="px-3 py-2 text-xs font-mono rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-primary min-h-[38px]"
+                className="px-3 py-2 text-xs font-mono rounded-xl bg-muted/40 border border-border/40 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-semantic-interactive min-h-[38px]"
               />
               <button
                 type="button"
                 onClick={handleAddCustom}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl inline-flex items-center justify-center gap-1.5 transition min-h-[38px]"
+                className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-bold text-xs rounded-xl inline-flex items-center justify-center gap-1.5 transition min-h-[38px] border border-border/40"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Subject</span>
@@ -198,57 +198,57 @@ export function Step4ReviewDrawer() {
         </div>
 
         {/* Right Column: Derived Exam Blueprint Summary (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wider">
-              <Award className="w-3.5 h-3.5 text-primary" />
+        <div className="lg:col-span-5 bg-card border border-border/40 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-border/40">
+            <div className="flex items-center gap-2 text-foreground font-bold text-xs uppercase tracking-wider">
+              <Award className="w-3.5 h-3.5 text-semantic-interactive" />
               <span>Derived Exam Blueprint</span>
             </div>
-            <span className="text-[11px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+            <span className="text-[11px] font-bold text-semantic-interactive px-2 py-0.5 rounded-full bg-semantic-interactive/10 border border-semantic-interactive/20">
               {board} Plan
             </span>
           </div>
 
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Automatic statutory evaluation terms and assessment windows computed for session{" "}
-            <strong className="text-white">{startDate.slice(0, 4)} – {endDate.slice(0, 4)}</strong>.
+            <strong className="text-foreground">{startDate.slice(0, 4)} – {endDate.slice(0, 4)}</strong>.
           </p>
 
           <div className="space-y-3">
             {termPlanItems.map((term, idx) => (
               <div
                 key={term.examTypeCode + idx}
-                className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2"
+                className="p-3.5 rounded-xl bg-muted/20 border border-border/30 space-y-2"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-extrabold text-xs text-white">
+                  <h4 className="font-extrabold text-xs text-foreground">
                     {term.name}
                   </h4>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/50">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20 font-semibold">
                     {term.examTypeCode}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <Calendar className="w-3 h-3 text-slate-500" />
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <Calendar className="w-3 h-3 text-muted-foreground" />
                   <span>
                     Est. Window: {formatDateSnippet(term.startDate)} – {formatDateSnippet(term.endDate)}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   Applicable Classes:{" "}
-                  <strong className="text-slate-200">
+                  <strong className="text-foreground">
                     {term.scopedClassNames.join(", ") || `${term.scopedClassCount} classes`}
                   </strong>
                 </div>
 
                 {term.components.length > 0 && (
-                  <div className="pt-2 border-t border-slate-900 flex flex-wrap gap-1.5">
+                  <div className="pt-2 border-t border-border/30 flex flex-wrap gap-1.5">
                     {term.components.map((c) => (
                       <span
                         key={c.name}
-                        className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400"
+                        className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/40 border border-border/40 text-muted-foreground"
                       >
                         {c.name} ({c.weightPercent}%)
                       </span>
@@ -259,8 +259,8 @@ export function Step4ReviewDrawer() {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-slate-800/80 flex items-center gap-2 text-[11px] text-slate-500">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <div className="pt-3 border-t border-border/40 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <CheckCircle2 className="w-3.5 h-3.5 text-semantic-money-in shrink-0" />
             <span>
               All exam types, grading scales, and report card templates will be seeded automatically.
             </span>

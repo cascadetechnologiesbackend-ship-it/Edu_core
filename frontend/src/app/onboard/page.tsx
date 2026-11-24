@@ -87,18 +87,18 @@ function OnboardingWizardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-blue-600/30 selection:text-blue-200">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col selection:bg-semantic-interactive/20 selection:text-semantic-interactive">
       {/* ── Top Bar ────────────────────────────────────────────────────────── */}
-      <header className="h-16 border-b border-white/[0.08] bg-slate-950/80 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl">
+      <header className="h-16 border-b border-border/40 bg-card/80 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-level-1">
-            <GraduationCap className="w-5 h-5 text-blue-400" />
+          <div className="w-9 h-9 rounded-xl bg-semantic-interactive/12 border border-semantic-interactive/25 flex items-center justify-center text-semantic-interactive shadow-xs">
+            <GraduationCap className="w-5 h-5 text-semantic-interactive" />
           </div>
           <div>
-            <span className="text-base sm:text-lg font-bold tracking-tight text-white">
+            <span className="text-base sm:text-lg font-bold tracking-tight text-foreground">
               SchoolMitra ERP
             </span>
-            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-semantic-interactive/10 text-semantic-interactive border border-semantic-interactive/20">
               Tenant Onboarding
             </span>
           </div>
@@ -106,7 +106,7 @@ function OnboardingWizardContent() {
 
         <Link
           href="/login"
-          className="text-xs font-medium text-slate-400 hover:text-white transition"
+          className="text-xs font-medium text-muted-foreground hover:text-foreground transition"
         >
           Sign in to existing school →
         </Link>
@@ -116,7 +116,7 @@ function OnboardingWizardContent() {
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-8 space-y-6">
         {/* Stepper (hidden on completion) */}
         {activeStep <= 7 && (
-          <div className="bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-level-1">
+          <div className="bg-card backdrop-blur-xl border border-border/40 rounded-2xl p-4 sm:p-5 shadow-xs">
             <Stepper
               steps={ONBOARDING_STEPS}
               currentStep={activeStep}
@@ -127,14 +127,14 @@ function OnboardingWizardContent() {
 
         {/* Global Error Banner */}
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2.5 shadow-level-0">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-4 rounded-2xl bg-semantic-money-owed/10 border border-semantic-money-owed/25 text-semantic-money-owed text-xs flex items-center gap-2.5 shadow-xs">
+            <AlertCircle className="w-4 h-4 text-semantic-money-owed shrink-0" />
             <span className="font-semibold">{error}</span>
           </div>
         )}
 
         {/* Step Views */}
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-level-1">
+        <div className="bg-card backdrop-blur-xl border border-border/40 rounded-3xl p-6 sm:p-8 shadow-xs">
           {activeStep === 1 && <Step1Board />}
           {activeStep === 2 && <Step2Profile />}
           {activeStep === 3 && <Step3Classes />}
@@ -152,7 +152,7 @@ function OnboardingWizardContent() {
               type="button"
               disabled={activeStep === 1}
               onClick={() => setActiveStep(activeStep - 1)}
-              className="px-5 py-2.5 text-xs font-semibold rounded-xl border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white transition disabled:opacity-30 disabled:pointer-events-none inline-flex items-center gap-2 min-h-[44px] active:scale-[0.98]"
+              className="px-5 py-2.5 text-xs font-semibold rounded-xl border border-border/40 bg-muted hover:bg-muted/80 text-foreground transition disabled:opacity-30 disabled:pointer-events-none inline-flex items-center gap-2 min-h-[44px] active:scale-[0.98]"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
@@ -161,7 +161,7 @@ function OnboardingWizardContent() {
             <button
               type="button"
               onClick={validateAndNext}
-              className="px-6 py-2.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white transition inline-flex items-center gap-2 shadow-level-1 min-h-[44px]"
+              className="px-6 py-2.5 text-xs font-semibold rounded-xl bg-semantic-interactive hover:bg-semantic-interactive/90 active:scale-[0.98] text-white transition inline-flex items-center gap-2 shadow-xs min-h-[44px]"
             >
               <span>Continue</span>
               <ArrowRight className="w-3.5 h-3.5" />
