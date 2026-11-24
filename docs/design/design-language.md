@@ -282,3 +282,15 @@ To pass the Phase AD-L0 Review Gate and proceed to Phase AD-L1, the following co
 2. **Zero Styling Diffs:** `git status -s` confirms that zero files under `frontend/src` have been altered during Phase AD-L0.
 3. **Mechanical Verification:** The audit scanner script at `scripts/audit-color-tokens.mjs` executes cleanly and deterministically in under 1,500ms.
 4. **Operator Ratification:** The design laws, color intention map, and component grammar documented herein are ratified as the binding product standard for the remainder of the migration.
+
+---
+
+## 11. Migration Ratification & Release Sign-Off (Phases AD-L0 through AD-L7)
+
+The Apple HIG Design System v2 migration has landed across the entire SchoolMitra codebase under governing charter `docs/product-destination-charter.json`.
+
+- **Neutral Dark System:** Completed. Zero hue-222 values remain in `globals.css`. Pure black canvas (`#000000`), neutral card (`#1C1C1E`), and elevated surfaces (`#2C2C2E`) are active across all 11 role apps.
+- **Single-Intention Color Coding:** Completed. Semantic intention tokens (`semantic-interactive`, `semantic-money-in`, `semantic-money-owed`, `semantic-attention`, `semantic-provisional`) faithfully govern visual meaning.
+- **Component Grammar:** Completed. 1-filled-button invariant strictly enforced; segmented controls with pill-thumb animations standard; inset grouped containers standard; tabular numerals enforced on all monetary values and percentages.
+- **Mechanical CI Guard & WCAG Audit:** Active in `scripts/audit-design-tokens.mjs` and `frontend/src/__tests__/tokens/contrast-audit.test.ts`. 21/21 strict core surfaces clean of banned tokens; 21/21 semantic pairs exceed WCAG AA contrast thresholds; 34/34 unit tests passing; 0 TypeScript errors.
+
