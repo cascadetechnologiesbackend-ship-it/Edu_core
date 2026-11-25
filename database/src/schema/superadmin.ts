@@ -473,3 +473,79 @@ export const schoolProvisionsRelations = relations(schoolProvisions, ({ one }) =
   }),
 }));
 
+
+
+// ─── Phase 02.1 Security & JIT Access Audit Tables ──────────────────────────
+
+export const jitAuditSessions = pgTable(
+  "jit_audit_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: text("actor_id").notNull(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    allowedTables: text("allowed_tables").array().notNull(),
+    reason: text("reason").notNull(),
+    status: text("status").notNull(), // 'PENDING' | 'APPROVED' | 'ACTIVE' | 'REVOKED' | 'EXPIRED'
+    approvedBy: text("approved_by"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    activeTokenHash: text("active_token_hash"),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    schoolIdx: index("jit_sessions_school_idx").on(t.schoolId),
+    actorIdx: index("jit_sessions_actor_idx").on(t.actorId),
+    statusIdx: index("jit_sessions_status_idx").on(t.status),
+  })
+);
+
+export const jitAccessAuditLogs = pgTable(
+  "jit_access_audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id").notNull(),
+    actorId: text("actor_id").notNull(),
+    schoolId: uuid("school_id").notNull(),
+    targetTable: text("target_table").notNull(),
+    queryIntent: text("query_intent").notNull(),
+    filterParameters: jsonb("filter_parameters").default({}),
+    eventType: text("event_type").notNull(), // 'ACCESS_INTENT' | 'ACCESS_COMPLETED' | 'ACCESS_FAILED' | 'REVOCATION'
+    rowsReturned: integer("rows_returned").default(0),
+    clientIp: text("client_ip"),
+    userAgent: text("user_agent"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    sessionIdx: index("jit_audit_session_idx").on(t.sessionId),
+    schoolIdx: index("jit_audit_school_idx").on(t.schoolId),
+    eventIdx: index("jit_audit_event_idx").on(t.eventType),
+  })
+);
+
+export const tenantSecrets = pgTable(
+  "tenant_secrets",
+  {
+    keyId: text("key_id").primaryKey(),
+    secretValue: text("secret_value").notNull(),
+    algorithm: text("algorithm").notNull().default("sha256"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  }
+);
+
+export const jitActivationNonces = pgTable(
+  "jit_activation_nonces",
+  {
+    nonce: text("nonce").primaryKey(),
+    sessionId: uuid("session_id").notNull(),
+    actorId: text("actor_id").notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => ({
+    expiresIdx: index("jit_nonces_expires_idx").on(t.expiresAt),
+  })
+);

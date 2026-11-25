@@ -414,6 +414,13 @@
       "when": 1795581894753,
       "tag": "0059_complete_fail_closed_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1795598028778,
+      "tag": "0060_phase02_1_security_hardening",
+      "breakpoints": true
     }
   ]
 }
