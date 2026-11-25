@@ -242,12 +242,24 @@ export default function LoginForm() {
       const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
       const fullCallbackUrl = new URL(targetDashboard, origin).toString();
 
-      const result = await signIn("credentials", {
-        email: targetEmail,
-        password: "SchoolMitra@123",
-        callbackUrl: fullCallbackUrl,
-        redirect: false,
-      });
+      let result: any = null;
+      try {
+        result = await signIn("credentials", {
+          email: targetEmail,
+          password: "SchoolMitra@123",
+          callbackUrl: fullCallbackUrl,
+          redirect: false,
+        });
+      } catch (signInErr: any) {
+        console.warn("[DEMO SIGNIN WARN] signIn returned client error:", signInErr);
+        // If credentials were accepted by server and session exists, navigate directly
+        const session = await getSession();
+        if (session?.user) {
+          window.location.replace(targetDashboard);
+          return;
+        }
+        throw signInErr;
+      }
 
       if (result?.error && result.error !== "SessionExpired") {
         setServerError(`Failed to launch demo role: ${result.error}`);
