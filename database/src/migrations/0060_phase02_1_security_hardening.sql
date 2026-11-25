@@ -958,6 +958,16 @@ BEGIN
       CONTINUE;
     END IF;
 
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = t
+        AND column_name = 'school_id'
+    ) THEN
+      RAISE NOTICE 'Table % does not have column school_id, skipping tenant policy creation', t;
+      CONTINUE;
+    END IF;
+
     EXECUTE format('DROP POLICY IF EXISTS tenant_select_policy ON public.%I', t);
     EXECUTE format('DROP POLICY IF EXISTS tenant_insert_policy ON public.%I', t);
     EXECUTE format('DROP POLICY IF EXISTS tenant_update_policy ON public.%I', t);
