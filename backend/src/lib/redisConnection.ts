@@ -60,8 +60,12 @@ export function getBullMQRedisConnection(): any {
     };
   }
 
-  // Refuse hardcoded localhost fallback in production (except during Next.js build)
-  if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
+  // Refuse hardcoded localhost fallback in production (except during Next.js build or explicit fallback override)
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE !== "phase-production-build" &&
+    process.env.ALLOW_REDIS_FALLBACK !== "true"
+  ) {
     throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required (or VALKEY_URL) in production environment.");
   }
 
@@ -116,7 +120,9 @@ export function getRedisClient(customOptions: RedisOptions = {}): Redis {
   }
 
   if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-    throw new Error("FATAL: REDIS_URL or REDIS_HOST/PORT is required (or VALKEY_URL) in production environment.");
+    console.warn(
+      "⚠️ Warning: REDIS_URL or VALKEY_URL is not configured in production environment. Falling back to local in-memory caching and rate limiting."
+    );
   }
 
   return new Redis({

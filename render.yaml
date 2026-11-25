@@ -32,6 +32,8 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: ALLOW_REDIS_FALLBACK
+        value: "true"
       - key: AUTH_SECRET
         sync: false
       - key: ENCRYPTION_KEY
@@ -96,6 +98,8 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: ALLOW_REDIS_FALLBACK
+        value: "true"
       - key: ENCRYPTION_KEY
         sync: false
       - key: AWS_S3_BUCKET_NAME

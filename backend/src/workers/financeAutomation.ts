@@ -11,7 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, lt, lte, gt, inArray, sql, desc } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
-import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
+import { getBullMQValkeyConnection, getBullMQRedisConnection, getRedisUrl } from "../lib/redisConnection";
 import { setCachedFinanceData } from "@/lib/financeCache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
 import { withPlatformContext, type TenantTransaction } from "@/lib/tenant";
@@ -30,9 +30,18 @@ export interface FinanceJobPayload {
   tasks?: Array<"AUTO-01" | "AUTO-02" | "AUTO-03" | "AUTO-04" | "AUTO-05">;
 }
 
-export const financeQueue = new Queue<FinanceJobPayload>("finance-automation", {
-  connection: getBullMQValkeyConnection(),
-});
+const hasRedis = Boolean(getRedisUrl() || process.env.VALKEY_HOST || process.env.REDIS_HOST);
+
+export const financeQueue = hasRedis
+  ? new Queue<FinanceJobPayload>("finance-automation", {
+      connection: getBullMQValkeyConnection(),
+    })
+  : ({
+      add: async () => {
+        console.warn("[FinanceQueue] Redis is not configured in this environment. Job skipped.");
+        return null;
+      },
+    } as any);
 
 /**
  * AUTO-01: Recompute aging brackets and mark overdue invoices
@@ -570,15 +579,17 @@ export async function getWorkerHeartbeatStatus(
 
 // ─── Worker Start ─────────────────────────────────────────────────────────────
 if (process.env["START_WORKERS"] === "true") {
+  const hasRedis = Boolean(getRedisUrl() || process.env.VALKEY_HOST || process.env.REDIS_HOST);
+
   // Record immediate startup heartbeat
-  recordWorkerHeartbeat("educore-finance-worker", "alive").catch((err) =>
+  recordWorkerHeartbeat("educore-finance-worker", hasRedis ? "alive" : "idle_no_redis").catch((err) =>
     console.error("[FinanceWorker] Failed to record initial heartbeat:", err)
   );
 
   // Periodic heartbeat interval every 30 seconds
   const heartbeatTimer = setInterval(async () => {
     try {
-      await recordWorkerHeartbeat("educore-finance-worker", "alive");
+      await recordWorkerHeartbeat("educore-finance-worker", hasRedis ? "alive" : "idle_no_redis");
     } catch (err) {
       console.error("[FinanceWorker] Failed to tick heartbeat:", err);
     }
@@ -588,31 +599,40 @@ if (process.env["START_WORKERS"] === "true") {
     heartbeatTimer.unref();
   }
 
-  const worker = new Worker<FinanceJobPayload>(
-    "finance-automation",
-    async (job) => {
-      const { schoolId } = job.data;
-      // Validate tenant identifier format strictly before processing
-      if (!schoolId || typeof schoolId !== "string" || !/^[0-9a-fA-F-]{36}$/.test(schoolId)) {
-        throw new Error(`[FinanceWorker] Invalid schoolId tenant identifier: ${schoolId}`);
-      }
-      console.log(`[FinanceWorker] Processing automation routines for school: ${schoolId}`);
-      const { withTenant } = await import("@/lib/tenant");
-      await withTenant(schoolId, async (tx) => {
-        await runSchoolFinanceAutomations(schoolId, tx);
+  if (!hasRedis && process.env.NODE_ENV === "production") {
+    console.warn("⚠️ [FinanceWorker] REDIS_URL or VALKEY_URL is not configured in production environment.");
+    console.warn("⚠️ [FinanceWorker] Background BullMQ queue worker is idle. Please configure REDIS_URL in Render to enable background automated fee tasks.");
+  } else {
+    try {
+      const worker = new Worker<FinanceJobPayload>(
+        "finance-automation",
+        async (job) => {
+          const { schoolId } = job.data;
+          // Validate tenant identifier format strictly before processing
+          if (!schoolId || typeof schoolId !== "string" || !/^[0-9a-fA-F-]{36}$/.test(schoolId)) {
+            throw new Error(`[FinanceWorker] Invalid schoolId tenant identifier: ${schoolId}`);
+          }
+          console.log(`[FinanceWorker] Processing automation routines for school: ${schoolId}`);
+          const { withTenant } = await import("@/lib/tenant");
+          await withTenant(schoolId, async (tx) => {
+            await runSchoolFinanceAutomations(schoolId, tx);
+          });
+          await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
+        },
+        {
+          connection: getBullMQValkeyConnection(),
+        }
+      );
+
+      worker.on("completed", (job) => {
+        console.log(`[FinanceWorker] Job ${job.id} completed successfully.`);
       });
-      await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
-    },
-    {
-      connection: getBullMQValkeyConnection(),
+
+      worker.on("failed", (job, err) => {
+        console.error(`[FinanceWorker] Job ${job?.id} failed:`, err);
+      });
+    } catch (err) {
+      console.error("[FinanceWorker] Failed to initialize BullMQ worker:", err);
     }
-  );
-
-  worker.on("completed", (job) => {
-    console.log(`[FinanceWorker] Job ${job.id} completed successfully.`);
-  });
-
-  worker.on("failed", (job, err) => {
-    console.error(`[FinanceWorker] Job ${job?.id} failed:`, err);
-  });
+  }
 }
