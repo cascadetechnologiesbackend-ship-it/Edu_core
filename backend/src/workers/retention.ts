@@ -1,4 +1,3 @@
-import { db } from "@/db";
 import {
   students,
   staff,
@@ -13,6 +12,7 @@ import { eq, and, isNull, isNotNull, lt, lte, or } from "drizzle-orm";
 import { Worker, Queue } from "bullmq";
 import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
 import { workerLogger } from "@/lib/logger";
+import type { TenantTransaction } from "@/lib/tenant";
 
 export interface RetentionJobPayload {
   schoolId: string;
@@ -55,37 +55,38 @@ export const retentionQueue = new Queue<RetentionJobPayload>("data-retention", {
  * - Hard-purge checks for accounting dependencies (fee_invoices, fee_payments).
  *   If accounting dependencies exist, PII is anonymized while preserving the FK row for audit integrity.
  * - Supports dry-run execution (options.dryRun === true or process.argv.includes("--dry-run")).
+ * - MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
 /**
  * Purges usage interaction events older than the 90-day retention window (UX-R62 / Sprint S10 Layer 4).
  * Returns the number of purged rows.
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
 export async function purgeExpiredUsageEvents(
-  schoolId?: string,
+  schoolId: string,
+  tx: TenantTransaction,
   retentionDays: number = 90,
 ): Promise<number> {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  const conditions = [lt(usageEvents.createdAt, cutoff)];
-  if (schoolId) {
-    conditions.push(eq(usageEvents.schoolId, schoolId));
-  }
-  const result = await db.delete(usageEvents).where(and(...conditions));
+  const conditions = [eq(usageEvents.schoolId, schoolId), lt(usageEvents.createdAt, cutoff)];
+  const result = await tx.delete(usageEvents).where(and(...conditions));
   const purgedCount = result.rowCount ?? 0;
   workerLogger.info(
-    `[RetentionWorker] Purged ${purgedCount} expired usage_events older than ${retentionDays} days (cutoff: ${cutoff.toISOString()})`,
+    `[RetentionWorker] Purged ${purgedCount} expired usage_events older than ${retentionDays} days for school ${schoolId} (cutoff: ${cutoff.toISOString()})`,
   );
   return purgedCount;
 }
 
 export async function executeRetentionPolicy(
   schoolId: string,
+  tx: TenantTransaction,
   options?: RetentionOptions,
 ): Promise<RetentionExecutionResult> {
   const isDryRun = Boolean(
     options?.dryRun || process.argv.includes("--dry-run"),
   );
 
-  const policies = await db.query.dataRetentionPolicies.findMany({
+  const policies = await tx.query.dataRetentionPolicies.findMany({
     where: and(
       eq(dataRetentionPolicies.schoolId, schoolId),
       eq(dataRetentionPolicies.isActive, true),
@@ -109,7 +110,7 @@ export async function executeRetentionPolicy(
     if (p.tableName === "students") {
       // Find students who have EXITED past retention days and are not on legal hold.
       // Active students without exit dates are strictly excluded from retention purge.
-      const eligibleStudents = await db.query.students.findMany({
+      const eligibleStudents = await tx.query.students.findMany({
         where: and(
           eq(students.schoolId, schoolId),
           eq(students.legalHold, false),
@@ -137,19 +138,19 @@ export async function executeRetentionPolicy(
           });
           softDeletedCount++;
         } else {
-          await db
+          await tx
             .update(students)
             .set({
               isActive: false,
               deletedAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(students.id, s.id));
+            .where(and(eq(students.id, s.id), eq(students.schoolId, schoolId)));
 
           softDeletedCount++;
 
           // Log to DPDP Audit Log
-          await db.insert(auditLogs).values({
+          await tx.insert(auditLogs).values({
             userId: "00000000-0000-0000-0000-000000000000", // System automated
             userEmail: "[automated-retention]",
             userRole: "SUPER_ADMIN",
@@ -166,7 +167,7 @@ export async function executeRetentionPolicy(
       }
     } else if (p.tableName === "staff") {
       // Find staff who have EXITED past retention days and are not on legal hold.
-      const eligibleStaff = await db.query.staff.findMany({
+      const eligibleStaff = await tx.query.staff.findMany({
         where: and(
           eq(staff.schoolId, schoolId),
           eq(staff.legalHold, false),
@@ -194,19 +195,19 @@ export async function executeRetentionPolicy(
           });
           softDeletedCount++;
         } else {
-          await db
+          await tx
             .update(staff)
             .set({
               isActive: false,
               deletedAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(staff.id, st.id));
+            .where(and(eq(staff.id, st.id), eq(staff.schoolId, schoolId)));
 
           softDeletedCount++;
 
           // Log to DPDP Audit Log
-          await db.insert(auditLogs).values({
+          await tx.insert(auditLogs).values({
             userId: "00000000-0000-0000-0000-000000000000",
             userEmail: "[automated-retention]",
             userRole: "SUPER_ADMIN",
@@ -230,7 +231,7 @@ export async function executeRetentionPolicy(
     purgeCutoff.setDate(purgeCutoff.getDate() - 30); // 30 days grace period
 
     if (p.tableName === "students") {
-      const purgeStudents = await db.query.students.findMany({
+      const purgeStudents = await tx.query.students.findMany({
         where: and(
           eq(students.schoolId, schoolId),
           eq(students.legalHold, false),
@@ -241,13 +242,13 @@ export async function executeRetentionPolicy(
 
       for (const s of purgeStudents) {
         // FK Safety Check: Check if accounting records (fee_invoices, fee_payments) depend on this student
-        const linkedInvoice = await db.query.feeInvoices.findFirst({
-          where: eq(feeInvoices.studentId, s.id),
+        const linkedInvoice = await tx.query.feeInvoices.findFirst({
+          where: and(eq(feeInvoices.studentId, s.id), eq(feeInvoices.schoolId, schoolId)),
           columns: { id: true },
         });
 
-        const linkedPayment = await db.query.feePayments.findFirst({
-          where: eq(feePayments.studentId, s.id),
+        const linkedPayment = await tx.query.feePayments.findFirst({
+          where: and(eq(feePayments.studentId, s.id), eq(feePayments.schoolId, schoolId)),
           columns: { id: true },
         });
 
@@ -265,7 +266,7 @@ export async function executeRetentionPolicy(
             });
             anonymizedCount++;
           } else {
-            await db
+            await tx
               .update(students)
               .set({
                 firstNameEncrypted: "[ANONYMIZED]",
@@ -280,11 +281,11 @@ export async function executeRetentionPolicy(
                 leavingReason: "[PURGED_ANONYMIZED]",
                 updatedAt: new Date(),
               })
-              .where(eq(students.id, s.id));
+              .where(and(eq(students.id, s.id), eq(students.schoolId, schoolId)));
 
             anonymizedCount++;
 
-            await db.insert(auditLogs).values({
+            await tx.insert(auditLogs).values({
               userId: "00000000-0000-0000-0000-000000000000",
               userEmail: "[automated-retention]",
               userRole: "SUPER_ADMIN",
@@ -314,10 +315,10 @@ export async function executeRetentionPolicy(
             hardPurgedCount++;
           } else {
             try {
-              await db.delete(students).where(eq(students.id, s.id));
+              await tx.delete(students).where(and(eq(students.id, s.id), eq(students.schoolId, schoolId)));
               hardPurgedCount++;
 
-              await db.insert(auditLogs).values({
+              await tx.insert(auditLogs).values({
                 userId: "00000000-0000-0000-0000-000000000000",
                 userEmail: "[automated-retention]",
                 userRole: "SUPER_ADMIN",
@@ -332,7 +333,7 @@ export async function executeRetentionPolicy(
               });
             } catch (err: any) {
               // Fallback if unexpected foreign key restriction exists: anonymize rather than crash
-              await db
+              await tx
                 .update(students)
                 .set({
                   firstNameEncrypted: "[ANONYMIZED]",
@@ -347,11 +348,11 @@ export async function executeRetentionPolicy(
                   leavingReason: "[PURGED_ANONYMIZED_FALLBACK]",
                   updatedAt: new Date(),
                 })
-                .where(eq(students.id, s.id));
+                .where(and(eq(students.id, s.id), eq(students.schoolId, schoolId)));
 
               anonymizedCount++;
 
-              await db.insert(auditLogs).values({
+              await tx.insert(auditLogs).values({
                 userId: "00000000-0000-0000-0000-000000000000",
                 userEmail: "[automated-retention]",
                 userRole: "SUPER_ADMIN",
@@ -373,7 +374,7 @@ export async function executeRetentionPolicy(
         }
       }
     } else if (p.tableName === "staff") {
-      const purgeStaff = await db.query.staff.findMany({
+      const purgeStaff = await tx.query.staff.findMany({
         where: and(
           eq(staff.schoolId, schoolId),
           eq(staff.legalHold, false),
@@ -393,11 +394,11 @@ export async function executeRetentionPolicy(
           hardPurgedCount++;
         } else {
           try {
-            await db.delete(staff).where(eq(staff.id, st.id));
+            await tx.delete(staff).where(and(eq(staff.id, st.id), eq(staff.schoolId, schoolId)));
             hardPurgedCount++;
 
             // Log to DPDP Audit Log
-            await db.insert(auditLogs).values({
+            await tx.insert(auditLogs).values({
               userId: "00000000-0000-0000-0000-000000000000",
               userEmail: "[automated-retention]",
               userRole: "SUPER_ADMIN",
@@ -412,7 +413,7 @@ export async function executeRetentionPolicy(
             });
           } catch (err: any) {
             // Anonymize on foreign key restriction
-            await db
+            await tx
               .update(staff)
               .set({
                 firstNameEncrypted: "[ANONYMIZED]",
@@ -426,11 +427,11 @@ export async function executeRetentionPolicy(
                 separationReason: "[PURGED_ANONYMIZED_FALLBACK]",
                 updatedAt: new Date(),
               })
-              .where(eq(staff.id, st.id));
+              .where(and(eq(staff.id, st.id), eq(staff.schoolId, schoolId)));
 
             anonymizedCount++;
 
-            await db.insert(auditLogs).values({
+            await tx.insert(auditLogs).values({
               userId: "00000000-0000-0000-0000-000000000000",
               userEmail: "[automated-retention]",
               userRole: "SUPER_ADMIN",
@@ -454,7 +455,7 @@ export async function executeRetentionPolicy(
 
     // Update last run at on the policy (if not dry run)
     if (!isDryRun) {
-      await db
+      await tx
         .update(dataRetentionPolicies)
         .set({
           lastRunAt: new Date(),
@@ -462,13 +463,13 @@ export async function executeRetentionPolicy(
             softDeletedCount + hardPurgedCount + anonymizedCount,
           updatedAt: new Date(),
         })
-        .where(eq(dataRetentionPolicies.id, p.id));
+        .where(and(eq(dataRetentionPolicies.id, p.id), eq(dataRetentionPolicies.schoolId, schoolId)));
     }
   }
 
   // Purge interaction telemetry older than 90 days (UX-R62)
   if (!isDryRun) {
-    await purgeExpiredUsageEvents(schoolId, 90);
+    await purgeExpiredUsageEvents(schoolId, tx, 90);
   }
 
   return {
@@ -484,12 +485,13 @@ export async function executeRetentionPolicy(
 
 /**
  * Checks for consent withdrawals that need to be enforced (processing halted within 24h).
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function executeConsentWithdrawals(schoolId: string) {
+export async function executeConsentWithdrawals(schoolId: string, tx: TenantTransaction) {
   const cutoff = new Date();
   cutoff.setHours(cutoff.getHours() - 24); // 24 hours SLA
 
-  const withdrawn = await db.query.consentRecords.findMany({
+  const withdrawn = await tx.query.consentRecords.findMany({
     where: and(
       eq(consentRecords.schoolId, schoolId),
       eq(consentRecords.granted, false),
@@ -502,7 +504,7 @@ export async function executeConsentWithdrawals(schoolId: string) {
   for (const record of withdrawn) {
     processedCount++;
 
-    await db.insert(auditLogs).values({
+    await tx.insert(auditLogs).values({
       userId: "00000000-0000-0000-0000-000000000000",
       userEmail: "[automated-retention]",
       userRole: "SUPER_ADMIN",
@@ -526,8 +528,12 @@ if (process.env["START_WORKERS"] === "true") {
     "data-retention",
     async (job) => {
       const { schoolId, dryRun } = job.data;
+      // Validate tenant identifier format strictly before processing
+      if (!schoolId || typeof schoolId !== "string" || !/^[0-9a-fA-F-]{36}$/.test(schoolId)) {
+        throw new Error(`[RetentionWorker] Invalid schoolId tenant identifier: ${schoolId}`);
+      }
       const { withTenant } = await import("@/lib/tenant");
-      await withTenant(schoolId, async () => {
+      await withTenant(schoolId, async (tx) => {
         workerLogger.info(
           `[RetentionWorker] Processing retention policies for school: ${schoolId} (dryRun: ${Boolean(
             dryRun,
@@ -535,13 +541,14 @@ if (process.env["START_WORKERS"] === "true") {
         );
         await executeRetentionPolicy(
           schoolId,
+          tx,
           dryRun !== undefined ? { dryRun } : undefined,
         );
 
         workerLogger.info(
           `[RetentionWorker] Processing consent withdrawals for school: ${schoolId}`,
         );
-        await executeConsentWithdrawals(schoolId);
+        await executeConsentWithdrawals(schoolId, tx);
       });
     },
     {

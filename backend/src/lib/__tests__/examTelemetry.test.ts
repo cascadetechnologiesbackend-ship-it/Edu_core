@@ -237,7 +237,7 @@ describe("S10 Layer 4: Examination UX Telemetry & Retention Drill", () => {
       await db.insert(usageEvents).values(testEvents);
 
       // Execute retention purge with 90-day window
-      const purged = await purgeExpiredUsageEvents(testSchoolAId, 90);
+      const purged = await purgeExpiredUsageEvents(testSchoolAId, db as any, 90);
       expect(purged).toBe(10);
 
       // Verify that expired rows were purged and fresh rows remain

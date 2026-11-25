@@ -35,7 +35,7 @@ describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
       .spyOn(db, "update")
       .mockReturnValue({ set: updateSetSpy } as any);
 
-    const result = await executeRetentionPolicy(schoolId);
+    const result = await executeRetentionPolicy(schoolId, db as any);
 
     expect(result.success).toBe(true);
     expect(result.softDeletedCount).toBe(0);
@@ -74,7 +74,7 @@ describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
     const insertValuesSpy = vi.fn().mockResolvedValue({});
     vi.spyOn(db, "insert").mockReturnValue({ values: insertValuesSpy } as any);
 
-    const result = await executeRetentionPolicy(schoolId);
+    const result = await executeRetentionPolicy(schoolId, db as any);
 
     expect(result.success).toBe(true);
     expect(result.softDeletedCount).toBe(1);
@@ -130,7 +130,7 @@ describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
     const insertValuesSpy = vi.fn().mockResolvedValue({});
     vi.spyOn(db, "insert").mockReturnValue({ values: insertValuesSpy } as any);
 
-    const result = await executeRetentionPolicy(schoolId);
+    const result = await executeRetentionPolicy(schoolId, db as any);
 
     expect(result.success).toBe(true);
     expect(result.hardPurgedCount).toBe(0); // NOT hard deleted
@@ -199,7 +199,7 @@ describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
     const insertValuesSpy = vi.fn().mockResolvedValue({});
     vi.spyOn(db, "insert").mockReturnValue({ values: insertValuesSpy } as any);
 
-    const result = await executeRetentionPolicy(schoolId);
+    const result = await executeRetentionPolicy(schoolId, db as any);
 
     expect(result.success).toBe(true);
     expect(result.hardPurgedCount).toBe(1);
@@ -255,7 +255,7 @@ describe("Data Retention Lifecycle Worker (PF-R92 / Stage S2-F)", () => {
     const deleteSpy = vi.spyOn(db, "delete");
     const insertSpy = vi.spyOn(db, "insert");
 
-    const result = await executeRetentionPolicy(schoolId, { dryRun: true });
+    const result = await executeRetentionPolicy(schoolId, db as any, { dryRun: true });
 
     expect(result.success).toBe(true);
     expect(result.dryRun).toBe(true);

@@ -38,7 +38,7 @@ describe("Finance Automation Rollup Worker (PF-R91)", () => {
 
     vi.spyOn(db.query.feePayments, "findMany").mockResolvedValue(mockPayments as any);
 
-    const result = await computeFinanceRollups(schoolId);
+    const result = await computeFinanceRollups(schoolId, db as any);
 
     expect(result.success).toBe(true);
     expect(result.rollups.todayCollected).toBe(3500); // 1000 + 2500

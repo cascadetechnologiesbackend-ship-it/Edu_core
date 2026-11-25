@@ -25,7 +25,7 @@ SchoolMitra ERP enforces multi-tenancy at the database layer via PostgreSQL Row-
 Background BullMQ workers invoked domain functions (`recomputeAgingAndOverdue`, `applyLateFees`, `enforceRetentionPolicies`) without passing the transaction handle `tx`. These functions called `db.update(...)` or `db.query...` on the global pool, bypassing the transaction context.
 
 ### Decision
-All functions executed inside `withTenant` or background workers MUST accept an optional or required database client handle `client: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0] = db`. When invoked inside `withTenant(schoolId, async (tx) => ...)`, `tx` MUST be passed to all child queries. AST linting rules in `@schoolmitra/eslint-plugin-schoolmitra` will enforce this invariant statically.
+All tenant-scoped helper functions executed inside `withTenant` or background workers MUST accept a mandatory database transaction client handle `tx: Parameters<Parameters<typeof db.transaction>[0]>[0]`. Tenant-scoped helper functions MUST NOT use an optional parameter defaulting to the global `db` pool. When invoked inside `withTenant(schoolId, async (tx) => ...)`, `tx` MUST be explicitly passed to all child queries and domain functions. Platform/system operations must remain explicitly separated from tenant-scoped operations. AST linting rules in `@schoolmitra/eslint-plugin-schoolmitra` will enforce this invariant statically.
 
 ### Consequences
 - **Positive**: Guaranteed tenant isolation inside asynchronous worker threads; eliminates risk of unauthenticated cross-tenant queries.
@@ -57,9 +57,11 @@ As new modules (Academics, Student PWA, Teacher 360, DPDP) were added across 58 
 ### Decision
 All tables containing a `school_id` foreign key MUST have both `ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` enabled. An automated migration verification test will run system catalog queries (`pg_class.relrowsecurity`, `relforcerowsecurity`) to assert 100% RLS coverage on every CI run.
 
+In PostgreSQL, `FORCE ROW LEVEL SECURITY` enforces RLS policies even against the table owner; however, roles with `SUPERUSER` attributes or `BYPASSRLS` privileges completely bypass RLS. Therefore, application connections MUST connect using a dedicated non-superuser, non-BYPASSRLS database login (such as `schoolmitra_app_login`), while schema migrations run under the table owner identity.
+
 ### Consequences
 - **Positive**: Defense-in-depth database security; prevents data leaks even if an application query omits `where(eq(table.schoolId, schoolId))`.
-- **Negative**: Requires superuser permissions during migration execution.
+- **Negative**: Requires strict role separation between migration execution and application runtime connections.
 
 ---
 

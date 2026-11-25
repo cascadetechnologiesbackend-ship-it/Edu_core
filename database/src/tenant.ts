@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { db, type Db } from "./index";
 
+export type TenantTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Executes a callback within a transactional tenant context.
  * Sets the PostgreSQL session variable `app.current_school_id` locally for the transaction,
@@ -12,13 +14,13 @@ import { db, type Db } from "./index";
  */
 export async function withTenant<T>(
   schoolId: string,
-  txCallback: (tx: Db) => Promise<T>,
+  txCallback: (tx: TenantTransaction) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     await tx.execute(
       sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`,
     );
-    return await txCallback(tx as any);
+    return await txCallback(tx);
   });
 }
 
@@ -28,13 +30,13 @@ export async function withTenant<T>(
  * Sets `app.current_role = 'SYSTEM_AUTH'` locally for the transaction.
  */
 export async function withAuthContext<T>(
-  txCallback: (tx: Db) => Promise<T>,
+  txCallback: (tx: TenantTransaction) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     await tx.execute(
       sql`SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)`,
     );
-    return await txCallback(tx as any);
+    return await txCallback(tx);
   });
 }
 
@@ -47,12 +49,12 @@ export async function withAuthContext<T>(
  * are rejected by RLS.
  */
 export async function withPlatformContext<T>(
-  txCallback: (tx: Db) => Promise<T>,
+  txCallback: (tx: TenantTransaction) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     await tx.execute(
       sql`SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)`,
     );
-    return await txCallback(tx as any);
+    return await txCallback(tx);
   });
 }

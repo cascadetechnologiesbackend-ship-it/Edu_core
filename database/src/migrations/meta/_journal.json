@@ -407,7 +407,13 @@
       "when": 1795300000000,
       "tag": "0057_timetable_manual_override",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1795581894753,
+      "tag": "0059_complete_fail_closed_rls",
+      "breakpoints": true
     }
   ]
 }
-

@@ -367,7 +367,9 @@ export async function triggerManualRetentionRun(): Promise<RetentionActionResult
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
     const school = await requireSchool(ctx);
 
-    const res = await executeRetentionPolicy(school.id);
+    const res = await withTenant(school.id, async (tx) => {
+      return await executeRetentionPolicy(school.id, tx);
+    });
     return {
       ...res,
       success: res.success ?? true,

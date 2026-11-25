@@ -1,168 +1,679 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "version": "1.0.0",
-  "lastAudited": "2026-10-15",
+  "version": "1.1.0",
+  "lastAudited": "2026-11-25",
   "policy": "fail-closed-high-critical",
+  "maxExpiryDays": 90,
   "exceptions": [
     {
-      "package": "glob",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Transitive build-time CLI vulnerability in dev dependencies; not exposed on production server.",
-      "ticket": "SEC-DEP-001",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "next",
-      "advisoryId": "*",
+      "package": "@auth/core",
+      "advisoryId": "GHSA-7rqj-j65f-68wh",
       "severity": "critical",
-      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield.",
-      "ticket": "SEC-DEP-002",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "minimatch",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Transitive ReDoS in glob tooling; only evaluated during local compilation and test discovery.",
-      "ticket": "SEC-DEP-003",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "drizzle-orm",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Raw SQL identifier escape advisory; all SchoolMitra queries use parameterised sql template tags and Drizzle typed schema builders.",
-      "ticket": "SEC-DEP-004",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "nodemailer",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options.",
-      "ticket": "SEC-DEP-005",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "vite",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Vite dev-server fs.deny bypass on Windows; Vite is only used for Vitest test execution in isolated CI containers.",
-      "ticket": "SEC-DEP-006",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "fast-uri",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions.",
-      "ticket": "SEC-DEP-007",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "postcss",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "CSS comment sourceMappingURL disclosure and path traversal; build artifact processing only, not runtime.",
-      "ticket": "SEC-DEP-008",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "brace-expansion",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Transitive DoS in dev tool globbing patterns.",
-      "ticket": "SEC-DEP-009",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "undici",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols.",
-      "ticket": "SEC-DEP-010",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "js-yaml",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "YAML CPU consumption during parsing; only used for offline OpenAPI / config parsing.",
-      "ticket": "SEC-DEP-011",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "next-auth",
-      "advisoryId": "*",
-      "severity": "critical",
-      "reason": "Auth.js configuration fail-open and getToken uncaught exception advisory; SchoolMitra implements custom fail-closed serverAuth.ts with explicit database session & role checks.",
-      "ticket": "SEC-DEP-012",
-      "expiresAt": "2027-04-01"
+      "title": "Auth.js: Email normalizer validates the address before Unicode normalization, allowing a homoglyph @ bypass",
+      "reason": "Auth.js email normalizer and getToken uncaught exception; SchoolMitra enforces strict database uniqueness and custom fail-closed serverAuth.ts. (Auth.js: Email normalizer validates the address before Unicode normalization, allowing a homoglyph @ bypass)",
+      "ticket": "SEC-DEP-013",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-7rqj-j65f-68wh"
     },
     {
       "package": "@auth/core",
-      "advisoryId": "*",
-      "severity": "critical",
-      "reason": "Auth.js email normalizer homoglyph bypass and getToken uncaught exception; SchoolMitra enforces strict database uniqueness and domain whitelisting on user emails.",
+      "advisoryId": "GHSA-xmf8-cvqr-rfgj",
+      "severity": "high",
+      "title": "Auth.js: getToken() throws an uncaught exception on malformed Bearer authorization headers",
+      "reason": "Auth.js email normalizer and getToken uncaught exception; SchoolMitra enforces strict database uniqueness and custom fail-closed serverAuth.ts. (Auth.js: getToken() throws an uncaught exception on malformed Bearer authorization headers)",
       "ticket": "SEC-DEP-013",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "nanoid",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Custom generator zero size loop; SchoolMitra uses standard nanoid() default length or crypto.randomUUID().",
-      "ticket": "SEC-DEP-014",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "vitest",
-      "advisoryId": "*",
-      "severity": "critical",
-      "reason": "Vitest UI server arbitrary file read; Vitest UI is disabled in CI/production pipelines (CLI runner only).",
-      "ticket": "SEC-DEP-015",
-      "expiresAt": "2027-04-01"
-    },
-    {
-      "package": "browserslist",
-      "advisoryId": "*",
-      "severity": "high",
-      "reason": "Unbounded cache growth and prototype crash in build tooling; process terminates upon build completion.",
-      "ticket": "SEC-DEP-016",
-      "expiresAt": "2027-04-01"
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-xmf8-cvqr-rfgj"
     },
     {
       "package": "axios",
-      "advisoryId": "*",
+      "advisoryId": "GHSA-3pq3-5fj3-cg6v",
       "severity": "high",
-      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios.",
+      "title": "Axios: HTTP/2 adapter bypasses configured DNS lookup and proxy controls",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: HTTP/2 adapter bypasses configured DNS lookup and proxy controls)",
       "ticket": "SEC-DEP-017",
-      "expiresAt": "2027-04-01"
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-3pq3-5fj3-cg6v"
     },
     {
-      "package": "braces",
-      "advisoryId": "*",
+      "package": "axios",
+      "advisoryId": "GHSA-542g-h47m-68v8",
       "severity": "high",
-      "reason": "Transitive dev dependency in fast-glob/micromatch/chokidar.",
-      "ticket": "SEC-DEP-018",
-      "expiresAt": "2027-04-01"
+      "title": "Axios: Denial of Service via Unhandled 'error' Event in HTTP/2 ClientHttp2Session Initialization",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: Denial of Service via Unhandled 'error' Event in HTTP/2 ClientHttp2Session Initialization)",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-542g-h47m-68v8"
+    },
+    {
+      "package": "axios",
+      "advisoryId": "GHSA-c29m-xwm3-cm6r",
+      "severity": "high",
+      "title": "Axios: ReDoS in fromDataURI data: URL parser freezes the Node event loop (DoS)",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: ReDoS in fromDataURI data: URL parser freezes the Node event loop (DoS))",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-c29m-xwm3-cm6r"
+    },
+    {
+      "package": "axios",
+      "advisoryId": "GHSA-m8m8-qj5v-23w3",
+      "severity": "high",
+      "title": "Axios: Node HTTP adapter prototype-pollution gadget allows request socket hijack via inherited createConnection",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: Node HTTP adapter prototype-pollution gadget allows request socket hijack via inherited createConnection)",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-m8m8-qj5v-23w3"
+    },
+    {
+      "package": "axios",
+      "advisoryId": "GHSA-mghh-pgcx-3jjj",
+      "severity": "high",
+      "title": "Axios: ReDoS (O(N²)) in shouldBypassProxy host normalization, reachable via untrusted redirect Location",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: ReDoS (O(N²)) in shouldBypassProxy host normalization, reachable via untrusted redirect Location)",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-mghh-pgcx-3jjj"
+    },
+    {
+      "package": "axios",
+      "advisoryId": "GHSA-r4gj-5m52-g5wh",
+      "severity": "high",
+      "title": "Axios: maxRedirects: 0 is not enforced by the fetch adapter, allowing redirect-based SSRF",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: maxRedirects: 0 is not enforced by the fetch adapter, allowing redirect-based SSRF)",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-r4gj-5m52-g5wh"
+    },
+    {
+      "package": "axios",
+      "advisoryId": "GHSA-x97p-jq2g-jp4f",
+      "severity": "high",
+      "title": "Axios: Prototype Pollution Gadget in axios toFormData Options",
+      "reason": "ReDoS, prototype pollution gadgets, HTTP/2 bypass, and SSRF in axios; SchoolMitra backend does not pass untrusted data: URLs, proxy redirects, or dynamic headers to axios. (Axios: Prototype Pollution Gadget in axios toFormData Options)",
+      "ticket": "SEC-DEP-017",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-x97p-jq2g-jp4f"
+    },
+    {
+      "package": "brace-expansion",
+      "advisoryId": "GHSA-6j4f-fj2g-mc7p",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+      "reason": "Transitive DoS in dev tool globbing patterns. (brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion)",
+      "ticket": "SEC-DEP-009",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p"
+    },
+    {
+      "package": "brace-expansion",
+      "advisoryId": "GHSA-mh99-v99m-4gvg",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+      "reason": "Transitive DoS in dev tool globbing patterns. (brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash)",
+      "ticket": "SEC-DEP-009",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg"
+    },
+    {
+      "package": "brace-expansion",
+      "advisoryId": "GHSA-qhr7-859c-m2p7",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+      "reason": "Transitive DoS in dev tool globbing patterns. (brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion)",
+      "ticket": "SEC-DEP-009",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7"
+    },
+    {
+      "package": "brace-expansion",
+      "advisoryId": "GHSA-rgw5-rvv9-x895",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+      "reason": "Transitive DoS in dev tool globbing patterns. (brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation)",
+      "ticket": "SEC-DEP-009",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895"
+    },
+    {
+      "package": "browserslist",
+      "advisoryId": "GHSA-73wf-gq98-2v4g",
+      "severity": "high",
+      "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+      "reason": "Unbounded cache growth and prototype crash in build tooling; process terminates upon build completion. (Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)) (Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats))",
+      "ticket": "SEC-DEP-016",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g"
+    },
+    {
+      "package": "browserslist",
+      "advisoryId": "GHSA-c83g-rgw3-j3cx",
+      "severity": "high",
+      "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+      "reason": "Unbounded cache growth and prototype crash in build tooling; process terminates upon build completion. (Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)) (Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM)",
+      "ticket": "SEC-DEP-016",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx"
+    },
+    {
+      "package": "drizzle-orm",
+      "advisoryId": "GHSA-gpj5-g38j-94v9",
+      "severity": "high",
+      "title": "Drizzle ORM has SQL injection via improperly escaped SQL identifiers",
+      "reason": "Raw SQL identifier escape advisory; all SchoolMitra queries use parameterised sql template tags and Drizzle typed schema builders. (Drizzle ORM has SQL injection via improperly escaped SQL identifiers)",
+      "ticket": "SEC-DEP-004",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-gpj5-g38j-94v9"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-5jgf-p345-68v8",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via skipped IDN canonicalization on scheme-relative references",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to host confusion via skipped IDN canonicalization on scheme-relative references)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-5jgf-p345-68v8"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-7p8r-x3mc-p8w7",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via backslash authority introducer",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to host confusion via backslash authority introducer)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-7p8r-x3mc-p8w7"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-f65p-4m7j-42xc",
+      "severity": "high",
+      "title": "fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-f65p-4m7j-42xc"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-fph4-wmhf-6fwf",
+      "severity": "high",
+      "title": "fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-fph4-wmhf-6fwf"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-jqff-g426-hqxp",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via percent-encoded scheme normalization",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to host confusion via percent-encoded scheme normalization)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-jqff-g426-hqxp"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-qw65-cvwx-89v3",
+      "severity": "high",
+      "title": "fast-uri vulnerable to authority injection via an unvalidated port in serialize",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to authority injection via an unvalidated port in serialize)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-qw65-cvwx-89v3"
+    },
+    {
+      "package": "fast-uri",
+      "advisoryId": "GHSA-v2hh-gcrm-f6hx",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via literal backslash authority delimiter",
+      "reason": "Host confusion in URI parser; used transitively by ajv schema validation with strict schema definitions. (fast-uri vulnerable to host confusion via literal backslash authority delimiter)",
+      "ticket": "SEC-DEP-007",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-v2hh-gcrm-f6hx"
+    },
+    {
+      "package": "glob",
+      "advisoryId": "GHSA-5j98-mcp5-4vw2",
+      "severity": "high",
+      "title": "glob CLI: Command injection via -c/--cmd executes matches with shell:true",
+      "reason": "Transitive build-time CLI vulnerability in dev dependencies; not exposed on production server. (glob CLI: Command injection via -c/--cmd executes matches with shell:true)",
+      "ticket": "SEC-DEP-001",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-5j98-mcp5-4vw2"
+    },
+    {
+      "package": "js-yaml",
+      "advisoryId": "GHSA-2883-xcg3-v3hh",
+      "severity": "high",
+      "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+      "reason": "YAML CPU consumption during parsing; only used for offline OpenAPI / config parsing. (js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources)",
+      "ticket": "SEC-DEP-011",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh"
+    },
+    {
+      "package": "js-yaml",
+      "advisoryId": "GHSA-5p4m-2wfm-xmqj",
+      "severity": "high",
+      "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported",
+      "reason": "YAML CPU consumption during parsing; only used for offline OpenAPI / config parsing. (JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported)",
+      "ticket": "SEC-DEP-011",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj"
+    },
+    {
+      "package": "minimatch",
+      "advisoryId": "GHSA-23c5-xmqv-rm74",
+      "severity": "high",
+      "title": "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+      "reason": "Transitive ReDoS in glob tooling; only evaluated during local compilation and test discovery. (minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions) (minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions)",
+      "ticket": "SEC-DEP-003",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74"
+    },
+    {
+      "package": "minimatch",
+      "advisoryId": "GHSA-3ppc-4f35-3m26",
+      "severity": "high",
+      "title": "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+      "reason": "Transitive ReDoS in glob tooling; only evaluated during local compilation and test discovery. (minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions) (minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern)",
+      "ticket": "SEC-DEP-003",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26"
+    },
+    {
+      "package": "minimatch",
+      "advisoryId": "GHSA-7r86-cg39-jmmj",
+      "severity": "high",
+      "title": "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+      "reason": "Transitive ReDoS in glob tooling; only evaluated during local compilation and test discovery. (minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions) (minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments)",
+      "ticket": "SEC-DEP-003",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj"
+    },
+    {
+      "package": "nanoid",
+      "advisoryId": "GHSA-2v37-7h3g-55p8",
+      "severity": "high",
+      "title": "nanoid: custom generators can loop indefinitely when size is zero",
+      "reason": "Custom generator zero size loop; SchoolMitra uses standard nanoid() default length or crypto.randomUUID(). (nanoid: custom generators can loop indefinitely when size is zero)",
+      "ticket": "SEC-DEP-014",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-2464-fhr4-w9xw",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when SVG files are used",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Unauthenticated Remote Code Execution in Image Optimization API when SVG files are used)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-2464-fhr4-w9xw"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-2xp9-vwfh-vxw4",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-2xp9-vwfh-vxw4"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-36qx-fr4f-26g5",
+      "severity": "high",
+      "title": "Next.js has a Middleware / Proxy bypass in Pages Router applications using i18n",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js has a Middleware / Proxy bypass in Pages Router applications using i18n)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-36qx-fr4f-26g5"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-5j59-xgg2-r9c4",
+      "severity": "high",
+      "title": "Next has a Denial of Service with Server Components - Incomplete Fix Follow-Up",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next has a Denial of Service with Server Components - Incomplete Fix Follow-Up)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-5j59-xgg2-r9c4"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-89xv-2m56-2m9x",
+      "severity": "high",
+      "title": "Next.js: Server-Side Request Forgery in Server Actions on custom servers",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Server-Side Request Forgery in Server Actions on custom servers)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-89xv-2m56-2m9x"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-8h8q-6873-q5fj",
+      "severity": "high",
+      "title": "Next.js Vulnerable to Denial of Service with Server Components",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js Vulnerable to Denial of Service with Server Components)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-8h8q-6873-q5fj"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-c4j6-fc7j-m34r",
+      "severity": "high",
+      "title": "Next.js vulnerable to server-side request forgery in applications using WebSocket upgrades",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js vulnerable to server-side request forgery in applications using WebSocket upgrades)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-c4j6-fc7j-m34r"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-h25m-26qc-wcjf",
+      "severity": "high",
+      "title": "Next.js HTTP request deserialization can lead to DoS when using insecure React Server Components",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js HTTP request deserialization can lead to DoS when using insecure React Server Components)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-h25m-26qc-wcjf"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-m99w-x7hq-7vfj",
+      "severity": "high",
+      "title": "Next.js: Denial of Service in App Router using Server Actions",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Denial of Service in App Router using Server Actions)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-m99w-x7hq-7vfj"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-mwv6-3258-q52c",
+      "severity": "high",
+      "title": "Next Vulnerable to Denial of Service with Server Components",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next Vulnerable to Denial of Service with Server Components)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-mwv6-3258-q52c"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-p293-qw3h-jr36",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution on windows-hosted servers",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Unauthenticated Remote Code Execution on windows-hosted servers)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-p293-qw3h-jr36"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-p3m5-59mp-jv5r",
+      "severity": "high",
+      "title": "Next.js: Denial of Service in App Router using Server Actions",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Denial of Service in App Router using Server Actions)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-p3m5-59mp-jv5r"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-p9j2-gv94-2wf4",
+      "severity": "high",
+      "title": "Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-p9j2-gv94-2wf4"
+    },
+    {
+      "package": "next",
+      "advisoryId": "GHSA-q4gf-8mx6-v5v3",
+      "severity": "high",
+      "title": "Next.js has a Denial of Service with Server Components",
+      "reason": "Next.js RSC/Server Actions/Image Optimization advisories; mitigated via strict reverse proxy rate limiting, no windows hosting in production, and cloudflare edge shield. (Next.js has a Denial of Service with Server Components)",
+      "ticket": "SEC-DEP-002",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-q4gf-8mx6-v5v3"
+    },
+    {
+      "package": "next-auth",
+      "advisoryId": "GHSA-7rqj-j65f-68wh",
+      "severity": "critical",
+      "title": "Auth.js: Email normalizer validates the address before Unicode normalization, allowing a homoglyph @ bypass",
+      "reason": "Auth.js configuration fail-open and getToken uncaught exception advisory; SchoolMitra implements custom fail-closed serverAuth.ts with explicit database session & role checks. (Auth.js: Email normalizer validates the address before Unicode normalization, allowing a homoglyph @ bypass)",
+      "ticket": "SEC-DEP-012",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-7rqj-j65f-68wh"
+    },
+    {
+      "package": "next-auth",
+      "advisoryId": "GHSA-8fpg-xm3f-6cx3",
+      "severity": "critical",
+      "title": "Auth.js: Configuration errors can cause existence-based auth checks to fail open (auth object populated with an error)",
+      "reason": "Auth.js configuration fail-open and getToken uncaught exception advisory; SchoolMitra implements custom fail-closed serverAuth.ts with explicit database session & role checks. (Auth.js: Configuration errors can cause existence-based auth checks to fail open (auth object populated with an error))",
+      "ticket": "SEC-DEP-012",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-8fpg-xm3f-6cx3"
+    },
+    {
+      "package": "next-auth",
+      "advisoryId": "GHSA-xmf8-cvqr-rfgj",
+      "severity": "high",
+      "title": "Auth.js: getToken() throws an uncaught exception on malformed Bearer authorization headers",
+      "reason": "Auth.js configuration fail-open and getToken uncaught exception advisory; SchoolMitra implements custom fail-closed serverAuth.ts with explicit database session & role checks. (Auth.js: getToken() throws an uncaught exception on malformed Bearer authorization headers)",
+      "ticket": "SEC-DEP-012",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-xmf8-cvqr-rfgj"
+    },
+    {
+      "package": "nodemailer",
+      "advisoryId": "GHSA-2x7j-588g-ccc2",
+      "severity": "high",
+      "title": "Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list",
+      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options. (Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list) (Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list)",
+      "ticket": "SEC-DEP-005",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-2x7j-588g-ccc2"
+    },
+    {
+      "package": "nodemailer",
+      "advisoryId": "GHSA-p6gq-j5cr-w38f",
+      "severity": "high",
+      "title": "Nodemailer: Message-level raw option bypasses disableFileAccess/disableUrlAccess, enabling arbitrary file read and full-response SSRF in the delivered message",
+      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options. (Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list) (Nodemailer: Message-level raw option bypasses disableFileAccess/disableUrlAccess, enabling arbitrary file read and full-response SSRF in the delivered message)",
+      "ticket": "SEC-DEP-005",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-p6gq-j5cr-w38f"
+    },
+    {
+      "package": "nodemailer",
+      "advisoryId": "GHSA-r7g4-qg5f-qqm2",
+      "severity": "high",
+      "title": "Nodemailer: Improper TLS Certificate Validation in OAuth2 Token Fetch Enables Credential Interception",
+      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options. (Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list) (Nodemailer: Improper TLS Certificate Validation in OAuth2 Token Fetch Enables Credential Interception)",
+      "ticket": "SEC-DEP-005",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-r7g4-qg5f-qqm2"
+    },
+    {
+      "package": "nodemailer",
+      "advisoryId": "GHSA-rcmh-qjqh-p98v",
+      "severity": "high",
+      "title": "Nodemailer’s addressparser is vulnerable to DoS caused by recursive calls",
+      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options. (Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list) (Nodemailer’s addressparser is vulnerable to DoS caused by recursive calls)",
+      "ticket": "SEC-DEP-005",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-rcmh-qjqh-p98v"
+    },
+    {
+      "package": "nodemailer",
+      "advisoryId": "GHSA-v53p-9fqp-m79j",
+      "severity": "high",
+      "title": "Nodemailer: Quadratic backtracking in the addressparser free-text fallback allows remote denial of service",
+      "reason": "Transitive addressparser DoS and raw option bypass; email sending is queued asynchronously via background BullMQ workers and uses direct SMTP with TLS without user-supplied raw transport options. (Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list) (Nodemailer: Quadratic backtracking in the addressparser free-text fallback allows remote denial of service)",
+      "ticket": "SEC-DEP-005",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-v53p-9fqp-m79j"
+    },
+    {
+      "package": "postcss",
+      "advisoryId": "GHSA-6g55-p6wh-862q",
+      "severity": "high",
+      "title": "PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments",
+      "reason": "CSS comment sourceMappingURL disclosure and path traversal; build artifact processing only, not runtime. (PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments)",
+      "ticket": "SEC-DEP-008",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-6g55-p6wh-862q"
+    },
+    {
+      "package": "postcss",
+      "advisoryId": "GHSA-r28c-9q8g-f849",
+      "severity": "high",
+      "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+      "reason": "CSS comment sourceMappingURL disclosure and path traversal; build artifact processing only, not runtime. (PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure)",
+      "ticket": "SEC-DEP-008",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849"
     },
     {
       "package": "source-map-js",
-      "advisoryId": "*",
+      "advisoryId": "GHSA-68fv-2mgg-jv7q",
       "severity": "high",
-      "reason": "Transitive build-time source map parser in postcss/next.js.",
+      "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+      "reason": "Transitive build-time source map parser in postcss/next.js. (source-map-js allows event-loop denial of service through indexed source-map section offsets)",
       "ticket": "SEC-DEP-019",
-      "expiresAt": "2027-04-01"
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q"
     },
     {
       "package": "tinypool",
-      "advisoryId": "*",
+      "advisoryId": "GHSA-5gmw-xhrv-c9v3",
       "severity": "critical",
-      "reason": "Transitive worker option prototype pollution in Vitest dev test runner; not in production bundle.",
+      "title": "Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution",
+      "reason": "Transitive worker option prototype pollution in Vitest dev test runner; not in production bundle. (Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution)",
       "ticket": "SEC-DEP-020",
-      "expiresAt": "2027-04-01"
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-5gmw-xhrv-c9v3"
+    },
+    {
+      "package": "tinypool",
+      "advisoryId": "GHSA-85c8-ppgw-ccpr",
+      "severity": "critical",
+      "title": "Tinypool: Prototype Pollution Gadget to RCE in run() options",
+      "reason": "Transitive worker option prototype pollution in Vitest dev test runner; not in production bundle. (Tinypool: Prototype Pollution Gadget to RCE in run() options)",
+      "ticket": "SEC-DEP-020",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-85c8-ppgw-ccpr"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-2m5v-pch6-74hx",
+      "severity": "high",
+      "title": "undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-2m5v-pch6-74hx"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-4cwx-7wf7-3272",
+      "severity": "high",
+      "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-4w7w-5xrc-9h26",
+      "severity": "high",
+      "title": "undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-4w7w-5xrc-9h26"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-qrxm-fqhp-jwvm",
+      "severity": "high",
+      "title": "undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-qrxm-fqhp-jwvm"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-rfgv-xxqx-mfg5",
+      "severity": "high",
+      "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to Denial of Service via unrequested WebSocket subprotocol)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-w293-vg96-wgc3",
+      "severity": "high",
+      "title": "undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-w293-vg96-wgc3"
+    },
+    {
+      "package": "undici",
+      "advisoryId": "GHSA-xjj6-f33q-929c",
+      "severity": "high",
+      "title": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings",
+      "reason": "Node.js internal fetch cache and WebSocket subprotocol advisory; SchoolMitra does not configure undici private caching or raw websocket subprotocols. (undici vulnerable to Denial of Service via unhandled error on excessive content-encodings)",
+      "ticket": "SEC-DEP-010",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-xjj6-f33q-929c"
+    },
+    {
+      "package": "vite",
+      "advisoryId": "GHSA-587h-7wmj-h5pm",
+      "severity": "high",
+      "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+      "reason": "Vite dev-server fs.deny bypass on Windows; Vite is only used for Vitest test execution in isolated CI containers. (launch-editor: `fs.existsSync()` existence check can be bypassed on Windows) (launch-editor: `fs.existsSync()` existence check can be bypassed on Windows)",
+      "ticket": "SEC-DEP-006",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm"
+    },
+    {
+      "package": "vitest",
+      "advisoryId": "GHSA-5xrq-8626-4rwp",
+      "severity": "critical",
+      "title": "When Vitest UI server is listening, arbitrary file can be read and executed",
+      "reason": "Vitest UI server arbitrary file read; Vitest UI is disabled in CI/production pipelines (CLI runner only). (When Vitest UI server is listening, arbitrary file can be read and executed)",
+      "ticket": "SEC-DEP-015",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-5xrq-8626-4rwp"
+    },
+    {
+      "package": "zod",
+      "advisoryId": "GHSA-mrhx-c7xc-m3w5",
+      "severity": "high",
+      "title": "Zod can exhaust memory while validating oversized constrained collections",
+      "reason": "Input arrays bounded by reverse proxy 1MB payload limits and validator .max() constraints; Zod v4 breaking change migration pending. (Zod can exhaust memory while validating oversized constrained collections)",
+      "ticket": "SEC-DEP-021",
+      "expiresAt": "2027-02-23",
+      "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"
     }
   ]
 }

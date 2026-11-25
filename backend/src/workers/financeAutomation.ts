@@ -14,6 +14,7 @@ import { Worker, Queue } from "bullmq";
 import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
 import { setCachedFinanceData } from "@/lib/financeCache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
+import type { TenantTransaction } from "@/lib/tenant";
 import crypto from "crypto";
 import {
   assertAcademicYearNotLocked,
@@ -35,10 +36,11 @@ export const financeQueue = new Queue<FinanceJobPayload>("finance-automation", {
 
 /**
  * AUTO-01: Recompute aging brackets and mark overdue invoices
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function recomputeAgingAndOverdue(schoolId: string) {
+export async function recomputeAgingAndOverdue(schoolId: string, tx: TenantTransaction) {
   const now = new Date();
-  const res = await db
+  const res = await tx
     .update(feeInvoices)
     .set({
       status: "OVERDUE",
@@ -59,10 +61,11 @@ export async function recomputeAgingAndOverdue(schoolId: string) {
 
 /**
  * AUTO-02: Apply late fee penalties based on fee structure policy (ACC-08 per-day fine & absolute cap)
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function applyLateFees(schoolId: string) {
+export async function applyLateFees(schoolId: string, tx: TenantTransaction) {
   const now = new Date();
-  const overdueInvoices = await db.query.feeInvoices.findMany({
+  const overdueInvoices = await tx.query.feeInvoices.findMany({
     where: and(
       eq(feeInvoices.schoolId, schoolId),
       eq(feeInvoices.status, "OVERDUE"),
@@ -110,7 +113,7 @@ export async function applyLateFees(schoolId: string) {
       const newNet = gross - discount + targetLateFee + tax;
       const newBal = newNet - paid;
 
-      await db
+      await tx
         .update(feeInvoices)
         .set({
           lateFeeAmount: targetLateFee.toFixed(2),
@@ -118,9 +121,9 @@ export async function applyLateFees(schoolId: string) {
           balanceAmount: newBal.toFixed(2),
           updatedAt: now,
         })
-        .where(eq(feeInvoices.id, inv.id));
+        .where(and(eq(feeInvoices.id, inv.id), eq(feeInvoices.schoolId, schoolId)));
 
-      await logFeeAuditEvent(db, {
+      await logFeeAuditEvent(tx, {
         schoolId,
         action: "APPLY_LATE_FEE_AUTOMATION",
         entityType: "FEE_INVOICE",
@@ -140,10 +143,11 @@ export async function applyLateFees(schoolId: string) {
 
 /**
  * AUTO-03: Process reminder ladder (D7, D15, D30)
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function processReminderLadder(schoolId: string) {
+export async function processReminderLadder(schoolId: string, tx: TenantTransaction) {
   const now = new Date();
-  const activeInvoices = await db.query.feeInvoices.findMany({
+  const activeInvoices = await tx.query.feeInvoices.findMany({
     where: and(
       eq(feeInvoices.schoolId, schoolId),
       inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
@@ -161,28 +165,28 @@ export async function processReminderLadder(schoolId: string) {
 
     // D7 (Due in 7 days or overdue by <= 7 days)
     if (daysDiff >= -7 && daysDiff <= 7 && !inv.reminderSentD7) {
-      await db
+      await tx
         .update(feeInvoices)
         .set({ reminderSentD7: true, updatedAt: now })
-        .where(eq(feeInvoices.id, inv.id));
+        .where(and(eq(feeInvoices.id, inv.id), eq(feeInvoices.schoolId, schoolId)));
       d7Count++;
     }
 
     // D15 (Overdue by 15+ days)
     if (daysDiff >= 15 && !inv.reminderSentD15) {
-      await db
+      await tx
         .update(feeInvoices)
         .set({ reminderSentD15: true, updatedAt: now })
-        .where(eq(feeInvoices.id, inv.id));
+        .where(and(eq(feeInvoices.id, inv.id), eq(feeInvoices.schoolId, schoolId)));
       d15Count++;
     }
 
     // D30 (Overdue by 30+ days)
     if (daysDiff >= 30 && !inv.reminderSentD30) {
-      await db
+      await tx
         .update(feeInvoices)
         .set({ reminderSentD30: true, updatedAt: now })
-        .where(eq(feeInvoices.id, inv.id));
+        .where(and(eq(feeInvoices.id, inv.id), eq(feeInvoices.schoolId, schoolId)));
       d30Count++;
     }
   }
@@ -192,10 +196,11 @@ export async function processReminderLadder(schoolId: string) {
 
 /**
  * AUTO-05: Expire outdated offline bank challans
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function expireOutdatedChallans(schoolId: string) {
+export async function expireOutdatedChallans(schoolId: string, tx: TenantTransaction) {
   const now = new Date();
-  const res = await db
+  const res = await tx
     .update(feeChallans)
     .set({
       status: "EXPIRED",
@@ -217,22 +222,23 @@ export async function expireOutdatedChallans(schoolId: string) {
  * AUTO-04: Gateway auto-matcher & reconciliation
  * Sweeps payment_gateway_logs with status PAID and no general ledger link.
  * For exact match on admission number and amount, auto-settles into GL & bank vault.
+ * MANDATORY: Executes inside tenant transaction `tx` without creating unconfigured nested connections (ADR-001).
  */
-export async function autoMatchGatewayPayments(schoolId: string) {
-  const unpaidLogs = await db.query.paymentGatewayLogs.findMany({
+export async function autoMatchGatewayPayments(schoolId: string, tx: TenantTransaction) {
+  const unpaidLogs = await tx.query.paymentGatewayLogs.findMany({
     where: and(
       eq(paymentGatewayLogs.schoolId, schoolId),
       eq(paymentGatewayLogs.status, "PAID"),
     ),
   });
 
-  // Enforce fiscal lock invariant (ACC-06)
-  await assertAcademicYearNotLocked(schoolId, new Date(), db);
+  // Enforce fiscal lock invariant (ACC-06) within active tenant transaction
+  await assertAcademicYearNotLocked(schoolId, new Date(), tx);
 
   let settledCount = 0;
 
   for (const log of unpaidLogs) {
-    const existing = await db.query.accountLedgerTransactions.findFirst({
+    const existing = await tx.query.accountLedgerTransactions.findFirst({
       where: and(
         eq(accountLedgerTransactions.schoolId, schoolId),
         eq(accountLedgerTransactions.sourceId, log.id),
@@ -240,130 +246,128 @@ export async function autoMatchGatewayPayments(schoolId: string) {
     });
     if (existing) continue;
 
-    await db.transaction(async (tx) => {
-      // S2-B: Lock paymentGatewayLog row FOR UPDATE and ensure status is still PAID
-      const [lockedLog] = await tx
-        .select()
-        .from(paymentGatewayLogs)
-        .where(
-          and(
-            eq(paymentGatewayLogs.id, log.id),
-            eq(paymentGatewayLogs.schoolId, schoolId),
-            eq(paymentGatewayLogs.status, "PAID")
-          )
+    // S2-B: Lock paymentGatewayLog row FOR UPDATE within transaction and ensure status is still PAID
+    const [lockedLog] = await tx
+      .select()
+      .from(paymentGatewayLogs)
+      .where(
+        and(
+          eq(paymentGatewayLogs.id, log.id),
+          eq(paymentGatewayLogs.schoolId, schoolId),
+          eq(paymentGatewayLogs.status, "PAID")
         )
-        .for("update");
+      )
+      .for("update");
 
-      if (!lockedLog) return;
+    if (!lockedLog) continue;
 
-      // Re-check inside transaction that no ledger entry was created concurrently
-      const existingInTx = await tx.query.accountLedgerTransactions.findFirst({
-        where: and(
-          eq(accountLedgerTransactions.schoolId, schoolId),
-          eq(accountLedgerTransactions.sourceId, lockedLog.id),
-        ),
-      });
-      if (existingInTx) return;
+    // Re-check inside transaction that no ledger entry was created concurrently
+    const existingInTx = await tx.query.accountLedgerTransactions.findFirst({
+      where: and(
+        eq(accountLedgerTransactions.schoolId, schoolId),
+        eq(accountLedgerTransactions.sourceId, lockedLog.id),
+      ),
+    });
+    if (existingInTx) continue;
 
-      const primaryBank = await tx.query.bankAccounts.findFirst({
-        where: and(eq(bankAccounts.schoolId, schoolId), eq(bankAccounts.isActive, true)),
-      });
+    const primaryBank = await tx.query.bankAccounts.findFirst({
+      where: and(eq(bankAccounts.schoolId, schoolId), eq(bankAccounts.isActive, true)),
+    });
 
-      let primaryBankId: string | null = null;
-      let newBalance = "0";
+    let primaryBankId: string | null = null;
+    let newBalance = "0";
 
-      const totalAmount = parseFloat(lockedLog.amount);
-      const feeAmount = parseFloat((lockedLog as any).feeAmount || "0");
-      const netAmount = Math.max(0, totalAmount - feeAmount);
+    const totalAmount = parseFloat(lockedLog.amount);
+    const feeAmount = parseFloat((lockedLog as any).feeAmount || "0");
+    const netAmount = Math.max(0, totalAmount - feeAmount);
 
-      if (primaryBank) {
-        primaryBankId = primaryBank.id;
-        const [updatedBank] = await tx
-          .update(bankAccounts)
-          .set({
-            currentBalance: sql`${bankAccounts.currentBalance} + ${netAmount.toFixed(2)}`,
-            updatedAt: new Date(),
-          })
-          .where(eq(bankAccounts.id, primaryBank.id))
-          .returning();
-        if (updatedBank) newBalance = updatedBank.currentBalance;
-      }
+    if (primaryBank) {
+      primaryBankId = primaryBank.id;
+      const [updatedBank] = await tx
+        .update(bankAccounts)
+        .set({
+          currentBalance: sql`${bankAccounts.currentBalance} + ${netAmount.toFixed(2)}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(bankAccounts.id, primaryBank.id), eq(bankAccounts.schoolId, schoolId)))
+        .returning();
+      if (updatedBank) newBalance = updatedBank.currentBalance;
+    }
 
-      const txNumber = `REC-GW-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
-      const bankChartAccountId = primaryBankId
-        ? await getBankAccountChartAccountId(schoolId, primaryBankId, tx)
-        : await getCashMainChartAccountId(schoolId, tx);
-      const studentReceivableAccountId = await getStudentReceivableChartAccountId(schoolId, tx);
-      const gatewayFeesExpenseAccountId = await getGatewayFeesExpenseChartAccountId(schoolId, tx);
+    const txNumber = `REC-GW-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+    const bankChartAccountId = primaryBankId
+      ? await getBankAccountChartAccountId(schoolId, primaryBankId, tx)
+      : await getCashMainChartAccountId(schoolId, tx);
+    const studentReceivableAccountId = await getStudentReceivableChartAccountId(schoolId, tx);
+    const gatewayFeesExpenseAccountId = await getGatewayFeesExpenseChartAccountId(schoolId, tx);
 
-      if (feeAmount > 0) {
-        // ACC-05: Net deposit (Debit Bank, Credit Student Receivable)
-        await tx.insert(accountLedgerTransactions).values({
-          schoolId,
-          transactionNumber: `${txNumber}-NET`,
-          sourceType: "FEE_COLLECTION",
-          sourceId: log.id,
-          bankAccountId: primaryBankId,
-          debitAccountId: bankChartAccountId,
-          creditAccountId: studentReceivableAccountId,
-          transactionType: "CREDIT",
-          amount: netAmount.toFixed(2),
-          balanceAfter: newBalance,
-          description: `AUTO-04 Gateway Auto-Match Net (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
-          transactionDate: new Date(),
-          createdById: "00000000-0000-0000-0000-000000000000",
-        });
-
-        // ACC-05: Gateway Processing Fee (Debit Gateway Expense 5200, Credit Student Receivable)
-        await tx.insert(accountLedgerTransactions).values({
-          schoolId,
-          transactionNumber: `${txNumber}-FEE`,
-          sourceType: "EXPENSE_VOUCHER",
-          sourceId: log.id,
-          bankAccountId: primaryBankId,
-          debitAccountId: gatewayFeesExpenseAccountId,
-          creditAccountId: studentReceivableAccountId,
-          transactionType: "CREDIT",
-          amount: feeAmount.toFixed(2),
-          balanceAfter: newBalance,
-          description: `AUTO-04 Gateway Fee Split (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
-          transactionDate: new Date(),
-          createdById: "00000000-0000-0000-0000-000000000000",
-        });
-      } else {
-        await tx.insert(accountLedgerTransactions).values({
-          schoolId,
-          transactionNumber: txNumber,
-          sourceType: "FEE_COLLECTION",
-          sourceId: log.id,
-          bankAccountId: primaryBankId,
-          debitAccountId: bankChartAccountId,
-          creditAccountId: studentReceivableAccountId,
-          transactionType: "CREDIT",
-          amount: totalAmount.toFixed(2),
-          balanceAfter: newBalance,
-          description: `AUTO-04 Gateway Auto-Match (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
-          transactionDate: new Date(),
-          createdById: "00000000-0000-0000-0000-000000000000",
-        });
-      }
-
-      await logFeeAuditEvent(tx, {
+    if (feeAmount > 0) {
+      // ACC-05: Net deposit (Debit Bank, Credit Student Receivable)
+      await tx.insert(accountLedgerTransactions).values({
         schoolId,
-        action: "RECONCILE_GATEWAY_PAYMENT",
-        entityType: "PAYMENT_GATEWAY_LOG",
-        entityId: log.id,
-        newData: {
-          txNumber,
-          gateway: log.gateway,
-          totalAmount: totalAmount.toFixed(2),
-          netAmount: netAmount.toFixed(2),
-          feeAmount: feeAmount.toFixed(2),
-          bankAccountId: primaryBankId,
-        },
-        reason: `AUTO-04 Online payment auto-settled with ACC-05 gateway fee split`,
-        performedById: "00000000-0000-0000-0000-000000000000",
+        transactionNumber: `${txNumber}-NET`,
+        sourceType: "FEE_COLLECTION",
+        sourceId: log.id,
+        bankAccountId: primaryBankId,
+        debitAccountId: bankChartAccountId,
+        creditAccountId: studentReceivableAccountId,
+        transactionType: "CREDIT",
+        amount: netAmount.toFixed(2),
+        balanceAfter: newBalance,
+        description: `AUTO-04 Gateway Auto-Match Net (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+        transactionDate: new Date(),
+        createdById: "00000000-0000-0000-0000-000000000000",
       });
+
+      // ACC-05: Gateway Processing Fee (Debit Gateway Expense 5200, Credit Student Receivable)
+      await tx.insert(accountLedgerTransactions).values({
+        schoolId,
+        transactionNumber: `${txNumber}-FEE`,
+        sourceType: "EXPENSE_VOUCHER",
+        sourceId: log.id,
+        bankAccountId: primaryBankId,
+        debitAccountId: gatewayFeesExpenseAccountId,
+        creditAccountId: studentReceivableAccountId,
+        transactionType: "CREDIT",
+        amount: feeAmount.toFixed(2),
+        balanceAfter: newBalance,
+        description: `AUTO-04 Gateway Fee Split (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+        transactionDate: new Date(),
+        createdById: "00000000-0000-0000-0000-000000000000",
+      });
+    } else {
+      await tx.insert(accountLedgerTransactions).values({
+        schoolId,
+        transactionNumber: txNumber,
+        sourceType: "FEE_COLLECTION",
+        sourceId: log.id,
+        bankAccountId: primaryBankId,
+        debitAccountId: bankChartAccountId,
+        creditAccountId: studentReceivableAccountId,
+        transactionType: "CREDIT",
+        amount: totalAmount.toFixed(2),
+        balanceAfter: newBalance,
+        description: `AUTO-04 Gateway Auto-Match (${log.gateway}) - Txn: ${log.gatewayPaymentId}`,
+        transactionDate: new Date(),
+        createdById: "00000000-0000-0000-0000-000000000000",
+      });
+    }
+
+    await logFeeAuditEvent(tx, {
+      schoolId,
+      action: "RECONCILE_GATEWAY_PAYMENT",
+      entityType: "PAYMENT_GATEWAY_LOG",
+      entityId: log.id,
+      newData: {
+        txNumber,
+        gateway: log.gateway,
+        totalAmount: totalAmount.toFixed(2),
+        netAmount: netAmount.toFixed(2),
+        feeAmount: feeAmount.toFixed(2),
+        bankAccountId: primaryBankId,
+      },
+      reason: `AUTO-04 Online payment auto-settled with ACC-05 gateway fee split`,
+      performedById: "00000000-0000-0000-0000-000000000000",
     });
 
     settledCount++;
@@ -374,20 +378,25 @@ export async function autoMatchGatewayPayments(schoolId: string) {
 
 /**
  * AUTO-08 & AZ-03: Async receipt PDF -> S3 into fee_payments.receiptS3Key
+ * External network operation (S3 upload) is strictly decoupled from long-lived DB transactions.
  */
 export async function archiveReceiptPdfToS3(
   schoolId: string,
   paymentId: string,
   pdfBuffer?: Buffer
 ) {
-  const payment = await db.query.feePayments.findFirst({
-    where: and(eq(feePayments.id, paymentId), eq(feePayments.schoolId, schoolId)),
+  const { withTenant } = await import("@/lib/tenant");
+
+  const payment = await withTenant(schoolId, async (tx) => {
+    return await tx.query.feePayments.findFirst({
+      where: and(eq(feePayments.id, paymentId), eq(feePayments.schoolId, schoolId)),
+    });
   });
   if (!payment) return { success: false, message: "Payment not found" };
 
   const s3Key = `${schoolId}/receipts/${payment.receiptNumber}.pdf`;
 
-  // Upload buffer to S3 using S3Client PutObjectCommand
+  // Upload buffer to S3 using S3Client PutObjectCommand (OUTSIDE database transaction)
   const bufferToUpload =
     pdfBuffer ||
     Buffer.from(
@@ -396,13 +405,16 @@ export async function archiveReceiptPdfToS3(
 
   await uploadBufferToS3(s3Key, bufferToUpload, "application/pdf");
 
-  await db
-    .update(feePayments)
-    .set({
-      receiptS3Key: s3Key,
-      updatedAt: new Date(),
-    })
-    .where(eq(feePayments.id, paymentId));
+  // Persist S3 key in scoped tenant transaction
+  await withTenant(schoolId, async (tx) => {
+    await tx
+      .update(feePayments)
+      .set({
+        receiptS3Key: s3Key,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(feePayments.id, paymentId), eq(feePayments.schoolId, schoolId)));
+  });
 
   return { success: true, s3Key };
 }
@@ -410,13 +422,14 @@ export async function archiveReceiptPdfToS3(
 /**
  * PF-R91: Compute pre-aggregated finance rollups for Hub Band 3 and Day Book sticky footers.
  * Pre-computes mode breakdown, today's collections, and payment summary without live GROUP BYs at request time.
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function computeFinanceRollups(schoolId: string) {
+export async function computeFinanceRollups(schoolId: string, tx: TenantTransaction) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   // 1. Rollup fee_payments by paymentMethod & today's collection
-  const payments = await db.query.feePayments.findMany({
+  const payments = await tx.query.feePayments.findMany({
     where: eq(feePayments.schoolId, schoolId),
     columns: {
       id: true,
@@ -470,7 +483,7 @@ export async function computeFinanceRollups(schoolId: string) {
     modeBreakdown,
   };
 
-  // Cache in S2 with tag sets
+  // Cache in S2 with tag sets (Redis cache is outside DB transaction)
   await setCachedFinanceData(schoolId, "rollups_daily", rollups, {
     tags: [`school:${schoolId}`, `fin:payments:${schoolId}`],
   });
@@ -480,14 +493,15 @@ export async function computeFinanceRollups(schoolId: string) {
 
 /**
  * Execute all automated finance routines for a tenant school
+ * MANDATORY: Requires tenant transaction `tx` to enforce fail-closed PostgreSQL RLS (ADR-001).
  */
-export async function runSchoolFinanceAutomations(schoolId: string) {
-  const agingResult = await recomputeAgingAndOverdue(schoolId);
-  const lateFeeResult = await applyLateFees(schoolId);
-  const reminderResult = await processReminderLadder(schoolId);
-  const challanResult = await expireOutdatedChallans(schoolId);
-  const gatewayMatchResult = await autoMatchGatewayPayments(schoolId);
-  const rollupResult = await computeFinanceRollups(schoolId);
+export async function runSchoolFinanceAutomations(schoolId: string, tx: TenantTransaction) {
+  const agingResult = await recomputeAgingAndOverdue(schoolId, tx);
+  const lateFeeResult = await applyLateFees(schoolId, tx);
+  const reminderResult = await processReminderLadder(schoolId, tx);
+  const challanResult = await expireOutdatedChallans(schoolId, tx);
+  const gatewayMatchResult = await autoMatchGatewayPayments(schoolId, tx);
+  const rollupResult = await computeFinanceRollups(schoolId, tx);
 
   return {
     success: true,
@@ -502,6 +516,7 @@ export async function runSchoolFinanceAutomations(schoolId: string) {
 
 /**
  * AZ-02: Upsert background worker heartbeat timestamp and status
+ * Platform-level operational telemetry (worker_heartbeats table has no tenant scope).
  */
 export async function recordWorkerHeartbeat(
   workerName = "educore-finance-worker",
@@ -527,6 +542,7 @@ export async function recordWorkerHeartbeat(
 
 /**
  * AZ-02: Inspect background worker liveness for telemetry / health checks
+ * Platform-level operational telemetry (worker_heartbeats table has no tenant scope).
  */
 export async function getWorkerHeartbeatStatus(
   workerName = "educore-finance-worker"
@@ -572,10 +588,14 @@ if (process.env["START_WORKERS"] === "true") {
     "finance-automation",
     async (job) => {
       const { schoolId } = job.data;
+      // Validate tenant identifier format strictly before processing
+      if (!schoolId || typeof schoolId !== "string" || !/^[0-9a-fA-F-]{36}$/.test(schoolId)) {
+        throw new Error(`[FinanceWorker] Invalid schoolId tenant identifier: ${schoolId}`);
+      }
       console.log(`[FinanceWorker] Processing automation routines for school: ${schoolId}`);
       const { withTenant } = await import("@/lib/tenant");
-      await withTenant(schoolId, async () => {
-        await runSchoolFinanceAutomations(schoolId);
+      await withTenant(schoolId, async (tx) => {
+        await runSchoolFinanceAutomations(schoolId, tx);
       });
       await recordWorkerHeartbeat("educore-finance-worker", "alive").catch(() => {});
     },

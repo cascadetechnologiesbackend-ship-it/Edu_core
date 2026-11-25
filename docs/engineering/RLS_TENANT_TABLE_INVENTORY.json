@@ -1,0 +1,1712 @@
+[
+  {
+    "tableName": "classes",
+    "exportName": "classes",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "sections",
+    "exportName": "sections",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "class_teacher_assignments",
+    "exportName": "classTeacherAssignments",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "subjects",
+    "exportName": "subjects",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "class_subjects",
+    "exportName": "classSubjects",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_subject_enrollments",
+    "exportName": "studentSubjectEnrollments",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "academic_terms",
+    "exportName": "academicTerms",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "academic_calendar_events",
+    "exportName": "academicCalendarEvents",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "bell_schedule",
+    "exportName": "bellSchedule",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "timetable_periods",
+    "exportName": "timetablePeriods",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "timetable_substitutions",
+    "exportName": "timetableSubstitutions",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "section_subject_teachers",
+    "exportName": "sectionSubjectTeachers",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "homeroom_report_remarks",
+    "exportName": "homeroomReportRemarks",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "syllabus_units",
+    "exportName": "syllabusUnits",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "syllabus_chapters",
+    "exportName": "syllabusChapters",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "syllabus_topics",
+    "exportName": "syllabusTopics",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "lesson_plans",
+    "exportName": "lessonPlans",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "assignments",
+    "exportName": "assignments",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "assignment_submissions",
+    "exportName": "assignmentSubmissions",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "assessments",
+    "exportName": "assessments",
+    "file": "academics.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "chart_of_accounts",
+    "exportName": "chartOfAccounts",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "bank_accounts",
+    "exportName": "bankAccounts",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "income_heads",
+    "exportName": "incomeHeads",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "expense_heads",
+    "exportName": "expenseHeads",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "income_vouchers",
+    "exportName": "incomeVouchers",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "expense_vouchers",
+    "exportName": "expenseVouchers",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "account_ledger_transactions",
+    "exportName": "accountLedgerTransactions",
+    "file": "accounts.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "admission_applications",
+    "exportName": "admissionApplications",
+    "file": "admissions.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "admission_documents",
+    "exportName": "admissionDocuments",
+    "file": "admissions.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "admission_workflow_steps",
+    "exportName": "admissionWorkflowSteps",
+    "file": "admissions.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "waitlist",
+    "exportName": "waitlist",
+    "file": "admissions.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_attendance",
+    "exportName": "studentAttendance",
+    "file": "attendance.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "staff_attendance",
+    "exportName": "staffAttendance",
+    "file": "attendance.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "attendance_notifications",
+    "exportName": "attendanceNotifications",
+    "file": "attendance.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_leave_requests",
+    "exportName": "studentLeaveRequests",
+    "file": "attendance.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "notices",
+    "exportName": "notices",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "sms_logs",
+    "exportName": "smsLogs",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "email_logs",
+    "exportName": "emailLogs",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "push_notification_logs",
+    "exportName": "pushNotificationLogs",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "events",
+    "exportName": "events",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "parent_teacher_messages",
+    "exportName": "parentTeacherMessages",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "user_push_subscriptions",
+    "exportName": "userPushSubscriptions",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "parent_feed_cards",
+    "exportName": "parentFeedCards",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "teacher_feed_cards",
+    "exportName": "teacherFeedCards",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "parent_notification_preferences",
+    "exportName": "parentNotificationPreferences",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "ptm_events",
+    "exportName": "ptmEvents",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "ptm_slots",
+    "exportName": "ptmSlots",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "ptm_bookings",
+    "exportName": "ptmBookings",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "notice_acknowledgments",
+    "exportName": "noticeAcknowledgments",
+    "file": "communication.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "schools",
+    "exportName": "schools",
+    "file": "core.ts",
+    "category": "PLATFORM_SYSTEM",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "academic_years",
+    "exportName": "academicYears",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "roles",
+    "exportName": "roles",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "permissions",
+    "exportName": "permissions",
+    "file": "core.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "role_permissions",
+    "exportName": "rolePermissions",
+    "file": "core.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "users",
+    "exportName": "users",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "user_roles",
+    "exportName": "userRoles",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "sessions",
+    "exportName": "sessions",
+    "file": "core.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "audit_logs",
+    "exportName": "auditLogs",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "password_reset_tokens",
+    "exportName": "passwordResetTokens",
+    "file": "core.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "email_verification_tokens",
+    "exportName": "emailVerificationTokens",
+    "file": "core.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "super_admin_users",
+    "exportName": "superAdminUsers",
+    "file": "core.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "platform_audit_logs",
+    "exportName": "platformAuditLogs",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "school_counters",
+    "exportName": "schoolCounters",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "domain_events",
+    "exportName": "domainEvents",
+    "file": "core.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "privacy_notices",
+    "exportName": "privacyNotices",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "consent_purposes",
+    "exportName": "consentPurposes",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "consent_records",
+    "exportName": "consentRecords",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "rights_requests",
+    "exportName": "rightsRequests",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "dpdp_grievances",
+    "exportName": "dpdpGrievances",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "data_breach_log",
+    "exportName": "dataBreachLog",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "vendor_register",
+    "exportName": "vendorRegister",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "data_retention_policies",
+    "exportName": "dataRetentionPolicies",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "pii_audit_trails",
+    "exportName": "piiAuditTrails",
+    "file": "dpdp.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "drivers",
+    "exportName": "drivers",
+    "file": "drivers.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_types",
+    "exportName": "examTypes",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exams",
+    "exportName": "exams",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_components",
+    "exportName": "examComponents",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_class_scopes",
+    "exportName": "examClassScopes",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_mark_distributions",
+    "exportName": "examMarkDistributions",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "mark_entries",
+    "exportName": "markEntries",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_marks_locks",
+    "exportName": "examMarksLocks",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_admit_card_settings",
+    "exportName": "examAdmitCardSettings",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "admit_card_templates",
+    "exportName": "admitCardTemplates",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_admit_card_holds",
+    "exportName": "examAdmitCardHolds",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "cocurricular_areas",
+    "exportName": "cocurricularAreas",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "cocurricular_grades",
+    "exportName": "cocurricularGrades",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "report_card_setups",
+    "exportName": "reportCardSetups",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "result_settings",
+    "exportName": "resultSettings",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "result_snapshots",
+    "exportName": "resultSnapshots",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "result_holds",
+    "exportName": "resultHolds",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "uploaded_marksheets",
+    "exportName": "uploadedMarksheets",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "public_result_lookups",
+    "exportName": "publicResultLookups",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "report_cards",
+    "exportName": "reportCards",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "certificates",
+    "exportName": "certificates",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "exam_schedules",
+    "exportName": "examSchedules",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "grade_rules",
+    "exportName": "gradeRules",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "report_card_jobs",
+    "exportName": "reportCardJobs",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "medical_exemptions",
+    "exportName": "medicalExemptions",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "usage_events",
+    "exportName": "usageEvents",
+    "file": "examinations.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_heads",
+    "exportName": "feeHeads",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_structures",
+    "exportName": "feeStructures",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_concessions",
+    "exportName": "feeConcessions",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_invoices",
+    "exportName": "feeInvoices",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_payments",
+    "exportName": "feePayments",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_refunds",
+    "exportName": "feeRefunds",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "payment_gateway_logs",
+    "exportName": "paymentGatewayLogs",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_queries",
+    "exportName": "feeQueries",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_groups",
+    "exportName": "feeGroups",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_group_heads",
+    "exportName": "feeGroupHeads",
+    "file": "fees.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_discounts",
+    "exportName": "feeDiscounts",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_challans",
+    "exportName": "feeChallans",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_due_slips",
+    "exportName": "feeDueSlips",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_carry_forwards",
+    "exportName": "feeCarryForwards",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "fee_audit_logs",
+    "exportName": "feeAuditLogs",
+    "file": "fees.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "hostel_rooms",
+    "exportName": "hostelRooms",
+    "file": "hostel.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "hostel_allocations",
+    "exportName": "hostelAllocations",
+    "file": "hostel.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "visitor_logs",
+    "exportName": "visitorLogs",
+    "file": "hostel.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "departments",
+    "exportName": "departments",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "designations",
+    "exportName": "designations",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "staff",
+    "exportName": "staff",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "leave_types",
+    "exportName": "leaveTypes",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "leave_requests",
+    "exportName": "leaveRequests",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "salary_components",
+    "exportName": "salaryComponents",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "payroll_runs",
+    "exportName": "payrollRuns",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "payslips",
+    "exportName": "payslips",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "salary_templates",
+    "exportName": "salaryTemplates",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "staff_documents",
+    "exportName": "staffDocuments",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "staff_loans",
+    "exportName": "staffLoans",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "leave_balances",
+    "exportName": "leaveBalances",
+    "file": "hr.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "assets",
+    "exportName": "assets",
+    "file": "inventory.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "asset_assignments",
+    "exportName": "assetAssignments",
+    "file": "inventory.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "inventory_items",
+    "exportName": "inventoryItems",
+    "file": "inventory.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "purchase_orders",
+    "exportName": "purchaseOrders",
+    "file": "inventory.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "stock_movements",
+    "exportName": "stockMovements",
+    "file": "inventory.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "books",
+    "exportName": "books",
+    "file": "library.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "book_copies",
+    "exportName": "bookCopies",
+    "file": "library.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "library_members",
+    "exportName": "libraryMembers",
+    "file": "library.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "book_issues",
+    "exportName": "bookIssues",
+    "file": "library.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "book_fines",
+    "exportName": "bookFines",
+    "file": "library.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "persons",
+    "exportName": "persons",
+    "file": "people.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_fee_advances",
+    "exportName": "studentFeeAdvances",
+    "file": "studentFeeAdvances.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_fee_advance_allocations",
+    "exportName": "studentFeeAdvanceAllocations",
+    "file": "studentFeeAdvances.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "students",
+    "exportName": "students",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_family_members",
+    "exportName": "studentFamilyMembers",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_medical_records",
+    "exportName": "studentMedicalRecords",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_class_history",
+    "exportName": "studentClassHistory",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_documents",
+    "exportName": "studentDocuments",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "alumni",
+    "exportName": "alumni",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_document_requests",
+    "exportName": "studentDocumentRequests",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "profile_change_requests",
+    "exportName": "profileChangeRequests",
+    "file": "students.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_profiles",
+    "exportName": "globalTemplateProfiles",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_academic_years",
+    "exportName": "globalTemplateAcademicYears",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_classes",
+    "exportName": "globalTemplateClasses",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_subjects",
+    "exportName": "globalTemplateSubjects",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_timetable",
+    "exportName": "globalTemplateTimetable",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_fee_heads",
+    "exportName": "globalTemplateFeeHeads",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_salary_grades",
+    "exportName": "globalTemplateSalaryGrades",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_holidays",
+    "exportName": "globalTemplateHolidays",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "global_template_roles",
+    "exportName": "globalTemplateRoles",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "platform_announcements",
+    "exportName": "platformAnnouncements",
+    "file": "superadmin.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "platform_announcement_reads",
+    "exportName": "platformAnnouncementReads",
+    "file": "superadmin.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "impersonation_sessions",
+    "exportName": "impersonationSessions",
+    "file": "superadmin.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "school_provisions",
+    "exportName": "schoolProvisions",
+    "file": "superadmin.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "vehicles",
+    "exportName": "vehicles",
+    "file": "transport.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "routes",
+    "exportName": "routes",
+    "file": "transport.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "route_stops",
+    "exportName": "routeStops",
+    "file": "transport.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "student_bus_passes",
+    "exportName": "studentBusPasses",
+    "file": "transport.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "gps_pings",
+    "exportName": "gpsPings",
+    "file": "transport.ts",
+    "category": "PLATFORM_GLOBAL",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "bus_boarding_events",
+    "exportName": "busBoardingEvents",
+    "file": "transport.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "stop_change_requests",
+    "exportName": "stopChangeRequests",
+    "file": "transport.ts",
+    "category": "TENANT_OWNED",
+    "hasSchoolId": true,
+    "rlsEnabled": true,
+    "forceRlsEnabled": true,
+    "needsRemediation": false
+  },
+  {
+    "tableName": "worker_heartbeats",
+    "exportName": "workerHeartbeats",
+    "file": "workerHeartbeats.ts",
+    "category": "PLATFORM_SYSTEM",
+    "hasSchoolId": false,
+    "rlsEnabled": false,
+    "forceRlsEnabled": false,
+    "needsRemediation": false
+  }
+]

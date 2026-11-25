@@ -1,7 +1,7 @@
 # SchoolMitra ERP — Repository Intelligence & Discovery (Phase 00)
 **Directive**: `EDUCORE_MASTER_ENGINEERING_EXCELLENCE` v1.0.0  
 **Audit Date**: November 25, 2026  
-**Commit Baseline**: `30e7090` (v11.59.1 on `main`)  
+**Commit Baseline**: `9a14b7ad8ba46b77cb55983216bee98270bd2850` (v11.59.1 on `main`)  
 **Repository**: [github.com/cascadetechnologiesbackend-ship-it/Edu_core](https://github.com/cascadetechnologiesbackend-ship-it/Edu_core)
 
 ---
