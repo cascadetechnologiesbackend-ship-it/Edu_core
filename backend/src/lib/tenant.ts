@@ -4,6 +4,72 @@ import { schools } from "@/db/schema";
 import { eq, or, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { cache as reactCache } from "react";
+import crypto from "node:crypto";
+
+export interface TenantCapability {
+  schoolId: string;
+  actorId: string;
+  sessionId: string;
+  expiresAt: number;
+  token: string;
+}
+
+export class TenantSecurityService {
+  public static getSigningSecret(): string {
+    const secret =
+      process.env.DATABASE_TENANT_HMAC_KEY ||
+      process.env.ENCRYPTION_KEY ||
+      "default-dev-tenant-hmac-key-must-be-at-least-32-chars";
+    return secret;
+  }
+
+  public static generateTenantCapability(
+    schoolId: string,
+    actorId: string,
+    sessionId: string,
+    ttlSeconds: number = 300
+  ): TenantCapability {
+    const secret = this.getSigningSecret();
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+    // Canonical format strictly shared with PostgreSQL: school_id:actor_id:session_id:expires_at
+    const message = `${schoolId}:${actorId}:${sessionId}:${expiresAt}`;
+    const token = crypto
+      .createHmac("sha256", Buffer.from(secret, "utf8"))
+      .update(Buffer.from(message, "utf8"))
+      .digest("hex");
+
+    return {
+      schoolId,
+      actorId,
+      sessionId,
+      expiresAt,
+      token,
+    };
+  }
+
+  public static verifyCapability(
+    schoolId: string,
+    actorId: string,
+    sessionId: string,
+    expiresAt: number,
+    token: string
+  ): boolean {
+    if (expiresAt < Math.floor(Date.now() / 1000)) {
+      return false;
+    }
+    const secret = this.getSigningSecret();
+    const message = `${schoolId}:${actorId}:${sessionId}:${expiresAt}`;
+    const expected = crypto
+      .createHmac("sha256", Buffer.from(secret, "utf8"))
+      .update(Buffer.from(message, "utf8"))
+      .digest("hex");
+
+    if (expected.length !== token.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(Buffer.from(expected, "utf8"), Buffer.from(token, "utf8"));
+  }
+}
 
 const safeCache = typeof reactCache === "function" ? reactCache : <T extends (...args: any[]) => any>(fn: T): T => fn;
 
@@ -86,9 +152,27 @@ export type TenantTransaction = Parameters<Parameters<typeof db.transaction>[0]>
 export async function withTenant<T>(
   schoolId: string,
   txCallback: (tx: TenantTransaction) => Promise<T>,
+  options?: { actorId?: string; sessionId?: string }
 ): Promise<T> {
+  const actorId = options?.actorId || "system-actor";
+  const sessionId = options?.sessionId || "default-session";
+  const capability = TenantSecurityService.generateTenantCapability(schoolId, actorId, sessionId);
+
   return await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
+    try {
+      await tx.execute(sql`SELECT security.set_verified_tenant_context(
+        ${capability.schoolId}::uuid,
+        ${capability.actorId},
+        ${capability.sessionId},
+        ${capability.expiresAt}::bigint,
+        ${capability.token}
+      )`);
+    } catch (e: any) {
+      if (!e.message?.includes('schema "security" does not exist') && !e.message?.includes('function security.set_verified_tenant_context')) {
+        throw e;
+      }
+    }
     return await txCallback(tx);
   });
 }
