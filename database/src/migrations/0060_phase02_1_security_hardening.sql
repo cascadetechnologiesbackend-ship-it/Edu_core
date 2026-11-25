@@ -6,8 +6,50 @@
 
 BEGIN;
 
--- 1. Ensure required extensions
-CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
+-- 1. Ensure required extensions and schema
+CREATE SCHEMA IF NOT EXISTS extensions;
+
+DO $$
+BEGIN
+  -- If pgcrypto is already installed in another schema, relocate it to extensions
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto') THEN
+    BEGIN
+      ALTER EXTENSION pgcrypto SET SCHEMA extensions;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  ELSE
+    BEGIN
+      CREATE EXTENSION "pgcrypto" WITH SCHEMA extensions;
+    EXCEPTION WHEN OTHERS THEN
+      CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    END;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  -- If hmac is not in extensions (e.g. pgcrypto installed in public), create a bridge wrapper
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname = 'extensions' AND p.proname = 'hmac'
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM pg_proc p
+      JOIN pg_namespace n ON p.pronamespace = n.oid
+      WHERE n.nspname = 'public' AND p.proname = 'hmac'
+    ) THEN
+      CREATE OR REPLACE FUNCTION extensions.hmac(data bytea, key bytea, type text)
+      RETURNS bytea
+      LANGUAGE sql
+      IMMUTABLE STRICT
+      AS $func$
+        SELECT public.hmac(data, key, type);
+      $func$;
+    END IF;
+  END IF;
+END $$;
 
 -- 2. Create and configure security schema and dedicated roles
 CREATE SCHEMA IF NOT EXISTS security;
@@ -33,6 +75,8 @@ END $$;
 
 ALTER SCHEMA security OWNER TO schoolmitra_secdef_owner;
 GRANT USAGE ON SCHEMA security TO schoolmitra_app, schoolmitra_platform_admin;
+GRANT USAGE ON SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
 
 -- 3. Dedicated Protected Secret Store (Correction A: Never in session GUC)
 CREATE TABLE IF NOT EXISTS security.tenant_secrets (
