@@ -581,6 +581,36 @@ export async function getWorkerHeartbeatStatus(
 if (process.env["START_WORKERS"] === "true") {
   const hasRedis = Boolean(getRedisUrl() || process.env.VALKEY_HOST || process.env.REDIS_HOST);
 
+  // If deployed as a Render Web Service (which provides process.env.PORT and requires an open port),
+  // bind a lightweight HTTP health check listener so Render detects an active port and stays live.
+  const rawPort = process.env.PORT;
+  if (rawPort) {
+    const port = parseInt(rawPort, 10);
+    if (!isNaN(port) && port > 0) {
+      try {
+        import("http").then((http) => {
+          const server = http.createServer((_req, res) => {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                status: "ok",
+                worker: "educore-finance-worker",
+                redisConfigured: hasRedis,
+                uptime: process.uptime(),
+                timestamp: new Date().toISOString(),
+              })
+            );
+          });
+          server.listen(port, "0.0.0.0", () => {
+            console.log(`[FinanceWorker] HTTP Health Check listening on 0.0.0.0:${port}`);
+          });
+        }).catch(() => {});
+      } catch (httpErr) {
+        console.warn("[FinanceWorker] Could not bind HTTP health check server:", httpErr);
+      }
+    }
+  }
+
   // Record immediate startup heartbeat
   recordWorkerHeartbeat("educore-finance-worker", hasRedis ? "alive" : "idle_no_redis").catch((err) =>
     console.error("[FinanceWorker] Failed to record initial heartbeat:", err)
