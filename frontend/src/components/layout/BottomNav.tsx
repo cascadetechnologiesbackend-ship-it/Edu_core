@@ -70,10 +70,10 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
   return (
     <nav
       aria-label="Bottom Navigation"
-      className={`fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 shadow-level-3 pb-safe ${
+      className={`fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--glass-border)] shadow-level-3 pb-safe ${
         isLowTier
           ? "bg-slate-900/98 dark:bg-slate-950/98"
-          : "bg-slate-900/85 dark:bg-slate-950/85 backdrop-blur-xl"
+          : "bg-slate-900/85 dark:bg-slate-950/85 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl"
       }`}
     >
       <div className="max-w-3xl mx-auto grid grid-flow-col auto-cols-fr items-center h-14 px-2">
