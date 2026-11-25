@@ -177,14 +177,15 @@ export function DemoTopBanner() {
         ? `${targetRole.emailSuffix}@demo.schoolos.io`
         : `${targetRole.emailSuffix}.${targetBoard.prefix}@demo.schoolos.io`;
 
+      const destination = targetRole.defaultDashboard || "/dashboard";
       const result = await signIn("credentials", {
         email: targetEmail,
         password: "SchoolMitra@123",
+        callbackUrl: destination,
         redirect: false,
       });
 
-      if (result?.ok) {
-        const destination = targetRole.defaultDashboard || "/dashboard";
+      if (result?.ok || !result?.error || result?.error === "SessionExpired") {
         window.location.href = destination;
       } else {
         alert("Failed to switch role in demo sandbox. Please try again.");

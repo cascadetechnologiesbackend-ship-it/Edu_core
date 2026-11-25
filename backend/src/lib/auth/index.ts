@@ -271,11 +271,17 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         await clearLockout(email);
 
         // Fetch user roles and sort by privilege hierarchy
-        const userRolesList = await db
-          .select({ roleName: roles.name })
-          .from(userRoles)
-          .innerJoin(roles, eq(userRoles.roleId, roles.id))
-          .where(eq(userRoles.userId, user.id));
+        const queryUserRoles = async (tx: any) => {
+          return await tx
+            .select({ roleName: roles.name })
+            .from(userRoles)
+            .innerJoin(roles, eq(userRoles.roleId, roles.id))
+            .where(eq(userRoles.userId, user.id));
+        };
+
+        const userRolesList: { roleName: string }[] = await (user.schoolId
+          ? withTenant(user.schoolId, queryUserRoles)
+          : withAuthContext(queryUserRoles));
 
         const ROLE_HIERARCHY: Record<string, number> = {
           SUPER_ADMIN: 100,
@@ -292,8 +298,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         };
 
         const sortedRoles = userRolesList
-          .map((r) => r.roleName)
-          .sort((a, b) => (ROLE_HIERARCHY[b] ?? -1) - (ROLE_HIERARCHY[a] ?? -1));
+          .map((r: { roleName: string }) => r.roleName)
+          .sort((a: string, b: string) => (ROLE_HIERARCHY[b] ?? -1) - (ROLE_HIERARCHY[a] ?? -1));
 
         // DECIDE-18: Resolve primary role by staff.designation.mappedRole first; fall back to highest privilege
         let resolvedRole = sortedRoles[0] ?? "STUDENT";
@@ -306,7 +312,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             .where(eq(staff.userId, user.id))
             .limit(1);
 
-          if (staffInfo?.mappedRole && userRolesList.some((r) => r.roleName === staffInfo.mappedRole)) {
+          if (staffInfo?.mappedRole && userRolesList.some((r: { roleName: string }) => r.roleName === staffInfo.mappedRole)) {
             resolvedRole = staffInfo.mappedRole as typeof resolvedRole;
           }
         } catch {}

@@ -56,10 +56,18 @@ export const authConfig: NextAuthConfig = {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
       if (url.startsWith("/")) {
         const fullPath = basePath && !url.startsWith(basePath) ? `${basePath}${url}` : url;
+        // Strip out error query params if redirect target points back to login with error
+        if (fullPath.includes("/login") && fullPath.includes("error=")) {
+          return basePath ? `${basePath}/dashboard` : "/dashboard";
+        }
         return fullPath;
       }
       try {
         const parsed = new URL(url);
+        // If redirect target has error parameter from previous session expiration, redirect to dashboard
+        if (parsed.pathname.includes("/login") && parsed.searchParams.has("error")) {
+          return basePath ? `${basePath}/dashboard` : "/dashboard";
+        }
         const baseObj = new URL(baseUrl);
         if (
           parsed.origin === baseObj.origin ||

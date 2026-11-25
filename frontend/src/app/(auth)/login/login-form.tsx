@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn, getSession } from "next-auth/react";
@@ -198,6 +198,13 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [requiresTOTP, setRequiresTOTP] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("error=SessionExpired")) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -224,13 +231,22 @@ export default function LoginForm() {
         ? `${card.emailPrefix}@demo.schoolos.io`
         : `${card.emailPrefix}.${selectedBoard.prefix}@demo.schoolos.io`;
 
+      const defaultDashboard =
+        (card.role && ROLE_CONFIGS[card.role]?.defaultDashboard) || card.destination;
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const targetDashboard =
+        basePath && !defaultDashboard.startsWith(basePath)
+          ? `${basePath}${defaultDashboard}`
+          : defaultDashboard;
+
       const result = await signIn("credentials", {
         email: targetEmail,
         password: "SchoolMitra@123",
+        callbackUrl: targetDashboard,
         redirect: false,
       });
 
-      if (result?.error) {
+      if (result?.error && result.error !== "SessionExpired") {
         setServerError(`Failed to launch demo role: ${result.error}`);
         setLaunchingRole(null);
         return;
@@ -238,16 +254,17 @@ export default function LoginForm() {
 
       // Success: determine target route and navigate immediately
       const session = await getSession();
-      const role = (session?.user as any)?.role as UserRole;
-      const defaultDashboard =
-        (role && ROLE_CONFIGS[role]?.defaultDashboard) || card.destination;
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-      const targetDashboard =
-        basePath && !defaultDashboard.startsWith(basePath)
-          ? `${basePath}${defaultDashboard}`
-          : defaultDashboard;
+      if (!session?.user && result?.error) {
+        setServerError(`Failed to launch demo role: ${result.error}`);
+        setLaunchingRole(null);
+        return;
+      }
 
-      window.location.replace(targetDashboard);
+      const role = (session?.user as any)?.role as UserRole;
+      const resolvedDashboard =
+        (role && ROLE_CONFIGS[role]?.defaultDashboard) || targetDashboard;
+
+      window.location.replace(resolvedDashboard);
     } catch (err) {
       console.error("[DEMO LAUNCH ERROR]", err);
       setServerError("Failed to launch role demo. Please check connection and try again.");
@@ -262,14 +279,18 @@ export default function LoginForm() {
     setServerError(null);
 
     try {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const callbackUrl = basePath ? `${basePath}/dashboard` : "/dashboard";
+
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
         totpCode: data.totpCode || undefined,
+        callbackUrl,
         redirect: false,
       });
 
-      if (result?.error) {
+      if (result?.error && result.error !== "SessionExpired") {
         if (result.error.includes("TOTP_REQUIRED") || result.error === "TOTP_REQUIRED") {
           setRequiresTOTP(true);
           setServerError("Two-factor authentication required. Please enter your 6-digit authenticator code.");
