@@ -49,7 +49,7 @@ export function MobileBottomNav({ onOpenMenu, isMenuOpen }: MobileBottomNavProps
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-xl border-t border-border/40 shadow-level-3 pb-safe"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl border-t border-[var(--glass-border)] shadow-level-3 pb-safe"
       aria-label="Mobile Navigation"
       role="navigation"
     >

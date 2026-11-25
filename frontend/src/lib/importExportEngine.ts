@@ -16,7 +16,16 @@ export type ImportDatasetKey =
   | "SUBJECTS"
   | "FEE_HEADS"
   | "SALARY_TEMPLATES"
-  | "HOLIDAYS";
+  | "HOLIDAYS"
+  | "ADMISSIONS"
+  | "PARENTS"
+  | "TIMETABLE"
+  | "ATTENDANCE_OVERRIDE"
+  | "EXAM_MARKS"
+  | "LIBRARY_INVENTORY"
+  | "TRANSPORT_ROUTES"
+  | "HOSTEL_ROOMS"
+  | "ASSETS_INVENTORY";
 
 export interface ColumnDefinition {
   key: string;
@@ -133,6 +142,137 @@ export const DATASET_SCHEMAS: Record<ImportDatasetKey, DatasetSchema> = {
       { key: "date", label: "Date (YYYY-MM-DD)", required: true, type: "date", sampleValue: "2027-01-26" },
       { key: "holidayType", label: "Type", required: true, type: "enum", allowedEnums: ["NATIONAL", "REGIONAL", "FESTIVAL"], sampleValue: "NATIONAL" },
       { key: "description", label: "Description (Optional)", required: false, type: "string", sampleValue: "National gazetted holiday" },
+    ],
+  },
+  ADMISSIONS: {
+    key: "ADMISSIONS",
+    displayName: "Admissions & Enquiries",
+    description: "Import prospective student enquiries, applications, and admission statuses.",
+    uniqueKeyField: "applicationNumber",
+    columns: [
+      { key: "applicationNumber", label: "Application Number", required: true, type: "string", sampleValue: "APP-2026-001" },
+      { key: "studentName", label: "Student Name", required: true, type: "string", sampleValue: "Ananya Verma" },
+      { key: "dob", label: "Date of Birth (YYYY-MM-DD)", required: true, type: "date", sampleValue: "2014-08-21" },
+      { key: "gender", label: "Gender", required: true, type: "enum", allowedEnums: ["MALE", "FEMALE", "OTHER"], sampleValue: "FEMALE" },
+      { key: "applyingForClass", label: "Applying For Class", required: true, type: "string", sampleValue: "Class 6" },
+      { key: "parentName", label: "Parent Name", required: true, type: "string", sampleValue: "Suresh Verma" },
+      { key: "parentPhone", label: "Parent Phone", required: true, type: "string", sampleValue: "+919876543220" },
+      { key: "status", label: "Status", required: true, type: "enum", allowedEnums: ["ENQUIRY", "APPLIED", "SHORTLISTED", "ADMITTED", "REJECTED"], sampleValue: "APPLIED" },
+    ],
+  },
+  PARENTS: {
+    key: "PARENTS",
+    displayName: "Parents & Guardians",
+    description: "Import parent/guardian profiles linked to student admission numbers.",
+    uniqueKeyField: "phone",
+    columns: [
+      { key: "phone", label: "Phone Number", required: true, type: "string", sampleValue: "+919876543210" },
+      { key: "fullName", label: "Full Name", required: true, type: "string", sampleValue: "Rajesh Sharma" },
+      { key: "email", label: "Email", required: false, type: "string", sampleValue: "rajesh.sharma@example.com" },
+      { key: "relation", label: "Relation", required: true, type: "enum", allowedEnums: ["FATHER", "MOTHER", "GUARDIAN"], sampleValue: "FATHER" },
+      { key: "studentAdmissionNumber", label: "Student Admission Number", required: true, type: "string", sampleValue: "ADM-2026-001" },
+      { key: "occupation", label: "Occupation (Optional)", required: false, type: "string", sampleValue: "Engineer" },
+    ],
+  },
+  TIMETABLE: {
+    key: "TIMETABLE",
+    displayName: "Class Timetable",
+    description: "Import weekly class period schedules, subjects, teachers, and rooms.",
+    uniqueKeyField: "slotKey",
+    columns: [
+      { key: "slotKey", label: "Slot Key", required: true, type: "string", sampleValue: "10A-MON-P1" },
+      { key: "className", label: "Class Name", required: true, type: "string", sampleValue: "Class 10" },
+      { key: "sectionName", label: "Section", required: true, type: "string", sampleValue: "A" },
+      { key: "dayOfWeek", label: "Day of Week", required: true, type: "enum", allowedEnums: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], sampleValue: "MONDAY" },
+      { key: "periodNumber", label: "Period Number", required: true, type: "number", sampleValue: "1" },
+      { key: "subjectCode", label: "Subject Code", required: true, type: "string", sampleValue: "MATH-041" },
+      { key: "teacherEmployeeCode", label: "Teacher Employee Code", required: true, type: "string", sampleValue: "EMP-101" },
+      { key: "roomNumber", label: "Room Number (Optional)", required: false, type: "string", sampleValue: "R-204" },
+    ],
+  },
+  ATTENDANCE_OVERRIDE: {
+    key: "ATTENDANCE_OVERRIDE",
+    displayName: "Attendance Override",
+    description: "Import bulk attendance corrections or backdated attendance records.",
+    uniqueKeyField: "recordKey",
+    columns: [
+      { key: "recordKey", label: "Record Key", required: true, type: "string", sampleValue: "ADM-2026-001_2026-11-20" },
+      { key: "admissionNumber", label: "Admission Number", required: true, type: "string", sampleValue: "ADM-2026-001" },
+      { key: "date", label: "Date (YYYY-MM-DD)", required: true, type: "date", sampleValue: "2026-11-20" },
+      { key: "status", label: "Attendance Status", required: true, type: "enum", allowedEnums: ["PRESENT", "ABSENT", "LATE", "HALF_DAY", "EXCUSED"], sampleValue: "PRESENT" },
+      { key: "reason", label: "Override Reason", required: true, type: "string", sampleValue: "Medical certificate submitted" },
+    ],
+  },
+  EXAM_MARKS: {
+    key: "EXAM_MARKS",
+    displayName: "Exam Marks",
+    description: "Import student examination marks per subject and exam cycle.",
+    uniqueKeyField: "markKey",
+    columns: [
+      { key: "markKey", label: "Mark Key", required: true, type: "string", sampleValue: "UT1-ADM-2026-001-MATH" },
+      { key: "examCode", label: "Exam Code", required: true, type: "string", sampleValue: "UT-1-2026" },
+      { key: "admissionNumber", label: "Admission Number", required: true, type: "string", sampleValue: "ADM-2026-001" },
+      { key: "subjectCode", label: "Subject Code", required: true, type: "string", sampleValue: "MATH-041" },
+      { key: "marksObtained", label: "Marks Obtained", required: true, type: "number", sampleValue: "88" },
+      { key: "maxMarks", label: "Max Marks", required: true, type: "number", sampleValue: "100" },
+      { key: "isAbsent", label: "Is Absent (TRUE/FALSE)", required: false, type: "string", sampleValue: "FALSE" },
+    ],
+  },
+  LIBRARY_INVENTORY: {
+    key: "LIBRARY_INVENTORY",
+    displayName: "Library Inventory",
+    description: "Import library books, ISBNs, authors, categories, and copy counts.",
+    uniqueKeyField: "accessionNumber",
+    columns: [
+      { key: "accessionNumber", label: "Accession Number", required: true, type: "string", sampleValue: "LIB-0001" },
+      { key: "title", label: "Book Title", required: true, type: "string", sampleValue: "Concepts of Physics Vol 1" },
+      { key: "author", label: "Author", required: true, type: "string", sampleValue: "H.C. Verma" },
+      { key: "isbn", label: "ISBN (Optional)", required: false, type: "string", sampleValue: "978-8177091878" },
+      { key: "category", label: "Category", required: true, type: "string", sampleValue: "Science" },
+      { key: "totalCopies", label: "Total Copies", required: true, type: "number", sampleValue: "10" },
+    ],
+  },
+  TRANSPORT_ROUTES: {
+    key: "TRANSPORT_ROUTES",
+    displayName: "Transport Routes",
+    description: "Import school bus routes, vehicle numbers, drivers, and monthly fees.",
+    uniqueKeyField: "routeCode",
+    columns: [
+      { key: "routeCode", label: "Route Code", required: true, type: "string", sampleValue: "RT-01" },
+      { key: "routeName", label: "Route Name", required: true, type: "string", sampleValue: "Sector 14 - Main Campus" },
+      { key: "vehicleNumber", label: "Vehicle Number", required: true, type: "string", sampleValue: "DL-1PC-4521" },
+      { key: "driverName", label: "Driver Name", required: true, type: "string", sampleValue: "Ramesh Kumar" },
+      { key: "driverPhone", label: "Driver Phone", required: true, type: "string", sampleValue: "+919876543299" },
+      { key: "monthlyFee", label: "Monthly Fee (₹)", required: true, type: "number", sampleValue: "2200" },
+    ],
+  },
+  HOSTEL_ROOMS: {
+    key: "HOSTEL_ROOMS",
+    displayName: "Hostel Rooms",
+    description: "Import hostel blocks, room numbers, capacities, and monthly charges.",
+    uniqueKeyField: "roomCode",
+    columns: [
+      { key: "roomCode", label: "Room Code", required: true, type: "string", sampleValue: "BH-101" },
+      { key: "hostelName", label: "Hostel Name", required: true, type: "string", sampleValue: "Boys Hostel A" },
+      { key: "roomNumber", label: "Room Number", required: true, type: "string", sampleValue: "101" },
+      { key: "roomType", label: "Room Type", required: true, type: "enum", allowedEnums: ["SINGLE", "DOUBLE", "TRIPLE", "DORMITORY"], sampleValue: "DOUBLE" },
+      { key: "capacity", label: "Bed Capacity", required: true, type: "number", sampleValue: "2" },
+      { key: "monthlyFee", label: "Monthly Fee (₹)", required: true, type: "number", sampleValue: "6500" },
+    ],
+  },
+  ASSETS_INVENTORY: {
+    key: "ASSETS_INVENTORY",
+    displayName: "Assets Inventory",
+    description: "Import school fixed assets, equipment, serial numbers, and locations.",
+    uniqueKeyField: "assetTag",
+    columns: [
+      { key: "assetTag", label: "Asset Tag", required: true, type: "string", sampleValue: "AST-2026-001" },
+      { key: "name", label: "Asset Name", required: true, type: "string", sampleValue: "Smart Interactive Board" },
+      { key: "category", label: "Category", required: true, type: "string", sampleValue: "IT Equipment" },
+      { key: "location", label: "Location", required: true, type: "string", sampleValue: "Room 102" },
+      { key: "purchaseDate", label: "Purchase Date (YYYY-MM-DD)", required: true, type: "date", sampleValue: "2026-04-15" },
+      { key: "purchaseValue", label: "Purchase Value (₹)", required: true, type: "number", sampleValue: "85000" },
+      { key: "condition", label: "Condition", required: true, type: "enum", allowedEnums: ["NEW", "GOOD", "FAIR", "NEEDS_REPAIR", "RETIRED"], sampleValue: "GOOD" },
     ],
   },
 };
@@ -387,3 +527,276 @@ export function sanitizeExportRecord(
 
   return sanitized;
 }
+
+
+/**
+ * Prevents CSV/XLSX formula injection by prefixing values starting with
+ * '=', '+', '-', '@', '\t', or '\r' with a single quote (').
+ */
+export function sanitizeForSpreadsheet(value: string): string {
+  if (!value) return value;
+  const firstChar = value.charAt(0);
+  if (
+    firstChar === "=" ||
+    firstChar === "+" ||
+    firstChar === "-" ||
+    firstChar === "@" ||
+    firstChar === "\t" ||
+    firstChar === "\r"
+  ) {
+    return `'${value}`;
+  }
+  return value;
+}
+
+export type ExportKey =
+  | "EXPORT_ATTENDANCE_REGISTER"
+  | "EXPORT_EXAM_RESULTS"
+  | "EXPORT_MARKSHEET"
+  | "EXPORT_FEE_COLLECTION_REPORT"
+  | "EXPORT_FEE_CHALLAN_BATCH"
+  | "EXPORT_PAYROLL_STATEMENT"
+  | "EXPORT_STAFF_LIST"
+  | "EXPORT_STUDENT_LIST"
+  | "EXPORT_TIMETABLE"
+  | "EXPORT_LIBRARY_REPORT"
+  | "EXPORT_TRANSPORT_REPORT";
+
+export type ExportFormat = "PDF" | "XLSX" | "CSV";
+
+export interface ExportDefinition {
+  key: ExportKey;
+  displayName: string;
+  description: string;
+  supportedFormats: ExportFormat[];
+  category: "ACADEMIC" | "FINANCE" | "HR" | "OPERATIONS";
+  requiresFilter?: string[];
+}
+
+export const EXPORT_DEFINITIONS: Record<ExportKey, ExportDefinition> = {
+  EXPORT_STUDENT_LIST: {
+    key: "EXPORT_STUDENT_LIST",
+    displayName: "Student Directory",
+    description: "Export enrolled students with class, section, admission number, and guardian contact.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "ACADEMIC",
+    requiresFilter: ["classId", "sectionId"],
+  },
+  EXPORT_ATTENDANCE_REGISTER: {
+    key: "EXPORT_ATTENDANCE_REGISTER",
+    displayName: "Attendance Register",
+    description: "Export monthly or date-range student attendance register with present/absent summary.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "ACADEMIC",
+    requiresFilter: ["classId", "sectionId", "month"],
+  },
+  EXPORT_EXAM_RESULTS: {
+    key: "EXPORT_EXAM_RESULTS",
+    displayName: "Exam Results Ledger",
+    description: "Export subject-wise marks, totals, percentages, and ranks for an exam cycle.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "ACADEMIC",
+    requiresFilter: ["examId", "classId"],
+  },
+  EXPORT_MARKSHEET: {
+    key: "EXPORT_MARKSHEET",
+    displayName: "Student Marksheet",
+    description: "Export individual or batch student marksheets with grades and remarks.",
+    supportedFormats: ["PDF"],
+    category: "ACADEMIC",
+    requiresFilter: ["examId", "studentId"],
+  },
+  EXPORT_FEE_COLLECTION_REPORT: {
+    key: "EXPORT_FEE_COLLECTION_REPORT",
+    displayName: "Fee Collection Report",
+    description: "Export fee receipts, payment modes, head-wise totals, and collection summary.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "FINANCE",
+    requiresFilter: ["fromDate", "toDate"],
+  },
+  EXPORT_FEE_CHALLAN_BATCH: {
+    key: "EXPORT_FEE_CHALLAN_BATCH",
+    displayName: "Fee Challan Batch",
+    description: "Export printable batch fee challans for pending student dues.",
+    supportedFormats: ["PDF"],
+    category: "FINANCE",
+    requiresFilter: ["classId", "feeCycleId"],
+  },
+  EXPORT_PAYROLL_STATEMENT: {
+    key: "EXPORT_PAYROLL_STATEMENT",
+    displayName: "Payroll Statement",
+    description: "Export monthly staff salary register with earnings, deductions, and net pay.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "HR",
+    requiresFilter: ["month", "year"],
+  },
+  EXPORT_STAFF_LIST: {
+    key: "EXPORT_STAFF_LIST",
+    displayName: "Staff Directory",
+    description: "Export teaching and non-teaching staff directory with department and designation.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "HR",
+  },
+  EXPORT_TIMETABLE: {
+    key: "EXPORT_TIMETABLE",
+    displayName: "Class Timetable",
+    description: "Export weekly period-wise timetable grid for a class/section or teacher.",
+    supportedFormats: ["PDF"],
+    category: "ACADEMIC",
+    requiresFilter: ["classId", "sectionId"],
+  },
+  EXPORT_LIBRARY_REPORT: {
+    key: "EXPORT_LIBRARY_REPORT",
+    displayName: "Library Inventory & Circulation",
+    description: "Export library catalog, issued books, overdue items, and available copies.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "OPERATIONS",
+  },
+  EXPORT_TRANSPORT_REPORT: {
+    key: "EXPORT_TRANSPORT_REPORT",
+    displayName: "Transport Routes & Allocation",
+    description: "Export bus routes, vehicle assignments, driver contacts, and student ridership.",
+    supportedFormats: ["PDF", "XLSX", "CSV"],
+    category: "OPERATIONS",
+  },
+};
+
+export interface ImportDefinition {
+  key: ImportDatasetKey;
+  displayName: string;
+  description: string;
+  category: "ACADEMIC" | "FINANCE" | "HR" | "OPERATIONS";
+  maxRows: number;
+  supportsDryRun: boolean;
+}
+
+export const IMPORT_DEFINITIONS: Record<ImportDatasetKey, ImportDefinition> = {
+  STUDENTS: {
+    key: "STUDENTS",
+    displayName: "Students Directory",
+    description: "Bulk import enrolled students and primary parent contacts.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  STAFF: {
+    key: "STAFF",
+    displayName: "Teaching & Non-Teaching Staff",
+    description: "Bulk import staff records, departments, and roles.",
+    category: "HR",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  CLASSES: {
+    key: "CLASSES",
+    displayName: "Classes & Sections",
+    description: "Bulk import class hierarchy and section divisions.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  SUBJECTS: {
+    key: "SUBJECTS",
+    displayName: "Curriculum Subjects",
+    description: "Bulk import subject catalogues and weekly period counts.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  FEE_HEADS: {
+    key: "FEE_HEADS",
+    displayName: "Fee Structure Heads",
+    description: "Bulk import fee heads, frequencies, and ledger codes.",
+    category: "FINANCE",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  SALARY_TEMPLATES: {
+    key: "SALARY_TEMPLATES",
+    displayName: "HR Salary Templates",
+    description: "Bulk import salary grade templates and allowance percentages.",
+    category: "HR",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  HOLIDAYS: {
+    key: "HOLIDAYS",
+    displayName: "Academic Calendar Holidays",
+    description: "Bulk import national, regional, and school holidays.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  ADMISSIONS: {
+    key: "ADMISSIONS",
+    displayName: "Admissions & Enquiries",
+    description: "Bulk import prospective student enquiries and applications.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  PARENTS: {
+    key: "PARENTS",
+    displayName: "Parents & Guardians",
+    description: "Bulk import parent/guardian profiles linked to students.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  TIMETABLE: {
+    key: "TIMETABLE",
+    displayName: "Class Timetable",
+    description: "Bulk import weekly class period schedules.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  ATTENDANCE_OVERRIDE: {
+    key: "ATTENDANCE_OVERRIDE",
+    displayName: "Attendance Override",
+    description: "Bulk import attendance corrections and backdated records.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  EXAM_MARKS: {
+    key: "EXAM_MARKS",
+    displayName: "Exam Marks",
+    description: "Bulk import student examination marks.",
+    category: "ACADEMIC",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  LIBRARY_INVENTORY: {
+    key: "LIBRARY_INVENTORY",
+    displayName: "Library Inventory",
+    description: "Bulk import library books and copy counts.",
+    category: "OPERATIONS",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  TRANSPORT_ROUTES: {
+    key: "TRANSPORT_ROUTES",
+    displayName: "Transport Routes",
+    description: "Bulk import bus routes, vehicles, and drivers.",
+    category: "OPERATIONS",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  HOSTEL_ROOMS: {
+    key: "HOSTEL_ROOMS",
+    displayName: "Hostel Rooms",
+    description: "Bulk import hostel rooms, capacities, and fees.",
+    category: "OPERATIONS",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+  ASSETS_INVENTORY: {
+    key: "ASSETS_INVENTORY",
+    displayName: "Assets Inventory",
+    description: "Bulk import school fixed assets and equipment.",
+    category: "OPERATIONS",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
+};

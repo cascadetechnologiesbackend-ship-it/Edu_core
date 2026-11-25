@@ -185,7 +185,7 @@ export function Sidebar({
     return (
       <aside
         className={cn(
-          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-border/40 text-foreground transition-all duration-300",
+          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl border-r border-[var(--glass-border)] text-foreground transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
@@ -213,7 +213,7 @@ export function Sidebar({
     return (
       <aside
         className={cn(
-          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-border/40 text-foreground transition-all duration-300",
+          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl border-r border-[var(--glass-border)] text-foreground transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"
@@ -276,7 +276,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 backdrop-blur-xl border-r border-border/40 text-foreground transition-all duration-300",
+          "flex flex-col h-full bg-[#F2F2F7]/95 dark:bg-[#161616]/95 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl border-r border-[var(--glass-border)] text-foreground transition-all duration-300",
           "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:static md:z-auto md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
           collapsed ? "md:w-16" : "md:w-64"

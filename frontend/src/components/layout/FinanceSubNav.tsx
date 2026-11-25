@@ -83,7 +83,7 @@ export function FinanceSubNav({ activeSection }: FinanceSubNavProps) {
   ];
 
   return (
-    <div className="w-full bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 rounded-xl shadow-sm mb-6 p-2 overflow-x-auto">
+    <div className="w-full bg-white/85 dark:bg-slate-900/85 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-sm mb-6 p-2 overflow-x-auto">
       <div className="flex items-center gap-6 min-w-max px-2">
         {links.map((section) => (
           <div key={section.group} className="flex items-center gap-1.5 border-r border-gray-100 dark:border-slate-800 pr-5 last:border-r-0">

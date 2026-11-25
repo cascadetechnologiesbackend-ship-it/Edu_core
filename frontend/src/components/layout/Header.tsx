@@ -104,7 +104,7 @@ export function Header({
 
   return (
     <header
-      className="h-14 bg-background/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-border/40 flex items-center px-3 sm:px-4 md:px-6 gap-2 sm:gap-4 flex-shrink-0 sticky top-0 z-40 transition-colors"
+      className="h-14 bg-background/80 dark:bg-slate-900/80 supports-[backdrop-filter]:bg-[var(--glass-bg)] backdrop-blur-xl border-b border-[var(--glass-border)] flex items-center px-3 sm:px-4 md:px-6 gap-2 sm:gap-4 flex-shrink-0 sticky top-0 z-40 transition-colors"
       role="banner"
     >
       {/* Mobile Hamburger Drawer Trigger (UX-R21: min 44px tap target) */}
