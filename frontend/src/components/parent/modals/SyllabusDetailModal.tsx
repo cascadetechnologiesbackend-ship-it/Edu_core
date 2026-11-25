@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppModal } from "@/components/ui/AppModal";
 import {
   CheckCircle2,
@@ -51,13 +51,33 @@ export function SyllabusDetailModal({
   data,
   initialSubjectId,
 }: SyllabusDetailModalProps) {
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
+    initialSubjectId || data?.subjects?.[0]?.subjectId || ""
+  );
+
+  // Synchronize when data loads asynchronously or initialSubjectId changes,
+  // preserving valid user selection if that subject exists in the updated data.
+  useEffect(() => {
+    if (!data?.subjects || data.subjects.length === 0) return;
+
+    setSelectedSubjectId((current) => {
+      // If current selected subject is still present, preserve user's choice
+      if (current && data.subjects.some((s) => s.subjectId === current)) {
+        return current;
+      }
+      // If initialSubjectId is provided and valid, use it
+      if (initialSubjectId && data.subjects.some((s) => s.subjectId === initialSubjectId)) {
+        return initialSubjectId;
+      }
+      // Otherwise default to the first available subject
+      return data.subjects[0]?.subjectId || "";
+    });
+  }, [data, initialSubjectId]);
+
+  if (!open) return null;
   if (!data || !data.subjects || data.subjects.length === 0) return null;
 
   const isHi = locale === "hi";
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
-    initialSubjectId || data.subjects[0]?.subjectId || ""
-  );
-
   const activeSubject =
     data.subjects.find((s) => s.subjectId === selectedSubjectId) || data.subjects[0]!;
 
@@ -138,7 +158,7 @@ export function SyllabusDetailModal({
                 </div>
 
                 <div className="space-y-2 pl-2">
-                  {unit.chapters.map((ch) => (
+                  {unit.chapters?.map((ch) => (
                     <div key={ch.chapterNumber} className="space-y-1.5">
                       <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         {isHi ? `अध्याय ${ch.chapterNumber}: ` : `Chapter ${ch.chapterNumber}: `}
@@ -146,7 +166,7 @@ export function SyllabusDetailModal({
                       </div>
 
                       <div className="space-y-1 pl-2">
-                        {ch.topics.map((top) => (
+                        {ch.topics?.map((top) => (
                           <div
                             key={top.id}
                             className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400"

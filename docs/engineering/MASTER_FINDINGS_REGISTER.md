@@ -12,11 +12,11 @@
 | :--- | :---: | :---: | :--- | :--- | :---: |
 | **EDU-P1-001** | **P1 (Critical)** | C02 Data Integrity | Background Worker Queries Circumvent Tenant Context Transaction | `backend/src/workers/financeAutomation.ts`, `retention.ts` | **REMEDIATED (Phase 02)** |
 | **EDU-P1-002** | **P1 (Critical)** | C03 Security / Ops | Wildcard `advisoryId: "*"` in Dependency Security Audit Registry | `.audit-exceptions.json`, `scripts/audit-dependencies.mjs` | **REMEDIATED (Phase 02)** |
-| **EDU-P1-003** | **P1 (Critical)** | C02/C03 Multi-Tenancy | Database Row-Level Security (RLS) Completeness Verification | `database/src/schema/`, 59 migrations | **REMEDIATED (Phase 02)** |
+| **EDU-P1-003** | **P1 (Critical)** | C02/C03 Multi-Tenancy | Database Row-Level Security (RLS) Completeness Verification | `database/src/schema/`, 59 migrations | **PARTIAL (Local/CI Verified; Staging/Prod Rollout Pending)** |
 | **EDU-P2-001** | **P2 (High)** | C06 Scalability | Distributed Rate Limiting Fallback State Partitioning on Redis Drop | `backend/src/lib/rateLimiter.ts` | **PENDING (Phase 03)** |
 | **EDU-P2-002** | **P2 (High)** | C03 Security | Super Admin Session Validation Bypasses Active Account Check | `backend/src/lib/serverAuth.ts` | **REMEDIATED (Phase 02)** |
 | **EDU-P2-003** | **P2 (High)** | C03 Security | Content Security Policy Allows `'unsafe-inline'` in Production | `frontend/next.config.mjs` | **PENDING (Phase 03)** |
-| **EDU-P2-004** | **P2 (High)** | C08 DevSecOps | Monorepo CI Pipeline Omits Backend and Shared Package Linting | `.github/workflows/ci.yml` | **PENDING (Phase 04)** |
+| **EDU-P2-004** | **P2 (High)** | C08 DevSecOps | Monorepo CI Pipeline Omits Backend and Shared Package Linting | `.github/workflows/ci.yml` | **PARTIAL (Frontend Hooks Remediated 0 Errors; Monorepo Root Script Scheduled Phase 04)** |
 | **EDU-P2-005** | **P2 (High)** | C05 Frontend / UX | 12,302 Color Escapes Across 340 Files Violating Apple HIG Theming | `frontend/src/app/`, 10 core administrative modules | **PENDING (Phase 05)** |
 
 ---

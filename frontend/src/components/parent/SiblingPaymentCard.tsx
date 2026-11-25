@@ -27,14 +27,14 @@ export function SiblingPaymentCard({
   locale = "en",
   onSuccess,
 }: SiblingPaymentCardProps) {
-  if (siblings.length < 2) return null;
+  const [paid, setPaid] = useState(false);
+
+  if (!siblings || siblings.length < 2) return null;
 
   const totalBalance = siblings.reduce(
     (sum, s) => sum + s.balanceAmount + s.lateFeeAmount,
     0
   );
-
-  const [paid, setPaid] = useState(false);
 
   const handleSuccess = (data: RazorpayPaymentSuccessData) => {
     setPaid(true);

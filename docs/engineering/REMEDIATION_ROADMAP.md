@@ -1,7 +1,10 @@
-# SchoolMitra ERP — Remediation Roadmap (Phase 01)
-**Directive**: `EDUCORE_MASTER_ENGINEERING_EXCELLENCE` v1.0.0  
-**Target Maturity**: 10.00 / 10.00 Across All 12 Categories  
-**Execution Principle**: Phased, Non-Breaking, Automated Verification at Every Gate
+# SchoolMitra ERP — Remediation Roadmap (Phase 02 Continuation)
+
+**Directive ID:** `EDUCORE_ENGINEERING_EXCELLENCE_PHASE02_CONTINUATION`  
+**Version:** 1.1.0  
+**Target Maturity:** Evidence-Backed 10.00 / 10.00 Across All 11 Engineering Domains  
+**Execution Principle:** Phased, Non-Breaking, Automated Verification at Every Gate  
+**Scoring Principle:** `No_Self_Certification_Without_Verifiable_Evidence`  
 
 ---
 
@@ -9,96 +12,106 @@
 
 ```mermaid
 flowchart LR
-    P00["Phase 00 & 01<br/>Discovery & Spec<br/>(COMPLETED)"]
-    P02["Phase 02<br/>Multi-Tenancy & Security<br/>(P1 Remediations)"]
-    P03["Phase 03<br/>API & Auth Hardening<br/>(P2 Remediations)"]
-    P04["Phase 04<br/>Monorepo CI/CD & DevSecOps"]
-    P05["Phase 05<br/>Apple HIG Design System<br/>(10 Module Scopes)"]
-    P06["Phase 06<br/>Verification & Regression"]
-    P07["Phase 07<br/>Final 10/10 Certification"]
+    P02["Phase 02<br/>Tenant Isolation & Security<br/>(COMPLETED)"]
+    P03["Phase 03<br/>API Reliability, Auth & CSP<br/>(READY)"]
+    P04["Phase 04<br/>DB Performance & Queues"]
+    P05["Phase 05<br/>CI/CD & Infra Resilience"]
+    P06["Phase 06<br/>Observability & Drills"]
+    P07["Phase 07<br/>Frontend & Apple HIG"]
+    P08["Phase 08<br/>Assessment & Release"]
 
-    P00 --> P02
     P02 --> P03
     P03 --> P04
     P04 --> P05
     P05 --> P06
     P06 --> P07
+    P07 --> P08
 ```
 
 ---
 
-## 2. Phase-by-Phase Execution Plan
+## 2. Phase-by-Phase Execution Architecture
 
-### Phase 02: Multi-Tenancy, Data Integrity & Security Remediation (P1 Deliverables)
-- **Goal**: Resolve all P1 architectural defects threatening data integrity, multi-tenancy, and security compliance.
-- **Tasks**:
-  1. **SPEC-001**: Refactor `backend/src/workers/financeAutomation.ts` and `retention.ts` to accept and propagate `tx` across all queries.
-  2. **SPEC-002**: Clean `.audit-exceptions.json` to eliminate all wildcard `*` advisory IDs; replace with exact CVE IDs. Patch/pin `follow-redirects` and `zod`.
-  3. **SPEC-003**: Execute exhaustive RLS verification script against all 19 database schema files and apply `FORCE ROW LEVEL SECURITY` where needed.
-  4. **SPEC-005**: Update `backend/src/lib/serverAuth.ts` to enforce `users.isActive` check for `SUPER_ADMIN` in platform context.
-- **Gate Verification**:
-  - `node scripts/audit-dependencies.mjs` exits with code 0 (zero unapproved vulnerabilities).
-  - Multi-tenant worker test suite confirms queries execute inside transaction context.
-  - Deactivated Super Admin token test returns `null` session.
+### Phase 02: Tenant Isolation, Financial Integrity, Critical Security & CI Baseline (COMPLETED)
+- **Goal:** Resolve all architectural defects threatening data integrity, multi-tenancy, and security compliance; fix blocking CI lint errors.
+- **Key Landed Deliverables:**
+  1. Mandatory `tx: TenantTransaction` in all background worker call chains (`financeAutomation.ts`, `retention.ts`, `dpdp/actions.ts`).
+  2. Live database active status and role verification for `SUPER_ADMIN` in platform context (`serverAuth.ts`).
+  3. Migration `0059_complete_fail_closed_rls.sql` covering 136 gap tables (local/CI test verified); 9 runtime catalog tests passing.
+  4. Elimination of all 20 wildcard exceptions in `.audit-exceptions.json` (67 exact GHSA IDs, 90-day expiry, fail-closed gate).
+  5. Root-cause fix for 4 React Hook violations across `HRDashboardClient.tsx`, `SiblingPaymentCard.tsx`, `SyllabusDetailModal.tsx` (`next lint` exits code 0 with 0 errors).
+  6. Established 11-domain `ENGINEERING_EXCELLENCE_CHECKLIST.md` and `ENGINEERING_CONTROL_COVERAGE.md`.
 
 ---
 
-### Phase 03: API & Authentication Hardening (P2 Deliverables)
-- **Goal**: Protect API endpoints against brute force, replay attacks, and connection drops.
-- **Tasks**:
-  1. **SPEC-004**: Implement bounded LRU rate limiter fallback in `backend/src/lib/rateLimiter.ts`; fail-closed policy on sensitive credentials/claims.
-  2. **SPEC-006**: Generate dynamic CSP nonce in Next.js middleware and remove `'unsafe-inline'` from production headers in `frontend/next.config.mjs`.
-- **Gate Verification**:
-  - Penetration test verifying rate limiter prevents brute-force login attempts during simulated Redis outage.
-  - Browser inspection verifying CSP response headers contain dynamic cryptographic nonce.
+### Phase 03: API Reliability, Authentication, Session Security, Rate Limiting & CSP (READY)
+- **Goal:** Protect public endpoints against brute force, connection drops, and XSS injection.
+- **Tasks:**
+  1. **SPEC-004 (Rate Limiting):** Implement bounded LRU rate limiter fallback in `backend/src/lib/rateLimiter.ts`; fail-closed policy on sensitive credentials and student claim flows during Redis partition.
+  2. **SPEC-006 (Content Security Policy):** Generate dynamic per-request cryptographic nonces in Next.js middleware; remove `'unsafe-inline'` from production headers in `frontend/next.config.mjs`.
+  3. **SPEC-008 (Session Security):** Enforce strict session token refresh ladders, 2FA challenge support for Super Admin, and brute-force lockout counters.
+- **Gate Verification:**
+  - Automated penetration test verifying rate limiter prevents brute-force attempts during simulated Redis outage.
+  - Browser inspection verifying CSP response headers contain dynamic cryptographic nonce without `'unsafe-inline'`.
 
 ---
 
-### Phase 04: Monorepo CI/CD & DevSecOps Hardening
-- **Goal**: Eliminate static analysis blind spots and enforce monorepo-wide quality gates.
-- **Tasks**:
-  1. **SPEC-007**: Update `.github/workflows/ci.yml` to run `pnpm run lint` across all 8 workspace packages.
-  2. Integrate `node scripts/audit-dependencies.mjs` into CI workflow before build step.
-  3. Integrate `node scripts/audit-color-tokens.mjs` into pre-commit and CI gates.
-- **Gate Verification**:
-  - CI pipeline passes all jobs: monorepo lint, typecheck, migrations journal, unit tests, and security audits.
+### Phase 04: Database Performance, Concurrency, Caching & Background-Job Reliability
+- **Goal:** High-throughput transactional stability under peak morning intake and fee cycles.
+- **Tasks:**
+  1. Systematic index tuning and EXPLAIN query plan optimization across top 20 OLTP query paths.
+  2. BullMQ graceful shutdown signal handling (`SIGTERM`/`SIGINT`) with queue intake pause and active job drainage.
+  3. Connection pooling tuning and statement timeout budget enforcement.
+  4. Monorepo package lint script coverage: add ESLint configurations and `lint` scripts to `backend`, `database`, `packages/dpdp`, `packages/entity-engine`, `packages/domain-events`, and `packages/eslint-plugin-schoolmitra`.
+- **Gate Verification:**
+  - `pnpm run lint` across entire workspace via Turborepo passes with zero errors on all 8 packages.
+  - Zero unindexed table scans on tables with >1,000 records.
 
 ---
 
-### Phase 05: Frontend Architecture & Module-Scoped Apple HIG Theming
-- **Goal**: Eliminate 12,302 color escapes and transform all administrative screens to Apple HIG dark neutral styling with module-scoped semantic accents.
-- **Sub-Modules in Scope**:
-  1. **Admissions & Intake**: Apple Purple accent theme, 6-step wizard overhaul, DPDP notice styling.
-  2. **Academics & Classes (ClassHub)**: Apple Blue accent theme, class cards, subject allocation matrix.
-  3. **Exams & Evaluation**: Apple Indigo accent theme, 6-stage assessment pipeline, datesheets.
-  4. **Fee Matrix**: Apple Emerald accent theme, class-wise fee pricing matrix, fine simulator.
-  5. **Accounts Hub & Fee Collection**: Apple Green accent theme, POS counter terminal, 80mm thermal receipt preview.
-  6. **Transport Operations**: Apple Amber accent theme, vehicle fleet desk, route stop manager.
-  7. **HR & Staff (Teacher 360)**: Apple Cyan accent theme, photo avatar with monogram fallback, frequency tabs.
-  8. **DPDP Compliance Centre**: Apple Teal accent theme, consent coverage gauges, purge center.
-  9. **School Settings Dashboard**: Apple Zinc/Dark Neutral theme, setup progress cards.
-  10. **Student 360 Profile**: High-stakes identity card, photo avatar upload path, truth-based metrics.
-- **Gate Verification**:
-  - `node scripts/audit-color-tokens.mjs` reports 0 violations across all 340 files.
-  - Visual consistency across all 10 modules aligned with Apple Human Interface Guidelines.
+### Phase 05: CI/CD, Deployment Architecture, Infrastructure Security & Operational Resilience
+- **Goal:** Automated, reproducible infrastructure and deployment pipelines with zero configuration drift.
+- **Tasks:**
+  1. Multi-stage Docker container hardening (non-root distroless execution, minimal attack surface).
+  2. Infrastructure as Code (IaC) definitions for cloud S3, Neon, and Redis provisioning.
+  3. GitHub Actions CI pipeline hardening: automated dependency scanning, migration checks, and branch protections.
+  4. Staging environment parity automation.
+- **Gate Verification:**
+  - Docker container security scan reports zero high/critical vulnerabilities.
+  - Automated deployment pipeline deploys to staging and runs automated smoke verification.
 
 ---
 
-### Phase 06: Verification & Automated Regression Testing
-- **Goal**: Full automated verification across unit, integration, and E2E suites.
-- **Tasks**:
-  1. Run `pnpm --filter @schoolmitra/backend run test` (Vitest).
-  2. Run `pnpm --filter @schoolmitra/frontend run test` (Vitest).
-  3. Run `pnpm run type-check` across all 8 packages.
-  4. Run `pnpm run lint` across the monorepo.
-  5. Run Playwright E2E smoke tests.
-- **Gate Verification**:
-  - 100% test pass rate with zero failures.
+### Phase 06: Observability, Backups, Disaster Recovery, Performance/Load Tests & Comprehensive Regression Testing
+- **Goal:** Complete operational visibility and proven recovery capability.
+- **Tasks:**
+  1. Distributed tracing: propagate `X-Correlation-ID` from HTTP ingress into BullMQ background job payloads.
+  2. Disaster recovery drill: execute simulated point-in-time recovery (PITR) against disposable test database; verify RPO <1h, RTO <4h.
+  3. Centralized metrics & alerting on database pool usage, worker queue lag, and error rates.
+  4. High-concurrency load testing (simulating 2,000 concurrent students and fee collections).
+- **Gate Verification:**
+  - Documented disaster recovery drill report with verifiable restoration timestamps.
+  - Distributed trace visualization demonstrating end-to-end correlation from click to worker completion.
 
 ---
 
-### Phase 07: Final 10/10 Certification & Sign-off
-- **Goal**: Re-score all 12 categories in `docs/engineering/BASELINE_SCORECARD.md` with verifiable proof and publish the Final Engineering Excellence Audit Report.
-- **Gate Verification**:
-  - All 12 categories achieve a verified score of 10.0 / 10.0.
-  - Final report signed off and pushed to `main`.
+### Phase 07: Frontend Accessibility, Responsive Quality, Approved Design-System Completion & Final Verification
+- **Goal:** Transform administrative modules to ratified Apple HIG design system with zero accessibility barriers.
+- **Tasks:**
+  1. Systematic elimination of 12,302 color token escapes across all 10 core administrative modules (Admissions, Academics, Exams, Fee Matrix, Accounts/POS, Transport, Teacher 360, DPDP, Settings, Student 360).
+  2. WCAG 2.2 AA accessibility audit (contrast ratios, screen reader ARIA labels, keyboard tab navigation).
+  3. Resolution of the 19 informational ESLint warnings in administrative workbench components.
+- **Gate Verification:**
+  - `node scripts/audit-color-tokens.mjs` reports 0 violations across all 340 frontend files.
+  - Automated axe-core accessibility audit reports zero violations.
+
+---
+
+### Phase 08: Independent Production-Readiness Assessment & Controlled Release
+- **Goal:** Final evidence-backed verification of the product destination charter.
+- **Tasks:**
+  1. Comprehensive 11-domain scorecard evaluation with verifiable execution logs for every control.
+  2. Final release tagging and staging verification.
+  3. Controlled production cutover plan with zero downtime.
+- **Gate Verification:**
+  - Formal CTO sign-off on 10/10 maturity backed by test logs, audit reports, and live catalog queries.

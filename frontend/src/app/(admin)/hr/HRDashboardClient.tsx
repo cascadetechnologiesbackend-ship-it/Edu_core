@@ -93,6 +93,16 @@ export default function HRDashboardClient({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
+  // Read initial tab from search param or default to 'overview' (OD4)
+  const initialTab = normalizeTab(searchParams.get("tab"));
+  const [activeTab, setActiveTab] = useState<HRTabKey>(initialTab);
+
+  // Sync state if URL changes externally without navigation loops
+  useEffect(() => {
+    const normalized = normalizeTab(searchParams.get("tab"));
+    setActiveTab((prev) => (prev !== normalized ? normalized : prev));
+  }, [searchParams]);
+
   const userRole = session?.user?.role;
 
   // Defensive client guard: TEACHER role should never see HR hub
@@ -112,18 +122,6 @@ export default function HRDashboardClient({
   // Role permissions per OD2
   const canViewPayroll = isSuperAdmin || isSchoolAdmin || isHRManager;
   const canViewSettings = isSuperAdmin || isSchoolAdmin;
-
-  // Read initial tab from search param or default to 'overview' (OD4)
-  const initialTab = normalizeTab(searchParams.get("tab"));
-  const [activeTab, setActiveTab] = useState<HRTabKey>(initialTab);
-
-  // Sync state if URL changes externally
-  useEffect(() => {
-    const normalized = normalizeTab(searchParams.get("tab"));
-    if (normalized !== activeTab) {
-      setActiveTab(normalized);
-    }
-  }, [searchParams]);
 
   const handleTabChange = (tab: HRTabKey) => {
     setActiveTab(tab);
