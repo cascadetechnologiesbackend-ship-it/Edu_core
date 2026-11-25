@@ -178,10 +178,13 @@ export function DemoTopBanner() {
         : `${targetRole.emailSuffix}.${targetBoard.prefix}@demo.schoolos.io`;
 
       const destination = targetRole.defaultDashboard || "/dashboard";
+      const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const fullCallbackUrl = new URL(destination, origin).toString();
+
       const result = await signIn("credentials", {
         email: targetEmail,
         password: "SchoolMitra@123",
-        callbackUrl: destination,
+        callbackUrl: fullCallbackUrl,
         redirect: false,
       });
 

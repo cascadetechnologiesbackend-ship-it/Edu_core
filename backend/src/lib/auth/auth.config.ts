@@ -54,19 +54,22 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async redirect({ url, baseUrl }) {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-      if (url.startsWith("/")) {
-        const fullPath = basePath && !url.startsWith(basePath) ? `${basePath}${url}` : url;
-        // Strip out error query params if redirect target points back to login with error
-        if (fullPath.includes("/login") && fullPath.includes("error=")) {
-          return basePath ? `${basePath}/dashboard` : "/dashboard";
-        }
-        return fullPath;
-      }
+      const defaultTarget = basePath ? `${basePath}/dashboard` : "/dashboard";
+
       try {
+        if (url.startsWith("/")) {
+          const fullPath = basePath && !url.startsWith(basePath) ? `${basePath}${url}` : url;
+          // Strip out error query params if redirect target points back to login with error
+          if (fullPath.includes("/login") && fullPath.includes("error=")) {
+            return new URL(defaultTarget, baseUrl).toString();
+          }
+          return new URL(fullPath, baseUrl).toString();
+        }
+
         const parsed = new URL(url);
         // If redirect target has error parameter from previous session expiration, redirect to dashboard
         if (parsed.pathname.includes("/login") && parsed.searchParams.has("error")) {
-          return basePath ? `${basePath}/dashboard` : "/dashboard";
+          return new URL(defaultTarget, baseUrl).toString();
         }
         const baseObj = new URL(baseUrl);
         if (
@@ -76,10 +79,13 @@ export const authConfig: NextAuthConfig = {
           parsed.hostname.includes("cascade-erp.in") ||
           parsed.hostname.includes("onrender.com")
         ) {
-          return url;
+          if (parsed.pathname.includes("/login") && parsed.search) {
+            return new URL(defaultTarget, baseUrl).toString();
+          }
+          return parsed.toString();
         }
       } catch {}
-      return basePath ? `${basePath}/dashboard` : "/dashboard";
+      return new URL(defaultTarget, baseUrl).toString();
     },
     authorized({ auth, request: { nextUrl, headers } }) {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";

@@ -239,10 +239,13 @@ export default function LoginForm() {
           ? `${basePath}${defaultDashboard}`
           : defaultDashboard;
 
+      const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const fullCallbackUrl = new URL(targetDashboard, origin).toString();
+
       const result = await signIn("credentials", {
         email: targetEmail,
         password: "SchoolMitra@123",
-        callbackUrl: targetDashboard,
+        callbackUrl: fullCallbackUrl,
         redirect: false,
       });
 
@@ -252,8 +255,8 @@ export default function LoginForm() {
         return;
       }
 
-      // If signIn succeeded (result?.ok is true), navigate immediately to role dashboard
-      if (result?.ok) {
+      // If signIn succeeded or session transition is active, navigate immediately to role dashboard
+      if (result?.ok || !result?.error || result?.error === "SessionExpired") {
         window.location.replace(targetDashboard);
         return;
       }
@@ -289,13 +292,15 @@ export default function LoginForm() {
 
     try {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-      const callbackUrl = basePath ? `${basePath}/dashboard` : "/dashboard";
+      const dashboardPath = basePath ? `${basePath}/dashboard` : "/dashboard";
+      const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const fullCallbackUrl = new URL(dashboardPath, origin).toString();
 
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
         totpCode: data.totpCode || undefined,
-        callbackUrl,
+        callbackUrl: fullCallbackUrl,
         redirect: false,
       });
 
