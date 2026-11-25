@@ -57,8 +57,9 @@ export class JitDiagnosticService {
             ${JSON.stringify(filterParameters)}::jsonb
           ) as audit_log_id
         `);
-        const first = rows[0] as any;
-        return first?.audit_log_id || (Array.isArray(rows) && rows[0]?.audit_log_id);
+        const resultRows = (rows as any).rows || (Array.isArray(rows) ? rows : []);
+        const first = resultRows[0] as any;
+        return first?.audit_log_id;
       });
       auditLogId = typeof intentResult === "string" ? intentResult : (intentResult as any)?.audit_log_id;
     } catch (err: any) {
@@ -82,8 +83,9 @@ export class JitDiagnosticService {
             ${offset}
           ) as diagnostic_data
         `);
-        const first = rows[0] as any;
-        return first?.diagnostic_data || (Array.isArray(rows) && rows[0]?.diagnostic_data);
+        const resultRows = (rows as any).rows || (Array.isArray(rows) ? rows : []);
+        const first = resultRows[0] as any;
+        return first?.diagnostic_data;
       });
       records = Array.isArray(readResult) ? readResult : (readResult as any) || [];
     } catch (readErr: any) {
