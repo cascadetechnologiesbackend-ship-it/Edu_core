@@ -92,8 +92,13 @@ $$;
 
 SELECT security.safe_set_owner('ALTER SCHEMA security OWNER TO schoolmitra_secdef_owner');
 GRANT USAGE ON SCHEMA security TO schoolmitra_app, schoolmitra_platform_admin;
-GRANT USAGE ON SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
+DO $$
+BEGIN
+  GRANT USAGE ON SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
+  GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Skipping extensions schema privilege update: %', SQLERRM;
+END $$;
 
 -- 3. Dedicated Protected Secret Store (Correction A: Never in session GUC)
 CREATE TABLE IF NOT EXISTS security.tenant_secrets (
@@ -594,257 +599,191 @@ REVOKE ALL ON FUNCTION security.record_access_outcome(uuid, text, integer, text)
 GRANT EXECUTE ON FUNCTION security.record_access_outcome(uuid, text, integer, text) TO schoolmitra_platform_admin;
 
 -- 8. Complete Atomic Privilege Reset & Default ACL Revocation
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM schoolmitra_app;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM schoolmitra_app;
-REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM schoolmitra_app;
+DO $$
+DECLARE
+  r text;
+  revoker_roles text[] := ARRAY[CURRENT_USER::text, 'schoolmitra_owner', 'schoolmitra_migrator', 'schoolmitra', 'postgres'];
+  stmt text;
+  revoke_stmts text[] := ARRAY[
+    'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM schoolmitra_app',
+    'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM schoolmitra_app',
+    'REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM schoolmitra_app',
+    'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM schoolmitra_platform_admin',
+    'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM schoolmitra_platform_admin',
+    'REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM schoolmitra_platform_admin',
+    'REVOKE ALL ON SCHEMA public FROM PUBLIC',
+    'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC',
+    'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC',
+    'REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM PUBLIC'
+  ];
+BEGIN
+  FOREACH stmt IN ARRAY revoke_stmts LOOP
+    BEGIN
+      EXECUTE stmt;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipping privilege revoke (%): %', stmt, SQLERRM;
+    END;
+  END LOOP;
 
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM schoolmitra_platform_admin;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM schoolmitra_platform_admin;
-REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM schoolmitra_platform_admin;
-
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM PUBLIC;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra_owner IN SCHEMA public 
-  REVOKE ALL ON TABLES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra_migrator IN SCHEMA public 
-  REVOKE ALL ON TABLES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra IN SCHEMA public 
-  REVOKE ALL ON TABLES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public 
-  REVOKE ALL ON TABLES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra_owner IN SCHEMA public 
-  REVOKE ALL ON SEQUENCES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra_migrator IN SCHEMA public 
-  REVOKE ALL ON SEQUENCES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra_owner IN SCHEMA public 
-  REVOKE ALL ON ROUTINES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
-ALTER DEFAULT PRIVILEGES FOR ROLE schoolmitra_migrator IN SCHEMA public 
-  REVOKE ALL ON ROUTINES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC;
+  FOREACH r IN ARRAY revoker_roles LOOP
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
+      BEGIN
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON TABLES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC', r);
+      EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Skipping default table privilege revoke for role %: %', r, SQLERRM;
+      END;
+      BEGIN
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON SEQUENCES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC', r);
+      EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Skipping default sequence privilege revoke for role %: %', r, SQLERRM;
+      END;
+      BEGIN
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON ROUTINES FROM schoolmitra_app, schoolmitra_platform_admin, PUBLIC', r);
+      EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Skipping default routine privilege revoke for role %: %', r, SQLERRM;
+      END;
+    ELSE
+      RAISE NOTICE 'Role % does not exist, skipping default privilege revoke', r;
+    END IF;
+  END LOOP;
+END $$;
 
 GRANT USAGE ON SCHEMA public TO schoolmitra_app, schoolmitra_platform_admin, schoolmitra_secdef_owner, schoolmitra_audit_writer;
 
--- 9. Explicit Table Grants for schoolmitra_app (All 171 Tables)
-GRANT SELECT, INSERT, UPDATE, DELETE ON
-  academic_calendar_events,
-  academic_terms,
-  academic_years,
-  account_ledger_transactions,
-  admission_applications,
-  admission_documents,
-  admission_workflow_steps,
-  admit_card_templates,
-  alumni,
-  assessments,
-  asset_assignments,
-  assets,
-  assignment_submissions,
-  assignments,
-  attendance_notifications,
-  bank_accounts,
-  bell_schedule,
-  book_copies,
-  book_fines,
-  book_issues,
-  books,
-  bus_boarding_events,
-  certificates,
-  chart_of_accounts,
-  class_subjects,
-  class_teacher_assignments,
-  classes,
-  cocurricular_areas,
-  cocurricular_grades,
-  consent_purposes,
-  consent_records,
-  data_breach_log,
-  data_retention_policies,
-  departments,
-  designations,
-  domain_events,
-  dpdp_grievances,
-  drivers,
-  email_logs,
-  events,
-  exam_admit_card_holds,
-  exam_admit_card_settings,
-  exam_class_scopes,
-  exam_components,
-  exam_mark_distributions,
-  exam_marks_locks,
-  exam_schedules,
-  exam_types,
-  exams,
-  expense_heads,
-  expense_vouchers,
-  fee_carry_forwards,
-  fee_challans,
-  fee_concessions,
-  fee_discounts,
-  fee_due_slips,
-  fee_groups,
-  fee_heads,
-  fee_invoices,
-  fee_payments,
-  fee_queries,
-  fee_structures,
-  grade_rules,
-  homeroom_report_remarks,
-  hostel_allocations,
-  hostel_rooms,
-  income_heads,
-  income_vouchers,
-  inventory_items,
-  leave_balances,
-  leave_requests,
-  leave_types,
-  lesson_plans,
-  library_members,
-  mark_entries,
-  medical_exemptions,
-  notice_acknowledgments,
-  notices,
-  parent_feed_cards,
-  parent_notification_preferences,
-  parent_teacher_messages,
-  payment_gateway_logs,
-  payroll_runs,
-  payslips,
-  persons,
-  platform_announcements,
-  privacy_notices,
-  profile_change_requests,
-  ptm_bookings,
-  ptm_events,
-  ptm_slots,
-  public_result_lookups,
-  purchase_orders,
-  push_notification_logs,
-  report_card_jobs,
-  report_card_setups,
-  report_cards,
-  result_holds,
-  result_settings,
-  result_snapshots,
-  rights_requests,
-  roles,
-  route_stops,
-  routes,
-  salary_components,
-  salary_templates,
-  school_counters,
-  school_provisions,
-  section_subject_teachers,
-  sections,
-  sms_logs,
-  staff,
-  staff_attendance,
-  staff_documents,
-  staff_loans,
-  stock_movements,
-  stop_change_requests,
-  student_attendance,
-  student_bus_passes,
-  student_class_history,
-  student_document_requests,
-  student_documents,
-  student_family_members,
-  student_leave_requests,
-  student_medical_records,
-  student_subject_enrollments,
-  students,
-  subjects,
-  syllabus_chapters,
-  syllabus_topics,
-  syllabus_units,
-  teacher_feed_cards,
-  timetable_periods,
-  timetable_substitutions,
-  uploaded_marksheets,
-  usage_events,
-  user_push_subscriptions,
-  user_roles,
-  users,
-  vehicles,
-  vendor_register,
-  visitor_logs,
-  waitlist
-TO schoolmitra_app;
+-- 9. Explicit Table Grants for schoolmitra_app (Existence-Guarded)
+DO $$
+DECLARE
+  t text;
+  app_crud_tables text[] := ARRAY[
+    'academic_calendar_events', 'academic_terms', 'academic_years', 'account_ledger_transactions',
+    'admission_applications', 'admission_documents', 'admission_workflow_steps', 'admit_card_templates',
+    'alumni', 'assessments', 'asset_assignments', 'assets', 'assignment_submissions', 'assignments',
+    'attendance_notifications', 'bank_accounts', 'bell_schedule', 'book_copies', 'book_fines',
+    'book_issues', 'books', 'bus_boarding_events', 'certificates', 'chart_of_accounts',
+    'class_subjects', 'class_teacher_assignments', 'classes', 'cocurricular_areas', 'cocurricular_grades',
+    'consent_purposes', 'consent_records', 'data_breach_log', 'data_retention_policies', 'departments',
+    'designations', 'domain_events', 'dpdp_grievances', 'drivers', 'email_logs', 'events',
+    'exam_admit_card_holds', 'exam_admit_card_settings', 'exam_class_scopes', 'exam_components',
+    'exam_mark_distributions', 'exam_marks_locks', 'exam_schedules', 'exam_types', 'exams',
+    'expense_heads', 'expense_vouchers', 'fee_carry_forwards', 'fee_challans', 'fee_concessions',
+    'fee_discounts', 'fee_due_slips', 'fee_group_heads', 'fee_groups', 'fee_heads', 'fee_invoices',
+    'fee_payments', 'fee_queries', 'fee_refunds', 'fee_structures', 'gps_pings', 'grade_rules',
+    'homeroom_report_remarks', 'hostel_allocations',
+    'hostel_rooms', 'income_heads', 'income_vouchers', 'inventory_items', 'leave_balances',
+    'leave_requests', 'leave_types', 'lesson_plans', 'library_members', 'mark_entries',
+    'medical_exemptions', 'notice_acknowledgments', 'notices', 'parent_feed_cards',
+    'parent_notification_preferences', 'parent_teacher_messages', 'payment_gateway_logs',
+    'payroll_runs', 'payslips', 'persons', 'platform_announcement_reads', 'platform_announcements',
+    'privacy_notices',
+    'profile_change_requests', 'ptm_bookings', 'ptm_events', 'ptm_slots', 'public_result_lookups',
+    'purchase_orders', 'push_notification_logs', 'report_card_jobs', 'report_card_setups',
+    'report_cards', 'result_holds', 'result_settings', 'result_snapshots', 'rights_requests',
+    'role_permissions', 'roles', 'route_stops', 'routes', 'salary_components', 'salary_templates', 'school_counters',
+    'school_provisions', 'section_subject_teachers', 'sections', 'sms_logs', 'staff',
+    'staff_attendance', 'staff_documents', 'staff_loans', 'stock_movements', 'stop_change_requests',
+    'student_attendance', 'student_bus_passes', 'student_class_history', 'student_document_requests',
+    'student_documents', 'student_family_members', 'student_fee_advance_allocations',
+    'student_fee_advances', 'student_leave_requests', 'student_medical_records',
+    'student_subject_enrollments', 'students', 'subjects', 'syllabus_chapters', 'syllabus_topics',
+    'syllabus_units', 'teacher_feed_cards', 'timetable_periods', 'timetable_substitutions',
+    'uploaded_marksheets', 'usage_events', 'user_push_subscriptions', 'user_roles', 'users',
+    'vehicles', 'vendor_register', 'visitor_logs', 'waitlist', 'worker_heartbeats'
+  ];
+  app_cru_tables text[] := ARRAY[
+    'student_fee_discounts', 'student_fee_installments', 'student_fee_waivers',
+    'bus_attendance', 'whatsapp_templates'
+  ];
+  app_cr_tables text[] := ARRAY[
+    'audit_logs', 'fee_audit_logs', 'pii_audit_trails', 'error_telemetry', 'system_metrics'
+  ];
+  app_ro_tables text[] := ARRAY[
+    'country_codes', 'currency_registry', 'curriculum_frameworks', 'educational_boards',
+    'global_template_academic_years', 'global_template_classes', 'global_template_fee_heads',
+    'global_template_holidays', 'global_template_profiles', 'global_template_roles',
+    'global_template_salary_grades', 'global_template_subjects', 'global_template_timetable',
+    'grading_scale_templates', 'holiday_templates', 'language_registry', 'permissions',
+    'pincode_registry', 'state_province_registry', 'subject_master_catalog', 'timezone_registry', 'schools'
+  ];
+  platform_admin_ro_tables text[] := ARRAY[
+    'schools', 'academic_years', 'academic_terms', 'classes', 'sections', 'school_system_settings',
+    'platform_audit_logs', 'country_codes', 'currency_registry', 'curriculum_frameworks',
+    'educational_boards', 'global_template_academic_years', 'global_template_classes',
+    'global_template_fee_heads', 'global_template_holidays', 'global_template_profiles',
+    'global_template_roles', 'global_template_salary_grades', 'global_template_subjects',
+    'global_template_timetable', 'grading_scale_templates', 'holiday_templates', 'language_registry',
+    'permissions', 'pincode_registry', 'state_province_registry', 'subject_master_catalog', 'timezone_registry'
+  ];
+  protected_tables text[] := ARRAY[
+    'super_admin_users', 'sessions', 'password_reset_tokens', 'email_verification_tokens',
+    'impersonation_sessions', 'jit_access_audit_logs', 'jit_audit_sessions'
+  ];
+BEGIN
+  FOREACH t IN ARRAY app_crud_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO schoolmitra_app', t);
+    ELSE
+      RAISE NOTICE 'Table public.% does not exist, skipping app CRUD grant', t;
+    END IF;
+  END LOOP;
 
-GRANT SELECT, INSERT, UPDATE ON
-  public.student_fee_discounts,
-  public.student_fee_installments,
-  public.student_fee_waivers,
-  public.bus_attendance,
-  public.whatsapp_templates
-TO schoolmitra_app;
+  FOREACH t IN ARRAY app_cru_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT, INSERT, UPDATE ON public.%I TO schoolmitra_app', t);
+    ELSE
+      RAISE NOTICE 'Table public.% does not exist, skipping app CRU grant', t;
+    END IF;
+  END LOOP;
 
-GRANT SELECT, INSERT ON
-  public.audit_logs,
-  public.fee_audit_logs,
-  public.pii_audit_trails,
-  public.error_telemetry,
-  public.system_metrics
-TO schoolmitra_app;
+  FOREACH t IN ARRAY app_cr_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT, INSERT ON public.%I TO schoolmitra_app', t);
+    ELSE
+      RAISE NOTICE 'Table public.% does not exist, skipping app CR grant', t;
+    END IF;
+  END LOOP;
 
-GRANT SELECT ON
-  public.country_codes,
-  public.currency_registry,
-  public.curriculum_frameworks,
-  public.educational_boards,
-  public.grading_scale_templates,
-  public.holiday_templates,
-  public.language_registry,
-  public.pincode_registry,
-  public.state_province_registry,
-  public.subject_master_catalog,
-  public.timezone_registry,
-  public.schools
-TO schoolmitra_app;
+  FOREACH t IN ARRAY app_ro_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT ON public.%I TO schoolmitra_app', t);
+    ELSE
+      RAISE NOTICE 'Table public.% does not exist, skipping app RO grant', t;
+    END IF;
+  END LOOP;
 
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO schoolmitra_app;
+  BEGIN
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO schoolmitra_app;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Skipping sequence grants: %', SQLERRM;
+  END;
 
--- 10. Explicit Grants for Platform Admin & Protected Tables
-GRANT SELECT ON
-  public.schools,
-  public.academic_years,
-  public.academic_terms,
-  public.classes,
-  public.sections,
-  public.school_system_settings,
-  public.platform_audit_logs,
-  public.country_codes,
-  public.currency_registry,
-  public.curriculum_frameworks,
-  public.educational_boards,
-  public.grading_scale_templates,
-  public.holiday_templates,
-  public.language_registry,
-  public.pincode_registry,
-  public.state_province_registry,
-  public.subject_master_catalog,
-  public.timezone_registry
-TO schoolmitra_platform_admin;
+  -- 10. Explicit Grants for Platform Admin & Protected Tables
+  FOREACH t IN ARRAY platform_admin_ro_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT ON public.%I TO schoolmitra_platform_admin', t);
+    ELSE
+      RAISE NOTICE 'Table public.% does not exist, skipping platform_admin RO grant', t;
+    END IF;
+  END LOOP;
 
-REVOKE ALL ON
-  public.super_admin_users,
-  public.sessions,
-  public.password_reset_tokens,
-  public.email_verification_tokens,
-  public.impersonation_sessions,
-  public.jit_access_audit_logs,
-  public.jit_audit_sessions
-FROM schoolmitra_app, PUBLIC;
+  FOREACH t IN ARRAY protected_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NOT NULL THEN
+      EXECUTE format('REVOKE ALL ON public.%I FROM schoolmitra_app, PUBLIC', t);
+    ELSE
+      RAISE NOTICE 'Table public.% does not exist, skipping protected revoke', t;
+    END IF;
+  END LOOP;
+END $$;
 
 GRANT SELECT, INSERT, UPDATE ON public.jit_audit_sessions TO schoolmitra_platform_admin;
 GRANT SELECT ON public.jit_access_audit_logs TO schoolmitra_platform_admin;
 GRANT INSERT, SELECT ON public.jit_access_audit_logs TO schoolmitra_secdef_owner;
 
 -- Block manual modification on audit logs
+DROP POLICY IF EXISTS jit_audit_insert_policy ON public.jit_access_audit_logs;
+DROP POLICY IF EXISTS jit_audit_select_policy ON public.jit_access_audit_logs;
+DROP POLICY IF EXISTS jit_audit_no_update ON public.jit_access_audit_logs;
+DROP POLICY IF EXISTS jit_audit_no_delete ON public.jit_access_audit_logs;
+
 CREATE POLICY jit_audit_insert_policy ON public.jit_access_audit_logs
   FOR INSERT TO schoolmitra_secdef_owner WITH CHECK (true);
 
