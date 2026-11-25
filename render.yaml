@@ -17,13 +17,9 @@ services:
       - key: HOSTNAME
         value: 0.0.0.0
       - key: DATABASE_URL
-        fromDatabase:
-          name: educore-db
-          property: connectionString
+        sync: false
       - key: MIGRATION_DATABASE_URL
-        fromDatabase:
-          name: educore-db
-          property: connectionString
+        sync: false
       - key: DATABASE_POOL_MIN
         value: "2"
       - key: DATABASE_POOL_MAX
@@ -87,9 +83,7 @@ services:
       - key: START_WORKERS
         value: "true"
       - key: DATABASE_URL
-        fromDatabase:
-          name: educore-db
-          property: connectionString
+        sync: false
       - key: DATABASE_POOL_MIN
         value: "2"
       - key: DATABASE_POOL_MAX
