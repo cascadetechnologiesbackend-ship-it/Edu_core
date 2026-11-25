@@ -252,19 +252,28 @@ export default function LoginForm() {
         return;
       }
 
-      // Success: determine target route and navigate immediately
-      const session = await getSession();
-      if (!session?.user && result?.error) {
-        setServerError(`Failed to launch demo role: ${result.error}`);
-        setLaunchingRole(null);
+      // If signIn succeeded (result?.ok is true), navigate immediately to role dashboard
+      if (result?.ok) {
+        window.location.replace(targetDashboard);
         return;
       }
 
-      const role = (session?.user as any)?.role as UserRole;
-      const resolvedDashboard =
-        (role && ROLE_CONFIGS[role]?.defaultDashboard) || targetDashboard;
+      // Success: determine target route and navigate immediately
+      const session = await getSession();
+      if (session?.user) {
+        const role = (session.user as any)?.role as UserRole;
+        const resolvedDashboard =
+          (role && ROLE_CONFIGS[role]?.defaultDashboard) || targetDashboard;
+        window.location.replace(resolvedDashboard);
+        return;
+      }
 
-      window.location.replace(resolvedDashboard);
+      if (result?.error) {
+        setServerError(`Failed to launch demo role: ${result.error}`);
+      } else {
+        setServerError("Failed to launch demo role. Please try again.");
+      }
+      setLaunchingRole(null);
     } catch (err) {
       console.error("[DEMO LAUNCH ERROR]", err);
       setServerError("Failed to launch role demo. Please check connection and try again.");

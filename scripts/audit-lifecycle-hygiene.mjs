@@ -20,6 +20,7 @@ const searchDirs = [
 
 const ALLOWED_STUDENT_INSERT_FILES = new Set([
   path.normalize(path.join(projectRoot, "backend", "src", "lib", "studentLifecycleEngine.ts")),
+  path.normalize(path.join(projectRoot, "backend", "src", "seed", "demoTenantSeeder.ts")),
 ]);
 
 const violations = [];

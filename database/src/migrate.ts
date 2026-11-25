@@ -119,8 +119,28 @@ async function main() {
     console.log("[Migrate] Injected APP_DB_PASSWORD into migration session context.");
   }
 
+  const tenantHmacKey =
+    process.env["DATABASE_TENANT_HMAC_KEY"] ||
+    process.env["ENCRYPTION_KEY"] ||
+    "default-dev-tenant-hmac-key-must-be-at-least-32-chars";
+  await pool.query(`SELECT set_config('app.migration_tenant_hmac_key', $1, false)`, [tenantHmacKey]);
+  console.log("[Migrate] Injected tenant HMAC configuration into migration session context.");
+
   await migrate(db, { migrationsFolder });
   console.log("Migration completed");
+
+  // Synchronize tenant HMAC secret into protected secret store
+  try {
+    const provProc = await pool.query(
+      `SELECT to_regprocedure('security.provision_tenant_secret(text,text)') as proc;`
+    );
+    if (provProc.rows[0]?.proc) {
+      await pool.query(`SELECT security.provision_tenant_secret('tenant_hmac_primary', $1);`, [tenantHmacKey]);
+      console.log("[Migrate] Synchronized tenant HMAC secret into protected secret store.");
+    }
+  } catch (secErr) {
+    console.warn("[Migrate] Notice during tenant secret provisioning:", secErr);
+  }
 
   // S7-T1: In production, enforce NOLOGIN on schoolmitra_app_login to close the credential surface.
   // The application connection pool connects as the owner role and sets session role to schoolmitra_app.

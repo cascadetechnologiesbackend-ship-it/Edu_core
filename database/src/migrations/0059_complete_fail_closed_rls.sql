@@ -145,6 +145,11 @@ DECLARE
   ];
 BEGIN
   FOREACH tbl IN ARRAY tables LOOP
+    IF to_regclass(format('public.%I', tbl)) IS NULL THEN
+      RAISE NOTICE 'Table % does not exist in schema public, skipping', tbl;
+      CONTINUE;
+    END IF;
+
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I;', tbl);
     EXECUTE format('DROP POLICY IF EXISTS tenant_select_policy ON %I;', tbl);
     EXECUTE format('DROP POLICY IF EXISTS tenant_insert_policy ON %I;', tbl);

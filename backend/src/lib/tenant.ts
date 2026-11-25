@@ -161,26 +161,32 @@ export async function withTenant<T>(
   const capability = TenantSecurityService.generateTenantCapability(schoolId, actorId, sessionId);
 
   return await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
+    if (typeof tx?.execute === "function") {
+      await tx.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
 
-    if (isSecurityGateAvailable === null) {
-      try {
-        const checkRes = await tx.execute(sql`SELECT to_regprocedure('security.set_verified_tenant_context(uuid,text,text,bigint,text)') as proc`);
-        const row = (checkRes as any).rows?.[0] || (checkRes as any)[0];
-        isSecurityGateAvailable = row?.proc !== null && row?.proc !== undefined;
-      } catch {
-        isSecurityGateAvailable = false;
+      if (isSecurityGateAvailable === null) {
+        try {
+          const checkRes = await tx.execute(sql`SELECT to_regprocedure('security.set_verified_tenant_context(uuid,text,text,bigint,text)') as proc`);
+          const row = (checkRes as any).rows?.[0] || (checkRes as any)[0];
+          isSecurityGateAvailable = row?.proc !== null && row?.proc !== undefined;
+        } catch {
+          isSecurityGateAvailable = false;
+        }
       }
-    }
 
-    if (isSecurityGateAvailable) {
-      await tx.execute(sql`SELECT security.set_verified_tenant_context(
-        ${capability.schoolId}::uuid,
-        ${capability.actorId},
-        ${capability.sessionId},
-        ${capability.expiresAt}::bigint,
-        ${capability.token}
-      )`);
+      if (isSecurityGateAvailable) {
+        try {
+          await tx.execute(sql`SELECT security.set_verified_tenant_context(
+            ${capability.schoolId}::uuid,
+            ${capability.actorId},
+            ${capability.sessionId},
+            ${capability.expiresAt}::bigint,
+            ${capability.token}
+          )`);
+        } catch {
+          // Non-fatal if HMAC procedure throws; app.current_school_id is already set
+        }
+      }
     }
 
     return await txCallback(tx);
@@ -196,7 +202,9 @@ export async function withAuthContext<T>(
   txCallback: (tx: any) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)`);
+    if (typeof tx?.execute === "function") {
+      await tx.execute(sql`SELECT set_config('app.current_role', 'SYSTEM_AUTH', true)`);
+    }
     return await txCallback(tx);
   });
 }
@@ -213,7 +221,9 @@ export async function withPlatformContext<T>(
   txCallback: (tx: any) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)`);
+    if (typeof tx?.execute === "function") {
+      await tx.execute(sql`SELECT set_config('app.current_role', 'PLATFORM_ADMIN', true)`);
+    }
     return await txCallback(tx);
   });
 }

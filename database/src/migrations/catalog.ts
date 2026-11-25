@@ -978,6 +978,26 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
     breakingChange: false,
   },
   {
+    index: 58,
+    tag: "0058_parent_notification_preferences",
+    filename: "0058_parent_notification_preferences.sql",
+    domain: "COMMUNICATION",
+    title: "Parent Notification Preferences",
+    description: "Configures parent notification tier opt-outs and quiet hours override preferences.",
+    tablesCreated: ["parent_notification_preferences"],
+    tablesAltered: [],
+    foreignKeysAdded: [
+      { sourceTable: "parent_notification_preferences", sourceColumn: "school_id", targetTable: "schools", targetColumn: "id", onDelete: "CASCADE" },
+      { sourceTable: "parent_notification_preferences", sourceColumn: "parent_user_id", targetTable: "users", targetColumn: "id", onDelete: "CASCADE" },
+    ],
+    indexesCreated: [
+      "parent_notif_prefs_user_idx",
+      "parent_notif_prefs_school_idx",
+    ],
+    rlsPoliciesAdded: ["tenant_select_policy", "tenant_insert_policy", "tenant_update_policy", "tenant_delete_policy"],
+    breakingChange: false,
+  },
+  {
     index: 59,
     tag: "0059_complete_fail_closed_rls",
     filename: "0059_complete_fail_closed_rls.sql",
@@ -1019,6 +1039,29 @@ export const MIGRATIONS_CATALOG: MigrationMetadata[] = [
       "tenant_isolation_fence",
       "jit_audit_insert_policy",
       "jit_audit_select_policy"
+    ],
+    breakingChange: false,
+  },
+  {
+    index: 61,
+    tag: "0061_fix_auth_rls_and_tenant_hmac",
+    filename: "0061_fix_auth_rls_and_tenant_hmac.sql",
+    domain: "SECURITY_RLS",
+    title: "Authentication RLS Fix & Tenant HMAC Synchronization",
+    description: "Restores SYSTEM_AUTH and PLATFORM_ADMIN access on users, roles, and user_roles, adds fallback verification on is_tenant_verified, and synchronizes tenant HMAC secrets.",
+    tablesCreated: [],
+    tablesAltered: [
+      "users",
+      "roles",
+      "user_roles"
+    ],
+    foreignKeysAdded: [],
+    indexesCreated: [],
+    rlsPoliciesAdded: [
+      "tenant_select_policy",
+      "tenant_insert_policy",
+      "tenant_update_policy",
+      "tenant_delete_policy"
     ],
     breakingChange: false,
   },

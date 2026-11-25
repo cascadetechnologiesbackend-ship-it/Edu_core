@@ -409,6 +409,13 @@
       "breakpoints": true
     },
     {
+      "idx": 58,
+      "version": "5",
+      "when": 1795400000000,
+      "tag": "0058_parent_notification_preferences",
+      "breakpoints": true
+    },
+    {
       "idx": 59,
       "version": "7",
       "when": 1795581894753,
@@ -420,6 +427,13 @@
       "version": "7",
       "when": 1795598028778,
       "tag": "0060_phase02_1_security_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1795610000000,
+      "tag": "0061_fix_auth_rls_and_tenant_hmac",
       "breakpoints": true
     }
   ]

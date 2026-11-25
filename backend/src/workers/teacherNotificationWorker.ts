@@ -284,17 +284,20 @@ export async function drainTeacherQuietHoursQueue(
     return { flushedCount: 0, skippedQuietCount: 1 };
   }
 
-  const filter = schoolId
-    ? and(
-        eq(pushNotificationLogs.schoolId, schoolId),
-        eq(pushNotificationLogs.status, "QUEUED_QUIET_HOURS")
-      )
-    : eq(pushNotificationLogs.status, "QUEUED_QUIET_HOURS");
-
-  const queuedLogs = await db.query.pushNotificationLogs.findMany({
-    where: filter,
-    limit: 500,
-  });
+  const queuedLogs = schoolId
+    ? await withTenant(schoolId, async (tx) => {
+        return await tx.query.pushNotificationLogs.findMany({
+          where: and(
+            eq(pushNotificationLogs.schoolId, schoolId),
+            eq(pushNotificationLogs.status, "QUEUED_QUIET_HOURS")
+          ),
+          limit: 500,
+        });
+      })
+    : await db.query.pushNotificationLogs.findMany({
+        where: eq(pushNotificationLogs.status, "QUEUED_QUIET_HOURS"),
+        limit: 500,
+      });
 
   if (queuedLogs.length === 0) {
     return { flushedCount: 0, skippedQuietCount: 0 };
@@ -315,12 +318,14 @@ export async function drainTeacherQuietHoursQueue(
     );
     const success = results[0]?.success || false;
 
-    await db
-      .update(pushNotificationLogs)
-      .set({
-        status: success ? "DELIVERED" : "FAILED",
-      })
-      .where(eq(pushNotificationLogs.id, log.id));
+    await withTenant(log.schoolId, async (tx) => {
+      await tx
+        .update(pushNotificationLogs)
+        .set({
+          status: success ? "DELIVERED" : "FAILED",
+        })
+        .where(eq(pushNotificationLogs.id, log.id));
+    });
 
     if (success) {
       flushedCount++;

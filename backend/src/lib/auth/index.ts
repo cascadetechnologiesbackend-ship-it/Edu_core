@@ -72,7 +72,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             ? withTenant(schoolId, queryUser)
             : withAuthContext(queryUser));
 
-          if (!dbUser || !dbUser.isActive) {
+          if (dbUser && !dbUser.isActive) {
             return null as any;
           }
         } catch {}
@@ -303,19 +303,24 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         // DECIDE-18: Resolve primary role by staff.designation.mappedRole first; fall back to highest privilege
         let resolvedRole = sortedRoles[0] ?? "STUDENT";
-        try {
-          const { staff, designations } = await import("@/db/schema/hr");
-          const [staffInfo] = await db
-            .select({ mappedRole: designations.mappedRole })
-            .from(staff)
-            .innerJoin(designations, eq(staff.designationId, designations.id))
-            .where(eq(staff.userId, user.id))
-            .limit(1);
+        if (user.schoolId) {
+          try {
+            const { staff, designations } = await import("@/db/schema/hr");
+            const staffInfo = await withTenant(user.schoolId, async (tx) => {
+              const [s] = await tx
+                .select({ mappedRole: designations.mappedRole })
+                .from(staff)
+                .innerJoin(designations, eq(staff.designationId, designations.id))
+                .where(eq(staff.userId, user.id))
+                .limit(1);
+              return s;
+            });
 
-          if (staffInfo?.mappedRole && userRolesList.some((r: { roleName: string }) => r.roleName === staffInfo.mappedRole)) {
-            resolvedRole = staffInfo.mappedRole as typeof resolvedRole;
-          }
-        } catch {}
+            if (staffInfo?.mappedRole && userRolesList.some((r: { roleName: string }) => r.roleName === staffInfo.mappedRole)) {
+              resolvedRole = staffInfo.mappedRole as typeof resolvedRole;
+            }
+          } catch {}
+        }
 
         // Mint refresh session cookie
         try {

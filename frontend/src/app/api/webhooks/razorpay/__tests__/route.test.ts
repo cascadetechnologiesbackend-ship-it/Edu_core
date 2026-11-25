@@ -37,7 +37,7 @@ const mockTx = {
       findFirst: vi.fn().mockResolvedValue({ id: "bank_01", currentBalance: "1000.00" }),
     },
     feePayments: {
-      findFirst: vi.fn().mockResolvedValue({ id: "mock-payment-uuid" }),
+      findFirst: vi.fn().mockResolvedValue(undefined),
     },
   },
 };
@@ -66,6 +66,8 @@ vi.mock("@/db", () => ({
     },
     transaction: vi.fn(async (cb: any) => cb(mockTx)),
   },
+  withTenant: vi.fn(async (_schoolId: string, cb: any) => cb(mockTx)),
+  withAuthContext: vi.fn(async (cb: any) => cb(mockTx)),
 }));
 
 vi.mock("@/workers/financeAutomation", () => ({

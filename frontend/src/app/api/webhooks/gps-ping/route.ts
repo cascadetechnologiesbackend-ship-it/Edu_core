@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
+import { withAuthContext, withTenant } from "@/lib/tenant";
 import { gpsPings, vehicles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
@@ -51,8 +52,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify vehicle exists
-    const vehicle = await db.query.vehicles.findFirst({
-      where: eq(vehicles.id, vehicleId),
+    const vehicle = await withAuthContext(async (tx) => {
+      return await tx.query.vehicles.findFirst({
+        where: eq(vehicles.id, vehicleId),
+      });
     });
 
     if (!vehicle) {
@@ -62,16 +65,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const [ping] = await db
-      .insert(gpsPings)
-      .values({
-        vehicleId,
-        latitude: String(latitude),
-        longitude: String(longitude),
-        speed: speed != null ? String(speed) : "0",
-        recordedAt: new Date(),
-      })
-      .returning();
+    const [ping] = await withTenant(vehicle.schoolId, async (tx) => {
+      return await tx
+        .insert(gpsPings)
+        .values({
+          vehicleId,
+          latitude: String(latitude),
+          longitude: String(longitude),
+          speed: speed != null ? String(speed) : "0",
+          recordedAt: new Date(),
+        })
+        .returning();
+    });
 
     if (!ping) {
       return NextResponse.json(

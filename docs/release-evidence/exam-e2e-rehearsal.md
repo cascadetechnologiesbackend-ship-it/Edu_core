@@ -1,12 +1,12 @@
 # Offline Examination Subsystem: End-to-End Lifecycle Rehearsal Report
 
-- **Date of Execution**: 2026-10-19T13:55:54.360Z
+- **Date of Execution**: 2026-11-25T12:10:55.998Z
 - **Target Educational Board**: Central Board of Secondary Education (CBSE)
 - **Target School Tenant**: Isolation School A (`a1111111-1111-4111-8111-111111111111`)
 - **Academic Year**: 2026-2027
 - **Target Cohort**: Class 10-A
 - **Database Connection**: `postgresql://schoolmitra:schoolmitra_dev@localhost:5444/schoolmitra_erp`
-- **Total Duration**: 383ms
+- **Total Duration**: 405ms
 - **Final Verdict**: **ALL 6 STAGES PASSED (100% SUCCESS)**
 
 ---
@@ -15,12 +15,12 @@
 
 | Stage | Name | Status | Duration | Details |
 |---|---|---|---|---|
-| **Stage 1** | CBSE Blueprint & Term Plan Seeding | `PASSED` | 128ms | Created Term 1 CBSE Exam (Term 1 Examination 2026-27 [REHEARSAL_DEMO_2026]) with 80% Theory & 20% Practical components scoped to Class 10-A. |
+| **Stage 1** | CBSE Blueprint & Term Plan Seeding | `PASSED` | 108ms | Created Term 1 CBSE Exam (Term 1 Examination 2026-27 [REHEARSAL_DEMO_2026]) with 80% Theory & 20% Practical components scoped to Class 10-A. |
 | **Stage 2** | Timetable-Aware Scheduling & Clash Detection | `PASSED` | 13ms | Verified clash detection prevention and published 3 conflict-free datesheet papers (Math, Science, English) with invigilator & room assignments. |
-| **Stage 3** | Hall Tickets / Admit Cards Issuance & Hold Simulation | `PASSED` | 25ms | Configured release settings, instructions, reporting time (08:30 AM), verified hold block and administrative release lifecycle. |
-| **Stage 4** | Marks Entry, Boundary Validation & Lock Enforcement | `PASSED` | 19ms | Validated input boundaries, recorded Theory + Practical components, and enforced administrative lock state across all subject papers. |
-| **Stage 5** | Result Snapshot Freezing & CBSE Grading Calculations | `PASSED` | 16ms | Calculated CBSE 9-point grades (A1/A2/B1), aggregate 86.0%, CGPA 9.0, Rank #1, and persisted immutable result snapshot version 1. |
-| **Stage 6** | Report Card Job Dispatch & PDF Generation Verification | `PASSED` | 12ms | Enqueued batch generation job for Class 10-A, verified worker processing lifecycle to DONE state, and validated PDF retrieval path. |
+| **Stage 3** | Hall Tickets / Admit Cards Issuance & Hold Simulation | `PASSED` | 20ms | Configured release settings, instructions, reporting time (08:30 AM), verified hold block and administrative release lifecycle. |
+| **Stage 4** | Marks Entry, Boundary Validation & Lock Enforcement | `PASSED` | 22ms | Validated input boundaries, recorded Theory + Practical components, and enforced administrative lock state across all subject papers. |
+| **Stage 5** | Result Snapshot Freezing & CBSE Grading Calculations | `PASSED` | 13ms | Calculated CBSE 9-point grades (A1/A2/B1), aggregate 86.0%, CGPA 9.0, Rank #1, and persisted immutable result snapshot version 1. |
+| **Stage 6** | Report Card Job Dispatch & PDF Generation Verification | `PASSED` | 10ms | Enqueued batch generation job for Class 10-A, verified worker processing lifecycle to DONE state, and validated PDF retrieval path. |
 
 ---
 

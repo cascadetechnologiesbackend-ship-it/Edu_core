@@ -14,7 +14,7 @@ import { Worker, Queue } from "bullmq";
 import { getBullMQValkeyConnection, getBullMQRedisConnection } from "../lib/redisConnection";
 import { setCachedFinanceData } from "@/lib/financeCache";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
-import type { TenantTransaction } from "@/lib/tenant";
+import { withPlatformContext, type TenantTransaction } from "@/lib/tenant";
 import crypto from "crypto";
 import {
   assertAcademicYearNotLocked,
@@ -523,20 +523,22 @@ export async function recordWorkerHeartbeat(
   status = "alive"
 ) {
   const now = new Date();
-  await db
-    .insert(workerHeartbeats)
-    .values({
-      workerName,
-      lastSeenAt: now,
-      status,
-    })
-    .onConflictDoUpdate({
-      target: workerHeartbeats.workerName,
-      set: {
+  await withPlatformContext(async (tx) => {
+    await tx
+      .insert(workerHeartbeats)
+      .values({
+        workerName,
         lastSeenAt: now,
         status,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: workerHeartbeats.workerName,
+        set: {
+          lastSeenAt: now,
+          status,
+        },
+      });
+  });
   return { workerName, lastSeenAt: now, status };
 }
 
@@ -547,8 +549,10 @@ export async function recordWorkerHeartbeat(
 export async function getWorkerHeartbeatStatus(
   workerName = "educore-finance-worker"
 ) {
-  const record = await db.query.workerHeartbeats.findFirst({
-    where: eq(workerHeartbeats.workerName, workerName),
+  const record = await withPlatformContext(async (tx) => {
+    return await tx.query.workerHeartbeats.findFirst({
+      where: eq(workerHeartbeats.workerName, workerName),
+    });
   });
   if (!record) {
     return { status: "not_started", isAlive: false, workerName };

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
+import { withAuthContext, withTenant } from "@/lib/tenant";
 import { gpsPings, vehicles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "@/lib/serverAuth";
@@ -20,9 +21,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const vehicle = await db.query.vehicles.findFirst({
-      where: eq(vehicles.id, vehicleId),
-    });
+    const targetSchoolId = ctx.schoolId;
+    const vehicle = targetSchoolId
+      ? await withTenant(targetSchoolId, async (tx) => {
+          return await tx.query.vehicles.findFirst({
+            where: eq(vehicles.id, vehicleId),
+          });
+        })
+      : await withAuthContext(async (tx) => {
+          return await tx.query.vehicles.findFirst({
+            where: eq(vehicles.id, vehicleId),
+          });
+        });
 
     if (!vehicle) {
       return NextResponse.json(
@@ -38,9 +48,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const latestPing = await db.query.gpsPings.findFirst({
-      where: eq(gpsPings.vehicleId, vehicleId),
-      orderBy: [desc(gpsPings.recordedAt)],
+    const effectiveSchoolId = vehicle.schoolId;
+    const latestPing = await withTenant(effectiveSchoolId, async (tx) => {
+      return await tx.query.gpsPings.findFirst({
+        where: eq(gpsPings.vehicleId, vehicleId),
+        orderBy: [desc(gpsPings.recordedAt)],
+      });
     });
 
     if (!latestPing) {

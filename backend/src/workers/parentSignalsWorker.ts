@@ -343,9 +343,11 @@ export function createParentSignalsWorker() {
       }
 
       // Batch evaluate all active students in school
-      const schoolStudents = await db.query.students.findMany({
-        where: and(eq(students.schoolId, schoolId), eq(students.isActive, true)),
-        columns: { id: true },
+      const schoolStudents = await withTenant(schoolId, async (tx) => {
+        return await tx.query.students.findMany({
+          where: and(eq(students.schoolId, schoolId), eq(students.isActive, true)),
+          columns: { id: true },
+        });
       });
 
       let evaluated = 0;

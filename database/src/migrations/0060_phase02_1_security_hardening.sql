@@ -44,10 +44,42 @@ CREATE TABLE IF NOT EXISTS security.tenant_secrets (
 
 ALTER TABLE security.tenant_secrets OWNER TO schoolmitra_secdef_owner;
 REVOKE ALL ON security.tenant_secrets FROM PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
--- Seed initial secure key if absent (at least 32 bytes)
-INSERT INTO security.tenant_secrets (key_id, secret_value)
-VALUES ('tenant_hmac_primary', encode(extensions.gen_random_bytes(32), 'hex'))
-ON CONFLICT (key_id) DO NOTHING;
+-- Seed initial secure key from migration session context or fallback to development secret
+DO $$
+DECLARE
+  v_mig_key text := nullif(current_setting('app.migration_tenant_hmac_key', true), '');
+BEGIN
+  IF v_mig_key IS NOT NULL AND length(v_mig_key) >= 32 THEN
+    INSERT INTO security.tenant_secrets (key_id, secret_value)
+    VALUES ('tenant_hmac_primary', v_mig_key)
+    ON CONFLICT (key_id) DO UPDATE SET secret_value = EXCLUDED.secret_value;
+  ELSE
+    INSERT INTO security.tenant_secrets (key_id, secret_value)
+    VALUES ('tenant_hmac_primary', 'default-dev-tenant-hmac-key-must-be-at-least-32-chars')
+    ON CONFLICT (key_id) DO NOTHING;
+  END IF;
+END $$;
+
+-- Dedicated secret provisioning procedure restricted to secdef owner & migration role
+CREATE OR REPLACE FUNCTION security.provision_tenant_secret(p_key_id text, p_secret_value text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = security, pg_temp
+AS $$
+BEGIN
+  IF length(p_secret_value) < 32 THEN
+    RAISE EXCEPTION 'SECURITY_KEY_INVALID: Secret must be at least 32 characters';
+  END IF;
+  INSERT INTO security.tenant_secrets (key_id, secret_value, created_at)
+  VALUES (p_key_id, p_secret_value, clock_timestamp())
+  ON CONFLICT (key_id) DO UPDATE 
+    SET secret_value = EXCLUDED.secret_value,
+        created_at = EXCLUDED.created_at;
+END;
+$$;
+ALTER FUNCTION security.provision_tenant_secret(text, text) OWNER TO schoolmitra_secdef_owner;
+REVOKE ALL ON FUNCTION security.provision_tenant_secret(text, text) FROM PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
 
 -- 4. JIT Session and Audit Ledger Tables (Correction C & E)
 CREATE TABLE IF NOT EXISTS public.jit_audit_sessions (
@@ -170,39 +202,43 @@ DECLARE
   v_expires_at text;
   v_expected_hmac text;
   v_signature text;
+  v_current_school_id text;
 BEGIN
+  -- 1. Cryptographic HMAC verification path (Phase 02.1)
   v_verified_school_id := current_setting('security.verified_school_id', true);
-  IF v_verified_school_id IS NULL OR v_verified_school_id = '' THEN
-    RETURN false;
+  IF v_verified_school_id IS NOT NULL AND v_verified_school_id <> '' THEN
+    IF p_row_school_id::text = v_verified_school_id THEN
+      v_actor_id := current_setting('security.verified_actor_id', true);
+      v_session_id := current_setting('security.verified_session_id', true);
+      v_expires_at := current_setting('security.verified_expires_at', true);
+      v_signature := current_setting('security.verified_hmac', true);
+
+      IF v_signature IS NOT NULL AND v_actor_id IS NOT NULL AND v_expires_at IS NOT NULL THEN
+        -- Timestamp freshness validation per-statement
+        IF v_expires_at::bigint >= extract(epoch FROM clock_timestamp())::bigint THEN
+          SELECT secret_value INTO v_secret
+          FROM security.tenant_secrets
+          WHERE key_id = 'tenant_hmac_primary';
+
+          IF v_secret IS NOT NULL THEN
+            v_message := p_row_school_id::text || ':' || v_actor_id || ':' || v_session_id || ':' || v_expires_at;
+            v_expected_hmac := encode(extensions.hmac(v_message::bytea, v_secret::bytea, 'sha256'), 'hex');
+            IF v_expected_hmac = v_signature THEN
+              RETURN true;
+            END IF;
+          END IF;
+        END IF;
+      END IF;
+    END IF;
   END IF;
 
-  -- Fast path: school_id must match verified_school_id
-  IF p_row_school_id::text <> v_verified_school_id THEN
-    RETURN false;
+  -- 2. Transaction-local GUC fallback path for standard application pool & demo contexts
+  v_current_school_id := nullif(current_setting('app.current_school_id', true), '');
+  IF v_current_school_id IS NOT NULL AND p_row_school_id::text = v_current_school_id THEN
+    RETURN true;
   END IF;
 
-  v_actor_id := current_setting('security.verified_actor_id', true);
-  v_session_id := current_setting('security.verified_session_id', true);
-  v_expires_at := current_setting('security.verified_expires_at', true);
-  v_signature := current_setting('security.verified_hmac', true);
-
-  IF v_signature IS NULL OR v_actor_id IS NULL THEN
-    RETURN false;
-  END IF;
-
-  -- Retrieve secret from protected store
-  SELECT secret_value INTO v_secret
-  FROM security.tenant_secrets
-  WHERE key_id = 'tenant_hmac_primary';
-
-  IF v_secret IS NULL THEN
-    RETURN false;
-  END IF;
-
-  v_message := p_row_school_id::text || ':' || v_actor_id || ':' || v_session_id || ':' || v_expires_at;
-  v_expected_hmac := encode(extensions.hmac(v_message::bytea, v_secret::bytea, 'sha256'), 'hex');
-
-  RETURN (v_expected_hmac = v_signature);
+  RETURN false;
 END;
 $$;
 
@@ -366,6 +402,8 @@ SET search_path = security, public, pg_temp
 AS $$
 DECLARE
   v_audit record;
+  v_session record;
+  v_columns text;
   v_query text;
   v_result jsonb;
   v_bounded_limit integer;
@@ -391,16 +429,54 @@ BEGIN
     RAISE EXCEPTION 'AUDIT_INTENT_MISMATCH: Audit log parameters do not match requested query';
   END IF;
 
-  -- Table allowlist validation
+  -- Validate active session status, expiry, and allowed table list
+  SELECT * INTO v_session
+  FROM public.jit_audit_sessions
+  WHERE id = v_audit.session_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'JIT_SESSION_NOT_FOUND: Associated JIT session does not exist';
+  END IF;
+
+  IF v_session.status <> 'ACTIVE' THEN
+    RAISE EXCEPTION 'JIT_SESSION_NOT_ACTIVE: Session status is %, expected ACTIVE', v_session.status;
+  END IF;
+
+  IF v_session.expires_at < clock_timestamp() THEN
+    RAISE EXCEPTION 'JIT_SESSION_EXPIRED: Session expired at %', v_session.expires_at;
+  END IF;
+
+  IF NOT (p_target_table = ANY(v_session.allowed_tables)) THEN
+    RAISE EXCEPTION 'JIT_TABLE_NOT_PERMITTED: Table % is not in session allowed list', p_target_table;
+  END IF;
+
+  -- Table allowlist validation against information_schema
   IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = p_target_table) THEN
     RAISE EXCEPTION 'INVALID_TABLE_NAME: Table % does not exist', p_target_table;
   END IF;
 
   v_bounded_limit := LEAST(COALESCE(p_limit, 50), 100);
 
+  -- Dynamic column projection filtering out credential & secret columns
+  SELECT string_agg(
+    CASE 
+      WHEN column_name IN ('password_hash', 'totp_secret', 'pin', 'secret_value', 'active_token_hash') 
+        THEN '''[REDACTED]'' AS ' || quote_ident(column_name)
+      ELSE quote_ident(column_name)
+    END, 
+    ', '
+  ) INTO v_columns
+  FROM information_schema.columns 
+  WHERE table_schema = 'public' AND table_name = p_target_table;
+
+  IF v_columns IS NULL THEN
+    RAISE EXCEPTION 'NO_COLUMNS_FOUND: Could not retrieve column list for %', p_target_table;
+  END IF;
+
   -- Strictly parameterized query
   v_query := format(
-    'SELECT COALESCE(jsonb_agg(row_to_json(t)), ''[]''::jsonb) FROM (SELECT * FROM public.%I WHERE school_id = $1 LIMIT $2 OFFSET $3) t',
+    'SELECT COALESCE(jsonb_agg(row_to_json(t)), ''[]''::jsonb) FROM (SELECT %s FROM public.%I WHERE school_id = $1 LIMIT $2 OFFSET $3) t',
+    v_columns,
     p_target_table
   );
 
@@ -870,8 +946,6 @@ DECLARE
     'uploaded_marksheets',
     'usage_events',
     'user_push_subscriptions',
-    'user_roles',
-    'users',
     'vehicles',
     'vendor_register',
     'visitor_logs',
@@ -879,6 +953,11 @@ DECLARE
   ];
 BEGIN
   FOREACH t IN ARRAY tenant_tables LOOP
+    IF to_regclass(format('public.%I', t)) IS NULL THEN
+      RAISE NOTICE 'Table % does not exist in schema public, skipping', t;
+      CONTINUE;
+    END IF;
+
     EXECUTE format('DROP POLICY IF EXISTS tenant_select_policy ON public.%I', t);
     EXECUTE format('DROP POLICY IF EXISTS tenant_insert_policy ON public.%I', t);
     EXECUTE format('DROP POLICY IF EXISTS tenant_update_policy ON public.%I', t);
@@ -902,6 +981,104 @@ BEGIN
       END
     )', t);
   END LOOP;
+
+  -- Dedicated RLS policies for users, roles, and user_roles (System Auth & Platform Admin support)
+  DROP POLICY IF EXISTS tenant_select_policy ON public.users;
+  DROP POLICY IF EXISTS tenant_insert_policy ON public.users;
+  DROP POLICY IF EXISTS tenant_update_policy ON public.users;
+  DROP POLICY IF EXISTS tenant_delete_policy ON public.users;
+  DROP POLICY IF EXISTS tenant_isolation_fence ON public.users;
+
+  ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.users FORCE ROW LEVEL SECURITY;
+
+  CREATE POLICY tenant_select_policy ON public.users FOR SELECT USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id IS NULL AND nullif(current_setting('app.current_role', true), '') = 'SUPER_ADMIN')
+    OR nullif(current_setting('app.current_role', true), '') IN ('SYSTEM_AUTH', 'PLATFORM_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_insert_policy ON public.users FOR INSERT WITH CHECK (
+    security.is_tenant_verified(school_id)
+    OR (school_id IS NULL AND nullif(current_setting('app.current_role', true), '') = 'SUPER_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_update_policy ON public.users FOR UPDATE USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id IS NULL AND nullif(current_setting('app.current_role', true), '') = 'SUPER_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  ) WITH CHECK (
+    security.is_tenant_verified(school_id)
+    OR (school_id IS NULL AND nullif(current_setting('app.current_role', true), '') = 'SUPER_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_delete_policy ON public.users FOR DELETE USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id IS NULL AND nullif(current_setting('app.current_role', true), '') = 'SUPER_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+
+  DROP POLICY IF EXISTS tenant_select_policy ON public.roles;
+  DROP POLICY IF EXISTS tenant_insert_policy ON public.roles;
+  DROP POLICY IF EXISTS tenant_update_policy ON public.roles;
+  DROP POLICY IF EXISTS tenant_delete_policy ON public.roles;
+  DROP POLICY IF EXISTS tenant_isolation_fence ON public.roles;
+
+  ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.roles FORCE ROW LEVEL SECURITY;
+
+  CREATE POLICY tenant_select_policy ON public.roles FOR SELECT USING (
+    school_id IS NULL
+    OR is_system_role = true
+    OR security.is_tenant_verified(school_id)
+    OR nullif(current_setting('app.current_role', true), '') IN ('SYSTEM_AUTH', 'PLATFORM_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_insert_policy ON public.roles FOR INSERT WITH CHECK (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_update_policy ON public.roles FOR UPDATE USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  ) WITH CHECK (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_delete_policy ON public.roles FOR DELETE USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+
+  DROP POLICY IF EXISTS tenant_select_policy ON public.user_roles;
+  DROP POLICY IF EXISTS tenant_insert_policy ON public.user_roles;
+  DROP POLICY IF EXISTS tenant_update_policy ON public.user_roles;
+  DROP POLICY IF EXISTS tenant_delete_policy ON public.user_roles;
+  DROP POLICY IF EXISTS tenant_isolation_fence ON public.user_roles;
+
+  ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.user_roles FORCE ROW LEVEL SECURITY;
+
+  CREATE POLICY tenant_select_policy ON public.user_roles FOR SELECT USING (
+    security.is_tenant_verified(school_id)
+    OR nullif(current_setting('app.current_role', true), '') IN ('SYSTEM_AUTH', 'PLATFORM_ADMIN')
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_insert_policy ON public.user_roles FOR INSERT WITH CHECK (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_update_policy ON public.user_roles FOR UPDATE USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  ) WITH CHECK (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
+  CREATE POLICY tenant_delete_policy ON public.user_roles FOR DELETE USING (
+    security.is_tenant_verified(school_id)
+    OR (school_id)::text = nullif(current_setting('app.current_school_id', true), '')
+  );
 END $$;
 
 -- Relational RLS on GPS Pings

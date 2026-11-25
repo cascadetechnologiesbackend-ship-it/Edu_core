@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, withAuthContext, withTenant } from "@/db";
 import {
   feeInvoices,
   feePayments,
@@ -55,8 +55,11 @@ export async function POST(req: Request) {
       const payment = event.payload.payment.entity;
       const orderId = payment.order_id;
 
-      const log = await db.query.paymentGatewayLogs.findFirst({
-        where: eq(paymentGatewayLogs.gatewayOrderId, orderId),
+      const log = await withAuthContext(async (tx) => {
+        const client = tx?.query?.paymentGatewayLogs ? tx : db;
+        return await client.query.paymentGatewayLogs.findFirst({
+          where: eq(paymentGatewayLogs.gatewayOrderId, orderId),
+        });
       });
 
       if (!log || !log.feeInvoiceId) {
@@ -68,15 +71,21 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: "Order already fulfilled" });
       }
 
-      const existingPayment = await db.query.feePayments.findFirst({
-        where: eq(feePayments.transactionReference, payment.id),
+      const existingPayment = await withTenant(log.schoolId, async (tx) => {
+        const client = tx?.query?.feePayments ? tx : db;
+        return await client.query.feePayments.findFirst({
+          where: eq(feePayments.transactionReference, payment.id),
+        });
       });
       if (existingPayment) {
         return NextResponse.json({ success: true, message: "Payment already recorded" });
       }
 
-      const invoice = await db.query.feeInvoices.findFirst({
-        where: eq(feeInvoices.id, log.feeInvoiceId),
+      const invoice = await withTenant(log.schoolId, async (tx) => {
+        const client = tx?.query?.feeInvoices ? tx : db;
+        return await client.query.feeInvoices.findFirst({
+          where: eq(feeInvoices.id, log.feeInvoiceId!),
+        });
       });
 
       if (!invoice) return NextResponse.json({ success: true });
@@ -110,7 +119,7 @@ export async function POST(req: Request) {
       let createdPaymentId: string | null = null;
       let alreadyProcessed = false;
 
-      await db.transaction(async (tx) => {
+      await withTenant(log.schoolId, async (tx) => {
         // 1. Atomic Compare-And-Swap (CAS) update: only transition if status <> 'PAID'
         const [casLog] = await tx
           .update(paymentGatewayLogs)
