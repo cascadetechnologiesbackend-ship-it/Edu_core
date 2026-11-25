@@ -96,8 +96,8 @@ export class SectionCapacityExceededError extends Error {
 export interface StudentEnrollmentInput {
   schoolId: string;
   applicationId: string;
-  classId: string;
-  sectionId: string;
+  classId?: string | undefined;
+  sectionId?: string | undefined;
   performedByUserId: string;
   performedByUserEmail?: string | undefined;
   performedByUserRole?: string | undefined;
@@ -150,8 +150,8 @@ export interface StudentEnrollmentResult {
 }
 
 export interface ImportedStudentInput {
-  classId: string;
-  sectionId: string;
+  classId?: string | undefined;
+  sectionId?: string | undefined;
   admissionNumber: string;
   firstName: string;
   lastName?: string | null | undefined;
@@ -314,31 +314,65 @@ export class StudentLifecycleEngine {
       // 2. State Machine Validation Guard
       assertValidAdmissionTransition(application.status, "ENROLLED");
 
-      // 3. Validate Target Class & Section
+      // 3. Validate or Auto-Resolve Target Class & Section
+      let resolvedClassId = classId;
+      if (!resolvedClassId) {
+        const matchedClass = await tx.query.classes.findFirst({
+          where: and(
+            eq(classes.schoolId, schoolId),
+            eq(classes.isActive, true),
+            eq(classes.gradeLevel, application.gradeAppliedFor as any),
+          ),
+        });
+        if (!matchedClass) {
+          throw new Error(
+            `No active class found for grade '${application.gradeAppliedFor}' in school '${schoolId}'`,
+          );
+        }
+        resolvedClassId = matchedClass.id;
+      }
+
       const targetClass = await tx.query.classes.findFirst({
         where: and(
-          eq(classes.id, classId),
+          eq(classes.id, resolvedClassId),
           eq(classes.schoolId, schoolId),
           eq(classes.isActive, true),
         ),
       });
       if (!targetClass) {
         throw new Error(
-          `Target class '${classId}' not found or inactive in school '${schoolId}'`,
+          `Target class '${resolvedClassId}' not found or inactive in school '${schoolId}'`,
         );
+      }
+
+      let resolvedSectionId = sectionId;
+      if (!resolvedSectionId) {
+        const defaultSection = await tx.query.sections.findFirst({
+          where: and(
+            eq(sections.classId, resolvedClassId),
+            eq(sections.schoolId, schoolId),
+            eq(sections.isActive, true),
+          ),
+        });
+        if (!defaultSection) {
+          throw new Error(
+            `No active section found for class '${resolvedClassId}' in school '${schoolId}'`,
+          );
+        }
+        resolvedSectionId = defaultSection.id;
       }
 
       const targetSection = await tx.query.sections.findFirst({
         where: and(
-          eq(sections.id, sectionId),
-          eq(sections.classId, classId),
+          eq(sections.id, resolvedSectionId),
+          eq(sections.classId, resolvedClassId),
           eq(sections.schoolId, schoolId),
           eq(sections.isActive, true),
         ),
       });
       if (!targetSection) {
         throw new Error(
-          `Target section '${sectionId}' not found or does not belong to class '${classId}'`,
+          `Target section '${resolvedSectionId}' not found or does not belong to class '${resolvedClassId}'`,
         );
       }
 
@@ -363,7 +397,7 @@ export class StudentLifecycleEngine {
           .where(
             and(
               eq(students.schoolId, schoolId),
-              eq(students.currentSectionId, sectionId),
+              eq(students.currentSectionId, sectionId!),
               eq(students.isActive, true),
             ),
           );
@@ -371,7 +405,7 @@ export class StudentLifecycleEngine {
         if (currentCount >= targetSection.capacity) {
           if (input.blockOnCapacity) {
             throw new SectionCapacityExceededError(
-              sectionId,
+              sectionId!,
               targetSection.capacity,
               currentCount,
             );
@@ -380,9 +414,24 @@ export class StudentLifecycleEngine {
         }
       }
 
-      // 6. Monotonic Admission Number Generation (Atomic DB sequence from L1)
+      // 6. Monotonic Admission Number & Concurrency-Safe Roll Number Generation
       const year = new Date().getFullYear();
       const admissionNum = await generateAdmissionNumber(schoolId, { year }, tx);
+
+      // Concurrency-safe sequential rollNumber scoped to (school_id, academic_year_id, class_id, section_id)
+      const rollLockKey = `${schoolId}:${application.academicYearId}:${resolvedClassId}:${resolvedSectionId}`;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${rollLockKey}))`);
+      const maxRollResult = await tx.execute(sql`
+        SELECT COALESCE(MAX(CAST(roll_number AS INTEGER)), 0) AS max_roll
+        FROM students
+        WHERE school_id = ${schoolId}
+          AND academic_year_id = ${application.academicYearId}
+          AND current_class_id = ${resolvedClassId}
+          AND current_section_id = ${resolvedSectionId}
+          AND roll_number ~ '^[0-9]+$'
+      `);
+      const maxRoll = Number((maxRollResult.rows?.[0] as any)?.max_roll ?? 0);
+      const nextRollNumber = String(maxRoll + 1);
 
       // 7. Parse Applicant Names & Hashes
       const applicantName =
@@ -432,8 +481,9 @@ export class StudentLifecycleEngine {
           gender: application.gender,
           bloodGroup: application.bloodGroup,
           category: application.category,
-          currentClassId: classId,
-          currentSectionId: sectionId,
+          currentClassId: resolvedClassId,
+          currentSectionId: resolvedSectionId,
+          rollNumber: nextRollNumber,
           admissionDate: new Date(),
           admissionApplicationId: application.id,
           rteApplicant: application.isRteApplicant,
@@ -447,17 +497,27 @@ export class StudentLifecycleEngine {
         throw new Error("Failed to insert student profile record");
       }
 
-      // 10. Provision Initial Student Class History Record
-      await tx.insert(studentClassHistory).values({
-        studentId: newStudent.id,
-        schoolId,
-        academicYearId: application.academicYearId,
-        classId,
-        sectionId,
-        promotionStatus: "ENROLLED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      // 10. Provision Initial Student Class History Record (prevent duplicate for same student, school, academic_year)
+      const existingHistory = await tx.query.studentClassHistory.findFirst({
+        where: and(
+          eq(studentClassHistory.studentId, newStudent.id),
+          eq(studentClassHistory.schoolId, schoolId),
+          eq(studentClassHistory.academicYearId, application.academicYearId),
+        ),
       });
+      if (!existingHistory) {
+        await tx.insert(studentClassHistory).values({
+          studentId: newStudent.id,
+          schoolId,
+          academicYearId: application.academicYearId,
+          classId: resolvedClassId,
+          sectionId: resolvedSectionId,
+          rollNumber: nextRollNumber,
+          promotionStatus: "ENROLLED",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
       // 11. Provision Parent User Account & Family Members
       const fatherName = decryptData(application.fatherNameEncrypted);
@@ -1075,6 +1135,10 @@ export class StudentLifecycleEngine {
       }
 
       // 3. Validate Target Class and Section
+      if (!data.classId || !data.sectionId) {
+        throw new Error(`Target classId and sectionId are required for enrollment`);
+      }
+
       const targetClass = await executor.query.classes.findFirst({
         where: and(
           eq(classes.id, data.classId),

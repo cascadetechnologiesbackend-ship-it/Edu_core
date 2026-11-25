@@ -9,7 +9,7 @@ import {
   studentDocuments,
   auditLogs,
 } from "@/db/schema";
-import { desc, eq, and, inArray, or, ilike, lt } from "drizzle-orm";
+import { desc, eq, and, inArray, or, ilike, lt, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData, computeSearchHash, computeLegacySearchHash } from "@/lib/encryption";
@@ -622,6 +622,139 @@ export async function updateStudentPhotoAction(studentId: string, photoS3Key: st
     console.error("Failed to update student photo:", err);
     return { success: false, message: err?.message || "Failed to update student photo" };
   }
+}
+
+export interface ExportStudentsParams {
+  search?: string | undefined;
+  academicYearId?: string | undefined;
+  classId?: string | undefined;
+  sectionId?: string | undefined;
+  status?: string | undefined;
+  gender?: string | undefined;
+  category?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+}
+
+export async function exportStudentsAction(
+  params: ExportStudentsParams = {}
+): Promise<Record<string, unknown>[]> {
+  const ctx = await requireAuth();
+  const access = assertRouteAccess(ctx.role, "/students", { id: ctx.userId, email: ctx.email });
+  if (!access.allowed) {
+    throw new Error("Unauthorized access to export students.");
+  }
+
+  const school = await requireSchool(ctx);
+  const conditions = [eq(students.schoolId, school.id)];
+
+  if (ctx.role === "TEACHER") {
+    const [ctSections, saSections, dtClasses, allSections] = await Promise.all([
+      db.query.sections.findMany({
+        where: and(eq(sections.schoolId, school.id), eq(sections.classTeacherId, ctx.userId), eq(sections.isActive, true)),
+        columns: { id: true },
+      }),
+      db.query.sectionSubjectTeachers.findMany({
+        where: and(eq(sectionSubjectTeachers.schoolId, school.id), eq(sectionSubjectTeachers.teacherId, ctx.userId), eq(sectionSubjectTeachers.isActive, true)),
+        columns: { sectionId: true },
+      }),
+      db.query.classSubjects.findMany({
+        where: and(eq(classSubjects.schoolId, school.id), eq(classSubjects.assignedTeacherId, ctx.userId)),
+        columns: { classId: true },
+      }),
+      db.query.sections.findMany({
+        where: eq(sections.schoolId, school.id),
+        columns: { id: true, classId: true, isActive: true },
+      }),
+    ]);
+
+    const defaultTeacherSections = dtClasses.length > 0
+      ? allSections.filter((s) => dtClasses.some((c) => c.classId === s.classId) && s.isActive).map((s) => s.id)
+      : [];
+
+    const allowedSectionIds = Array.from(new Set([
+      ...ctSections.map((s) => s.id),
+      ...saSections.map((s) => s.sectionId),
+      ...defaultTeacherSections,
+    ]));
+
+    if (allowedSectionIds.length > 0) {
+      conditions.push(inArray(students.currentSectionId, allowedSectionIds));
+    } else {
+      return [];
+    }
+  }
+
+  if (params.classId && params.classId !== "ALL") {
+    conditions.push(eq(students.currentClassId, params.classId));
+  }
+  if (params.sectionId && params.sectionId !== "ALL") {
+    conditions.push(eq(students.currentSectionId, params.sectionId));
+  }
+  if (params.status === "ACTIVE") {
+    conditions.push(eq(students.isActive, true));
+  } else if (params.status === "INACTIVE") {
+    conditions.push(eq(students.isActive, false));
+  }
+  if (params.gender && params.gender !== "ALL") {
+    conditions.push(eq(students.gender, params.gender as any));
+  }
+  if (params.category && params.category !== "ALL") {
+    conditions.push(eq(students.category, params.category as any));
+  }
+  if (params.dateFrom) {
+    const fromDate = new Date(params.dateFrom);
+    if (!isNaN(fromDate.getTime())) conditions.push(gte(students.createdAt, fromDate));
+  }
+  if (params.dateTo) {
+    const toDate = new Date(`${params.dateTo}T23:59:59.999Z`);
+    if (!isNaN(toDate.getTime())) conditions.push(lte(students.createdAt, toDate));
+  }
+  if (params.search && params.search.trim()) {
+    const term = params.search.trim();
+    const hash = computeSearchHash(term);
+    const legacyHash = computeLegacySearchHash(term);
+    conditions.push(
+      or(
+        ilike(students.admissionNumber, `%${term}%`),
+        eq(students.firstNameSearchHash, hash),
+        eq(students.lastNameSearchHash, hash),
+        eq(students.firstNameSearchHash, legacyHash),
+        eq(students.lastNameSearchHash, legacyHash)
+      )!
+    );
+  }
+
+  const [studentRows, allSections] = await Promise.all([
+    db.query.students.findMany({
+      where: and(...conditions),
+      orderBy: [desc(students.createdAt)],
+      limit: 5000,
+    }),
+    db.query.sections.findMany({
+      where: eq(sections.schoolId, school.id),
+      with: { class: true },
+    }),
+  ]);
+
+  const sectionMap = new Map(allSections.map((s) => [s.id, s]));
+
+  return studentRows.map((s) => {
+    const sec = s.currentSectionId ? sectionMap.get(s.currentSectionId) : null;
+    const firstName = decryptData(s.firstNameEncrypted) || "";
+    const lastName = s.lastNameEncrypted ? decryptData(s.lastNameEncrypted) || "" : "";
+    return {
+      admission_number: s.admissionNumber,
+      first_name: firstName,
+      last_name: lastName,
+      gender: s.gender || "",
+      date_of_birth: s.dateOfBirth || "",
+      class_name: sec?.class?.displayName || "",
+      section_name: sec?.name || "",
+      category: s.category || "",
+      status: s.isActive ? "ACTIVE" : "INACTIVE",
+    };
+  });
 }
 
 

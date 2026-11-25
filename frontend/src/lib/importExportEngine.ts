@@ -25,7 +25,8 @@ export type ImportDatasetKey =
   | "LIBRARY_INVENTORY"
   | "TRANSPORT_ROUTES"
   | "HOSTEL_ROOMS"
-  | "ASSETS_INVENTORY";
+  | "ASSETS_INVENTORY"
+  | "AUDIT_LOGS";
 
 export interface ColumnDefinition {
   key: string;
@@ -273,6 +274,20 @@ export const DATASET_SCHEMAS: Record<ImportDatasetKey, DatasetSchema> = {
       { key: "purchaseDate", label: "Purchase Date (YYYY-MM-DD)", required: true, type: "date", sampleValue: "2026-04-15" },
       { key: "purchaseValue", label: "Purchase Value (₹)", required: true, type: "number", sampleValue: "85000" },
       { key: "condition", label: "Condition", required: true, type: "enum", allowedEnums: ["NEW", "GOOD", "FAIR", "NEEDS_REPAIR", "RETIRED"], sampleValue: "GOOD" },
+    ],
+  },
+  AUDIT_LOGS: {
+    key: "AUDIT_LOGS",
+    displayName: "Audit Logs",
+    description: "Immutable forensic audit trail of platform and school actions.",
+    uniqueKeyField: "id",
+    columns: [
+      { key: "createdAt", label: "Timestamp", required: true, type: "string", sampleValue: "2026-11-25T10:00:00Z" },
+      { key: "action", label: "Action", required: true, type: "string", sampleValue: "CREATE" },
+      { key: "entityType", label: "Entity Type", required: true, type: "string", sampleValue: "FEE_PAYMENT" },
+      { key: "entityId", label: "Entity ID", required: true, type: "string", sampleValue: "uuid" },
+      { key: "performerEmail", label: "Performed By", required: false, type: "string", sampleValue: "admin@school.edu" },
+      { key: "reason", label: "Reason / Notes", required: false, type: "string", sampleValue: "Manual adjustment" },
     ],
   },
 };
@@ -798,5 +813,13 @@ export const IMPORT_DEFINITIONS: Record<ImportDatasetKey, ImportDefinition> = {
     category: "OPERATIONS",
     maxRows: MAX_IMPORT_ROWS,
     supportsDryRun: true,
+  },
+  AUDIT_LOGS: {
+    key: "AUDIT_LOGS",
+    displayName: "Audit Logs",
+    description: "Export immutable audit trail records.",
+    category: "OPERATIONS",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: false,
   },
 };

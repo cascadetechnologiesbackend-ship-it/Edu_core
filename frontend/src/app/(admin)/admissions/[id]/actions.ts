@@ -21,8 +21,8 @@ function safeRevalidate(path: string) {
 }
 
 export interface EnrollApplicantOptions {
-  classId: string;
-  sectionId: string;
+  classId?: string;
+  sectionId?: string;
 }
 
 /**
@@ -44,8 +44,8 @@ export async function enrollApplicant(
   const result = await StudentLifecycleEngine.enrollApplicant({
     schoolId: school.id,
     applicationId,
-    classId: options.classId,
-    sectionId: options.sectionId,
+    ...(options.classId ? { classId: options.classId } : {}),
+    ...(options.sectionId ? { sectionId: options.sectionId } : {}),
     performedByUserId: ctx.userId,
     performedByUserEmail: ctx.email,
     performedByUserRole: ctx.role,
@@ -100,15 +100,9 @@ export async function updateApplicationStatus(
     }
 
     if (newStatus === "ENROLLED") {
-      if (!options?.classId || !options?.sectionId) {
-        return {
-          success: false,
-          message: "Class and Section selection is required for enrollment",
-        };
-      }
       return await enrollApplicant(applicationId, {
-        classId: options.classId,
-        sectionId: options.sectionId,
+        ...(options?.classId ? { classId: options.classId } : {}),
+        ...(options?.sectionId ? { sectionId: options.sectionId } : {}),
       });
     }
 
