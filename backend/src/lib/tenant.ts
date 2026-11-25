@@ -147,6 +147,8 @@ export async function getTenantFromSession(schoolId: string | null | undefined) 
  * setting LOCAL to the current transaction, preventing leakage across pooled
  * connections. Never call SET app.current_school_id outside a transaction.
  */
+let isSecurityGateAvailable: boolean | null = null;
+
 export type TenantTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function withTenant<T>(
@@ -160,7 +162,18 @@ export async function withTenant<T>(
 
   return await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('app.current_school_id', ${schoolId}, true)`);
-    try {
+
+    if (isSecurityGateAvailable === null) {
+      try {
+        const checkRes = await tx.execute(sql`SELECT to_regprocedure('security.set_verified_tenant_context(uuid,text,text,bigint,text)') as proc`);
+        const row = (checkRes as any).rows?.[0] || (checkRes as any)[0];
+        isSecurityGateAvailable = row?.proc !== null && row?.proc !== undefined;
+      } catch {
+        isSecurityGateAvailable = false;
+      }
+    }
+
+    if (isSecurityGateAvailable) {
       await tx.execute(sql`SELECT security.set_verified_tenant_context(
         ${capability.schoolId}::uuid,
         ${capability.actorId},
@@ -168,11 +181,8 @@ export async function withTenant<T>(
         ${capability.expiresAt}::bigint,
         ${capability.token}
       )`);
-    } catch (e: any) {
-      if (!e.message?.includes('schema "security" does not exist') && !e.message?.includes('function security.set_verified_tenant_context')) {
-        throw e;
-      }
     }
+
     return await txCallback(tx);
   });
 }
