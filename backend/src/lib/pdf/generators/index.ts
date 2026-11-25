@@ -8,3 +8,6 @@ export * from "./StaffListPDF";
 export * from "./TimetablePDF";
 export * from "./LibraryReportPDF";
 export * from "./TransportReportPDF";
+export * from "./StudentIdCardPDF";
+export * from "./StaffIdCardPDF";
+export * from "./AdmissionApplicationFormPDF";

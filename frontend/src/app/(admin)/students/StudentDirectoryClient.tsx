@@ -3,9 +3,13 @@
 import { useState, useMemo, useDeferredValue, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, UserPlus, Users, ChevronRight, Filter, ShieldAlert, KeyRound } from "lucide-react";
-import { searchStudentsAction } from "./actions";
+import { Search, UserPlus, Users, ChevronRight, Filter, ShieldAlert, KeyRound, Download } from "lucide-react";
+import { searchStudentsAction, exportStudentsAction } from "./actions";
 import { EmptyStateCTA } from "@/components/ui/EmptyStateCTA";
+import { ExportDialog, type ExportRequestPayload } from "@/components/import-export";
+import { DATASET_SCHEMAS } from "@/lib/importExportEngine";
+import { downloadExportRows } from "@/lib/exportDownload";
+import { toast } from "sonner";
 import { getAvatarColor, getInitials } from "@/lib/utils";
 
 export interface StudentListItem {
@@ -57,6 +61,7 @@ export function StudentDirectoryClient({
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [isPending, startTransition] = useTransition();
   const [loadingMore, setLoadingMore] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Sync if URL param changes
   useEffect(() => {
@@ -192,6 +197,16 @@ export function StudentDirectoryClient({
             <KeyRound className="w-3.5 h-3.5 text-blue-500" />
             <span>Student Access</span>
           </Link>
+
+          {/* Export Students */}
+          <button
+            type="button"
+            onClick={() => setExportOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground transition inline-flex items-center gap-1.5 min-h-[44px]"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export</span>
+          </button>
 
           {/* Primary Action Button: Add Student */}
           <Link
@@ -431,6 +446,36 @@ export function StudentDirectoryClient({
           </div>
         )}
       </div>
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        datasetKey="STUDENTS"
+        filteredCount={filteredStudents.length}
+        onConfirm={async (payload: ExportRequestPayload) => {
+          const rows = await exportStudentsAction({
+            search: payload.scope === "filtered" ? searchTerm : undefined,
+            classId: payload.scope === "filtered" ? selectedClassId : "ALL",
+            status: payload.scope === "filtered" ? selectedStatus : "ALL",
+            dateFrom: payload.dateFrom,
+            dateTo: payload.dateTo,
+          });
+          const schema = DATASET_SCHEMAS.STUDENTS;
+          const cols = payload.columns.map((key) => ({
+            key,
+            label: schema.columns.find((c) => c.key === key)?.label || key,
+          }));
+          await downloadExportRows({
+            rows,
+            columns: cols,
+            format: payload.format,
+            fileName: `students-export-${new Date().toISOString().slice(0, 10)}`,
+            sheetName: "Students",
+            title: "Student Directory Export",
+          });
+          toast.success(`Exported ${rows.length} student records (${payload.format})`);
+        }}
+      />
     </div>
   );
 }

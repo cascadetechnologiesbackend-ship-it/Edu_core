@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { desc, count } from "drizzle-orm";
 import { History, ShieldCheck, Filter, Clock, User, Terminal, Database, FileText } from "lucide-react";
+import { SuperAdminAuditExportButton } from "./SuperAdminAuditExportButton";
 
 export const metadata = {
   title: "Platform Audit Log | Super Admin",
@@ -34,6 +35,17 @@ export default async function AuditLogPage({
         </div>
 
         <div className="flex items-center gap-2">
+          <SuperAdminAuditExportButton
+            logs={logs.map((l) => ({
+              id: l.id,
+              createdAt: new Date(l.createdAt).toISOString(),
+              action: l.action,
+              entityType: l.tableName,
+              entityId: l.recordId || "",
+              performerEmail: l.userId || "system",
+              reason: l.metadata ? JSON.stringify(l.metadata) : null,
+            }))}
+          />
           <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Immutable · Append Only</span>

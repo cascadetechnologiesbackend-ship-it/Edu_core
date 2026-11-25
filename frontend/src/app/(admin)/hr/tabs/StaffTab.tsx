@@ -23,8 +23,14 @@ import {
   ShieldCheck,
   Building2,
   Calendar,
+  Download,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ImportWizard, ExportDialog, type ExportRequestPayload } from "@/components/import-export";
+import { DATASET_SCHEMAS } from "@/lib/importExportEngine";
+import { downloadExportRows } from "@/lib/exportDownload";
+import { commitStaffImportAction } from "../../school/import-center/actions";
 import { AppModal } from "@/components/ui/AppModal";
 import { Combobox, type ComboboxOption } from "@/components/forms/Combobox";
 import { AddressAutofill, type AddressValue, formatAddressForStorage } from "@/components/forms/AddressAutofill";
@@ -70,6 +76,8 @@ export function StaffTab({
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [editStaffTarget, setEditStaffTarget] = useState<any>(null);
   const [offboardTarget, setOffboardTarget] = useState<any>(null);
   const [manualCredentials, setManualCredentials] = useState<{
@@ -510,9 +518,26 @@ export function StaffTab({
 
         {/* Primary CTA */}
         {isAuthorizedHR && (
-          <button
-            type="button"
-            onClick={() => {
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground transition"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Import
+            </button>
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border border-border/60 bg-muted/40 hover:bg-muted/60 text-foreground transition"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export
+            </button>
+            <button
+              type="button"
+              onClick={() => {
               setStaffForm({
                 firstName: "",
                 lastName: "",
@@ -545,11 +570,12 @@ export function StaffTab({
               setCreateAttempted(false);
               setIsCreateOpen(true);
             }}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shrink-0 self-start md:self-auto"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md"
           >
             <PlusCircle className="w-4 h-4" />
             Onboard Staff
           </button>
+          </div>
         )}
       </div>
 
@@ -1291,6 +1317,70 @@ export function StaffTab({
           </div>
         </AppModal>
       )}
+      <ImportWizard
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        datasetKey="STAFF"
+        onExecuteImport={async (validRows) => {
+          const res = await commitStaffImportAction(validRows, { resilient: true });
+          if (!res.success && res.createdCount === 0) {
+            throw new Error(res.errors?.[0] || res.message || "Staff import failed");
+          }
+          onRefresh?.();
+          router.refresh();
+          return {
+            importedCount: res.createdCount,
+            message: res.message || `Imported ${res.createdCount} staff records.`,
+          };
+        }}
+      />
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        datasetKey="STAFF"
+        filteredCount={filteredStaff.length}
+        totalCount={staffList.length}
+        onConfirm={async (payload: ExportRequestPayload) => {
+          const source = payload.scope === "filtered" ? filteredStaff : staffList;
+          const rows = source
+            .filter((s) => {
+              if (payload.scope !== "dateRange") return true;
+              const jDate = s.joiningDate ? String(s.joiningDate).slice(0, 10) : "";
+              if (!jDate) return false;
+              if (payload.dateFrom && jDate < payload.dateFrom) return false;
+              if (payload.dateTo && jDate > payload.dateTo) return false;
+              return true;
+            })
+            .map((s) => ({
+              employee_code: s.employeeCode || "",
+              first_name: s.firstName || "",
+              last_name: s.lastName || "",
+              email: s.email || "",
+              mobile: s.mobile || "",
+              gender: s.gender || "",
+              department: s.departmentName || "",
+              designation: s.designationName || "",
+              joining_date: s.joiningDate ? String(s.joiningDate).slice(0, 10) : "",
+              contract_type: s.contractType || "",
+              role: s.role || "",
+            }));
+          const schema = DATASET_SCHEMAS.STAFF;
+          const cols = payload.columns.map((key) => ({
+            key,
+            label: schema.columns.find((c) => c.key === key)?.label || key,
+          }));
+          await downloadExportRows({
+            rows,
+            columns: cols,
+            format: payload.format,
+            fileName: `staff-directory-${new Date().toISOString().slice(0, 10)}`,
+            sheetName: "Staff Directory",
+            title: "Staff Directory Export",
+          });
+          toast.success(`Exported ${rows.length} staff records (${payload.format})`);
+        }}
+      />
     </div>
   );
 }

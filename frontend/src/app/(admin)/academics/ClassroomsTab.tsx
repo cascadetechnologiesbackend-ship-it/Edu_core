@@ -7,6 +7,7 @@ import { saveClassroom, saveSection } from "./actions";
 import { Plus, Edit2, Check, RefreshCw, AlertTriangle } from "lucide-react";
 import AppModal from "@/components/ui/AppModal";
 import { ALL_GRADE_LEVELS } from "@/lib/gradeConstants";
+import ClassTeacherPanel from "./classes/ClassTeacherPanel";
 
 type Section = {
   id: string;
@@ -88,6 +89,18 @@ export default function ClassroomsTab({
 
   return (
     <div className="space-y-6">
+      <ClassTeacherPanel
+        sections={classrooms.flatMap((c) =>
+          c.sections.map((s) => ({
+            id: s.id,
+            name: s.name,
+            classDisplayName: c.displayName,
+            classTeacherId: s.classTeacherId,
+          })),
+        )}
+        teachers={teachers}
+        isAdmin={isAdmin}
+      />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
           Classes & Sections Management

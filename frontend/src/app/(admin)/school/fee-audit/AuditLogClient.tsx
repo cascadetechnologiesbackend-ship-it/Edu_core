@@ -13,6 +13,9 @@ import {
 import { toast } from "sonner";
 import { FilterBar } from "@/components/finance/FilterBar";
 import { DataTable, ColumnDef } from "@/components/finance/DataTable";
+import { ExportDialog, type ExportRequestPayload } from "@/components/import-export";
+import { DATASET_SCHEMAS } from "@/lib/importExportEngine";
+import { downloadExportRows } from "@/lib/exportDownload";
 
 export interface AuditLogRow {
   id: string;
@@ -34,6 +37,7 @@ export function AuditLogClient({
   schoolName: string;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
 
   const filteredLogs = useMemo(() => {
     if (!searchQuery.trim()) return logs;
@@ -216,11 +220,12 @@ export function AuditLogClient({
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
-            onClick={() => handleExport("xlsx")}
+            type="button"
+            onClick={() => setExportOpen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-card border border-border/40 text-foreground hover:bg-muted/40 shadow-sm transition"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            Export Excel
+            <Download className="w-4 h-4 text-emerald-600" />
+            Export
           </button>
         </div>
       </div>
@@ -231,6 +236,47 @@ export function AuditLogClient({
         data={filteredLogs}
         emptyTitle="No audit logs recorded"
         emptyDescription="No matching audit logs recorded."
+      />
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        datasetKey="AUDIT_LOGS"
+        filteredCount={filteredLogs.length}
+        totalCount={logs.length}
+        onConfirm={async (payload: ExportRequestPayload) => {
+          const source = payload.scope === "filtered" ? filteredLogs : logs;
+          const rows = source
+            .filter((l) => {
+              if (payload.scope !== "dateRange") return true;
+              const d = l.createdAt.slice(0, 10);
+              if (payload.dateFrom && d < payload.dateFrom) return false;
+              if (payload.dateTo && d > payload.dateTo) return false;
+              return true;
+            })
+            .map((l) => ({
+              createdAt: new Date(l.createdAt).toLocaleString("en-IN"),
+              action: l.action,
+              entityType: l.entityType,
+              entityId: l.entityId,
+              performerEmail: l.performerEmail,
+              reason: l.reason || "N/A",
+            }));
+          const schema = DATASET_SCHEMAS.AUDIT_LOGS;
+          const cols = payload.columns.map((key) => ({
+            key,
+            label: schema.columns.find((c) => c.key === key)?.label || key,
+          }));
+          await downloadExportRows({
+            rows,
+            columns: cols,
+            format: payload.format,
+            fileName: `${schoolName.toLowerCase().replace(/\s+/g, "-")}-fee-audit-${new Date().toISOString().slice(0, 10)}`,
+            sheetName: "Fee Audit Logs",
+            title: `${schoolName} - Fee Audit Logs`,
+          });
+          toast.success(`Exported ${rows.length} audit log records (${payload.format})`);
+        }}
       />
     </div>
   );
