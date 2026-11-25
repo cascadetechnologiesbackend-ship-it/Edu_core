@@ -71,9 +71,26 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'schoolmitra_platform_admin') THEN
     CREATE ROLE schoolmitra_platform_admin NOLOGIN;
   END IF;
+
+  -- Ensure migration user has SET ROLE capability on created roles (PostgreSQL 16 requirement)
+  BEGIN
+    EXECUTE format('GRANT schoolmitra_owner, schoolmitra_secdef_owner, schoolmitra_audit_writer, schoolmitra_app, schoolmitra_platform_admin TO %I', CURRENT_USER);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Could not grant roles to CURRENT_USER: %', SQLERRM;
+  END;
 END $$;
 
-ALTER SCHEMA security OWNER TO schoolmitra_secdef_owner;
+CREATE OR REPLACE FUNCTION security.safe_set_owner(p_sql text)
+RETURNS void
+LANGUAGE plpgsql AS $$
+BEGIN
+  EXECUTE p_sql;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Skipping ownership alteration (%): %', p_sql, SQLERRM;
+END;
+$$;
+
+SELECT security.safe_set_owner('ALTER SCHEMA security OWNER TO schoolmitra_secdef_owner');
 GRANT USAGE ON SCHEMA security TO schoolmitra_app, schoolmitra_platform_admin;
 GRANT USAGE ON SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
@@ -86,7 +103,7 @@ CREATE TABLE IF NOT EXISTS security.tenant_secrets (
   created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
-ALTER TABLE security.tenant_secrets OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER TABLE security.tenant_secrets OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON security.tenant_secrets FROM PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
 -- Seed initial secure key from migration session context or fallback to development secret
 DO $$
@@ -122,7 +139,7 @@ BEGIN
         created_at = EXCLUDED.created_at;
 END;
 $$;
-ALTER FUNCTION security.provision_tenant_secret(text, text) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.provision_tenant_secret(text, text) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.provision_tenant_secret(text, text) FROM PUBLIC, schoolmitra_app, schoolmitra_platform_admin;
 
 -- 4. JIT Session and Audit Ledger Tables (Correction C & E)
@@ -142,7 +159,7 @@ CREATE TABLE IF NOT EXISTS public.jit_audit_sessions (
   created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
-ALTER TABLE public.jit_audit_sessions OWNER TO schoolmitra_owner;
+SELECT security.safe_set_owner('ALTER TABLE public.jit_audit_sessions OWNER TO schoolmitra_owner');
 ALTER TABLE public.jit_audit_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jit_audit_sessions FORCE ROW LEVEL SECURITY;
 
@@ -161,7 +178,7 @@ CREATE TABLE IF NOT EXISTS public.jit_access_audit_logs (
   occurred_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
-ALTER TABLE public.jit_access_audit_logs OWNER TO schoolmitra_owner;
+SELECT security.safe_set_owner('ALTER TABLE public.jit_access_audit_logs OWNER TO schoolmitra_owner');
 ALTER TABLE public.jit_access_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jit_access_audit_logs FORCE ROW LEVEL SECURITY;
 
@@ -173,7 +190,7 @@ CREATE TABLE IF NOT EXISTS security.jit_activation_nonces (
   expires_at timestamptz NOT NULL
 );
 
-ALTER TABLE security.jit_activation_nonces OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER TABLE security.jit_activation_nonces OWNER TO schoolmitra_secdef_owner');
 CREATE INDEX IF NOT EXISTS idx_jit_nonces_expires_at ON security.jit_activation_nonces (expires_at);
 
 -- 5. Cryptographic Tenant Context Gate & Verification Helpers (Correction A & B)
@@ -226,7 +243,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.set_verified_tenant_context(uuid, text, text, bigint, text) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.set_verified_tenant_context(uuid, text, text, bigint, text) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.set_verified_tenant_context(uuid, text, text, bigint, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.set_verified_tenant_context(uuid, text, text, bigint, text) TO schoolmitra_app;
 
@@ -286,7 +303,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.is_tenant_verified(uuid) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.is_tenant_verified(uuid) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.is_tenant_verified(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.is_tenant_verified(uuid) TO schoolmitra_app, schoolmitra_platform_admin;
 
@@ -373,7 +390,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.activate_jit_session(uuid, text, text, text, integer) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.activate_jit_session(uuid, text, text, text, integer) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.activate_jit_session(uuid, text, text, text, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.activate_jit_session(uuid, text, text, text, integer) TO schoolmitra_platform_admin;
 
@@ -428,7 +445,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.record_access_intent(uuid, uuid, text, text, jsonb) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.record_access_intent(uuid, uuid, text, text, jsonb) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.record_access_intent(uuid, uuid, text, text, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.record_access_intent(uuid, uuid, text, text, jsonb) TO schoolmitra_platform_admin;
 
@@ -529,7 +546,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.read_diagnostic_records(uuid, text, uuid, integer, integer) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.read_diagnostic_records(uuid, text, uuid, integer, integer) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.read_diagnostic_records(uuid, text, uuid, integer, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.read_diagnostic_records(uuid, text, uuid, integer, integer) TO schoolmitra_platform_admin;
 
@@ -572,7 +589,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.record_access_outcome(uuid, text, integer, text) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.record_access_outcome(uuid, text, integer, text) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.record_access_outcome(uuid, text, integer, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.record_access_outcome(uuid, text, integer, text) TO schoolmitra_platform_admin;
 

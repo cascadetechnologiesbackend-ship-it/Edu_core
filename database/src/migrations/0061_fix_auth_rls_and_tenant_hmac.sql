@@ -84,7 +84,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION security.is_tenant_verified(uuid) OWNER TO schoolmitra_secdef_owner;
+SELECT security.safe_set_owner('ALTER FUNCTION security.is_tenant_verified(uuid) OWNER TO schoolmitra_secdef_owner');
 REVOKE ALL ON FUNCTION security.is_tenant_verified(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION security.is_tenant_verified(uuid) TO schoolmitra_app, schoolmitra_platform_admin;
 
