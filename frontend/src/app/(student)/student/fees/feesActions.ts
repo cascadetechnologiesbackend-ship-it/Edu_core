@@ -98,33 +98,41 @@ export async function getStudentFeesAction(
         orderBy: [desc(feeInvoices.dueDate)],
       });
 
-      // 2. Fetch payments
+      // 2. Fetch active (non-cancelled) payments
       const paymentRows = await tx.query.feePayments.findMany({
         where: and(
           eq(feePayments.schoolId, scope.schoolId),
-          eq(feePayments.studentId, scope.studentId)
+          eq(feePayments.studentId, scope.studentId),
+          eq(feePayments.isCancelled, false)
         ),
         orderBy: [desc(feePayments.paymentDate)],
       });
 
-      let totalBilled = 0;
-      let totalPaid = 0;
-      let totalOutstanding = 0;
+      const toPaise = (v: string | number | null | undefined) => {
+        const n = typeof v === "number" ? v : parseFloat(String(v ?? "0"));
+        return Number.isFinite(n) ? Math.round(n * 100) : 0;
+      };
+
+      let totalBilledPaise = 0;
+      let totalPaidPaise = 0;
+      let totalOutstandingPaise = 0;
 
       const invoices: StudentFeeInvoiceItem[] = invoiceRows.map((inv) => {
-        const total = Number(inv.netAmount || 0);
-        const paid = Number(inv.paidAmount || 0);
-        const balance = Number(inv.balanceAmount || 0);
-        const late = Number(inv.lateFeeAmount || 0);
+        const totalPaise = toPaise(inv.netAmount);
+        const paidPaise = toPaise(inv.paidAmount);
+        const balancePaise = toPaise(inv.balanceAmount);
+        const latePaise = toPaise(inv.lateFeeAmount);
 
-        totalBilled += total;
-        totalPaid += paid;
+        if (inv.status !== "CANCELLED" && inv.status !== "WAIVED") {
+          totalBilledPaise += totalPaise;
+        }
+        totalPaidPaise += paidPaise;
         if (
           inv.status === "PENDING" ||
           inv.status === "PARTIAL" ||
           inv.status === "OVERDUE"
         ) {
-          totalOutstanding += balance;
+          totalOutstandingPaise += balancePaise;
         }
 
         return {
@@ -132,10 +140,10 @@ export async function getStudentFeesAction(
           invoiceNumber: inv.invoiceNumber || "INV",
           term: (inv.term as string) || "Term Fee",
           dueDate: new Date(inv.dueDate).toISOString().split("T")[0]!,
-          totalAmount: total,
-          paidAmount: paid,
-          balanceAmount: balance,
-          lateFeeAmount: late,
+          totalAmount: totalPaise / 100,
+          paidAmount: paidPaise / 100,
+          balanceAmount: balancePaise / 100,
+          lateFeeAmount: latePaise / 100,
           status: inv.status as FeeInvoiceStatus,
         };
       });
@@ -145,7 +153,7 @@ export async function getStudentFeesAction(
         receiptNumber: p.receiptNumber || "RCPT",
         invoiceId: p.feeInvoiceId,
         paymentDate: new Date(p.paymentDate).toISOString().split("T")[0]!,
-        amount: Number(p.amountPaid || 0),
+        amount: toPaise(p.amountPaid) / 100,
         paymentMode: p.paymentMethod || "ONLINE",
         transactionRef: p.transactionReference || null,
         status: "CONFIRMED",
@@ -160,9 +168,9 @@ export async function getStudentFeesAction(
           sectionName: scope.sectionName,
           academicYearLabel: scope.academicYearLabel,
         },
-        totalBilled,
-        totalPaid,
-        totalOutstanding,
+        totalBilled: totalBilledPaise / 100,
+        totalPaid: totalPaidPaise / 100,
+        totalOutstanding: totalOutstandingPaise / 100,
         invoices,
         payments,
       };

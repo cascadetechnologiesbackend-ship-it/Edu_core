@@ -77,7 +77,8 @@ export default async function ParentFeesPage({
     const payList = await tx.query.feePayments.findMany({
       where: and(
         eq(feePayments.studentId, currentStudent.id),
-        eq(feePayments.schoolId, school.id)
+        eq(feePayments.schoolId, school.id),
+        eq(feePayments.isCancelled, false)
       ),
       orderBy: [desc(feePayments.paymentDate)],
     });
@@ -113,6 +114,8 @@ export default async function ParentFeesPage({
           const sName = s.fullName || `Student ${s.admissionNumber}`;
 
           for (const inv of studentInvs) {
+            const balPaise = Math.round(Number(inv.balanceAmount || 0) * 100);
+            const latePaise = Math.round(Number(inv.lateFeeAmount || 0) * 100);
             siblings.push({
               studentId: s.id,
               studentName: sName,
@@ -120,8 +123,8 @@ export default async function ParentFeesPage({
               invoiceId: inv.id,
               invoiceNumber: inv.invoiceNumber || "Invoice",
               termName: (inv.term as string) || "Term Fee",
-              balanceAmount: Number(inv.balanceAmount || 0),
-              lateFeeAmount: Number(inv.lateFeeAmount || 0),
+              balanceAmount: balPaise / 100,
+              lateFeeAmount: latePaise / 100,
             });
           }
         }

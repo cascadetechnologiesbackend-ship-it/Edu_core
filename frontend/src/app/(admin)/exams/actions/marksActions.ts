@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   markEntries,
   examMarksLocks,
@@ -16,6 +16,9 @@ import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { requireExamPermission, assertTeacherTeaches } from "@/lib/examPermissions";
+import { isOversightRole, OVERSIGHT_READ_ROLES } from "@/lib/teacherAuthGuards";
+import { logAuditEvent } from "@/lib/auditLogger";
+import { getClientRequestContext } from "@/lib/requestContext";
 import { z } from "zod";
 
 import {
@@ -32,11 +35,20 @@ const GRADING_ROLES = [
   "TEACHER",
 ] as const;
 
-const ADMIN_LOCK_ROLES = [
-  "SUPER_ADMIN",
-  "SCHOOL_ADMIN",
-  "PRINCIPAL",
-] as const;
+const OVERSIGHT_LOCK_ROLES = OVERSIGHT_READ_ROLES;
+
+function buildExamAuditCtx(
+  ctx: { userId: string; email: string; role: string },
+  reqCtx: { ipAddress: string; userAgent: string },
+) {
+  return {
+    userId: ctx.userId,
+    userEmail: ctx.email,
+    userRole: ctx.role,
+    ipAddress: reqCtx.ipAddress,
+    userAgent: reqCtx.userAgent,
+  };
+}
 
 export interface SingleMarkEntryInput {
   studentId: string;
@@ -420,15 +432,143 @@ export async function saveMarkEntries(input: {
   };
 }
 
+export async function approveMarks(input: {
+  examId: string;
+  classId: string;
+  sectionId?: string | null;
+  subjectId: string;
+  reason: string;
+}) {
+  const ctx = await requireAuth(OVERSIGHT_LOCK_ROLES);
+  if (!isOversightRole(ctx.role)) {
+    return { success: false, error: "FORBIDDEN", message: "Oversight role required to approve marks." };
+  }
+  requireExamPermission(ctx.role, "exam.marks.lock");
+  const school = await requireSchool(ctx);
+
+  const trimmedReason = input.reason?.trim();
+  if (!trimmedReason) {
+    return {
+      success: false,
+      error: "REASON_REQUIRED",
+      message: "A non-empty approval reason is required.",
+    };
+  }
+
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "approveMarks");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, input.classId, ctx, "approveMarks");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
+
+  await withTenant(school.id, async (tx) => {
+    const existing = await tx.query.examMarksLocks.findFirst({
+      where: and(
+        eq(examMarksLocks.schoolId, school.id),
+        eq(examMarksLocks.examId, input.examId),
+        eq(examMarksLocks.classId, input.classId),
+        eq(examMarksLocks.subjectId, input.subjectId),
+      ),
+    });
+
+    if (existing) {
+      await tx
+        .update(examMarksLocks)
+        .set({
+          status: "LOCKED",
+          lockedById: ctx.userId,
+          lockedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(examMarksLocks.id, existing.id));
+    } else {
+      await tx.insert(examMarksLocks).values({
+        schoolId: school.id,
+        examId: input.examId,
+        classId: input.classId,
+        subjectId: input.subjectId,
+        status: "LOCKED",
+        lockedById: ctx.userId,
+        lockedAt: new Date(),
+      });
+    }
+
+    const classStudents = await tx.query.students.findMany({
+      where: and(
+        eq(students.schoolId, school.id),
+        eq(students.currentClassId, input.classId),
+        ...(input.sectionId ? [eq(students.currentSectionId, input.sectionId)] : []),
+      ),
+      columns: { id: true },
+    });
+    const studentIds = classStudents.map((s) => s.id);
+    if (studentIds.length > 0) {
+      await tx
+        .update(markEntries)
+        .set({ status: "LOCKED", updatedAt: new Date() })
+        .where(
+          and(
+            eq(markEntries.schoolId, school.id),
+            eq(markEntries.examId, input.examId),
+            eq(markEntries.subjectId, input.subjectId),
+            inArray(markEntries.studentId, studentIds),
+          ),
+        );
+    }
+  });
+
+  const reqCtx = getClientRequestContext();
+  await logAuditEvent(buildExamAuditCtx(ctx, reqCtx), {
+    action: "WRITE",
+    tableName: "exam_marks_locks",
+    recordId: `${input.examId}:${input.classId}:${input.subjectId}`,
+    purposeId: "exam_oversight_approval",
+    schoolId: school.id,
+    metadata: {
+      operation: "APPROVE_MARKS",
+      examId: input.examId,
+      classId: input.classId,
+      subjectId: input.subjectId,
+      sectionId: input.sectionId ?? null,
+      reason: trimmedReason,
+      actorRole: ctx.role,
+    },
+  });
+
+  try {
+    revalidatePath("/exams/marks");
+    revalidatePath("/teacher/grading");
+    revalidatePath("/principal/dashboard");
+  } catch {}
+  return { success: true };
+}
+
 export async function lockMarks(input: {
   examId: string;
   classId: string;
   sectionId?: string | null;
   subjectId: string;
+  reason: string;
 }) {
-  const ctx = await requireAuth(ADMIN_LOCK_ROLES);
+  const ctx = await requireAuth(OVERSIGHT_LOCK_ROLES);
+  if (!isOversightRole(ctx.role)) {
+    return { success: false, error: "FORBIDDEN", message: "Oversight role required to lock marks." };
+  }
   requireExamPermission(ctx.role, "exam.marks.lock");
   const school = await requireSchool(ctx);
+
+  const trimmedReason = input.reason?.trim();
+  if (!trimmedReason) {
+    return {
+      success: false,
+      error: "REASON_REQUIRED",
+      message: "A non-empty reason is required to lock marks.",
+    };
+  }
 
   const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "lockMarks");
   if (!examVerification.success) {
@@ -440,39 +580,85 @@ export async function lockMarks(input: {
     return { success: false, error: classVerification.error, message: classVerification.message };
   }
 
-  const existing = await db.query.examMarksLocks.findFirst({
-    where: and(
-      eq(examMarksLocks.schoolId, school.id),
-      eq(examMarksLocks.examId, input.examId),
-      eq(examMarksLocks.classId, input.classId),
-      eq(examMarksLocks.subjectId, input.subjectId),
-    ),
-  });
+  await withTenant(school.id, async (tx) => {
+    const existing = await tx.query.examMarksLocks.findFirst({
+      where: and(
+        eq(examMarksLocks.schoolId, school.id),
+        eq(examMarksLocks.examId, input.examId),
+        eq(examMarksLocks.classId, input.classId),
+        eq(examMarksLocks.subjectId, input.subjectId),
+      ),
+    });
 
-  if (existing) {
-    await db
-      .update(examMarksLocks)
-      .set({
+    if (existing) {
+      await tx
+        .update(examMarksLocks)
+        .set({
+          status: "LOCKED",
+          lockedById: ctx.userId,
+          lockedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(examMarksLocks.id, existing.id));
+    } else {
+      await tx.insert(examMarksLocks).values({
+        schoolId: school.id,
+        examId: input.examId,
+        classId: input.classId,
+        subjectId: input.subjectId,
         status: "LOCKED",
         lockedById: ctx.userId,
         lockedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(examMarksLocks.id, existing.id));
-  } else {
-    await db.insert(examMarksLocks).values({
-      schoolId: school.id,
+      });
+    }
+
+    const classStudents = await tx.query.students.findMany({
+      where: and(
+        eq(students.schoolId, school.id),
+        eq(students.currentClassId, input.classId),
+        ...(input.sectionId ? [eq(students.currentSectionId, input.sectionId)] : []),
+      ),
+      columns: { id: true },
+    });
+    const studentIds = classStudents.map((s) => s.id);
+    if (studentIds.length > 0) {
+      await tx
+        .update(markEntries)
+        .set({ status: "LOCKED", updatedAt: new Date() })
+        .where(
+          and(
+            eq(markEntries.schoolId, school.id),
+            eq(markEntries.examId, input.examId),
+            eq(markEntries.subjectId, input.subjectId),
+            inArray(markEntries.studentId, studentIds),
+          ),
+        );
+    }
+  });
+
+  const reqCtx = getClientRequestContext();
+  await logAuditEvent(buildExamAuditCtx(ctx, reqCtx), {
+    action: "WRITE",
+    tableName: "exam_marks_locks",
+    recordId: `${input.examId}:${input.classId}:${input.subjectId}`,
+    purposeId: "exam_oversight_lock",
+    schoolId: school.id,
+    metadata: {
+      operation: "LOCK_MARKS",
       examId: input.examId,
       classId: input.classId,
       subjectId: input.subjectId,
-      status: "LOCKED",
-      lockedById: ctx.userId,
-      lockedAt: new Date(),
-    });
-  }
+      sectionId: input.sectionId ?? null,
+      reason: trimmedReason,
+      actorRole: ctx.role,
+    },
+  });
 
-  revalidatePath("/exams/marks");
-  revalidatePath("/teacher/grading");
+  try {
+    revalidatePath("/exams/marks");
+    revalidatePath("/teacher/grading");
+    revalidatePath("/principal/dashboard");
+  } catch {}
   return { success: true };
 }
 
@@ -483,9 +669,21 @@ export async function unlockMarks(input: {
   subjectId: string;
   reason: string;
 }) {
-  const ctx = await requireAuth(ADMIN_LOCK_ROLES);
+  const ctx = await requireAuth(OVERSIGHT_LOCK_ROLES);
+  if (!isOversightRole(ctx.role)) {
+    return { success: false, error: "FORBIDDEN", message: "Oversight role required to unlock marks." };
+  }
   requireExamPermission(ctx.role, "exam.marks.unlock");
   const school = await requireSchool(ctx);
+
+  const trimmedReason = input.reason?.trim();
+  if (!trimmedReason) {
+    return {
+      success: false,
+      error: "REASON_REQUIRED",
+      message: "A non-empty reason is required to unlock marks.",
+    };
+  }
 
   const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "unlockMarks");
   if (!examVerification.success) {
@@ -497,40 +695,190 @@ export async function unlockMarks(input: {
     return { success: false, error: classVerification.error, message: classVerification.message };
   }
 
-  const existing = await db.query.examMarksLocks.findFirst({
-    where: and(
-      eq(examMarksLocks.schoolId, school.id),
-      eq(examMarksLocks.examId, input.examId),
-      eq(examMarksLocks.classId, input.classId),
-      eq(examMarksLocks.subjectId, input.subjectId),
-    ),
-  });
+  await withTenant(school.id, async (tx) => {
+    const existing = await tx.query.examMarksLocks.findFirst({
+      where: and(
+        eq(examMarksLocks.schoolId, school.id),
+        eq(examMarksLocks.examId, input.examId),
+        eq(examMarksLocks.classId, input.classId),
+        eq(examMarksLocks.subjectId, input.subjectId),
+      ),
+    });
 
-  if (existing) {
-    await db
-      .update(examMarksLocks)
-      .set({
+    if (existing) {
+      await tx
+        .update(examMarksLocks)
+        .set({
+          status: "SUBMITTED",
+          unlockedById: ctx.userId,
+          unlockedAt: new Date(),
+          unlockReason: trimmedReason,
+          updatedAt: new Date(),
+        })
+        .where(eq(examMarksLocks.id, existing.id));
+    } else {
+      await tx.insert(examMarksLocks).values({
+        schoolId: school.id,
+        examId: input.examId,
+        classId: input.classId,
+        subjectId: input.subjectId,
         status: "SUBMITTED",
         unlockedById: ctx.userId,
         unlockedAt: new Date(),
-        unlockReason: input.reason,
-        updatedAt: new Date(),
-      })
-      .where(eq(examMarksLocks.id, existing.id));
-  } else {
-    await db.insert(examMarksLocks).values({
-      schoolId: school.id,
+        unlockReason: trimmedReason,
+      });
+    }
+
+    const classStudents = await tx.query.students.findMany({
+      where: and(
+        eq(students.schoolId, school.id),
+        eq(students.currentClassId, input.classId),
+        ...(input.sectionId ? [eq(students.currentSectionId, input.sectionId)] : []),
+      ),
+      columns: { id: true },
+    });
+    const studentIds = classStudents.map((s) => s.id);
+    if (studentIds.length > 0) {
+      await tx
+        .update(markEntries)
+        .set({ status: "SUBMITTED", updatedAt: new Date() })
+        .where(
+          and(
+            eq(markEntries.schoolId, school.id),
+            eq(markEntries.examId, input.examId),
+            eq(markEntries.subjectId, input.subjectId),
+            inArray(markEntries.studentId, studentIds),
+          ),
+        );
+    }
+  });
+
+  const reqCtx = getClientRequestContext();
+  await logAuditEvent(buildExamAuditCtx(ctx, reqCtx), {
+    action: "WRITE",
+    tableName: "exam_marks_locks",
+    recordId: `${input.examId}:${input.classId}:${input.subjectId}`,
+    purposeId: "exam_oversight_unlock",
+    schoolId: school.id,
+    metadata: {
+      operation: "UNLOCK_MARKS",
       examId: input.examId,
       classId: input.classId,
       subjectId: input.subjectId,
-      status: "SUBMITTED",
-      unlockedById: ctx.userId,
-      unlockedAt: new Date(),
-      unlockReason: input.reason,
-    });
+      sectionId: input.sectionId ?? null,
+      reason: trimmedReason,
+      actorRole: ctx.role,
+    },
+  });
+
+  try {
+    revalidatePath("/exams/marks");
+    revalidatePath("/teacher/grading");
+    revalidatePath("/principal/dashboard");
+  } catch {}
+  return { success: true };
+}
+
+export async function returnMarksForRevision(input: {
+  examId: string;
+  classId: string;
+  sectionId?: string | null;
+  subjectId: string;
+  reason: string;
+}) {
+  const ctx = await requireAuth(OVERSIGHT_LOCK_ROLES);
+  if (!isOversightRole(ctx.role)) {
+    return { success: false, error: "FORBIDDEN", message: "Oversight role required to return marks for revision." };
+  }
+  requireExamPermission(ctx.role, "exam.marks.unlock");
+  const school = await requireSchool(ctx);
+
+  const trimmedReason = input.reason?.trim();
+  if (!trimmedReason) {
+    return {
+      success: false,
+      error: "REASON_REQUIRED",
+      message: "A non-empty reason is required to return marks for revision.",
+    };
   }
 
-  revalidatePath("/exams/marks");
-  revalidatePath("/teacher/grading");
+  const examVerification = await verifyExamOwnership(school.id, input.examId, ctx, "returnMarksForRevision");
+  if (!examVerification.success) {
+    return { success: false, error: examVerification.error, message: examVerification.message };
+  }
+
+  const classVerification = await verifyClassOwnership(school.id, input.classId, ctx, "returnMarksForRevision");
+  if (!classVerification.success) {
+    return { success: false, error: classVerification.error, message: classVerification.message };
+  }
+
+  await withTenant(school.id, async (tx) => {
+    const existing = await tx.query.examMarksLocks.findFirst({
+      where: and(
+        eq(examMarksLocks.schoolId, school.id),
+        eq(examMarksLocks.examId, input.examId),
+        eq(examMarksLocks.classId, input.classId),
+        eq(examMarksLocks.subjectId, input.subjectId),
+      ),
+    });
+
+    if (existing) {
+      await tx
+        .delete(examMarksLocks)
+        .where(
+          and(
+            eq(examMarksLocks.id, existing.id),
+            eq(examMarksLocks.schoolId, school.id),
+          ),
+        );
+    }
+
+    const classStudents = await tx.query.students.findMany({
+      where: and(
+        eq(students.schoolId, school.id),
+        eq(students.currentClassId, input.classId),
+        ...(input.sectionId ? [eq(students.currentSectionId, input.sectionId)] : []),
+      ),
+      columns: { id: true },
+    });
+    const studentIds = classStudents.map((s) => s.id);
+    if (studentIds.length > 0) {
+      await tx
+        .update(markEntries)
+        .set({ status: "DRAFT", updatedAt: new Date() })
+        .where(
+          and(
+            eq(markEntries.schoolId, school.id),
+            eq(markEntries.examId, input.examId),
+            eq(markEntries.subjectId, input.subjectId),
+            inArray(markEntries.studentId, studentIds),
+          ),
+        );
+    }
+  });
+
+  const reqCtx = getClientRequestContext();
+  await logAuditEvent(buildExamAuditCtx(ctx, reqCtx), {
+    action: "WRITE",
+    tableName: "exam_marks_locks",
+    recordId: `${input.examId}:${input.classId}:${input.subjectId}`,
+    purposeId: "exam_oversight_return",
+    schoolId: school.id,
+    metadata: {
+      operation: "RETURN_MARKS_FOR_REVISION",
+      examId: input.examId,
+      classId: input.classId,
+      subjectId: input.subjectId,
+      sectionId: input.sectionId ?? null,
+      reason: trimmedReason,
+      actorRole: ctx.role,
+    },
+  });
+
+  try {
+    revalidatePath("/exams/marks");
+    revalidatePath("/teacher/grading");
+    revalidatePath("/principal/dashboard");
+  } catch {}
   return { success: true };
 }

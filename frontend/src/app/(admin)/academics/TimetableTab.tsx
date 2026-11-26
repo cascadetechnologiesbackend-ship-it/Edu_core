@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useTransition, useMemo } from "react";
-import { getSectionTimetable } from "./actions/timetable.actions";
-import { Calendar, RefreshCw, Loader2 } from "lucide-react";
+import { getSectionTimetable, getTeacherLeaveStatusForDate } from "./actions/timetable.actions";
+import { Calendar, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { QuickTimetable, TimetableRecord } from "@/components/academics/QuickTimetable";
 
 type Classroom = {
@@ -40,6 +40,30 @@ export default function TimetableTab({
   const [selectedSection, setSelectedSection] = useState("");
   const [timetable, setTimetable] = useState<TimetableRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [leaveMap, setLeaveMap] = useState<Record<string, { isOnLeave: boolean; leaveEndDate?: string }>>({});
+
+  useEffect(() => {
+    getTeacherLeaveStatusForDate()
+      .then((res) => setLeaveMap(res || {}))
+      .catch(() => {});
+  }, []);
+
+  const teachersWithLeave = useMemo(() => {
+    return teachers.map((t) => {
+      const leave = leaveMap[t.id];
+      const baseName = t.name || t.email;
+      return {
+        ...t,
+        name: leave?.isOnLeave ? `${baseName} (On Leave)` : baseName,
+        isOnLeave: Boolean(leave?.isOnLeave),
+      };
+    });
+  }, [teachers, leaveMap]);
+
+  const onLeaveCount = useMemo(
+    () => teachersWithLeave.filter((t) => t.isOnLeave).length,
+    [teachersWithLeave],
+  );
 
   // Default section selection
   useEffect(() => {
@@ -131,13 +155,22 @@ export default function TimetableTab({
         </div>
       </div>
 
+      {onLeaveCount > 0 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>
+            <strong>{onLeaveCount}</strong> faculty member{onLeaveCount === 1 ? " is" : "s are"} on approved leave today. Leave status is flagged in teacher selectors and blocked from substitution assignment.
+          </span>
+        </div>
+      )}
+
       {selectedSection && currentClass ? (
         <QuickTimetable
           classId={currentClass.id}
           sectionId={selectedSection}
           sections={allSectionsInClass}
           classSubjects={classSubjectsFormatted}
-          teachers={teachers}
+          teachers={teachersWithLeave}
           timetable={timetable}
           isAdmin={isAdmin}
           onSectionChange={(newSecId) => setSelectedSection(newSecId)}

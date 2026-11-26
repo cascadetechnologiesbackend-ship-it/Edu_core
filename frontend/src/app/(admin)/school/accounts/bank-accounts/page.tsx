@@ -5,6 +5,7 @@ import { bankAccounts } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import {
   Building2,
@@ -22,7 +23,18 @@ export default async function BankAccountsPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
 
+  const access = assertRouteAccess(session.user.role, "/school/accounts/bank-accounts", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const schoolId = session.user.schoolId;
+  const canManageBanks =
+    session.user.role === "SUPER_ADMIN" || session.user.role === "SCHOOL_ADMIN";
 
   const accounts = await db.query.bankAccounts.findMany({
     where: eq(bankAccounts.schoolId, schoolId),
@@ -36,7 +48,7 @@ export default async function BankAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceTabs activeSection="accounts" />
+      <FinanceTabs activeSection="accounts" userRole={session.user.role} />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
@@ -65,8 +77,9 @@ export default async function BankAccountsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* New Bank Account Form */}
+      <div className={canManageBanks ? "grid grid-cols-1 lg:grid-cols-3 gap-6" : "grid grid-cols-1 gap-6"}>
+        {/* New Bank Account Form (Admin-only) */}
+        {canManageBanks && (
         <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-border/40 pb-3">
             <Plus className="w-5 h-5 text-emerald-600" />
@@ -169,9 +182,10 @@ export default async function BankAccountsPage() {
             </button>
           </form>
         </div>
+        )}
 
         {/* Existing Accounts List */}
-        <div className="lg:col-span-2 bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col">
+        <div className={`${canManageBanks ? "lg:col-span-2" : ""} bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col`}>
           <div className="p-6 border-b border-border/40">
             <h3 className="text-base font-bold text-foreground">
               Registered Bank Accounts ({accounts.length})
@@ -241,19 +255,25 @@ export default async function BankAccountsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <form
-                          action={async () => {
-                            "use server";
-                            await toggleBankAccountStatus(acc.id, !acc.isActive);
-                          }}
-                        >
-                          <button
-                            type="submit"
-                            className="text-[11px] font-semibold text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
+                        {canManageBanks ? (
+                          <form
+                            action={async () => {
+                              "use server";
+                              await toggleBankAccountStatus(acc.id, !acc.isActive);
+                            }}
                           >
-                            {acc.isActive ? "Deactivate" : "Activate"}
-                          </button>
-                        </form>
+                            <button
+                              type="submit"
+                              className="text-[11px] font-semibold text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
+                            >
+                              {acc.isActive ? "Deactivate" : "Activate"}
+                            </button>
+                          </form>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            View Only
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))

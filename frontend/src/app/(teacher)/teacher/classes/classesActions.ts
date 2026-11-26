@@ -27,6 +27,7 @@ import {
   academicTerms,
   homeroomReportRemarks,
   academicCalendarEvents,
+  auditLogs,
 } from "@/db/schema";
 import { eq, and, sql, inArray, isNull, gte, lte, desc } from "drizzle-orm";
 import { decryptData } from "@/lib/encryption";
@@ -38,10 +39,14 @@ import {
 import {
   assertClassTeacherOverride,
   assertStudent360Access,
+  assertSubjectTeacherPermission,
+  TeacherScopeError,
+  isAdminRole,
 } from "@/lib/teacherAuthGuards";
 import { revalidatePath } from "next/cache";
 import { scanContentForPII } from "@/lib/pii/scanEnforcement";
 import { formatFullName } from "@/lib/utils";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 export interface MyDayPeriodItem {
   periodNumber: number;
@@ -561,16 +566,84 @@ export async function completeLessonPlanAction(payload: {
 
   return await withTenant(school.id, async (tx: any) => {
     let resolvedClassSubjectId = payload.classSubjectId;
+    let existingPlan: any = null;
+
+    if (payload.lessonPlanId) {
+      existingPlan = await tx.query.lessonPlans.findFirst({
+        where: and(
+          eq(lessonPlans.id, payload.lessonPlanId),
+          eq(lessonPlans.schoolId, school.id)
+        ),
+      });
+      if (!existingPlan) {
+        throw new TeacherScopeError("Lesson plan not found.", 404, "SUBJECT_TEACHER_FORBIDDEN");
+      }
+      if (!resolvedClassSubjectId) {
+        resolvedClassSubjectId = existingPlan.classSubjectId;
+      }
+    }
+
     if (!resolvedClassSubjectId && payload.sectionId) {
       const sst = await tx.query.sectionSubjectTeachers.findFirst({
         where: and(
           eq(sectionSubjectTeachers.schoolId, school.id),
-          eq(sectionSubjectTeachers.sectionId, payload.sectionId)
+          eq(sectionSubjectTeachers.sectionId, payload.sectionId),
+          eq(sectionSubjectTeachers.isActive, true),
+          ...(isAdminRole(ctx.role) ? [] : [eq(sectionSubjectTeachers.teacherId, ctx.userId)])
         ),
       });
       if (sst) {
         resolvedClassSubjectId = sst.classSubjectId;
       }
+    }
+
+    if (!resolvedClassSubjectId) {
+      throw new TeacherScopeError(
+        "Class subject context is required to complete a lesson plan.",
+        403,
+        "SUBJECT_TEACHER_FORBIDDEN"
+      );
+    }
+
+    const csRecord = await tx.query.classSubjects.findFirst({
+      where: and(
+        eq(classSubjects.id, resolvedClassSubjectId),
+        eq(classSubjects.schoolId, school.id)
+      ),
+    });
+    if (!csRecord) {
+      throw new TeacherScopeError(
+        "Class subject not found or access denied.",
+        403,
+        "SUBJECT_TEACHER_FORBIDDEN"
+      );
+    }
+
+    // Enforce assertSubjectTeacherPermission even when lessonPlanId is omitted
+    if (payload.sectionId) {
+      await assertSubjectTeacherPermission(ctx.userId, payload.sectionId, csRecord.subjectId, {
+        tx,
+        schoolId: school.id,
+        role: ctx.role,
+      });
+    } else if (!isAdminRole(ctx.role)) {
+      const scope = await resolveTeacherScope(ctx.userId, { tx, schoolId: school.id });
+      const matchedSection = scope.teachingSections.find(
+        (ts) => ts.classSubjectId === csRecord.id || ts.subjectId === csRecord.subjectId
+      );
+      if (!matchedSection) {
+        throw new TeacherScopeError(
+          `Teacher is not allocated to teach subject ${csRecord.subjectId}`,
+          403,
+          "SUBJECT_TEACHER_FORBIDDEN"
+        );
+      }
+      await assertSubjectTeacherPermission(
+        ctx.userId,
+        matchedSection.sectionId,
+        csRecord.subjectId,
+        { tx, schoolId: school.id, role: ctx.role }
+      );
     }
 
     if (payload.lessonPlanId) {
@@ -592,10 +665,10 @@ export async function completeLessonPlanAction(payload: {
           and(
             eq(lessonPlans.id, payload.lessonPlanId),
             eq(lessonPlans.schoolId, school.id),
-            eq(lessonPlans.teacherId, ctx.userId)
+            ...(isAdminRole(ctx.role) ? [] : [eq(lessonPlans.teacherId, ctx.userId)])
           )
         );
-    } else if (resolvedClassSubjectId) {
+    } else {
       await tx.insert(lessonPlans).values({
         schoolId: school.id,
         classSubjectId: resolvedClassSubjectId,
@@ -628,6 +701,26 @@ export async function completeLessonPlanAction(payload: {
         homework: payload.homework || null,
       },
       status: "PENDING",
+    });
+
+    const reqCtx = getClientRequestContext();
+    await tx.insert(auditLogs).values({
+      userId: ctx.userId,
+      userEmail: ctx.email || "[audit-system]",
+      userRole: ctx.role as any,
+      schoolId: school.id,
+      action: "WRITE",
+      tableName: "lesson_plans",
+      recordId: payload.lessonPlanId || resolvedClassSubjectId,
+      purposeId: "curriculum_delivery",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
+      metadata: {
+        lessonPlanId: payload.lessonPlanId || null,
+        classSubjectId: resolvedClassSubjectId,
+        sectionId: payload.sectionId || null,
+        syllabusTopicId: payload.syllabusTopicId || null,
+      },
     });
 
     revalidatePath("/teacher/classes");
@@ -1447,6 +1540,26 @@ export async function saveHomeroomRemarks(payload: {
         signedOffAt: new Date(),
       });
     }
+
+    const reqCtx = getClientRequestContext();
+    await tx.insert(auditLogs).values({
+      userId: ctx.userId,
+      userEmail: ctx.email || "[audit-system]",
+      userRole: ctx.role as any,
+      schoolId: school.id,
+      action: "WRITE",
+      tableName: "homeroom_report_remarks",
+      recordId: payload.studentId,
+      purposeId: "academic_records",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
+      metadata: {
+        studentId: payload.studentId,
+        academicTermId: payload.academicTermId,
+        conductGrade: payload.conductGrade?.trim() || null,
+        isUpdate: Boolean(existing),
+      },
+    });
 
     return {
       success: true,

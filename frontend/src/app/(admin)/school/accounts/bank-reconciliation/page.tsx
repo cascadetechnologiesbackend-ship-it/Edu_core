@@ -17,9 +17,8 @@ interface PageProps {
 }
 
 export default async function BankReconciliationPage({ searchParams }: PageProps) {
-  // RBAC: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT, PRINCIPAL (read-only for non-admins)
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"] as const);
-  const school = await requireSchool(ctx);
+  await requireSchool(ctx);
 
   const res = await withDataPhaseTiming("/school/accounts/bank-reconciliation", async () => {
     return assertQueryBudget(
@@ -55,6 +54,7 @@ export default async function BankReconciliationPage({ searchParams }: PageProps
         }
         initialLedgerTransactions={res.ledgerTransactions}
         initialAdjustingVouchers={res.adjustingVouchers}
+        reconciliationCounts={res.reconciliationCounts}
         userRole={ctx.role}
       />
     </div>

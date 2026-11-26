@@ -40,6 +40,11 @@ export default async function SubjectMappingPage() {
     schoolId ? getCanonicalTeachingStaff(schoolId).catch(() => []) : Promise.resolve([]),
     schoolId
       ? await withTenant(schoolId, async (tx) => {
+          const schoolRow = await tx.query.schools.findFirst({
+            where: eq(schools.id, schoolId),
+            columns: { featureFlags: true },
+          });
+
           const classroomsList = await tx.query.classes.findMany({
             where: and(
               eq(classes.schoolId, schoolId),
@@ -84,9 +89,13 @@ export default async function SubjectMappingPage() {
             },
           });
 
-          return { classroomsList, subjectsList, mappingsList };
+          const configuredMaxPeriods = Number((schoolRow?.featureFlags as any)?.teacherMaxPeriodsPerWeek);
+          const teacherMaxPeriodsPerWeek =
+            Number.isFinite(configuredMaxPeriods) && configuredMaxPeriods > 0 ? configuredMaxPeriods : 30;
+
+          return { classroomsList, subjectsList, mappingsList, teacherMaxPeriodsPerWeek };
         })
-      : { classroomsList: [], subjectsList: [], mappingsList: [] },
+      : { classroomsList: [], subjectsList: [], mappingsList: [], teacherMaxPeriodsPerWeek: 30 },
   ]);
 
   const teachers = teachingStaff.map((t) => ({
@@ -94,6 +103,10 @@ export default async function SubjectMappingPage() {
     email: t.email,
     name: t.name,
     displayName: `${t.name} (${t.employeeCode})`,
+    departmentName: t.departmentName,
+    designationName: t.designationName,
+    qualification: t.qualification ?? null,
+    isOnLeave: Boolean(t.isOnLeave),
   }));
 
   return (
@@ -130,6 +143,7 @@ export default async function SubjectMappingPage() {
         classrooms={tenantData.classroomsList as any}
         subjects={tenantData.subjectsList as any}
         teachers={teachers}
+        teacherMaxPeriodsPerWeek={tenantData.teacherMaxPeriodsPerWeek}
         isAdmin={isAdmin}
       />
     </div>

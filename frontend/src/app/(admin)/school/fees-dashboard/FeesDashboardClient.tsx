@@ -338,7 +338,7 @@ export function FeesDashboardClient({
             amount={kpis.totalDues}
             subtitle={`Uncollected fees in this session`}
             delta={{ value: `${kpis.recoveryRate}%`, label: "Recovery Rate", isPositive: false }}
-            href="/school/due-fees"
+            href={selectedAyId ? `/school/due-fees?ayId=${encodeURIComponent(selectedAyId)}` : "/school/due-fees"}
             variant="money_owed"
           />
 
@@ -347,7 +347,7 @@ export function FeesDashboardClient({
             amount={kpis.overdue60Plus}
             subtitle="Immediate follow-up required"
             delta={{ value: "Risk", label: "Default Warning", isPositive: false }}
-            href="/school/due-fees?bracket=60%2B"
+            href={selectedAyId ? `/school/due-fees?bracket=60%2B&ayId=${encodeURIComponent(selectedAyId)}` : "/school/due-fees?bracket=60%2B"}
             variant="attention"
           />
 
@@ -409,7 +409,7 @@ export function FeesDashboardClient({
 
           <div className="space-y-3.5 my-2">
             <Link
-              href="/school/due-fees"
+              href={(selectedAyId ? `/school/due-fees?ayId=${encodeURIComponent(selectedAyId)}` : "/school/due-fees") as any}
               className="flex items-center justify-between p-3 rounded-2xl bg-semantic-money-in/8 border border-semantic-money-in/20 hover:scale-[1.01] transition"
             >
               <div>
@@ -426,7 +426,7 @@ export function FeesDashboardClient({
             </Link>
 
             <Link
-              href="/school/due-fees?bracket=0-30"
+              href={(selectedAyId ? `/school/due-fees?bracket=0-30&ayId=${encodeURIComponent(selectedAyId)}` : "/school/due-fees?bracket=0-30") as any}
               className="flex items-center justify-between p-3 rounded-2xl bg-semantic-attention/8 border border-semantic-attention/20 hover:scale-[1.01] transition"
             >
               <div>
@@ -443,7 +443,7 @@ export function FeesDashboardClient({
             </Link>
 
             <Link
-              href="/school/due-fees?bracket=31-60"
+              href={(selectedAyId ? `/school/due-fees?bracket=31-60&ayId=${encodeURIComponent(selectedAyId)}` : "/school/due-fees?bracket=31-60") as any}
               className="flex items-center justify-between p-3 rounded-2xl bg-semantic-attention/12 border border-semantic-attention/25 hover:scale-[1.01] transition"
             >
               <div>
@@ -460,7 +460,7 @@ export function FeesDashboardClient({
             </Link>
 
             <Link
-              href="/school/due-fees?bracket=60%2B"
+              href={(selectedAyId ? `/school/due-fees?bracket=60%2B&ayId=${encodeURIComponent(selectedAyId)}` : "/school/due-fees?bracket=60%2B") as any}
               className="flex items-center justify-between p-3 rounded-2xl bg-semantic-money-owed/10 border border-semantic-money-owed/25 hover:scale-[1.01] transition"
             >
               <div>
@@ -643,24 +643,30 @@ export function FeesDashboardClient({
           </div>
 
           <div className="space-y-4">
-            {modeBreakdown.map((item) => (
-              <div key={item.mode} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-foreground/80">
-                    {item.mode}
-                  </span>
-                  <span className="font-mono tabular-nums text-foreground font-bold">
-                    ₹{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })} ({item.percentage}%)
-                  </span>
+            {modeBreakdown.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                No active payment collections recorded for this session.
+              </p>
+            ) : (
+              modeBreakdown.map((item) => (
+                <div key={item.mode} className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-foreground/80">
+                      {item.mode}
+                    </span>
+                    <span className="font-mono tabular-nums text-foreground font-bold">
+                      ₹{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })} ({item.percentage}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="h-2.5 rounded-full transition-all duration-500 bg-semantic-interactive"
+                      style={{ width: `${Math.max(2, item.percentage)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="h-2.5 rounded-full transition-all duration-500 bg-semantic-interactive"
-                    style={{ width: `${Math.max(2, item.percentage)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -710,7 +716,16 @@ export function FeesDashboardClient({
                       className="hover:bg-muted/30 transition"
                     >
                       <td className="py-3 px-4 font-mono tabular-nums font-bold text-semantic-interactive">
-                        #{p.receiptNumber}
+                        <a
+                          href={`/api/receipt/${p.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 hover:underline"
+                          title="Download Receipt PDF"
+                        >
+                          #{p.receiptNumber}
+                          <ExternalLink className="w-3 h-3 opacity-70" />
+                        </a>
                       </td>
                       <td className="py-3 px-4 font-medium text-foreground">
                         {p.studentName}

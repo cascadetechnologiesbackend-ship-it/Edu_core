@@ -5,6 +5,7 @@ import { feeStructures, feeHeads, classes, academicYears } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { UserCheck, Plus, Calendar, IndianRupee, Layers } from "lucide-react";
 import { assignFeeStructure } from "./actions";
@@ -12,6 +13,15 @@ import { assignFeeStructure } from "./actions";
 export default async function AssignFeesPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/school/assign-fees", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
 
   const schoolId = session.user.schoolId;
 

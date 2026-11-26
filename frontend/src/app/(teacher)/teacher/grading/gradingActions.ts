@@ -14,6 +14,8 @@ import {
   exams,
   examMarksLocks,
   markEntries,
+  studentSubjectEnrollments,
+  auditLogs,
   domainEvents,
   userPushSubscriptions,
   pushNotificationLogs,
@@ -31,6 +33,9 @@ import {
 } from "@/lib/teacherAuthGuards";
 import { revalidatePath } from "next/cache";
 import { formatFullName } from "@/lib/utils";
+import { resolveGradeRules, gradeToClassGroup } from "@/lib/gradeRuleResolver";
+import { calculateGrade } from "@/lib/gradeEngine";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 export interface TeacherAssignmentItem {
   id: string;
@@ -89,6 +94,10 @@ export interface StudentExamMarkItem {
   rollNumber: string | null;
   marksObtained: number | null;
   isAbsent: boolean;
+  isMedicalExempt?: boolean | undefined;
+  grade?: string | null | undefined;
+  gradePoint?: string | null | undefined;
+  status?: string | undefined;
   remarks?: string | null;
 }
 
@@ -627,6 +636,33 @@ export async function getExamMarksRoster(
       orderBy: [students.admissionNumber],
     });
 
+    // 3b. If subject is elective, filter roster to actively enrolled elective students
+    const classSubj = await tx.query.classSubjects.findFirst({
+      where: and(
+        eq(classSubjects.schoolId, school.id),
+        eq(classSubjects.classId, classId),
+        eq(classSubjects.subjectId, subjectId)
+      ),
+    });
+
+    let scopedStudents = enrolledStudents;
+    if (classSubj?.isElective && enrolledStudents.length > 0) {
+      const electiveEnrollments = await tx.query.studentSubjectEnrollments.findMany({
+        where: and(
+          eq(studentSubjectEnrollments.schoolId, school.id),
+          eq(studentSubjectEnrollments.classSubjectId, classSubj.id),
+          inArray(
+            studentSubjectEnrollments.studentId,
+            enrolledStudents.map((s: any) => s.id)
+          ),
+          eq(studentSubjectEnrollments.enrollmentStatus, "ACTIVE"),
+          eq(studentSubjectEnrollments.isElectiveTaken, true)
+        ),
+      });
+      const enrolledSet = new Set(electiveEnrollments.map((e: any) => e.studentId));
+      scopedStudents = enrolledStudents.filter((s: any) => enrolledSet.has(s.id));
+    }
+
     // 4. Query Existing Mark Entries
     const existingMarks = await tx.query.markEntries.findMany({
       where: and(
@@ -638,7 +674,7 @@ export async function getExamMarksRoster(
 
     const marksLookup = new Map<string, any>(existingMarks.map((m: any) => [m.studentId, m]));
 
-    const roster = enrolledStudents.map((st: any) => {
+    const roster = scopedStudents.map((st: any) => {
       const entry: any = marksLookup.get(st.id);
       const marksVal =
         entry?.marksObtained !== null && entry?.marksObtained !== undefined
@@ -652,6 +688,10 @@ export async function getExamMarksRoster(
         rollNumber: st.rollNumber,
         marksObtained: marksVal,
         isAbsent: entry?.isAbsent || false,
+        isMedicalExempt: entry?.isMedicalExempt || false,
+        grade: entry?.grade || null,
+        gradePoint: entry?.gradePoint || null,
+        status: entry?.status || "DRAFT",
         remarks: entry?.remarks || null,
       };
     });
@@ -673,13 +713,15 @@ export async function saveExamMarks(payload: {
   classId: string;
   subjectId: string;
   sectionId?: string | undefined;
+  submitMode?: "DRAFT" | "SUBMITTED" | undefined;
   entries: Array<{
     studentId: string;
     marksObtained: number | null;
     isAbsent: boolean;
+    isMedicalExempt?: boolean | undefined;
     remarks?: string | undefined;
   }>;
-}): Promise<{ success: boolean; count: number; message: string }> {
+}): Promise<{ success: boolean; count: number; message: string; submitMode: "DRAFT" | "SUBMITTED" }> {
   const ctx = await requireAuth([
     "SUPER_ADMIN",
     "SCHOOL_ADMIN",
@@ -691,6 +733,8 @@ export async function saveExamMarks(payload: {
   if (!payload.sectionId) {
     throw new Error("Section ID is required to record exam marks.");
   }
+
+  const submitMode: "DRAFT" | "SUBMITTED" = payload.submitMode === "SUBMITTED" ? "SUBMITTED" : "DRAFT";
 
   // 1. Allocation Guard (Condition A & S16-F01)
   await assertSubjectTeacherPermission(ctx.userId, payload.sectionId, payload.subjectId, {
@@ -708,20 +752,48 @@ export async function saveExamMarks(payload: {
       tx
     );
 
+    // 2b. Elective Subject Enrollment Verification
+    const classSubj = await tx.query.classSubjects.findFirst({
+      where: and(
+        eq(classSubjects.schoolId, school.id),
+        eq(classSubjects.classId, payload.classId),
+        eq(classSubjects.subjectId, payload.subjectId)
+      ),
+    });
+    if (classSubj?.isElective && payload.entries.length > 0) {
+      const entryStudentIds = payload.entries.map((e) => e.studentId);
+      const enrollments = await tx.query.studentSubjectEnrollments.findMany({
+        where: and(
+          eq(studentSubjectEnrollments.schoolId, school.id),
+          eq(studentSubjectEnrollments.classSubjectId, classSubj.id),
+          inArray(studentSubjectEnrollments.studentId, entryStudentIds),
+          eq(studentSubjectEnrollments.enrollmentStatus, "ACTIVE"),
+          eq(studentSubjectEnrollments.isElectiveTaken, true)
+        ),
+        columns: { studentId: true },
+      });
+      const enrolledSet = new Set(enrollments.map((e: any) => e.studentId));
+      const unenrolled = entryStudentIds.filter((sid) => !enrolledSet.has(sid));
+      if (unenrolled.length > 0) {
+        throw new Error(
+          `One or more students (${unenrolled.length}) are not actively enrolled in this elective subject.`
+        );
+      }
+    }
+
     // 3. Strict Window Lock Check (AC-T6 & 423 code)
-    const lock = await tx.query.examMarksLocks.findFirst({
+    const existingLock = await tx.query.examMarksLocks.findFirst({
       where: and(
         eq(examMarksLocks.schoolId, school.id),
         eq(examMarksLocks.examId, payload.examId),
         eq(examMarksLocks.classId, payload.classId),
-        eq(examMarksLocks.subjectId, payload.subjectId),
-        eq(examMarksLocks.status, "LOCKED")
+        eq(examMarksLocks.subjectId, payload.subjectId)
       ),
     });
 
-    if (lock) {
+    if (existingLock?.status === "LOCKED") {
       throw new TeacherScopeError(
-        `Cannot save marks: This examination window was locked on ${lock.lockedAt?.toLocaleDateString()}.`,
+        `Cannot save marks: This examination window was locked on ${existingLock.lockedAt?.toLocaleDateString()}.`,
         423,
         "MARKS_WINDOW_LOCKED"
       );
@@ -739,14 +811,27 @@ export async function saveExamMarks(payload: {
       );
     }
 
-    // 2. Validate maxMarks per row
-    const subj = await tx.query.subjects.findFirst({
-      where: and(eq(subjects.schoolId, school.id), eq(subjects.id, payload.subjectId)),
-    });
+    // 3b. Validate maxMarks & Resolve Grade Rules
+    const [subj, cls] = await Promise.all([
+      tx.query.subjects.findFirst({
+        where: and(eq(subjects.schoolId, school.id), eq(subjects.id, payload.subjectId)),
+      }),
+      tx.query.classes.findFirst({
+        where: and(eq(classes.schoolId, school.id), eq(classes.id, payload.classId)),
+      }),
+    ]);
     const maxMarks = subj?.maxMarks || 100;
+    const passingMarks = subj?.passingMarks ?? maxMarks * 0.33;
+
+    const rules = await resolveGradeRules(
+      school.id,
+      payload.classId,
+      cls ? gradeToClassGroup(cls.gradeLevel) : undefined,
+      tx
+    );
 
     for (const entry of payload.entries) {
-      if (entry.marksObtained !== null && entry.marksObtained !== undefined) {
+      if (!entry.isMedicalExempt && !entry.isAbsent && entry.marksObtained !== null && entry.marksObtained !== undefined) {
         if (entry.marksObtained < 0 || entry.marksObtained > maxMarks) {
           throw new Error(
             `Mark ${entry.marksObtained} exceeds max allowable marks of ${maxMarks}`
@@ -755,8 +840,23 @@ export async function saveExamMarks(payload: {
       }
     }
 
-    // 3. Upsert entries into markEntries table
+    // 3c. Upsert entries into markEntries table with computed grade & gradePoint
     for (const entry of payload.entries) {
+      const isExempt = Boolean(entry.isMedicalExempt);
+      const isAbs = !isExempt && Boolean(entry.isAbsent);
+      const obtainedVal = isExempt || isAbs ? null : entry.marksObtained;
+
+      const gradeRes = calculateGrade(
+        {
+          marksObtained: obtainedVal,
+          maxMarks,
+          passingMarks,
+          isAbsent: isAbs,
+          isMedicalExempt: isExempt,
+        },
+        rules
+      );
+
       const existing = await tx.query.markEntries.findFirst({
         where: and(
           eq(markEntries.schoolId, school.id),
@@ -767,17 +867,22 @@ export async function saveExamMarks(payload: {
       });
 
       const marksNumeric =
-        entry.isAbsent || entry.marksObtained === null
+        obtainedVal === null || obtainedVal === undefined
           ? null
-          : entry.marksObtained.toString();
+          : obtainedVal.toFixed(2);
 
       if (existing) {
         await tx
           .update(markEntries)
           .set({
             marksObtained: marksNumeric,
-            isAbsent: entry.isAbsent,
-            remarks: entry.remarks || existing.remarks,
+            maxMarks: maxMarks.toFixed(2),
+            isAbsent: isAbs,
+            isMedicalExempt: isExempt,
+            grade: gradeRes.grade,
+            gradePoint: gradeRes.gradePoint.toFixed(2),
+            status: submitMode,
+            remarks: entry.remarks ?? existing.remarks,
             enteredById: ctx.userId,
             updatedAt: new Date(),
           })
@@ -789,14 +894,44 @@ export async function saveExamMarks(payload: {
           subjectId: payload.subjectId,
           studentId: entry.studentId,
           marksObtained: marksNumeric,
-          isAbsent: entry.isAbsent,
+          maxMarks: maxMarks.toFixed(2),
+          isAbsent: isAbs,
+          isMedicalExempt: isExempt,
+          grade: gradeRes.grade,
+          gradePoint: gradeRes.gradePoint.toFixed(2),
+          status: submitMode,
           remarks: entry.remarks || null,
           enteredById: ctx.userId,
         });
       }
     }
 
-    // 4. Emit ExamMarksRecordedEvent
+    // 3d. Update examMarksLocks to SUBMITTED when submitMode === "SUBMITTED"
+    if (submitMode === "SUBMITTED") {
+      if (existingLock) {
+        await tx
+          .update(examMarksLocks)
+          .set({
+            status: "SUBMITTED",
+            submittedById: ctx.userId,
+            submittedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(examMarksLocks.id, existingLock.id));
+      } else {
+        await tx.insert(examMarksLocks).values({
+          schoolId: school.id,
+          examId: payload.examId,
+          classId: payload.classId,
+          subjectId: payload.subjectId,
+          status: "SUBMITTED",
+          submittedById: ctx.userId,
+          submittedAt: new Date(),
+        });
+      }
+    }
+
+    // 4. Emit ExamMarksRecordedEvent + Immutable Audit Log
     await tx.insert(domainEvents).values({
       schoolId: school.id,
       aggregateId: `${payload.examId}:${payload.subjectId}`,
@@ -808,18 +943,46 @@ export async function saveExamMarks(payload: {
         sectionId: payload.sectionId,
         enteredByUserId: ctx.userId,
         entriesCount: payload.entries.length,
+        submitMode,
         recordedAt: new Date().toISOString(),
       },
       status: "PENDING",
     });
 
+    const reqCtx = getClientRequestContext();
+    await tx.insert(auditLogs).values({
+      userId: ctx.userId,
+      userEmail: ctx.email || "[audit-system]",
+      userRole: ctx.role as any,
+      schoolId: school.id,
+      action: "WRITE",
+      tableName: "mark_entries",
+      recordId: `${payload.examId}:${payload.classId}:${payload.subjectId}`,
+      purposeId: "exam_marks_entry",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
+      metadata: {
+        examId: payload.examId,
+        classId: payload.classId,
+        subjectId: payload.subjectId,
+        sectionId: payload.sectionId,
+        entriesCount: payload.entries.length,
+        submitMode,
+      },
+    });
+
     revalidatePath("/teacher/grading");
     revalidatePath("/teacher/dashboard");
+    revalidatePath("/principal/dashboard");
 
     return {
       success: true,
       count: payload.entries.length,
-      message: `Marks recorded for ${payload.entries.length} students.`,
+      submitMode,
+      message:
+        submitMode === "SUBMITTED"
+          ? `Marks submitted for approval (${payload.entries.length} students).`
+          : `Draft marks saved for ${payload.entries.length} students.`,
     };
   });
 }

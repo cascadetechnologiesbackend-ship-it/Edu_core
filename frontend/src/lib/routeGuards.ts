@@ -9,6 +9,7 @@ import { type UserRole, ROLE_CONFIGS } from "./roleConfig";
 export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
   ACCOUNTANT: [
     "/profile",
+    "/accountant/dashboard",
     "/school/fees-dashboard",
     "/school/collect-fees",
     "/school/due-fees",
@@ -21,6 +22,11 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/school/accounts/bank-reconciliation",
     "/school/accounts/incomes",
     "/school/accounts/expenses",
+    "/school/accounts/bank-accounts",
+    "/school/accounts/journal-vouchers",
+    "/school/fee-challans",
+    "/school/generate-due-slip",
+    "/school/online-payments",
     "/exams/admit-cards",
   ],
   PRINCIPAL: [

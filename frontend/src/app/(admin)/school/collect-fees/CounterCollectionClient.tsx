@@ -25,8 +25,10 @@ import dynamic from "next/dynamic";
 import {
   searchStudentsAction,
   getStudentInvoicesAction,
+  getStudentFeeCardAction,
   processCounterCollection,
   MultiInvoiceCollectionPayload,
+  type StudentFinancialSummary,
 } from "./actions";
 import type { ReceiptData } from "@/components/finance/ReceiptSheet";
 
@@ -75,10 +77,14 @@ export function CounterCollectionClient({
   initialStudents,
   bankAccounts,
   schoolName,
+  schoolAddress,
+  schoolPhone,
 }: {
   initialStudents: StudentSearchResult[];
   bankAccounts: BankAccountOption[];
   schoolName: string;
+  schoolAddress?: string | undefined;
+  schoolPhone?: string | undefined;
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,10 +92,17 @@ export function CounterCollectionClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<StudentSearchResult[]>(initialStudents);
   const [searching, setSearching] = useState(false);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [recentStudents, setRecentStudents] = useState<StudentSearchResult[]>([]);
 
-  // Selected Student & Invoices
+  // Selected Student, Financial Summary & Invoices
   const [selectedStudent, setSelectedStudent] = useState<StudentSearchResult | null>(null);
+  const [studentSummary, setStudentSummary] = useState<StudentFinancialSummary | null>(null);
+  const [studentConcessions, setStudentConcessions] = useState<
+    Array<{ policy: string; status: string }>
+  >([]);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [studentInvoices, setStudentInvoices] = useState<InvoiceDetail[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
 
@@ -142,29 +155,56 @@ export function CounterCollectionClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Debounced server-side student search
+  // Debounced server-side student search + browse mode (students with pending dues first)
   useEffect(() => {
+    let cancelled = false;
     const timer = setTimeout(async () => {
-      if (!searchTerm.trim()) {
+      const q = searchTerm.trim();
+      if (!q && initialStudents.length > 0) {
         setSearchResults(initialStudents);
+        setHasMoreResults(initialStudents.length >= 20);
         return;
       }
       setSearching(true);
-      const res = await searchStudentsAction(searchTerm.trim());
+      const res = await searchStudentsAction(q, { offset: 0, limit: 20 });
+      if (cancelled) return;
       setSearching(false);
       if (res.success && res.students) {
         setSearchResults(res.students);
+        setHasMoreResults(Boolean(res.hasMore));
       }
     }, 200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [searchTerm, initialStudents]);
 
-  // Load invoices when a student is selected
+  const handleLoadMoreStudents = async () => {
+    setLoadingMore(true);
+    const res = await searchStudentsAction(searchTerm.trim(), {
+      offset: searchResults.length,
+      limit: 20,
+    });
+    setLoadingMore(false);
+    if (res.success && res.students) {
+      setSearchResults((prev) => {
+        const seen = new Set(prev.map((s) => s.id));
+        return [...prev, ...res.students.filter((s) => !seen.has(s.id))];
+      });
+      setHasMoreResults(Boolean(res.hasMore));
+    }
+  };
+
+  // Load consolidated fee summary & pending invoices when a student is selected
   const handleSelectStudent = useCallback(async (stu: StudentSearchResult) => {
     setSelectedStudent(stu);
     setLoadingInvoices(true);
     setSelectedItems({});
+    setStudentSummary(null);
+    setStudentConcessions([]);
+    setShowPaymentHistory(false);
     setCashTendered("");
     setUpiQrUrl(null);
 
@@ -178,14 +218,33 @@ export function CounterCollectionClient({
       return updated;
     });
 
-    const res = await getStudentInvoicesAction(stu.id);
+    const [invRes, cardRes] = await Promise.all([
+      getStudentInvoicesAction(stu.id),
+      getStudentFeeCardAction(stu.id),
+    ]);
     setLoadingInvoices(false);
 
-    if (res.success && res.invoices) {
-      setStudentInvoices(res.invoices);
+    if (cardRes.success && cardRes.summary) {
+      setStudentSummary(cardRes.summary);
+      setStudentConcessions(cardRes.feeCard?.concessions || []);
+      if (cardRes.feeCard) {
+        setSelectedStudent((prev) =>
+          prev
+            ? {
+                ...prev,
+                className: cardRes.feeCard!.className,
+                sectionName: cardRes.feeCard!.sectionName,
+              }
+            : prev,
+        );
+      }
+    }
+
+    if (invRes.success && invRes.invoices) {
+      setStudentInvoices(invRes.invoices);
       // Default: select ALL pending invoices with full balance amount
       const initialMap: Record<string, SelectedInvoiceItem> = {};
-      res.invoices.forEach((inv) => {
+      invRes.invoices.forEach((inv) => {
         initialMap[inv.id] = {
           invoiceId: inv.id,
           amountToPay: inv.balanceAmount,
@@ -195,7 +254,7 @@ export function CounterCollectionClient({
       });
       setSelectedItems(initialMap);
     } else {
-      toast.error(res.message || "Failed to load student dues");
+      toast.error(invRes.message || "Failed to load student dues");
     }
   }, []);
 
@@ -430,23 +489,29 @@ export function CounterCollectionClient({
       const bankName =
         bankAccounts.find((b) => b.id === bankAccountId)?.bankName || undefined;
 
-      setReceiptData({
-        schoolName,
-        receiptNumber: res.receiptNumber,
-        date: res.date || new Date().toLocaleString("en-IN"),
-        student: {
-          name: selectedStudent.name,
-          admissionNumber: selectedStudent.admissionNumber,
-          className: selectedStudent.className,
+      setReceiptData(
+        (res as any).receiptData || {
+          schoolName,
+          schoolAddress,
+          schoolPhone,
+          receiptNumber: res.receiptNumber,
+          date: res.date || new Date().toLocaleString("en-IN"),
+          student: {
+            name: selectedStudent.name,
+            admissionNumber: selectedStudent.admissionNumber,
+            className: [selectedStudent.className, selectedStudent.sectionName]
+              .filter(Boolean)
+              .join(" - "),
+          },
+          items: res.items || [],
+          totalAmountPaid: res.totalAmountPaid || grandTotalPayable,
+          paymentMethod: res.paymentMethod || paymentMethod,
+          bankName,
+          transactionReference: res.transactionReference,
+          remarks: remarks || undefined,
+          paymentId: res.paymentId || "",
         },
-        items: res.items || [],
-        totalAmountPaid: res.totalAmountPaid || grandTotalPayable,
-        paymentMethod: res.paymentMethod || paymentMethod,
-        bankName,
-        transactionReference: res.transactionReference,
-        remarks: remarks || undefined,
-        paymentId: res.paymentId || "",
-      });
+      );
 
       setReceiptModalOpen(true);
     } else {
@@ -457,6 +522,9 @@ export function CounterCollectionClient({
   // Next student reset handler
   const handleNextStudent = () => {
     setSelectedStudent(null);
+    setStudentSummary(null);
+    setStudentConcessions([]);
+    setShowPaymentHistory(false);
     setStudentInvoices([]);
     setSelectedItems({});
     setSearchTerm("");
@@ -467,9 +535,16 @@ export function CounterCollectionClient({
     setTimeout(() => searchInputRef.current?.focus(), 150);
   };
 
-  // Cash change calculation
+  // Cash change calculation (paise-rounded)
   const tenderedNum = parseFloat(cashTendered || "0");
-  const changeDue = tenderedNum >= grandTotalPayable ? tenderedNum - grandTotalPayable : 0;
+  const tenderedPaise = Number.isFinite(tenderedNum) ? Math.round(tenderedNum * 100) : 0;
+  const payablePaise = Math.round(grandTotalPayable * 100);
+  const changeDue =
+    tenderedPaise >= payablePaise ? (tenderedPaise - payablePaise) / 100 : 0;
+  const cashShortfall =
+    tenderedPaise > 0 && tenderedPaise < payablePaise
+      ? (payablePaise - tenderedPaise) / 100
+      : 0;
 
   return (
     <>
@@ -556,6 +631,7 @@ export function CounterCollectionClient({
                           </p>
                           <p className="text-xs text-muted-foreground font-mono">
                             Adm: #{stu.admissionNumber} • {stu.className}
+                            {stu.sectionName ? ` - ${stu.sectionName}` : ""}
                           </p>
                         </div>
                       </div>
@@ -572,6 +648,18 @@ export function CounterCollectionClient({
                       </div>
                     </button>
                   ))
+                )}
+                {hasMoreResults && (
+                  <div className="p-2 text-center bg-muted/20">
+                    <button
+                      type="button"
+                      disabled={loadingMore}
+                      onClick={handleLoadMoreStudents}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#248A3D] dark:text-[#30D158] hover:bg-muted/40 transition disabled:opacity-50"
+                    >
+                      {loadingMore ? "Loading..." : "Load More Students"}
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -601,7 +689,9 @@ export function CounterCollectionClient({
                       </button>
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">
-                      Admission: #{selectedStudent.admissionNumber} • Grade: {selectedStudent.className}
+                      Admission: #{selectedStudent.admissionNumber} • Grade:{" "}
+                      {selectedStudent.className}
+                      {selectedStudent.sectionName ? ` - ${selectedStudent.sectionName}` : ""}
                     </p>
                   </div>
                 </div>
@@ -619,10 +709,158 @@ export function CounterCollectionClient({
                     </button>
                   )}
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
-                    {studentInvoices.length} Invoices
+                    {studentInvoices.length} Pending
                   </span>
                 </div>
               </div>
+
+              {/* Consolidated Financial Summary Strip */}
+              {studentSummary && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground uppercase block">
+                        Billed
+                      </span>
+                      <span className="font-bold font-mono text-foreground">
+                        ₹{studentSummary.totalBilled.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
+                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase block">
+                        Paid
+                      </span>
+                      <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        ₹{studentSummary.totalPaid.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40">
+                      <span className="text-[10px] text-blue-700 dark:text-blue-400 uppercase block">
+                        Concessions
+                      </span>
+                      <span className="font-bold font-mono text-blue-600 dark:text-blue-400">
+                        ₹{studentSummary.totalConcessions.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground uppercase block">
+                        Refunded
+                      </span>
+                      <span className="font-bold font-mono text-foreground">
+                        ₹{studentSummary.totalRefunded.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40">
+                      <span className="text-[10px] text-amber-700 dark:text-amber-400 uppercase block">
+                        Outstanding
+                      </span>
+                      <span className="font-bold font-mono text-amber-700 dark:text-amber-400">
+                        ₹{studentSummary.totalOutstanding.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div
+                      className={cn(
+                        "p-2.5 rounded-xl border",
+                        studentSummary.overdueAmount > 0
+                          ? "bg-rose-50/60 dark:bg-rose-950/30 border-rose-300/60 dark:border-rose-800/50"
+                          : "bg-muted/30 border-border/40",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-[10px] uppercase block",
+                          studentSummary.overdueAmount > 0
+                            ? "text-rose-700 dark:text-rose-400"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        Overdue
+                      </span>
+                      <span
+                        className={cn(
+                          "font-bold font-mono",
+                          studentSummary.overdueAmount > 0
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-foreground",
+                        )}
+                      >
+                        ₹{studentSummary.overdueAmount.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Active Concessions & Payment History Toggle */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {studentConcessions.map((c, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium"
+                        >
+                          {c.policy} ({c.status})
+                        </span>
+                      ))}
+                      {studentSummary.creditBalance > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+                          Advance Credit: ₹{studentSummary.creditBalance.toLocaleString("en-IN")}
+                        </span>
+                      )}
+                    </div>
+
+                    {studentSummary.recentPayments.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPaymentHistory((v) => !v)}
+                        className="inline-flex items-center gap-1 font-semibold text-[#248A3D] dark:text-[#30D158] hover:underline"
+                      >
+                        <History className="w-3.5 h-3.5" />
+                        <span>
+                          {showPaymentHistory
+                            ? "Hide Payment History"
+                            : `Payment History (${studentSummary.recentPayments.length})`}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  {showPaymentHistory && studentSummary.recentPayments.length > 0 && (
+                    <div className="rounded-xl border border-border/40 bg-muted/20 divide-y divide-border/40 max-h-44 overflow-y-auto text-xs">
+                      {studentSummary.recentPayments.map((p) => (
+                        <div
+                          key={p.id}
+                          className="px-3 py-2 flex items-center justify-between gap-2"
+                        >
+                          <div>
+                            <span className="font-mono font-bold text-foreground">
+                              {p.receiptGroupId || p.receiptNumber}
+                            </span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              {p.paymentMethod}
+                            </span>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(p.paymentDate).toLocaleDateString("en-IN")}
+                              {p.transactionReference ? ` • Ref: ${p.transactionReference}` : ""}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              ₹{p.amountPaid.toLocaleString("en-IN")}
+                            </span>
+                            <a
+                              href={`/api/receipt/${p.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              A4 PDF
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Invoices List */}
               {loadingInvoices ? (
@@ -917,15 +1155,17 @@ export function CounterCollectionClient({
                     {tenderedNum > 0 && (
                       <div className="flex justify-between text-xs font-bold pt-1 border-t border-emerald-200/60 dark:border-emerald-800/40">
                         <span className="text-emerald-800 dark:text-emerald-300">
-                          Return Change to Parent:
+                          {cashShortfall > 0 ? "Cash Shortfall:" : "Return Change to Parent:"}
                         </span>
                         <span
                           className={cn(
                             "font-mono",
-                            changeDue >= 0 ? "text-emerald-600 font-bold" : "text-rose-600"
+                            cashShortfall > 0 ? "text-rose-600" : "text-emerald-600 font-bold"
                           )}
                         >
-                          ₹{changeDue.toLocaleString("en-IN")}
+                          {cashShortfall > 0
+                            ? `-₹${cashShortfall.toLocaleString("en-IN")}`
+                            : `₹${changeDue.toLocaleString("en-IN")}`}
                         </span>
                       </div>
                     )}

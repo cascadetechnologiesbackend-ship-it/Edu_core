@@ -7,7 +7,7 @@ import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
 
 export async function createIncomeHead(formData: FormData) {
-  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
   const school = await requireSchool(ctx);
 
   const name = (formData.get("name") as string)?.trim();
@@ -30,7 +30,7 @@ export async function createIncomeHead(formData: FormData) {
 }
 
 export async function toggleIncomeHeadStatus(id: string, isActive: boolean) {
-  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+  const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN"] as const);
   const school = await requireSchool(ctx);
 
   await db

@@ -23,9 +23,11 @@ import {
   feePayments,
   leaveRequests,
   rightsRequests,
+  assignments,
+  lessonPlans,
 } from "@/db/schema";
 import { calculateSchoolProfileCompleteness } from "@/lib/profileCompleteness";
-import { eq, and, isNull, sql, inArray, ne, or, gte } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray, ne, or, gte, lt } from "drizzle-orm";
 import { getCachedDashboardSummary, setCachedDashboardSummary } from "@/lib/dashboardCache";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import {
@@ -167,7 +169,7 @@ export default async function DashboardPage() {
 
     const sectionIds = activeTeacherSections.map((s) => s.id);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const [studentCountRow, markedCountRow] =
+    const [studentCountRow, markedCountRow, pendingAssignmentsRow, pendingLessonsRow] =
       sectionIds.length > 0 && schoolId
         ? await Promise.all([
           db
@@ -190,8 +192,33 @@ export default async function DashboardPage() {
                 gte(studentAttendance.attendanceDate, new Date(todayStr))
               )
             ),
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(assignments)
+            .where(
+              and(
+                eq(assignments.schoolId, schoolId),
+                eq(assignments.createdByTeacherId, ctx.userId),
+                eq(assignments.status, "PUBLISHED"),
+                isNull(assignments.deletedAt)
+              )
+            ),
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(lessonPlans)
+            .where(
+              and(
+                eq(lessonPlans.schoolId, schoolId),
+                eq(lessonPlans.teacherId, ctx.userId),
+                inArray(lessonPlans.status, ["PLANNED", "IN_PROGRESS"]),
+                isNull(lessonPlans.deletedAt)
+              )
+            ),
         ])
-        : [[{ count: 0 }], [{ count: 0 }]];
+        : [[{ count: 0 }], [{ count: 0 }], [{ count: 0 }], [{ count: 0 }]];
+
+    const activePublishedAssignments = pendingAssignmentsRow[0]?.count ?? 0;
+    const activeLessonPlansCount = pendingLessonsRow[0]?.count ?? 0;
 
     const totalStudentsUnderCare = studentCountRow[0]?.count ?? 0;
     const markedTodayCount = markedCountRow[0]?.count ?? 0;
@@ -263,23 +290,37 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 className="font-bold text-lg text-foreground flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-primary" /> Active Tasks
             </h2>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-                <span>Check and grade homework assignments</span>
-                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">
-                  Pending
-                </span>
-              </li>
-              <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-                <span>Update weekly lesson planning calendar</span>
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">
-                  Weekly
-                </span>
-              </li>
-            </ul>
+            {activePublishedAssignments === 0 && activeLessonPlansCount === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No pending published assignments or uncompleted lesson plans.
+              </p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {activePublishedAssignments > 0 && (
+                  <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                    <a href="/teacher/grading" className="hover:underline">
+                      {activePublishedAssignments} active published assignment{activePublishedAssignments === 1 ? "" : "s"} to grade
+                    </a>
+                    <span className="text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded font-semibold">
+                      {activePublishedAssignments}
+                    </span>
+                  </li>
+                )}
+                {activeLessonPlansCount > 0 && (
+                  <li className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                    <a href="/teacher/classes" className="hover:underline">
+                      {activeLessonPlansCount} planned or in-progress lesson plan{activeLessonPlansCount === 1 ? "" : "s"}
+                    </a>
+                    <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded font-semibold">
+                      {activeLessonPlansCount}
+                    </span>
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
         </div>
       </div>
@@ -297,6 +338,18 @@ export default async function DashboardPage() {
       .from(bookIssues)
       .where(
         and(eq(bookIssues.schoolId, schoolId), eq(bookIssues.status, "ISSUED")),
+      );
+    const overdueIssues = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(bookIssues)
+      .where(
+        and(
+          eq(bookIssues.schoolId, schoolId),
+          isNull(bookIssues.returnedAt),
+          ne(bookIssues.status, "RETURNED"),
+          ne(bookIssues.status, "LOST"),
+          or(eq(bookIssues.status, "OVERDUE"), lt(bookIssues.dueDate, new Date())),
+        ),
       );
 
     const metrics = [
@@ -318,8 +371,8 @@ export default async function DashboardPage() {
       },
       {
         title: "Overdue Books",
-        value: "0",
-        subtext: "Fines applicable today",
+        value: (overdueIssues[0]?.count || 0).toString(),
+        subtext: "Past due date across active issues",
         icon: AlertCircle,
         iconBgClass: "bg-danger/10",
         accentColor: "text-danger",
@@ -467,6 +520,12 @@ export default async function DashboardPage() {
     outstandingDuesStr: string;
     outstandingSubtext: string;
     newAdmissionsToday: number;
+    attendanceTrend30d: Array<{
+      date: string;
+      present: number;
+      total: number;
+      rate: number;
+    }>;
     pendingTasks: Array<{
       label: string;
       href: string;
@@ -493,6 +552,7 @@ export default async function DashboardPage() {
         outstandingDuesStr: "₹0",
         outstandingSubtext: "No outstanding dues",
         newAdmissionsToday: 0,
+        attendanceTrend30d: [],
         pendingTasks: [],
         examLifecycle: {
           pendingMarksLocks: 0,
@@ -509,13 +569,16 @@ export default async function DashboardPage() {
       return cached;
     }
 
-    // 2. Cache Miss: Execute consolidated Promise.all with AT MOST 5 queries
+    const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+
+    // 2. Cache Miss: Execute consolidated Promise.all
     const [
       activeYear,
       consolidatedCountsRaw,
       todayAttendance,
       todayFeePayments,
       outstandingInvoices,
+      trendRowsRaw,
     ] = await Promise.all([
       // Query 1: Active Academic Year
       db.query.academicYears.findFirst({
@@ -582,6 +645,25 @@ export default async function DashboardPage() {
             inArray(feeInvoices.status, ["PENDING", "PARTIAL", "OVERDUE"]),
           ),
         ),
+
+      // Query 6: 30-day Attendance Trend
+      db
+        .select({
+          day: sql<string>`TO_CHAR(${studentAttendance.attendanceDate}::date, 'YYYY-MM-DD')`,
+          total: sql<number>`count(*)::int`,
+          present: sql<number>`count(CASE WHEN ${studentAttendance.status} IN ('PRESENT', 'LATE', 'HALF_DAY') THEN 1 END)::int`,
+        })
+        .from(studentAttendance)
+        .where(
+          and(
+            eq(studentAttendance.schoolId, schoolId),
+            gte(studentAttendance.attendanceDate, thirtyDaysAgo),
+            ne(studentAttendance.status, "HOLIDAY"),
+            or(isNull(studentAttendance.source), ne(studentAttendance.source, "EXAM")),
+          ),
+        )
+        .groupBy(sql`${studentAttendance.attendanceDate}::date`)
+        .orderBy(sql`${studentAttendance.attendanceDate}::date`),
     ]);
 
     // Parse counts from Query 2
@@ -694,6 +776,17 @@ export default async function DashboardPage() {
       });
     }
 
+    const attendanceTrend30d = (trendRowsRaw || []).map((row) => {
+      const total = Number(row.total || 0);
+      const present = Number(row.present || 0);
+      return {
+        date: row.day,
+        present,
+        total,
+        rate: total > 0 ? Math.round((present / total) * 100) : 0,
+      };
+    });
+
     const calculatedSummary: AdminDashboardSummary = {
       activeYearLabel: activeYear?.label || "2025-26",
       totalStudents,
@@ -704,6 +797,7 @@ export default async function DashboardPage() {
       outstandingDuesStr,
       outstandingSubtext,
       newAdmissionsToday,
+      attendanceTrend30d,
       pendingTasks: pendingTasksList,
       examLifecycle: {
         pendingMarksLocks: pendingMarksLocksCount,
@@ -900,21 +994,50 @@ export default async function DashboardPage() {
             <h2 className="font-semibold text-foreground">
               Attendance Trend — Last 30 Days
             </h2>
-            <select
-              className="text-sm border border-border rounded-lg px-3 py-1.5 bg-background"
-              aria-label="Filter attendance by class"
-              id="attendance-filter"
+            <a
+              href="/attendance"
+              className="text-xs font-semibold text-primary hover:underline"
             >
-              <option>All Classes</option>
-              <option>Class 1–5</option>
-              <option>Class 6–10</option>
-            </select>
+              Open Attendance &rarr;
+            </a>
           </div>
-          <div className="h-48 flex items-center justify-center bg-muted/30 rounded-lg">
-            <p className="text-muted-foreground text-sm">
-              Attendance chart loading…
-            </p>
-          </div>
+          {summary.attendanceTrend30d && summary.attendanceTrend30d.length > 0 ? (
+            <div className="space-y-3">
+              <div className="h-40 flex items-end gap-1.5 bg-muted/20 rounded-xl p-3 overflow-x-auto">
+                {summary.attendanceTrend30d.slice(-14).map((d) => (
+                  <div
+                    key={d.date}
+                    title={`${d.date}: ${d.rate}% (${d.present}/${d.total})`}
+                    className="flex-1 min-w-[18px] flex flex-col items-center justify-end gap-1 h-full"
+                  >
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {d.rate}%
+                    </span>
+                    <div
+                      className="w-full rounded-t-md bg-primary/80 transition-all"
+                      style={{ height: `${Math.max(8, d.rate)}%` }}
+                    />
+                    <span className="text-[9px] text-muted-foreground font-mono">
+                      {d.date.slice(5)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Showing {Math.min(14, summary.attendanceTrend30d.length)} recorded instructional days out of the last 30 days.
+              </p>
+            </div>
+          ) : (
+            <div className="h-48 flex flex-col items-center justify-center bg-muted/30 rounded-lg text-center px-4">
+              <CalendarCheck className="w-7 h-7 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium text-foreground">
+                No attendance recorded in the last 30 days
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Daily roll-call bars will appear here once attendance is marked.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Pending Tasks */}

@@ -117,7 +117,10 @@ export default async function ParentFeesPage({
     });
 
     const studentInvoices = await db.query.feeInvoices.findMany({
-      where: eq(feeInvoices.studentId, student.id),
+      where: and(
+        eq(feeInvoices.schoolId, student.schoolId),
+        eq(feeInvoices.studentId, student.id),
+      ),
       with: { feeStructure: { with: { feeHead: true } } },
       orderBy: [desc(feeInvoices.dueDate)],
     });
@@ -125,22 +128,27 @@ export default async function ParentFeesPage({
     allInvoices.push(...studentInvoices.map((i) => ({ ...i, student })));
 
     const studentPayments = await db.query.feePayments.findMany({
-      where: eq(feePayments.studentId, student.id),
+      where: and(
+        eq(feePayments.schoolId, student.schoolId),
+        eq(feePayments.studentId, student.id),
+        eq(feePayments.isCancelled, false),
+      ),
       orderBy: [desc(feePayments.paymentDate)],
     });
 
     allPayments.push(...studentPayments.map((p) => ({ ...p, student })));
   }
 
-  let totalAdvanceBalance = 0;
+  let totalAdvanceBalancePaise = 0;
   for (const student of myStudents) {
     try {
       const adv = await getStudentAdvanceBalance(student.schoolId, student.id, db);
-      totalAdvanceBalance += adv.creditBalance;
+      totalAdvanceBalancePaise += Math.round((adv.creditBalance || 0) * 100);
     } catch {
       // ignore
     }
   }
+  const totalAdvanceBalance = totalAdvanceBalancePaise / 100;
 
   const pendingInvoices = allInvoices.filter((i) =>
     ["PENDING", "PARTIAL", "OVERDUE"].includes(i.status)
@@ -249,7 +257,11 @@ export default async function ParentFeesPage({
             const cls = studentClasses.find((c) => c.id === student.currentClassId);
             const sec = studentSections.find((s) => s.id === student.currentSectionId);
             const studentPending = pendingInvoices.filter((i) => i.student.id === student.id);
-            const studentDues = studentPending.reduce((acc, i) => acc + parseFloat(i.balanceAmount || "0"), 0);
+            const studentDuesPaise = studentPending.reduce(
+              (acc, i) => acc + Math.round(parseFloat(i.balanceAmount || "0") * 100),
+              0
+            );
+            const studentDues = studentDuesPaise / 100;
 
             return (
               <div

@@ -326,6 +326,7 @@ export function MarksEntryClient({
           examId: selectedExamId,
           classId: selectedClassId,
           subjectId: selectedSubjectId,
+          reason: "Verified and locked via Marks Entry console",
         });
         if (res.success) {
           setFeedback({
@@ -334,7 +335,7 @@ export function MarksEntryClient({
           });
           router.refresh();
         } else {
-          setFeedback({ text: "Failed to lock marks.", type: "error" });
+          setFeedback({ text: (res as any).message || "Failed to lock marks.", type: "error" });
         }
       });
     }

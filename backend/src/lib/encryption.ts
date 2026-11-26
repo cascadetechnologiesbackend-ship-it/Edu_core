@@ -151,3 +151,42 @@ export function computeLegacySearchHash(text: string): string {
     .update(text.trim().toLowerCase())
     .digest("hex");
 }
+
+/**
+ * Generates deduplicated HMAC search tokens (both HKDF-derived and legacy)
+ * for all normalized 3+ char prefixes and full words of a student's name.
+ * Stored in `students.name_prefix_hashes` for GIN-indexed partial name search
+ * without decrypting the roster.
+ */
+export function computeNamePrefixHashes(
+  firstName?: string | null,
+  lastName?: string | null,
+): string[] {
+  const normalizedFull = `${firstName || ""} ${lastName || ""}`
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  if (!normalizedFull) return [];
+
+  const words = normalizedFull.split(" ").filter(Boolean);
+  const tokens = new Set<string>();
+
+  for (const word of [...words, normalizedFull]) {
+    const trimmedWord = word.trim();
+    if (trimmedWord) tokens.add(trimmedWord);
+    for (let len = 3; len <= word.length; len++) {
+      const prefix = word.slice(0, len).trim();
+      if (prefix.length >= 3) {
+        tokens.add(prefix);
+      }
+    }
+  }
+
+  const hashes = new Set<string>();
+  for (const token of tokens) {
+    hashes.add(computeSearchHash(token));
+    hashes.add(computeLegacySearchHash(token));
+  }
+
+  return Array.from(hashes);
+}

@@ -58,18 +58,29 @@ export const DEFAULT_ACCOUNTS_OVERFLOW_TABS: FinanceTabItem[] = [
 
 export const ACCOUNTANT_FINANCE_PRIMARY_TABS: FinanceTabItem[] = [
   { id: "hub", label: "Finance Hub", href: "/school/fees-dashboard" },
+  { id: "accountant-desk", label: "Accountant Desk", href: "/accountant/dashboard" },
   { id: "collect", label: "Collect Fee", href: "/school/collect-fees" },
   { id: "dues", label: "Dues Work List", href: "/school/due-fees" },
   { id: "daybook", label: "Day Book", href: "/school/transactions" },
-  { id: "concessions", label: "Discounts & Concessions", href: "/school/fees-discount" },
+  { id: "concessions", label: "Concessions", href: "/school/fees-discount" },
+];
+
+export const ACCOUNTANT_FINANCE_OVERFLOW_TABS: FinanceTabItem[] = [
   { id: "refunds", label: "Refunds", href: "/school/refunds" },
+  { id: "challans", label: "Challans", href: "/school/fee-challans" },
+  { id: "due-slips", label: "Due Slips", href: "/school/generate-due-slip" },
+  { id: "reconciliation", label: "Online Payments", href: "/school/online-payments" },
   { id: "pricing-matrix", label: "Pricing Matrix", href: "/school/fee-structures" },
 ];
 
 export const ACCOUNTANT_ACCOUNTS_PRIMARY_TABS: FinanceTabItem[] = [
   { id: "accounts-hub", label: "Accounts Hub", href: "/school/accounting/dashboard" },
-  { id: "concession-summary", label: "Concession Summary", href: "/school/accounting/reports/concessions" },
+  { id: "incomes", label: "Incomes", href: "/school/accounts/incomes" },
+  { id: "expenses", label: "Expenses", href: "/school/accounts/expenses" },
+  { id: "bank-accounts", label: "Bank Accounts", href: "/school/accounts/bank-accounts" },
   { id: "brs", label: "BRS Reconcile", href: "/school/accounts/bank-reconciliation" },
+  { id: "vouchers", label: "Journal & Contra", href: "/school/accounts/journal-vouchers" },
+  { id: "concession-summary", label: "Concession Summary", href: "/school/accounting/reports/concessions" },
 ];
 
 export interface FinanceTabsProps {
@@ -104,7 +115,9 @@ export function FinanceTabs({
   const effectiveOverflow =
     overflowTabs ||
     (isAccountant
-      ? []
+      ? activeSection === "accounts"
+        ? []
+        : ACCOUNTANT_FINANCE_OVERFLOW_TABS
       : activeSection === "accounts"
       ? DEFAULT_ACCOUNTS_OVERFLOW_TABS
       : DEFAULT_FINANCE_OVERFLOW_TABS);

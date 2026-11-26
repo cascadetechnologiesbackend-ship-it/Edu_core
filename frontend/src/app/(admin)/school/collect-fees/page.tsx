@@ -62,6 +62,15 @@ export default async function CollectFeesPage() {
 
   if (!data?.activeSchool) return <div>School not found</div>;
 
+  const schoolAddress = [
+    data.activeSchool.address,
+    data.activeSchool.city,
+    data.activeSchool.state,
+    data.activeSchool.pincode,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <div className="space-y-6">
       {/* Finance Navigation Tabs */}
@@ -89,6 +98,8 @@ export default async function CollectFeesPage() {
         initialStudents={data.initialStudents}
         bankAccounts={data.mappedBanks}
         schoolName={data.activeSchool.name}
+        schoolAddress={schoolAddress}
+        schoolPhone={data.activeSchool.phone}
       />
     </div>
   );

@@ -13,8 +13,18 @@ import {
 } from "@schoolmitra/validators";
 import { decryptData } from "./encryption";
 import { getStudentAdvanceBalance } from "./advanceFeesEngine";
-import { students, feeInvoices, feePayments } from "@/db/schema";
+import { students, feeInvoices, feePayments, classes, sections } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+
+function toPaise(val: string | number | null | undefined): number {
+  if (val === null || val === undefined) return 0;
+  const num = typeof val === "number" ? val : parseFloat(String(val));
+  return Number.isFinite(num) ? Math.round(num * 100) : 0;
+}
+
+function fromPaise(paise: number): number {
+  return Math.round(paise) / 100;
+}
 
 /**
  * Validates that an object contains zero prohibited parent ledger keys.
@@ -99,13 +109,17 @@ export function projectToParentStudentFeeLedger(
       })
     : [];
 
-  const totalOutstanding =
-    raw.totalOutstanding !== undefined
-      ? Number(raw.totalOutstanding)
-      : invoices.reduce(
-          (sum, inv) => (inv.balanceAmount > 0 ? sum + inv.balanceAmount : sum),
-          0
-        );
+  let totalOutstandingPaise = 0;
+  if (raw.totalOutstanding !== undefined) {
+    totalOutstandingPaise = toPaise(raw.totalOutstanding);
+  } else {
+    for (const inv of invoices) {
+      const balPaise = toPaise(inv.balanceAmount);
+      if (balPaise > 0) {
+        totalOutstandingPaise += balPaise;
+      }
+    }
+  }
 
   const ledgerPayload = {
     studentId: String(raw.studentId || raw.id || ""),
@@ -113,8 +127,8 @@ export function projectToParentStudentFeeLedger(
     admissionNumber: String(raw.admissionNumber || ""),
     className: raw.className ? String(raw.className) : undefined,
     sectionName: raw.sectionName !== undefined ? raw.sectionName : null,
-    totalOutstanding: Math.round(totalOutstanding * 100) / 100,
-    creditBalance: Number(raw.creditBalance || 0),
+    totalOutstanding: fromPaise(totalOutstandingPaise),
+    creditBalance: fromPaise(toPaise(raw.creditBalance)),
     invoices,
     payments,
   };
@@ -140,10 +154,6 @@ export async function fetchParentStudentFeeLedger(
       eq(students.id, studentId),
       schoolId ? eq(students.schoolId, schoolId) : undefined
     ),
-    with: {
-      class: true,
-      section: true,
-    },
   });
 
   if (!student) return null;
@@ -159,13 +169,36 @@ export async function fetchParentStudentFeeLedger(
     );
   }
 
+  // Resolve class & section without nonexistent Drizzle relations on students
+  const [classRow, sectionRow] = await Promise.all([
+    student.currentClassId && dbInstance.query.classes?.findFirst
+      ? dbInstance.query.classes.findFirst({
+          where: and(
+            eq(classes.id, student.currentClassId),
+            eq(classes.schoolId, student.schoolId)
+          ),
+        })
+      : Promise.resolve((student as any).class || null),
+    student.currentSectionId && dbInstance.query.sections?.findFirst
+      ? dbInstance.query.sections.findFirst({
+          where: and(
+            eq(sections.id, student.currentSectionId),
+            eq(sections.schoolId, student.schoolId)
+          ),
+        })
+      : Promise.resolve((student as any).section || null),
+  ]);
+
   const firstName = decryptData(student.firstNameEncrypted) || "";
   const lastName = decryptData(student.lastNameEncrypted) || "";
   const studentName = `${firstName} ${lastName}`.trim() || "Student";
 
   // Fetch invoices with feeStructure
   const rawInvoices = await dbInstance.query.feeInvoices.findMany({
-    where: eq(feeInvoices.studentId, studentId),
+    where: and(
+      eq(feeInvoices.studentId, studentId),
+      eq(feeInvoices.schoolId, student.schoolId)
+    ),
     with: {
       feeStructure: {
         with: {
@@ -176,9 +209,13 @@ export async function fetchParentStudentFeeLedger(
     orderBy: [desc(feeInvoices.dueDate)],
   });
 
-  // Fetch payments
+  // Fetch active (non-cancelled) payments
   const rawPayments = await dbInstance.query.feePayments.findMany({
-    where: eq(feePayments.studentId, studentId),
+    where: and(
+      eq(feePayments.studentId, studentId),
+      eq(feePayments.schoolId, student.schoolId),
+      eq(feePayments.isCancelled, false)
+    ),
     orderBy: [desc(feePayments.paymentDate)],
   });
 
@@ -196,7 +233,7 @@ export async function fetchParentStudentFeeLedger(
   }
 
   const invoices: ParentInvoiceSummary[] = rawInvoices.map((inv: any) => {
-    const bal = parseFloat(inv.balanceAmount || "0");
+    const bal = fromPaise(toPaise(inv.balanceAmount));
     const isPayable =
       ["PENDING", "PARTIAL", "OVERDUE"].includes(inv.status) && bal > 0;
     return {
@@ -208,10 +245,10 @@ export async function fetchParentStudentFeeLedger(
         inv.dueDate instanceof Date
           ? inv.dueDate.toISOString()
           : String(inv.dueDate),
-      grossAmount: parseFloat(inv.grossAmount || "0"),
-      discountAmount: parseFloat(inv.discountAmount || "0"),
-      lateFeeAmount: parseFloat(inv.lateFeeAmount || "0"),
-      paidAmount: parseFloat(inv.paidAmount || "0"),
+      grossAmount: fromPaise(toPaise(inv.grossAmount)),
+      discountAmount: fromPaise(toPaise(inv.discountAmount)),
+      lateFeeAmount: fromPaise(toPaise(inv.lateFeeAmount)),
+      paidAmount: fromPaise(toPaise(inv.paidAmount)),
       balanceAmount: bal,
       status: inv.status,
       isAvailableForPayment: isPayable,
@@ -221,7 +258,7 @@ export async function fetchParentStudentFeeLedger(
   const payments: ParentPaymentSummary[] = rawPayments.map((p: any) => ({
     paymentId: p.id,
     receiptNumber: p.receiptNumber,
-    amountPaid: parseFloat(p.amountPaid || "0"),
+    amountPaid: fromPaise(toPaise(p.amountPaid)),
     paymentDate:
       p.paymentDate instanceof Date
         ? p.paymentDate.toISOString()
@@ -231,18 +268,21 @@ export async function fetchParentStudentFeeLedger(
     receiptAvailable: true,
   }));
 
-  const totalOutstanding = invoices.reduce(
-    (sum, inv) => (inv.balanceAmount > 0 ? sum + inv.balanceAmount : sum),
-    0
-  );
+  let totalOutstandingPaise = 0;
+  for (const inv of invoices) {
+    const balPaise = toPaise(inv.balanceAmount);
+    if (balPaise > 0) {
+      totalOutstandingPaise += balPaise;
+    }
+  }
 
   return projectToParentStudentFeeLedger({
     studentId: student.id,
     studentName,
     admissionNumber: student.admissionNumber || "",
-    className: student.class?.displayName || student.class?.name || undefined,
-    sectionName: student.section?.name || null,
-    totalOutstanding,
+    className: classRow?.displayName || classRow?.name || undefined,
+    sectionName: sectionRow?.name || null,
+    totalOutstanding: fromPaise(totalOutstandingPaise),
     creditBalance,
     invoices,
     payments,

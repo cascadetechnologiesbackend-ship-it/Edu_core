@@ -45,7 +45,9 @@ export const studentAttendance = pgTable(
     schoolId: uuid("school_id")
       .notNull()
       .references(() => schools.id, { onDelete: "restrict" }),
-    studentId: uuid("student_id").notNull(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
     sectionId: uuid("section_id")
       .notNull()
       .references(() => sections.id, { onDelete: "restrict" }),
@@ -61,7 +63,9 @@ export const studentAttendance = pgTable(
     examScheduleId: uuid("exam_schedule_id").references(() => examSchedules.id, {
       onDelete: "set null",
     }),
-    markedById: uuid("marked_by_id").notNull(),
+    markedById: uuid("marked_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
     remarks: text("remarks"),
     smsNotificationSent: boolean("sms_notification_sent")
       .notNull()

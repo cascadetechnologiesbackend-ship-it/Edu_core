@@ -209,9 +209,21 @@ export const BASELINE_PERMISSION_MATRIX: PermissionMatrixRow[] = [
   },
   {
     module: "Finance & Fee Collection",
-    action: "Fee Structure Management",
-    description: "Define fee heads, groups, annual fee matrices, and term slabs",
+    action: "Fee Structure & Setup Configuration",
+    description: "Define fee heads, groups, class assignments, and annual carry-forward",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  },
+  {
+    module: "Finance & Fee Collection",
+    action: "Operational Fee & Voucher Desk",
+    description: "Record income/expense vouchers (pending approval), challans, due slips, and gateway reconciliation",
     allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"],
+  },
+  {
+    module: "Examinations & Clearance",
+    action: "Exam Admit Card Fee Clearance",
+    description: "Verify student fee clearance holds for exam admit cards",
+    allowedRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
   },
   {
     module: "Finance & Accounts",

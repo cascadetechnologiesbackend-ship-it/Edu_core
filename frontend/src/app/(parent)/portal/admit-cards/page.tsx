@@ -205,14 +205,17 @@ export default async function ParentPortalAdmitCardsPage({
       ),
       columns: {
         balanceAmount: true,
+        status: true,
       },
     });
 
-    let dueAmount = 0;
+    let dueAmountPaise = 0;
     for (const inv of invoices) {
-      const bal = parseFloat(inv.balanceAmount || "0");
-      if (bal > 0) dueAmount += bal;
+      if (inv.status === "CANCELLED" || inv.status === "WAIVED") continue;
+      const balPaise = Math.round(parseFloat(inv.balanceAmount || "0") * 100);
+      if (balPaise > 0) dueAmountPaise += balPaise;
     }
+    const dueAmount = dueAmountPaise / 100;
 
     for (const ex of activeExams) {
       // Admit card settings

@@ -310,6 +310,8 @@ export default function SubjectWorkspaceClient({
   const [showAllocateModal, setShowAllocateModal] = useState(false);
   const [allocSectionId, setAllocSectionId] = useState(sections[0]?.id || "");
   const [allocTeacherId, setAllocTeacherId] = useState("");
+  const [allocIsPrimary, setAllocIsPrimary] = useState(true);
+  const [allocOverrideReason, setAllocOverrideReason] = useState("");
   const [allocDate, setAllocDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -514,8 +516,16 @@ export default function SubjectWorkspaceClient({
           classSubjectId,
           sectionId: allocSectionId,
           teacherId: allocTeacherId,
+          isPrimary: allocIsPrimary,
+          overrideReason: allocOverrideReason.trim() || null,
           effectiveFrom: allocDate || new Date().toISOString().slice(0, 10),
         });
+        toast.success(
+          allocIsPrimary
+            ? "Primary section teacher updated."
+            : "Co-teacher / lab teacher added.",
+        );
+        setAllocOverrideReason("");
         setShowAllocateModal(false);
         router.refresh();
       } catch (err: any) {
@@ -1845,6 +1855,20 @@ export default function SubjectWorkspaceClient({
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Role
+              </label>
+              <select
+                value={allocIsPrimary ? "PRIMARY" : "CO_TEACHER"}
+                onChange={(e) => setAllocIsPrimary(e.target.value === "PRIMARY")}
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
+              >
+                <option value="PRIMARY">Primary Section Teacher</option>
+                <option value="CO_TEACHER">Co-Teacher / Lab Teacher (Additive)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                 Effective From Date
               </label>
               <input
@@ -1855,8 +1879,23 @@ export default function SubjectWorkspaceClient({
                 className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs font-mono"
               />
               <p className="text-[10px] text-gray-400 mt-1">
-                Previous teacher allocation will be automatically closed with this date.
+                {allocIsPrimary
+                  ? "Previous primary allocation will be automatically closed with this date."
+                  : "Co-teacher will be added alongside the existing primary teacher."}
               </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Qualification Override Reason (Optional)
+              </label>
+              <input
+                type="text"
+                value={allocOverrideReason}
+                onChange={(e) => setAllocOverrideReason(e.target.value)}
+                placeholder="Required if assigning out-of-subject faculty"
+                className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card px-3 py-2 text-xs"
+              />
             </div>
 
             <p className="text-[11px] text-gray-500 italic">

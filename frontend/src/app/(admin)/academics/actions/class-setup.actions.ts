@@ -22,6 +22,8 @@ import {
   feeStructures,
   examSchedules,
   reportCardJobs,
+  auditLogs,
+  domainEvents,
 } from "@/db/schema";
 import { eq, and, desc, isNull, inArray, count, countDistinct } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -32,6 +34,7 @@ import {
 } from "./auth-helper";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 import { getCanonicalTeachingStaff } from "../../hr/teachingStaff";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 async function enrichWithTeachingStaff(schoolId: string, cls: any) {
   if (!cls) return cls;
@@ -442,6 +445,8 @@ export async function assignSectionTeacher(data: {
   effectiveFrom?: string | undefined; // "YYYY-MM-DD"
   isPrimary?: boolean | undefined;
   periodsPerWeek?: number | undefined;
+  overrideReason?: string | null | undefined;
+  removeCoTeacherId?: string | null | undefined;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
 
@@ -472,21 +477,26 @@ export async function assignSectionTeacher(data: {
 
   const isPrimaryVal = data.isPrimary ?? true;
   const periodsVal = data.periodsPerWeek ?? 5;
+  const reqCtx = getClientRequestContext();
 
-  // Transactionally close active allocation and insert new allocation
+  // Transactionally manage primary or co-teacher allocation without losing history
   await withTenant(session.user.schoolId, async (tx) => {
-    // Check current active allocation for temporal integrity
-    const currentActive = await tx.query.sectionSubjectTeachers.findFirst({
-      where: and(
-        eq(sectionSubjectTeachers.classSubjectId, data.classSubjectId),
-        eq(sectionSubjectTeachers.sectionId, data.sectionId),
-        isNull(sectionSubjectTeachers.effectiveTo),
-      ),
-    });
+    let previousTeacherId: string | null = null;
 
-    if (currentActive) {
-      if (!data.teacherId) {
-        // Unassign section override: close existing record without adding a new one
+    if (data.removeCoTeacherId) {
+      const existingCo = await tx.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          eq(sectionSubjectTeachers.classSubjectId, data.classSubjectId),
+          eq(sectionSubjectTeachers.sectionId, data.sectionId),
+          eq(sectionSubjectTeachers.teacherId, data.removeCoTeacherId),
+          eq(sectionSubjectTeachers.isPrimary, false),
+          eq(sectionSubjectTeachers.isActive, true),
+          isNull(sectionSubjectTeachers.effectiveTo),
+        ),
+      });
+      if (existingCo) {
+        previousTeacherId = existingCo.teacherId;
         await tx
           .update(sectionSubjectTeachers)
           .set({
@@ -496,71 +506,209 @@ export async function assignSectionTeacher(data: {
           })
           .where(
             and(
-              eq(sectionSubjectTeachers.id, currentActive.id),
+              eq(sectionSubjectTeachers.id, existingCo.id),
               eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
             ),
           );
-        return;
+      }
+    } else if (isPrimaryVal) {
+      // Primary section teacher path: preserve primary history
+      const currentPrimary = await tx.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          eq(sectionSubjectTeachers.classSubjectId, data.classSubjectId),
+          eq(sectionSubjectTeachers.sectionId, data.sectionId),
+          eq(sectionSubjectTeachers.isPrimary, true),
+          eq(sectionSubjectTeachers.isActive, true),
+          isNull(sectionSubjectTeachers.effectiveTo),
+        ),
+      });
+
+      if (currentPrimary) {
+        previousTeacherId = currentPrimary.teacherId;
+        if (!data.teacherId) {
+          // Unassign primary override: close existing record without adding a new one
+          await tx
+            .update(sectionSubjectTeachers)
+            .set({
+              effectiveTo: effectiveFromDate,
+              isActive: false,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(sectionSubjectTeachers.id, currentPrimary.id),
+                eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+              ),
+            );
+        } else if (currentPrimary.effectiveFrom === effectiveFromDate) {
+          // Same-day correction: update teacher in-place
+          await tx
+            .update(sectionSubjectTeachers)
+            .set({
+              teacherId: data.teacherId,
+              academicYearId,
+              isPrimary: true,
+              periodsPerWeek: periodsVal,
+              isActive: true,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(sectionSubjectTeachers.id, currentPrimary.id),
+                eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+              ),
+            );
+        } else {
+          if (effectiveFromDate < currentPrimary.effectiveFrom) {
+            throw new Error(
+              `Invalid assignment date: new effective date (${effectiveFromDate}) cannot be before current active assignment start date (${currentPrimary.effectiveFrom}).`,
+            );
+          }
+          // Close previous primary allocation
+          await tx
+            .update(sectionSubjectTeachers)
+            .set({
+              effectiveTo: effectiveFromDate,
+              isActive: false,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(sectionSubjectTeachers.id, currentPrimary.id),
+                eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+              ),
+            );
+        }
       }
 
-      if (currentActive.effectiveFrom === effectiveFromDate) {
-        // Same-day correction: update teacher in-place
+      if (
+        data.teacherId &&
+        (!currentPrimary || currentPrimary.effectiveFrom !== effectiveFromDate)
+      ) {
+        // If incoming teacher is currently an active co-teacher on this section+subject, close co-teacher row first
+        const existingMember = await tx.query.sectionSubjectTeachers.findFirst({
+          where: and(
+            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+            eq(sectionSubjectTeachers.classSubjectId, data.classSubjectId),
+            eq(sectionSubjectTeachers.sectionId, data.sectionId),
+            eq(sectionSubjectTeachers.teacherId, data.teacherId),
+            eq(sectionSubjectTeachers.isActive, true),
+            isNull(sectionSubjectTeachers.effectiveTo),
+          ),
+        });
+        if (existingMember && !existingMember.isPrimary) {
+          await tx
+            .update(sectionSubjectTeachers)
+            .set({
+              effectiveTo: effectiveFromDate,
+              isActive: false,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(sectionSubjectTeachers.id, existingMember.id),
+                eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+              ),
+            );
+        }
+
+        await tx.insert(sectionSubjectTeachers).values({
+          schoolId: session.user.schoolId,
+          academicYearId,
+          classSubjectId: data.classSubjectId,
+          sectionId: data.sectionId,
+          teacherId: data.teacherId,
+          isPrimary: true,
+          periodsPerWeek: periodsVal,
+          effectiveFrom: effectiveFromDate,
+          effectiveTo: null,
+          isActive: true,
+        });
+      }
+    } else if (data.teacherId) {
+      // Co-teacher / lab teacher path (isPrimary = false): does NOT close primary teacher!
+      const existingMember = await tx.query.sectionSubjectTeachers.findFirst({
+        where: and(
+          eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+          eq(sectionSubjectTeachers.classSubjectId, data.classSubjectId),
+          eq(sectionSubjectTeachers.sectionId, data.sectionId),
+          eq(sectionSubjectTeachers.teacherId, data.teacherId),
+          eq(sectionSubjectTeachers.isActive, true),
+          isNull(sectionSubjectTeachers.effectiveTo),
+        ),
+      });
+
+      if (existingMember) {
+        if (existingMember.isPrimary) {
+          throw new Error("Teacher is already assigned as the primary subject teacher for this section.");
+        }
         await tx
           .update(sectionSubjectTeachers)
           .set({
-            teacherId: data.teacherId,
-            academicYearId,
-            isPrimary: isPrimaryVal,
             periodsPerWeek: periodsVal,
-            isActive: true,
             updatedAt: new Date(),
           })
           .where(
             and(
-              eq(sectionSubjectTeachers.id, currentActive.id),
+              eq(sectionSubjectTeachers.id, existingMember.id),
               eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
             ),
           );
-        return;
+      } else {
+        await tx.insert(sectionSubjectTeachers).values({
+          schoolId: session.user.schoolId,
+          academicYearId,
+          classSubjectId: data.classSubjectId,
+          sectionId: data.sectionId,
+          teacherId: data.teacherId,
+          isPrimary: false,
+          periodsPerWeek: periodsVal,
+          effectiveFrom: effectiveFromDate,
+          effectiveTo: null,
+          isActive: true,
+        });
       }
-
-      if (effectiveFromDate < currentActive.effectiveFrom) {
-        throw new Error(
-          `Invalid assignment date: new effective date (${effectiveFromDate}) cannot be before current active assignment start date (${currentActive.effectiveFrom}).`,
-        );
-      }
-
-      // Close previous allocation
-      await tx
-        .update(sectionSubjectTeachers)
-        .set({
-          effectiveTo: effectiveFromDate,
-          isActive: false,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(sectionSubjectTeachers.id, currentActive.id),
-            eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
-          ),
-        );
     }
 
-    // Insert new active allocation if teacherId provided
-    if (data.teacherId) {
-      await tx.insert(sectionSubjectTeachers).values({
-        schoolId: session.user.schoolId,
-        academicYearId,
+    await tx.insert(auditLogs).values({
+      userId: session.user.id,
+      userEmail: session.user.email,
+      userRole: session.user.role as any,
+      schoolId: session.user.schoolId,
+      action: "WRITE",
+      tableName: "section_subject_teachers",
+      recordId: `${data.classSubjectId}:${data.sectionId}`,
+      purposeId: data.overrideReason?.trim() ? "qualification_override" : "academic_assignments",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
+      metadata: {
         classSubjectId: data.classSubjectId,
         sectionId: data.sectionId,
-        teacherId: data.teacherId,
+        teacherId: data.teacherId ?? null,
+        removeCoTeacherId: data.removeCoTeacherId ?? null,
         isPrimary: isPrimaryVal,
         periodsPerWeek: periodsVal,
-        effectiveFrom: effectiveFromDate,
-        effectiveTo: null,
-        isActive: true,
-      });
-    }
+        overrideReason: data.overrideReason?.trim() || null,
+      },
+    });
+
+    await tx.insert(domainEvents).values({
+      schoolId: session.user.schoolId,
+      aggregateId: `${data.classSubjectId}:${data.sectionId}`,
+      eventType: "TeacherReassignedEvent",
+      payload: {
+        assignmentType: isPrimaryVal ? "SECTION_SUBJECT_PRIMARY" : "SECTION_SUBJECT_CO_TEACHER",
+        classSubjectId: data.classSubjectId,
+        sectionId: data.sectionId,
+        previousTeacherId,
+        newTeacherId: data.teacherId ?? null,
+        removedCoTeacherId: data.removeCoTeacherId ?? null,
+        overrideReason: data.overrideReason?.trim() || null,
+        reassignedByUserId: session.user.id,
+      },
+      status: "PENDING",
+    });
   });
 
   try {

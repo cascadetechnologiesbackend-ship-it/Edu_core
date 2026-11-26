@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   X,
@@ -21,6 +21,7 @@ import {
   generateRejectedRowsCsv,
   BatchValidationSummary,
 } from "@/lib/importExportEngine";
+import { JobStatusBadge, type ImportExportJobStatus } from "./JobStatusBadge";
 
 const WIZARD_STEPS = [
   "Template",
@@ -33,6 +34,15 @@ const WIZARD_STEPS = [
   "Result",
 ] as const;
 
+export interface ImportJobResult {
+  importedCount: number;
+  errorCount?: number | undefined;
+  status?: ImportExportJobStatus | undefined;
+  jobId?: string | undefined;
+  errorDownloadUrl?: string | null | undefined;
+  message?: string | undefined;
+}
+
 export interface ImportWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +50,23 @@ export interface ImportWizardProps {
   onExecuteImport?: (
     validRows: Record<string, string>[]
   ) => Promise<{ importedCount: number; message?: string }>;
+  onJobCompleted?: (result: ImportJobResult) => void;
+}
+
+function getExcelCellString(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? "" : val.toISOString().slice(0, 10);
+  }
+  if (typeof val === "object") {
+    const obj = val as Record<string, any>;
+    if (Array.isArray(obj.richText)) {
+      return obj.richText.map((t: any) => String(t?.text || "")).join("").trim();
+    }
+    if (obj.result !== undefined && obj.result !== null) return String(obj.result).trim();
+    if (obj.text !== undefined && obj.text !== null) return String(obj.text).trim();
+  }
+  return String(val).trim();
 }
 
 export function ImportWizard({
@@ -47,6 +74,7 @@ export function ImportWizard({
   onOpenChange,
   datasetKey,
   onExecuteImport,
+  onJobCompleted,
 }: ImportWizardProps) {
   const schema = DATASET_SCHEMAS[datasetKey];
 
@@ -57,21 +85,10 @@ export function ImportWizard({
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [validation, setValidation] = useState<BatchValidationSummary | null>(null);
   const [executing, setExecuting] = useState(false);
-  const [result, setResult] = useState<{ importedCount: number; message?: string } | null>(null);
+  const [result, setResult] = useState<ImportJobResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const currentStep = WIZARD_STEPS[stepIndex];
-
-  const mappedRows = useMemo(() => {
-    return rawRows.map((row) => {
-      const mapped: Record<string, string> = {};
-      for (const col of schema.columns) {
-        const sourceHeader = columnMap[col.key];
-        mapped[col.key] = sourceHeader ? row[sourceHeader] ?? "" : "";
-      }
-      return mapped;
-    });
-  }, [rawRows, columnMap, schema.columns]);
 
   const handleReset = () => {
     setStepIndex(0);
@@ -85,26 +102,80 @@ export function ImportWizard({
     setError(null);
   };
 
+  useEffect(() => {
+    handleReset();
+  }, [datasetKey, open]);
+
+  const mappedRows = useMemo(() => {
+    return rawRows.map((row) => {
+      const mapped: Record<string, string> = {};
+      for (const col of schema.columns) {
+        const sourceHeader = columnMap[col.key];
+        mapped[col.key] = sourceHeader ? row[sourceHeader] ?? "" : "";
+      }
+      return mapped;
+    });
+  }, [rawRows, columnMap, schema.columns]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const text = await file.text();
-      const parsed = parseCsvText(text);
-      if (parsed.headers.length === 0 || parsed.rows.length === 0) {
+      let parsedHeaders: string[] = [];
+      let parsedRows: Record<string, string>[] = [];
+      const lowerName = file.name.toLowerCase();
+
+      if (lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+        const ab = await file.arrayBuffer();
+        const { default: ExcelJS } = await import("exceljs");
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(ab);
+        const ws =
+          wb.worksheets.find((s) => (s.actualRowCount || s.rowCount) > 1) ||
+          wb.worksheets[0];
+        if (!ws) {
+          setError("The uploaded Excel workbook has no worksheets.");
+          return;
+        }
+        const colHeaders: string[] = [];
+        ws.getRow(1).eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          colHeaders[colNumber] = getExcelCellString(cell.value);
+        });
+        parsedHeaders = colHeaders.filter(Boolean);
+        ws.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return;
+          const rec: Record<string, string> = {};
+          let hasData = false;
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const h = colHeaders[colNumber];
+            if (!h) return;
+            const v = getExcelCellString(cell.value);
+            if (v) hasData = true;
+            rec[h] = v;
+          });
+          if (hasData) parsedRows.push(rec);
+        });
+      } else {
+        const text = await file.text();
+        const parsed = parseCsvText(text);
+        parsedHeaders = parsed.headers;
+        parsedRows = parsed.rows;
+      }
+
+      if (parsedHeaders.length === 0 || parsedRows.length === 0) {
         setError("The uploaded file is empty or has no data rows.");
         return;
       }
-      setFileName(file.name);
-      setHeaders(parsed.headers);
-      setRawRows(parsed.rows);
 
-      // Auto-map matching headers
+      setFileName(file.name);
+      setHeaders(parsedHeaders);
+      setRawRows(parsedRows);
+
       const autoMap: Record<string, string> = {};
       for (const col of schema.columns) {
-        const match = parsed.headers.find(
+        const match = parsedHeaders.find(
           (h) =>
             h.trim().toLowerCase() === col.key.toLowerCase() ||
             h.trim().toLowerCase() === col.label.toLowerCase()
@@ -122,10 +193,40 @@ export function ImportWizard({
     try {
       const summary = validateImportBatch(datasetKey, mappedRows);
       setValidation(summary);
-      setStepIndex(5); // Review
+      setStepIndex(5);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Validation failed.");
     }
+  };
+
+  const pollImportJob = async (jobId: string): Promise<ImportJobResult> => {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const res = await fetch(`/api/import-export/jobs/${encodeURIComponent(jobId)}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to check import job status.");
+      }
+      const data = await res.json();
+      if (
+        data.status === "COMPLETED" ||
+        data.status === "COMPLETED_WITH_ERRORS" ||
+        data.status === "FAILED"
+      ) {
+        return {
+          jobId: data.jobId,
+          status: data.status,
+          importedCount: data.recordCount ?? 0,
+          errorCount: data.errorCount ?? 0,
+          errorDownloadUrl: data.errorDownloadUrl ?? null,
+          message:
+            data.status === "FAILED"
+              ? data.errorMessage || "Import failed."
+              : `Processed ${data.recordCount ?? 0} valid record(s) with ${data.errorCount ?? 0} error(s).`,
+        };
+      }
+    }
+    throw new Error("Import job is still processing. Check Job History in Import Center.");
   };
 
   const handleExecute = async () => {
@@ -139,14 +240,51 @@ export function ImportWizard({
 
       if (onExecuteImport) {
         const res = await onExecuteImport(validRows);
-        setResult(res);
-      } else {
-        setResult({
-          importedCount: validRows.length,
-          message: `Successfully imported ${validRows.length} ${schema.displayName} records.`,
-        });
+        const finalRes: ImportJobResult = {
+          importedCount: res.importedCount,
+          status: "COMPLETED",
+          message: res.message,
+        };
+        setResult(finalRes);
+        onJobCompleted?.(finalRes);
+        setStepIndex(7);
+        return;
       }
-      setStepIndex(7); // Result
+
+      const res = await fetch("/api/import-export/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          datasetKey,
+          format: "CSV",
+          rows: mappedRows,
+          dryRun: false,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && !data.jobId) {
+        throw new Error(data.error || "Import execution failed.");
+      }
+
+      let finalRes: ImportJobResult = {
+        jobId: data.jobId,
+        status: data.status,
+        importedCount: data.recordCount ?? 0,
+        errorCount: data.errorCount ?? 0,
+        errorDownloadUrl: data.errorDownloadUrl ?? null,
+        message:
+          data.status === "FAILED"
+            ? data.error || "All rows failed validation."
+            : `Imported ${data.recordCount ?? 0} ${schema.displayName} record(s) (${data.errorCount ?? 0} error(s)).`,
+      };
+
+      if (finalRes.jobId && (finalRes.status === "QUEUED" || finalRes.status === "PROCESSING")) {
+        finalRes = await pollImportJob(finalRes.jobId);
+      }
+
+      setResult(finalRes);
+      onJobCompleted?.(finalRes);
+      setStepIndex(7);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import execution failed.");
     } finally {
@@ -168,8 +306,8 @@ export function ImportWizard({
 
   const canGoNext = () => {
     if (stepIndex === 1 && rawRows.length === 0) return false;
-    if (stepIndex === 4) return false; // Validate step uses explicit button
-    if (stepIndex === 6) return false; // Execute step uses explicit button
+    if (stepIndex === 4) return false;
+    if (stepIndex === 6) return false;
     if (stepIndex === 7) return false;
     return true;
   };
@@ -271,7 +409,7 @@ export function ImportWizard({
                 >
                   <Upload className="h-8 w-8 text-slate-400" aria-hidden="true" />
                   <span className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                    {fileName ? `Selected: ${fileName}` : "Click to upload CSV file"}
+                    {fileName ? `Selected: ${fileName}` : "Click to upload CSV or Excel (.xlsx) file"}
                   </span>
                   <span className="mt-1 text-xs text-slate-500">
                     Maximum 5,000 rows per batch
@@ -279,7 +417,7 @@ export function ImportWizard({
                   <input
                     id="import-file-input"
                     type="file"
-                    accept=".csv,text/csv"
+                    accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={handleFileUpload}
                     className="sr-only"
                   />
@@ -396,14 +534,26 @@ export function ImportWizard({
                   </div>
                 </div>
                 {validation.invalidRowsCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleDownloadErrors}
-                    className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>Download Rejected Rows CSV</span>
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadErrors}
+                      className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>Download Rejected Rows CSV</span>
+                    </button>
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/30 p-3 text-xs font-mono text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+                      {validation.rows
+                        .filter((r) => !r.isValid)
+                        .slice(0, 25)
+                        .map((r) => (
+                          <div key={r.rowNumber} className="py-0.5">
+                            Line {r.rowNumber}: {r.errors.join("; ")}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -412,7 +562,10 @@ export function ImportWizard({
               <div className="flex flex-col items-center justify-center space-y-4 py-6 text-center">
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Ready to import <strong>{validation.validRowsCount}</strong> valid records into{" "}
-                  <strong>{schema.displayName}</strong>.
+                  <strong>{schema.displayName}</strong>
+                  {validation.invalidRowsCount > 0
+                    ? ` (${validation.invalidRowsCount} invalid row(s) will be written to an error CSV).`
+                    : "."}
                 </p>
                 <button
                   type="button"
@@ -428,13 +581,28 @@ export function ImportWizard({
 
             {stepIndex === 7 && result && (
               <div className="flex flex-col items-center justify-center space-y-3 py-6 text-center">
-                <CheckCircle2 className="h-10 w-10 text-emerald-600" aria-hidden="true" />
+                {result.status === "FAILED" ? (
+                  <AlertTriangle className="h-10 w-10 text-red-600" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 className="h-10 w-10 text-emerald-600" aria-hidden="true" />
+                )}
+                {result.status && <JobStatusBadge status={result.status} />}
                 <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Import Complete
+                  {result.status === "FAILED" ? "Import Failed" : "Import Complete"}
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   {result.message || `Imported ${result.importedCount} records successfully.`}
                 </p>
+                {result.errorDownloadUrl && (
+                  <a
+                    href={result.errorDownloadUrl}
+                    download
+                    className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100"
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Download Server Error CSV ({result.errorCount} rows)</span>
+                  </a>
+                )}
               </div>
             )}
 

@@ -33,6 +33,7 @@ export default function ClassTeacherPanel({
   const [selectedTeacherId, setSelectedTeacherId] = useState(
     sections[0]?.classTeacherId || "",
   );
+  const [selectedRole, setSelectedRole] = useState<"PRIMARY" | "DEPUTY">("PRIMARY");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [conflictPrompt, setConflictPrompt] = useState<string | null>(null);
 
@@ -45,6 +46,7 @@ export default function ClassTeacherPanel({
       const res = await upsertClassTeacherAssignment({
         sectionId: selectedSectionId,
         teacherId: selectedTeacherId || null,
+        role: selectedRole,
         forceTransfer,
       });
 
@@ -75,7 +77,7 @@ export default function ClassTeacherPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <select
           value={selectedSectionId}
           onChange={(e) => {
@@ -110,6 +112,19 @@ export default function ClassTeacherPanel({
               {t.displayName || t.name || t.email}
             </option>
           ))}
+        </select>
+
+        <select
+          value={selectedRole}
+          onChange={(e) => {
+            setSelectedRole(e.target.value as "PRIMARY" | "DEPUTY");
+            setConflictPrompt(null);
+            setStatusMessage(null);
+          }}
+          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+        >
+          <option value="PRIMARY">Primary Class Teacher</option>
+          <option value="DEPUTY">Deputy Class Teacher</option>
         </select>
 
         <button

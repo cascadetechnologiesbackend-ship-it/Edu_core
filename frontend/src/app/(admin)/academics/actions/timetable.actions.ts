@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   bellSchedule,
   timetablePeriods,
@@ -10,10 +10,15 @@ import {
   sectionSubjectTeachers,
   academicYears,
   academicCalendarEvents,
+  staff,
 } from "@/db/schema";
 import { eq, and, ne, asc, desc, isNull, lte, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { checkAuth, getActiveAcademicYear } from "./auth-helper";
+import {
+  getActiveApprovedLeaveStaffMap,
+  getTeachingStaffAvailability,
+} from "@/app/(admin)/hr/teachingStaff";
 import {
   validateWorkloadFit,
   generateDeterministicSchedule,
@@ -242,20 +247,33 @@ export async function saveTimetablePeriod(data: {
 
   // ── Step 4: Verify teacher is authorized for classSubject + section ──────
   if (teacherIdVal && subjectIdVal && classSubject) {
-    const activeSectionAlloc = await db.query.sectionSubjectTeachers.findFirst({
-      where: and(
-        eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
-        eq(sectionSubjectTeachers.classSubjectId, classSubject.id),
-        eq(sectionSubjectTeachers.sectionId, data.sectionId),
-        eq(sectionSubjectTeachers.isActive, true),
-        isNull(sectionSubjectTeachers.effectiveTo),
-      ),
-    });
+    const activeSectionAllocs =
+      typeof (db.query.sectionSubjectTeachers as any)?.findMany === "function"
+        ? await db.query.sectionSubjectTeachers.findMany({
+            where: and(
+              eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+              eq(sectionSubjectTeachers.classSubjectId, classSubject.id),
+              eq(sectionSubjectTeachers.sectionId, data.sectionId),
+              eq(sectionSubjectTeachers.isActive, true),
+              isNull(sectionSubjectTeachers.effectiveTo),
+            ),
+          })
+        : [
+            await db.query.sectionSubjectTeachers.findFirst({
+              where: and(
+                eq(sectionSubjectTeachers.schoolId, session.user.schoolId),
+                eq(sectionSubjectTeachers.classSubjectId, classSubject.id),
+                eq(sectionSubjectTeachers.sectionId, data.sectionId),
+                eq(sectionSubjectTeachers.isActive, true),
+                isNull(sectionSubjectTeachers.effectiveTo),
+              ),
+            }),
+          ].filter(Boolean);
 
     let isAuthorized = false;
-    if (activeSectionAlloc) {
-      // Section-specific teacher allocation takes absolute precedence
-      isAuthorized = activeSectionAlloc.teacherId === teacherIdVal;
+    if (activeSectionAllocs.length > 0) {
+      // Any active section-specific allocation (primary or co-teacher) is authorized
+      isAuthorized = activeSectionAllocs.some((a: any) => a.teacherId === teacherIdVal);
     } else {
       // Class-level fallback applies only when no section allocation exists
       isAuthorized = classSubject.assignedTeacherId === teacherIdVal;
@@ -390,8 +408,28 @@ export async function createSubstitution(data: {
     );
   }
 
-  // If substitute teacher provided, check double-booking
+  // If substitute teacher provided, check leave availability & double-booking
   if (data.substituteTeacherId) {
+    // Conflict Check 2b: Check if substitute teacher has an approved leave overlapping data.date
+    if (typeof (db.query as any)?.staff?.findFirst === "function") {
+      const subStaff = await db.query.staff.findFirst({
+        where: and(
+          eq(staff.schoolId, session.user.schoolId),
+          eq(staff.userId, data.substituteTeacherId),
+          eq(staff.isActive, true),
+        ),
+        columns: { id: true },
+      });
+      if (subStaff) {
+        const leaveMap = await getActiveApprovedLeaveStaffMap(session.user.schoolId, data.date);
+        if (leaveMap.has(subStaff.id)) {
+          throw new Error(
+            `Conflict: Substitute teacher is on approved leave on ${data.date}.`,
+          );
+        }
+      }
+    }
+
     // Conflict Check 3: Check regular timetable double-booking for the substitute teacher
     const subTimetableConflict = await db.query.timetablePeriods.findFirst({
       where: and(
@@ -498,6 +536,25 @@ export async function updateSubstitutionStatus(
       throw new Error(
         `Conflict: Cannot schedule substitution on a non-working day or holiday (${calendarConflict.title}).`,
       );
+    }
+
+    if (typeof (db.query as any)?.staff?.findFirst === "function") {
+      const subStaff = await db.query.staff.findFirst({
+        where: and(
+          eq(staff.schoolId, session.user.schoolId),
+          eq(staff.userId, effectiveSubTeacherId),
+          eq(staff.isActive, true),
+        ),
+        columns: { id: true },
+      });
+      if (subStaff) {
+        const leaveMap = await getActiveApprovedLeaveStaffMap(session.user.schoolId, sub.date);
+        if (leaveMap.has(subStaff.id)) {
+          throw new Error(
+            `Conflict: Substitute teacher is on approved leave on ${sub.date}.`,
+          );
+        }
+      }
     }
 
     if (sub.timetablePeriod) {
@@ -1051,8 +1108,11 @@ export async function generateSectionTimetablePreview(
     }
 
     const activeAllocations = allocMap.get(slot.subjectId) || [];
+    const primaryAlloc = activeAllocations.find((a) => a.isPrimary);
     if (activeAllocations.length === 1) {
       slot.teacherId = activeAllocations[0]!.teacherId;
+    } else if (primaryAlloc) {
+      slot.teacherId = primaryAlloc.teacherId;
     } else {
       slot.teacherId = undefined; // Unassigned if 0 or ambiguous multiple allocations
     }
@@ -1289,4 +1349,19 @@ export async function commitSectionTimetable(
     deactivatedCount,
     preservedOverridesCount,
   };
+}
+
+export async function getTeacherLeaveStatusForDate(dateStr?: string): Promise<
+  Record<string, { isOnLeave: boolean; leaveEndDate?: string }>
+> {
+  const session = await checkAuth();
+  const availability = await getTeachingStaffAvailability(session.user.schoolId, dateStr);
+  const result: Record<string, { isOnLeave: boolean; leaveEndDate?: string }> = {};
+  for (const t of availability) {
+    result[t.id] = {
+      isOnLeave: t.isOnLeave,
+      ...(t.leaveEndDate ? { leaveEndDate: t.leaveEndDate } : {}),
+    };
+  }
+  return result;
 }

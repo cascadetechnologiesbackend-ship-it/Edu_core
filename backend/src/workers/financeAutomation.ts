@@ -39,9 +39,28 @@ export const financeQueue = hasRedis
   : ({
       add: async () => {
         console.warn("[FinanceQueue] Redis is not configured in this environment. Job skipped.");
-        return null;
+        return { queued: false, error: "REDIS_UNAVAILABLE" } as const;
       },
     } as any);
+
+export async function enqueueFinanceAutomationJob(
+  payload: FinanceJobPayload
+): Promise<{ queued: boolean; jobId?: string | undefined; error?: string | undefined }> {
+  if (!hasRedis) {
+    console.warn("[FinanceQueue] Redis is not configured in this environment. Refusing silent success.");
+    return { queued: false, error: "REDIS_UNAVAILABLE" };
+  }
+  try {
+    const job = await financeQueue.add("finance-automation", payload);
+    if (!job || (job as any).queued === false) {
+      return { queued: false, error: (job as any)?.error || "REDIS_UNAVAILABLE" };
+    }
+    return { queued: true, jobId: job.id ? String(job.id) : undefined };
+  } catch (err: any) {
+    console.error("[FinanceQueue] Failed to enqueue job:", err);
+    return { queued: false, error: err?.message || "REDIS_UNAVAILABLE" };
+  }
+}
 
 /**
  * AUTO-01: Recompute aging brackets and mark overdue invoices
@@ -437,9 +456,12 @@ export async function computeFinanceRollups(schoolId: string, tx: TenantTransact
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // 1. Rollup fee_payments by paymentMethod & today's collection
+  // 1. Rollup active non-cancelled fee_payments by paymentMethod & today's collection
   const payments = await tx.query.feePayments.findMany({
-    where: eq(feePayments.schoolId, schoolId),
+    where: and(
+      eq(feePayments.schoolId, schoolId),
+      eq(feePayments.isCancelled, false)
+    ),
     columns: {
       id: true,
       amountPaid: true,

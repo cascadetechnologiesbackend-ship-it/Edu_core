@@ -1,5 +1,5 @@
 export { ImportWizard } from "./ImportWizard";
-export type { ImportWizardProps } from "./ImportWizard";
+export type { ImportWizardProps, ImportJobResult } from "./ImportWizard";
 
 export { ExportDialog } from "./ExportDialog";
 export type {
@@ -7,6 +7,7 @@ export type {
   ExportFormat,
   ExportScope,
   ExportRequestPayload,
+  ExportJobInfo,
 } from "./ExportDialog";
 
 export { JobStatusBadge } from "./JobStatusBadge";

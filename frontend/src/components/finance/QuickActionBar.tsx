@@ -165,6 +165,7 @@ export function QuickActionBar({
             shortcut: "X",
             onClick: onExport,
             variant: "outline" as const,
+            rolesAllowed: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
           },
         ]
       : []),
