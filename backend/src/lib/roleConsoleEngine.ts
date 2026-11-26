@@ -28,6 +28,8 @@ import {
   feeRefunds,
   feeInvoices,
   feePayments,
+  lessonPlans,
+  assignmentSubmissions,
   books,
   bookCopies,
   bookIssues,
@@ -153,6 +155,16 @@ export interface PrincipalConsoleMetrics {
         days90Plus: number;
       };
     };
+    syllabusPacing?: {
+      totalTopics: number;
+      completedTopics: number;
+      inProgressTopics: number;
+      completionPercent: number;
+    };
+    gradingSla?: {
+      overdueUngradedCount: number;
+      totalUngradedCount: number;
+    };
   };
 }
 
@@ -165,6 +177,7 @@ export async function getPrincipalConsoleMetrics(
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const thirtyDaysAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000);
     const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
       now.getDate()
     ).padStart(2, "0")}`;
@@ -188,6 +201,8 @@ export async function getPrincipalConsoleMetrics(
       pendingRefundRows,
       openInvoicesRows,
       recentPaymentsRows,
+      allLessonPlanRows,
+      ungradedSubmissionRows,
     ] = await Promise.all([
       // 1. Active class sections
       tenantDb.query.sections.findMany({
@@ -358,6 +373,25 @@ export async function getPrincipalConsoleMetrics(
             gte(feePayments.paymentDate, thirtyDaysAgo)
           ),
           columns: { id: true, amountPaid: true, paymentDate: true },
+        })
+        : Promise.resolve([]),
+
+      // 17. Lesson plans for syllabus pacing summary
+      typeof q?.lessonPlans?.findMany === "function"
+        ? tenantDb.query.lessonPlans.findMany({
+          where: and(eq(lessonPlans.schoolId, schoolId), isNull(lessonPlans.deletedAt)),
+          columns: { id: true, status: true },
+        })
+        : Promise.resolve([]),
+
+      // 18. Ungraded assignment submissions for grading SLA (> 7 days)
+      typeof q?.assignmentSubmissions?.findMany === "function"
+        ? tenantDb.query.assignmentSubmissions.findMany({
+          where: and(
+            eq(assignmentSubmissions.schoolId, schoolId),
+            isNull(assignmentSubmissions.gradedAt)
+          ),
+          columns: { id: true, submittedAt: true },
         })
         : Promise.resolve([]),
     ]);
@@ -634,6 +668,24 @@ export async function getPrincipalConsoleMetrics(
       else agingBuckets.days90Plus += bal;
     }
 
+    // Syllabus pacing summary
+    const totalTopics = (allLessonPlanRows as any[]).length;
+    const completedTopics = (allLessonPlanRows as any[]).filter(
+      (lp) => lp.status === "COMPLETED"
+    ).length;
+    const inProgressTopics = (allLessonPlanRows as any[]).filter(
+      (lp) => lp.status === "IN_PROGRESS"
+    ).length;
+    const completionPercent =
+      totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+    // Grading SLA: ungraded submissions older than 7 days
+    const totalUngradedCount = (ungradedSubmissionRows as any[]).length;
+    const overdueUngradedCount = (ungradedSubmissionRows as any[]).filter((sub) => {
+      if (!sub.submittedAt) return false;
+      return new Date(sub.submittedAt) < sevenDaysAgo;
+    }).length;
+
     return {
       activeSectionsCount,
       activeTeachingStaffCount,
@@ -671,6 +723,16 @@ export async function getPrincipalConsoleMetrics(
             days61to90: Math.round(agingBuckets.days61to90 * 100) / 100,
             days90Plus: Math.round(agingBuckets.days90Plus * 100) / 100,
           },
+        },
+        syllabusPacing: {
+          totalTopics,
+          completedTopics,
+          inProgressTopics,
+          completionPercent,
+        },
+        gradingSla: {
+          overdueUngradedCount,
+          totalUngradedCount,
         },
       },
     };

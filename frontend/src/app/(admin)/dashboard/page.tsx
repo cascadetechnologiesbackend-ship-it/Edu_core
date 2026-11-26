@@ -25,9 +25,11 @@ import {
   rightsRequests,
   assignments,
   lessonPlans,
+  timetableSubstitutions,
+  academicCalendarEvents,
 } from "@/db/schema";
 import { calculateSchoolProfileCompleteness } from "@/lib/profileCompleteness";
-import { eq, and, isNull, sql, inArray, ne, or, gte, lt } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray, ne, or, gte, lt, lte } from "drizzle-orm";
 import { getCachedDashboardSummary, setCachedDashboardSummary } from "@/lib/dashboardCache";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import {
@@ -873,6 +875,93 @@ export default async function DashboardPage() {
   // D1-L1: Truthful north-star metric readout
   const northStarSummary = await getNorthStarMetricsSummary(schoolId).catch(() => null);
 
+  // Live Today Operational Pulse (un-cached for real-time accuracy)
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+  const pulseStartOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const pulseEndOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  let unmarkedSectionsCount = 0;
+  let unmarkedSectionNames: string[] = [];
+  let teachersOnLeaveTodayCount = 0;
+  let pendingSubstitutionsCount = 0;
+  let activeCalendarEventsToday: { id: string; title: string; eventType: string | null }[] = [];
+
+  if (schoolId) {
+    try {
+      const [
+        allActiveSections,
+        markedAttendanceToday,
+        approvedLeavesToday,
+        subsToday,
+        eventsToday,
+      ] = await Promise.all([
+        db.query.sections.findMany({
+          where: and(eq(sections.schoolId, schoolId), isNull(sections.deletedAt)),
+          columns: { id: true, name: true },
+          with: { class: { columns: { displayName: true } } },
+        }),
+        db
+          .select({ sectionId: studentAttendance.sectionId })
+          .from(studentAttendance)
+          .where(
+            and(
+              eq(studentAttendance.schoolId, schoolId),
+              gte(studentAttendance.attendanceDate, pulseStartOfDay),
+              lte(studentAttendance.attendanceDate, pulseEndOfDay)
+            )
+          )
+          .groupBy(studentAttendance.sectionId),
+        db.query.leaveRequests.findMany({
+          where: and(
+            eq(leaveRequests.schoolId, schoolId),
+            eq(leaveRequests.status, "HR_APPROVED"),
+            lte(leaveRequests.startDate, pulseEndOfDay),
+            gte(leaveRequests.endDate, pulseStartOfDay)
+          ),
+          columns: { id: true, staffId: true },
+        }),
+        db.query.timetableSubstitutions.findMany({
+          where: and(
+            eq(timetableSubstitutions.schoolId, schoolId),
+            eq(timetableSubstitutions.date, todayIso)
+          ),
+          columns: { id: true, status: true, substituteTeacherId: true },
+        }),
+        db.query.academicCalendarEvents.findMany({
+          where: and(
+            eq(academicCalendarEvents.schoolId, schoolId),
+            isNull(academicCalendarEvents.deletedAt),
+            lte(academicCalendarEvents.startDate, todayIso),
+            gte(academicCalendarEvents.endDate, todayIso)
+          ),
+          columns: { id: true, title: true, eventType: true },
+          limit: 5,
+        }),
+      ]);
+
+      const markedSet = new Set(markedAttendanceToday.map((r) => r.sectionId));
+      const unmarked = (allActiveSections as any[]).filter((s) => !markedSet.has(s.id));
+      unmarkedSectionsCount = unmarked.length;
+      unmarkedSectionNames = unmarked
+        .slice(0, 5)
+        .map((s) => `${s.class?.displayName ?? "Class"} ${s.name}`.trim());
+
+      teachersOnLeaveTodayCount = new Set(
+        approvedLeavesToday.map((l) => l.staffId).filter(Boolean)
+      ).size;
+
+      pendingSubstitutionsCount = subsToday.filter(
+        (s) => !s.substituteTeacherId || s.status === "PENDING"
+      ).length;
+
+      activeCalendarEventsToday = eventsToday;
+    } catch {
+      // Non-fatal fallback
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Page header */}
@@ -911,6 +1000,93 @@ export default async function DashboardPage() {
           variant="banner"
         />
       )}
+
+      {/* Today's Operational Pulse */}
+      <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-level-1 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
+              Today&apos;s Operational Pulse
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Live school-wide readiness for {todayIso}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <a
+              href="/attendance"
+              className="px-3 py-1.5 rounded-lg bg-muted/60 hover:bg-muted font-medium text-foreground transition"
+            >
+              Attendance Monitor →
+            </a>
+            <a
+              href="/academics/substitutions"
+              className="px-3 py-1.5 rounded-lg bg-semantic-interactive/10 hover:bg-semantic-interactive/20 font-medium text-semantic-interactive transition"
+            >
+              Substitutions →
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <a
+            href="/attendance"
+            className="rounded-xl border border-border/50 bg-background/60 p-3.5 hover:border-border transition block"
+          >
+            <p className="text-xs font-medium text-muted-foreground">Unmarked Attendance Sections</p>
+            <p
+              className={`text-2xl font-bold mt-1 ${
+                unmarkedSectionsCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+              }`}
+            >
+              {unmarkedSectionsCount}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1 truncate">
+              {unmarkedSectionsCount > 0
+                ? unmarkedSectionNames.join(", ") + (unmarkedSectionsCount > 5 ? "…" : "")
+                : "All sections marked today"}
+            </p>
+          </a>
+
+          <a
+            href="/hr"
+            className="rounded-xl border border-border/50 bg-background/60 p-3.5 hover:border-border transition block"
+          >
+            <p className="text-xs font-medium text-muted-foreground">Teachers on Approved Leave</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{teachersOnLeaveTodayCount}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Approved leave today</p>
+          </a>
+
+          <a
+            href="/academics/substitutions"
+            className="rounded-xl border border-border/50 bg-background/60 p-3.5 hover:border-border transition block"
+          >
+            <p className="text-xs font-medium text-muted-foreground">Pending Substitutions</p>
+            <p
+              className={`text-2xl font-bold mt-1 ${
+                pendingSubstitutionsCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+              }`}
+            >
+              {pendingSubstitutionsCount}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {pendingSubstitutionsCount > 0 ? "Needs substitute assignment" : "All periods covered"}
+            </p>
+          </a>
+
+          <div className="rounded-xl border border-border/50 bg-background/60 p-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Academic Calendar Today</p>
+            <p className="text-2xl font-bold text-foreground mt-1">
+              {activeCalendarEventsToday.length}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1 truncate">
+              {activeCalendarEventsToday.length > 0
+                ? activeCalendarEventsToday.map((e) => e.title).join(" · ")
+                : "No scheduled events today"}
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* New Admissions Enrolled Today Card (S13 Layer 8) */}
       {summary.newAdmissionsToday > 0 && (

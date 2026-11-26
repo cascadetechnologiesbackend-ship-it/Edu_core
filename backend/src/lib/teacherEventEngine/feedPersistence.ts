@@ -3,6 +3,21 @@ import { teacherFeedCards } from "@/db/schema";
 import { and, eq, lte, inArray } from "drizzle-orm";
 import { DerivedTeacherFeedCard } from "./types";
 
+function getCardDedupKey(cardType: string, payload: any): string {
+  if (!payload || typeof payload !== "object") return cardType;
+  const subKey =
+    payload.noticeId ||
+    payload.modelId ||
+    payload.assignmentId ||
+    payload.examId ||
+    payload.substitutionId ||
+    payload.sectionId ||
+    payload.periodNumber ||
+    payload.threadId ||
+    "";
+  return `${cardType}:${String(subKey)}`;
+}
+
 /**
  * Persists and reconciles derived teacher feed cards in the database.
  *
@@ -10,6 +25,8 @@ import { DerivedTeacherFeedCard } from "./types";
  * - Expired cards are pruned.
  * - Cards no longer in the active derived set are deleted.
  * - Active cards are upserted with current payload, priority, and expiry.
+ * - Multi-instance card types (NoticeCard, InsightCard, HomeworkDueCard, ClassworkPendingCard)
+ *   are keyed by (cardType, payload identity) so they do not overwrite each other.
  * - Enforces zero clutter: when cards is empty, all feed cards for the teacher are cleared.
  */
 export async function syncTeacherFeedCards(
@@ -38,14 +55,22 @@ export async function syncTeacherFeedCards(
     return;
   }
 
+  const allCurrentInDb = await txDb.query.teacherFeedCards.findMany({
+    where: eq(teacherFeedCards.teacherUserId, teacherUserId),
+  });
+
+  const existingByKey = new Map<string, any>();
+  for (const row of allCurrentInDb) {
+    existingByKey.set(getCardDedupKey(row.cardType, row.payload), row);
+  }
+
+  const activeKeys = new Set<string>();
+
   // 2. Upsert current active cards
   for (const card of cards) {
-    const existing = await txDb.query.teacherFeedCards.findFirst({
-      where: and(
-        eq(teacherFeedCards.teacherUserId, teacherUserId),
-        eq(teacherFeedCards.cardType, card.cardType)
-      ),
-    });
+    const key = getCardDedupKey(card.cardType, card.payload);
+    activeKeys.add(key);
+    const existing = existingByKey.get(key);
 
     if (existing) {
       await txDb
@@ -79,15 +104,9 @@ export async function syncTeacherFeedCards(
     }
   }
 
-  // 3. Remove any cards in DB whose cardType is not in the new derived set
-  const activeTypes = cards.map((c) => c.cardType);
-  const allCurrentInDb = await txDb.query.teacherFeedCards.findMany({
-    where: eq(teacherFeedCards.teacherUserId, teacherUserId),
-    columns: { id: true, cardType: true },
-  });
-
+  // 3. Remove any cards in DB whose (cardType, dedupKey) is not in the new derived set
   const idsToRemove = allCurrentInDb
-    .filter((row: { id: string; cardType: string }) => !activeTypes.includes(row.cardType as any))
+    .filter((row: { id: string; cardType: string; payload: any }) => !activeKeys.has(getCardDedupKey(row.cardType, row.payload)))
     .map((row: { id: string }) => row.id);
 
   if (idsToRemove.length > 0) {

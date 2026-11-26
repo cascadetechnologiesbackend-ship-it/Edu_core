@@ -683,6 +683,62 @@ export function PrincipalDashboardClient({
             </Link>
           </div>
         </div>
+
+        {/* Syllabus Pacing & Grading SLA */}
+        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-level-1 space-y-3 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4 text-semantic-interactive" /> Syllabus Pacing &amp; Grading SLA
+            </h3>
+            <Link
+              href="/academics/curriculum"
+              className="text-xs font-medium text-semantic-interactive hover:underline"
+            >
+              Curriculum Overview
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+              <p className="text-muted-foreground">Syllabus Completion</p>
+              <p className="text-lg font-bold text-semantic-money-in-foreground mt-0.5">
+                {initialOversight.syllabusPacing?.completionPercent ?? 0}%
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {initialOversight.syllabusPacing?.completedTopics ?? 0} of{" "}
+                {initialOversight.syllabusPacing?.totalTopics ?? 0} topics
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+              <p className="text-muted-foreground">Topics In Progress</p>
+              <p className="text-lg font-bold text-foreground mt-0.5">
+                {initialOversight.syllabusPacing?.inProgressTopics ?? 0}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Active lesson plans</p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+              <p className="text-muted-foreground">Grading SLA (&gt;7 Days)</p>
+              <p
+                className={`text-lg font-bold mt-0.5 ${
+                  (initialOversight.gradingSla?.overdueUngradedCount ?? 0) > 0
+                    ? "text-semantic-attention-foreground"
+                    : "text-semantic-money-in-foreground"
+                }`}
+              >
+                {initialOversight.gradingSla?.overdueUngradedCount ?? 0}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Overdue ungraded submissions
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+              <p className="text-muted-foreground">Total Ungraded</p>
+              <p className="text-lg font-bold text-foreground mt-0.5">
+                {initialOversight.gradingSla?.totalUngradedCount ?? 0}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Awaiting teacher review</p>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );

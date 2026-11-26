@@ -561,6 +561,35 @@ export async function getHomeworkSubmissionsRoster(assignmentId: string) {
   });
 }
 
+async function assertTeacherCanGradeAssignment(
+  tx: any,
+  schoolId: string,
+  userId: string,
+  role: string,
+  assignmentId: string
+) {
+  const assignment = await tx.query.assignments.findFirst({
+    where: and(eq(assignments.id, assignmentId), eq(assignments.schoolId, schoolId)),
+  });
+  if (!assignment) {
+    throw new Error("Assignment not found");
+  }
+  if (role === "TEACHER") {
+    const allocation = await tx.query.sectionSubjectTeachers.findFirst({
+      where: and(
+        eq(sectionSubjectTeachers.schoolId, schoolId),
+        eq(sectionSubjectTeachers.teacherId, userId),
+        eq(sectionSubjectTeachers.classSubjectId, assignment.classSubjectId),
+        eq(sectionSubjectTeachers.sectionId, assignment.sectionId)
+      ),
+    });
+    if (!allocation && assignment.createdById !== userId) {
+      throw new Error("Forbidden: You are not assigned to grade this homework");
+    }
+  }
+  return assignment;
+}
+
 /**
  * 5. Update submission marks & remarks
  */
@@ -579,6 +608,14 @@ export async function updateSubmissionGradeAction(input: {
   const school = await requireSchool(ctx);
 
   return await withTenant(school.id, async (tx: any) => {
+    const assignment = await assertTeacherCanGradeAssignment(
+      tx,
+      school.id,
+      ctx.userId,
+      ctx.role,
+      input.assignmentId
+    );
+
     const existingSub = await tx.query.assignmentSubmissions.findFirst({
       where: and(
         eq(assignmentSubmissions.schoolId, school.id),

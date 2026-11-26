@@ -18,6 +18,7 @@ import { ClassworkPendingFeedCard } from "./cards/ClassworkPendingFeedCard";
 import { AttendanceWorkbench } from "./AttendanceWorkbench";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
+import { completeLessonPlanAction } from "@/app/(teacher)/teacher/classes/classesActions";
 
 export interface TeacherFeedContainerProps {
   initialCards: DerivedTeacherFeedCard[];
@@ -165,6 +166,21 @@ export function TeacherFeedContainer({
                   key={card.id}
                   card={card}
                   locale={locale}
+                  onLessonComplete={async () => {
+                    const currentPeriod = card.payload?.currentPeriod;
+                    const res = await completeLessonPlanAction({
+                      lessonPlanId: currentPeriod?.lessonPlanId,
+                      classSubjectId: currentPeriod?.classSubjectId,
+                      sectionId: currentPeriod?.sectionId,
+                      title: currentPeriod?.subjectName
+                        ? `${currentPeriod.subjectName} — Period ${currentPeriod.periodNumber}`
+                        : undefined,
+                    });
+                    if (!res.success) {
+                      throw new Error(res.message);
+                    }
+                    await refetch();
+                  }}
                 />
               );
             }

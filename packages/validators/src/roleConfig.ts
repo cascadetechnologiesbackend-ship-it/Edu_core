@@ -101,10 +101,11 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     displayName: "Educator / Teacher",
     defaultDashboard: "/teacher/dashboard",
     navItems: [
-      { label: "My Hub", href: "/teacher/dashboard", icon: "LayoutDashboard", group: "WORKSPACE" },
-      { label: "Attendance", href: "/teacher/attendance", icon: "CalendarCheck", group: "WORKSPACE" },
+      { label: "Today", href: "/teacher/dashboard", icon: "LayoutDashboard", group: "WORKSPACE" },
+      { label: "Classes", href: "/teacher/classes", icon: "BookOpen", group: "WORKSPACE" },
+      { label: "Work", href: "/teacher/work", icon: "Briefcase", group: "WORKSPACE" },
       { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet", group: "WORKSPACE" },
-      { label: "My Classes", href: "/teacher/classes", icon: "BookOpen", group: "WORKSPACE" },
+      { label: "More", href: "/teacher/more", icon: "MoreHorizontal", group: "WORKSPACE" },
     ],
   },
   ACCOUNTANT: {

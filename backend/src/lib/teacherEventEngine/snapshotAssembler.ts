@@ -72,7 +72,10 @@ export async function assembleTeacherSnapshot(
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const todayStr: string = now.toISOString().split("T")[0]!;
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const todayStr: string = `${yyyy}-${mm}-${dd}`;
   const nowMs = now.getTime();
   const dayOfWeekNumber = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   const dayOfWeekEnumVal = dayOfWeekNumber >= 1 && dayOfWeekNumber <= 6 ? DAY_OF_WEEK_NAMES[dayOfWeekNumber] : null;
@@ -326,7 +329,7 @@ export async function assembleTeacherSnapshot(
           const sec = sectionContextMap.get(ts.sectionId);
           const sub = subjectContextMap.get(ts.subjectId);
 
-          const configuredMax = distMap.get(ts.subjectId);
+          const configuredMax = distMap.get(`${ts.subjectId}:${(ts as any).classId || ""}`) ?? distMap.get(ts.subjectId);
           const resolvedMaxMarks = typeof configuredMax === "number"
             ? configuredMax
             : (sub?.maxMarks ?? 100);
@@ -689,7 +692,8 @@ export async function assembleTeacherSnapshot(
           where: and(
             eq(lessonPlans.schoolId, schoolId),
             eq(lessonPlans.teacherId, teacherUserId),
-            eq(lessonPlans.status, "COMPLETED")
+            eq(lessonPlans.status, "COMPLETED"),
+            gte(lessonPlans.completedDate, startOfDay)
           ),
         })
       : [];

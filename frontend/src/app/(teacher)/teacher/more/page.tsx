@@ -79,7 +79,7 @@ const MORE_SECTIONS: { category: string; items: MoreItem[] }[] = [
       {
         title: "Absence Substitutions",
         description: "Request absence coverage and respond to incoming substitution requests.",
-        href: "/teacher/classes/substitutions",
+        href: "/teacher/classes?tab=substitutions",
         icon: Users,
         color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
       },
