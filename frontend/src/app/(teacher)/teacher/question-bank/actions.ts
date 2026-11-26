@@ -83,35 +83,7 @@ export async function getQuestionBankData(filters: QuestionBankFilters = {}) {
   const school = await requireSchool(ctx);
 
   return withTenant(school.id, async (tx) => {
-    let allowedClassIds: string[] | null = null;
-    let allowedSubjectIds: string[] | null = null;
     const conditions = [eq(questionBank.schoolId, school.id)];
-
-    if (ctx.role === "TEACHER") {
-      const scope = await resolveTeacherScope(ctx.userId, {
-        tx,
-        schoolId: school.id,
-      });
-      const pairs = scope.teachingSections.map((ts) => ({
-        classId: ts.classId,
-        subjectId: ts.subjectId,
-      }));
-      if (pairs.length === 0) {
-        return { questions: [], classes: [], subjects: [], chapters: [] };
-      }
-      allowedClassIds = Array.from(new Set(pairs.map((p) => p.classId)));
-      allowedSubjectIds = Array.from(new Set(pairs.map((p) => p.subjectId)));
-      conditions.push(
-        or(
-          ...pairs.map((p) =>
-            and(
-              eq(questionBank.classId, p.classId),
-              eq(questionBank.subjectId, p.subjectId),
-            ),
-          ),
-        )!,
-      );
-    }
 
     let teacherScope: Awaited<
       ReturnType<typeof resolveTeacherClassSubjectScope>

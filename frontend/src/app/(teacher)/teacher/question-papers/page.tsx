@@ -153,7 +153,7 @@ export default function TeacherQuestionPapersPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-foreground">
           Question Paper Builder &amp; Blueprints
         </h1>
         <p className="text-sm text-slate-600">
@@ -177,9 +177,9 @@ export default function TeacherQuestionPapersPage() {
         {/* Create Blueprint */}
         <form
           onSubmit={handleCreateBlueprint}
-          className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="space-y-3 rounded-xl border border-border/40 bg-card p-5 shadow-sm"
         >
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-foreground">
             1. Create Blueprint
           </h2>
           <input
@@ -244,9 +244,9 @@ export default function TeacherQuestionPapersPage() {
         {/* Assemble Paper */}
         <form
           onSubmit={handleAssemblePaper}
-          className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="space-y-3 rounded-xl border border-border/40 bg-card p-5 shadow-sm"
         >
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-foreground">
             2. Assemble Question Paper
           </h2>
           <input
@@ -296,7 +296,7 @@ export default function TeacherQuestionPapersPage() {
             </span>
             <span>Target: {paperTotalMarks} marks</span>
           </div>
-          <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
+          <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border/40 p-2">
             {(data?.bankQuestions ?? []).map((q) => (
               <label
                 key={q.id}
@@ -325,8 +325,8 @@ export default function TeacherQuestionPapersPage() {
       </div>
 
       {/* Assembled Papers */}
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <div className="space-y-3 rounded-xl border border-border/40 bg-card p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground">
           Assembled Question Papers
         </h2>
         {(data?.papers ?? []).length === 0 ? (
@@ -336,10 +336,10 @@ export default function TeacherQuestionPapersPage() {
             {(data?.papers ?? []).map((p) => (
               <div
                 key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/40 p-3"
               >
                 <div>
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium text-foreground">
                     {p.title} (Set {p.setCode})
                   </p>
                   <p className="text-xs text-slate-600">
@@ -373,9 +373,9 @@ export default function TeacherQuestionPapersPage() {
 
       {/* Answer Key & Marking Scheme Preview */}
       {previewPaperId && (
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="space-y-3 rounded-xl border border-border/40 bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-foreground">
               Answer Key &amp; Marking Scheme Preview
             </h2>
             <button
@@ -395,7 +395,7 @@ export default function TeacherQuestionPapersPage() {
                   key={row.id}
                   className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs"
                 >
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium text-foreground">
                     Q{row.orderIndex} ({row.sectionLabel} · {row.marks}m):{" "}
                     {row.questionText}
                   </p>

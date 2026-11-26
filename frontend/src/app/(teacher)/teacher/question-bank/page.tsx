@@ -194,7 +194,7 @@ export default function TeacherQuestionBankPage() {
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
+          <h1 className="text-2xl font-semibold text-foreground">
             Question Bank (NCERT / PARAKH)
           </h1>
           <p className="text-sm text-slate-600">
@@ -218,7 +218,7 @@ export default function TeacherQuestionBankPage() {
       )}
 
       {/* Filters */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-border/40 bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
         <input
           type="text"
           placeholder="Search question or outcome..."
@@ -320,10 +320,10 @@ export default function TeacherQuestionBankPage() {
       {showForm && (
         <form
           onSubmit={handleSave}
-          className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="space-y-4 rounded-xl border border-border/40 bg-card p-5 shadow-sm"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-foreground">
               {editingId ? "Edit Question" : "New Question"}
             </h2>
             <button
@@ -506,14 +506,14 @@ export default function TeacherQuestionBankPage() {
       {/* Question List */}
       <div className="space-y-3">
         {questions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-card p-8 text-center text-sm text-slate-500">
             No questions match the current filters.
           </div>
         ) : (
           questions.map((q) => (
             <div
               key={q.id}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-xl border border-border/40 bg-card p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="space-y-1">
@@ -539,7 +539,7 @@ export default function TeacherQuestionBankPage() {
                       {q.reviewStatus}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium text-foreground">
                     {q.questionText}
                   </p>
                   {q.correctAnswer && (
