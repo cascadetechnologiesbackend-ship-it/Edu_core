@@ -117,4 +117,17 @@ if (importExportWorker) {
   importExportWorker.on("failed", (job, err) => {
     console.error(`[ImportExportWorker] Job ${job?.id ?? "unknown"} failed:`, err);
   });
+
+  const shutdown = async (signal: string) => {
+    console.log(`[ImportExportWorker] Received ${signal}, closing worker...`);
+    try {
+      await importExportWorker.close();
+      console.log("[ImportExportWorker] Worker closed cleanly.");
+    } catch (err) {
+      console.error("[ImportExportWorker] Error during shutdown:", err);
+    }
+  };
+
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
+  process.once("SIGINT", () => void shutdown("SIGINT"));
 }

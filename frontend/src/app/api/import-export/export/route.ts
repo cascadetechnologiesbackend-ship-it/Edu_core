@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { sql } from "drizzle-orm";
+import { Queue } from "bullmq";
+import { db, withTenant } from "@/db";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { DATASET_SCHEMAS, ImportDatasetKey } from "@/lib/importExportEngine";
 
@@ -50,6 +53,42 @@ export async function POST(request: Request) {
 
     const jobId = randomUUID();
     const createdAt = new Date().toISOString();
+    const metadataJson = JSON.stringify({ scope, columns });
+
+    await withTenant(school.id, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO import_export_jobs (
+          id, school_id, created_by, job_type, module, dataset_key, status, format, metadata
+        ) VALUES (
+          ${jobId}, ${school.id}, ${ctx.userId}, 'EXPORT', 'DATA_EXCHANGE', ${datasetKey}, 'QUEUED', ${format}, ${metadataJson}::jsonb
+        )
+      `);
+    });
+
+    const redisUrl = process.env.REDIS_URL || process.env.VALKEY_URL;
+    const hasRedis = Boolean(redisUrl || process.env.VALKEY_HOST || process.env.REDIS_HOST);
+    if (hasRedis) {
+      const connection = redisUrl
+        ? { url: redisUrl }
+        : {
+            host: process.env.VALKEY_HOST || process.env.REDIS_HOST || "127.0.0.1",
+            port: Number(process.env.VALKEY_PORT || process.env.REDIS_PORT || 6379),
+          };
+      const queue = new Queue("import-export-jobs", { connection });
+      try {
+        await queue.add("export", {
+          jobId,
+          schoolId: school.id,
+          userId: ctx.userId,
+          jobType: "EXPORT",
+          entityType: datasetKey,
+          format: format.toLowerCase(),
+          filters: { scope, columns },
+        });
+      } finally {
+        await queue.close();
+      }
+    }
 
     return NextResponse.json(
       {
