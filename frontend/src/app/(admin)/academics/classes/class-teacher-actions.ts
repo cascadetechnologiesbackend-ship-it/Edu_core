@@ -10,6 +10,7 @@ import {
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 export async function getClassTeacherAssignmentsAction(sectionId?: string) {
   const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"] as const);
@@ -155,6 +156,7 @@ export async function assignClassTeacherAction(params: {
         });
       }
 
+      const reqCtx = await getClientRequestContext();
       await tx.insert(auditLogs).values({
         schoolId,
         userId: ctx.userId,
@@ -163,8 +165,8 @@ export async function assignClassTeacherAction(params: {
         action: "WRITE",
         tableName: "class_teacher_assignments",
         recordId: params.sectionId,
-        ipAddress: "127.0.0.1",
-        userAgent: "ClassTeacherPanel",
+        ipAddress: reqCtx.ipAddress,
+        userAgent: reqCtx.userAgent,
       });
     });
 
