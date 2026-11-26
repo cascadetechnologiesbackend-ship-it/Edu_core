@@ -40,7 +40,7 @@ export default async function PrincipalDashboardPage() {
       <div className="rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-blue-950/60 backdrop-blur-xl border border-white/[0.12] p-6 sm:p-8 text-white shadow-level-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-semantic-interactive/20 text-semantic-interactive border border-semantic-interactive/30">
               <GraduationCap className="w-3.5 h-3.5" /> Executive Academic Office
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-2">
@@ -53,7 +53,7 @@ export default async function PrincipalDashboardPage() {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Link
               href="/academics"
-              className="w-full sm:w-auto min-h-[38px] sm:min-h-[44px] px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-semibold text-xs shadow-level-1 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto min-h-[38px] sm:min-h-[44px] px-5 py-2.5 rounded-xl bg-semantic-interactive hover:bg-semantic-interactive/90 active:scale-[0.98] text-white font-semibold text-xs shadow-level-1 transition-all flex items-center justify-center gap-2"
             >
               <GraduationCap className="w-4 h-4" /> Academic Hub
             </Link>

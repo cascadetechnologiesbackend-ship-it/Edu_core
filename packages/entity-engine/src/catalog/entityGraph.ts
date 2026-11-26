@@ -4952,6 +4952,48 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
         "description": "Provisioning run executed by superadmin operator."
       }
     ]
+  },
+  "import_export_jobs": {
+    "tableName": "import_export_jobs",
+    "drizzleExport": "importExportJobs",
+    "domain": "ACADEMICS",
+    "displayName": "Import / Export Jobs",
+    "description": "Async bulk import and export job tracking with tenant isolation.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["jobType", "status"],
+    "tags": ["system", "import", "export", "jobs"],
+    "relationships": []
+  },
+  "id_card_templates": {
+    "tableName": "id_card_templates",
+    "drizzleExport": "idCardTemplates",
+    "domain": "ACADEMICS",
+    "displayName": "ID Card Templates",
+    "description": "School-scoped student and staff ID card layout templates.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["name", "targetType"],
+    "tags": ["academics", "templates", "id_card"],
+    "relationships": []
+  },
+  "admission_form_templates": {
+    "tableName": "admission_form_templates",
+    "drizzleExport": "admissionFormTemplates",
+    "domain": "ADMISSIONS",
+    "displayName": "Admission Form Templates",
+    "description": "School-scoped customizable admission form templates.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["name"],
+    "tags": ["admissions", "templates"],
+    "relationships": []
   }
 };
 

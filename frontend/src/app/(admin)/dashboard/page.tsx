@@ -25,7 +25,7 @@ import {
   rightsRequests,
 } from "@/db/schema";
 import { calculateSchoolProfileCompleteness } from "@/lib/profileCompleteness";
-import { eq, and, isNull, sql, inArray, ne, or } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray, ne, or, gte } from "drizzle-orm";
 import { getCachedDashboardSummary, setCachedDashboardSummary } from "@/lib/dashboardCache";
 import { withDataPhaseTiming } from "@/lib/serverTiming";
 import {
@@ -86,13 +86,12 @@ function MetricCard({
           )}
           {trend && (
             <div
-              className={`inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                trend.direction === "up"
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : trend.direction === "down"
-                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                    : "bg-muted text-muted-foreground"
-              }`}
+              className={`inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 rounded-full text-xs font-semibold ${trend.direction === "up"
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : trend.direction === "down"
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  : "bg-muted text-muted-foreground"
+                }`}
             >
               {trend.direction === "up" ? (
                 <TrendingUp className="w-3 h-3" aria-hidden="true" />
@@ -162,9 +161,44 @@ export default async function DashboardPage() {
     // ─── TEACHER DASHBOARD ───
     const activeTeacherSections = session?.user?.id
       ? await db.query.sections.findMany({
-          where: eq(sections.classTeacherId, session.user.id),
-        })
+        where: eq(sections.classTeacherId, session.user.id),
+      })
       : [];
+
+    const sectionIds = activeTeacherSections.map((s) => s.id);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const [studentCountRow, markedCountRow] =
+      sectionIds.length > 0 && schoolId
+        ? await Promise.all([
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(students)
+            .where(
+              and(
+                eq(students.schoolId, schoolId),
+                inArray(students.currentSectionId, sectionIds),
+                eq(students.isActive, true)
+              )
+            ),
+          db
+            .select({ count: sql<number>`count(distinct ${studentAttendance.studentId})::int` })
+            .from(studentAttendance)
+            .where(
+              and(
+                eq(studentAttendance.schoolId, schoolId),
+                inArray(studentAttendance.sectionId, sectionIds),
+                gte(studentAttendance.attendanceDate, new Date(todayStr))
+              )
+            ),
+        ])
+        : [[{ count: 0 }], [{ count: 0 }]];
+
+    const totalStudentsUnderCare = studentCountRow[0]?.count ?? 0;
+    const markedTodayCount = markedCountRow[0]?.count ?? 0;
+    const attendancePct =
+      totalStudentsUnderCare > 0
+        ? `${Math.round((markedTodayCount / totalStudentsUnderCare) * 100)}%`
+        : "0%";
 
     const metrics = [
       {
@@ -179,19 +213,16 @@ export default async function DashboardPage() {
       },
       {
         title: "Total Students under care",
-        value:
-          activeTeacherSections.length > 0
-            ? (activeTeacherSections.length * 35).toString()
-            : "0",
-        subtext: "Academic Year 2025-26",
+        value: totalStudentsUnderCare.toString(),
+        subtext: "Active enrolled students",
         icon: Users,
         iconBgClass: "bg-secondary/10",
         accentColor: "text-secondary",
       },
       {
         title: "Marked Attendance today",
-        value: activeTeacherSections.length > 0 ? "100%" : "0%",
-        subtext: "Homeroom sections status",
+        value: attendancePct,
+        subtext: `${markedTodayCount} of ${totalStudentsUnderCare} marked`,
         icon: CalendarCheck,
         iconBgClass: "bg-warning/20",
         accentColor: "text-warning",
@@ -202,7 +233,7 @@ export default async function DashboardPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-foreground">
               Welcome back, Teacher 👋
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -725,24 +756,24 @@ export default async function DashboardPage() {
 
   const schoolCompleteness = school
     ? calculateSchoolProfileCompleteness({
-        name: school.name,
-        address: school.address,
-        city: school.city,
-        state: school.state,
-        pincode: school.pincode,
-        phone: school.phone,
-        email: school.email,
-        principalName: school.principalName,
-        establishedYear: school.establishedYear,
-        board: school.board,
-        udiseCode: school.udiseCode,
-        logoS3Key: school.logoS3Key,
-        themeColors: school.themeColors,
-        website: school.website,
-        motto: school.motto,
-        about: school.about,
-        socialHandles: school.socialHandles,
-      })
+      name: school.name,
+      address: school.address,
+      city: school.city,
+      state: school.state,
+      pincode: school.pincode,
+      phone: school.phone,
+      email: school.email,
+      principalName: school.principalName,
+      establishedYear: school.establishedYear,
+      board: school.board,
+      udiseCode: school.udiseCode,
+      logoS3Key: school.logoS3Key,
+      themeColors: school.themeColors,
+      website: school.website,
+      motto: school.motto,
+      about: school.about,
+      socialHandles: school.socialHandles,
+    })
     : null;
 
   // D1-L1: Truthful north-star metric readout
@@ -895,13 +926,12 @@ export default async function DashboardPage() {
                 <li key={task.label}>
                   <a
                     href={task.href}
-                    className={`flex items-start gap-2 text-sm hover:underline p-2 rounded-lg transition-colors ${
-                      task.urgency === "danger"
-                        ? "text-danger hover:bg-danger/10"
-                        : task.urgency === "warning"
-                          ? "text-warning hover:bg-warning/10"
-                          : "text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={`flex items-start gap-2 text-sm hover:underline p-2 rounded-lg transition-colors ${task.urgency === "danger"
+                      ? "text-danger hover:bg-danger/10"
+                      : task.urgency === "warning"
+                        ? "text-warning hover:bg-warning/10"
+                        : "text-muted-foreground hover:bg-muted"
+                      }`}
                   >
                     <AlertCircle
                       className="w-4 h-4 mt-0.5 flex-shrink-0"
@@ -981,9 +1011,8 @@ export default async function DashboardPage() {
             <span className="text-[11px] text-muted-foreground font-medium block">
               Marks Awaiting Lock
             </span>
-            <strong className={`text-base font-bold mt-0.5 block ${
-              (summary.examLifecycle?.pendingMarksLocks || 0) > 0 ? "text-amber-500" : "text-foreground"
-            }`}>
+            <strong className={`text-base font-bold mt-0.5 block ${(summary.examLifecycle?.pendingMarksLocks || 0) > 0 ? "text-amber-500" : "text-foreground"
+              }`}>
               {summary.examLifecycle?.pendingMarksLocks || 0}
             </strong>
             <span className="text-[10px] text-muted-foreground">Class-subject marksheets</span>
