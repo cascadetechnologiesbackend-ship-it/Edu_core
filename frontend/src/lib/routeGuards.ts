@@ -19,6 +19,8 @@ export const ROLE_MODULE_ACCESS_MATRIX: Record<UserRole, readonly string[]> = {
     "/school/fee-structures",
     "/school/accounting/reports/concessions",
     "/school/accounts/bank-reconciliation",
+    "/school/accounts/incomes",
+    "/school/accounts/expenses",
     "/exams/admit-cards",
   ],
   PRINCIPAL: [
