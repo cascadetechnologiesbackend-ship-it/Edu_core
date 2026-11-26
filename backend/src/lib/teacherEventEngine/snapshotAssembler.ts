@@ -57,6 +57,27 @@ const DAY_OF_WEEK_NAMES: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRI
 ];
 
 /**
+ * Strips HTML tags, converts block/break tags to spaces, decodes common HTML
+ * entities, and normalizes whitespace into plain text.
+ */
+export function stripHtmlToPlainText(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, " ")
+    .replace(/<li[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&#x27;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Assembles a comprehensive TeacherDataSnapshot inside tenant boundary.
  * Strictly respects resolveTeacherScope so teachers only see their own sections and students.
  */
@@ -610,10 +631,11 @@ export async function assembleTeacherSnapshot(
   });
 
   for (const n of noticeRows) {
+    const plainContent = stripHtmlToPlainText(n.content || "");
     noticesList.push({
       id: n.id,
-      title: n.title,
-      contentPreview: n.content ? n.content.substring(0, 100) : "",
+      title: stripHtmlToPlainText(n.title || ""),
+      contentPreview: plainContent.substring(0, 100),
       publishedAt: n.publishedAt || now,
       isPinned: n.isPinned,
       audience: n.audienceType,
@@ -982,10 +1004,10 @@ export async function assembleTeacherSnapshot(
     pendingClassworkPeriods,
   };
 
-  const hasAllocations =
-    scope.teachingSections.length > 0 || scope.classTeacherSections.length > 0;
   const isSetupMissing =
-    isWorkingDay && hasAllocations && (!timetableToday || timetableToday.length === 0);
+    isWorkingDay &&
+    (scope.teachingSections.length === 0 ||
+      (scope.teachingSections.length > 0 && (!timetableToday || timetableToday.length === 0)));
   const missingAllocationsSummary: string[] = [];
 
   if (isSetupMissing) {

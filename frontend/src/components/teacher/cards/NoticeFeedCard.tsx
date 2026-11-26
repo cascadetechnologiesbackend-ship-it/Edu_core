@@ -10,6 +10,23 @@ export interface NoticeFeedCardProps {
   locale?: string | undefined;
 }
 
+export function stripHtmlToPlainText(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, " ")
+    .replace(/<li[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&#x27;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function NoticeFeedCard({
   card,
   locale = "en",
@@ -17,8 +34,12 @@ export function NoticeFeedCard({
   const payload = card.payload || {};
   const isPinned = !!payload.isPinned;
 
-  const titleStr = card.title[locale as "en" | "hi"] || card.title.en;
-  const summaryStr = card.summary[locale as "en" | "hi"] || card.summary.en;
+  const titleStr = stripHtmlToPlainText(
+    card.title[locale as "en" | "hi"] || card.title.en
+  );
+  const summaryStr = stripHtmlToPlainText(
+    card.summary[locale as "en" | "hi"] || card.summary.en
+  );
 
   return (
     <TeacherFeedCard

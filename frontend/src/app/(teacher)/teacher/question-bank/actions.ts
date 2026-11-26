@@ -1,15 +1,21 @@
 "use server";
 
-import { db, withTenant } from "@/db";
+import { withTenant } from "@/db";
 import {
   questionBank,
   classes,
   subjects,
   syllabusChapters,
+  syllabusUnits,
 } from "@/db/schema";
-import { eq, and, desc, asc, ilike, or } from "drizzle-orm";
+import { eq, and, desc, asc, ilike, or, inArray } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { revalidatePath } from "next/cache";
+import {
+  ADMIN_MODERATION_ROLES,
+  resolveTeacherClassSubjectScope,
+  writeQuestionAuditLog,
+} from "./scopeHelper";
 
 export type QuestionTypeValue =
   | "MCQ"
@@ -77,7 +83,72 @@ export async function getQuestionBankData(filters: QuestionBankFilters = {}) {
   const school = await requireSchool(ctx);
 
   return withTenant(school.id, async (tx) => {
+    let allowedClassIds: string[] | null = null;
+    let allowedSubjectIds: string[] | null = null;
     const conditions = [eq(questionBank.schoolId, school.id)];
+
+    if (ctx.role === "TEACHER") {
+      const scope = await resolveTeacherScope(ctx.userId, {
+        tx,
+        schoolId: school.id,
+      });
+      const pairs = scope.teachingSections.map((ts) => ({
+        classId: ts.classId,
+        subjectId: ts.subjectId,
+      }));
+      if (pairs.length === 0) {
+        return { questions: [], classes: [], subjects: [], chapters: [] };
+      }
+      allowedClassIds = Array.from(new Set(pairs.map((p) => p.classId)));
+      allowedSubjectIds = Array.from(new Set(pairs.map((p) => p.subjectId)));
+      conditions.push(
+        or(
+          ...pairs.map((p) =>
+            and(
+              eq(questionBank.classId, p.classId),
+              eq(questionBank.subjectId, p.subjectId),
+            ),
+          ),
+        )!,
+      );
+    }
+
+    let teacherScope: Awaited<
+      ReturnType<typeof resolveTeacherClassSubjectScope>
+    > | null = null;
+
+    if (ctx.role === "TEACHER") {
+      teacherScope = await resolveTeacherClassSubjectScope(
+        tx,
+        ctx.userId,
+        school.id,
+      );
+
+      if (teacherScope.authorizedPairs.length === 0) {
+        return {
+          questions: [],
+          classes: [],
+          subjects: [],
+          chapters: [],
+        };
+      }
+
+      const pairConditions = teacherScope.authorizedPairs.map((pair) =>
+        and(
+          eq(questionBank.classId, pair.classId),
+          eq(questionBank.subjectId, pair.subjectId),
+        )!,
+      );
+      conditions.push(or(...pairConditions)!);
+
+      // Teachers cannot see another teacher's DRAFT/REJECTED/SUBMITTED questions
+      conditions.push(
+        or(
+          eq(questionBank.createdById, ctx.userId),
+          eq(questionBank.reviewStatus, "APPROVED"),
+        )!,
+      );
+    }
 
     if (filters.subjectId) {
       conditions.push(eq(questionBank.subjectId, filters.subjectId));
@@ -109,6 +180,51 @@ export async function getQuestionBankData(filters: QuestionBankFilters = {}) {
       );
     }
 
+    const classWhere = teacherScope
+      ? and(
+          eq(classes.schoolId, school.id),
+          inArray(classes.id, teacherScope.authorizedClassIds),
+        )
+      : eq(classes.schoolId, school.id);
+
+    const subjectWhere = teacherScope
+      ? and(
+          eq(subjects.schoolId, school.id),
+          inArray(subjects.id, teacherScope.authorizedSubjectIds),
+        )
+      : eq(subjects.schoolId, school.id);
+
+    const chapterQuery = teacherScope
+      ? tx
+          .select({
+            id: syllabusChapters.id,
+            title: syllabusChapters.name,
+          })
+          .from(syllabusChapters)
+          .innerJoin(
+            syllabusUnits,
+            eq(syllabusChapters.unitId, syllabusUnits.id),
+          )
+          .where(
+            and(
+              eq(syllabusChapters.schoolId, school.id),
+              eq(syllabusUnits.schoolId, school.id),
+              inArray(
+                syllabusUnits.classSubjectId,
+                teacherScope.authorizedClassSubjectIds,
+              ),
+            ),
+          )
+          .orderBy(asc(syllabusChapters.sortOrder))
+      : tx
+          .select({
+            id: syllabusChapters.id,
+            title: syllabusChapters.name,
+          })
+          .from(syllabusChapters)
+          .where(eq(syllabusChapters.schoolId, school.id))
+          .orderBy(asc(syllabusChapters.sortOrder));
+
     const [questions, classList, subjectList, chapterList] = await Promise.all([
       tx
         .select()
@@ -119,21 +235,14 @@ export async function getQuestionBankData(filters: QuestionBankFilters = {}) {
       tx
         .select({ id: classes.id, name: classes.displayName })
         .from(classes)
-        .where(eq(classes.schoolId, school.id))
+        .where(classWhere)
         .orderBy(asc(classes.sortOrder)),
       tx
         .select({ id: subjects.id, name: subjects.name })
         .from(subjects)
-        .where(eq(subjects.schoolId, school.id))
+        .where(subjectWhere)
         .orderBy(asc(subjects.name)),
-      tx
-        .select({
-          id: syllabusChapters.id,
-          title: syllabusChapters.name,
-        })
-        .from(syllabusChapters)
-        .where(eq(syllabusChapters.schoolId, school.id))
-        .orderBy(asc(syllabusChapters.sortOrder)),
+      chapterQuery,
     ]);
 
     return {
@@ -164,6 +273,17 @@ export async function saveQuestionBankItem(input: SaveQuestionInput) {
     return { success: false, error: "Max marks must be greater than 0." };
   }
 
+  if (
+    ctx.role === "TEACHER" &&
+    (input.reviewStatus === "APPROVED" || input.reviewStatus === "REJECTED")
+  ) {
+    return {
+      success: false,
+      error:
+        "Forbidden: Only School Admin, Principal, or Super Admin can approve or reject questions.",
+    };
+  }
+
   const payload = {
     schoolId: school.id,
     board: input.board?.trim() || null,
@@ -189,8 +309,64 @@ export async function saveQuestionBankItem(input: SaveQuestionInput) {
     updatedAt: new Date(),
   };
 
-  await withTenant(school.id, async (tx) => {
+  const result = await withTenant(school.id, async (tx) => {
+    if (ctx.role === "TEACHER") {
+      const teacherScope = await resolveTeacherClassSubjectScope(
+        tx,
+        ctx.userId,
+        school.id,
+      );
+      if (
+        !teacherScope.authorizedPairKeys.has(
+          `${input.classId}:${input.subjectId}`,
+        )
+      ) {
+        return {
+          success: false as const,
+          error:
+            "Forbidden: You are not assigned to teach this class and subject.",
+        };
+      }
+    }
+
     if (input.id) {
+      const [existing] = await tx
+        .select({
+          id: questionBank.id,
+          createdById: questionBank.createdById,
+          reviewStatus: questionBank.reviewStatus,
+        })
+        .from(questionBank)
+        .where(
+          and(
+            eq(questionBank.id, input.id),
+            eq(questionBank.schoolId, school.id),
+          ),
+        )
+        .limit(1);
+
+      if (!existing) {
+        return {
+          success: false as const,
+          error: "Question not found.",
+        };
+      }
+
+      if (ctx.role === "TEACHER") {
+        if (existing.createdById !== ctx.userId) {
+          return {
+            success: false as const,
+            error: "Forbidden: You can only edit your own questions.",
+          };
+        }
+        if (existing.reviewStatus === "APPROVED") {
+          return {
+            success: false as const,
+            error: "Forbidden: Approved questions cannot be edited.",
+          };
+        }
+      }
+
       await tx
         .update(questionBank)
         .set(payload)
@@ -200,13 +376,56 @@ export async function saveQuestionBankItem(input: SaveQuestionInput) {
             eq(questionBank.schoolId, school.id),
           ),
         );
-    } else {
-      await tx.insert(questionBank).values({
+
+      await writeQuestionAuditLog(tx, {
+        userId: ctx.userId,
+        userEmail: ctx.email,
+        userRole: ctx.role,
+        schoolId: school.id,
+        tableName: "question_bank",
+        recordId: input.id,
+        purposeId: "question_bank_update",
+        metadata: {
+          operation: "UPDATE",
+          classId: input.classId,
+          subjectId: input.subjectId,
+          reviewStatus: payload.reviewStatus,
+        },
+      });
+
+      return { success: true as const };
+    }
+
+    const [inserted] = await tx
+      .insert(questionBank)
+      .values({
         ...payload,
         createdById: ctx.userId,
-      });
-    }
+      })
+      .returning({ id: questionBank.id });
+
+    await writeQuestionAuditLog(tx, {
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      schoolId: school.id,
+      tableName: "question_bank",
+      recordId: inserted?.id ?? null,
+      purposeId: "question_bank_create",
+      metadata: {
+        operation: "CREATE",
+        classId: input.classId,
+        subjectId: input.subjectId,
+        reviewStatus: payload.reviewStatus,
+      },
+    });
+
+    return { success: true as const };
   });
+
+  if (!result.success) {
+    return result;
+  }
 
   revalidatePath("/teacher/question-bank");
   return { success: true };
@@ -224,14 +443,90 @@ export async function updateQuestionReviewStatus(
   ] as const);
   const school = await requireSchool(ctx);
 
-  await withTenant(school.id, async (tx) => {
+  if (
+    (reviewStatus === "APPROVED" || reviewStatus === "REJECTED") &&
+    !ADMIN_MODERATION_ROLES.has(ctx.role)
+  ) {
+    return {
+      success: false,
+      error:
+        "Forbidden: Only School Admin, Principal, or Super Admin can approve or reject questions.",
+    };
+  }
+
+  const result = await withTenant(school.id, async (tx) => {
+    const [existing] = await tx
+      .select({
+        id: questionBank.id,
+        createdById: questionBank.createdById,
+        reviewStatus: questionBank.reviewStatus,
+        classId: questionBank.classId,
+        subjectId: questionBank.subjectId,
+      })
+      .from(questionBank)
+      .where(and(eq(questionBank.id, id), eq(questionBank.schoolId, school.id)))
+      .limit(1);
+
+    if (!existing) {
+      return { success: false as const, error: "Question not found." };
+    }
+
+    if (ctx.role === "TEACHER") {
+      const teacherScope = await resolveTeacherClassSubjectScope(
+        tx,
+        ctx.userId,
+        school.id,
+      );
+      if (
+        !teacherScope.authorizedPairKeys.has(
+          `${existing.classId}:${existing.subjectId}`,
+        )
+      ) {
+        return {
+          success: false as const,
+          error:
+            "Forbidden: You are not assigned to teach this class and subject.",
+        };
+      }
+      if (existing.createdById !== ctx.userId) {
+        return {
+          success: false as const,
+          error: "Forbidden: You can only update status on your own questions.",
+        };
+      }
+      if (existing.reviewStatus === "APPROVED") {
+        return {
+          success: false as const,
+          error: "Forbidden: Approved questions cannot be modified.",
+        };
+      }
+    }
+
     await tx
       .update(questionBank)
       .set({ reviewStatus, updatedAt: new Date() })
-      .where(
-        and(eq(questionBank.id, id), eq(questionBank.schoolId, school.id)),
-      );
+      .where(and(eq(questionBank.id, id), eq(questionBank.schoolId, school.id)));
+
+    await writeQuestionAuditLog(tx, {
+      userId: ctx.userId,
+      userEmail: ctx.email,
+      userRole: ctx.role,
+      schoolId: school.id,
+      tableName: "question_bank",
+      recordId: id,
+      purposeId: "question_bank_review_status",
+      metadata: {
+        previousStatus: existing.reviewStatus,
+        newStatus: reviewStatus,
+      },
+    });
+
+    return { success: true as const };
   });
+
+  if (!result.success) {
+    return result;
+  }
 
   revalidatePath("/teacher/question-bank");
   return { success: true };
