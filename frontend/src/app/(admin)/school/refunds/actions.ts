@@ -88,9 +88,15 @@ export async function searchPaidPaymentsForRefundAction(query?: string) {
             maxRefundable,
             studentName,
             admissionNumber,
-            className: "Enrolled",
+            className:
+              (p.student?.currentClassId
+                ? classMap.get(p.student.currentClassId)
+                : null) || "Enrolled",
             invoiceNumber: p.invoice?.invoiceNumber || "N/A",
-            feeHeadName: "Tuition / General",
+            feeHeadName:
+              (p.invoice as { feeHead?: { name?: string }; term?: string } | null)?.feeHead?.name ||
+              (p.invoice as { term?: string } | null)?.term ||
+              "Fee Invoice",
           };
         })
         .filter((item) => {
