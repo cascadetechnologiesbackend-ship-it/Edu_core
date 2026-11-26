@@ -5,6 +5,7 @@ import { expenseVouchers, expenseHeads, bankAccounts } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import {
   TrendingDown,
@@ -23,7 +24,18 @@ export default async function ExpensesPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
 
+  const access = assertRouteAccess(session.user.role, "/school/accounts/expenses", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const schoolId = session.user.schoolId;
+  const canApprove =
+    session.user.role === "SUPER_ADMIN" || session.user.role === "SCHOOL_ADMIN";
 
   const [vouchers, activeHeads, activeBanks] = await Promise.all([
     db.query.expenseVouchers.findMany({
@@ -55,7 +67,7 @@ export default async function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceTabs activeSection="accounts" />
+      <FinanceTabs activeSection="accounts" userRole={session.user.role} />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
@@ -327,19 +339,25 @@ export default async function ExpensesPage() {
                       </td>
                       <td className="py-3 px-4 text-center">
                         {v.status === "PENDING" ? (
-                          <form
-                            action={async () => {
-                              "use server";
-                              await approveExpenseVoucher(v.id);
-                            }}
-                          >
-                            <button
-                              type="submit"
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shadow-sm transition"
+                          canApprove && v.createdById !== session.user.id ? (
+                            <form
+                              action={async () => {
+                                "use server";
+                                await approveExpenseVoucher(v.id);
+                              }}
                             >
-                              Approve
-                            </button>
-                          </form>
+                              <button
+                                type="submit"
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shadow-sm transition"
+                              >
+                                Approve
+                              </button>
+                            </form>
+                          ) : (
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-mono">
+                              {v.createdById === session.user.id ? "Checker Required" : "Admin Approval"}
+                            </span>
+                          )
                         ) : (
                           <span className="text-[11px] text-gray-400 font-mono">Completed</span>
                         )}

@@ -324,6 +324,13 @@ export const feePayments = pgTable(
     receiptS3Key: text("receipt_s3_key"),
     receiptGroupId: text("receipt_group_id"),
     idempotencyKey: text("idempotency_key"),
+    status: text("status").notNull().default("ACTIVE"), // 'ACTIVE' | 'REVERSED'
+    isCancelled: boolean("is_cancelled").notNull().default(false),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledById: uuid("cancelled_by_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    cancellationReason: text("cancellation_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -352,7 +359,12 @@ export const feePayments = pgTable(
       .where(sql`"idempotency_key" IS NOT NULL`),
     txnRefUniqueIdx: uniqueIndex("fee_payments_txn_ref_unique_idx")
       .on(t.schoolId, t.transactionReference)
-      .where(sql`"transaction_reference" IS NOT NULL`),
+      .where(sql`"transaction_reference" IS NOT NULL AND "is_cancelled" = false`),
+    activeIdx: index("fee_payments_active_idx").on(
+      t.schoolId,
+      t.isCancelled,
+      t.paymentDate,
+    ),
   }),
 );
 
@@ -436,16 +448,16 @@ export const feeQueries = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     schoolId: uuid("school_id")
       .notNull()
-      .references(() => schools.id, { onDelete: "cascade" }),
+      .references(() => schools.id, { onDelete: "restrict" }),
     studentId: uuid("student_id")
       .notNull()
-      .references(() => students.id, { onDelete: "cascade" }),
+      .references(() => students.id, { onDelete: "restrict" }),
     invoiceId: uuid("invoice_id")
       .notNull()
-      .references(() => feeInvoices.id, { onDelete: "cascade" }),
+      .references(() => feeInvoices.id, { onDelete: "restrict" }),
     parentUserId: uuid("parent_user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "restrict" }),
     category: feeQueryCategoryEnum("category").notNull(),
     message: text("message").notNull(),
     status: feeQueryStatusEnum("status").notNull().default("OPEN"),

@@ -17,6 +17,7 @@ import {
   studentSubjectEnrollments,
   examMarkDistributions,
   examComponents,
+  domainEvents,
 } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -128,6 +129,20 @@ export async function publishResults(setupId: string) {
   } catch (notifErr) {
     console.error("[publishResults] Notification dispatch error:", notifErr);
   }
+
+  // Emit ExamResultsPublishedEvent into durable outbox
+  await db.insert(domainEvents).values({
+    schoolId: school.id,
+    aggregateId: setupId,
+    eventType: "ExamResultsPublishedEvent",
+    payload: {
+      setupId,
+      publishedByUserId: ctx.userId,
+      publishedByRole: ctx.role,
+      publishedAt: new Date().toISOString(),
+    },
+    status: "PENDING",
+  });
 
   revalidatePath("/exams/results");
   revalidatePath("/exams/report-cards");

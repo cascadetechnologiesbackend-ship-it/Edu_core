@@ -26,6 +26,7 @@ import {
   timetablePeriods,
   sections,
   persons,
+  domainEvents,
 } from "@/db/schema";
 import { eq, and, gte, lte, sql, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -42,6 +43,7 @@ import { ROLE_CONFIGS, type UserRole } from "@/lib/roleConfig";
 import { generateRoleTempPassword, generateRandomTempPassword } from "@/lib/tempPassword";
 import { clearTeacherScopeCache } from "@/lib/teacherEventEngine/scopeResolver";
 import { setClassSubjectLead } from "@/app/(admin)/academics/actions/teacher-assignment.actions";
+import { upsertClassTeacherAssignmentCore } from "@/app/(admin)/academics/actions/teacher-assignment.core";
 
 function safeRevalidate(path: string) {
   try {
@@ -1254,32 +1256,72 @@ export async function offboardStaff(
       return { success: true, message: "Staff member is already offboarded." };
     }
 
+    const todayStr = new Date().toISOString().split("T")[0]!;
+    let closedSummary = {
+      classSubjectsCleared: 0,
+      sectionSubjectTeachersClosed: 0,
+      classTeacherAssignmentsClosed: 0,
+      timetablePeriodsCleared: 0,
+      sectionsCleared: 0,
+    };
+
     // 3. Academic Safety Check if teaching staff
     if (staffRecord.userId && staffRecord.designation?.isTeaching) {
-      const [csList, sstList, tpList, secList] = await Promise.all([
-        db.query.classSubjects.findMany({ where: eq(classSubjects.assignedTeacherId, staffRecord.userId) }),
-        db.query.sectionSubjectTeachers.findMany({ where: eq(sectionSubjectTeachers.teacherId, staffRecord.userId) }),
-        db.query.timetablePeriods.findMany({ where: eq(timetablePeriods.teacherId, staffRecord.userId) }),
-        db.query.sections.findMany({ where: eq(sections.classTeacherId, staffRecord.userId) }),
+      const [csList, sstList, tpList, secList, ctaList] = await Promise.all([
+        db.query.classSubjects.findMany({
+          where: and(
+            eq(classSubjects.assignedTeacherId, staffRecord.userId),
+            eq(classSubjects.schoolId, school.id),
+          ),
+        }),
+        db.query.sectionSubjectTeachers.findMany({
+          where: and(
+            eq(sectionSubjectTeachers.teacherId, staffRecord.userId),
+            eq(sectionSubjectTeachers.schoolId, school.id),
+            eq(sectionSubjectTeachers.isActive, true),
+          ),
+        }),
+        db.query.timetablePeriods.findMany({
+          where: and(
+            eq(timetablePeriods.teacherId, staffRecord.userId),
+            eq(timetablePeriods.schoolId, school.id),
+            eq(timetablePeriods.isActive, true),
+          ),
+        }),
+        db.query.sections.findMany({
+          where: and(
+            eq(sections.classTeacherId, staffRecord.userId),
+            eq(sections.schoolId, school.id),
+            eq(sections.isActive, true),
+          ),
+        }),
+        db.query.classTeacherAssignments.findMany({
+          where: and(
+            eq(classTeacherAssignments.teacherId, staffRecord.userId),
+            eq(classTeacherAssignments.schoolId, school.id),
+            eq(classTeacherAssignments.isActive, true),
+          ),
+        }),
       ]);
 
-      const totalAllocations = csList.length + sstList.length + tpList.length + secList.length;
+      const homeroomCount = Math.max(secList.length, ctaList.length);
+      const totalAllocations = csList.length + sstList.length + tpList.length + homeroomCount;
 
       if (totalAllocations > 0 && !input.forceReassign) {
         return {
           success: false,
           requiresReassignment: true,
-          message: `This teacher has ${csList.length} assigned class subject(s), ${sstList.length} section allocation(s), ${tpList.length} timetable period(s), and is class teacher for ${secList.length} section(s). Please confirm re-allocation before offboarding.`,
+          message: `This teacher has ${csList.length} assigned class subject(s), ${sstList.length} section allocation(s), ${tpList.length} timetable period(s), and is class teacher for ${homeroomCount} section(s). Please confirm re-allocation before offboarding.`,
           activeAllocations: {
             classSubjects: csList.length,
             sectionTeachers: sstList.length,
             timetablePeriods: tpList.length,
-            classTeacherSections: secList.length,
+            classTeacherSections: homeroomCount,
           },
         };
       }
 
-      // If forceReassign is true, unassign from active classes/timetable while preserving all historical attendance and marks
+      // If forceReassign is true, close active assignments with effectiveTo while preserving all historical audit, attendance, and marks
       if (input.forceReassign) {
         if (csList.length > 0) {
           await db
@@ -1291,16 +1333,33 @@ export async function offboardStaff(
                 eq(classSubjects.schoolId, school.id),
               ),
             );
+          closedSummary.classSubjectsCleared = csList.length;
         }
         if (sstList.length > 0) {
           await db
-            .delete(sectionSubjectTeachers)
+            .update(sectionSubjectTeachers)
+            .set({ isActive: false, effectiveTo: todayStr, updatedAt: new Date() })
             .where(
               and(
                 eq(sectionSubjectTeachers.teacherId, staffRecord.userId),
                 eq(sectionSubjectTeachers.schoolId, school.id),
+                eq(sectionSubjectTeachers.isActive, true),
               ),
             );
+          closedSummary.sectionSubjectTeachersClosed = sstList.length;
+        }
+        if (ctaList.length > 0) {
+          await db
+            .update(classTeacherAssignments)
+            .set({ isActive: false, effectiveTo: todayStr, updatedAt: new Date() })
+            .where(
+              and(
+                eq(classTeacherAssignments.teacherId, staffRecord.userId),
+                eq(classTeacherAssignments.schoolId, school.id),
+                eq(classTeacherAssignments.isActive, true),
+              ),
+            );
+          closedSummary.classTeacherAssignmentsClosed = ctaList.length;
         }
         if (tpList.length > 0) {
           await db
@@ -1312,6 +1371,7 @@ export async function offboardStaff(
                 eq(timetablePeriods.schoolId, school.id),
               ),
             );
+          closedSummary.timetablePeriodsCleared = tpList.length;
         }
         if (secList.length > 0) {
           await db
@@ -1323,6 +1383,7 @@ export async function offboardStaff(
                 eq(sections.schoolId, school.id),
               ),
             );
+          closedSummary.sectionsCleared = secList.length;
         }
       }
     }
@@ -1346,17 +1407,43 @@ export async function offboardStaff(
         .update(users)
         .set({ isActive: false, updatedAt: new Date() })
         .where(and(eq(users.id, staffRecord.userId), eq(users.schoolId, school.id)));
+      clearTeacherScopeCache(staffRecord.userId);
     }
 
     await logHrAudit(ctx, "WRITE", "staff", staffId, {
       action: "OFFBOARD_STAFF",
       separationType: input.separationType,
-      relievingDate: input.relievingDate,
+      relievingDate: relieving.toISOString(),
+      effectiveTo: todayStr,
+      closedSummary,
     });
 
+    try {
+      await db.insert(domainEvents).values({
+        schoolId: school.id,
+        aggregateId: staffId,
+        eventType: "StaffDeactivatedEvent",
+        payload: {
+          staffId,
+          userId: staffRecord.userId ?? null,
+          separationType: input.separationType,
+          relievingDate: relieving.toISOString(),
+          effectiveTo: todayStr,
+          forceReassign: Boolean(input.forceReassign),
+          closedSummary,
+          deactivatedByUserId: ctx.userId,
+        },
+        status: "PENDING",
+      });
+    } catch (evErr) {
+      console.error("Failed to emit StaffDeactivatedEvent:", evErr);
+    }
+
     await invalidateTeachingStaffCache(school.id);
+    clearTeacherScopeCache();
     safeRevalidate("/hr");
     safeRevalidate(`/hr/staff/${staffId}`);
+    safeRevalidate("/academics");
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -2286,6 +2373,8 @@ export async function getStaffAllocationOverview() {
 export async function hrAssignClassTeacher(params: {
   sectionId: string;
   teacherId: string | null;
+  role?: "PRIMARY" | "DEPUTY";
+  effectiveFrom?: string;
   forceTransfer?: boolean;
   notes?: string;
 }) {
@@ -2299,166 +2388,47 @@ export async function hrAssignClassTeacher(params: {
     const school = await requireSchool(ctx);
     const schoolId = school.id;
 
-    // Verify section belongs to this school
-    const sec = await withTenant(schoolId, async (tx) =>
-      tx.query.sections.findFirst({
-        where: and(eq(sections.id, params.sectionId), eq(sections.schoolId, schoolId)),
-        with: { class: true },
-      }),
+    const result = await upsertClassTeacherAssignmentCore(
+      {
+        userId: ctx.userId,
+        schoolId,
+        role: ctx.role,
+        email: (ctx as any).email || (ctx as any).session?.user?.email || "[audit-system]",
+      },
+      {
+        sectionId: params.sectionId,
+        teacherId: params.teacherId,
+        role: params.role,
+        effectiveFrom: params.effectiveFrom,
+        forceTransfer: params.forceTransfer,
+        notes: params.notes,
+        checkSectionConflict: true,
+        auditPurposeId: "hr_records",
+        source: "hr_hub",
+      },
     );
-    if (!sec) return { success: false, error: "Section not found or access denied." };
 
-    // Get active academic year
-    const activeYearRow = await withTenant(schoolId, async (tx) =>
-      tx.query.academicYears.findFirst({
-        where: and(eq(academicYears.isActive, true), eq(academicYears.schoolId, schoolId)),
-      }),
-    );
-    const academicYearId = sec.class?.academicYearId || activeYearRow?.id;
-    if (!academicYearId) return { success: false, error: "No active academic year." };
-
-    // TW-3: bidirectional conflict check
-    if (params.teacherId && !params.forceTransfer) {
-      const teacherConflict = await withTenant(schoolId, async (tx) =>
-        tx.query.classTeacherAssignments.findFirst({
-          where: and(
-            eq(classTeacherAssignments.schoolId, schoolId),
-            eq(classTeacherAssignments.academicYearId, academicYearId),
-            eq(classTeacherAssignments.teacherId, params.teacherId!),
-            eq(classTeacherAssignments.isActive, true),
-          ),
-          with: { section: { with: { class: true } } },
-        }),
-      );
-      if (teacherConflict && teacherConflict.sectionId !== params.sectionId) {
+    if (!result.success) {
+      if (result.conflict) {
         return {
           success: false,
           conflict: {
-            type: "teacher_already_assigned" as const,
-            existingSectionId: teacherConflict.sectionId,
-            existingSectionName: teacherConflict.section?.name || "",
-            existingClassName: teacherConflict.section?.class?.displayName || "",
-            message: `Teacher is already class teacher of ${
-              teacherConflict.section?.class?.displayName
-            } ${teacherConflict.section?.name}. Confirm transfer?`,
+            type: (result.conflict.type || "teacher_already_assigned") as
+              | "teacher_already_assigned"
+              | "section_has_teacher",
+            existingSectionId: result.conflict.existingSectionId,
+            existingSectionName: result.conflict.existingSectionName,
+            existingClassName: result.conflict.existingClassName,
+            existingTeacherId: result.conflict.existingTeacherId,
+            message: result.conflict.message,
           },
         };
       }
-
-      const sectionConflict = await withTenant(schoolId, async (tx) =>
-        tx.query.classTeacherAssignments.findFirst({
-          where: and(
-            eq(classTeacherAssignments.schoolId, schoolId),
-            eq(classTeacherAssignments.academicYearId, academicYearId),
-            eq(classTeacherAssignments.sectionId, params.sectionId),
-            eq(classTeacherAssignments.isActive, true),
-          ),
-          with: { section: true },
-        }),
-      );
-      if (sectionConflict && sectionConflict.teacherId !== params.teacherId) {
-        // Surface the displaced teacher name — will be resolved via forceTransfer
-        return {
-          success: false,
-          conflict: {
-            type: "section_has_teacher" as const,
-            existingTeacherId: sectionConflict.teacherId,
-            message: `This section already has an active class teacher. Replacing will close the previous assignment. Confirm?`,
-          },
-        };
-      }
+      return { success: false, error: result.error };
     }
 
-    const effectiveFromDate = new Date().toISOString().split("T")[0]!;
-
-    let priorActiveTeacherId: string | null = null;
-    await withTenant(schoolId, async (tx) => {
-      // Find current active assignment to capture displaced teacher ID
-      const priorActive = await tx.query.classTeacherAssignments.findFirst({
-        where: and(
-          eq(classTeacherAssignments.schoolId, schoolId),
-          eq(classTeacherAssignments.academicYearId, academicYearId),
-          eq(classTeacherAssignments.sectionId, params.sectionId),
-          eq(classTeacherAssignments.isActive, true),
-        ),
-      });
-      if (priorActive?.teacherId) {
-        priorActiveTeacherId = priorActive.teacherId;
-      }
-      if (params.forceTransfer && params.teacherId) {
-        // Close prior teacher's assignment across sections
-        await tx
-          .update(classTeacherAssignments)
-          .set({ isActive: false, effectiveTo: effectiveFromDate, updatedAt: new Date() })
-          .where(
-            and(
-              eq(classTeacherAssignments.schoolId, schoolId),
-              eq(classTeacherAssignments.academicYearId, academicYearId),
-              eq(classTeacherAssignments.teacherId, params.teacherId!),
-              eq(classTeacherAssignments.isActive, true),
-            ),
-          );
-      }
-
-      // Close any existing active assignment for this section
-      await tx
-        .update(classTeacherAssignments)
-        .set({ isActive: false, effectiveTo: effectiveFromDate, updatedAt: new Date() })
-        .where(
-          and(
-            eq(classTeacherAssignments.schoolId, schoolId),
-            eq(classTeacherAssignments.academicYearId, academicYearId),
-            eq(classTeacherAssignments.sectionId, params.sectionId),
-            eq(classTeacherAssignments.isActive, true),
-          ),
-        );
-
-      // Mirror: clear sections.classTeacherId
-      await tx
-        .update(sections)
-        .set({ classTeacherId: null, updatedAt: new Date() })
-        .where(and(eq(sections.id, params.sectionId), eq(sections.schoolId, schoolId)));
-
-      if (params.teacherId) {
-        await tx.insert(classTeacherAssignments).values({
-          schoolId,
-          academicYearId,
-          sectionId: params.sectionId,
-          teacherId: params.teacherId,
-          isActive: true,
-          effectiveFrom: effectiveFromDate,
-          effectiveTo: null,
-          notes: params.notes || null,
-        });
-
-        // Mirror: update sections.classTeacherId
-        await tx
-          .update(sections)
-          .set({ classTeacherId: params.teacherId, updatedAt: new Date() })
-          .where(and(eq(sections.id, params.sectionId), eq(sections.schoolId, schoolId)));
-      }
-    });
-
-    // TW-2 & S18-L3: Displacement-aware dual cache invalidation
-    await invalidateTeachingStaffCache(schoolId);
-    if (priorActiveTeacherId && priorActiveTeacherId !== params.teacherId) {
-      clearTeacherScopeCache(priorActiveTeacherId);
-    }
-    if (params.teacherId) clearTeacherScopeCache(params.teacherId);
-    clearTeacherScopeCache(); // broad flush for displaced teacher
-
-    // Audit log (OD1 requirement)
-    await logHrAudit(ctx, "WRITE", "class_teacher_assignments", params.sectionId, {
-      teacherId: params.teacherId,
-      forceTransfer: params.forceTransfer,
-      source: "hr_hub",
-    });
-
-    // Revalidate both HR and ClassHub surfaces
     safeRevalidate("/hr");
     safeRevalidate("/academics");
-    if (sec.classId) safeRevalidate(`/academics/classes/${sec.classId}`);
-
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

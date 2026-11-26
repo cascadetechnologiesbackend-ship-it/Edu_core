@@ -351,12 +351,19 @@ export async function fetchStudentCompleteData(studentId: string): Promise<Fetch
       });
 
       const invoices = await tx.query.feeInvoices.findMany({
-        where: eq(feeInvoices.studentId, studentId),
+        where: and(
+          eq(feeInvoices.schoolId, schoolId),
+          eq(feeInvoices.studentId, studentId),
+        ),
         limit: 50,
       });
 
       const payments = await tx.query.feePayments.findMany({
-        where: eq(feePayments.studentId, studentId),
+        where: and(
+          eq(feePayments.schoolId, schoolId),
+          eq(feePayments.studentId, studentId),
+          eq(feePayments.isCancelled, false),
+        ),
         limit: 50,
       });
 

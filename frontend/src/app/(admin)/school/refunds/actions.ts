@@ -5,6 +5,7 @@ import {
   feeRefunds,
   feePayments,
   feeInvoices,
+  feeAuditLogs,
   accountLedgerTransactions,
   bankAccounts,
   students,
@@ -48,9 +49,12 @@ export async function searchPaidPaymentsForRefundAction(query?: string) {
       });
       const classMap = new Map(allClasses.map((c) => [c.id, c.displayName]));
 
-      // Fetch payments with relations
+      // Fetch active non-cancelled payments with relations
       const payments = await tx.query.feePayments.findMany({
-        where: eq(feePayments.schoolId, school.id),
+        where: and(
+          eq(feePayments.schoolId, school.id),
+          eq(feePayments.isCancelled, false),
+        ),
         with: {
           student: true,
           invoice: true,
@@ -151,6 +155,9 @@ export async function requestFeeRefund(payload: RefundRequestPayload) {
     if (!payment) {
       return { success: false, message: "Payment record not found" };
     }
+    if (payment.isCancelled || payment.status === "REVERSED") {
+      return { success: false, message: "Cannot request a refund for a cancelled or reversed payment" };
+    }
 
     const paidNum = parseFloat(payment.amountPaid || "0");
     const activeRefunds = (payment.refunds || []).filter((r) => r.status !== "REJECTED");
@@ -228,6 +235,23 @@ export async function approveFeeRefund(refundId: string) {
       return { success: false, message: `Cannot approve refund in ${refund.status} status` };
     }
 
+    // Separation of duties: Requestor != Approver (enforced even for SUPER_ADMIN)
+    const requestLog = await db.query.feeAuditLogs.findFirst({
+      where: and(
+        eq(feeAuditLogs.schoolId, school.id),
+        eq(feeAuditLogs.entityType, "FEE_REFUND"),
+        eq(feeAuditLogs.entityId, refund.id),
+        eq(feeAuditLogs.action, "REQUEST_FEE_REFUND"),
+      ),
+      orderBy: [desc(feeAuditLogs.createdAt)],
+    });
+    if (requestLog?.performedById && requestLog.performedById === ctx.userId) {
+      return {
+        success: false,
+        message: "Separation of duties: Refund requestor cannot approve their own refund request.",
+      };
+    }
+
     const now = new Date();
     await db
       .update(feeRefunds)
@@ -276,6 +300,23 @@ export async function rejectFeeRefund(refundId: string, reason?: string) {
     if (!refund) return { success: false, message: "Refund request not found" };
     if (refund.status !== "PENDING" && refund.status !== "APPROVED") {
       return { success: false, message: `Cannot reject refund in ${refund.status} status` };
+    }
+
+    // Separation of duties: Requestor != Rejector (enforced even for SUPER_ADMIN)
+    const requestLog = await db.query.feeAuditLogs.findFirst({
+      where: and(
+        eq(feeAuditLogs.schoolId, school.id),
+        eq(feeAuditLogs.entityType, "FEE_REFUND"),
+        eq(feeAuditLogs.entityId, refund.id),
+        eq(feeAuditLogs.action, "REQUEST_FEE_REFUND"),
+      ),
+      orderBy: [desc(feeAuditLogs.createdAt)],
+    });
+    if (requestLog?.performedById && requestLog.performedById === ctx.userId) {
+      return {
+        success: false,
+        message: "Separation of duties: Refund requestor cannot reject their own refund request.",
+      };
     }
 
     const now = new Date();

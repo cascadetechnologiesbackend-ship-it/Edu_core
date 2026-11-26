@@ -324,9 +324,15 @@ export async function saveClassSubject(data: {
   assignedTeacherId?: string | null;
   periodsPerWeek?: number;
   isElective?: boolean;
+  overrideReason?: string | null;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const schoolId = session.user.schoolId!;
+  const actor = {
+    userId: session.user.id,
+    email: session.user.email,
+    role: session.user.role,
+  };
 
   await withTenant(schoolId, async (tx) => {
     const [cls, subj] = await Promise.all([
@@ -360,6 +366,9 @@ export async function saveClassSubject(data: {
           teacherId: assignedTeacherIdVal,
           periodsPerWeek: periodsPerWeekVal,
           isElective: isElectiveVal,
+          overrideReason: data.overrideReason ?? null,
+          recordAudit: true,
+          actor,
         },
         tx,
       );
@@ -385,6 +394,9 @@ export async function saveClassSubject(data: {
             teacherId: assignedTeacherIdVal,
             periodsPerWeek: periodsPerWeekVal,
             isElective: isElectiveVal,
+            overrideReason: data.overrideReason ?? null,
+            recordAudit: true,
+            actor,
           },
           tx,
         );
@@ -407,6 +419,7 @@ export async function batchUpdateClassSubjectMappings(data: {
     isElective?: boolean;
     periodsPerWeek?: number;
     assignedTeacherId?: string | null;
+    overrideReason?: string | null;
   }>;
   toRemove: Array<{ classId: string; subjectId: string }>;
   toUpdate?: Array<{
@@ -414,10 +427,16 @@ export async function batchUpdateClassSubjectMappings(data: {
     isElective?: boolean;
     periodsPerWeek?: number;
     assignedTeacherId?: string | null;
+    overrideReason?: string | null;
   }>;
 }) {
   const session = await checkAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"]);
   const schoolId = session.user.schoolId!;
+  const actor = {
+    userId: session.user.id,
+    email: session.user.email,
+    role: session.user.role,
+  };
 
   return await withTenant(schoolId, async (tx) => {
     // 1. Process removals
@@ -452,12 +471,25 @@ export async function batchUpdateClassSubjectMappings(data: {
             schoolId,
             classId: add.classId,
             subjectId: add.subjectId,
-            assignedTeacherId: add.assignedTeacherId || null,
+            assignedTeacherId: null,
             periodsPerWeek: add.periodsPerWeek ?? 5,
             isElective: add.isElective ?? false,
           })
           .returning({ id: classSubjects.id });
         if (inserted && add.assignedTeacherId) {
+          await setClassSubjectLead(
+            {
+              schoolId,
+              classSubjectId: inserted.id,
+              teacherId: add.assignedTeacherId,
+              periodsPerWeek: add.periodsPerWeek ?? 5,
+              isElective: add.isElective ?? false,
+              overrideReason: add.overrideReason ?? null,
+              recordAudit: true,
+              actor,
+            },
+            tx,
+          );
           leadUpdates.push({ classSubjectId: inserted.id, teacherId: add.assignedTeacherId });
         }
       }
@@ -466,26 +498,37 @@ export async function batchUpdateClassSubjectMappings(data: {
     // 3. Process updates
     if (data.toUpdate) {
       for (const upd of data.toUpdate) {
-        await tx
-          .update(classSubjects)
-          .set({
-            ...(upd.assignedTeacherId !== undefined
-              ? { assignedTeacherId: upd.assignedTeacherId }
-              : {}),
-            ...(upd.periodsPerWeek !== undefined
-              ? { periodsPerWeek: upd.periodsPerWeek }
-              : {}),
-            ...(upd.isElective !== undefined ? { isElective: upd.isElective } : {}),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(classSubjects.id, upd.id),
-              eq(classSubjects.schoolId, schoolId),
-            ),
-          );
         if (upd.assignedTeacherId !== undefined) {
+          await setClassSubjectLead(
+            {
+              schoolId,
+              classSubjectId: upd.id,
+              teacherId: upd.assignedTeacherId ?? null,
+              ...(upd.periodsPerWeek !== undefined ? { periodsPerWeek: upd.periodsPerWeek } : {}),
+              ...(upd.isElective !== undefined ? { isElective: upd.isElective } : {}),
+              overrideReason: upd.overrideReason ?? null,
+              recordAudit: true,
+              actor,
+            },
+            tx,
+          );
           leadUpdates.push({ classSubjectId: upd.id, teacherId: upd.assignedTeacherId });
+        } else {
+          await tx
+            .update(classSubjects)
+            .set({
+              ...(upd.periodsPerWeek !== undefined
+                ? { periodsPerWeek: upd.periodsPerWeek }
+                : {}),
+              ...(upd.isElective !== undefined ? { isElective: upd.isElective } : {}),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(classSubjects.id, upd.id),
+                eq(classSubjects.schoolId, schoolId),
+              ),
+            );
         }
       }
     }

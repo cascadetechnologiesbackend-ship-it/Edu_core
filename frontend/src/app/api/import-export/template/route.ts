@@ -1,21 +1,30 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { DATASET_SCHEMAS, ImportDatasetKey } from "@/lib/importExportEngine";
+import {
+  DATASET_SCHEMAS,
+  IMPORT_EXPORT_AUTH_ROLES,
+  canRoleExportDataset,
+  canRoleImportDataset,
+  generateCsvTemplate,
+  type ImportDatasetKey,
+} from "@/lib/importExportEngine";
+
+function mapAuthErrorStatus(message: string): number {
+  const lower = message.toLowerCase();
+  if (lower.includes("unauthorized")) return 401;
+  if (lower.includes("forbidden")) return 403;
+  return 500;
+}
 
 export async function GET(request: Request) {
   try {
-    const ctx = await requireAuth([
-      "SUPER_ADMIN",
-      "SCHOOL_ADMIN",
-      "PRINCIPAL",
-      "HR_MANAGER",
-      "ACCOUNTANT",
-    ] as const);
+    const ctx = await requireAuth(IMPORT_EXPORT_AUTH_ROLES);
     await requireSchool(ctx);
 
     const { searchParams } = new URL(request.url);
     const datasetParam = (searchParams.get("dataset") || "").toUpperCase() as ImportDatasetKey;
+    const formatParam = (searchParams.get("format") || "xlsx").toLowerCase();
     const schema = DATASET_SCHEMAS[datasetParam];
 
     if (!schema) {
@@ -23,6 +32,24 @@ export async function GET(request: Request) {
         { error: `Unknown or unsupported dataset: ${datasetParam || "missing"}` },
         { status: 400 }
       );
+    }
+
+    if (!canRoleImportDataset(ctx.role, datasetParam) && !canRoleExportDataset(ctx.role, datasetParam)) {
+      return NextResponse.json(
+        { error: `Forbidden: Role ${ctx.role} cannot access template for ${datasetParam}.` },
+        { status: 403 }
+      );
+    }
+
+    if (formatParam === "csv") {
+      const csv = generateCsvTemplate(datasetParam);
+      return new NextResponse(csv, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${datasetParam.toLowerCase()}-import-template.csv"`,
+        },
+      });
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -37,11 +64,9 @@ export async function GET(request: Request) {
       width: Math.max(col.label.length + 6, 20),
     }));
 
-    // Style header row
     const headerRow = dataSheet.getRow(1);
     headerRow.font = { bold: true };
 
-    // Add sample row
     const sampleRow: Record<string, string> = {};
     for (const col of schema.columns) {
       sampleRow[col.key] = col.sampleValue;
@@ -100,7 +125,6 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to generate template";
-    const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: mapAuthErrorStatus(message) });
   }
 }

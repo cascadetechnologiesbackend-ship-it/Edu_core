@@ -2,9 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { db } from "@/db";
 import { feeGroups, feeHeads, academicYears } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { Layers, Plus, Trash2, Calendar, Tag } from "lucide-react";
 import { createFeeGroup, deleteFeeGroup } from "./actions";
@@ -13,11 +14,24 @@ export default async function FeeGroupsPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
 
+  const access = assertRouteAccess(session.user.role, "/school/fee-groups", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
+
   const schoolId = session.user.schoolId;
 
   const [groups, heads, years] = await Promise.all([
     db.query.feeGroups.findMany({
-      where: eq(feeGroups.schoolId, schoolId),
+      where: and(
+        eq(feeGroups.schoolId, schoolId),
+        eq(feeGroups.isActive, true),
+        isNull(feeGroups.deletedAt),
+      ),
       with: {
         groupHeads: {
           with: {

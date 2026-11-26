@@ -241,7 +241,9 @@ export const markEntries = pgTable(
     examId: uuid("exam_id")
       .notNull()
       .references(() => exams.id, { onDelete: "restrict" }),
-    studentId: uuid("student_id").notNull(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
     subjectId: uuid("subject_id")
       .notNull()
       .references(() => subjects.id, { onDelete: "restrict" }),
@@ -1126,6 +1128,10 @@ export const markEntriesRelations = relations(markEntries, ({ one }) => ({
     references: [schools.id],
   }),
   exam: one(exams, { fields: [markEntries.examId], references: [exams.id] }),
+  student: one(students, {
+    fields: [markEntries.studentId],
+    references: [students.id],
+  }),
   subject: one(subjects, {
     fields: [markEntries.subjectId],
     references: [subjects.id],

@@ -8,11 +8,14 @@ import {
   studentClassHistory,
   studentLeaveRequests,
   academicYears,
+  academicCalendarEvents,
   domainEvents,
   classes,
   timetablePeriods,
+  auditLogs,
+  schools,
 } from "@/db/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, lte, gte } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { decryptData } from "@/lib/encryption";
 import { assertConsent } from "@/server/middleware/consent";
@@ -25,9 +28,11 @@ import {
   assertClassTeacherOverride,
   assertSubjectTeacherPermission,
   assertStudentRosterMembership,
+  isAdminRole,
 } from "@/lib/teacherAuthGuards";
 import type { AttendanceMarkedPayload } from "@schoolmitra/domain-events";
 import { recordFirstAttendanceOnboarding } from "@/lib/northStarTelemetry";
+import { getClientRequestContext } from "@/lib/requestContext";
 
 export type AttendanceStatus =
   | "PRESENT"
@@ -72,6 +77,7 @@ export interface SaveAttendanceInput {
   sectionId: string;
   dateStr: string;
   periodId?: string | null | undefined;
+  reason?: string | undefined;
   records: Array<{
     studentId: string;
     status: AttendanceStatus;
@@ -342,7 +348,50 @@ export async function saveTeacherAttendanceRoster(
     throw new Error("Cannot mark attendance for a future date.");
   }
 
+  const dateParts = dateStr.split("-").map(Number);
+  if (dateParts.length !== 3 || dateParts.some((n) => !Number.isFinite(n))) {
+    throw new Error("Invalid attendance date format. Expected YYYY-MM-DD.");
+  }
+  const [yr, mo, dy] = dateParts as [number, number, number];
+  const targetUtcMs = Date.UTC(yr, mo - 1, dy);
+  const nowDate = new Date();
+  const todayUtcMs = Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate());
+  const daysSinceDate = Math.floor((todayUtcMs - targetUtcMs) / 86_400_000);
+  const isSunday = new Date(targetUtcMs).getUTCDay() === 0;
+
   return await withTenant(school.id, async (tx) => {
+    // 0. Calendar Holiday / Non-Working Day / Sunday Guard
+    if (typeof tx.query?.academicCalendarEvents?.findMany === "function") {
+      const calendarEvents = await tx.query.academicCalendarEvents.findMany({
+        where: and(
+          eq(academicCalendarEvents.schoolId, school.id),
+          eq(academicCalendarEvents.isActive, true),
+          lte(academicCalendarEvents.startDate, dateStr),
+          gte(academicCalendarEvents.endDate, dateStr),
+        ),
+      });
+
+      const nonWorkingEvent = calendarEvents.find(
+        (e: any) => !e.isWorkingDay || e.eventType === "HOLIDAY",
+      );
+      if (nonWorkingEvent) {
+        throw new Error(
+          `Cannot mark attendance on holiday or non-working day: ${nonWorkingEvent.title}.`,
+        );
+      }
+
+      const workingOverride = calendarEvents.find(
+        (e: any) => e.isWorkingDay === true && e.eventType !== "HOLIDAY",
+      );
+      if (isSunday && !workingOverride) {
+        throw new Error(
+          "Cannot mark attendance on Sunday unless explicitly configured as a working day in the academic calendar.",
+        );
+      }
+    } else if (isSunday) {
+      throw new Error("Cannot mark attendance on Sunday.");
+    }
+
     // 1. Verify Scope (S16-F05)
     // - Daily homeroom roll-call (periodId == null): Condition B requires Class Teacher override (or Admin)
     // - Subject period attendance (periodId != null): Condition A requires Subject Teacher allocation
@@ -456,6 +505,31 @@ export async function saveTeacherAttendanceRoster(
     ]);
 
     const existingMap = new Map(existingRecords.map((r) => [r.studentId, r]));
+
+    // 5b. Configurable Attendance Edit Window Guard (for edits past window)
+    if (existingRecords.length > 0) {
+      let editWindowDays = 3;
+      const schoolFlags = (school as any)?.featureFlags;
+      if (schoolFlags && Number.isFinite(Number(schoolFlags.attendanceEditWindowDays))) {
+        editWindowDays = Math.max(0, Number(schoolFlags.attendanceEditWindowDays));
+      } else if (typeof (tx.query as any)?.schools?.findFirst === "function") {
+        const schoolRow = await tx.query.schools.findFirst({
+          where: eq(schools.id, school.id),
+          columns: { featureFlags: true },
+        });
+        const configuredDays = Number((schoolRow?.featureFlags as any)?.attendanceEditWindowDays);
+        if (Number.isFinite(configuredDays) && configuredDays >= 0) {
+          editWindowDays = configuredDays;
+        }
+      }
+
+      if (daysSinceDate > editWindowDays && !isAdminRole(ctx.role) && !input.reason?.trim()) {
+        throw new Error(
+          `Attendance edit window (${editWindowDays} days) has expired for ${dateStr}. A non-empty reason or administrator override is required.`,
+        );
+      }
+    }
+
     const approvedLeaveMap = new Map(
       approvedLeaves.map((l) => [l.studentId, l.reason])
     );
@@ -561,6 +635,29 @@ export async function saveTeacherAttendanceRoster(
         })),
       },
       status: "PENDING",
+    });
+
+    // 6b. Immutable Audit Log for every attendance save
+    const reqCtx = getClientRequestContext();
+    await tx.insert(auditLogs).values({
+      userId: ctx.userId,
+      userEmail: ctx.email || "[audit-system]",
+      userRole: ctx.role as any,
+      schoolId: school.id,
+      action: "WRITE",
+      tableName: "student_attendance",
+      recordId: `${sectionId}:${dateStr}`,
+      purposeId: "attendance",
+      ipAddress: reqCtx.ipAddress,
+      userAgent: reqCtx.userAgent,
+      metadata: {
+        sectionId,
+        dateStr,
+        periodId: periodId || null,
+        totalStudents: records.length,
+        isEdit: existingRecords.length > 0,
+        editReason: input.reason?.trim() || null,
+      },
     });
 
     // 7. Invalidate dashboard counters

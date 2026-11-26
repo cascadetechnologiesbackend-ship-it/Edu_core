@@ -15,6 +15,7 @@ import {
   syllabusTopics,
   assessments,
   users,
+  schools,
 } from "@/db/schema";
 import { eq, and, asc, desc, isNull, inArray, count, countDistinct, avg } from "drizzle-orm";
 import {
@@ -399,6 +400,20 @@ export async function getTeacherWorkloadReport() {
       }
     }
 
+    let maxPeriodsPerWeek = 30;
+    try {
+      if (typeof (tx.query as any)?.schools?.findFirst === "function") {
+        const schoolRow = await tx.query.schools.findFirst({
+          where: eq(schools.id, session.user.schoolId),
+          columns: { featureFlags: true },
+        });
+        const configuredLimit = Number((schoolRow?.featureFlags as any)?.teacherMaxPeriodsPerWeek);
+        if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+          maxPeriodsPerWeek = configuredLimit;
+        }
+      }
+    } catch {}
+
     return await Promise.all(
       [...teacherMap.values()].map(async (t) => {
         const [assignmentCount, lessonPlanCount] = await Promise.all([
@@ -422,11 +437,16 @@ export async function getTeacherWorkloadReport() {
             ),
         ]);
 
+        const scheduledTimetablePeriods = timetableCountMap.get(t.teacherId) ?? 0;
+        const effectiveLoad = Math.max(t.totalPeriodsPerWeek, scheduledTimetablePeriods);
+
         return {
           teacherId: t.teacherId,
           email: t.email,
           totalPeriodsPerWeek: t.totalPeriodsPerWeek,
-          scheduledTimetablePeriods: timetableCountMap.get(t.teacherId) ?? 0,
+          scheduledTimetablePeriods,
+          maxPeriodsPerWeek,
+          isOverloaded: effectiveLoad > maxPeriodsPerWeek,
           subjectCount: t.subjectCount,
           assignmentCount: Number(assignmentCount[0]?.c ?? 0),
           lessonPlanCount: Number(lessonPlanCount[0]?.c ?? 0),

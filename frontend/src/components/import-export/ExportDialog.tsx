@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Checkbox from "@radix-ui/react-checkbox";
 import { X, Download, Check, FileSpreadsheet, Calendar, Filter, Layers } from "lucide-react";
 import { DATASET_SCHEMAS, ImportDatasetKey } from "@/lib/importExportEngine";
+import { JobStatusBadge, type ImportExportJobStatus } from "./JobStatusBadge";
 
 export type ExportFormat = "CSV" | "XLSX" | "PDF";
 export type ExportScope = "all" | "filtered" | "dateRange";
@@ -18,6 +19,14 @@ export interface ExportRequestPayload {
   dateTo?: string;
 }
 
+export interface ExportJobInfo {
+  jobId: string;
+  status: ImportExportJobStatus;
+  downloadUrl?: string | null;
+  recordCount?: number | null;
+  errorMessage?: string | null;
+}
+
 export interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,6 +34,16 @@ export interface ExportDialogProps {
   filteredCount?: number;
   totalCount?: number;
   onConfirm?: (payload: ExportRequestPayload) => Promise<void> | void;
+  onJobCompleted?: (job: ExportJobInfo) => void;
+}
+
+function triggerDownloadUrl(url: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 export function ExportDialog({
@@ -34,6 +53,7 @@ export function ExportDialog({
   filteredCount,
   totalCount,
   onConfirm,
+  onJobCompleted,
 }: ExportDialogProps) {
   const schema = DATASET_SCHEMAS[datasetKey];
   const allColumnKeys = useMemo(
@@ -47,7 +67,14 @@ export function ExportDialog({
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [activeJob, setActiveJob] = useState<ExportJobInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedColumns(allColumnKeys);
+    setActiveJob(null);
+    setError(null);
+  }, [datasetKey, open, allColumnKeys]);
 
   const toggleColumn = (key: string) => {
     setSelectedColumns((prev) =>
@@ -75,8 +102,33 @@ export function ExportDialog({
     return "Exports records within the specified date range.";
   }, [scope, totalCount, filteredCount, schema.displayName, dateFrom, dateTo]);
 
+  const pollJobUntilTerminal = async (jobId: string): Promise<ExportJobInfo> => {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const pollRes = await fetch(`/api/import-export/jobs/${encodeURIComponent(jobId)}`);
+      if (!pollRes.ok) {
+        const errData = await pollRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to check export job status.");
+      }
+      const data = await pollRes.json();
+      const info: ExportJobInfo = {
+        jobId: data.jobId,
+        status: data.status,
+        downloadUrl: data.downloadUrl,
+        recordCount: data.recordCount,
+        errorMessage: data.errorMessage,
+      };
+      setActiveJob(info);
+      if (data.status === "COMPLETED" || data.status === "FAILED" || data.status === "EXPIRED") {
+        return info;
+      }
+    }
+    throw new Error("Export job is still processing. Check Job History in Import Center.");
+  };
+
   const handleConfirm = async () => {
     setError(null);
+    setActiveJob(null);
     if (selectedColumns.length === 0) {
       setError("Please select at least one column to export.");
       return;
@@ -102,18 +154,41 @@ export function ExportDialog({
       setSubmitting(true);
       if (onConfirm) {
         await onConfirm(payload);
-      } else {
-        const res = await fetch("/api/import-export/export", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to start export job.");
-        }
+        onOpenChange(false);
+        return;
       }
-      onOpenChange(false);
+
+      const res = await fetch("/api/import-export/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start export job.");
+      }
+
+      let finalJob: ExportJobInfo = {
+        jobId: data.jobId,
+        status: data.status,
+        downloadUrl: data.downloadUrl,
+        recordCount: data.recordCount,
+        errorMessage: data.error,
+      };
+      setActiveJob(finalJob);
+
+      if (finalJob.status === "QUEUED" || finalJob.status === "PROCESSING") {
+        finalJob = await pollJobUntilTerminal(finalJob.jobId);
+      }
+
+      if (finalJob.status === "FAILED") {
+        throw new Error(finalJob.errorMessage || "Export job failed.");
+      }
+
+      if (finalJob.downloadUrl) {
+        triggerDownloadUrl(finalJob.downloadUrl);
+      }
+      onJobCompleted?.(finalJob);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed.");
     } finally {
@@ -317,6 +392,19 @@ export function ExportDialog({
               </div>
             </div>
 
+            {activeJob && (
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/50">
+                <div className="text-xs text-slate-600 dark:text-slate-300">
+                  Job <span className="font-mono">{activeJob.jobId.slice(0, 8)}</span>
+                  {typeof activeJob.recordCount === "number" && ` · ${activeJob.recordCount} rows`}
+                </div>
+                <JobStatusBadge
+                  status={activeJob.status}
+                  downloadUrl={activeJob.downloadUrl ?? null}
+                />
+              </div>
+            )}
+
             {error && (
               <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:bg-red-950/50 dark:text-red-300">
                 {error}
@@ -330,7 +418,7 @@ export function ExportDialog({
                 type="button"
                 className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                Cancel
+                {activeJob?.status === "COMPLETED" ? "Close" : "Cancel"}
               </button>
             </Dialog.Close>
             <button

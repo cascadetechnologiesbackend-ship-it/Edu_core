@@ -4,6 +4,7 @@ import React from "react";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { assertQueryBudget } from "@schoolmitra/database";
 import { getPrincipalConsoleMetrics } from "@/lib/roleConsoleEngine";
+import { PrincipalDashboardClient } from "./PrincipalDashboardClient";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -28,8 +29,43 @@ export default async function PrincipalDashboardPage() {
 
   const metrics = await assertQueryBudget(
     async () => getPrincipalConsoleMetrics(school.id),
-    { maxQueries: 6, label: "Principal Dashboard" }
+    { maxQueries: 20, label: "Principal Dashboard" }
   );
+
+  const safeApprovalQueue = metrics.approvalQueue ?? {
+    pendingMarksApprovals: [],
+    pendingStaffLeaves: [],
+    pendingStudentLeaves: [],
+    pendingFeeConcessionsCount: 0,
+    pendingFeeRefundsCount: 0,
+    pendingFeeRefundsAmount: 0,
+  };
+
+  const safeOversight = metrics.oversight ?? {
+    examProgress: [],
+    attendanceExceptions: {
+      unmarkedSectionsCount: 0,
+      unmarkedSectionNames: [],
+      lowAttendanceSections: [],
+    },
+    teacherCoverageToday: {
+      onLeaveCount: 0,
+      staffOnLeaveNames: [],
+      pendingSubstitutionsCount: 0,
+      coveredSubstitutionsCount: 0,
+    },
+    financeOverview: {
+      collectedToday: 0,
+      collectedLast30Days: 0,
+      totalOutstanding: 0,
+      agingBuckets: {
+        days0to30: 0,
+        days31to60: 0,
+        days61to90: 0,
+        days90Plus: 0,
+      },
+    },
+  };
 
   const isFreshSchool =
     metrics.activeSectionsCount === 0 && metrics.activeTeachingStaffCount === 0;
@@ -212,6 +248,12 @@ export default async function PrincipalDashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Inline Approval Queue & Executive Oversight */}
+      <PrincipalDashboardClient
+        initialApprovalQueue={safeApprovalQueue}
+        initialOversight={safeOversight}
+      />
 
       {/* Matrix-Legal Operational Deep Links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

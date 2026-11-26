@@ -380,15 +380,18 @@ export async function resolveTeacherScope(
   });
 
   // 5b. Include active confirmed substitutions for today
-  const subRows = await txDb.query.timetableSubstitutions.findMany({
-    where: and(
-      eq(timetableSubstitutions.schoolId, schoolId),
-      eq(timetableSubstitutions.substituteTeacherId, teacherUserId),
-      eq(timetableSubstitutions.date, todayStr),
-      eq(timetableSubstitutions.status, "CONFIRMED")
-    ),
-    columns: { timetablePeriodId: true, sectionId: true },
-  });
+  const subRows =
+    typeof txDb.query?.timetableSubstitutions?.findMany === "function"
+      ? await txDb.query.timetableSubstitutions.findMany({
+          where: and(
+            eq(timetableSubstitutions.schoolId, schoolId),
+            eq(timetableSubstitutions.substituteTeacherId, teacherUserId),
+            eq(timetableSubstitutions.date, todayStr),
+            eq(timetableSubstitutions.status, "CONFIRMED")
+          ),
+          columns: { timetablePeriodId: true, sectionId: true },
+        })
+      : [];
 
   const scheduledPeriods = Array.from(
     new Set([

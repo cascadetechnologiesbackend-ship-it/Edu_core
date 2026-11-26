@@ -208,7 +208,7 @@ export function JournalVouchersClient({
   return (
     <div className="space-y-6">
       {/* Finance Navigation Tabs */}
-      <FinanceTabs activeSection="accounts" />
+      <FinanceTabs activeSection="accounts" userRole={userRole} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">

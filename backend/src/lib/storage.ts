@@ -1,5 +1,8 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { logger } from "./logger";
 
 // ─── Production Environment Fail-Fast Verification ────────────────────────────
@@ -35,6 +38,32 @@ const rawEndpoint = isAwsCloud
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || "";
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || "";
 const region = process.env.AWS_REGION || process.env.S3_REGION || "ap-south-1";
+
+function hasS3Credentials(): boolean {
+  const key = process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || "";
+  const secret = process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || "";
+  return Boolean(key && secret);
+}
+
+function getLocalStorageDir(): string {
+  return path.resolve(process.env.LOCAL_STORAGE_DIR || path.join(os.tmpdir(), "schoolmitra-storage"));
+}
+
+function assertSafeStorageKey(key: string): void {
+  if (!key || key.includes("..") || key.includes("\\") || key.startsWith("/") || key.includes("\0")) {
+    throw new Error("Invalid storage key: path traversal sequences are disallowed.");
+  }
+}
+
+function resolveLocalStoragePath(key: string): string {
+  assertSafeStorageKey(key);
+  const baseDir = getLocalStorageDir();
+  const resolved = path.resolve(baseDir, key);
+  if (!resolved.startsWith(baseDir + path.sep)) {
+    throw new Error("Invalid storage key: resolved path escapes storage root.");
+  }
+  return resolved;
+}
 
 const isBuildPhase =
   process.env.NEXT_PHASE === "phase-production-build" ||
@@ -118,7 +147,7 @@ export async function getPresignedUploadUrl(
 
   validateUpload(contentType);
 
-  if (!accessKeyId || accessKeyId === "") {
+  if (!hasS3Credentials()) {
     // Local dev mode fallback: Direct upload endpoint
     return `/api/upload?key=${encodeURIComponent(key)}`;
   }
@@ -130,6 +159,43 @@ export async function getPresignedUploadUrl(
   });
 
   return await getSignedUrl(s3Client, command, { expiresIn });
+}
+
+/**
+ * Downloads an S3 object (or local dev storage object when S3 is unconfigured in non-prod)
+ * and returns its content as a Buffer.
+ * Enforces path traversal and optional tenant-prefix safety checks.
+ */
+export async function downloadBufferFromS3(key: string, schoolId?: string): Promise<Buffer> {
+  assertSafeStorageKey(key);
+  if (schoolId && !validateSchoolScopedKey(key, schoolId)) {
+    throw new Error("Access Denied: Cannot access storage key outside tenant scope.");
+  }
+
+  if (!hasS3Credentials()) {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_LOCAL_STORAGE_FALLBACK !== "true") {
+      throw new Error("Storage service is not configured in production.");
+    }
+    const localPath = resolveLocalStoragePath(key);
+    return await fs.readFile(localPath);
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  const response = await s3Client.send(command);
+  if (!response.Body) {
+    throw new Error(`S3 object "${key}" returned empty body.`);
+  }
+
+  // Compatible with AWS SDK v3 streaming body
+  const chunks: Buffer[] = [];
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
 }
 
 /**
@@ -163,16 +229,19 @@ export async function uploadBufferToS3(
   buffer: Buffer,
   contentType = "application/pdf"
 ): Promise<{ success: boolean; s3Key: string; error?: string }> {
-  if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
-    throw new Error("Invalid storage key: path traversal sequences are disallowed.");
-  }
+  assertSafeStorageKey(key);
 
   if (buffer.length > MAX_FILE_SIZE_BYTES) {
     throw new Error("File size exceeds 10MB limit.");
   }
 
-  if (!accessKeyId || accessKeyId === "") {
-    // Local / unconfigured fallback: simulate successful archival
+  if (!hasS3Credentials()) {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_LOCAL_STORAGE_FALLBACK !== "true") {
+      return { success: false, s3Key: key, error: "Storage service is not configured in production" };
+    }
+    const localPath = resolveLocalStoragePath(key);
+    await fs.mkdir(path.dirname(localPath), { recursive: true });
+    await fs.writeFile(localPath, buffer);
     return { success: true, s3Key: key };
   }
 
@@ -203,7 +272,7 @@ export async function getPresignedDownloadUrl(
     throw new Error("Invalid storage key: path traversal sequences are disallowed.");
   }
 
-  if (!accessKeyId || accessKeyId === "") {
+  if (!hasS3Credentials()) {
     return `/api/receipt/download?key=${encodeURIComponent(key)}`;
   }
 
@@ -214,10 +283,6 @@ export async function getPresignedDownloadUrl(
 
   return await getSignedUrl(s3Client, command, { expiresIn });
 }
-
-/**
- * Backwards-compatible download URL generator with optional schoolId scope verification
- */
 export async function getSignedDownloadUrl(
   key: string,
   bucket?: string,
@@ -226,9 +291,7 @@ export async function getSignedDownloadUrl(
 ): Promise<string | null> {
   if (!key) return null;
 
-  if (key.includes("..") || key.includes("\\") || key.startsWith("/")) {
-    throw new Error("Invalid storage key: path traversal sequences are disallowed.");
-  }
+  assertSafeStorageKey(key);
 
   if (userSchoolId) {
     if (key.startsWith("schools/")) {
@@ -242,7 +305,7 @@ export async function getSignedDownloadUrl(
     }
   }
 
-  if (!accessKeyId || accessKeyId === "") {
+  if (!hasS3Credentials()) {
     return `/api/receipt/download?key=${encodeURIComponent(key)}`;
   }
 

@@ -202,6 +202,7 @@ export const classTeacherAssignments = pgTable(
     teacherId: uuid("teacher_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    role: text("role").notNull().default("PRIMARY"), // 'PRIMARY' | 'DEPUTY'
     isActive: boolean("is_active").notNull().default(true),
     effectiveFrom: text("effective_from").notNull(), // "YYYY-MM-DD"
     effectiveTo: text("effective_to"), // null = currently active
@@ -214,12 +215,14 @@ export const classTeacherAssignments = pgTable(
       .defaultNow(),
   },
   (t) => ({
-    singleTeacherPerYearIdx: uniqueIndex("cta_single_teacher_year_idx")
-      .on(t.schoolId, t.academicYearId, t.teacherId)
-      .where(sql`${t.isActive} = true`),
+    singleTeacherPerYearIdx: index("cta_single_teacher_year_idx").on(
+      t.schoolId,
+      t.academicYearId,
+      t.teacherId,
+    ),
     singleSectionPerYearIdx: uniqueIndex("cta_single_section_year_idx")
       .on(t.schoolId, t.academicYearId, t.sectionId)
-      .where(sql`${t.isActive} = true`),
+      .where(sql`${t.isActive} = true AND ${t.role} = 'PRIMARY'`),
     schoolTeacherIdx: index("cta_school_teacher_idx").on(t.schoolId, t.teacherId),
     schoolSectionIdx: index("cta_school_section_idx").on(t.schoolId, t.sectionId),
     schoolYearIdx: index("cta_school_year_idx").on(t.schoolId, t.academicYearId),
@@ -595,12 +598,12 @@ export const sectionSubjectTeachers = pgTable(
       .defaultNow(),
   },
   (t) => ({
-    activeSectionSubjectTeacherUnique: uniqueIndex("sst_active_unique_idx")
-      .on(t.classSubjectId, t.sectionId)
-      .where(sql`"effective_to" IS NULL`),
     activePrimaryUniqueIdx: uniqueIndex("sst_active_primary_unique_idx")
       .on(t.schoolId, t.academicYearId, t.sectionId, t.classSubjectId)
       .where(sql`${t.isActive} = true AND ${t.isPrimary} = true`),
+    activeMemberUniqueIdx: uniqueIndex("sst_active_member_unique_idx")
+      .on(t.schoolId, t.sectionId, t.classSubjectId, t.teacherId)
+      .where(sql`${t.isActive} = true`),
     classSubjectIdx: index("sst_class_subject_idx").on(t.classSubjectId),
     sectionIdx: index("sst_section_idx").on(t.sectionId),
     teacherIdx: index("sst_teacher_idx").on(t.teacherId),

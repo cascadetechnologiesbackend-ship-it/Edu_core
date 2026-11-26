@@ -144,7 +144,7 @@ export default function MarksEntryGrid({
     setStudents((prev) =>
       prev.map((s) =>
         s.studentId === studentId
-          ? { ...s, marksObtained: num, isAbsent: false }
+          ? { ...s, marksObtained: num, isAbsent: false, isMedicalExempt: false }
           : s
       )
     );
@@ -158,7 +158,24 @@ export default function MarksEntryGrid({
           ? {
               ...s,
               isAbsent: !s.isAbsent,
+              isMedicalExempt: !s.isAbsent ? false : s.isMedicalExempt,
               marksObtained: !s.isAbsent ? null : s.marksObtained,
+            }
+          : s
+      )
+    );
+  };
+
+  const toggleExempt = (studentId: string) => {
+    if (isLocked) return;
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.studentId === studentId
+          ? {
+              ...s,
+              isMedicalExempt: !s.isMedicalExempt,
+              isAbsent: !s.isMedicalExempt ? false : s.isAbsent,
+              marksObtained: !s.isMedicalExempt ? null : s.marksObtained,
             }
           : s
       )
@@ -167,11 +184,12 @@ export default function MarksEntryGrid({
 
   // Real-time Class Performance Distribution Histogram
   const evaluatedStudents = students.filter(
-    (s) => !s.isAbsent && s.marksObtained !== null
+    (s) => !s.isAbsent && !s.isMedicalExempt && s.marksObtained !== null
   );
   const absentCount = students.filter((s) => s.isAbsent).length;
+  const exemptCount = students.filter((s) => s.isMedicalExempt).length;
   const pendingCount = students.filter(
-    (s) => !s.isAbsent && s.marksObtained === null
+    (s) => !s.isAbsent && !s.isMedicalExempt && s.marksObtained === null
   ).length;
 
   let distinctionCount = 0; // >= 75%
@@ -189,7 +207,7 @@ export default function MarksEntryGrid({
     }
   }
 
-  const handleSaveMarks = () => {
+  const handleSaveMarks = (submitMode: "DRAFT" | "SUBMITTED" = "DRAFT") => {
     if (isLocked) {
       toast.error("Marks entry is locked for this examination.");
       return;
@@ -198,7 +216,7 @@ export default function MarksEntryGrid({
 
     // Validate entries
     for (const s of students) {
-      if (!s.isAbsent && s.marksObtained !== null) {
+      if (!s.isAbsent && !s.isMedicalExempt && s.marksObtained !== null) {
         if (s.marksObtained < 0 || s.marksObtained > maxMarks) {
           toast.error(
             `Mark for ${s.name} (${s.marksObtained}) exceeds max allowed marks (${maxMarks}).`
@@ -215,10 +233,12 @@ export default function MarksEntryGrid({
           classId: currentAlloc.classId,
           subjectId: currentAlloc.subjectId,
           sectionId: currentAlloc.sectionId,
+          submitMode,
           entries: students.map((s) => ({
             studentId: s.studentId,
-            marksObtained: s.marksObtained,
+            marksObtained: s.isMedicalExempt || s.isAbsent ? null : s.marksObtained,
             isAbsent: s.isAbsent,
+            isMedicalExempt: Boolean(s.isMedicalExempt),
             remarks: s.remarks || undefined,
           })),
         };
@@ -226,7 +246,9 @@ export default function MarksEntryGrid({
         const res = await saveExamMarks(payload);
         if (res.success) {
           toast.success(
-            `${currentAlloc.className} · ${currentAlloc.subjectName}: Marks saved for ${res.count} student(s)!`
+            submitMode === "SUBMITTED"
+              ? `${currentAlloc.className} · ${currentAlloc.subjectName}: Marks submitted for approval!`
+              : `${currentAlloc.className} · ${currentAlloc.subjectName}: Marks saved for ${res.count} student(s)!`
           );
         } else {
           toast.error(res.message || "Failed to save marks.");
@@ -382,6 +404,12 @@ export default function MarksEntryGrid({
                 Absent ({absentCount})
               </span>
             )}
+            {exemptCount > 0 && (
+              <span className="flex items-center gap-1 text-amber-300">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                Exempt ({exemptCount})
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -429,6 +457,11 @@ export default function MarksEntryGrid({
 
                   {/* Actions & Marks Input */}
                   <div className="flex items-center gap-2">
+                    {st.grade && (
+                      <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-indigo-300">
+                        {st.grade}
+                      </span>
+                    )}
                     <button
                       type="button"
                       disabled={isLocked}
@@ -442,6 +475,19 @@ export default function MarksEntryGrid({
                       {st.isAbsent ? "ABSENT" : "Mark Absent"}
                     </button>
 
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => toggleExempt(st.studentId)}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                        st.isMedicalExempt
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                          : "bg-slate-800 text-slate-400 border-slate-700 hover:text-white"
+                      }`}
+                    >
+                      {st.isMedicalExempt ? "EXEMPT" : "Exempt"}
+                    </button>
+
                     <input
                       ref={(el) => {
                         inputRefs.current[st.studentId] = el;
@@ -450,9 +496,9 @@ export default function MarksEntryGrid({
                       min="0"
                       max={maxMarks}
                       step="0.5"
-                      disabled={isLocked || st.isAbsent}
-                      placeholder={st.isAbsent ? "ABS" : `0-${maxMarks}`}
-                      value={st.isAbsent ? "" : currentMarks}
+                      disabled={isLocked || st.isAbsent || Boolean(st.isMedicalExempt)}
+                      placeholder={st.isMedicalExempt ? "ME" : st.isAbsent ? "ABS" : `0-${maxMarks}`}
+                      value={st.isAbsent || st.isMedicalExempt ? "" : currentMarks}
                       onChange={(e) => handleMarkChange(st.studentId, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, idx)}
                       className={`w-20 px-2.5 py-1.5 rounded-xl text-center text-xs font-mono font-bold text-white bg-slate-950 border transition-colors focus:outline-none ${
@@ -460,7 +506,7 @@ export default function MarksEntryGrid({
                           ? "opacity-50 cursor-not-allowed border-slate-800"
                           : isInvalid
                           ? "border-rose-500 bg-rose-950/20"
-                          : st.isAbsent
+                          : st.isAbsent || st.isMedicalExempt
                           ? "border-slate-800 bg-slate-900"
                           : currentMarks !== ""
                           ? "border-indigo-500/60 focus:border-indigo-400"
@@ -475,19 +521,32 @@ export default function MarksEntryGrid({
         )}
 
         {/* Bottom Save Bar */}
-        <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
+        <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-slate-400">
             {evaluatedStudents.length} of {students.length} students recorded
           </span>
-          <button
-            type="button"
-            onClick={handleSaveMarks}
-            disabled={isPending || isLocked || students.length === 0}
-            className="px-5 py-2 rounded-xl text-xs font-black text-white bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {isPending ? "Saving..." : isLocked ? "Locked (Read-Only)" : "Save Marks"}
-          </button>
+          <div className="flex items-center gap-2">
+            {!isLocked && (
+              <button
+                type="button"
+                onClick={() => handleSaveMarks("SUBMITTED")}
+                disabled={isPending || students.length === 0}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Submit for Approval
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSaveMarks("DRAFT")}
+              disabled={isPending || isLocked || students.length === 0}
+              className="px-5 py-2 rounded-xl text-xs font-black text-white bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {isPending ? "Saving..." : isLocked ? "Locked (Read-Only)" : "Save Marks"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ import { db } from "@/db";
 import { domainEvents } from "@/db/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { Worker, Queue, type Job } from "bullmq";
-import { getBullMQRedisConnection } from "../lib/redisConnection";
+import { getBullMQRedisConnection, getRedisUrl } from "../lib/redisConnection";
 import { workerLogger } from "@/lib/logger";
 import { withPlatformContext, withTenant } from "../lib/tenant";
 import { invalidateDashboardCache } from "../lib/dashboardCache";
@@ -91,6 +91,54 @@ export function registerDefaultDomainEventHandlers(): void {
   registerDomainEventHandler("FeePaidEvent", async (event) => {
     workerLogger.info(
       `[DomainEventWorker] Processing FeePaidEvent for payment ${event.aggregateId} (school: ${event.schoolId})`,
+    );
+    await invalidateDashboardCache(event.schoolId);
+  });
+
+  // 4. Student Imported Handler
+  registerDomainEventHandler("StudentImportedEvent", async (event) => {
+    workerLogger.info(
+      `[DomainEventWorker] Processing StudentImportedEvent for job ${event.aggregateId} (school: ${event.schoolId})`,
+    );
+    await invalidateDashboardCache(event.schoolId);
+  });
+
+  // 5. Import Completed Handler
+  registerDomainEventHandler("ImportCompletedEvent", async (event) => {
+    workerLogger.info(
+      `[DomainEventWorker] Processing ImportCompletedEvent for job ${event.aggregateId} (school: ${event.schoolId})`,
+    );
+    await invalidateDashboardCache(event.schoolId);
+  });
+
+  // 6. Fee Payment Reversed Handler
+  registerDomainEventHandler("FeePaymentReversedEvent", async (event) => {
+    workerLogger.info(
+      `[DomainEventWorker] Processing FeePaymentReversedEvent for payment ${event.aggregateId} (school: ${event.schoolId})`,
+    );
+    await invalidateDashboardCache(event.schoolId);
+  });
+
+  // 7. Exam Results Published Handler
+  registerDomainEventHandler("ExamResultsPublishedEvent", async (event) => {
+    workerLogger.info(
+      `[DomainEventWorker] Processing ExamResultsPublishedEvent for exam ${event.aggregateId} (school: ${event.schoolId})`,
+    );
+    await invalidateDashboardCache(event.schoolId);
+  });
+
+  // 8. Teacher Reassigned Handler
+  registerDomainEventHandler("TeacherReassignedEvent", async (event) => {
+    workerLogger.info(
+      `[DomainEventWorker] Processing TeacherReassignedEvent for assignment ${event.aggregateId} (school: ${event.schoolId})`,
+    );
+    await invalidateDashboardCache(event.schoolId);
+  });
+
+  // 9. Staff Deactivated Handler
+  registerDomainEventHandler("StaffDeactivatedEvent", async (event) => {
+    workerLogger.info(
+      `[DomainEventWorker] Processing StaffDeactivatedEvent for staff ${event.aggregateId} (school: ${event.schoolId})`,
     );
     await invalidateDashboardCache(event.schoolId);
   });
@@ -222,24 +270,29 @@ export async function drainPendingDomainEvents(options?: {
 
 // ─── BullMQ Queue & Worker Composition ───────────────────────────────────────
 
-export const domainEventQueue = new Queue<DomainEventJobPayload>(
-  "domain-events-outbox",
-  {
-    connection: getBullMQRedisConnection(),
-  },
+const hasRedis = Boolean(
+  getRedisUrl() || process.env.VALKEY_HOST || process.env.REDIS_HOST,
 );
 
-export const domainEventWorker = new Worker<DomainEventJobPayload>(
-  "domain-events-outbox",
-  async (job: Job<DomainEventJobPayload>) => {
-    workerLogger.info(`[DomainEventWorker] Executing job: ${job.id}`);
-    return await drainPendingDomainEvents({
-      targetSchoolId: job.data?.schoolId,
-      batchSize: job.data?.batchSize,
-    });
-  },
-  {
-    connection: getBullMQRedisConnection(),
-    concurrency: 5,
-  },
-);
+export const domainEventQueue = hasRedis
+  ? new Queue<DomainEventJobPayload>("domain-events-outbox", {
+      connection: getBullMQRedisConnection(),
+    })
+  : null;
+
+export const domainEventWorker = hasRedis
+  ? new Worker<DomainEventJobPayload>(
+      "domain-events-outbox",
+      async (job: Job<DomainEventJobPayload>) => {
+        workerLogger.info(`[DomainEventWorker] Executing job: ${job.id}`);
+        return await drainPendingDomainEvents({
+          targetSchoolId: job.data?.schoolId,
+          batchSize: job.data?.batchSize,
+        });
+      },
+      {
+        connection: getBullMQRedisConnection(),
+        concurrency: 5,
+      },
+    )
+  : null;

@@ -16,7 +16,7 @@ export default async function FeesCarryForwardPage() {
 
   const role = session.user.role;
   if (role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
-    redirect("/school/finance");
+    redirect("/school/fees-dashboard");
   }
 
   const schoolId = session.user.schoolId;

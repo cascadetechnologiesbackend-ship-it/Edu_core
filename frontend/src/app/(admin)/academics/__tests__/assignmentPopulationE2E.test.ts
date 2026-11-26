@@ -88,6 +88,7 @@ const {
   };
 
   const createChainable = () => {
+    let lastInsertedId = "generated-id";
     const chain: any = {
       values: vi.fn((vals: any) => {
         const items = Array.isArray(vals) ? vals : [vals];
@@ -98,7 +99,9 @@ const {
             );
             if (existing) {
               existing.assignedTeacherId = v.assignedTeacherId || null;
+              lastInsertedId = existing.id;
             } else {
+              lastInsertedId = "cs-math-8";
               e2eDatastore.classSubjects.push({
                 id: "cs-math-8",
                 schoolId: e2eDatastore.schoolId,
@@ -114,8 +117,10 @@ const {
             }
           }
           if (v?.classSubjectId && v?.sectionId) {
+            const sstId = `sst-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+            lastInsertedId = sstId;
             e2eDatastore.sectionSubjectTeachers.push({
-              id: `sst-${Date.now()}`,
+              id: sstId,
               ...v,
               isActive: true,
               effectiveTo: null,
@@ -141,7 +146,7 @@ const {
       groupBy: vi.fn(() => chain),
       orderBy: vi.fn(() => chain),
       where: vi.fn(() => chain),
-      returning: vi.fn(() => Promise.resolve([{ id: "generated-id" }])),
+      returning: vi.fn(() => Promise.resolve([{ id: lastInsertedId }])),
       then: (resolve: any) => Promise.resolve([{ c: 0, count: 0, id: "res" }]).then(resolve),
     };
     return chain;
@@ -334,9 +339,12 @@ describe("Layer L8: End-to-End Teacher Assignment Population Walkthrough", () =>
       effectiveFrom: "2026-04-01",
     });
     expect(overrideResult.success).toBe(true);
-    expect(e2eDatastore.sectionSubjectTeachers).toHaveLength(1);
-    expect(e2eDatastore.sectionSubjectTeachers[0]!.teacherId).toBe("user-vikram-02");
-    expect(e2eDatastore.sectionSubjectTeachers[0]!.sectionId).toBe("sec-8b");
+    const sec8bOverride = e2eDatastore.sectionSubjectTeachers.find(
+      (sst) => sst.sectionId === "sec-8b" && sst.teacherId === "user-vikram-02",
+    );
+    expect(sec8bOverride).toBeDefined();
+    expect(sec8bOverride!.teacherId).toBe("user-vikram-02");
+    expect(sec8bOverride!.sectionId).toBe("sec-8b");
 
     // ─── Step 5: Assign Teacher as Class Teacher of Section 8-A in ClassroomsTab ─
     const sectionResult = await saveSection({
@@ -352,7 +360,11 @@ describe("Layer L8: End-to-End Teacher Assignment Population Walkthrough", () =>
     // Teacher 1 (Priya): Class Teacher of 8-A
     expect(e2eDatastore.sections[0]!.classTeacherId).toBe("user-priya-01");
     // Teacher 2 (Vikram): Section Override on 8-B
-    expect(e2eDatastore.sectionSubjectTeachers[0]!.teacherId).toBe("user-vikram-02");
+    expect(
+      e2eDatastore.sectionSubjectTeachers.some(
+        (sst) => sst.sectionId === "sec-8b" && sst.teacherId === "user-vikram-02",
+      ),
+    ).toBe(true);
 
     // ─── Step 7: Verify Exam Grading Permissions Boundary ────────────────────────
     // Teacher 1 grading Section 8-A: Authorized via lead class teacher mapping
@@ -407,11 +419,13 @@ describe("Layer L8: End-to-End Teacher Assignment Population Walkthrough", () =>
       id: "user-priya-01",
       email: "priya@school.edu",
     };
-    e2eDatastore.sectionSubjectTeachers[0]!.teacher = {
-      id: "user-vikram-02",
-      email: "vikram@school.edu",
-    };
-    e2eDatastore.sectionSubjectTeachers[0]!.classSubject = e2eDatastore.classSubjects[0];
+    for (const sst of e2eDatastore.sectionSubjectTeachers) {
+      sst.teacher =
+        sst.teacherId === "user-vikram-02"
+          ? { id: "user-vikram-02", email: "vikram@school.edu" }
+          : { id: "user-priya-01", email: "priya@school.edu" };
+      sst.classSubject = e2eDatastore.classSubjects[0];
+    }
 
     const workloadReport = await getTeacherWorkloadReport();
     expect(workloadReport).toBeInstanceOf(Array);

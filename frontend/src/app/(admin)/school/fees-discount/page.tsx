@@ -5,6 +5,7 @@ import { feeDiscounts, feeHeads, feeConcessions, classes } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { decryptData } from "@/lib/encryption";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { QuickActionBar } from "@/components/finance/QuickActionBar";
@@ -18,6 +19,15 @@ import { Percent } from "lucide-react";
 export default async function FeesDiscountPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/school/fees-discount", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
 
   const schoolId = session.user.schoolId;
 
@@ -93,7 +103,7 @@ export default async function FeesDiscountPage() {
   return (
     <div className="space-y-6">
       {/* Finance Navigation Tabs */}
-      <FinanceTabs activeSection="finance" />
+      <FinanceTabs activeSection="finance" userRole={session.user.role} />
 
       {/* Header Banner & Quick Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-3xl border border-border/40 shadow-sm">

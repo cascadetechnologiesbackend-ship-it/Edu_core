@@ -5,6 +5,7 @@ import { feeRefunds, bankAccounts, users } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import { QuickActionBar } from "@/components/finance/QuickActionBar";
 import { RefundsClient, RefundRow, BankAccountOption } from "./RefundsClient";
@@ -17,6 +18,15 @@ export default async function FeeRefundsPage() {
 
   const schoolId = session.user.schoolId;
   const userRole = session.user.role || "ACCOUNTANT";
+
+  const access = assertRouteAccess(userRole, "/school/refunds", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
 
   // Fetch refunds and active bank accounts
   const [allRefunds, schoolBanks, approverUsers] = await Promise.all([
@@ -85,7 +95,7 @@ export default async function FeeRefundsPage() {
   return (
     <div className="space-y-6">
       {/* Finance Navigation Tabs */}
-      <FinanceTabs activeSection="finance" />
+      <FinanceTabs activeSection="finance" userRole={userRole} />
 
       {/* Header Banner & Quick Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-3xl border border-border/40 shadow-sm">

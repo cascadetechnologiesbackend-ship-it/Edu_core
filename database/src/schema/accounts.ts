@@ -282,6 +282,15 @@ export const accountLedgerTransactions = pgTable(
       { onDelete: "set null" },
     ),
     description: text("description"),
+    bankReconciliationStatus: text("bank_reconciliation_status")
+      .notNull()
+      .default("UNRECONCILED"), // 'UNRECONCILED' | 'RECONCILED' | 'DISPUTED'
+    bankReconciledAt: timestamp("bank_reconciled_at", { withTimezone: true }),
+    bankReconciledById: uuid("bank_reconciled_by_id").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    bankStatementRef: text("bank_statement_ref"),
     transactionDate: timestamp("transaction_date", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -298,6 +307,11 @@ export const accountLedgerTransactions = pgTable(
     bankAccIdx: index("ledger_tx_bank_acc_idx").on(t.bankAccountId),
     debitAccIdx: index("ledger_tx_debit_acc_idx").on(t.debitAccountId),
     creditAccIdx: index("ledger_tx_credit_acc_idx").on(t.creditAccountId),
+    brsStatusIdx: index("ledger_tx_brs_status_idx").on(
+      t.schoolId,
+      t.bankAccountId,
+      t.bankReconciliationStatus,
+    ),
   }),
 );
 
@@ -407,6 +421,10 @@ export const accountLedgerTransactionsRelations = relations(
     }),
     createdBy: one(users, {
       fields: [accountLedgerTransactions.createdById],
+      references: [users.id],
+    }),
+    bankReconciledBy: one(users, {
+      fields: [accountLedgerTransactions.bankReconciledById],
       references: [users.id],
     }),
   }),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FileSpreadsheet,
   Download,
@@ -17,8 +17,20 @@ import {
   ArrowRight,
   ClipboardPaste,
   FileCode,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  ExportDialog,
+  ImportWizard,
+  JobStatusBadge,
+  type ImportExportJobStatus,
+} from "@/components/import-export";
+import {
+  getAllowedExportDatasetsForRole,
+  canRoleImportDataset,
+  type ImportDatasetKey,
+} from "@/lib/importExportEngine";
 import {
   validateHistoricalFeeBalances,
   importHistoricalFeeBalances,
@@ -31,14 +43,85 @@ import {
 } from "./actions";
 import { type DryRunValidationSummary } from "@schoolmitra/backend/lib/bulkImportResilience";
 
-interface ImportCenterClientProps {
-  academicYears: { id: string; name: string; isActive: boolean }[];
+export interface ImportExportJobSummary {
+  jobId: string;
+  jobType: string;
+  datasetKey: string;
+  format: string | null;
+  status: ImportExportJobStatus;
+  recordCount: number | null;
+  errorCount: number | null;
+  errorMessage?: string | null;
+  downloadUrl?: string | null;
+  errorDownloadUrl?: string | null;
+  createdAt: string;
 }
 
-type ImportTab = "STUDENTS" | "STAFF" | "FEES";
+interface ImportCenterClientProps {
+  academicYears: { id: string; name: string; isActive: boolean }[];
+  userRole?: string;
+  initialJobs?: ImportExportJobSummary[];
+}
 
-export function ImportCenterClient({ academicYears }: ImportCenterClientProps) {
+type ImportTab = "STUDENTS" | "STAFF" | "FEES" | "DATA_EXCHANGE";
+
+const SUPPORTED_WIZARD_IMPORT_KEYS: ImportDatasetKey[] = [
+  "STUDENTS",
+  "STAFF",
+  "TEACHERS",
+  "CLASSES",
+  "SUBJECTS",
+  "FEE_HEADS",
+];
+
+export function ImportCenterClient({
+  academicYears,
+  userRole = "SCHOOL_ADMIN",
+  initialJobs = [],
+}: ImportCenterClientProps) {
   const [activeTab, setActiveTab] = useState<ImportTab>("STUDENTS");
+  const [jobs, setJobs] = useState<ImportExportJobSummary[]>(initialJobs);
+  const [refreshingJobs, setRefreshingJobs] = useState(false);
+  const [exportDatasetKey, setExportDatasetKey] = useState<ImportDatasetKey>("STUDENTS");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [importWizardKey, setImportWizardKey] = useState<ImportDatasetKey>("STUDENTS");
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
+
+  const allowedExportDatasets = useMemo(
+    () => getAllowedExportDatasetsForRole(userRole),
+    [userRole]
+  );
+
+  const allowedImportKeys = useMemo(
+    () => SUPPORTED_WIZARD_IMPORT_KEYS.filter((k) => canRoleImportDataset(userRole, k)),
+    [userRole]
+  );
+
+  const refreshJobs = useCallback(async () => {
+    try {
+      setRefreshingJobs(true);
+      const res = await fetch("/api/import-export/jobs");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.jobs)) {
+          setJobs(data.jobs);
+        }
+      }
+    } catch {
+      // ignore transient network errors during poll
+    } finally {
+      setRefreshingJobs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const hasPending = jobs.some((j) => j.status === "QUEUED" || j.status === "PROCESSING");
+    if (!hasPending) return;
+    const timer = setInterval(() => {
+      void refreshJobs();
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [jobs, refreshJobs]);
   const [academicYearId, setAcademicYearId] = useState(
     academicYears.find((y) => y.isActive)?.id || academicYears[0]?.id || ""
   );
@@ -466,7 +549,193 @@ ADM-2026-003,3250,2026-12-01`;
           <Coins className="w-4 h-4" />
           <span>Opening Fee Balances</span>
         </button>
+
+        <button
+          onClick={() => switchTab("DATA_EXCHANGE")}
+          className={`flex items-center gap-2 px-5 py-3 rounded-t-xl text-sm font-semibold transition border-b-2 -mb-1 ${
+            activeTab === "DATA_EXCHANGE"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20"
+              : "border-transparent text-gray-500 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-white"
+          }`}
+        >
+          <Database className="w-4 h-4" />
+          <span>Data Export &amp; Multi-Module Hub</span>
+        </button>
       </div>
+
+      {activeTab === "DATA_EXCHANGE" && (
+        <div className="space-y-6">
+          {/* Multi-Module Export Section */}
+          <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  Export Institutional Datasets (CSV, XLSX, School-Branded PDF)
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Tenant-isolated exports with DPDP redaction and spreadsheet formula-injection protection.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void refreshJobs()}
+                disabled={refreshingJobs}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/40 text-xs font-medium hover:bg-muted/40"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshingJobs ? "animate-spin" : ""}`} />
+                <span>Refresh Jobs</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {allowedExportDatasets.map((schema) => (
+                <div
+                  key={schema.key}
+                  className="p-4 rounded-xl border border-border/40 bg-muted/20 flex flex-col justify-between gap-3"
+                >
+                  <div>
+                    <div className="text-xs font-mono text-indigo-600 dark:text-indigo-400">
+                      {schema.key}
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground mt-0.5">
+                      {schema.displayName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {schema.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportDatasetKey(schema.key);
+                        setExportDialogOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export</span>
+                    </button>
+                    {allowedImportKeys.includes(schema.key) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImportWizardKey(schema.key);
+                          setImportWizardOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-card hover:bg-muted/40 text-foreground text-xs font-medium transition"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>Import</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Job History & Downloads Table */}
+          <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-foreground">
+              Recent Import &amp; Export Jobs
+            </h3>
+            {jobs.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No import or export jobs recorded yet for this school.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-border/40">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-muted/40 border-b border-border/40 text-muted-foreground">
+                    <tr>
+                      <th className="py-2.5 px-3">Type</th>
+                      <th className="py-2.5 px-3">Dataset</th>
+                      <th className="py-2.5 px-3">Format</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Rows / Errors</th>
+                      <th className="py-2.5 px-3">Created</th>
+                      <th className="py-2.5 px-3">Artifacts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {jobs.map((job) => (
+                      <tr key={job.jobId}>
+                        <td className="py-2.5 px-3 font-semibold">{job.jobType}</td>
+                        <td className="py-2.5 px-3 font-mono">{job.datasetKey}</td>
+                        <td className="py-2.5 px-3">{job.format || "CSV"}</td>
+                        <td className="py-2.5 px-3">
+                          <JobStatusBadge
+                            status={job.status}
+                            downloadUrl={job.downloadUrl ?? null}
+                          />
+                          {job.errorMessage && (
+                            <p className="text-[11px] text-rose-600 mt-1">{job.errorMessage}</p>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          {job.recordCount ?? 0} ok
+                          {typeof job.errorCount === "number" && job.errorCount > 0
+                            ? ` / ${job.errorCount} err`
+                            : ""}
+                        </td>
+                        <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                          {new Date(job.createdAt).toLocaleString("en-IN")}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-2">
+                            {job.downloadUrl && (
+                              <a
+                                href={job.downloadUrl}
+                                download
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-border/60 bg-card hover:bg-muted/40 font-medium"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>File</span>
+                              </a>
+                            )}
+                            {job.errorDownloadUrl && (
+                              <a
+                                href={job.errorDownloadUrl}
+                                download
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 font-medium"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Errors CSV</span>
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <ExportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            datasetKey={exportDatasetKey}
+            onJobCompleted={() => {
+              void refreshJobs();
+            }}
+          />
+
+          <ImportWizard
+            open={importWizardOpen}
+            onOpenChange={setImportWizardOpen}
+            datasetKey={importWizardKey}
+            onJobCompleted={() => {
+              void refreshJobs();
+            }}
+          />
+        </div>
+      )}
+
+      {activeTab !== "DATA_EXCHANGE" && (
+        <>
 
       {/* Finished State Banner (Charter Law 2) */}
       {commitResult && (
@@ -835,6 +1104,8 @@ ADM-2026-003,3250,2026-12-01`;
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

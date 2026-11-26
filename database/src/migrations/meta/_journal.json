@@ -456,6 +456,13 @@
       "when": 1795640000000,
       "tag": "0064_strict_tenant_hmac_and_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1795650000000,
+      "tag": "0065_p0_remediation_integrity",
+      "breakpoints": true
     }
   ]
 }

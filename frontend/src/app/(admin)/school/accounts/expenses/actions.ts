@@ -157,8 +157,8 @@ export async function approveExpenseVoucher(voucherId: string) {
   if (!voucher) throw new Error("Voucher not found.");
   if (voucher.status === "APPROVED") return { success: true };
 
-  // Separation of duties: Submitter != Approver (unless SUPER_ADMIN override)
-  if (voucher.createdById === ctx.userId && ctx.role !== "SUPER_ADMIN") {
+  // Separation of duties: Submitter != Approver (enforced even for SUPER_ADMIN)
+  if (voucher.createdById && voucher.createdById === ctx.userId) {
     throw new Error("Separation of duties: Voucher submitter cannot approve their own expense voucher.");
   }
 

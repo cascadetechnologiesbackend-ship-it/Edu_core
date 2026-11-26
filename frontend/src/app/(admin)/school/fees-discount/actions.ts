@@ -1,8 +1,8 @@
 "use server";
 
-import { db } from "@/db";
-import { feeDiscounts, feeConcessions, staff, students } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { db, withTenant } from "@/db";
+import { feeDiscounts, feeConcessions, feeAuditLogs, staff, students } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
 import { logFeeAuditEvent } from "@/lib/auditLogger";
@@ -163,6 +163,23 @@ export async function approveStudentConcessionAction(concessionId: string) {
     });
 
     if (!existing) return { success: false, message: "Concession assignment not found" };
+
+    // Separation of duties: Requestor != Approver (enforced even for SUPER_ADMIN)
+    const requestLog = await db.query.feeAuditLogs.findFirst({
+      where: and(
+        eq(feeAuditLogs.schoolId, school.id),
+        eq(feeAuditLogs.entityType, "FEE_CONCESSION"),
+        eq(feeAuditLogs.entityId, concessionId),
+        eq(feeAuditLogs.action, "CONCESSION_REQUESTED"),
+      ),
+      orderBy: [desc(feeAuditLogs.createdAt)],
+    });
+    if (requestLog?.performedById && requestLog.performedById === ctx.userId) {
+      return {
+        success: false,
+        message: "Separation of duties: Requestor cannot approve their own concession request.",
+      };
+    }
 
     const [updated] = await db
       .update(feeConcessions)

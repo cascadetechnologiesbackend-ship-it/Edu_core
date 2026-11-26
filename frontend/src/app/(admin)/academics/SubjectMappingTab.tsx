@@ -84,6 +84,23 @@ export type Teacher = {
   email: string;
   name?: string;
   displayName?: string;
+  departmentName?: string;
+  designationName?: string;
+  qualification?: string | null;
+  isOnLeave?: boolean;
+};
+
+type EligibleTeacherMatch = {
+  id: string;
+  name: string;
+  email: string;
+  employeeCode: string;
+  departmentName: string;
+  designationName: string;
+  isOnLeave: boolean;
+  isRecommended: boolean;
+  outOfSubjectMatch: boolean;
+  matchReason?: string;
 };
 
 // Blueprint keyword matching for hierarchy guards
@@ -107,12 +124,14 @@ export default function SubjectMappingTab({
   classrooms,
   subjects,
   teachers,
+  teacherMaxPeriodsPerWeek = 30,
   isAdmin,
 }: {
   mappings: ClassSubject[];
   classrooms: Classroom[];
   subjects: Subject[];
   teachers: Teacher[];
+  teacherMaxPeriodsPerWeek?: number;
   isAdmin: boolean;
 }) {
   const router = useRouter();
@@ -145,6 +164,7 @@ export default function SubjectMappingTab({
     isElective: boolean;
     periodsPerWeek: number;
     assignedTeacherId: string | null;
+    overrideReason?: string | null;
     isDirty?: boolean;
     originalState?: boolean;
     sectionOverrides?: SectionOverride[];
@@ -202,6 +222,79 @@ export default function SubjectMappingTab({
     subject: Subject;
     cell: CellState;
   } | null>(null);
+  const [eligibleMatches, setEligibleMatches] = useState<EligibleTeacherMatch[]>([]);
+  const [showCoveragePanel, setShowCoveragePanel] = useState(true);
+
+  useEffect(() => {
+    if (!activeDrawerCell) {
+      setEligibleMatches([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/academics/eligible-teachers?class_block=all&subject_id=${encodeURIComponent(activeDrawerCell.subjectId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (!cancelled && payload?.success && Array.isArray(payload.teachers)) {
+          setEligibleMatches(payload.teachers);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDrawerCell?.subjectId, activeDrawerCell?.classId]);
+
+  // Compute Unassigned Subject Coverage & Teacher Workload Summary
+  const coverageSummary = useMemo(() => {
+    const unassignedCells: Array<{
+      key: string;
+      classroom: Classroom;
+      subject: Subject;
+      cell: CellState;
+    }> = [];
+    const teacherPeriods = new Map<string, number>();
+    const teacherSubjectCount = new Map<string, number>();
+
+    sortedClassrooms.forEach((cls) => {
+      sortedSubjects.forEach((sub) => {
+        const key = `${cls.id}:${sub.id}`;
+        const cell = cellMap.get(key);
+        if (!cell?.isOffered) return;
+
+        if (!cell.assignedTeacherId) {
+          const allSectionsCovered =
+            (cls.sections?.length || 0) > 0 &&
+            (cls.sections || []).every((sec) =>
+              (cell.sectionOverrides || []).some((o) => o.sectionId === sec.id && o.teacherId),
+            );
+          if (!allSectionsCovered) {
+            unassignedCells.push({ key, classroom: cls, subject: sub, cell });
+          }
+        } else {
+          const sectionCount = Math.max(1, cls.sections?.length || 1);
+          const periods = (cell.periodsPerWeek || 5) * sectionCount;
+          teacherPeriods.set(
+            cell.assignedTeacherId,
+            (teacherPeriods.get(cell.assignedTeacherId) || 0) + periods,
+          );
+          teacherSubjectCount.set(
+            cell.assignedTeacherId,
+            (teacherSubjectCount.get(cell.assignedTeacherId) || 0) + 1,
+          );
+        }
+      });
+    });
+
+    const overloadedTeachers = teachers
+      .map((t) => ({
+        teacher: t,
+        periods: teacherPeriods.get(t.id) || 0,
+        subjectCount: teacherSubjectCount.get(t.id) || 0,
+      }))
+      .filter((row) => row.periods > teacherMaxPeriodsPerWeek || row.teacher.isOnLeave);
+
+    return { unassignedCells, overloadedTeachers, teacherPeriods };
+  }, [cellMap, sortedClassrooms, sortedSubjects, teachers, teacherMaxPeriodsPerWeek]);
 
   // Multi-cell bulk selection for BulkActionBar
   const [selectedCellKeys, setSelectedCellKeys] = useState<Set<string>>(new Set());
@@ -368,6 +461,7 @@ export default function SubjectMappingTab({
           isElective?: boolean;
           periodsPerWeek?: number;
           assignedTeacherId?: string | null;
+          overrideReason?: string | null;
         }> = [];
         const toRemove: Array<{ classId: string; subjectId: string }> = [];
         const toUpdate: Array<{
@@ -375,6 +469,7 @@ export default function SubjectMappingTab({
           isElective?: boolean;
           periodsPerWeek?: number;
           assignedTeacherId?: string | null;
+          overrideReason?: string | null;
         }> = [];
 
         dirtyKeys.forEach((key) => {
@@ -391,6 +486,7 @@ export default function SubjectMappingTab({
               isElective: cell.isElective,
               periodsPerWeek: cell.periodsPerWeek,
               assignedTeacherId: cell.assignedTeacherId,
+              overrideReason: cell.overrideReason ?? null,
             });
           } else if (!cell.isOffered && cell.originalState) {
             // Detachment
@@ -402,6 +498,7 @@ export default function SubjectMappingTab({
               isElective: cell.isElective,
               periodsPerWeek: cell.periodsPerWeek,
               assignedTeacherId: cell.assignedTeacherId,
+              overrideReason: cell.overrideReason ?? null,
             });
           }
         });
@@ -543,6 +640,102 @@ export default function SubjectMappingTab({
           alternates={postActionStrip.alternates}
           onDismiss={() => setPostActionStrip(null)}
         />
+      )}
+
+      {/* ─── 2.5 Reassignment & Unassigned Subject Coverage View ───────────────── */}
+      {(coverageSummary.unassignedCells.length > 0 || coverageSummary.overloadedTeachers.length > 0) && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <h3 className="text-xs font-bold text-foreground">
+                  Reassignment &amp; Subject Coverage Radar
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  {coverageSummary.unassignedCells.length} unassigned offered subject(s) · Workload cap: {teacherMaxPeriodsPerWeek} periods/week
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCoveragePanel((v) => !v)}
+              className="text-xs font-semibold text-primary hover:underline self-start sm:self-auto"
+            >
+              {showCoveragePanel ? "Hide details" : "Show details"}
+            </button>
+          </div>
+
+          {showCoveragePanel && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
+              {coverageSummary.unassignedCells.length > 0 && (
+                <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Unassigned Subjects ({coverageSummary.unassignedCells.length})
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                    {coverageSummary.unassignedCells.slice(0, 12).map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        disabled={!isAdmin}
+                        onClick={() =>
+                          setActiveDrawerCell({
+                            classId: item.classroom.id,
+                            subjectId: item.subject.id,
+                            classroom: item.classroom,
+                            subject: item.subject,
+                            cell: item.cell,
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold text-foreground transition cursor-pointer"
+                      >
+                        {item.classroom.displayName} · {item.subject.name}
+                      </button>
+                    ))}
+                    {coverageSummary.unassignedCells.length > 12 && (
+                      <span className="text-[11px] text-muted-foreground px-2 py-1">
+                        +{coverageSummary.unassignedCells.length - 12} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {coverageSummary.overloadedTeachers.length > 0 && (
+                <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Workload &amp; Leave Alerts ({coverageSummary.overloadedTeachers.length})
+                  </span>
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                    {coverageSummary.overloadedTeachers.map(({ teacher, periods, subjectCount }) => (
+                      <div
+                        key={teacher.id}
+                        className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-muted/40"
+                      >
+                        <span className="font-semibold text-foreground truncate">
+                          {teacher.displayName || teacher.name || teacher.email}
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {teacher.isOnLeave && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold text-[10px]">
+                              On Leave
+                            </span>
+                          )}
+                          {periods > teacherMaxPeriodsPerWeek && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold text-[10px]">
+                              {periods}/{teacherMaxPeriodsPerWeek}p ({subjectCount} subj)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ─── 3. Unsaved Changes Sticky Review Bar (AC11 & Batching Spec) ────── */}
@@ -867,13 +1060,55 @@ export default function SubjectMappingTab({
                       className="w-full rounded-xl border border-gray-300 dark:border-border/40 bg-card text-gray-900 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-primary/40 font-medium"
                     >
                       <option value="">None / Unassigned</option>
-                      {teachers.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.displayName || t.email}
-                        </option>
-                      ))}
+                      {teachers.map((t) => {
+                        const match = eligibleMatches.find((m) => m.id === t.id);
+                        const periodsAssigned = coverageSummary.teacherPeriods.get(t.id) || 0;
+                        const tags: string[] = [];
+                        if (match?.isRecommended) tags.push("Recommended");
+                        if (match?.outOfSubjectMatch) tags.push("Out-of-subject");
+                        if (match?.isOnLeave || t.isOnLeave) tags.push("On Leave");
+                        if (periodsAssigned > teacherMaxPeriodsPerWeek) {
+                          tags.push(`${periodsAssigned}/${teacherMaxPeriodsPerWeek}p`);
+                        }
+                        const suffix = tags.length > 0 ? ` [${tags.join(" · ")}]` : "";
+                        return (
+                          <option key={t.id} value={t.id}>
+                            {(t.displayName || t.email) + suffix}
+                          </option>
+                        );
+                      })}
                     </select>
                   )}
+                  {(() => {
+                    const selectedMatch = eligibleMatches.find(
+                      (m) => m.id === activeDrawerCell.cell.assignedTeacherId,
+                    );
+                    if (selectedMatch?.outOfSubjectMatch) {
+                      return (
+                        <div className="mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+                          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">
+                            Out-of-subject match: {selectedMatch.matchReason}
+                          </span>
+                          <input
+                            type="text"
+                            value={activeDrawerCell.cell.overrideReason || ""}
+                            onChange={(e) =>
+                              setActiveDrawerCell({
+                                ...activeDrawerCell,
+                                cell: {
+                                  ...activeDrawerCell.cell,
+                                  overrideReason: e.target.value,
+                                },
+                              })
+                            }
+                            placeholder="Audited qualification override reason (optional/recommended)"
+                            className="w-full rounded-lg border border-amber-500/30 bg-card px-2.5 py-1.5 text-xs text-foreground"
+                          />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Periods Per Week Stepper */}

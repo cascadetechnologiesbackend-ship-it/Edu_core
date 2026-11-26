@@ -20,7 +20,9 @@ import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import {
   BankStatementRowInput,
   MatchedResultItem,
+  BrsReconciliationCounts,
   matchBankStatementAction,
+  confirmManualReconciliationAction,
   createAdjustingJournalVoucherAction,
 } from "./actions";
 
@@ -40,6 +42,9 @@ interface LedgerTxSummary {
   transactionType: string;
   sourceType: string;
   description: string | null;
+  bankReconciliationStatus?: string;
+  bankReconciledAt?: string | null;
+  bankStatementRef?: string | null;
   transactionDate: string;
 }
 
@@ -57,6 +62,7 @@ interface Props {
   selectedAccount: BankAccountSummary | null;
   initialLedgerTransactions: LedgerTxSummary[];
   initialAdjustingVouchers: AdjustingVoucherSummary[];
+  reconciliationCounts?: BrsReconciliationCounts;
   userRole: string;
 }
 
@@ -65,6 +71,7 @@ export function BankReconciliationClient({
   selectedAccount,
   initialLedgerTransactions,
   initialAdjustingVouchers,
+  reconciliationCounts,
   userRole,
 }: Props) {
   const [selectedBankId, setSelectedBankId] = useState<string>(
@@ -88,6 +95,11 @@ export function BankReconciliationClient({
 
   const [isMatching, setIsMatching] = useState(false);
   const [matchTab, setMatchTab] = useState<"all" | "ambiguous" | "unmatched" | "matched">("all");
+  const [ledgerRows, setLedgerRows] = useState<LedgerTxSummary[]>(initialLedgerTransactions);
+  const [counts, setCounts] = useState<BrsReconciliationCounts>(
+    reconciliationCounts || { reconciled: 0, unreconciled: 0, disputed: 0 },
+  );
+  const [manualPendingId, setManualPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
     null,
   );
@@ -110,6 +122,55 @@ export function BankReconciliationClient({
   });
 
   const canCreateAdjustingJV = userRole === "SUPER_ADMIN" || userRole === "SCHOOL_ADMIN";
+  const canReconcileRows =
+    userRole === "SUPER_ADMIN" || userRole === "SCHOOL_ADMIN" || userRole === "ACCOUNTANT";
+
+  const handleManualReconcile = async (
+    transactionId: string,
+    status: "RECONCILED" | "DISPUTED" | "UNRECONCILED",
+    statementRef?: string,
+    reason?: string,
+  ) => {
+    if (!selectedBankId || !canReconcileRows) return;
+    setManualPendingId(transactionId);
+    const res = await confirmManualReconciliationAction({
+      bankAccountId: selectedBankId,
+      transactionId,
+      status,
+      statementRef,
+      reason,
+    });
+    setManualPendingId(null);
+
+    if (res.success) {
+      setFeedback({ type: "success", message: res.message || "Reconciliation status updated." });
+      setLedgerRows((prev) =>
+        prev.map((row) =>
+          row.id === transactionId
+            ? {
+                ...row,
+                bankReconciliationStatus: status,
+                bankStatementRef: status === "UNRECONCILED" ? null : statementRef || row.bankStatementRef || null,
+                bankReconciledAt: status === "UNRECONCILED" ? null : new Date().toISOString(),
+              }
+            : row,
+        ),
+      );
+      setMatchedResults((prev) =>
+        prev.map((item) => {
+          if (item.status === "AMBIGUOUS" && item.suggestions?.some((s) => s.id === transactionId)) {
+            const matchedCandidate = item.suggestions.find((s) => s.id === transactionId);
+            if (status === "RECONCILED" && matchedCandidate) {
+              return { ...item, status: "MATCHED", persisted: true, matchedTx: matchedCandidate, suggestions: undefined };
+            }
+          }
+          return item;
+        }),
+      );
+    } else {
+      setFeedback({ type: "error", message: res.message || "Failed to update reconciliation status." });
+    }
+  };
 
   const handleBankChange = (bankId: string) => {
     setSelectedBankId(bankId);
@@ -231,9 +292,16 @@ export function BankReconciliationClient({
     if (res.success && res.results && res.summary) {
       setMatchedResults(res.results);
       setSummary(res.summary);
+      if (res.reconciliationCounts) {
+        setCounts(res.reconciliationCounts);
+      }
+      const persistedMsg =
+        typeof res.persistedCount === "number" && res.persistedCount > 0
+          ? ` (${res.persistedCount} persisted to DB)`
+          : "";
       setFeedback({
         type: "success",
-        message: `Statement matched: ${res.summary.matchedCount} verified, ${res.summary.ambiguousCount} ambiguous, ${res.summary.unmatchedCount} unmatched.`,
+        message: `Statement matched: ${res.summary.matchedCount} verified${persistedMsg}, ${res.summary.ambiguousCount} ambiguous, ${res.summary.unmatchedCount} unmatched.`,
       });
     } else {
       setFeedback({
@@ -319,7 +387,7 @@ export function BankReconciliationClient({
   return (
     <div className="space-y-6">
       {/* Finance Navigation Tabs */}
-      <FinanceTabs activeSection="accounts" />
+      <FinanceTabs activeSection="accounts" userRole={userRole} />
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">
@@ -364,10 +432,35 @@ export function BankReconciliationClient({
         <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 text-sm">
           <ShieldAlert className="w-5 h-5 flex-shrink-0" />
           <span>
-            <strong>Read-Only Mode ({userRole}):</strong> You can view reconciliation records and analyze statement match preview. Only School Admins and Super Admins may create Adjusting Journal Vouchers.
+            <strong>{canReconcileRows ? `Operational Mode (${userRole})` : `Read-Only Mode (${userRole})`}:</strong>{" "}
+            {canReconcileRows
+              ? "You can match statements and confirm or dispute ledger reconciliations. Posting Adjusting Journal Vouchers requires School Admin or Super Admin authorization."
+              : "You can view reconciliation records and analyze statement match preview. Only operational finance staff may reconcile rows."}
           </span>
         </div>
       )}
+
+      {/* DB Reconciliation Status Counts */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-card p-4 rounded-2xl border border-border/40 shadow-sm">
+          <p className="text-xs text-muted-foreground">DB Reconciled</p>
+          <p className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+            {counts.reconciled}
+          </p>
+        </div>
+        <div className="bg-card p-4 rounded-2xl border border-border/40 shadow-sm">
+          <p className="text-xs text-muted-foreground">DB Unreconciled</p>
+          <p className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">
+            {counts.unreconciled}
+          </p>
+        </div>
+        <div className="bg-card p-4 rounded-2xl border border-border/40 shadow-sm">
+          <p className="text-xs text-muted-foreground">DB Disputed</p>
+          <p className="text-xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1">
+            {counts.disputed}
+          </p>
+        </div>
+      </div>
 
       {/* Status Feedback Banner */}
       {feedback && (
@@ -603,14 +696,33 @@ export function BankReconciliationClient({
                         </div>
                       )}
                       {item.status === "AMBIGUOUS" && item.suggestions && (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <span className="text-amber-700 dark:text-amber-300 font-semibold text-xs">
                             {item.suggestions.length} same-day candidates found:
                           </span>
-                          <div className="text-xs text-gray-500 font-mono space-y-0.5">
+                          <div className="text-xs text-muted-foreground font-mono space-y-1">
                             {item.suggestions.map((s) => (
-                              <div key={s.id} className="truncate">
-                                • {s.transactionNumber} (₹{parseFloat(s.amount).toLocaleString("en-IN")})
+                              <div key={s.id} className="flex items-center justify-between gap-2">
+                                <span className="truncate">
+                                  • {s.transactionNumber} (₹{parseFloat(s.amount).toLocaleString("en-IN")})
+                                </span>
+                                {canReconcileRows && (
+                                  <button
+                                    type="button"
+                                    disabled={manualPendingId === s.id}
+                                    onClick={() =>
+                                      handleManualReconcile(
+                                        s.id,
+                                        "RECONCILED",
+                                        item.statementRow.refNumber || item.statementRow.id,
+                                        `Manual match confirmation for ambiguous statement row ${item.statementRow.date}`
+                                      )
+                                    }
+                                    className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold shrink-0 disabled:opacity-50"
+                                  >
+                                    {manualPendingId === s.id ? "Saving..." : "Confirm Match"}
+                                  </button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -736,6 +848,94 @@ export function BankReconciliationClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bank Ledger Reconciliation Register */}
+      {ledgerRows.length > 0 && (
+        <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-foreground">
+              Bank Ledger Transactions & Reconciliation Status ({ledgerRows.length})
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-muted/40 border-y border-border/40 font-semibold text-muted-foreground">
+                  <th className="py-2.5 px-4">DATE</th>
+                  <th className="py-2.5 px-4">TXN #</th>
+                  <th className="py-2.5 px-4">TYPE</th>
+                  <th className="py-2.5 px-4">DESCRIPTION</th>
+                  <th className="py-2.5 px-4">STMT REF</th>
+                  <th className="py-2.5 px-4 text-right">AMOUNT</th>
+                  <th className="py-2.5 px-4 text-center">BRS STATUS</th>
+                  {canReconcileRows && <th className="py-2.5 px-4 text-right">ACTION</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {ledgerRows.map((tx) => {
+                  const brsStatus = tx.bankReconciliationStatus || "UNRECONCILED";
+                  return (
+                    <tr key={tx.id} className="hover:bg-muted/40">
+                      <td className="py-2.5 px-4 font-mono text-muted-foreground">
+                        {tx.transactionDate.slice(0, 10)}
+                      </td>
+                      <td className="py-2.5 px-4 font-mono font-semibold text-foreground">
+                        {tx.transactionNumber}
+                      </td>
+                      <td className="py-2.5 px-4">{tx.transactionType}</td>
+                      <td className="py-2.5 px-4 truncate max-w-xs">{tx.description || "—"}</td>
+                      <td className="py-2.5 px-4 font-mono text-muted-foreground">
+                        {tx.bankStatementRef || "—"}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono font-bold text-foreground">
+                        ₹{parseFloat(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 px-4 text-center">
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                            brsStatus === "RECONCILED"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              : brsStatus === "DISPUTED"
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                          }`}
+                        >
+                          {brsStatus}
+                        </span>
+                      </td>
+                      {canReconcileRows && (
+                        <td className="py-2.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                          {brsStatus !== "RECONCILED" && (
+                            <button
+                              type="button"
+                              disabled={manualPendingId === tx.id}
+                              onClick={() => handleManualReconcile(tx.id, "RECONCILED")}
+                              className="px-2 py-1 rounded-lg bg-[#248A3D]/10 text-[#248A3D] dark:text-[#30D158] font-semibold hover:bg-[#248A3D]/20 disabled:opacity-50"
+                            >
+                              Reconcile
+                            </button>
+                          )}
+                          {brsStatus !== "DISPUTED" && (
+                            <button
+                              type="button"
+                              disabled={manualPendingId === tx.id}
+                              onClick={() => handleManualReconcile(tx.id, "DISPUTED")}
+                              className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 font-semibold hover:bg-rose-500/20 disabled:opacity-50"
+                            >
+                              Dispute
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

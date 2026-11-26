@@ -13,7 +13,7 @@ import {
   unique,
   bigint,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { schools, academicYears, users } from "./core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -85,6 +85,10 @@ export const students = pgTable(
     // Non-PII searchable fields (hashed for lookup)
     firstNameSearchHash: text("first_name_search_hash"), // HMAC for search
     lastNameSearchHash: text("last_name_search_hash"),
+    namePrefixHashes: text("name_prefix_hashes")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     dateOfBirth: timestamp("date_of_birth", { withTimezone: true }).notNull(),
     gender: genderEnum("gender").notNull(),
     bloodGroup: bloodGroupEnum("blood_group"),
@@ -161,6 +165,10 @@ export const students = pgTable(
     schoolAdmissionNumberIdx: index("students_school_admission_number_idx").on(
       t.schoolId,
       t.admissionNumber,
+    ),
+    schoolRollIdx: index("students_school_roll_number_idx").on(
+      t.schoolId,
+      t.rollNumber,
     ),
   }),
 );

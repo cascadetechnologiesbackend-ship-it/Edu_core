@@ -5,6 +5,7 @@ import { incomeVouchers, incomeHeads, bankAccounts } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { assertRouteAccess } from "@/lib/routeGuards";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
 import {
   DollarSign,
@@ -21,6 +22,15 @@ import { createIncomeVoucher } from "./actions";
 export default async function IncomesPage() {
   const session = await auth();
   if (!session?.user?.schoolId) redirect("/login");
+
+  const access = assertRouteAccess(session.user.role, "/school/accounts/incomes", {
+    id: session.user.id,
+    email: session.user.email ?? undefined,
+    schoolId: session.user.schoolId,
+  });
+  if (!access.allowed) {
+    redirect(access.redirectUrl || "/login");
+  }
 
   const schoolId = session.user.schoolId;
 
@@ -52,7 +62,7 @@ export default async function IncomesPage() {
 
   return (
     <div className="space-y-6">
-      <FinanceTabs activeSection="accounts" />
+      <FinanceTabs activeSection="accounts" userRole={session.user.role} />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/40 shadow-sm">

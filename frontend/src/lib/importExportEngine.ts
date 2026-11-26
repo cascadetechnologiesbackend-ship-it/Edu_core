@@ -12,9 +12,15 @@
 export type ImportDatasetKey =
   | "STUDENTS"
   | "STAFF"
+  | "TEACHERS"
   | "CLASSES"
   | "SUBJECTS"
   | "FEE_HEADS"
+  | "FEE_STRUCTURES"
+  | "FEE_INVOICES"
+  | "FEE_PAYMENTS"
+  | "FEE_REFUNDS"
+  | "FINANCIAL_REPORTS"
   | "SALARY_TEMPLATES"
   | "HOLIDAYS"
   | "ADMISSIONS"
@@ -82,6 +88,22 @@ export const DATASET_SCHEMAS: Record<ImportDatasetKey, DatasetSchema> = {
       { key: "role", label: "System Role", required: true, type: "enum", allowedEnums: ["TEACHER", "STAFF", "ACCOUNTANT"], sampleValue: "TEACHER" },
     ],
   },
+  TEACHERS: {
+    key: "TEACHERS",
+    displayName: "Teachers Directory",
+    description: "Import and export teaching faculty, departments, qualifications, and assigned subjects.",
+    uniqueKeyField: "employeeCode",
+    columns: [
+      { key: "employeeCode", label: "Employee Code", required: true, type: "string", sampleValue: "EMP-101" },
+      { key: "firstName", label: "First Name", required: true, type: "string", sampleValue: "Priya" },
+      { key: "lastName", label: "Last Name", required: true, type: "string", sampleValue: "Verma" },
+      { key: "email", label: "Official Email", required: true, type: "string", sampleValue: "priya.verma@schoolmitra.in" },
+      { key: "phone", label: "Contact Phone", required: true, type: "string", sampleValue: "+919876543211" },
+      { key: "department", label: "Department", required: true, type: "string", sampleValue: "Mathematics" },
+      { key: "designation", label: "Designation", required: true, type: "string", sampleValue: "Senior TGT Teacher" },
+      { key: "qualification", label: "Qualification", required: false, type: "string", sampleValue: "M.Sc, B.Ed" },
+    ],
+  },
   CLASSES: {
     key: "CLASSES",
     displayName: "Classes & Sections",
@@ -118,6 +140,93 @@ export const DATASET_SCHEMAS: Record<ImportDatasetKey, DatasetSchema> = {
       { key: "frequency", label: "Frequency", required: true, type: "enum", allowedEnums: ["MONTHLY", "QUARTERLY", "HALF_YEARLY", "ANNUAL", "ONE_TIME"], sampleValue: "QUARTERLY" },
       { key: "isMandatory", label: "Is Mandatory (TRUE/FALSE)", required: true, type: "string", sampleValue: "TRUE" },
       { key: "ledgerAccountCode", label: "Chart of Accounts Code", required: false, type: "string", sampleValue: "4100" },
+    ],
+  },
+  FEE_STRUCTURES: {
+    key: "FEE_STRUCTURES",
+    displayName: "Fee Structures",
+    description: "Export class-wise fee schedules, terms, due dates, and late fee policies.",
+    uniqueKeyField: "id",
+    columns: [
+      { key: "academicYear", label: "Academic Year", required: true, type: "string", sampleValue: "2026-27" },
+      { key: "className", label: "Class", required: true, type: "string", sampleValue: "Class 10" },
+      { key: "feeHead", label: "Fee Head", required: true, type: "string", sampleValue: "Tuition Fee" },
+      { key: "term", label: "Term", required: true, type: "enum", allowedEnums: ["MONTHLY", "QUARTERLY", "HALF_YEARLY", "ANNUAL", "ONE_TIME"], sampleValue: "QUARTERLY" },
+      { key: "amount", label: "Amount (INR)", required: true, type: "number", sampleValue: "15000" },
+      { key: "dueDate", label: "Due Date", required: true, type: "date", sampleValue: "2026-04-30" },
+      { key: "lateFeeType", label: "Late Fee Type", required: false, type: "string", sampleValue: "FLAT" },
+      { key: "lateFeeAmount", label: "Late Fee Amount", required: false, type: "number", sampleValue: "250" },
+    ],
+  },
+  FEE_INVOICES: {
+    key: "FEE_INVOICES",
+    displayName: "Fee Invoices & Dues",
+    description: "Export student fee invoices with gross, discount, late fee, paid, and balance amounts.",
+    uniqueKeyField: "invoiceNumber",
+    columns: [
+      { key: "invoiceNumber", label: "Invoice Number", required: true, type: "string", sampleValue: "INV-2026-0001" },
+      { key: "admissionNumber", label: "Admission Number", required: true, type: "string", sampleValue: "ADM-2026-001" },
+      { key: "studentName", label: "Student Name", required: true, type: "string", sampleValue: "Aarav Sharma" },
+      { key: "term", label: "Term", required: true, type: "string", sampleValue: "QUARTERLY" },
+      { key: "grossAmount", label: "Gross Amount (INR)", required: true, type: "number", sampleValue: "15000" },
+      { key: "discountAmount", label: "Discount (INR)", required: true, type: "number", sampleValue: "0" },
+      { key: "lateFeeAmount", label: "Late Fee (INR)", required: true, type: "number", sampleValue: "0" },
+      { key: "netAmount", label: "Net Amount (INR)", required: true, type: "number", sampleValue: "15000" },
+      { key: "paidAmount", label: "Paid (INR)", required: true, type: "number", sampleValue: "15000" },
+      { key: "balanceAmount", label: "Balance (INR)", required: true, type: "number", sampleValue: "0" },
+      { key: "status", label: "Status", required: true, type: "string", sampleValue: "PAID" },
+      { key: "dueDate", label: "Due Date", required: true, type: "date", sampleValue: "2026-04-30" },
+    ],
+  },
+  FEE_PAYMENTS: {
+    key: "FEE_PAYMENTS",
+    displayName: "Fee Payments & Receipts",
+    description: "Export collected fee payment receipts, payment methods, and transaction references.",
+    uniqueKeyField: "receiptNumber",
+    columns: [
+      { key: "receiptNumber", label: "Receipt Number", required: true, type: "string", sampleValue: "RCPT-2026-0001" },
+      { key: "admissionNumber", label: "Admission Number", required: true, type: "string", sampleValue: "ADM-2026-001" },
+      { key: "studentName", label: "Student Name", required: true, type: "string", sampleValue: "Aarav Sharma" },
+      { key: "invoiceNumber", label: "Invoice Number", required: true, type: "string", sampleValue: "INV-2026-0001" },
+      { key: "amountPaid", label: "Amount Paid (INR)", required: true, type: "number", sampleValue: "15000" },
+      { key: "paymentMethod", label: "Payment Method", required: true, type: "string", sampleValue: "UPI" },
+      { key: "paymentDate", label: "Payment Date", required: true, type: "date", sampleValue: "2026-04-10" },
+      { key: "transactionReference", label: "Transaction Reference", required: false, type: "string", sampleValue: "UTR123456" },
+      { key: "status", label: "Status", required: true, type: "string", sampleValue: "ACTIVE" },
+      { key: "remarks", label: "Remarks", required: false, type: "string", sampleValue: "Q1 Tuition" },
+    ],
+  },
+  FEE_REFUNDS: {
+    key: "FEE_REFUNDS",
+    displayName: "Fee Refunds",
+    description: "Export fee refund requests, approvals, and processed refund amounts.",
+    uniqueKeyField: "refundId",
+    columns: [
+      { key: "refundId", label: "Refund ID", required: true, type: "string", sampleValue: "uuid" },
+      { key: "receiptNumber", label: "Original Receipt No.", required: true, type: "string", sampleValue: "RCPT-2026-0001" },
+      { key: "admissionNumber", label: "Admission Number", required: true, type: "string", sampleValue: "ADM-2026-001" },
+      { key: "studentName", label: "Student Name", required: true, type: "string", sampleValue: "Aarav Sharma" },
+      { key: "refundAmount", label: "Refund Amount (INR)", required: true, type: "number", sampleValue: "2500" },
+      { key: "reason", label: "Reason", required: true, type: "string", sampleValue: "Duplicate payment" },
+      { key: "status", label: "Status", required: true, type: "string", sampleValue: "PROCESSED" },
+      { key: "createdAt", label: "Requested At", required: true, type: "date", sampleValue: "2026-04-12" },
+    ],
+  },
+  FINANCIAL_REPORTS: {
+    key: "FINANCIAL_REPORTS",
+    displayName: "Financial Reports & Ledger",
+    description: "Export consolidated fee collection, refunds, income vouchers, and expense vouchers ledger.",
+    uniqueKeyField: "entryCode",
+    columns: [
+      { key: "entryCode", label: "Entry Code", required: true, type: "string", sampleValue: "FEE-COL-001" },
+      { key: "category", label: "Category", required: true, type: "string", sampleValue: "FEE_COLLECTION" },
+      { key: "accountHead", label: "Account / Head", required: true, type: "string", sampleValue: "Tuition Fee" },
+      { key: "entryDate", label: "Date", required: true, type: "date", sampleValue: "2026-04-10" },
+      { key: "creditAmount", label: "Credit / Inflow (INR)", required: true, type: "number", sampleValue: "15000" },
+      { key: "debitAmount", label: "Debit / Outflow (INR)", required: true, type: "number", sampleValue: "0" },
+      { key: "paymentMode", label: "Mode", required: false, type: "string", sampleValue: "UPI" },
+      { key: "reference", label: "Reference", required: false, type: "string", sampleValue: "RCPT-2026-0001" },
+      { key: "status", label: "Status", required: true, type: "string", sampleValue: "POSTED" },
     ],
   },
   SALARY_TEMPLATES: {
@@ -493,7 +602,7 @@ export function generateRejectedRowsCsv(validation: BatchValidationSummary): str
   const headers = [...schema.columns.map((c) => `"${c.label}"`), '"Validation Errors"'].join(",");
   const lines = rejected.map((r) => {
     const rowVals = schema.columns.map((col) => {
-      const val = r.data[col.label] ?? r.data[col.key] ?? "";
+      const val = sanitizeForSpreadsheet(r.data[col.label] ?? r.data[col.key] ?? "");
       return `"${val.replace(/"/g, '""')}"`;
     });
     const errorText = r.errors.join("; ");
@@ -501,7 +610,7 @@ export function generateRejectedRowsCsv(validation: BatchValidationSummary): str
       errorText.startsWith("Line ") || errorText.startsWith("Row ")
         ? errorText
         : `Line ${r.rowNumber}: ${errorText}`;
-    const errorStr = `"${formattedError.replace(/"/g, '""')}"`;
+    const errorStr = `"${sanitizeForSpreadsheet(formattedError).replace(/"/g, '""')}"`;
     return [...rowVals, errorStr].join(",");
   });
 
@@ -525,15 +634,24 @@ export function sanitizeExportRecord(
     "salt",
     "pin",
     "bankAccountNumber",
+    "bankAccount",
     "ifscCode",
+    "ifsc",
     "panNumber",
+    "panEncrypted",
     "aadhaarNumber",
+    "aadhaar",
+    "totpSecret",
+    "encrypted",
     "token",
     "secret",
   ];
 
   for (const col of schema.columns) {
-    if (SENSITIVE_DENYLIST.some((k) => col.key.toLowerCase().includes(k.toLowerCase()))) {
+    if (
+      col.isSensitive ||
+      SENSITIVE_DENYLIST.some((k) => col.key.toLowerCase().includes(k.toLowerCase()))
+    ) {
       sanitized[col.label] = "REDACTED_CONFIDENTIAL";
     } else {
       sanitized[col.label] = record[col.key] ?? "";
@@ -548,9 +666,11 @@ export function sanitizeExportRecord(
  * Prevents CSV/XLSX formula injection by prefixing values starting with
  * '=', '+', '-', '@', '\t', or '\r' with a single quote (').
  */
-export function sanitizeForSpreadsheet(value: string): string {
-  if (!value) return value;
-  const firstChar = value.charAt(0);
+export function sanitizeForSpreadsheet(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  if (!str) return "";
+  const firstChar = str.charAt(0);
   if (
     firstChar === "=" ||
     firstChar === "+" ||
@@ -559,9 +679,9 @@ export function sanitizeForSpreadsheet(value: string): string {
     firstChar === "\t" ||
     firstChar === "\r"
   ) {
-    return `'${value}`;
+    return `'${str}`;
   }
-  return value;
+  return str;
 }
 
 export type ExportKey =
@@ -702,6 +822,14 @@ export const IMPORT_DEFINITIONS: Record<ImportDatasetKey, ImportDefinition> = {
     maxRows: MAX_IMPORT_ROWS,
     supportsDryRun: true,
   },
+  TEACHERS: {
+    key: "TEACHERS",
+    displayName: "Teachers Directory",
+    description: "Bulk import teaching faculty records.",
+    category: "HR",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: true,
+  },
   CLASSES: {
     key: "CLASSES",
     displayName: "Classes & Sections",
@@ -725,6 +853,46 @@ export const IMPORT_DEFINITIONS: Record<ImportDatasetKey, ImportDefinition> = {
     category: "FINANCE",
     maxRows: MAX_IMPORT_ROWS,
     supportsDryRun: true,
+  },
+  FEE_STRUCTURES: {
+    key: "FEE_STRUCTURES",
+    displayName: "Fee Structures",
+    description: "Export class-wise fee schedules and due dates.",
+    category: "FINANCE",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: false,
+  },
+  FEE_INVOICES: {
+    key: "FEE_INVOICES",
+    displayName: "Fee Invoices & Dues",
+    description: "Export student fee invoices and outstanding balances.",
+    category: "FINANCE",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: false,
+  },
+  FEE_PAYMENTS: {
+    key: "FEE_PAYMENTS",
+    displayName: "Fee Payments & Receipts",
+    description: "Export collected fee payment receipts.",
+    category: "FINANCE",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: false,
+  },
+  FEE_REFUNDS: {
+    key: "FEE_REFUNDS",
+    displayName: "Fee Refunds",
+    description: "Export fee refund records.",
+    category: "FINANCE",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: false,
+  },
+  FINANCIAL_REPORTS: {
+    key: "FINANCIAL_REPORTS",
+    displayName: "Financial Reports & Ledger",
+    description: "Export consolidated fee & accounting financial reports.",
+    category: "FINANCE",
+    maxRows: MAX_IMPORT_ROWS,
+    supportsDryRun: false,
   },
   SALARY_TEMPLATES: {
     key: "SALARY_TEMPLATES",
@@ -823,3 +991,212 @@ export const IMPORT_DEFINITIONS: Record<ImportDatasetKey, ImportDefinition> = {
     supportsDryRun: false,
   },
 };
+
+export const IMPORT_EXPORT_AUTH_ROLES = [
+  "SUPER_ADMIN",
+  "SCHOOL_ADMIN",
+  "PRINCIPAL",
+  "HR_MANAGER",
+  "ACCOUNTANT",
+  "TEACHER",
+  "LIBRARIAN",
+  "TRANSPORT_MANAGER",
+] as const;
+
+export interface DatasetAccessPolicy {
+  exportRoles: readonly string[];
+  importRoles: readonly string[];
+  supportsImport: boolean;
+  supportsExport: boolean;
+  category: "ACADEMIC" | "FINANCE" | "HR" | "OPERATIONS";
+}
+
+export const DATASET_ACCESS_POLICY: Record<ImportDatasetKey, DatasetAccessPolicy> = {
+  STUDENTS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTANT"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  STAFF: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "HR",
+  },
+  TEACHERS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "HR_MANAGER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "HR",
+  },
+  CLASSES: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  SUBJECTS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  FEE_HEADS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "FINANCE",
+  },
+  FEE_STRUCTURES: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
+    importRoles: [],
+    supportsImport: false,
+    supportsExport: true,
+    category: "FINANCE",
+  },
+  FEE_INVOICES: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
+    importRoles: [],
+    supportsImport: false,
+    supportsExport: true,
+    category: "FINANCE",
+  },
+  FEE_PAYMENTS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
+    importRoles: [],
+    supportsImport: false,
+    supportsExport: true,
+    category: "FINANCE",
+  },
+  FEE_REFUNDS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
+    importRoles: [],
+    supportsImport: false,
+    supportsExport: true,
+    category: "FINANCE",
+  },
+  FINANCIAL_REPORTS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT"],
+    importRoles: [],
+    supportsImport: false,
+    supportsExport: true,
+    category: "FINANCE",
+  },
+  SALARY_TEMPLATES: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "HR",
+  },
+  HOLIDAYS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  ADMISSIONS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  PARENTS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  TIMETABLE: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  ATTENDANCE_OVERRIDE: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  EXAM_MARKS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TEACHER"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "ACADEMIC",
+  },
+  LIBRARY_INVENTORY: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "LIBRARIAN"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "LIBRARIAN"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "OPERATIONS",
+  },
+  TRANSPORT_ROUTES: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "TRANSPORT_MANAGER"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TRANSPORT_MANAGER"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "OPERATIONS",
+  },
+  HOSTEL_ROOMS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "OPERATIONS",
+  },
+  ASSETS_INVENTORY: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    importRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    supportsImport: true,
+    supportsExport: true,
+    category: "OPERATIONS",
+  },
+  AUDIT_LOGS: {
+    exportRoles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"],
+    importRoles: [],
+    supportsImport: false,
+    supportsExport: true,
+    category: "OPERATIONS",
+  },
+};
+
+export function canRoleExportDataset(role: string | undefined | null, datasetKey: string): boolean {
+  if (!role) return false;
+  const policy = DATASET_ACCESS_POLICY[datasetKey.toUpperCase() as ImportDatasetKey];
+  if (!policy || !policy.supportsExport) return false;
+  return policy.exportRoles.includes(role.toUpperCase());
+}
+
+export function canRoleImportDataset(role: string | undefined | null, datasetKey: string): boolean {
+  if (!role) return false;
+  const policy = DATASET_ACCESS_POLICY[datasetKey.toUpperCase() as ImportDatasetKey];
+  if (!policy || !policy.supportsImport) return false;
+  return policy.importRoles.includes(role.toUpperCase());
+}
+
+export function getAllowedExportDatasetsForRole(role: string | undefined | null): DatasetSchema[] {
+  return (Object.keys(DATASET_SCHEMAS) as ImportDatasetKey[])
+    .filter((k) => canRoleExportDataset(role, k))
+    .map((k) => DATASET_SCHEMAS[k]);
+}
+
+export function getAllowedImportDatasetsForRole(role: string | undefined | null): DatasetSchema[] {
+  return (Object.keys(DATASET_SCHEMAS) as ImportDatasetKey[])
+    .filter((k) => canRoleImportDataset(role, k))
+    .map((k) => DATASET_SCHEMAS[k]);
+}

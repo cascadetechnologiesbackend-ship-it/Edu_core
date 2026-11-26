@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import { bankAccounts, accountLedgerTransactions, chartOfAccounts } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
@@ -27,6 +27,7 @@ export interface BankStatementRowInput {
 export interface MatchedResultItem {
   statementRow: BankStatementRowInput;
   status: "MATCHED" | "AMBIGUOUS" | "UNMATCHED";
+  persisted?: boolean;
   matchedTx?: {
     id: string;
     transactionNumber: string;
@@ -45,8 +46,14 @@ export interface MatchedResultItem {
   }[] | undefined;
 }
 
+export interface BrsReconciliationCounts {
+  reconciled: number;
+  unreconciled: number;
+  disputed: number;
+}
+
 /**
- * Fetches bank accounts and ledger transaction baseline for BRS.
+ * Fetches bank accounts, reconciliation counts, and ledger transaction baseline for BRS.
  * RBAC: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT, PRINCIPAL (read-only)
  */
 export async function getBankReconciliationDataAction(bankAccountId?: string) {
@@ -54,73 +61,97 @@ export async function getBankReconciliationDataAction(bankAccountId?: string) {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
 
-    let accounts = await getCachedFinanceData<any[]>(school.id, "brs_bank_accounts");
-    if (!accounts) {
-      accounts = await db.query.bankAccounts.findMany({
-        where: and(eq(bankAccounts.schoolId, school.id), eq(bankAccounts.isActive, true)),
-        orderBy: [desc(bankAccounts.createdAt)],
-      });
-      await setCachedFinanceData(school.id, "brs_bank_accounts", accounts, {
-        tags: [`school:${school.id}`, `fin:accounts:${school.id}`],
-      });
-    }
+    return await withTenant(school.id, async (tx) => {
+      let accounts = await getCachedFinanceData<any[]>(school.id, "brs_bank_accounts");
+      if (!accounts) {
+        accounts = await tx.query.bankAccounts.findMany({
+          where: and(eq(bankAccounts.schoolId, school.id), eq(bankAccounts.isActive, true)),
+          orderBy: [desc(bankAccounts.createdAt)],
+        });
+        await setCachedFinanceData(school.id, "brs_bank_accounts", accounts, {
+          tags: [`school:${school.id}`, `fin:accounts:${school.id}`],
+        });
+      }
 
-    const activeBankId = bankAccountId || accounts[0]?.id;
-    if (!activeBankId) {
+      const activeBankId = bankAccountId || accounts[0]?.id;
+      if (!activeBankId) {
+        return {
+          success: true,
+          bankAccounts: accounts,
+          selectedAccount: null,
+          ledgerTransactions: [],
+          adjustingVouchers: [],
+          reconciliationCounts: { reconciled: 0, unreconciled: 0, disputed: 0 },
+          userRole: ctx.role,
+        };
+      }
+
+      const selectedAccount = accounts.find((a) => a.id === activeBankId) || null;
+
+      const [ledgerTransactions, adjustingVouchers, countsRes] = await Promise.all([
+        tx.query.accountLedgerTransactions.findMany({
+          where: and(
+            eq(accountLedgerTransactions.schoolId, school.id),
+            eq(accountLedgerTransactions.bankAccountId, activeBankId),
+          ),
+          orderBy: [desc(accountLedgerTransactions.transactionDate)],
+          limit: 150,
+        }),
+        tx.query.accountLedgerTransactions.findMany({
+          where: and(
+            eq(accountLedgerTransactions.schoolId, school.id),
+            eq(accountLedgerTransactions.bankAccountId, activeBankId),
+            eq(accountLedgerTransactions.sourceType, "BRS_ADJUSTMENT"),
+          ),
+          orderBy: [desc(accountLedgerTransactions.transactionDate)],
+          limit: 50,
+        }),
+        tx.execute(sql`
+          SELECT
+            COUNT(*) FILTER (WHERE bank_reconciliation_status = 'RECONCILED')::int AS reconciled,
+            COUNT(*) FILTER (WHERE bank_reconciliation_status = 'UNRECONCILED')::int AS unreconciled,
+            COUNT(*) FILTER (WHERE bank_reconciliation_status = 'DISPUTED')::int AS disputed
+          FROM account_ledger_transactions
+          WHERE school_id = ${school.id}
+            AND bank_account_id = ${activeBankId}
+        `),
+      ]);
+
+      const cRow = (countsRes.rows?.[0] || {}) as Record<string, number>;
+      const reconciliationCounts: BrsReconciliationCounts = {
+        reconciled: Number(cRow.reconciled || 0),
+        unreconciled: Number(cRow.unreconciled || 0),
+        disputed: Number(cRow.disputed || 0),
+      };
+
       return {
         success: true,
         bankAccounts: accounts,
-        selectedAccount: null,
-        ledgerTransactions: [],
-        adjustingVouchers: [],
+        selectedAccount,
+        ledgerTransactions: ledgerTransactions.map((t) => ({
+          id: t.id,
+          transactionNumber: t.transactionNumber,
+          amount: t.amount,
+          transactionType: t.transactionType,
+          sourceType: t.sourceType,
+          description: t.description,
+          bankReconciliationStatus: t.bankReconciliationStatus,
+          bankReconciledAt: t.bankReconciledAt ? new Date(t.bankReconciledAt).toISOString() : null,
+          bankStatementRef: t.bankStatementRef,
+          transactionDate: t.transactionDate ? new Date(t.transactionDate).toISOString() : new Date().toISOString(),
+        })),
+        adjustingVouchers: adjustingVouchers.map((t) => ({
+          id: t.id,
+          transactionNumber: t.transactionNumber,
+          amount: t.amount,
+          transactionType: t.transactionType,
+          description: t.description,
+          transactionDate: t.transactionDate ? new Date(t.transactionDate).toISOString() : new Date().toISOString(),
+        })),
+        reconciliationCounts,
         userRole: ctx.role,
       };
-    }
-
-    const selectedAccount = accounts.find((a) => a.id === activeBankId) || null;
-
-    const ledgerTransactions = await db.query.accountLedgerTransactions.findMany({
-      where: and(
-        eq(accountLedgerTransactions.schoolId, school.id),
-        eq(accountLedgerTransactions.bankAccountId, activeBankId),
-      ),
-      orderBy: [desc(accountLedgerTransactions.transactionDate)],
-      limit: 150,
     });
-
-    const adjustingVouchers = await db.query.accountLedgerTransactions.findMany({
-      where: and(
-        eq(accountLedgerTransactions.schoolId, school.id),
-        eq(accountLedgerTransactions.bankAccountId, activeBankId),
-        eq(accountLedgerTransactions.sourceType, "BRS_ADJUSTMENT"),
-      ),
-      orderBy: [desc(accountLedgerTransactions.transactionDate)],
-      limit: 50,
-    });
-
-    return {
-      success: true,
-      bankAccounts: accounts,
-      selectedAccount,
-      ledgerTransactions: ledgerTransactions.map((tx) => ({
-        id: tx.id,
-        transactionNumber: tx.transactionNumber,
-        amount: tx.amount,
-        transactionType: tx.transactionType,
-        sourceType: tx.sourceType,
-        description: tx.description,
-        transactionDate: tx.transactionDate ? new Date(tx.transactionDate).toISOString() : new Date().toISOString(),
-      })),
-      adjustingVouchers: adjustingVouchers.map((tx) => ({
-        id: tx.id,
-        transactionNumber: tx.transactionNumber,
-        amount: tx.amount,
-        transactionType: tx.transactionType,
-        description: tx.description,
-        transactionDate: tx.transactionDate ? new Date(tx.transactionDate).toISOString() : new Date().toISOString(),
-      })),
-      userRole: ctx.role,
-    };
   } catch (error: any) {
     console.error("getBankReconciliationDataAction error:", error);
     return {
@@ -130,6 +161,7 @@ export async function getBankReconciliationDataAction(bankAccountId?: string) {
       selectedAccount: null,
       ledgerTransactions: [],
       adjustingVouchers: [],
+      reconciliationCounts: { reconciled: 0, unreconciled: 0, disputed: 0 },
       userRole: "ACCOUNTANT",
     };
   }
@@ -138,6 +170,7 @@ export async function getBankReconciliationDataAction(bankAccountId?: string) {
 /**
  * Matches uploaded statement rows against bank ledger transactions.
  * HARD CONSTRAINT: Ambiguous candidates (same amount + same day) go to a suggestion list, NEVER auto-matched!
+ * Persists clean 1-to-1 MATCHED rows to DB (`RECONCILED`) for operational roles (PRINCIPAL remains dry-run read-only).
  * RBAC: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT, PRINCIPAL
  */
 export async function matchBankStatementAction(params: {
@@ -147,115 +180,275 @@ export async function matchBankStatementAction(params: {
   try {
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "PRINCIPAL"] as const);
     const school = await requireSchool(ctx);
+    const canPersist = ctx.role !== "PRINCIPAL";
 
-    const bank = await db.query.bankAccounts.findFirst({
-      where: and(eq(bankAccounts.id, params.bankAccountId), eq(bankAccounts.schoolId, school.id)),
-    });
-    if (!bank) throw new Error("Bank account not found.");
+    const matchOutcome = await withTenant(school.id, async (tx) => {
+      const bank = await tx.query.bankAccounts.findFirst({
+        where: and(eq(bankAccounts.id, params.bankAccountId), eq(bankAccounts.schoolId, school.id)),
+      });
+      if (!bank) throw new Error("Bank account not found.");
 
-    // Fetch ledger transactions for this bank account
-    const ledgerTxList = await db.query.accountLedgerTransactions.findMany({
-      where: and(
-        eq(accountLedgerTransactions.schoolId, school.id),
-        eq(accountLedgerTransactions.bankAccountId, params.bankAccountId),
-      ),
-    });
-
-    const usedTxIds = new Set<string>();
-    const results: MatchedResultItem[] = [];
-
-    for (const row of params.statementRows) {
-      const rowDateStr = row.date.slice(0, 10);
-      const rowAmount = row.withdrawal > 0 ? row.withdrawal : row.deposit;
-      const isDeposit = row.deposit > 0;
-
-      // Find candidates with matching date (same calendar day) and matching amount
-      const candidates = ledgerTxList.filter((tx) => {
-        if (usedTxIds.has(tx.id)) return false;
-        const txDateStr = (tx.transactionDate ? new Date(tx.transactionDate) : new Date()).toISOString().slice(0, 10);
-        if (txDateStr !== rowDateStr) return false;
-
-        const txAmount = parseFloat(tx.amount);
-        if (Math.abs(txAmount - rowAmount) > 0.01) return false;
-
-        // Direction match:
-        // Deposit increases bank: in ledger, transactionType === "CREDIT" (collection/income)
-        // Withdrawal decreases bank: in ledger, transactionType === "DEBIT" (expense/refund)
-        if (isDeposit && tx.transactionType !== "CREDIT") return false;
-        if (!isDeposit && tx.transactionType !== "DEBIT") return false;
-
-        return true;
+      const ledgerTxList = await tx.query.accountLedgerTransactions.findMany({
+        where: and(
+          eq(accountLedgerTransactions.schoolId, school.id),
+          eq(accountLedgerTransactions.bankAccountId, params.bankAccountId),
+        ),
       });
 
-      if (candidates.length === 1 && candidates[0]) {
-        // Clean 1-to-1 match
-        const matched = candidates[0];
-        usedTxIds.add(matched.id);
-        results.push({
-          statementRow: row,
-          status: "MATCHED",
-          matchedTx: {
-            id: matched.id,
-            transactionNumber: matched.transactionNumber,
-            amount: matched.amount,
-            transactionType: matched.transactionType,
-            description: matched.description,
-            transactionDate: matched.transactionDate ? new Date(matched.transactionDate).toISOString() : new Date().toISOString(),
-          },
+      const usedTxIds = new Set<string>();
+      const results: MatchedResultItem[] = [];
+      const now = new Date();
+      let persistedCount = 0;
+
+      for (const row of params.statementRows) {
+        const rowDateStr = row.date.slice(0, 10);
+        const rowAmount = row.withdrawal > 0 ? row.withdrawal : row.deposit;
+        const isDeposit = row.deposit > 0;
+
+        // Only match against unreconciled / disputed ledger items
+        const candidates = ledgerTxList.filter((t) => {
+          if (usedTxIds.has(t.id)) return false;
+          if (t.bankReconciliationStatus === "RECONCILED") return false;
+          const txDateStr = (t.transactionDate ? new Date(t.transactionDate) : new Date()).toISOString().slice(0, 10);
+          if (txDateStr !== rowDateStr) return false;
+
+          const txAmount = parseFloat(t.amount);
+          if (Math.abs(txAmount - rowAmount) > 0.01) return false;
+
+          if (isDeposit && t.transactionType !== "CREDIT") return false;
+          if (!isDeposit && t.transactionType !== "DEBIT") return false;
+
+          return true;
         });
-      } else if (candidates.length > 1) {
-        // AMBIGUOUS CANDIDATES: Same amount + same day -> SUGGESTION LIST ONLY, NEVER AUTO-MATCH
-        results.push({
-          statementRow: row,
-          status: "AMBIGUOUS",
-          suggestions: candidates.map((c) => ({
-            id: c.id,
-            transactionNumber: c.transactionNumber,
-            amount: c.amount,
-            transactionType: c.transactionType,
-            description: c.description,
-            transactionDate: c.transactionDate ? new Date(c.transactionDate).toISOString() : new Date().toISOString(),
-          })),
-        });
-      } else {
-        // UNMATCHED STATEMENT ROW
-        results.push({
-          statementRow: row,
-          status: "UNMATCHED",
-        });
+
+        if (candidates.length === 1 && candidates[0]) {
+          const matched = candidates[0];
+          usedTxIds.add(matched.id);
+
+          let persisted = false;
+          if (canPersist) {
+            const statementRef = row.refNumber?.trim() || row.id;
+            await tx
+              .update(accountLedgerTransactions)
+              .set({
+                bankReconciliationStatus: "RECONCILED",
+                bankReconciledAt: now,
+                bankReconciledById: ctx.userId,
+                bankStatementRef: statementRef,
+              })
+              .where(
+                and(
+                  eq(accountLedgerTransactions.id, matched.id),
+                  eq(accountLedgerTransactions.schoolId, school.id),
+                  eq(accountLedgerTransactions.bankAccountId, params.bankAccountId),
+                ),
+              );
+
+            await logFeeAuditEvent(tx, {
+              schoolId: school.id,
+              action: "BRS_AUTO_MATCH_RECONCILE",
+              entityType: "LEDGER_TRANSACTION",
+              entityId: matched.id,
+              previousData: {
+                bankReconciliationStatus: matched.bankReconciliationStatus,
+                bankStatementRef: matched.bankStatementRef,
+              },
+              newData: {
+                bankReconciliationStatus: "RECONCILED",
+                bankReconciledAt: now.toISOString(),
+                bankStatementRef: statementRef,
+              },
+              reason: `BRS 1-to-1 statement match (${rowDateStr}, ₹${rowAmount.toFixed(2)})`,
+              performedById: ctx.userId,
+            });
+            persisted = true;
+            persistedCount++;
+          }
+
+          results.push({
+            statementRow: row,
+            status: "MATCHED",
+            persisted,
+            matchedTx: {
+              id: matched.id,
+              transactionNumber: matched.transactionNumber,
+              amount: matched.amount,
+              transactionType: matched.transactionType,
+              description: matched.description,
+              transactionDate: matched.transactionDate ? new Date(matched.transactionDate).toISOString() : new Date().toISOString(),
+            },
+          });
+        } else if (candidates.length > 1) {
+          results.push({
+            statementRow: row,
+            status: "AMBIGUOUS",
+            suggestions: candidates.map((c) => ({
+              id: c.id,
+              transactionNumber: c.transactionNumber,
+              amount: c.amount,
+              transactionType: c.transactionType,
+              description: c.description,
+              transactionDate: c.transactionDate ? new Date(c.transactionDate).toISOString() : new Date().toISOString(),
+            })),
+          });
+        } else {
+          results.push({
+            statementRow: row,
+            status: "UNMATCHED",
+          });
+        }
       }
+
+      const countsRes = await tx.execute(sql`
+        SELECT
+          COUNT(*) FILTER (WHERE bank_reconciliation_status = 'RECONCILED')::int AS reconciled,
+          COUNT(*) FILTER (WHERE bank_reconciliation_status = 'UNRECONCILED')::int AS unreconciled,
+          COUNT(*) FILTER (WHERE bank_reconciliation_status = 'DISPUTED')::int AS disputed
+        FROM account_ledger_transactions
+        WHERE school_id = ${school.id}
+          AND bank_account_id = ${params.bankAccountId}
+      `);
+      const cRow = (countsRes.rows?.[0] || {}) as Record<string, number>;
+
+      const matchedCount = results.filter((r) => r.status === "MATCHED").length;
+      const ambiguousCount = results.filter((r) => r.status === "AMBIGUOUS").length;
+      const unmatchedCount = results.filter((r) => r.status === "UNMATCHED").length;
+
+      const statementClosingBalance =
+        params.statementRows.length > 0
+          ? params.statementRows[params.statementRows.length - 1]?.balance ?? 0
+          : parseFloat(bank.currentBalance);
+
+      const ledgerBalance = parseFloat(bank.currentBalance);
+      const discrepancy = Math.abs(statementClosingBalance - ledgerBalance);
+
+      return {
+        results,
+        persistedCount,
+        reconciliationCounts: {
+          reconciled: Number(cRow.reconciled || 0),
+          unreconciled: Number(cRow.unreconciled || 0),
+          disputed: Number(cRow.disputed || 0),
+        },
+        summary: {
+          totalRows: params.statementRows.length,
+          matchedCount,
+          ambiguousCount,
+          unmatchedCount,
+          statementClosingBalance,
+          ledgerBalance,
+          discrepancy,
+        },
+      };
+    });
+
+    if (matchOutcome.persistedCount > 0) {
+      revalidatePath("/school/accounts/bank-reconciliation");
+      revalidatePath("/accountant/dashboard");
     }
 
-    const matchedCount = results.filter((r) => r.status === "MATCHED").length;
-    const ambiguousCount = results.filter((r) => r.status === "AMBIGUOUS").length;
-    const unmatchedCount = results.filter((r) => r.status === "UNMATCHED").length;
-
-    const statementClosingBalance =
-      params.statementRows.length > 0
-        ? params.statementRows[params.statementRows.length - 1]?.balance ?? 0
-        : parseFloat(bank.currentBalance);
-
-    const ledgerBalance = parseFloat(bank.currentBalance);
-    const discrepancy = Math.abs(statementClosingBalance - ledgerBalance);
-
     return {
-      success: true,
-      results,
-      summary: {
-        totalRows: params.statementRows.length,
-        matchedCount,
-        ambiguousCount,
-        unmatchedCount,
-        statementClosingBalance,
-        ledgerBalance,
-        discrepancy,
-      },
+      success: true as const,
+      ...matchOutcome,
     };
   } catch (error: any) {
     console.error("matchBankStatementAction error:", error);
     return {
-      success: false,
+      success: false as const,
       message: error.message || "Failed to perform reconciliation match",
+    };
+  }
+}
+
+/**
+ * Manually reconciles, disputes, or resets a bank ledger transaction (including ambiguous BRS candidates).
+ * RBAC: SUPER_ADMIN, SCHOOL_ADMIN, ACCOUNTANT (PRINCIPAL strictly denied).
+ */
+export async function confirmManualReconciliationAction(params: {
+  bankAccountId: string;
+  transactionId: string;
+  status: "RECONCILED" | "DISPUTED" | "UNRECONCILED";
+  statementRef?: string | undefined;
+  reason?: string | undefined;
+}) {
+  try {
+    const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"] as const);
+    const school = await requireSchool(ctx);
+
+    const validStatuses = ["RECONCILED", "DISPUTED", "UNRECONCILED"];
+    if (!validStatuses.includes(params.status)) {
+      return { success: false, message: "Invalid reconciliation status." };
+    }
+
+    const result = await withTenant(school.id, async (tx) => {
+      const txRow = await tx.query.accountLedgerTransactions.findFirst({
+        where: and(
+          eq(accountLedgerTransactions.id, params.transactionId),
+          eq(accountLedgerTransactions.schoolId, school.id),
+          eq(accountLedgerTransactions.bankAccountId, params.bankAccountId),
+        ),
+      });
+
+      if (!txRow) {
+        return { success: false, message: "Ledger transaction not found for this bank account." };
+      }
+
+      const now = new Date();
+      const nextRef =
+        params.status === "UNRECONCILED"
+          ? null
+          : params.statementRef?.trim() || txRow.bankStatementRef || null;
+
+      await tx
+        .update(accountLedgerTransactions)
+        .set({
+          bankReconciliationStatus: params.status,
+          bankReconciledAt: params.status === "UNRECONCILED" ? null : now,
+          bankReconciledById: params.status === "UNRECONCILED" ? null : ctx.userId,
+          bankStatementRef: nextRef,
+        })
+        .where(
+          and(
+            eq(accountLedgerTransactions.id, txRow.id),
+            eq(accountLedgerTransactions.schoolId, school.id),
+          ),
+        );
+
+      await logFeeAuditEvent(tx, {
+        schoolId: school.id,
+        action: "BRS_MANUAL_RECONCILE",
+        entityType: "LEDGER_TRANSACTION",
+        entityId: txRow.id,
+        previousData: {
+          bankReconciliationStatus: txRow.bankReconciliationStatus,
+          bankStatementRef: txRow.bankStatementRef,
+        },
+        newData: {
+          bankReconciliationStatus: params.status,
+          bankReconciledAt: params.status === "UNRECONCILED" ? null : now.toISOString(),
+          bankStatementRef: nextRef,
+        },
+        reason: params.reason?.trim() || `Manual BRS status updated to ${params.status}`,
+        performedById: ctx.userId,
+      });
+
+      return {
+        success: true,
+        message: `Transaction ${txRow.transactionNumber} marked as ${params.status}.`,
+      };
+    });
+
+    if (result.success) {
+      revalidatePath("/school/accounts/bank-reconciliation");
+      revalidatePath("/accountant/dashboard");
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error("confirmManualReconciliationAction error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update reconciliation status",
     };
   }
 }
@@ -301,16 +494,13 @@ export async function createAdjustingJournalVoucherAction(params: {
     let txType = "DEBIT";
 
     if (params.type === "BANK_CHARGES") {
-      // Bank Charges: Debit Expense 5200 (Gateway & Bank Charges), Credit Bank 1010
       debitAccountId = await getGatewayFeesExpenseChartAccountId(school.id, db);
       creditAccountId = bankChartAccountId;
-      txType = "DEBIT"; // Decrements bank in ledger
+      txType = "DEBIT";
     } else {
-      // Bank Interest: Debit Bank 1010, Credit Revenue (4010-INTEREST)
       debitAccountId = bankChartAccountId;
-      txType = "CREDIT"; // Increments bank in ledger
+      txType = "CREDIT";
 
-      // Resolve or create Bank Interest revenue account
       let interestAccount = await db.query.chartOfAccounts.findFirst({
         where: and(
           eq(chartOfAccounts.schoolId, school.id),
@@ -340,7 +530,6 @@ export async function createAdjustingJournalVoucherAction(params: {
     let finalBalance = bank.currentBalance;
 
     await db.transaction(async (tx) => {
-      // 1. Update bank balance
       const balanceDelta =
         params.type === "BANK_CHARGES"
           ? -params.amount
@@ -362,7 +551,6 @@ export async function createAdjustingJournalVoucherAction(params: {
 
       if (updatedBank) finalBalance = updatedBank.currentBalance;
 
-      // 2. Insert into account_ledger_transactions
       await tx.insert(accountLedgerTransactions).values({
         schoolId: school.id,
         transactionNumber: voucherNumber,
@@ -379,7 +567,6 @@ export async function createAdjustingJournalVoucherAction(params: {
         createdById: ctx.userId,
       });
 
-      // 3. Log uniform audit event
       await logFeeAuditEvent(tx, {
         schoolId: school.id,
         action: "CREATE_BRS_ADJUSTMENT",

@@ -36,6 +36,8 @@ export interface ReceiptData {
   transactionReference?: string | null | undefined;
   remarks?: string | null | undefined;
   paymentId: string;
+  isCancelled?: boolean | undefined;
+  cancellationReason?: string | null | undefined;
 }
 
 export interface ReceiptSheetProps {
@@ -116,9 +118,21 @@ export function ReceiptSheet({
                   {data.schoolAddress}
                 </p>
               )}
+              {data.schoolPhone && (
+                <p className="text-[10px] text-muted-foreground print:text-black">
+                  Ph: {data.schoolPhone}
+                </p>
+              )}
               <p className="text-[11px] font-semibold tracking-wider text-emerald-600 dark:text-emerald-400 mt-1 uppercase print:text-black">
-                Official Fee Payment Receipt
+                {data.isCancelled
+                  ? "VOID / CANCELLED FEE RECEIPT"
+                  : "Official Fee Payment Receipt"}
               </p>
+              {data.isCancelled && data.cancellationReason && (
+                <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 mt-0.5">
+                  Reversed: {data.cancellationReason}
+                </p>
+              )}
             </div>
 
             {/* Metadata Grid */}
@@ -213,37 +227,38 @@ export function ReceiptSheet({
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons: First-class Official A4 PDF Download + Optional 80mm Thermal Print */}
           <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
-            <button
-              ref={printButtonRef}
-              type="button"
-              onClick={handlePrint}
-              className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-900 hover:bg-black text-white dark:bg-white dark:text-foreground dark:hover:bg-gray-100 shadow-sm transition active:scale-95"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print (Thermal 80mm)</span>
-            </button>
-
             {data.paymentId && (
               <a
                 href={`/api/receipt/${data.paymentId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-border/40 hover:bg-muted/40 text-muted-foreground transition"
+                className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm transition active:scale-95"
               >
                 <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">PDF</span>
+                <span>Download A4 PDF</span>
               </a>
             )}
 
             <button
+              ref={printButtonRef}
+              type="button"
+              onClick={handlePrint}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border border-border/40 hover:bg-muted/40 text-foreground transition active:scale-95"
+              title="Optional 80mm Thermal POS Print"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Thermal 80mm</span>
+            </button>
+
+            <button
               type="button"
               onClick={handleCollectNext}
-              className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#248A3D] hover:bg-[#1f7232] dark:bg-[#30D158] dark:hover:bg-[#28b84d] text-white dark:text-black shadow-sm transition active:scale-95"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-gray-900 hover:bg-black text-white dark:bg-white dark:text-foreground dark:hover:bg-gray-100 shadow-sm transition active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Next Student</span>
+              <span>Next</span>
             </button>
           </div>
         </DialogPrimitive.Content>

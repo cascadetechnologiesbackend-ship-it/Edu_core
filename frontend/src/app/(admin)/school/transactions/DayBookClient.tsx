@@ -32,6 +32,7 @@ const ReceiptSheet = dynamic(
 export interface TransactionRow {
   id: string;
   receiptNumber: string;
+  receiptGroupId?: string | null | undefined;
   invoiceNumber: string;
   studentId: string;
   studentName: string;
@@ -46,6 +47,9 @@ export interface TransactionRow {
   collectedByName?: string | undefined;
   grossAmount?: number | undefined;
   balanceRemaining?: number | undefined;
+  status?: string | undefined;
+  isCancelled?: boolean | undefined;
+  cancellationReason?: string | null | undefined;
 }
 
 export function DayBookClient({
@@ -87,7 +91,15 @@ export function DayBookClient({
     );
   }, [transactions, clientSearch]);
 
-  const totalCollected = filteredTransactions.reduce((acc, tx) => acc + tx.amountPaid, 0);
+  const totalCollected = useMemo(() => {
+    let paise = 0;
+    for (const tx of filteredTransactions) {
+      if (!tx.isCancelled && tx.status !== "REVERSED") {
+        paise += Math.round((tx.amountPaid || 0) * 100);
+      }
+    }
+    return paise / 100;
+  }, [filteredTransactions]);
 
   // Open Receipt Modal for reprint
   const handleReprintReceipt = (tx: TransactionRow) => {
@@ -116,6 +128,8 @@ export function DayBookClient({
       remarks: tx.remarks,
       paymentId: tx.id,
       cashierName: tx.collectedByName,
+      isCancelled: Boolean(tx.isCancelled || tx.status === "REVERSED"),
+      cancellationReason: tx.cancellationReason,
     });
     setReceiptModalOpen(true);
   };
@@ -150,6 +164,7 @@ export function DayBookClient({
 
       worksheet.columns = [
         { header: "Receipt No", key: "receiptNumber", width: 20 },
+        { header: "Status", key: "status", width: 12 },
         { header: "Student Name", key: "studentName", width: 25 },
         { header: "Admission No", key: "admissionNumber", width: 15 },
         { header: "Fee Particulars", key: "feeHeadName", width: 22 },
@@ -162,6 +177,7 @@ export function DayBookClient({
       filteredTransactions.forEach((tx) => {
         worksheet.addRow({
           receiptNumber: tx.receiptNumber,
+          status: tx.isCancelled || tx.status === "REVERSED" ? "REVERSED" : "ACTIVE",
           studentName: tx.studentName,
           admissionNumber: tx.admissionNumber,
           feeHeadName: tx.feeHeadName,
@@ -194,18 +210,36 @@ export function DayBookClient({
       header: "Receipt Details",
       accessorKey: "receiptNumber",
       sortable: true,
-      cell: (row) => (
-        <div>
-          <button
-            type="button"
-            onClick={() => handleReprintReceipt(row)}
-            className="font-mono font-bold text-foreground hover:text-[#248A3D] dark:text-[#30D158] dark:hover:text-[#30D158] text-left transition"
-          >
-            {row.receiptNumber}
-          </button>
-          <p className="text-[11px] text-gray-400 font-mono">Inv: #{row.invoiceNumber}</p>
-        </div>
-      ),
+      cell: (row) => {
+        const isReversed = Boolean(row.isCancelled || row.status === "REVERSED");
+        return (
+          <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleReprintReceipt(row)}
+                className={cn(
+                  "font-mono font-bold text-left transition",
+                  isReversed
+                    ? "text-muted-foreground line-through"
+                    : "text-foreground hover:text-[#248A3D] dark:text-[#30D158] dark:hover:text-[#30D158]",
+                )}
+              >
+                {row.receiptNumber}
+              </button>
+              {isReversed && (
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                  title={row.cancellationReason || "Cancelled / Reversed"}
+                >
+                  REVERSED
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400 font-mono">Inv: #{row.invoiceNumber}</p>
+          </div>
+        );
+      },
     },
     {
       id: "student",
@@ -282,11 +316,21 @@ export function DayBookClient({
       header: "Amount Paid",
       accessorKey: "amountPaid",
       sortable: true,
-      cell: (row) => (
-        <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 text-sm">
-          ₹{row.amountPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-        </span>
-      ),
+      cell: (row) => {
+        const isReversed = Boolean(row.isCancelled || row.status === "REVERSED");
+        return (
+          <span
+            className={cn(
+              "font-bold font-mono text-sm",
+              isReversed
+                ? "text-rose-500/70 line-through"
+                : "text-emerald-600 dark:text-emerald-400",
+            )}
+          >
+            ₹{row.amountPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        );
+      },
     },
   ];
 
@@ -371,7 +415,7 @@ export function DayBookClient({
                 <FileDown className="w-4 h-4" />
               </a>
 
-              {canCancel && (
+              {canCancel && !row.isCancelled && row.status !== "REVERSED" && (
                 <button
                   type="button"
                   onClick={() => setCancellationTarget(row)}
