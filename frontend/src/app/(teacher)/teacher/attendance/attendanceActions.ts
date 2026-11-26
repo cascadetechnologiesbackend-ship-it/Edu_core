@@ -337,6 +337,11 @@ export async function saveTeacherAttendanceRoster(
     throw new Error("Cannot save empty attendance roster.");
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (dateStr > todayStr) {
+    throw new Error("Cannot mark attendance for a future date.");
+  }
+
   return await withTenant(school.id, async (tx) => {
     // 1. Verify Scope (S16-F05)
     // - Daily homeroom roll-call (periodId == null): Condition B requires Class Teacher override (or Admin)

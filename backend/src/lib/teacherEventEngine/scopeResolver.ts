@@ -5,6 +5,7 @@ import {
   sectionSubjectTeachers,
   classSubjects,
   timetablePeriods,
+  timetableSubstitutions,
   academicYears,
   assignments,
   students,
@@ -377,13 +378,31 @@ export async function resolveTeacherScope(
     where: and(...periodConditions),
     columns: { id: true },
   });
-  const scheduledPeriods = scheduledPeriodRows.map((p: { id: string }) => p.id);
+
+  // 5b. Include active confirmed substitutions for today
+  const subRows = await txDb.query.timetableSubstitutions.findMany({
+    where: and(
+      eq(timetableSubstitutions.schoolId, schoolId),
+      eq(timetableSubstitutions.substituteTeacherId, teacherUserId),
+      eq(timetableSubstitutions.date, todayStr),
+      eq(timetableSubstitutions.status, "CONFIRMED")
+    ),
+    columns: { timetablePeriodId: true, sectionId: true },
+  });
+
+  const scheduledPeriods = Array.from(
+    new Set([
+      ...scheduledPeriodRows.map((p: { id: string }) => p.id),
+      ...subRows.map((s: { timetablePeriodId: string }) => s.timetablePeriodId),
+    ])
+  );
 
   // 6. Union of all section IDs accessible by this teacher
   const allSectionIds = Array.from(
     new Set([
       ...classTeacherSections,
       ...teachingSections.map((ts) => ts.sectionId),
+      ...subRows.map((s: { sectionId: string }) => s.sectionId),
     ])
   );
 

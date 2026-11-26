@@ -39,11 +39,17 @@ export class TeacherScopeError extends BaseTeacherScopeError {
   }
 }
 
-export const ADMIN_BYPASS_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
+export const ADMIN_BYPASS_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN"] as const;
+export const OVERSIGHT_READ_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL"] as const;
 
 export function isAdminRole(role?: string): boolean {
   if (!role) return false;
   return (ADMIN_BYPASS_ROLES as readonly string[]).includes(role);
+}
+
+export function isOversightRole(role?: string): boolean {
+  if (!role) return false;
+  return (OVERSIGHT_READ_ROLES as readonly string[]).includes(role);
 }
 
 /**

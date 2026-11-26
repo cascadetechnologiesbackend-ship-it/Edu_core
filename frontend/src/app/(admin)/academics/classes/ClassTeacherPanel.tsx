@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { assignClassTeacherAction } from "./class-teacher-actions";
+import { upsertClassTeacherAssignment } from "../actions/teacher-assignment.actions";
 
 type Teacher = {
   id: string;
@@ -42,7 +42,7 @@ export default function ClassTeacherPanel({
     setStatusMessage(null);
     setConflictPrompt(null);
     startTransition(async () => {
-      const res = await assignClassTeacherAction({
+      const res = await upsertClassTeacherAssignment({
         sectionId: selectedSectionId,
         teacherId: selectedTeacherId || null,
         forceTransfer,

@@ -331,6 +331,15 @@ export async function saveAssignmentGrades(
       schoolId: school.id,
     });
 
+    if (assignment.sectionId && grades.length > 0) {
+      await assertStudentRosterMembership(
+        grades.map((g) => g.studentId),
+        assignment.sectionId,
+        school.id,
+        tx
+      );
+    }
+
     const maxMarks = assignment.maxMarks || 100;
     let savedCount = 0;
 

@@ -434,6 +434,8 @@ export async function batchUpdateClassSubjectMappings(data: {
     }
 
     // 2. Process additions
+    const leadUpdates: Array<{ classSubjectId: string; teacherId: string | null }> = [];
+
     for (const add of data.toAdd) {
       const existing = await tx.query.classSubjects.findFirst({
         where: and(
@@ -444,14 +446,20 @@ export async function batchUpdateClassSubjectMappings(data: {
       });
 
       if (!existing) {
-        await tx.insert(classSubjects).values({
-          schoolId,
-          classId: add.classId,
-          subjectId: add.subjectId,
-          assignedTeacherId: add.assignedTeacherId || null,
-          periodsPerWeek: add.periodsPerWeek ?? 5,
-          isElective: add.isElective ?? false,
-        });
+        const [inserted] = await tx
+          .insert(classSubjects)
+          .values({
+            schoolId,
+            classId: add.classId,
+            subjectId: add.subjectId,
+            assignedTeacherId: add.assignedTeacherId || null,
+            periodsPerWeek: add.periodsPerWeek ?? 5,
+            isElective: add.isElective ?? false,
+          })
+          .returning({ id: classSubjects.id });
+        if (inserted && add.assignedTeacherId) {
+          leadUpdates.push({ classSubjectId: inserted.id, teacherId: add.assignedTeacherId });
+        }
       }
     }
 
@@ -476,6 +484,9 @@ export async function batchUpdateClassSubjectMappings(data: {
               eq(classSubjects.schoolId, schoolId),
             ),
           );
+        if (upd.assignedTeacherId !== undefined) {
+          leadUpdates.push({ classSubjectId: upd.id, teacherId: upd.assignedTeacherId });
+        }
       }
     }
 
@@ -485,7 +496,7 @@ export async function batchUpdateClassSubjectMappings(data: {
       revalidatePath("/academics/mapping");
     } catch {}
 
-    return { success: true };
+    return { success: true, leadUpdates };
   });
 }
 
