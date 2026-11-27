@@ -1,6 +1,6 @@
 "use server";
 
-import { db, withTenant } from "@/db";
+import { db, withTenant, withAuthContext } from "@/db";
 import {
   staff,
   salaryTemplates,
@@ -986,10 +986,12 @@ export async function updateStaff(
     const ctx = await requireAuth(["SUPER_ADMIN", "SCHOOL_ADMIN", "HR_MANAGER"] as const);
     const school = await requireSchool(ctx);
 
-    const staffRecord = await db.query.staff.findFirst({
-      where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
-      with: { designation: true },
-    });
+    const staffRecord = await withTenant(school.id, async (tx) =>
+      tx.query.staff.findFirst({
+        where: and(eq(staff.id, staffId), eq(staff.schoolId, school.id)),
+        with: { designation: true },
+      }),
+    );
 
     if (!staffRecord) {
       return { success: false, message: "Staff record not found or unauthorized." };
@@ -1030,39 +1032,48 @@ export async function updateStaff(
       updates.panEncrypted = input.pan ? encryptData(input.pan.trim().toUpperCase()) : null;
     }
 
-    // Handle email update across staff and users
-    if (input.email) {
-      const emailNorm = input.email.trim().toLowerCase();
-      if (staffRecord.userId) {
-        const emailConflict = await db.query.users.findFirst({
+    const emailNorm = input.email ? input.email.trim().toLowerCase() : null;
+    if (emailNorm && staffRecord.userId) {
+      const emailConflict = await withAuthContext(async (authTx) =>
+        authTx.query.users.findFirst({
           where: and(eq(users.email, emailNorm), sql`${users.id} != ${staffRecord.userId}`),
-        });
-        if (emailConflict) {
-          return { success: false, message: "Another user account already uses this email." };
-        }
-        await db.update(users).set({ email: emailNorm, updatedAt: new Date() }).where(and(eq(users.id, staffRecord.userId), eq(users.schoolId, school.id)));
+        }),
+      );
+      if (emailConflict) {
+        return { success: false, message: "Another user account already uses this email." };
       }
+    }
+    if (emailNorm) {
       updates.emailEncrypted = encryptData(emailNorm);
     }
 
-    // Handle department change
-    if (input.departmentId) {
-      const dept = await db.query.departments.findFirst({
-        where: and(eq(departments.id, input.departmentId), eq(departments.schoolId, school.id)),
-      });
-      if (!dept || !dept.isActive) {
-        return { success: false, message: "Selected department is invalid or archived." };
+    await withTenant(school.id, async (tx) => {
+      // Handle email update on users
+      if (emailNorm && staffRecord.userId) {
+        await tx
+          .update(users)
+          .set({ email: emailNorm, updatedAt: new Date() })
+          .where(and(eq(users.id, staffRecord.userId), eq(users.schoolId, school.id)));
       }
-      updates.departmentId = input.departmentId;
-    }
+
+      // Handle department change
+      if (input.departmentId) {
+        const dept = await tx.query.departments.findFirst({
+          where: and(eq(departments.id, input.departmentId), eq(departments.schoolId, school.id)),
+        });
+        if (!dept || !dept.isActive) {
+          throw new Error("Selected department is invalid or archived.");
+        }
+        updates.departmentId = input.departmentId;
+      }
 
       // Handle designation change and authoritative role synchronization
       if (input.designationId && input.designationId !== staffRecord.designationId) {
-        const newDesig = await db.query.designations.findFirst({
+        const newDesig = await tx.query.designations.findFirst({
           where: and(eq(designations.id, input.designationId), eq(designations.schoolId, school.id)),
         });
         if (!newDesig || !newDesig.isActive) {
-          return { success: false, message: "Selected designation is invalid or archived." };
+          throw new Error("Selected designation is invalid or archived.");
         }
         updates.designationId = input.designationId;
 
@@ -1073,29 +1084,28 @@ export async function updateStaff(
         if (staffRecord.designation.isTeaching && !newDesig.isTeaching && staffRecord.userId) {
           // Academic safety check: Verify no active class allocations
           const [csCount, sstCount, tpCount, secCount] = await Promise.all([
-            db.query.classSubjects.findMany({ where: eq(classSubjects.assignedTeacherId, staffRecord.userId) }),
-            db.query.sectionSubjectTeachers.findMany({ where: eq(sectionSubjectTeachers.teacherId, staffRecord.userId) }),
-            db.query.timetablePeriods.findMany({ where: eq(timetablePeriods.teacherId, staffRecord.userId) }),
-            db.query.sections.findMany({ where: eq(sections.classTeacherId, staffRecord.userId) }),
+            tx.query.classSubjects.findMany({ where: and(eq(classSubjects.assignedTeacherId, staffRecord.userId), eq(classSubjects.schoolId, school.id)) }),
+            tx.query.sectionSubjectTeachers.findMany({ where: and(eq(sectionSubjectTeachers.teacherId, staffRecord.userId), eq(sectionSubjectTeachers.schoolId, school.id)) }),
+            tx.query.timetablePeriods.findMany({ where: and(eq(timetablePeriods.teacherId, staffRecord.userId), eq(timetablePeriods.schoolId, school.id)) }),
+            tx.query.sections.findMany({ where: and(eq(sections.classTeacherId, staffRecord.userId), eq(sections.schoolId, school.id)) }),
           ]);
 
           const totalActive = csCount.length + sstCount.length + tpCount.length + secCount.length;
           if (totalActive > 0) {
-            return {
-              success: false,
-              message: `Cannot change staff to non-teaching. This teacher has ${totalActive} active academic allocation(s). Reassign classes and timetable periods first.`,
-            };
+            throw new Error(
+              `Cannot change staff to non-teaching. This teacher has ${totalActive} active academic allocation(s). Reassign classes and timetable periods first.`,
+            );
           }
         }
 
         if (staffRecord.userId && oldRoleName !== newRoleName && newRoleName) {
           // Remove old role
           if (oldRoleName) {
-            const oldRole = await db.query.roles.findFirst({
+            const oldRole = await tx.query.roles.findFirst({
               where: and(eq(roles.schoolId, school.id), eq(roles.name, oldRoleName as any)),
             });
             if (oldRole) {
-              await db.delete(userRoles).where(
+              await tx.delete(userRoles).where(
                 and(
                   eq(userRoles.userId, staffRecord.userId),
                   eq(userRoles.roleId, oldRole.id),
@@ -1106,11 +1116,11 @@ export async function updateStaff(
           }
 
           // Find-or-create new role
-          let targetRole = await db.query.roles.findFirst({
+          let targetRole = await tx.query.roles.findFirst({
             where: and(eq(roles.schoolId, school.id), eq(roles.name, newRoleName as any)),
           });
           if (!targetRole) {
-            const [created] = await db
+            const [created] = await tx
               .insert(roles)
               .values({
                 schoolId: school.id,
@@ -1126,11 +1136,15 @@ export async function updateStaff(
           }
 
           if (targetRole) {
-            const existingUserRole = await db.query.userRoles.findFirst({
-              where: and(eq(userRoles.userId, staffRecord.userId), eq(userRoles.roleId, targetRole.id)),
+            const existingUserRole = await tx.query.userRoles.findFirst({
+              where: and(
+                eq(userRoles.userId, staffRecord.userId),
+                eq(userRoles.roleId, targetRole.id),
+                eq(userRoles.schoolId, school.id),
+              ),
             });
             if (!existingUserRole) {
-              await db.insert(userRoles).values({
+              await tx.insert(userRoles).values({
                 userId: staffRecord.userId,
                 roleId: targetRole.id,
                 schoolId: school.id,
@@ -1142,7 +1156,8 @@ export async function updateStaff(
         }
       }
 
-    await db.update(staff).set(updates).where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
+      await tx.update(staff).set(updates).where(and(eq(staff.id, staffId), eq(staff.schoolId, school.id)));
+    });
     await logHrAudit(ctx, "WRITE", "staff", staffId, { action: "UPDATE_STAFF" });
 
     await invalidateTeachingStaffCache(school.id);

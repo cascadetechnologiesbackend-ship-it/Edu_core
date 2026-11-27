@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { db } from "@/db";
+import { db, withTenant, withAuthContext } from "@/db";
 import {
   vehicles,
   routes,
@@ -481,10 +481,12 @@ export async function createDriver(data: {
 
   const loginEmail = data.email?.trim().toLowerCase() || `driver.${rawMobile.slice(-10)}@${schoolId.slice(0, 8)}.schoolmitra.local`;
 
-  // Check if user already exists
-  const existingUser = await db.query.users.findFirst({
-    where: eq(users.email, loginEmail),
-  });
+  // Check if user already exists (global uniqueness check under SYSTEM_AUTH)
+  const existingUser = await withAuthContext(async (authTx) =>
+    authTx.query.users.findFirst({
+      where: eq(users.email, loginEmail),
+    }),
+  );
   if (existingUser) {
     return { success: false, message: `A user account with email "${loginEmail}" already exists.` };
   }
@@ -492,78 +494,82 @@ export async function createDriver(data: {
   const defaultPassword = generateRoleTempPassword("DRIVER", rawMobile);
   const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      schoolId,
-      email: loginEmail,
-      passwordHash,
-      mustChangePassword: true,
-      isActive: true,
-      isEmailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .returning();
-
-  if (!newUser) {
-    return { success: false, message: "Failed to create driver login credentials." };
-  }
-
-  // Ensure DRIVER role exists for school
-  let driverRole = await db.query.roles.findFirst({
-    where: and(eq(roles.schoolId, schoolId), eq(roles.name, "DRIVER")),
-  });
-
-  if (!driverRole) {
-    const [createdRole] = await db
-      .insert(roles)
+  const { newDriver } = await withTenant(schoolId, async (tx) => {
+    const [newUser] = await tx
+      .insert(users)
       .values({
         schoolId,
-        name: "DRIVER",
-        displayName: "Bus Driver",
-        isSystemRole: true,
-      })
-      .returning();
-    driverRole = createdRole;
-  }
-
-  if (driverRole) {
-    await db.insert(userRoles).values({
-      userId: newUser.id,
-      roleId: driverRole.id,
-      schoolId,
-    });
-  }
-
-  // Create driver entity
-  const [newDriver] = await db
-    .insert(drivers)
-    .values({
-      schoolId,
-      vehicleId: data.vehicleId || null,
-      userId: newUser.id,
-      nameEncrypted: encryptData(data.name.trim()),
-      mobileEncrypted: encryptData(data.mobile.trim()),
-      licenceEncrypted: encryptData(data.licenceNumber.trim()),
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .returning();
-
-  // If vehicle was assigned, update vehicle record driver info
-  if (data.vehicleId) {
-    await db
-      .update(vehicles)
-      .set({
-        driverNameEncrypted: encryptData(data.name.trim()),
-        driverLicenceEncrypted: encryptData(data.licenceNumber.trim()),
-        driverMobileEncrypted: encryptData(data.mobile.trim()),
+        email: loginEmail,
+        passwordHash,
+        mustChangePassword: true,
+        isActive: true,
+        isEmailVerified: true,
+        createdAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(and(eq(vehicles.id, data.vehicleId), eq(vehicles.schoolId, schoolId)));
-  }
+      .returning();
+
+    if (!newUser) {
+      throw new Error("Failed to create driver login credentials.");
+    }
+
+    // Ensure DRIVER role exists for school
+    let driverRole = await tx.query.roles.findFirst({
+      where: and(eq(roles.schoolId, schoolId), eq(roles.name, "DRIVER")),
+    });
+
+    if (!driverRole) {
+      const [createdRole] = await tx
+        .insert(roles)
+        .values({
+          schoolId,
+          name: "DRIVER",
+          displayName: "Bus Driver",
+          isSystemRole: true,
+        })
+        .returning();
+      driverRole = createdRole;
+    }
+
+    if (driverRole) {
+      await tx.insert(userRoles).values({
+        userId: newUser.id,
+        roleId: driverRole.id,
+        schoolId,
+      });
+    }
+
+    // Create driver entity
+    const [createdDriver] = await tx
+      .insert(drivers)
+      .values({
+        schoolId,
+        vehicleId: data.vehicleId || null,
+        userId: newUser.id,
+        nameEncrypted: encryptData(data.name.trim()),
+        mobileEncrypted: encryptData(data.mobile.trim()),
+        licenceEncrypted: encryptData(data.licenceNumber.trim()),
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    // If vehicle was assigned, update vehicle record driver info
+    if (data.vehicleId) {
+      await tx
+        .update(vehicles)
+        .set({
+          driverNameEncrypted: encryptData(data.name.trim()),
+          driverLicenceEncrypted: encryptData(data.licenceNumber.trim()),
+          driverMobileEncrypted: encryptData(data.mobile.trim()),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(vehicles.id, data.vehicleId), eq(vehicles.schoolId, schoolId)));
+    }
+
+    return { newDriver: createdDriver };
+  });
 
   // Send credentials via SMS/WhatsApp
   const formattedMobile = rawMobile.length === 10 ? `+91${rawMobile}` : `+${rawMobile}`;

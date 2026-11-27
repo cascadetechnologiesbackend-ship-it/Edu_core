@@ -6,7 +6,7 @@ import { schools, users, roles, userRoles, persons } from "@/db/schema";
 import { encryptData, computeSearchHash } from "@/lib/encryption";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export async function provisionNewSchool(formData: FormData) {
   try {
@@ -49,6 +49,8 @@ export async function provisionNewSchool(formData: FormData) {
         .returning();
 
       if (!school) throw new Error("Failed to create school record");
+
+      await tx.execute(sql`SELECT set_config('app.current_school_id', ${school.id}, true)`);
 
       // 2. Create initial SCHOOL_ADMIN user
       const [adminUser] = await tx
