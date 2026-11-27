@@ -461,9 +461,33 @@ export async function createDesignation(
       return { success: false, message: `Designation "${name}" already exists in this school.` };
     }
 
+    const TENANT_ASSIGNABLE_ROLES = [
+      "SCHOOL_ADMIN",
+      "PRINCIPAL",
+      "HR_MANAGER",
+      "HOD",
+      "TEACHER",
+      "ACCOUNTANT",
+      "LIBRARIAN",
+      "TRANSPORT_MANAGER",
+      "PARENT",
+      "STUDENT",
+      "DRIVER",
+    ] as const;
+
+    const requestedMappedRole = payload.mappedRole?.trim().toUpperCase();
+    if (!payload.isTeaching && requestedMappedRole) {
+      if (!(TENANT_ASSIGNABLE_ROLES as readonly string[]).includes(requestedMappedRole)) {
+        return {
+          success: false,
+          message: `Role "${requestedMappedRole}" cannot be assigned through school designations.`,
+        };
+      }
+    }
+
     const finalMappedRole = payload.isTeaching
       ? "TEACHER"
-      : payload.mappedRole || null;
+      : requestedMappedRole || null;
 
     const [desig] = await db
       .insert(designations)
@@ -691,10 +715,10 @@ export async function createStaff(input: z.infer<typeof CreateStaffSchema>) {
     }
 
     const VALID_SYSTEM_ROLES = [
-      "SUPER_ADMIN",
       "SCHOOL_ADMIN",
       "PRINCIPAL",
       "HR_MANAGER",
+      "HOD",
       "TEACHER",
       "ACCOUNTANT",
       "LIBRARIAN",

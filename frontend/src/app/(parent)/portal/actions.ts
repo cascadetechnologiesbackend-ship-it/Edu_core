@@ -45,9 +45,20 @@ export async function generateConsentChangeOtp(
         if (u?.phone) parentMobile = u.phone;
       });
     }
-    if (!parentMobile) parentMobile = "+919999999999";
+    if (!parentMobile) {
+      return { success: false, message: "No registered mobile number found for your guardian account." };
+    }
 
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const { randomInt, createHash } = await import("crypto");
+    const generatedOtp = randomInt(100000, 1000000).toString();
+    const otpHash = createHash("sha256").update(`${session.user.id}:${studentId}:${purposeId}:${generatedOtp}`).digest("hex");
+    const g = globalThis as unknown as { __dpdpOtpStore?: Map<string, { hash: string; expiresAt: number; attempts: number }> };
+    if (!g.__dpdpOtpStore) g.__dpdpOtpStore = new Map();
+    g.__dpdpOtpStore.set(`${session.user.id}:${studentId}:${purposeId}`, {
+      hash: otpHash,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+      attempts: 0,
+    });
     
     const sent = await sendSMS(parentMobile, `Your OTP for changing DPDP consent for purpose ${purposeId} is: ${generatedOtp}`);
     
@@ -133,6 +144,26 @@ export async function submitConsentChange(input: {
             ),
           );
       }
+
+      // Verify OTP hash, expiry, and single-use before mutating consent
+      const { createHash, timingSafeEqual } = await import("crypto");
+      const g = globalThis as unknown as { __dpdpOtpStore?: Map<string, { hash: string; expiresAt: number; attempts: number }> };
+      const otpKey = `${parentUserId}:${input.studentId}:${input.purposeId}`;
+      const otpRecord = g.__dpdpOtpStore?.get(otpKey);
+      if (!otpRecord || Date.now() > otpRecord.expiresAt) {
+        g.__dpdpOtpStore?.delete(otpKey);
+        return { success: false, message: "OTP has expired or was not requested. Please request a new OTP." };
+      }
+      otpRecord.attempts += 1;
+      if (otpRecord.attempts > 5) {
+        g.__dpdpOtpStore?.delete(otpKey);
+        return { success: false, message: "Too many invalid OTP attempts. Please request a new OTP." };
+      }
+      const candidateHash = createHash("sha256").update(`${parentUserId}:${input.studentId}:${input.purposeId}:${input.otpCode?.trim()}`).digest("hex");
+      if (!timingSafeEqual(Buffer.from(candidateHash, "hex"), Buffer.from(otpRecord.hash, "hex"))) {
+        return { success: false, message: "Invalid OTP code. Please try again." };
+      }
+      g.__dpdpOtpStore?.delete(otpKey);
 
       // Insert new consent log entry (events are immutable logs)
       await tx.insert(consentRecords).values({

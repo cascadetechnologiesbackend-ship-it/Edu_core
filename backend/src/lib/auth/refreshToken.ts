@@ -39,25 +39,39 @@ export async function rotateRefreshSession(
   userAgent: string,
 ): Promise<{ newToken: string; userId: string } | null> {
   const tokenHash = hashToken(rawToken);
+  const now = new Date();
 
-  const session = await db.query.sessions.findFirst({
-    where: and(
-      eq(sessions.sessionToken, tokenHash),
-      gt(sessions.expiresAt, new Date()),
-      isNull(sessions.revokedAt),
-    ),
+  return await db.transaction(async (tx) => {
+    // Atomically claim and revoke the existing refresh session once
+    const [revoked] = await tx
+      .update(sessions)
+      .set({ revokedAt: now })
+      .where(
+        and(
+          eq(sessions.sessionToken, tokenHash),
+          gt(sessions.expiresAt, now),
+          isNull(sessions.revokedAt),
+        ),
+      )
+      .returning({ id: sessions.id, userId: sessions.userId });
+
+    if (!revoked) return null;
+
+    // Issue new session within the same transaction
+    const newToken = generateRefreshToken();
+    const newTokenHash = hashToken(newToken);
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+    await tx.insert(sessions).values({
+      userId: revoked.userId,
+      sessionToken: newTokenHash,
+      ipAddress,
+      userAgent,
+      expiresAt,
+    });
+
+    return { newToken, userId: revoked.userId };
   });
-
-  if (!session) return null;
-
-  // Revoke old session (rotation)
-  await db.update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(eq(sessions.id, session.id));
-
-  // Issue new session
-  const newToken = await createRefreshSession(session.userId, ipAddress, userAgent);
-  return { newToken, userId: session.userId };
 }
 
 export async function revokeAllUserSessions(userId: string) {

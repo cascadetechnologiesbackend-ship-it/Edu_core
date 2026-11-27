@@ -31,7 +31,10 @@ export function requireConsent(purposeId: ConsentPurposeId) {
   }) {
     const studentId = extractStudentId(rawInput);
     if (!studentId) {
-      return next();
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Student ID is required for mandatory DPDP consent verification.",
+      });
     }
 
     try {

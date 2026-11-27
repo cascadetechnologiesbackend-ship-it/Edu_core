@@ -456,12 +456,20 @@ export async function submitGpsPing(data: {
 }
 
 export async function getLiveGpsPing(vehicleId: string) {
-  // Fetch latest ping for map
-  const ping = await db.query.gpsPings.findFirst({
-    where: eq(gpsPings.vehicleId, vehicleId),
-    orderBy: [desc(gpsPings.recordedAt)], // Order desc
+  const { school } = await checkAuth();
+  return await withTenant(school.id, async (tx) => {
+    const vehicle = await tx.query.vehicles.findFirst({
+      where: and(eq(vehicles.id, vehicleId), eq(vehicles.schoolId, school.id)),
+      columns: { id: true },
+    });
+    if (!vehicle) {
+      throw new Error("Vehicle not found or unauthorized.");
+    }
+    return await tx.query.gpsPings.findFirst({
+      where: eq(gpsPings.vehicleId, vehicleId),
+      orderBy: [desc(gpsPings.recordedAt)],
+    });
   });
-  return ping;
 }
 
 export async function createDriver(data: {

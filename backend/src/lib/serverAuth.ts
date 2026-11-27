@@ -172,7 +172,7 @@ export const requireSchool = safeCache(async function requireSchoolImpl(
   let schoolId = ctx.schoolId;
 
   if (!schoolId && ctx.role === "SUPER_ADMIN") {
-    // If SUPER_ADMIN without tenant context, check sm_impersonation or fallback to active school
+    // If SUPER_ADMIN without tenant context, check sm_impersonation cookie (never fallback to an arbitrary school)
     try {
       const { cookies } = await import("next/headers");
       const cookieStore = cookies();
@@ -185,17 +185,6 @@ export const requireSchool = safeCache(async function requireSchoolImpl(
         }
       }
     } catch {}
-
-    if (!schoolId) {
-      const [firstSchool] = await db
-        .select()
-        .from(schools)
-        .where(eq(schools.isActive, true))
-        .limit(1);
-      if (firstSchool) {
-        schoolId = firstSchool.id;
-      }
-    }
   }
 
   if (!schoolId) {

@@ -57,9 +57,9 @@ export async function driverScanStudent(
     ] as const);
     const school = await requireSchool(ctx);
 
-    return await withTenant(school.id, async () => {
+    return await withTenant(school.id, async (tx) => {
       // 1. Locate student bus pass by QR code
-      const [pass] = await db
+      const [pass] = await tx
         .select()
         .from(studentBusPasses)
         .where(
@@ -78,7 +78,7 @@ export async function driverScanStudent(
       }
 
       // 2. Fetch student minimal details
-      const [student] = await db
+      const [student] = await tx
         .select({
           id: students.id,
           primaryParentUserId: students.primaryParentUserId,
@@ -184,7 +184,7 @@ export async function driverScanStudent(
 
       // 4. Append-Only Insert into bus_boarding_events (AC-P19)
       const now = evaluation.eventPayload.scannedAt;
-      await db.insert(busBoardingEvents).values({
+      await tx.insert(busBoardingEvents).values({
         schoolId: school.id,
         studentId: student.id,
         routeId: pass.routeId,
@@ -200,7 +200,7 @@ export async function driverScanStudent(
       let absentCrossCheckTriggered = false;
       if (payload.direction === "BOARDING" && student.primaryParentUserId) {
         const todayStr = now.toISOString().split("T")[0]!;
-        const [todayAtt] = await db
+        const [todayAtt] = await tx
           .select({ status: studentAttendance.status })
           .from(studentAttendance)
           .where(
