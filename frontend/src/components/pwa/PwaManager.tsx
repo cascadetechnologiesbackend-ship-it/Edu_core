@@ -91,8 +91,9 @@ export function PwaManager() {
         }
       }
     } else if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`${basePath}/sw.js`)
         .then((registration) => {
           if (registration.waiting) {
             setWaitingWorker(registration.waiting);

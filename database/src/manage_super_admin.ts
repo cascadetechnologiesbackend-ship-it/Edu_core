@@ -5,9 +5,12 @@ import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export async function ensureSuperAdmin(
-  targetEmail = process.env.SUPER_ADMIN_EMAIL || "cascadetechnologiessolutions@gmail.com",
-  targetPass = process.env.SUPER_ADMIN_PASSWORD || "P4jkbnixj4@"
+  targetEmail = process.env.SUPER_ADMIN_EMAIL,
+  targetPass = process.env.SUPER_ADMIN_PASSWORD
 ) {
+  if (!targetEmail || !targetPass) {
+    throw new Error("SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD must be set in .env");
+  }
   console.log(`🔍 Ensuring SUPER_ADMIN user in database: ${targetEmail}...`);
 
   const passwordHash = await bcrypt.hash(targetPass, 12);

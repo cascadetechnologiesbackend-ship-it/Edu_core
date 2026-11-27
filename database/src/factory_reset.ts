@@ -54,18 +54,14 @@ async function factoryReset() {
   }
 
   // 3. Ensure Super Admin credentials are preserved & valid
-  const superAdminsToEnsure = [
-    {
-      email: "vaibhavbg8080@gmail.com",
-      pass: "9902850039",
-      name: "Super Admin (Vaibhav)",
-    },
-    {
-      email: (process.env.SUPER_ADMIN_EMAIL || "cascadetechnologiessolutions@gmail.com").trim().toLowerCase(),
-      pass: process.env.SUPER_ADMIN_PASSWORD || "P4jkbnixj4@",
+  const superAdminsToEnsure: Array<{ email: string; pass: string; name: string }> = [];
+  if (process.env.SUPER_ADMIN_EMAIL && process.env.SUPER_ADMIN_PASSWORD) {
+    superAdminsToEnsure.push({
+      email: process.env.SUPER_ADMIN_EMAIL.trim().toLowerCase(),
+      pass: process.env.SUPER_ADMIN_PASSWORD,
       name: "Platform Super Admin",
-    },
-  ];
+    });
+  }
 
   for (const admin of superAdminsToEnsure) {
     const passwordHash = await bcrypt.hash(admin.pass, 12);

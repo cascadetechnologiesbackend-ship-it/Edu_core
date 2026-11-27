@@ -123,7 +123,7 @@ export default async function AdminLayout({
 
   return (
     <SessionProvider session={session} basePath={authBasePath}>
-      <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-background">
         {/* Impersonation Banner at top of School Admin Portal */}
         {impersonationData && (
           <ImpersonationBanner

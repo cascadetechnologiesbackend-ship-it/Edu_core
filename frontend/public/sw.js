@@ -21,15 +21,18 @@ if (isDevHost) {
   });
 }
 
+// Derive basePath dynamically so sw.js works at both "/" and "/educore"
+const SW_BASE_PATH = self.location.pathname.replace(/\/sw\.js$/, "");
+
 // Strictly restricted precache assets: NO authenticated pages or student data
 const PRECACHE_ASSETS = [
-  "/offline",
-  "/icon.svg",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/apple-touch-icon.png",
-  "/manifest.json",
-  "/favicon.ico",
+  `${SW_BASE_PATH}/offline`,
+  `${SW_BASE_PATH}/icon.svg`,
+  `${SW_BASE_PATH}/icon-192.png`,
+  `${SW_BASE_PATH}/icon-512.png`,
+  `${SW_BASE_PATH}/apple-touch-icon.png`,
+  `${SW_BASE_PATH}/manifest.json`,
+  `${SW_BASE_PATH}/favicon.ico`,
 ];
 
 self.addEventListener("install", (event) => {
