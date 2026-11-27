@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TeacherFeedCard } from "./TeacherFeedCard";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { Users, Clock, Calendar } from "lucide-react";
@@ -21,6 +21,11 @@ export function PTMTodayFeedCard({
 
   const titleStr = card.title[locale as "en" | "hi"] || card.title.en;
   const summaryStr = card.summary[locale as "en" | "hi"] || card.summary.en;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <TeacherFeedCard
@@ -49,7 +54,9 @@ export function PTMTodayFeedCard({
                 </span>
               </div>
               <span className="text-[11px] text-emerald-400 font-medium">
-                {b.startTime ? new Date(b.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Scheduled"}
+                {mounted && b.startTime
+                  ? new Date(b.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "Scheduled"}
               </span>
             </div>
           ))}

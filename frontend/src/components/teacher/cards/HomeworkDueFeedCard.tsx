@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TeacherFeedCard } from "./TeacherFeedCard";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { FileText, Clock, Users } from "lucide-react";
@@ -29,7 +29,12 @@ export function HomeworkDueFeedCard({
   const titleStr = card.title[locale as "en" | "hi"] || card.title.en;
   const summaryStr = card.summary[locale as "en" | "hi"] || card.summary.en;
 
-  const dueLabel = dueDate
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const dueLabel = mounted && dueDate
     ? new Date(dueDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : undefined;
 
