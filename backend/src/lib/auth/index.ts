@@ -225,12 +225,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 const ua = headerStore.get("user-agent") ?? "unknown";
                 const { createRefreshSession } = await import("./refreshToken");
                 const rawToken = await createRefreshSession(superAdmin.id, ip, ua);
+                const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
                 cookieStore.set("schoolmitra_refresh", rawToken, {
                   httpOnly: true,
                   secure: process.env.NODE_ENV === "production",
                   sameSite: "strict",
                   maxAge: 7 * 24 * 60 * 60,
-                  path: "/api/auth/refresh",
+                  path: `${basePath}/api/auth/refresh`,
                 });
               } catch { }
 
@@ -360,12 +361,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           const ua = headerStore.get("user-agent") ?? "unknown";
           const { createRefreshSession } = await import("./refreshToken");
           const rawToken = await createRefreshSession(user.id, ip, ua);
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
           cookieStore.set("schoolmitra_refresh", rawToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60,
-            path: "/api/auth/refresh",
+            path: `${basePath}/api/auth/refresh`,
           });
         } catch { }
 

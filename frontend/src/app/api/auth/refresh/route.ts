@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rotateRefreshSession } from "@/lib/auth/refreshToken";
-import { db } from "@/db";
 import { users, userRoles, roles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { SignJWT } from "jose";
+import { withAuthContext, withTenant } from "@/lib/tenant";
 
 import { getJwtSecret } from "@/lib/auth/jwtSecret";
 
@@ -24,15 +24,34 @@ export async function POST(req: NextRequest) {
     return res;
   }
 
-  // Fetch user + role for new JWT
-  const user = await db.query.users.findFirst({ where: eq(users.id, result.userId) });
+  // Fetch user + role for new JWT inside RLS auth/tenant context
+  const user = await withAuthContext(async (tx) => {
+    const [u] = await tx
+      .select({
+        id: users.id,
+        schoolId: users.schoolId,
+        email: users.email,
+        isActive: users.isActive,
+      })
+      .from(users)
+      .where(eq(users.id, result.userId))
+      .limit(1);
+    return u;
+  });
   if (!user || !user.isActive) {
     return NextResponse.json({ error: "User not found" }, { status: 401 });
   }
 
-  const userRolesList = await db.select({ roleName: roles.name })
-    .from(userRoles).innerJoin(roles, eq(userRoles.roleId, roles.id))
-    .where(eq(userRoles.userId, user.id));
+  const queryRoles = async (tx: any) =>
+    await tx
+      .select({ roleName: roles.name })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(eq(userRoles.userId, user.id));
+
+  const userRolesList = await (user.schoolId
+    ? withTenant(user.schoolId, queryRoles, { actorId: user.id })
+    : withAuthContext(queryRoles));
 
   const accessToken = await new SignJWT({
     id: user.id,
@@ -46,13 +65,14 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ accessToken });
 
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
   // Rotate HttpOnly refresh cookie
   res.cookies.set("schoolmitra_refresh", result.newToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60,
-    path: "/api/auth/refresh",
+    path: `${basePath}/api/auth/refresh`,
   });
 
   return res;
