@@ -46,7 +46,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
               token.mustChangePassword = false;
             }
           }
-        } catch {}
+        } catch { }
       }
       return token;
     },
@@ -75,7 +75,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           if (dbUser && !dbUser.isActive) {
             return null as any;
           }
-        } catch {}
+        } catch { }
       }
       if (session?.user) {
         (session.user as any).isDemo = Boolean(params.token?.isDemo);
@@ -90,15 +90,28 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
         totpCode: { label: "TOTP Code", type: "text" },
+        demoToken: { label: "Demo Token", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        const demoToken = credentials?.demoToken ? String(credentials.demoToken).trim() : null;
+        if (!credentials?.email || (!demoToken && !credentials?.password)) {
           return null;
         }
 
         const email = String(credentials.email).trim().toLowerCase();
-        const password = String(credentials.password);
+        const password = credentials.password ? String(credentials.password) : "";
         const totpCode = credentials.totpCode ? String(credentials.totpCode).trim() : null;
+
+        let verifiedDemoPayload: { userId: string; schoolId: string; email: string } | null = null;
+        if (demoToken) {
+          const { verifyDemoLaunchToken } = await import("./demoToken");
+          const payload = verifyDemoLaunchToken(demoToken);
+          if (!payload || payload.email !== email) {
+            return null;
+          }
+          verifiedDemoPayload = payload;
+        }
+        const isDemoLaunch = Boolean(verifiedDemoPayload);
 
         // Check rate limiting on login endpoint
         const { checkRateLimit, RATE_LIMITS } = await import("@/lib/rateLimiter");
@@ -127,7 +140,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
               const headerStore = headers();
               ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
               ua = headerStore.get("user-agent") || "Unknown";
-            } catch {}
+            } catch { }
 
             const isUuid = (val?: string | null) =>
               typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -155,82 +168,84 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           }
         };
 
-        // 1. Check super_admin_users first (Project only necessary columns - Flaw Audit P1 #10)
-        const { superAdminUsers } = await import("@/db/schema/core");
-        const [superAdmin] = await db
-          .select({
-            id: superAdminUsers.id,
-            email: superAdminUsers.email,
-            fullName: superAdminUsers.fullName,
-            passwordHash: superAdminUsers.passwordHash,
-            isActive: superAdminUsers.isActive,
-            totpEnabled: superAdminUsers.totpEnabled,
-            totpSecret: superAdminUsers.totpSecret,
-          })
-          .from(superAdminUsers)
-          .where(sql`lower(${superAdminUsers.email}) = ${email}`)
-          .limit(1);
+        // 1. Check super_admin_users first (never permitted via demoLaunch)
+        if (!isDemoLaunch) {
+          const { superAdminUsers } = await import("@/db/schema/core");
+          const [superAdmin] = await db
+            .select({
+              id: superAdminUsers.id,
+              email: superAdminUsers.email,
+              fullName: superAdminUsers.fullName,
+              passwordHash: superAdminUsers.passwordHash,
+              isActive: superAdminUsers.isActive,
+              totpEnabled: superAdminUsers.totpEnabled,
+              totpSecret: superAdminUsers.totpSecret,
+            })
+            .from(superAdminUsers)
+            .where(sql`lower(${superAdminUsers.email}) = ${email}`)
+            .limit(1);
 
-        if (superAdmin && superAdmin.isActive) {
-          const isValid = await bcrypt.compare(password, superAdmin.passwordHash);
-          if (isValid) {
-            // Check TOTP enforcement for SUPER_ADMIN
-            if (superAdmin.totpEnabled) {
-              if (!totpCode) {
-                // Return partial credential signal or require TOTP
-                throw new Error("TOTP_REQUIRED");
+          if (superAdmin && superAdmin.isActive) {
+            const isValid = await bcrypt.compare(password, superAdmin.passwordHash);
+            if (isValid) {
+              // Check TOTP enforcement for SUPER_ADMIN
+              if (superAdmin.totpEnabled) {
+                if (!totpCode) {
+                  // Return partial credential signal or require TOTP
+                  throw new Error("TOTP_REQUIRED");
+                }
+
+                // Verify TOTP token using otplib with 1-step window skew tolerance (Flaw Audit P1 #11)
+                const { authenticator } = await import("otplib");
+                const { decryptData } = await import("@/lib/encryption");
+
+                let secret = superAdmin.totpSecret;
+                // Attempt decryption if secret was encrypted
+                if (secret && secret.includes(":")) {
+                  const decrypted = decryptData(secret);
+                  if (decrypted) secret = decrypted;
+                }
+
+                authenticator.options = { ...authenticator.options, window: 1 };
+                const isTotpValid = secret ? authenticator.check(totpCode, secret) : false;
+                if (!isTotpValid) {
+                  await recordFailedAttempt(email);
+                  await logFailedLogin("INVALID_TOTP", { id: superAdmin.id, role: "SUPER_ADMIN" });
+                  throw new Error("INVALID_TOTP");
+                }
               }
 
-              // Verify TOTP token using otplib with 1-step window skew tolerance (Flaw Audit P1 #11)
-              const { authenticator } = await import("otplib");
-              const { decryptData } = await import("@/lib/encryption");
-              
-              let secret = superAdmin.totpSecret;
-              // Attempt decryption if secret was encrypted
-              if (secret && secret.includes(":")) {
-                const decrypted = decryptData(secret);
-                if (decrypted) secret = decrypted;
-              }
+              await clearLockout(email);
+              // Mint refresh session cookie
+              try {
+                const { cookies, headers } = await import("next/headers");
+                const cookieStore = cookies();
+                const headerStore = headers();
+                const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "127.0.0.1";
+                const ua = headerStore.get("user-agent") ?? "unknown";
+                const { createRefreshSession } = await import("./refreshToken");
+                const rawToken = await createRefreshSession(superAdmin.id, ip, ua);
+                cookieStore.set("schoolmitra_refresh", rawToken, {
+                  httpOnly: true,
+                  secure: process.env.NODE_ENV === "production",
+                  sameSite: "strict",
+                  maxAge: 7 * 24 * 60 * 60,
+                  path: "/api/auth/refresh",
+                });
+              } catch { }
 
-              authenticator.options = { ...authenticator.options, window: 1 };
-              const isTotpValid = secret ? authenticator.check(totpCode, secret) : false;
-              if (!isTotpValid) {
-                await recordFailedAttempt(email);
-                await logFailedLogin("INVALID_TOTP", { id: superAdmin.id, role: "SUPER_ADMIN" });
-                throw new Error("INVALID_TOTP");
-              }
+              return {
+                id: superAdmin.id,
+                email: superAdmin.email,
+                name: superAdmin.fullName,
+                schoolId: null, // Super admins have no school ID
+                role: "SUPER_ADMIN",
+              };
+            } else {
+              await recordFailedAttempt(email);
+              await logFailedLogin("INVALID_PASSWORD", { id: superAdmin.id, role: "SUPER_ADMIN" });
+              return null;
             }
-
-            await clearLockout(email);
-            // Mint refresh session cookie
-            try {
-              const { cookies, headers } = await import("next/headers");
-              const cookieStore = cookies();
-              const headerStore = headers();
-              const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "127.0.0.1";
-              const ua = headerStore.get("user-agent") ?? "unknown";
-              const { createRefreshSession } = await import("./refreshToken");
-              const rawToken = await createRefreshSession(superAdmin.id, ip, ua);
-              cookieStore.set("schoolmitra_refresh", rawToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                maxAge: 7 * 24 * 60 * 60,
-                path: "/api/auth/refresh",
-              });
-            } catch {}
-
-            return {
-              id: superAdmin.id,
-              email: superAdmin.email,
-              name: superAdmin.fullName,
-              schoolId: null, // Super admins have no school ID
-              role: "SUPER_ADMIN",
-            };
-          } else {
-            await recordFailedAttempt(email);
-            await logFailedLogin("INVALID_PASSWORD", { id: superAdmin.id, role: "SUPER_ADMIN" });
-            return null;
           }
         }
 
@@ -259,8 +274,22 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           return null;
         }
 
-        // Verify password
-        const isValid = await bcrypt.compare(password, user.passwordHash);
+        // Verify password OR verify signed DB-backed demo launch token
+        let isValid = false;
+        if (isDemoLaunch && verifiedDemoPayload) {
+          if (user.id === verifiedDemoPayload.userId && user.schoolId === verifiedDemoPayload.schoolId && user.schoolId) {
+            const { schools } = await import("@/db/schema/core");
+            const [demoSchool] = await db
+              .select({ featureFlags: schools.featureFlags })
+              .from(schools)
+              .where(eq(schools.id, user.schoolId))
+              .limit(1);
+            isValid = Boolean((demoSchool?.featureFlags as Record<string, unknown> | null)?.demo_tenant === true);
+          }
+        } else {
+          isValid = await bcrypt.compare(password, user.passwordHash);
+        }
+
         if (!isValid) {
           await recordFailedAttempt(email);
           await logFailedLogin("INVALID_PASSWORD", { id: user.id, schoolId: user.schoolId });
@@ -319,7 +348,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             if (staffInfo?.mappedRole && userRolesList.some((r: { roleName: string }) => r.roleName === staffInfo.mappedRole)) {
               resolvedRole = staffInfo.mappedRole as typeof resolvedRole;
             }
-          } catch {}
+          } catch { }
         }
 
         // Mint refresh session cookie
@@ -338,7 +367,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             maxAge: 7 * 24 * 60 * 60,
             path: "/api/auth/refresh",
           });
-        } catch {}
+        } catch { }
 
         // Return user object for NextAuth
         return {

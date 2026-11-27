@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -171,19 +171,38 @@ export function DemoTopBanner() {
     setShowBoardDropdown(false);
 
     try {
-      // Formulate target demo email
-      const isCbse = targetBoard.code === "CBSE";
-      const targetEmail = isCbse
-        ? `${targetRole.emailSuffix}@demo.schoolos.io`
-        : `${targetRole.emailSuffix}.${targetBoard.prefix}@demo.schoolos.io`;
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const boardMap: Record<string, string> = {
+        CBSE: "CBSE",
+        ICSE: "ICSE",
+        STATE: "STATE_BOARD",
+        INTL: "IGCSE",
+      };
+      const launchRes = await fetch(`${basePath}/api/demo/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          board: boardMap[targetBoard.code] || targetBoard.code,
+          role: targetRole.role,
+        }),
+      });
+      const launchData = await launchRes.json();
+      if (!launchRes.ok || !launchData?.email || !launchData?.demoToken) {
+        alert(launchData?.error || "Failed to switch role in demo sandbox.");
+        return;
+      }
 
-      const destination = targetRole.defaultDashboard || "/dashboard";
+      const rawDestination = targetRole.defaultDashboard || "/dashboard";
+      const destination =
+        basePath && !rawDestination.startsWith(basePath)
+          ? `${basePath}${rawDestination}`
+          : rawDestination;
       const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
       const fullCallbackUrl = new URL(destination, origin).toString();
 
       const result = await signIn("credentials", {
-        email: targetEmail,
-        password: "SchoolMitra@123",
+        email: launchData.email,
+        demoToken: launchData.demoToken,
         callbackUrl: fullCallbackUrl,
         redirect: false,
       });
@@ -212,7 +231,8 @@ export function DemoTopBanner() {
     setIsResetting(true);
     setResetFeedback(null);
     try {
-      const res = await fetch("/api/demo/reset", {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const res = await fetch(`${basePath}/api/demo/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ board: currentBoard.code }),

@@ -197,12 +197,20 @@ export default function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [requiresTOTP, setRequiresTOTP] = useState(false);
+  const [demoPersonas, setDemoPersonas] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.search.includes("error=SessionExpired")) {
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     }
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+    fetch(`${basePath}/api/demo/personas`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.personas) setDemoPersonas(data.personas);
+      })
+      .catch(() => {});
   }, []);
 
   const {
@@ -214,23 +222,18 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const handleQuickFill = (email: string, password = "SchoolMitra@123") => {
+  const handleQuickFill = (email: string) => {
+    if (!email) return;
     setValue("email", email, { shouldValidate: true });
-    setValue("password", password, { shouldValidate: true });
   };
 
-  // ─── 1-Tap Demo Role Launch ─────────────────────────────────────────────────
+  // ─── 1-Tap Demo Role Launch (DB-Backed) ─────────────────────────────────────
 
   const handleLaunchDemoRole = async (card: DemoRoleCard) => {
     setLaunchingRole(card.role);
     setServerError(null);
 
     try {
-      const isCbse = selectedBoard.code === "CBSE";
-      const targetEmail = isCbse
-        ? `${card.emailPrefix}@demo.schoolos.io`
-        : `${card.emailPrefix}.${selectedBoard.prefix}@demo.schoolos.io`;
-
       const defaultDashboard =
         (card.role && ROLE_CONFIGS[card.role]?.defaultDashboard) || card.destination;
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -239,14 +242,35 @@ export default function LoginForm() {
           ? `${basePath}${defaultDashboard}`
           : defaultDashboard;
 
+      const boardMap: Record<string, string> = {
+        CBSE: "CBSE",
+        ICSE: "ICSE",
+        STATE: "STATE_BOARD",
+        INTL: "IGCSE",
+      };
+      const launchRes = await fetch(`${basePath}/api/demo/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          board: boardMap[selectedBoard.code] || selectedBoard.code,
+          role: card.role,
+        }),
+      });
+      const launchData = await launchRes.json();
+      if (!launchRes.ok || !launchData?.email || !launchData?.demoToken) {
+        setServerError(launchData?.error || "Failed to resolve demo user from database.");
+        setLaunchingRole(null);
+        return;
+      }
+
       const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
       const fullCallbackUrl = new URL(targetDashboard, origin).toString();
 
       let result: any = null;
       try {
         result = await signIn("credentials", {
-          email: targetEmail,
-          password: "SchoolMitra@123",
+          email: launchData.email,
+          demoToken: launchData.demoToken,
           callbackUrl: fullCallbackUrl,
           redirect: false,
         });
@@ -703,35 +727,39 @@ export default function LoginForm() {
           {/* Quick-Fill Shortcuts */}
           <div className="pt-1">
             <div className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-1.5 flex items-center justify-between">
-              <span>Quick Personas</span>
-              <span className="text-[10px] text-semantic-interactive font-mono">1-Tap Fill</span>
+              <span>Quick Personas (DB)</span>
+              <span className="text-[10px] text-semantic-interactive font-mono">Email Fill</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               <button
                 type="button"
-                onClick={() => handleQuickFill("admin@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
+                disabled={!demoPersonas.SCHOOL_ADMIN}
+                onClick={() => handleQuickFill(demoPersonas.SCHOOL_ADMIN || "")}
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate disabled:opacity-40"
               >
                 School Admin
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill("teacher@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
+                disabled={!demoPersonas.TEACHER}
+                onClick={() => handleQuickFill(demoPersonas.TEACHER || "")}
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate disabled:opacity-40"
               >
                 Teacher
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill("finance@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
+                disabled={!demoPersonas.ACCOUNTANT}
+                onClick={() => handleQuickFill(demoPersonas.ACCOUNTANT || "")}
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate disabled:opacity-40"
               >
                 Accountant
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill("principal@demo.schoolos.io")}
-                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
+                disabled={!demoPersonas.PRINCIPAL}
+                onClick={() => handleQuickFill(demoPersonas.PRINCIPAL || "")}
+                className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate disabled:opacity-40"
               >
                 Principal
               </button>

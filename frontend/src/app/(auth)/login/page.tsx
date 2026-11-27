@@ -42,7 +42,7 @@ export default async function LoginPage() {
             {/* Background Campus Image with Soft Editorial Overlay */}
             <div className="absolute inset-0 z-0">
               <Image
-                src="/images/campus-morning.jpg"
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/images/campus-morning.jpg`}
                 alt="Architectural view of a serene school campus courtyard"
                 fill
                 priority
@@ -59,10 +59,11 @@ export default async function LoginPage() {
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/40 p-2 flex items-center justify-center shadow-lg">
                   <Image
-                    src="/icon.svg"
+                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/icon.svg`}
                     alt="SchoolMitra Logo"
                     width={28}
                     height={28}
+                    unoptimized
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -130,10 +131,11 @@ export default async function LoginPage() {
             <div className="lg:hidden flex flex-col items-center text-center mb-6 w-full max-w-md">
               <div className="w-13 h-13 rounded-2xl bg-white/[0.06] backdrop-blur-xl border border-white/15 p-2.5 flex items-center justify-center mb-3 shadow-lg shadow-black/30">
                 <Image
-                  src="/icon.svg"
+                  src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/icon.svg`}
                   alt="SchoolMitra Logo"
                   width={34}
                   height={34}
+                  unoptimized
                   className="w-full h-full object-contain"
                 />
               </div>
