@@ -246,18 +246,18 @@ export async function getVehicles() {
       driverName: assignedDriver
         ? decryptData(assignedDriver.nameEncrypted) || "Driver"
         : v.driverNameEncrypted
-        ? decryptData(v.driverNameEncrypted) || ""
-        : "",
+          ? decryptData(v.driverNameEncrypted) || ""
+          : "",
       driverLicence: assignedDriver
         ? decryptData(assignedDriver.licenceEncrypted) || ""
         : v.driverLicenceEncrypted
-        ? decryptData(v.driverLicenceEncrypted) || ""
-        : "",
+          ? decryptData(v.driverLicenceEncrypted) || ""
+          : "",
       driverMobile: assignedDriver
         ? decryptData(assignedDriver.mobileEncrypted) || ""
         : v.driverMobileEncrypted
-        ? decryptData(v.driverMobileEncrypted) || ""
-        : "",
+          ? decryptData(v.driverMobileEncrypted) || ""
+          : "",
       conductorName: v.conductorNameEncrypted
         ? decryptData(v.conductorNameEncrypted) || ""
         : "",
@@ -585,11 +585,11 @@ export async function createDriver(data: {
   await sendSMS(
     formattedMobile,
     `Welcome to ${school.name}!\n` +
-      `Your Bus Driver login credentials:\n` +
-      `Username/Email: ${loginEmail}\n` +
-      `Password: ${defaultPassword}\n` +
-      `Driver App: ${pwaUrl}\n` +
-      `Please change your password upon first login.`
+    `Your Bus Driver login credentials:\n` +
+    `Username/Email: ${loginEmail}\n` +
+    `Password: ${defaultPassword}\n` +
+    `Driver App: ${pwaUrl}\n` +
+    `Please change your password upon first login.`
   );
 
   // Audit log
