@@ -51,10 +51,11 @@ export async function flushQuietHoursNotifications(
       )
     : inArray(pushNotificationLogs.status, quietStatuses);
 
-  const queuedLogs = await txDb.query.pushNotificationLogs.findMany({
-    where: filter,
-    limit: 500,
-  });
+  const queuedLogs = await txDb
+    .update(pushNotificationLogs)
+    .set({ status: "PROCESSING" })
+    .where(filter)
+    .returning();
 
   if (!queuedLogs || queuedLogs.length === 0) {
     return { flushedCount: 0, skippedQuietCount: 0 };
