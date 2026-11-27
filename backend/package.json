@@ -1,6 +1,6 @@
 {
   "name": "@schoolmitra/backend",
-  "version": "11.60.11",
+  "version": "11.61.0",
   "private": true,
   "description": "SchoolMitra ERP Backend - Domain Services, Calculation Engines, tRPC Routers & Workers",
   "main": "./src/server/root.ts",
