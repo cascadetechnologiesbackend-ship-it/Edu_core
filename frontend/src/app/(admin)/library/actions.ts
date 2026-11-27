@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth, requireSchool } from "@/lib/serverAuth";
-import { db } from "@/db";
+import { db, withTenant } from "@/db";
 import {
   books,
   bookCopies,
@@ -220,18 +220,42 @@ export async function issueBook(rawData: unknown) {
     return { success: false, message: "Book copy is currently checked out" };
   }
 
-  // 3. Perform checkouts transaction
-  await db.transaction(async (tx) => {
-    // Set copy as unavailable
-    await tx
+  // 3. Perform atomic checkout inside tenant RLS context
+  const issueResult = await withTenant(schoolId, async (tx) => {
+    // Enforce maxBooksAllowed
+    const activeIssues = await tx
+      .select({ id: bookIssues.id })
+      .from(bookIssues)
+      .where(
+        and(
+          eq(bookIssues.schoolId, schoolId),
+          eq(bookIssues.libraryMemberId, member.id),
+          eq(bookIssues.status, "ISSUED"),
+        ),
+      );
+    if (activeIssues.length >= member.maxBooksAllowed) {
+      return {
+        success: false,
+        message: `Member has reached the maximum borrowing limit (${member.maxBooksAllowed} books).`,
+      };
+    }
+
+    // Atomically claim available copy
+    const [claimedCopy] = await tx
       .update(bookCopies)
       .set({ isAvailable: false })
       .where(
         and(
           eq(bookCopies.id, copy.id),
           eq(bookCopies.schoolId, schoolId),
+          eq(bookCopies.isAvailable, true),
         ),
-      );
+      )
+      .returning({ id: bookCopies.id });
+
+    if (!claimedCopy) {
+      return { success: false, message: "Book copy is currently checked out" };
+    }
 
     // Create checkout issue log
     const dueDate = new Date(
@@ -257,7 +281,13 @@ export async function issueBook(rawData: unknown) {
           eq(books.schoolId, schoolId),
         ),
       );
+
+    return { success: true };
   });
+
+  if (!issueResult.success) {
+    return issueResult;
+  }
 
   await logAuditEvent(makeAuditCtx(ctx), {
     schoolId,
@@ -292,8 +322,25 @@ export async function returnBook(rawData: unknown) {
     return { success: false, message: "Checkout issue log not found" };
   }
 
-  // 2. Return copy and log fines
-  await db.transaction(async (tx) => {
+  // 2. Return copy and log fines atomically inside tenant RLS context
+  const returnResult = await withTenant(schoolId, async (tx) => {
+    // Atomically transition issue log from ISSUED -> RETURNED
+    const [returnedIssue] = await tx
+      .update(bookIssues)
+      .set({ returnedAt: new Date(), status: "RETURNED" })
+      .where(
+        and(
+          eq(bookIssues.id, issue.id),
+          eq(bookIssues.schoolId, schoolId),
+          eq(bookIssues.status, "ISSUED"),
+        ),
+      )
+      .returning({ id: bookIssues.id });
+
+    if (!returnedIssue) {
+      return { success: false, message: "Book issue has already been returned" };
+    }
+
     // Mark copy as available
     await tx
       .update(bookCopies)
@@ -302,17 +349,6 @@ export async function returnBook(rawData: unknown) {
         and(
           eq(bookCopies.id, issue.bookCopyId),
           eq(bookCopies.schoolId, schoolId),
-        ),
-      );
-
-    // Update issue log returnedAt
-    await tx
-      .update(bookIssues)
-      .set({ returnedAt: new Date(), status: "RETURNED" })
-      .where(
-        and(
-          eq(bookIssues.id, issue.id),
-          eq(bookIssues.schoolId, schoolId),
         ),
       );
 
@@ -355,7 +391,13 @@ export async function returnBook(rawData: unknown) {
           ),
         );
     }
+
+    return { success: true };
   });
+
+  if (!returnResult.success) {
+    return returnResult;
+  }
 
   await logAuditEvent(makeAuditCtx(ctx), {
     schoolId,
