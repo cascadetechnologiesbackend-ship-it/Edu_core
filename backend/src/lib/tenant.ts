@@ -16,11 +16,14 @@ export interface TenantCapability {
 
 export class TenantSecurityService {
   public static getSigningSecret(): string {
-    const hmacKey = process.env.DATABASE_TENANT_HMAC_KEY;
+    const hmacKey =
+      process.env.DATABASE_TENANT_HMAC_KEY ||
+      process.env.ENCRYPTION_KEY ||
+      process.env.AUTH_SECRET;
     if (process.env.NODE_ENV === "production") {
       if (!hmacKey || hmacKey.length < 32) {
         throw new Error(
-          "FATAL: DATABASE_TENANT_HMAC_KEY must be configured and at least 32 characters in production."
+          "FATAL: DATABASE_TENANT_HMAC_KEY (or ENCRYPTION_KEY) must be configured and at least 32 characters in production."
         );
       }
       return hmacKey;
@@ -28,7 +31,6 @@ export class TenantSecurityService {
 
     return (
       hmacKey ||
-      process.env.ENCRYPTION_KEY ||
       "default-dev-tenant-hmac-key-must-be-at-least-32-chars"
     );
   }
