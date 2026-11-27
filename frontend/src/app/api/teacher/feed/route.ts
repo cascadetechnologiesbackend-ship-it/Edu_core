@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/serverAuth";
 import { db, withTenant } from "@/db";
-import { teacherFeedCards } from "@/db/schema";
+import { teacherFeedCards, staff } from "@/db/schema";
 import { eq, and, gt, asc, desc, isNull, sql } from "drizzle-orm";
 import { assembleTeacherSnapshot } from "@/lib/teacherEventEngine/snapshotAssembler";
 import { deriveTeacherFeed } from "@/lib/teacherEventEngine/deriveTeacherFeed";
@@ -30,10 +30,31 @@ export async function GET(req: Request) {
     }
 
     const now = new Date();
-    const teacherUserId = session.user.id;
+    const isPreviewRole =
+      session.user.role === "SUPER_ADMIN" ||
+      session.user.role === "SCHOOL_ADMIN" ||
+      session.user.role === "PRINCIPAL";
+    const { searchParams } = new URL(req.url);
+    const requestedPreviewTeacherId = isPreviewRole
+      ? searchParams.get("previewTeacherId")?.trim() || undefined
+      : undefined;
 
     // Assemble snapshot, derive cards, and sync in database inside withTenant
     const result = await withTenant(schoolId, async (tx) => {
+      let teacherUserId = session.user.id;
+      if (requestedPreviewTeacherId) {
+        const previewStaff = await tx.query.staff.findFirst({
+          where: and(
+            eq(staff.userId, requestedPreviewTeacherId),
+            eq(staff.schoolId, schoolId)
+          ),
+          columns: { userId: true },
+        });
+        if (previewStaff?.userId) {
+          teacherUserId = previewStaff.userId;
+        }
+      }
+
       const snapshot = await assembleTeacherSnapshot(schoolId, teacherUserId, now, tx);
       const derivedCards = deriveTeacherFeed(teacherUserId, now, snapshot);
       await syncTeacherFeedCards(schoolId, teacherUserId, derivedCards, tx);

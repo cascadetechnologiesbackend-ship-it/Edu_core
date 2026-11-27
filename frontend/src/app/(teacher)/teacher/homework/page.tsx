@@ -12,8 +12,8 @@ export default async function TeacherHomeworkPage({
   searchParams,
 }: {
   searchParams?:
-    | Promise<{ sectionId?: string; classSubjectId?: string; locale?: string }>
-    | { sectionId?: string; classSubjectId?: string; locale?: string };
+    | Promise<{ sectionId?: string; classSubjectId?: string; assignmentId?: string; locale?: string }>
+    | { sectionId?: string; classSubjectId?: string; assignmentId?: string; locale?: string };
 }) {
   const resolvedParams =
     searchParams instanceof Promise ? await searchParams : searchParams || {};
@@ -40,6 +40,7 @@ export default async function TeacherHomeworkPage({
         initialHomeworkList={homeworkList}
         allocations={allocations}
         syllabusTopics={syllabusTopics}
+        initialAssignmentId={resolvedParams.assignmentId}
         locale={resolvedParams.locale || "en"}
       />
     </Suspense>

@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   Coffee,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -41,6 +42,9 @@ export function NowNextFeedCard({
   const totalPeriodsCount = payload.totalPeriodsCount ?? 0;
   const completedPeriodsCount = payload.completedPeriodsCount ?? 0;
   const minutesRemaining = payload.minutesRemaining ?? 0;
+  const isSetupMissing =
+    Boolean(payload.isSetupMissing) ||
+    (totalPeriodsCount === 0 && !currentPeriod && !nextPeriod);
 
   const isHi = locale === "hi";
   const titleStr = card.title[locale as "en" | "hi"] || card.title.en;
@@ -209,6 +213,18 @@ export function NowNextFeedCard({
                         </button>
                       </div>
                     )}
+                  </div>
+                ) : isSetupMissing ? (
+                  <div
+                    data-testid="now-cockpit-setup-missing"
+                    className="text-xs text-amber-300 py-2 flex items-center gap-2 font-medium"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      {isHi
+                        ? "समय सारिणी अप्रकाशित / आवंटन लंबित"
+                        : "Timetable Not Published / Allocation Pending"}
+                    </span>
                   </div>
                 ) : (
                   <div className="text-xs text-slate-300 italic py-2 flex items-center gap-2">

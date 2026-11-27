@@ -4994,6 +4994,62 @@ export const ENTITY_GRAPH: Record<string, CatalogEntity> = {
     "searchableFields": ["name"],
     "tags": ["admissions", "templates"],
     "relationships": []
+  },
+  "question_bank": {
+    "tableName": "question_bank",
+    "drizzleExport": "questionBank",
+    "domain": "EXAMINATIONS",
+    "displayName": "Question Bank",
+    "description": "NCERT/PARAKH-aligned school question bank items with competency, cognitive level, and review status.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["questionText", "learningOutcome", "competencyTag"],
+    "tags": ["examinations", "question-bank", "parakh"],
+    "relationships": []
+  },
+  "question_paper_blueprints": {
+    "tableName": "question_paper_blueprints",
+    "drizzleExport": "questionPaperBlueprints",
+    "domain": "EXAMINATIONS",
+    "displayName": "Question Paper Blueprints",
+    "description": "Structured exam paper blueprints defining sections, competency, difficulty, and chapter weightage.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["name"],
+    "tags": ["examinations", "blueprints"],
+    "relationships": []
+  },
+  "question_papers": {
+    "tableName": "question_papers",
+    "drizzleExport": "questionPapers",
+    "domain": "EXAMINATIONS",
+    "displayName": "Question Papers",
+    "description": "Assembled examination question papers with set codes, moderation status, and versioning.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["title", "setCode"],
+    "tags": ["examinations", "question-papers"],
+    "relationships": []
+  },
+  "question_paper_items": {
+    "tableName": "question_paper_items",
+    "drizzleExport": "questionPaperItems",
+    "domain": "EXAMINATIONS",
+    "displayName": "Question Paper Items",
+    "description": "Ordered question items mapped to sections and marks within a question paper.",
+    "primaryKey": ["id"],
+    "tenantKey": "schoolId",
+    "isTenantScoped": true,
+    "piiColumns": [],
+    "searchableFields": ["sectionLabel"],
+    "tags": ["examinations", "question-papers"],
+    "relationships": []
   }
 };
 

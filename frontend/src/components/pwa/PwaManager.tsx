@@ -91,8 +91,9 @@ export function PwaManager() {
         }
       }
     } else if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`${basePath}/sw.js`)
         .then((registration) => {
           if (registration.waiting) {
             setWaitingWorker(registration.waiting);
@@ -342,8 +343,15 @@ export function PwaManager() {
         </div>
       )}
 
-      {/* ─── Discrete Floating Install Button on Mobile (When modal is dismissed) ─── */}
-      {!showInstallModal && !isStandalone && !isInstalled && isMobile && (
+      {/* ─── Discrete Floating Install Button on Mobile (Hidden on role PWAs with BottomNav) ─── */}
+      {!showInstallModal &&
+        !isStandalone &&
+        !isInstalled &&
+        isMobile &&
+        !pathname?.startsWith("/teacher") &&
+        !pathname?.startsWith("/parent") &&
+        !pathname?.startsWith("/student") &&
+        !pathname?.startsWith("/driver") && (
         <button
           onClick={() => setShowInstallModal(true)}
           className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[99990] flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/95 border border-indigo-500/40 text-white shadow-xl shadow-black/50 text-xs font-semibold backdrop-blur-md active:scale-95 transition hover:border-indigo-400 hover:bg-slate-800"

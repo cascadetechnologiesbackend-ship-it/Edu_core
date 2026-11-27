@@ -331,6 +331,8 @@ export default function LoginForm() {
           result.error.toLowerCase().includes("too many")
         ) {
           setServerError("Too many login attempts. Please wait a moment and try again.");
+        } else if (result.error === "Configuration") {
+          setServerError("Authentication service configuration error. Please contact your administrator.");
         } else {
           try {
             const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -377,6 +379,8 @@ export default function LoginForm() {
             ? `${basePath}/force-password-change?next=${encodeURIComponent(finalRedirect)}`
             : `/force-password-change?next=${encodeURIComponent(finalRedirect)}`;
           window.location.replace(forceUrl);
+        } else if (result.error === "Configuration") {
+          setServerError("Authentication service configuration error. Please contact your administrator.");
         } else {
           window.location.replace(finalRedirect);
         }
@@ -726,10 +730,10 @@ export default function LoginForm() {
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill("cascadetechnologiessolutions@gmail.com", "P4jkbnixj4@")}
+                onClick={() => handleQuickFill("principal@demo.schoolos.io")}
                 className="px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-[11px] font-medium text-muted-foreground hover:text-foreground transition active:scale-95 text-center truncate"
               >
-                Super Admin
+                Principal
               </button>
             </div>
           </div>

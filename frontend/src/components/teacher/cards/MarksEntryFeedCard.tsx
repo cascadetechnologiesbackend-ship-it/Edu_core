@@ -54,9 +54,9 @@ export function MarksEntryFeedCard({
         onClick: () =>
           topWindow
             ? router.push(
-                `/teacher/grading?examId=${topWindow.examId}&sectionId=${topWindow.sectionId}&subjectId=${topWindow.subjectId}`
+                `/teacher/grading?tab=exams&classId=${topWindow.classId || ""}&subjectId=${topWindow.subjectId}&examId=${topWindow.examId}`
               )
-            : router.push("/teacher/grading"),
+            : router.push("/teacher/grading?tab=exams"),
       }}
     />
   );

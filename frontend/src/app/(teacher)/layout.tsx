@@ -15,6 +15,7 @@ import { ExamTelemetryProvider } from "@/components/telemetry/ExamTelemetryProvi
 const TEACHER_NAV_ITEMS = [
   { label: "Today", href: "/teacher/dashboard", icon: "LayoutDashboard" },
   { label: "Classes", href: "/teacher/classes", icon: "BookOpen" },
+  { label: "Work", href: "/teacher/work", icon: "Briefcase" },
   { label: "Gradebook", href: "/teacher/grading", icon: "FileSpreadsheet" },
   { label: "More", href: "/teacher/more", icon: "MoreHorizontal" },
 ];

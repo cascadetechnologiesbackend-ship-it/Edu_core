@@ -63,7 +63,11 @@ export function LeaveQueueFeedCard({
                 </p>
               </div>
               <span className="text-[10px] text-amber-400 font-medium shrink-0 ml-2">
-                {req.startDate}
+                {req.startDate instanceof Date
+                  ? req.startDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+                  : typeof req.startDate === "string"
+                    ? new Date(req.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+                    : ""}
               </span>
             </div>
           ))}

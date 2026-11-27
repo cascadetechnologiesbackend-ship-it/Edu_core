@@ -20,7 +20,7 @@ export const metadata = {
 export default async function TeacherDashboardPage({
   searchParams,
 }: {
-  searchParams?: { locale?: string };
+  searchParams?: { locale?: string; previewTeacherId?: string };
 }) {
   const ctx = await requireAuth([
     "SUPER_ADMIN",
@@ -30,9 +30,16 @@ export default async function TeacherDashboardPage({
   ] as const);
   const school = await requireSchool(ctx);
   const schoolId = school.id;
-  const userId = ctx.userId;
   const locale = searchParams?.locale || "en";
   const now = new Date();
+
+  const isPreviewRole =
+    ctx.role === "SCHOOL_ADMIN" ||
+    ctx.role === "SUPER_ADMIN" ||
+    ctx.role === "PRINCIPAL";
+  const requestedPreviewTeacherId = isPreviewRole
+    ? searchParams?.previewTeacherId?.trim() || undefined
+    : undefined;
 
   // Execute snapshot assembly, feed derivation, and profile query inside tenant boundary
   const {
@@ -46,20 +53,35 @@ export default async function TeacherDashboardPage({
     isSetupMissing,
     missingAllocationsSummary,
     isDayComplete,
+    resolvedPreviewTeacherId,
   } = await withTenant(
     schoolId,
     async (tx) => {
+      let targetUserId = ctx.userId;
+      if (requestedPreviewTeacherId) {
+        const previewStaff = await tx.query.staff.findFirst({
+          where: and(
+            eq(staff.userId, requestedPreviewTeacherId),
+            eq(staff.schoolId, schoolId)
+          ),
+          columns: { userId: true },
+        });
+        if (previewStaff?.userId) {
+          targetUserId = previewStaff.userId;
+        }
+      }
+
       // 1. Resolve Scope & Snapshot
-      const scope = await resolveTeacherScope(userId, { tx, schoolId });
-      const snapshot = await assembleTeacherSnapshot(schoolId, userId, now, tx);
+      const scope = await resolveTeacherScope(targetUserId, { tx, schoolId });
+      const snapshot = await assembleTeacherSnapshot(schoolId, targetUserId, now, tx);
 
       // 2. Derive Cards & Persist
-      const cards = deriveTeacherFeed(userId, now, snapshot);
-      await syncTeacherFeedCards(schoolId, userId, cards, tx);
+      const cards = deriveTeacherFeed(targetUserId, now, snapshot);
+      await syncTeacherFeedCards(schoolId, targetUserId, cards, tx);
 
       // 3. Resolve Teacher Identity & Teaching Allocations
       const staffMember = await tx.query.staff.findFirst({
-        where: and(eq(staff.userId, userId), eq(staff.schoolId, schoolId)),
+        where: and(eq(staff.userId, targetUserId), eq(staff.schoolId, schoolId)),
       });
 
       let teacherName = "Educator";
@@ -156,9 +178,20 @@ export default async function TeacherDashboardPage({
         isSetupMissing,
         missingAllocationsSummary,
         isDayComplete,
+        resolvedPreviewTeacherId:
+          targetUserId !== ctx.userId ? targetUserId : undefined,
       };
     }
   );
+
+  const previewContext = isPreviewRole
+    ? {
+        isPreviewMode: true,
+        viewerRole: ctx.role,
+        returnHref: ctx.role === "PRINCIPAL" ? "/principal/dashboard" : "/dashboard",
+        previewTeacherId: resolvedPreviewTeacherId,
+      }
+    : undefined;
 
   return (
     <TeacherFeedContainer
@@ -179,6 +212,8 @@ export default async function TeacherDashboardPage({
       isSetupMissing={isSetupMissing}
       missingAllocationsSummary={missingAllocationsSummary}
       isDayComplete={isDayComplete}
+      previewContext={previewContext}
+      isDemo={Boolean((school as any).isDemo)}
     />
   );
 }

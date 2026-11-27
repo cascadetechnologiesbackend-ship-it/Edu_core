@@ -295,6 +295,33 @@ export default function MyDayTimeline({
     );
   }
 
+  const hasAssignedPeriods = periods.some((p) => !p.isFree);
+  if (
+    !hasAssignedPeriods &&
+    (!missingAllocationsSummary || missingAllocationsSummary.length === 0)
+  ) {
+    return (
+      <div
+        data-testid="timeline-no-allocation-card"
+        className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-3"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+          <BookOpen className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-bold text-white">
+          {isHi
+            ? "कोई शिक्षण आवंटन सक्रिय नहीं है"
+            : "No Teaching Allocation Active"}
+        </h3>
+        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          {isHi
+            ? "आपको अभी तक कोई कक्षा या विषय आवंटित नहीं किया गया है। कृपया अपने स्कूल प्रशासक से संपर्क करें।"
+            : "You do not have any active class or subject allocations yet. Please contact your school administrator to assign your teaching schedule."}
+        </p>
+      </div>
+    );
+  }
+
   // Filter topics relevant to the current period's classSubjectId (or show all if no match)
   const filteredTopics = modalPeriod?.classSubjectId
     ? syllabusTopics.filter(

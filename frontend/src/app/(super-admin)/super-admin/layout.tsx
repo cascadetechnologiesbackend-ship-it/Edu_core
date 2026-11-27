@@ -54,12 +54,12 @@ export default async function SuperAdminLayout({
   const userName = session.user.name ?? "Platform Super Admin";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground font-sans antialiased">
+    <div className="flex flex-1 min-h-0 overflow-hidden bg-background text-foreground font-sans antialiased">
       {/* Platform Sidebar - Desktop */}
       <PlatformSidebar userEmail={userEmail} userName={userName} />
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
         {/* Global Platform Header */}
         <PlatformHeader userEmail={userEmail} userName={userName} />
 

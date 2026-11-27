@@ -57,6 +57,27 @@ const DAY_OF_WEEK_NAMES: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRI
 ];
 
 /**
+ * Strips HTML tags, converts block/break tags to spaces, decodes common HTML
+ * entities, and normalizes whitespace into plain text.
+ */
+export function stripHtmlToPlainText(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, " ")
+    .replace(/<li[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&#x27;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Assembles a comprehensive TeacherDataSnapshot inside tenant boundary.
  * Strictly respects resolveTeacherScope so teachers only see their own sections and students.
  */
@@ -72,7 +93,10 @@ export async function assembleTeacherSnapshot(
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const todayStr: string = now.toISOString().split("T")[0]!;
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const todayStr: string = `${yyyy}-${mm}-${dd}`;
   const nowMs = now.getTime();
   const dayOfWeekNumber = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   const dayOfWeekEnumVal = dayOfWeekNumber >= 1 && dayOfWeekNumber <= 6 ? DAY_OF_WEEK_NAMES[dayOfWeekNumber] : null;
@@ -326,7 +350,7 @@ export async function assembleTeacherSnapshot(
           const sec = sectionContextMap.get(ts.sectionId);
           const sub = subjectContextMap.get(ts.subjectId);
 
-          const configuredMax = distMap.get(ts.subjectId);
+          const configuredMax = distMap.get(`${ts.subjectId}:${(ts as any).classId || ""}`) ?? distMap.get(ts.subjectId);
           const resolvedMaxMarks = typeof configuredMax === "number"
             ? configuredMax
             : (sub?.maxMarks ?? 100);
@@ -607,10 +631,11 @@ export async function assembleTeacherSnapshot(
   });
 
   for (const n of noticeRows) {
+    const plainContent = stripHtmlToPlainText(n.content || "");
     noticesList.push({
       id: n.id,
-      title: n.title,
-      contentPreview: n.content ? n.content.substring(0, 100) : "",
+      title: stripHtmlToPlainText(n.title || ""),
+      contentPreview: plainContent.substring(0, 100),
       publishedAt: n.publishedAt || now,
       isPinned: n.isPinned,
       audience: n.audienceType,
@@ -689,7 +714,8 @@ export async function assembleTeacherSnapshot(
           where: and(
             eq(lessonPlans.schoolId, schoolId),
             eq(lessonPlans.teacherId, teacherUserId),
-            eq(lessonPlans.status, "COMPLETED")
+            eq(lessonPlans.status, "COMPLETED"),
+            gte(lessonPlans.completedDate, startOfDay)
           ),
         })
       : [];
@@ -978,10 +1004,10 @@ export async function assembleTeacherSnapshot(
     pendingClassworkPeriods,
   };
 
-  const hasAllocations =
-    scope.teachingSections.length > 0 || scope.classTeacherSections.length > 0;
   const isSetupMissing =
-    isWorkingDay && hasAllocations && (!timetableToday || timetableToday.length === 0);
+    isWorkingDay &&
+    (scope.teachingSections.length === 0 ||
+      (scope.teachingSections.length > 0 && (!timetableToday || timetableToday.length === 0)));
   const missingAllocationsSummary: string[] = [];
 
   if (isSetupMissing) {

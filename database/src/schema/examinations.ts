@@ -18,7 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations, sql, isNull, isNotNull } from "drizzle-orm";
 import { schools, academicYears, users } from "./core";
-import { classes, subjects } from "./academics";
+import { classes, subjects, syllabusChapters, syllabusTopics } from "./academics";
 import { students } from "./students";
 
 export const examTypeEnum = pgEnum("exam_type_enum", [
@@ -1486,4 +1486,271 @@ export const usageEventsRelations = relations(usageEvents, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ─── Phase D: Question Bank, Blueprints & Question Papers (NCERT/PARAKH) ──────
+
+export const questionTypeEnum = pgEnum("question_type_enum", [
+  "MCQ",
+  "MSQ",
+  "TRUE_FALSE",
+  "FILL_BLANK",
+  "MATCH",
+  "VSA",
+  "SA",
+  "LA",
+  "CASE_BASED",
+  "SOURCE_BASED",
+  "DIAGRAM",
+  "NUMERICAL",
+  "PRACTICAL",
+]);
+
+export const questionDifficultyEnum = pgEnum("question_difficulty_enum", [
+  "EASY",
+  "MEDIUM",
+  "HARD",
+]);
+
+export const cognitiveLevelEnum = pgEnum("cognitive_level_enum", [
+  "REMEMBER",
+  "UNDERSTAND",
+  "APPLY",
+  "ANALYZE",
+  "EVALUATE",
+  "CREATE",
+]);
+
+export const questionReviewStatusEnum = pgEnum("question_review_status_enum", [
+  "DRAFT",
+  "SUBMITTED",
+  "APPROVED",
+  "REJECTED",
+]);
+
+export const questionPaperSetCodeEnum = pgEnum("question_paper_set_code_enum", [
+  "A",
+  "B",
+  "C",
+]);
+
+export const questionPaperStatusEnum = pgEnum("question_paper_status_enum", [
+  "DRAFT",
+  "MODERATED",
+  "APPROVED",
+  "LOCKED",
+]);
+
+export const questionBank = pgTable(
+  "question_bank",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    board: text("board"),
+    academicYearId: uuid("academic_year_id").references(() => academicYears.id, {
+      onDelete: "set null",
+    }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "restrict" }),
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => subjects.id, { onDelete: "restrict" }),
+    syllabusChapterId: uuid("syllabus_chapter_id").references(
+      () => syllabusChapters.id,
+      { onDelete: "set null" },
+    ),
+    syllabusTopicId: uuid("syllabus_topic_id").references(
+      () => syllabusTopics.id,
+      { onDelete: "set null" },
+    ),
+    learningOutcome: text("learning_outcome"),
+    questionType: questionTypeEnum("question_type").notNull().default("MCQ"),
+    questionText: text("question_text").notNull(),
+    optionsJson: jsonb("options_json"),
+    correctAnswer: text("correct_answer"),
+    markingScheme: text("marking_scheme"),
+    explanation: text("explanation"),
+    maxMarks: numeric("max_marks", { precision: 6, scale: 2 })
+      .notNull()
+      .default("1"),
+    difficulty: questionDifficultyEnum("difficulty")
+      .notNull()
+      .default("MEDIUM"),
+    cognitiveLevel: cognitiveLevelEnum("cognitive_level")
+      .notNull()
+      .default("UNDERSTAND"),
+    competencyTag: text("competency_tag"),
+    language: text("language").notNull().default("en"),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    reviewStatus: questionReviewStatusEnum("review_status")
+      .notNull()
+      .default("DRAFT"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    schoolClassSubjectIdx: index("idx_qb_school_class_subject").on(
+      table.schoolId,
+      table.classId,
+      table.subjectId,
+    ),
+    schoolChapterIdx: index("idx_qb_school_chapter").on(
+      table.schoolId,
+      table.syllabusChapterId,
+    ),
+    schoolStatusIdx: index("idx_qb_school_status").on(
+      table.schoolId,
+      table.reviewStatus,
+    ),
+  }),
+);
+
+export const questionPaperBlueprints = pgTable(
+  "question_paper_blueprints",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    examId: uuid("exam_id").references(() => exams.id, {
+      onDelete: "set null",
+    }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "restrict" }),
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => subjects.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    totalMarks: integer("total_marks").notNull(),
+    durationMinutes: integer("duration_minutes").notNull().default(180),
+    sectionsJson: jsonb("sections_json").notNull().default(sql`'[]'::jsonb`),
+    competencyDistributionJson: jsonb("competency_distribution_json")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    difficultyDistributionJson: jsonb("difficulty_distribution_json")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    chapterWeightageJson: jsonb("chapter_weightage_json")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    schoolClassSubjectIdx: index("idx_qpb_school_class_subject").on(
+      table.schoolId,
+      table.classId,
+      table.subjectId,
+    ),
+  }),
+);
+
+export const questionPapers = pgTable(
+  "question_papers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    examId: uuid("exam_id").references(() => exams.id, {
+      onDelete: "set null",
+    }),
+    blueprintId: uuid("blueprint_id").references(
+      () => questionPaperBlueprints.id,
+      { onDelete: "set null" },
+    ),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "restrict" }),
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => subjects.id, { onDelete: "restrict" }),
+    title: text("title").notNull(),
+    setCode: questionPaperSetCodeEnum("set_code").notNull().default("A"),
+    totalMarks: integer("total_marks").notNull(),
+    durationMinutes: integer("duration_minutes").notNull().default(180),
+    status: questionPaperStatusEnum("status").notNull().default("DRAFT"),
+    version: integer("version").notNull().default(1),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    approvedById: uuid("approved_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    schoolClassSubjectIdx: index("idx_qp_school_class_subject").on(
+      table.schoolId,
+      table.classId,
+      table.subjectId,
+    ),
+    schoolStatusIdx: index("idx_qp_school_status").on(
+      table.schoolId,
+      table.status,
+    ),
+  }),
+);
+
+export const questionPaperItems = pgTable(
+  "question_paper_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "restrict" }),
+    questionPaperId: uuid("question_paper_id")
+      .notNull()
+      .references(() => questionPapers.id, { onDelete: "cascade" }),
+    questionId: uuid("question_id")
+      .notNull()
+      .references(() => questionBank.id, { onDelete: "restrict" }),
+    sectionLabel: text("section_label").notNull().default("Section A"),
+    orderIndex: integer("order_index").notNull().default(1),
+    marks: numeric("marks", { precision: 6, scale: 2 }).notNull(),
+    isOptional: boolean("is_optional").notNull().default(false),
+  },
+  (table) => ({
+    paperQuestionUnique: unique("uq_qpi_paper_question").on(
+      table.questionPaperId,
+      table.questionId,
+    ),
+    paperOrderIdx: index("idx_qpi_paper_order").on(
+      table.questionPaperId,
+      table.orderIndex,
+    ),
+  }),
+);
+
+export type QuestionBankItem = typeof questionBank.$inferSelect;
+export type NewQuestionBankItem = typeof questionBank.$inferInsert;
+export type QuestionPaperBlueprint = typeof questionPaperBlueprints.$inferSelect;
+export type NewQuestionPaperBlueprint =
+  typeof questionPaperBlueprints.$inferInsert;
+export type QuestionPaper = typeof questionPapers.$inferSelect;
+export type NewQuestionPaper = typeof questionPapers.$inferInsert;
+export type QuestionPaperItem = typeof questionPaperItems.$inferSelect;
+export type NewQuestionPaperItem = typeof questionPaperItems.$inferInsert;
 

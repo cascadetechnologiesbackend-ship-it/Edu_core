@@ -12,6 +12,7 @@ export interface TeacherIdentityHeaderProps {
   isClassTeacher?: boolean | undefined;
   classTeacherSectionName?: string | undefined;
   locale?: string | undefined;
+  isDemo?: boolean | undefined;
   className?: string | undefined;
 }
 
@@ -23,6 +24,7 @@ export function TeacherIdentityHeader({
   isClassTeacher = false,
   classTeacherSectionName,
   locale = "en",
+  isDemo = false,
   className,
 }: TeacherIdentityHeaderProps) {
   // Extract initials
@@ -75,6 +77,11 @@ export function TeacherIdentityHeader({
             <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
               <School className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <span className="truncate max-w-[240px] sm:max-w-xs">{schoolName}</span>
+              {isDemo && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                  [DEMO]
+                </span>
+              )}
             </div>
           </div>
         </div>

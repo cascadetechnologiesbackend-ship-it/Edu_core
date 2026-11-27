@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { Eye, ArrowLeft } from "lucide-react";
 import { TeacherIdentityHeader } from "./TeacherIdentityHeader";
 import { TeacherTodayStrip } from "./TeacherTodayStrip";
 import { AttendanceNowFeedCard } from "./cards/AttendanceNowFeedCard";
@@ -18,6 +20,14 @@ import { ClassworkPendingFeedCard } from "./cards/ClassworkPendingFeedCard";
 import { AttendanceWorkbench } from "./AttendanceWorkbench";
 import type { DerivedTeacherFeedCard } from "@/lib/teacherEventEngine/types";
 import { useQuery } from "@tanstack/react-query";
+import { completeLessonPlanAction } from "@/app/(teacher)/teacher/classes/classesActions";
+
+export interface TeacherPreviewContext {
+  isPreviewMode: boolean;
+  viewerRole: string;
+  returnHref: string;
+  previewTeacherId?: string | undefined;
+}
 
 export interface TeacherFeedContainerProps {
   initialCards: DerivedTeacherFeedCard[];
@@ -38,6 +48,8 @@ export interface TeacherFeedContainerProps {
   isSetupMissing?: boolean | undefined;
   missingAllocationsSummary?: string[] | undefined;
   isDayComplete?: boolean | undefined;
+  previewContext?: TeacherPreviewContext | undefined;
+  isDemo?: boolean | undefined;
 }
 
 export function isNightQuietHours(date: Date = new Date()): boolean {
@@ -65,6 +77,8 @@ export function TeacherFeedContainer({
   isSetupMissing = false,
   missingAllocationsSummary = [],
   isDayComplete,
+  previewContext,
+  isDemo = false,
 }: TeacherFeedContainerProps) {
   const isNight = isNightOverride ?? isNightQuietHours(now ?? new Date());
   const effectiveIsDayComplete =
@@ -78,9 +92,12 @@ export function TeacherFeedContainer({
   // React Query polling for live updates
   // T1 cards poll at 60s, normal feed at 5min, paused during night quiet hours
   const { data: cards = initialCards, refetch } = useQuery<DerivedTeacherFeedCard[]>({
-    queryKey: ["teacher-feed"],
+    queryKey: ["teacher-feed", previewContext?.previewTeacherId ?? "self"],
     queryFn: async () => {
-      const res = await fetch("/api/teacher/feed");
+      const url = previewContext?.previewTeacherId
+        ? `/api/teacher/feed?previewTeacherId=${encodeURIComponent(previewContext.previewTeacherId)}`
+        : "/api/teacher/feed";
+      const res = await fetch(url);
       if (!res.ok) return initialCards;
       const json = await res.json();
       return json.cards || [];
@@ -96,6 +113,30 @@ export function TeacherFeedContainer({
 
   return (
     <div className="w-full space-y-4 overflow-x-hidden">
+      {/* Explicit Preview Mode Banner for Admin/Principal */}
+      {previewContext?.isPreviewMode && (
+        <div
+          data-testid="teacher-preview-banner"
+          className="rounded-2xl border border-amber-500/30 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-200 flex items-center justify-between gap-3 backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              {locale === "hi"
+                ? `${previewContext.viewerRole} प्रीव्यू मोड में शिक्षक कार्यक्षेत्र देख रहे हैं`
+                : `Viewing Teacher Workspace in ${previewContext.viewerRole} Preview Mode`}
+            </span>
+          </div>
+          <Link
+            href={previewContext.returnHref}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-500/30 transition shrink-0"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            {locale === "hi" ? "अपने डैशबोर्ड पर लौटें" : "Back to Workspace"}
+          </Link>
+        </div>
+      )}
+
       {/* 1. Teacher Identity Header */}
       <TeacherIdentityHeader
         teacherName={teacherName}
@@ -105,6 +146,7 @@ export function TeacherFeedContainer({
         isClassTeacher={isClassTeacher}
         classTeacherSectionName={classTeacherSectionName}
         locale={locale}
+        isDemo={isDemo}
       />
 
       {/* 2. Today Strip (Day summary, Rest-Day strip, or Calm Day-Complete strip) */}
@@ -165,6 +207,21 @@ export function TeacherFeedContainer({
                   key={card.id}
                   card={card}
                   locale={locale}
+                  onLessonComplete={async () => {
+                    const currentPeriod = card.payload?.currentPeriod;
+                    const res = await completeLessonPlanAction({
+                      lessonPlanId: currentPeriod?.lessonPlanId,
+                      classSubjectId: currentPeriod?.classSubjectId,
+                      sectionId: currentPeriod?.sectionId,
+                      title: currentPeriod?.subjectName
+                        ? `${currentPeriod.subjectName} — Period ${currentPeriod.periodNumber}`
+                        : undefined,
+                    });
+                    if (!res.success) {
+                      throw new Error(res.message);
+                    }
+                    await refetch();
+                  }}
                 />
               );
             }

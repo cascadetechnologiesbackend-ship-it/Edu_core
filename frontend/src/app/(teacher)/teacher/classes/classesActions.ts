@@ -455,9 +455,16 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<Teacher
         b.periodType === "LUNCH" ||
         b.periodType === "FREE";
 
+      const classId = effectivePeriod?.section?.class?.id;
+      const subjectId = effectivePeriod?.subject?.id;
+      const classSubjectId = classId && subjectId ? csMap.get(`${classId}_${subjectId}`) : undefined;
+
       let lessonPlanInfo: MyDayPeriodItem["lessonPlan"] = undefined;
       if (effectivePeriod?.subjectId) {
-        const lp = plans.find((p: any) => p.status !== "COMPLETED") || plans[0];
+        const lp = classSubjectId
+          ? plans.find((p: any) => p.classSubjectId === classSubjectId && p.status !== "COMPLETED") ||
+            plans.find((p: any) => p.classSubjectId === classSubjectId)
+          : undefined;
         if (lp) {
           lessonPlanInfo = {
             id: lp.id,
@@ -470,10 +477,6 @@ export async function getTeacherMyDayTimeline(dateStr?: string): Promise<Teacher
           };
         }
       }
-
-      const classId = effectivePeriod?.section?.class?.id;
-      const subjectId = effectivePeriod?.subject?.id;
-      const classSubjectId = classId && subjectId ? csMap.get(`${classId}_${subjectId}`) : undefined;
 
       timeline.push({
         periodNumber: b.periodNumber,

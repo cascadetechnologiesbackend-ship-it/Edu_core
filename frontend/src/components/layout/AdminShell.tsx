@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar, type SidebarCurrentUser } from "./Sidebar";
 import { Header } from "./Header";
 import { MobileBottomNav } from "./MobileBottomNav";
@@ -25,12 +26,25 @@ export function AdminShell({
   schoolName: explicitSchoolName,
 }: AdminShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
   const activeSchoolName = impersonationData?.schoolName || explicitSchoolName;
   const isDemoSchool = activeSchoolName?.includes("DEMO") ?? false;
 
+  // Release any lingering body scroll lock and reset scroll position when navigating between modules
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "";
+      document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }
+  }, [pathname]);
+
   return (
-    <div className="flex flex-1 overflow-hidden min-h-0 relative">
-      {/* Sidebar with mobile drawer support and desktop inline mode */}
+    <div className="flex flex-1 min-h-0 overflow-hidden relative">
+      {/* Sidebar with mobile drawer support and desktop fixed inline mode */}
       <Sidebar
         userRole={effectiveRole as any}
         currentUser={currentUser}
@@ -40,7 +54,7 @@ export function AdminShell({
       />
 
       {/* Main content column */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
         {isDemoSchool && (
           <div className="bg-semantic-attention/10 border-b border-semantic-attention/20 px-4 py-1.5 text-xs text-semantic-attention flex items-center justify-between font-medium shrink-0">
             <span className="flex items-center gap-2">

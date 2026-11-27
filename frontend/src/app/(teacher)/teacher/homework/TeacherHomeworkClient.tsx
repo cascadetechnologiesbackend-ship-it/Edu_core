@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import {
   BookOpen,
   Plus,
@@ -34,6 +34,7 @@ export interface TeacherHomeworkClientProps {
   initialHomeworkList: TeacherHomeworkItem[];
   allocations: TeacherAllocationOption[];
   syllabusTopics: SyllabusTopicOption[];
+  initialAssignmentId?: string | undefined;
   locale?: string;
 }
 
@@ -41,6 +42,7 @@ export function TeacherHomeworkClient({
   initialHomeworkList,
   allocations,
   syllabusTopics,
+  initialAssignmentId,
   locale = "en",
 }: TeacherHomeworkClientProps) {
   const isHi = locale === "hi";
@@ -242,6 +244,15 @@ export function TeacherHomeworkClient({
       }
     });
   };
+
+  useEffect(() => {
+    if (!initialAssignmentId) return;
+    const target = initialHomeworkList.find((hw) => hw.id === initialAssignmentId);
+    if (target) {
+      handleOpenRoster(target);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAssignmentId]);
 
   const handleGradeStudent = (
     studentId: string,

@@ -45,13 +45,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/favicon.ico` },
+      { url: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/icon-192.png`, sizes: "192x192", type: "image/png" },
+      { url: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/icon-512.png`, sizes: "512x512", type: "image/png" },
+      { url: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/icon.svg`, type: "image/svg+xml" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
     ],
   },
   manifest: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/manifest.json`,
@@ -99,7 +99,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-background antialiased font-sans">
+      <body className="h-dvh flex flex-col overflow-hidden bg-background antialiased font-sans">
         <Providers>
           <DemoTopBanner />
           <Suspense fallback={null}>
@@ -107,7 +107,9 @@ export default function RootLayout({
             <ClarityScript />
           </Suspense>
           <PwaManager />
-          {children}
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+            {children}
+          </div>
         </Providers>
       </body>
     </html>

@@ -247,6 +247,7 @@ export function deriveTeacherFeed(
           totalPeriodsCount,
           completedPeriodsCount,
           minutesRemaining,
+          isSetupMissing: Boolean(snapshot.isSetupMissing),
         },
         activatedAt: now,
         expiresAt,
